@@ -1,30 +1,115 @@
 package main
 
-// Note: this file is copied from https://github.com/emicklei/go-restful-openapi/blob/master/examples/user-resource.go
-
 import (
-	"flag"
+	"fmt"
 	"net/http"
+	"strings"
 
-	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/interal/service"
+	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/service"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
 	"github.com/inconshreveable/log15"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+const (
+	CFG_FILE_TYPE = "yaml"
 )
 
 var (
+	version   = "devel"
 	revision  string
+	gitsha1   string
 	builddate string
+	cfgFile   string
 )
 
+var rootCmd = &cobra.Command{
+	Use:     "maas-api [ADDR]",
+	Short:   "an api to offer metal as a service",
+	Version: getVersionString(),
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		initLogging()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		run()
+	},
+}
+
 func main() {
-	flag.Parse()
+	if err := rootCmd.Execute(); err != nil {
+		log15.Error("failed executing root command", "error", err)
+	}
+}
+
+func init() {
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
+	rootCmd.Flags().StringP("log-level", "", "info", "the application log level")
+	rootCmd.Flags().StringP("log-formatter", "", "text", "the application log fromatter (text or json)")
+	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
+	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
+
+	viper.BindPFlags(rootCmd.Flags())
+}
+
+func initConfig() {
+	viper.SetEnvPrefix("MAAS_API")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+
+	viper.SetConfigType(CFG_FILE_TYPE)
+
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+		if err := viper.ReadInConfig(); err != nil {
+			log15.Error("Config file path set explicitly, but unreadble", "error", err)
+		}
+	} else {
+		viper.SetConfigName("config")
+		viper.AddConfigPath("/etc/maas-api")
+		viper.AddConfigPath("$HOME/.maas-api")
+		viper.AddConfigPath(".")
+		if err := viper.ReadInConfig(); err != nil {
+			usedCfg := viper.ConfigFileUsed()
+			if usedCfg != "" {
+				log15.Error("Config file unreadable", "config-file", usedCfg, "error", err)
+			}
+		}
+	}
+
+	usedCfg := viper.ConfigFileUsed()
+	if usedCfg != "" {
+		log15.Info("Read config file", "config-file", usedCfg)
+	}
+}
+
+func initLogging() {
+}
+
+func getVersionString() string {
+	var versionString = version
+	if gitsha1 != "" {
+		versionString += " (" + gitsha1 + ")"
+	}
+	if revision != "" {
+		versionString += ", " + revision
+	}
+	if builddate != "" {
+		versionString += ", " + builddate
+	}
+	return versionString
+}
+
+func run() {
 	restful.DefaultContainer.Add(service.NewFacility())
 
 	config := restfulspec.Config{
-		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:                       "/apidocs.json",
+		WebServices: restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:     "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 
@@ -36,8 +121,9 @@ func main() {
 		Container:      restful.DefaultContainer}
 	restful.DefaultContainer.Filter(cors.Filter)
 
-	log15.Info("start maas api", "revision", revision, "builddate", builddate, "address", flag.Arg(0))
-	http.ListenAndServe(flag.Arg(0), nil)
+	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
+	log15.Info("start maas api", "revision", revision, "builddate", builddate, "address", addr)
+	http.ListenAndServe(addr, nil)
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {

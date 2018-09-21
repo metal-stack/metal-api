@@ -39,7 +39,7 @@ var (
 
 // NewFacility returns a new Facility endpoint
 func NewFacility() *restful.WebService {
-	fr := facilityRessource{
+	fr := facilityResource{
 		facilities: make(map[string]*maas.Facility),
 	}
 	for _, df := range dummyFacilities {
@@ -48,14 +48,14 @@ func NewFacility() *restful.WebService {
 	return fr.webService()
 }
 
-// The facilityRessource ist the entrypoint for the whole facility endpoints
-type facilityRessource struct {
+// The facilityResource ist the entrypoint for the whole facility endpoints
+type facilityResource struct {
 	// dummy as long we do not have a database
 	facilities map[string]*maas.Facility
 }
 
 // webService creates the webservice endpoint
-func (fr facilityRessource) webService() *restful.WebService {
+func (fr facilityResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path("/facility").
@@ -64,7 +64,7 @@ func (fr facilityRessource) webService() *restful.WebService {
 
 	tags := []string{"facility"}
 
-	ws.Route(ws.GET("/").To(fr.findAllRessources).
+	ws.Route(ws.GET("/").To(fr.findAllResources).
 		Doc("get all facilities").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Facility{}).
@@ -104,7 +104,7 @@ func (fr facilityRessource) webService() *restful.WebService {
 	return ws
 }
 
-func (fr facilityRessource) findAllRessources(request *restful.Request, response *restful.Response) {
+func (fr facilityResource) findAllResources(request *restful.Request, response *restful.Response) {
 	var res []*maas.Facility
 	for _, f := range fr.facilities {
 		res = append(res, f)
@@ -112,7 +112,7 @@ func (fr facilityRessource) findAllRessources(request *restful.Request, response
 	response.WriteEntity(res)
 }
 
-func (fr facilityRessource) getFacility(request *restful.Request, response *restful.Response) {
+func (fr facilityResource) getFacility(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	f, ok := fr.facilities[id]
 	if ok {
@@ -122,7 +122,7 @@ func (fr facilityRessource) getFacility(request *restful.Request, response *rest
 	}
 }
 
-func (fr facilityRessource) deleteFacility(request *restful.Request, response *restful.Response) {
+func (fr facilityResource) deleteFacility(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	f, ok := fr.facilities[id]
 	if ok {
@@ -133,7 +133,7 @@ func (fr facilityRessource) deleteFacility(request *restful.Request, response *r
 	}
 }
 
-func (fr facilityRessource) createFacility(request *restful.Request, response *restful.Response) {
+func (fr facilityResource) createFacility(request *restful.Request, response *restful.Response) {
 	var f maas.Facility
 	err := request.ReadEntity(&f)
 	if err != nil {
@@ -148,7 +148,7 @@ func (fr facilityRessource) createFacility(request *restful.Request, response *r
 	response.WriteHeaderAndEntity(http.StatusCreated, f)
 }
 
-func (fr facilityRessource) updateFacility(request *restful.Request, response *restful.Response) {
+func (fr facilityResource) updateFacility(request *restful.Request, response *restful.Response) {
 	var f maas.Facility
 	err := request.ReadEntity(&f)
 	if err != nil {
