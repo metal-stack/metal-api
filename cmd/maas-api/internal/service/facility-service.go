@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"git.f-i-ts.de/ize0h88/maas-service/pkg/maas"
@@ -64,15 +65,9 @@ func (fr facilityResource) webService() *restful.WebService {
 
 	tags := []string{"facility"}
 
-	ws.Route(ws.GET("/").To(fr.findAllResources).
-		Doc("get all facilities").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Facility{}).
-		Returns(http.StatusOK, "OK", []maas.Facility{}))
-
-	ws.Route(ws.GET("/{id}").To(fr.getFacility).
-		Doc("get a facility").
-		Param(ws.PathParameter("id", "identifier of the facility").DataType("string")).
+	ws.Route(ws.GET("/").To(fr.getFacility).
+		Doc("get facilities").
+		Param(ws.QueryParameter("id", "identifier of the facility").DataType("string").AllowMultiple(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(maas.Facility{}).
 		Returns(http.StatusOK, "OK", maas.Facility{}).
@@ -104,22 +99,28 @@ func (fr facilityResource) webService() *restful.WebService {
 	return ws
 }
 
-func (fr facilityResource) findAllResources(request *restful.Request, response *restful.Response) {
-	var res []*maas.Facility
+func (fr facilityResource) getFacility(request *restful.Request, response *restful.Response) {
+	ids := strings.Split(request.QueryParameter("id"), ",")
+	res := []*maas.Facility{}
 	for _, f := range fr.facilities {
-		res = append(res, f)
+		if ids == nil {
+			res = append(res, f)
+		} else {
+			if stringInSlice(f.ID, ids) {
+				res = append(res, f)
+			}
+		}
 	}
 	response.WriteEntity(res)
 }
 
-func (fr facilityResource) getFacility(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	f, ok := fr.facilities[id]
-	if ok {
-		response.WriteEntity(f)
-	} else {
-		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("Facility with id %q not found", id))
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
 	}
+	return false
 }
 
 func (fr facilityResource) deleteFacility(request *restful.Request, response *restful.Response) {
