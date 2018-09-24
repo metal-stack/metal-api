@@ -107,15 +107,6 @@ func (ir imageResource) getImage(request *restful.Request, response *restful.Res
 	response.WriteEntity(res)
 }
 
-func uuidInSlice(a uuid.UUID, list []string) bool {
-	for _, b := range list {
-		if b == a.String() {
-			return true
-		}
-	}
-	return false
-}
-
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	i, ok := ir.images[id]
