@@ -127,6 +127,7 @@ func getVersionString() string {
 func run() {
 	restful.DefaultContainer.Add(service.NewFacility())
 	restful.DefaultContainer.Add(service.NewImage())
+	restful.DefaultContainer.Add(service.NewSize())
 
 	config := restfulspec.Config{
 		WebServices: restful.RegisteredWebServices(), // you control what services are visible
