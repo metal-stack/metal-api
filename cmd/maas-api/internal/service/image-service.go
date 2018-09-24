@@ -15,7 +15,7 @@ var (
 	// only to have something to test
 	dummyImages = []*maas.Image{
 		&maas.Image{
-			ID:          uuid.NewV4(),
+			ID:          uuid.Must(uuid.NewV4()),
 			Name:        "Discovery",
 			Description: "Image for initial discovery",
 			Url:         "https://registry.maas/discovery/dicoverer:latest",
@@ -23,7 +23,7 @@ var (
 			Changed:     time.Now(),
 		},
 		&maas.Image{
-			ID:          uuid.NewV4(),
+			ID:          uuid.Must(uuid.NewV4()),
 			Name:        "Alpine 3.8",
 			Description: "Alpine 3.8",
 			Url:         "https://registry.maas/alpine/alpine:3.8",
