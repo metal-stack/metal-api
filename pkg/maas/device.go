@@ -3,7 +3,7 @@ package maas
 import "time"
 
 type Device struct {
-	UUID        string    `json:"id" description:"a unique ID" unique:"true" modelDescription:"A device representing a bare metal machine."`
+	ID          string    `json:"id" description:"a unique ID" unique:"true" modelDescription:"A device representing a bare metal machine."`
 	Name        string    `json:"name" description:"the name of the device"`
 	Description string    `json:"description" description:"a description for this machine" optional:"true"`
 	Created     time.Time `json:"created" description:"the creation time of this machine" optional:"true"`
