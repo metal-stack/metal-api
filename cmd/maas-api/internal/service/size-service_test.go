@@ -16,6 +16,7 @@ var (
 )
 
 func init() {
+	// dummy as long we do not have a database
 	sr = sizeResource{
 		sizes: make(map[string]*maas.Size),
 	}

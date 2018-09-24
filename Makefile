@@ -14,3 +14,6 @@ all: $(BINARY);
 
 up:
 	docker-compose up --build
+
+test:
+	go test -cover ./...
