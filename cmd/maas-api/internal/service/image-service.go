@@ -15,7 +15,7 @@ var (
 	// only to have something to test
 	dummyImages = []*maas.Image{
 		&maas.Image{
-			ID:          uuid.Must(uuid.NewV4()),
+			ID:          uuid.NewV4(),
 			Name:        "Discovery",
 			Description: "Image for initial discovery",
 			Url:         "https://registry.maas/discovery/dicoverer:latest",
@@ -23,7 +23,7 @@ var (
 			Changed:     time.Now(),
 		},
 		&maas.Image{
-			ID:          uuid.Must(uuid.NewV4()),
+			ID:          uuid.NewV4(),
 			Name:        "Alpine 3.8",
 			Description: "Alpine 3.8",
 			Url:         "https://registry.maas/alpine/alpine:3.8",
@@ -59,7 +59,7 @@ func (ir imageResource) webService() *restful.WebService {
 
 	ws.Route(ws.GET("/").To(ir.getImage).
 		Doc("get images").
-		Param(ws.QueryParameter("id", "identifier of the image").DataType("string")).
+		Param(ws.QueryParameter("id", "identifier of the image").AllowMultiple(true).DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Image{}).
 		Returns(http.StatusOK, "OK", []maas.Image{}))
@@ -91,7 +91,8 @@ func (ir imageResource) webService() *restful.WebService {
 }
 
 func (ir imageResource) getImage(request *restful.Request, response *restful.Response) {
-	ids := request.QueryParameters("id")
+	request.Request.ParseForm()
+	ids := request.Request.Form["id"]
 	res := []*maas.Image{}
 	for _, i := range ir.images {
 		if len(ids) == 0 {
