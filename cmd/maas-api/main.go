@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/service"
@@ -88,6 +89,25 @@ func initConfig() {
 }
 
 func initLogging() {
+	var formatHandler log15.Handler
+	if viper.GetString("log-formatter") == "json" {
+		formatHandler = log15.StreamHandler(os.Stdout, log15.JsonFormat())
+	} else if viper.GetString("log-formatter") == "text" {
+		formatHandler = log15.StdoutHandler
+	} else {
+		log15.Error("Unsupported log formatter", "log-formatter", viper.GetString("log-formatter"))
+		os.Exit(1)
+	}
+
+	level, err := log15.LvlFromString(viper.GetString("log-level"))
+	if err != nil {
+		log15.Error("Unparsable log level", "log-level", viper.GetString("log-level"))
+		os.Exit(1)
+	}
+
+	handler := log15.LvlFilterHandler(level, formatHandler)
+
+	log15.Root().SetHandler(handler)
 }
 
 func getVersionString() string {
