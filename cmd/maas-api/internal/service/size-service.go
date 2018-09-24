@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,7 +13,6 @@ import (
 )
 
 var (
-	// only to have something to test
 	dummySizes = []*maas.Size{
 		&maas.Size{
 			ID:          "t1.small.x86",
@@ -38,6 +38,11 @@ var (
 	}
 )
 
+type sizeResource struct {
+	// dummy as long we do not have a database
+	sizes map[string]*maas.Size
+}
+
 func NewSize() *restful.WebService {
 	sr := sizeResource{
 		sizes: make(map[string]*maas.Size),
@@ -46,11 +51,6 @@ func NewSize() *restful.WebService {
 		sr.sizes[ds.ID] = ds
 	}
 	return sr.webService()
-}
-
-type sizeResource struct {
-	// dummy as long we do not have a database
-	sizes map[string]*maas.Size
 }
 
 func (sr sizeResource) webService() *restful.WebService {
@@ -94,47 +94,75 @@ func (sr sizeResource) webService() *restful.WebService {
 
 	return ws
 }
-
 func (sr sizeResource) getSize(request *restful.Request, response *restful.Response) {
 	request.Request.ParseForm()
 	ids := request.Request.Form["id"]
-	res := []*maas.Size{}
-	for _, s := range sr.sizes {
-		if len(ids) == 0 {
-			res = append(res, s)
-		} else {
-			if utils.StringInSlice(s.ID, ids) {
-				res = append(res, s)
+	res := getSize(sr, ids)
+	response.WriteEntity(res)
+}
+
+func getSize(sr sizeResource, want []string) []*maas.Size {
+	all := sr.sizes
+	var res []*maas.Size
+
+	if len(want) == 0 {
+		for _, size := range all {
+			res = append(res, size)
+		}
+	} else {
+		for _, size := range all {
+			if utils.StringInSlice(size.ID, want) {
+				res = append(res, size)
 			}
 		}
 	}
-	response.WriteEntity(res)
+	return res
 }
 
 func (sr sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	s, ok := sr.sizes[id]
-	if ok {
-		delete(sr.sizes, id)
-		response.WriteEntity(s)
+	size, err := deleteSize(sr, id)
+	if err != nil {
+		response.WriteError(http.StatusNotFound, err)
 	} else {
-		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("size with id %q not found", id))
+		response.WriteEntity(size)
 	}
+}
+
+func deleteSize(sr sizeResource, id string) (*maas.Size, error) {
+	all := sr.sizes
+	size, ok := all[id]
+	if ok {
+		delete(all, id)
+	} else {
+		return nil, errors.New(fmt.Sprintf("size with id %q not found", id))
+	}
+	return size, nil
 }
 
 func (sr sizeResource) createSize(request *restful.Request, response *restful.Response) {
 	var s maas.Size
 	err := request.ReadEntity(&s)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size srom request: %v", err))
+		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
 		return
 	}
-	// well, check if this id already exist ... but
-	// we do not have a database, so this is ok here :-)
 	s.Created = time.Now()
 	s.Changed = s.Created
-	sr.sizes[s.ID] = &s
-	response.WriteHeaderAndEntity(http.StatusCreated, s)
+	err = createSize(sr, &s)
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot create size: %v", err))
+	} else {
+		response.WriteHeaderAndEntity(http.StatusCreated, s)
+	}
+}
+
+func createSize(sr sizeResource, s *maas.Size) error {
+	all := sr.sizes
+	// well, check if this id already exist ... but
+	// we do not have a database, so this is ok here :-)
+	all[s.ID] = s
+	return nil
 }
 
 func (sr sizeResource) updateSize(request *restful.Request, response *restful.Response) {
@@ -144,19 +172,29 @@ func (sr sizeResource) updateSize(request *restful.Request, response *restful.Re
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
 		return
 	}
-	old, ok := sr.sizes[s.ID]
+	returnCode, err := updateSize(sr, &s)
+
+	if err != nil {
+		response.WriteError(returnCode, err)
+	} else {
+		response.WriteHeaderAndEntity(http.StatusOK, s)
+	}
+}
+
+func updateSize(sr sizeResource, s *maas.Size) (int, error) {
+	all := sr.sizes
+
+	old, ok := all[s.ID]
 	if !ok {
-		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("size with id %q not found", s.ID))
-		return
+		return http.StatusNotFound, errors.New(fmt.Sprintf("size with id %q not found", s.ID))
 	}
 	if !s.Changed.Equal(old.Changed) {
-		response.WriteErrorString(http.StatusConflict, fmt.Sprintf("size with id %q was changed in the meantime", s.ID))
-		return
+		return http.StatusConflict, errors.New(fmt.Sprintf("size with id %q was changed in the meantime", s.ID))
 	}
 
 	s.Created = old.Created
 	s.Changed = time.Now()
 
-	sr.sizes[s.ID] = &s
-	response.WriteHeaderAndEntity(http.StatusOK, s)
+	all[s.ID] = s
+	return http.StatusOK, nil
 }
