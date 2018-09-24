@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/utils"
 	"git.f-i-ts.de/ize0h88/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -106,21 +107,12 @@ func (fr facilityResource) getFacility(request *restful.Request, response *restf
 		if ids == nil {
 			res = append(res, f)
 		} else {
-			if stringInSlice(f.ID, ids) {
+			if utils.StringInSlice(f.ID, ids) {
 				res = append(res, f)
 			}
 		}
 	}
 	response.WriteEntity(res)
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }
 
 func (fr facilityResource) deleteFacility(request *restful.Request, response *restful.Response) {

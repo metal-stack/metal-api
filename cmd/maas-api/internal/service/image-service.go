@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/utils"
 	"git.f-i-ts.de/ize0h88/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -15,7 +16,7 @@ var (
 	// only to have something to test
 	dummyImages = []*maas.Image{
 		&maas.Image{
-			ID:          uuid.Must(uuid.NewV4()),
+			ID:          uuid.Must(uuid.NewV4()).String(),
 			Name:        "Discovery",
 			Description: "Image for initial discovery",
 			Url:         "https://registry.maas/discovery/dicoverer:latest",
@@ -23,7 +24,7 @@ var (
 			Changed:     time.Now(),
 		},
 		&maas.Image{
-			ID:          uuid.Must(uuid.NewV4()),
+			ID:          uuid.Must(uuid.NewV4()).String(),
 			Name:        "Alpine 3.8",
 			Description: "Alpine 3.8",
 			Url:         "https://registry.maas/alpine/alpine:3.8",
@@ -38,7 +39,7 @@ func NewImage() *restful.WebService {
 		images: make(map[string]*maas.Image),
 	}
 	for _, di := range dummyImages {
-		ir.images[di.ID.String()] = di
+		ir.images[di.ID] = di
 	}
 	return ir.webService()
 }
@@ -98,7 +99,7 @@ func (ir imageResource) getImage(request *restful.Request, response *restful.Res
 		if len(ids) == 0 {
 			res = append(res, i)
 		} else {
-			if uuidInSlice(i.ID, ids) {
+			if utils.StringInSlice(i.ID, ids) {
 				res = append(res, i)
 			}
 		}
@@ -137,7 +138,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	// we do not have a database, so this is ok here :-)
 	i.Created = time.Now()
 	i.Changed = i.Created
-	ir.images[i.ID.String()] = &i
+	ir.images[i.ID] = &i
 	response.WriteHeaderAndEntity(http.StatusCreated, i)
 }
 
@@ -148,7 +149,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read image irom request: %v", err))
 		return
 	}
-	old, ok := ir.images[i.ID.String()]
+	old, ok := ir.images[i.ID]
 	if !ok {
 		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("image with id %q not found", i.ID))
 		return
@@ -161,6 +162,6 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	i.Created = old.Created
 	i.Changed = time.Now()
 
-	ir.images[i.ID.String()] = &i
+	ir.images[i.ID] = &i
 	response.WriteHeaderAndEntity(http.StatusOK, i)
 }
