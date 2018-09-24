@@ -27,7 +27,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     "maas-api [ADDR]",
+	Use:     "maas-api",
 	Short:   "an api to offer metal as a service",
 	Version: getVersionString(),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
