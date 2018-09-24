@@ -14,7 +14,8 @@ require (
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
+	github.com/satori/go.uuid v1.2.0
+	github.com/spf13/cobra v0.0.3
+	github.com/spf13/viper v1.2.0
 	golang.org/x/net v0.0.0-20180921000356-2f5d2388922f // indirect
-	golang.org/x/text v0.3.0 // indirect
-	gopkg.in/yaml.v2 v2.2.1 // indirect
 )
