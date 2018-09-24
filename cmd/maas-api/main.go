@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/service"
+	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
@@ -125,13 +126,18 @@ func getVersionString() string {
 }
 
 func run() {
+	log := log15.New("app", "maas-api")
+
 	restful.DefaultContainer.Add(service.NewFacility())
 	restful.DefaultContainer.Add(service.NewImage())
 	restful.DefaultContainer.Add(service.NewSize())
+	restful.DefaultContainer.Add(service.NewDevice(log))
+
+	restful.DefaultContainer.Filter(utils.RestulLogger(log))
 
 	config := restfulspec.Config{
-		WebServices: restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:     "/apidocs.json",
+		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:                       "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 
@@ -144,7 +150,7 @@ func run() {
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	log15.Info("start maas api", "revision", revision, "builddate", builddate, "address", addr)
+	log.Info("start maas api", "revision", revision, "builddate", builddate, "address", addr)
 	http.ListenAndServe(addr, nil)
 }
 
