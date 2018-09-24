@@ -4,7 +4,6 @@ networks:
   appl:
     driver: bridge
 
-
 services:
   swagger:
     image: swaggerapi/swagger-ui
@@ -16,6 +15,7 @@ services:
       - API_URL=http://localhost:8080/apidocs.json
 
   maas-api:
+    tty: true
     networks:
       - appl
     build:
