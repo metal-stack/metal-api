@@ -47,10 +47,20 @@ func NewSize() *restful.WebService {
 	sr := sizeResource{
 		sizes: make(map[string]*maas.Size),
 	}
-	for _, ds := range dummySizes {
-		sr.sizes[ds.ID] = ds
-	}
+	addDummySizes(sr.sizes)
 	return sr.webService()
+}
+
+func addDummySizes(sizes map[string]*maas.Size) {
+	for _, ds := range dummySizes {
+		sizes[ds.ID] = ds
+	}
+}
+
+func deleteSizes(sizes map[string]*maas.Size) {
+	for _, size := range sizes {
+		delete(sizes, size.ID)
+	}
 }
 
 func (sr sizeResource) webService() *restful.WebService {
