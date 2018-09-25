@@ -2,6 +2,8 @@ package maas
 
 import (
 	"time"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 type Image struct {
@@ -12,3 +14,24 @@ type Image struct {
 	Created     time.Time `json:"created" description:"the creation time of this image" optional:"true" readOnly:"true"`
 	Changed     time.Time `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true"`
 }
+
+var (
+	DummyImages = []*Image{
+		&Image{
+			ID:          uuid.Must(uuid.NewV4()).String(),
+			Name:        "Discovery",
+			Description: "Image for initial discovery",
+			Url:         "https://registry.maas/discovery/dicoverer:latest",
+			Created:     time.Now(),
+			Changed:     time.Now(),
+		},
+		&Image{
+			ID:          uuid.Must(uuid.NewV4()).String(),
+			Name:        "Alpine 3.8",
+			Description: "Alpine 3.8",
+			Url:         "https://registry.maas/alpine/alpine:3.8",
+			Created:     time.Now(),
+			Changed:     time.Now(),
+		},
+	}
+)

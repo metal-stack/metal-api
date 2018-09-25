@@ -6,8 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
-
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore/hashmapstore"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
@@ -132,14 +131,14 @@ func run() {
 	log := log15.New("app", "maas-api")
 
 	// as long as we have not database
-	datastore := datastore.NewHashmapStore()
+	datastore := hashmapstore.NewHashmapStore()
 	if viper.GetBool("with-mock-data") {
 		datastore.AddMockData()
 		log15.Info("Initialized mock data")
 	}
 
 	restful.DefaultContainer.Add(service.NewFacility())
-	restful.DefaultContainer.Add(service.NewImage())
+	restful.DefaultContainer.Add(service.NewImage(datastore))
 	restful.DefaultContainer.Add(service.NewSize(datastore))
 	restful.DefaultContainer.Add(service.NewDevice(log))
 

@@ -15,7 +15,6 @@ type sizeResource struct {
 	ds datastore.Datastore
 }
 
-// NewSize returns a new size endpoint
 func NewSize(ds datastore.Datastore) *restful.WebService {
 	sr := sizeResource{
 		ds: ds,
@@ -76,7 +75,7 @@ func (sr sizeResource) findSize(request *restful.Request, response *restful.Resp
 	id := request.PathParameter("id")
 	size, err := sr.ds.FindSize(id)
 	if err != nil {
-		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the device-id %q was not found", id))
+		response.WriteError(http.StatusNotFound, err)
 	}
 	response.WriteEntity(size)
 }
@@ -123,7 +122,7 @@ func (sr sizeResource) updateSize(request *restful.Request, response *restful.Re
 
 	oldSize, err := sr.ds.FindSize(newSize.ID)
 	if err != nil {
-		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the device-id %q was not found", newSize.ID))
+		response.WriteError(http.StatusNotFound, err)
 		return
 	}
 

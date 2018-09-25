@@ -1,45 +1,16 @@
-package datastore
+package hashmapstore
 
 import (
 	"fmt"
 	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
-	"github.com/inconshreveable/log15"
-	"github.com/spf13/viper"
 )
-
-type HashmapStore struct {
-	sizes map[string]*maas.Size
-}
-
-func NewHashmapStore() *HashmapStore {
-	return &HashmapStore{
-		sizes: make(map[string]*maas.Size),
-	}
-}
-
-func (h HashmapStore) Connect() {
-	if viper.GetBool("with-mock-data") {
-		h.AddMockData()
-		log15.Info("Initialized mock data")
-	}
-
-	log15.Info("HashmapStore connected")
-}
-
-func (h HashmapStore) AddMockData() {
-	h.addDummySizes()
-}
 
 func (h HashmapStore) addDummySizes() {
 	for _, size := range maas.DummySizes {
 		h.sizes[size.ID] = size
 	}
-}
-
-func (h HashmapStore) Close() {
-	log15.Info("HashmapStore disconnected")
 }
 
 func (h HashmapStore) FindSize(id string) (*maas.Size, error) {

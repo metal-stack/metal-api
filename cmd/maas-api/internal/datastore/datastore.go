@@ -8,6 +8,7 @@ type Datastore interface {
 	Connect()
 	Close()
 	AddMockData()
+	// Size
 	FindSize(id string) (*maas.Size, error)
 	SearchSize()
 	ListSizes() []*maas.Size
@@ -15,4 +16,12 @@ type Datastore interface {
 	DeleteSize(id string) (*maas.Size, error)
 	DeleteSizes()
 	UpdateSize(oldSize *maas.Size, newSize *maas.Size) error
+	// Image
+	FindImage(id string) (*maas.Image, error)
+	SearchImage()
+	ListImages() []*maas.Image
+	CreateImage(size *maas.Image) error
+	DeleteImage(id string) (*maas.Image, error)
+	DeleteImages()
+	UpdateImage(oldImage *maas.Image, newImage *maas.Image) error
 }
