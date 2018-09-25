@@ -5,7 +5,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 
-	"git.f-i-ts.de/ize0h88/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/mitchellh/mapstructure"

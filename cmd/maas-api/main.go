@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/service"
-	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/service"
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
@@ -136,8 +136,8 @@ func run() {
 	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
 
 	config := restfulspec.Config{
-		WebServices: restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:     "/apidocs.json",
+		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:                       "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 

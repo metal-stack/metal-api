@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/utils"
-	"git.f-i-ts.de/ize0h88/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	"github.com/stretchr/testify/suite"
 )

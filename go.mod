@@ -1,4 +1,4 @@
-module git.f-i-ts.de/ize0h88/maas-service
+module git.f-i-ts.de/cloud-native/maas/maas-service
 
 require (
 	github.com/PuerkitoBio/purell v1.1.0 // indirect
@@ -11,18 +11,13 @@ require (
 	github.com/go-openapi/swag v0.0.0-20180908172849-dd0dad036e67 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/mapstructure v1.0.0
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.0
 	github.com/stretchr/testify v1.2.2
-	golang.org/x/net v0.0.0-20180921000356-2f5d2388922f // indirect
+	golang.org/x/net v0.0.0-20180925072008-f04abc6bdfa7 // indirect
 )
