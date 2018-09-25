@@ -1,0 +1,9 @@
+image: registry.cloud.fits/fits/builder:7
+
+stages:
+    - build
+
+compile:
+    stage: build
+    script:
+      - make
