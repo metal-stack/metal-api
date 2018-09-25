@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -20,6 +21,8 @@ type lshwInformation struct {
 		UUID string `json:"uuid"`
 	} `json:"configuration"`
 }
+
+type lshwElement map[string]interface{}
 
 type devicePool struct {
 	all       map[string]*maas.Device
@@ -69,7 +72,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("search devices").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Device{}).
+		Writes(maas.Device{}).
 		Returns(http.StatusOK, "OK", maas.Device{}).
 		Returns(http.StatusNotFound, "No device with MAC found", nil))
 
@@ -112,9 +115,13 @@ func (dr deviceResource) findDevice(request *restful.Request, response *restful.
 		http.Error(response, msg, http.StatusNotFound)
 		return
 	}
-	res := []*maas.Device{}
-	// todo: search by MAC
-	response.WriteEntity(res)
+	for _, d := range dr.pool.all {
+		if d.HasMAC(mac) {
+			response.WriteEntity(d)
+			return
+		}
+	}
+	response.WriteError(http.StatusNotFound, fmt.Errorf("MAC %q not found", mac))
 }
 
 func (dr deviceResource) registerDevice(request *restful.Request, response *restful.Response) {
@@ -132,8 +139,36 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		http.Error(response, "Cannot decode required lshw information", http.StatusInternalServerError)
 		return
 	}
-	var result maas.Device
+	result, has := dr.pool.all[info.Configuration.UUID]
+	resultStatus := http.StatusOK
+	if !has {
+		result = new(maas.Device)
+		resultStatus = http.StatusCreated
+	}
+	var macs []lshwElement
 	result.ID = info.Configuration.UUID
+	searchNetworkEntries(data, &macs)
+	for _, m := range macs {
+		result.MACAddresses = append(result.MACAddresses, m["serial"].(string))
+	}
+	dr.pool.all[info.Configuration.UUID] = result
+	response.WriteHeaderAndEntity(resultStatus, result)
+}
 
-	response.WriteEntity(result)
+func searchNetworkEntries(data map[string]interface{}, result *[]lshwElement) {
+	clzz, has := data["class"]
+	if !has {
+		return
+	}
+	if clzz == "network" {
+		*result = append(*result, data)
+	}
+	child, has := data["children"]
+	if has {
+		childs := child.([]interface{})
+		for i := range childs {
+			cc := childs[i]
+			searchNetworkEntries(cc.(map[string]interface{}), result)
+		}
+	}
 }
