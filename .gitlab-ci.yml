@@ -1,9 +1,25 @@
 image: registry.cloud.fits/fits/builder:7
 
 stages:
+    - test
     - build
+    - push
+
+test:  
+    stage: test
+    script: make test-ci
+    except:
+      - prod
 
 compile:
     stage: build
     script:
       - make
+    except:
+      - prod
+
+push:
+    stage: push
+    script: docker-make -s
+    only:
+      - prod

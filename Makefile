@@ -16,4 +16,7 @@ up:
 	docker-compose up --build
 
 test:
-	go test -cover ./...
+	go test -cover ./... 
+
+test-ci:
+	go test ./... -coverprofile=coverage.out && go tool cover -func=coverage.out | tail -n 1; rm coverage.out
