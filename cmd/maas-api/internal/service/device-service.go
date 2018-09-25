@@ -60,9 +60,16 @@ func (dr deviceResource) webService() *restful.WebService {
 
 	tags := []string{"device"}
 
-	ws.Route(ws.GET("/").To(dr.getDevice).
-		Doc("get devices").
-		Param(ws.QueryParameter("id", "identifier of the device").DataType("string").AllowMultiple(true)).
+	ws.Route(ws.GET("/{id}").To(dr.getDevice).
+		Doc("get device by id").
+		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(maas.Device{}).
+		Returns(http.StatusOK, "OK", maas.Device{}).
+		Returns(http.StatusNotFound, "Not Found", nil))
+
+	ws.Route(ws.GET("/").To(dr.getDevices).
+		Doc("get all known devices").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Device{}).
 		Returns(http.StatusOK, "OK", []maas.Device{}).
@@ -71,10 +78,10 @@ func (dr deviceResource) webService() *restful.WebService {
 	ws.Route(ws.GET("/find").To(dr.findDevice).
 		Doc("search devices").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
+		Param(ws.QueryParameter("projectid", "search for devices with the givne projectid").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Device{}).
-		Returns(http.StatusOK, "OK", maas.Device{}).
-		Returns(http.StatusNotFound, "No device with MAC found", nil))
+		Writes([]maas.Device{}).
+		Returns(http.StatusOK, "OK", []maas.Device{}))
 
 	ws.Route(ws.POST("/register").To(dr.registerDevice).
 		Doc("register a device").
@@ -88,40 +95,42 @@ func (dr deviceResource) webService() *restful.WebService {
 }
 
 func (dr deviceResource) getDevice(request *restful.Request, response *restful.Response) {
-	request.Request.ParseForm()
-	ids := request.Request.Form["id"]
-	res := []*maas.Device{}
-	if len(ids) == 0 {
-		for _, d := range dr.pool.all {
-			res = append(res, d)
-		}
-	} else {
-		for _, id := range ids {
-			dev, has := dr.pool.all[id]
-			if has {
-				res = append(res, dev)
-			}
-		}
+	id := request.PathParameter("id")
+	if d, ok := dr.pool.all[id]; ok {
+		response.WriteEntity(d)
+		return
 	}
+	response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the device-id %q was not found", id))
+}
 
+func (dr deviceResource) getDevices(request *restful.Request, response *restful.Response) {
+	res := make([]*maas.Device, 0)
+	for _, v := range dr.pool.all {
+		res = append(res, v)
+	}
 	response.WriteEntity(res)
 }
 
 func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
+	prjid := strings.TrimSpace(request.QueryParameter("projectid"))
+
 	if mac == "" {
 		msg := "empty MAC in findDevice"
 		dr.Logger.Info(msg)
 		http.Error(response, msg, http.StatusNotFound)
 		return
 	}
+	result := make([]*maas.Device, 0)
 	for _, d := range dr.pool.all {
+		if prjid != "" && d.Project != prjid {
+			continue
+		}
 		if d.HasMAC(mac) {
-			response.WriteEntity(d)
-			return
+			result = append(result, d)
 		}
 	}
-	response.WriteError(http.StatusNotFound, fmt.Errorf("MAC %q not found", mac))
+	response.WriteEntity(result)
 }
 
 func (dr deviceResource) registerDevice(request *restful.Request, response *restful.Response) {
