@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -65,13 +64,19 @@ func (fr facilityResource) webService() *restful.WebService {
 
 	tags := []string{"facility"}
 
-	ws.Route(ws.GET("/").To(fr.getFacility).
-		Doc("get facilities").
-		Param(ws.QueryParameter("id", "identifier of the facility").DataType("string").AllowMultiple(true)).
+	ws.Route(ws.GET("/{id}").To(fr.getFacility).
+		Doc("get facility by id").
+		Param(ws.PathParameter("id", "identifier of the facility").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(maas.Facility{}).
 		Returns(http.StatusOK, "OK", maas.Facility{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
+
+	ws.Route(ws.GET("/").To(fr.getFacilities).
+		Doc("get all facilities").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]maas.Facility{}).
+		Returns(http.StatusOK, "OK", maas.Facility{}))
 
 	ws.Route(ws.DELETE("/{id}").To(fr.deleteFacility).
 		Doc("delete a facility and returns the deleted entity").
@@ -100,17 +105,18 @@ func (fr facilityResource) webService() *restful.WebService {
 }
 
 func (fr facilityResource) getFacility(request *restful.Request, response *restful.Response) {
-	request.Request.ParseForm()
-	ids := request.Request.Form["id"]
-	res := []*maas.Facility{}
-	for _, f := range fr.facilities {
-		if ids == nil {
-			res = append(res, f)
-		} else {
-			if utils.StringInSlice(f.ID, ids) {
-				res = append(res, f)
-			}
-		}
+	id := request.PathParameter("id")
+	if d, ok := fr.facilities[id]; ok {
+		response.WriteEntity(d)
+		return
+	}
+	response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the facility-id %q was not found", id))
+}
+
+func (fr facilityResource) getFacilities(request *restful.Request, response *restful.Response) {
+	res := make([]*maas.Facility, 0)
+	for _, v := range fr.facilities {
+		res = append(res, v)
 	}
 	response.WriteEntity(res)
 }

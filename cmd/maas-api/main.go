@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	CFG_FILE_TYPE = "yaml"
+	cfgFileType = "yaml"
 )
 
 var (
@@ -63,7 +63,7 @@ func initConfig() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
-	viper.SetConfigType(CFG_FILE_TYPE)
+	viper.SetConfigType(cfgFileType)
 
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
@@ -136,8 +136,8 @@ func run() {
 	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
 
 	config := restfulspec.Config{
-		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:                       "/apidocs.json",
+		WebServices: restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:     "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 

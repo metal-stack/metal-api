@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -34,6 +33,7 @@ var (
 	}
 )
 
+// NewImage returns a new Image endpoint
 func NewImage() *restful.WebService {
 	ir := imageResource{
 		images: make(map[string]*maas.Image),
@@ -58,9 +58,16 @@ func (ir imageResource) webService() *restful.WebService {
 
 	tags := []string{"image"}
 
-	ws.Route(ws.GET("/").To(ir.getImage).
-		Doc("get images").
-		Param(ws.QueryParameter("id", "identifier of the image").AllowMultiple(true).DataType("string")).
+	ws.Route(ws.GET("/{id}").To(ir.getImage).
+		Doc("get image by id").
+		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(maas.Image{}).
+		Returns(http.StatusOK, "OK", maas.Image{}).
+		Returns(http.StatusNotFound, "Not Found", nil))
+
+	ws.Route(ws.GET("/").To(ir.getImages).
+		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Image{}).
 		Returns(http.StatusOK, "OK", []maas.Image{}))
@@ -92,17 +99,18 @@ func (ir imageResource) webService() *restful.WebService {
 }
 
 func (ir imageResource) getImage(request *restful.Request, response *restful.Response) {
-	request.Request.ParseForm()
-	ids := request.Request.Form["id"]
-	res := []*maas.Image{}
-	for _, i := range ir.images {
-		if len(ids) == 0 {
-			res = append(res, i)
-		} else {
-			if utils.StringInSlice(i.ID, ids) {
-				res = append(res, i)
-			}
-		}
+	id := request.PathParameter("id")
+	if d, ok := ir.images[id]; ok {
+		response.WriteEntity(d)
+		return
+	}
+	response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the image-id %q was not found", id))
+}
+
+func (ir imageResource) getImages(request *restful.Request, response *restful.Response) {
+	res := make([]*maas.Image, 0)
+	for _, v := range ir.images {
+		res = append(res, v)
 	}
 	response.WriteEntity(res)
 }

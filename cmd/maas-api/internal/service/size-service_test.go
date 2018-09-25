@@ -53,25 +53,22 @@ func (s *SizeTestSuite) TestGetSizes() {
 	s.Assert().Equal(len(dummySizes), len(result), "Not all sizes were returned")
 }
 
-func (s *SizeTestSuite) TestGetSpecificSizes() {
-	ids := []string{"t1.small.x86", "m2.xlarge.x86"}
-	httpWriter, httpRequest := utils.HttpMock("GET", fmt.Sprintf("/size?id=%s&id=%s", ids[0], ids[1]), "")
+func (s *SizeTestSuite) TestGetSize() {
+	size := dummySizes[0]
+	httpWriter, httpRequest := utils.HttpMock("GET", fmt.Sprintf("/size/%s", size.ID), "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
-	var result []*maas.Size
+	var result *maas.Size
 	resp, _, err := utils.ParseHTTPResponse(s.T(), httpWriter, &result)
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	s.Assert().Len(result, len(ids), "More than two sizes were returned")
-	for _, size := range result {
-		s.Assert().Contains(ids, size.ID, "Size not contained in result")
-	}
+	s.Assert().Equal(size.ID, result.ID, "Size was not returned")
 }
 
 func (s *SizeTestSuite) TestDeletingSize() {
 	sizeToDelete := "m2.xlarge.x86"
-	beforeSizes := getSize(s.sr, []string{})
+	beforeSizes := getSizes(s.sr)
 	httpWriter, httpRequest := utils.HttpMock("DELETE", fmt.Sprintf("/size/%s", sizeToDelete), "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -81,7 +78,7 @@ func (s *SizeTestSuite) TestDeletingSize() {
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
 	s.Assert().Equal(sizeToDelete, result.ID, "Deleted size id was not returned")
-	afterSizes := getSize(s.sr, []string{})
+	afterSizes := getSizes(s.sr)
 	s.Assert().NotContains(afterSizes, sizeToDelete, "Deleted size still exists")
 	s.Assert().Len(afterSizes, len(beforeSizes)-1, "Same amount of sizes before and after deletion")
 }
@@ -103,7 +100,7 @@ func (s *SizeTestSuite) TestCreateSize() {
 		Name:        "new.size.x86",
 		Description: "A test size.",
 	}
-	beforeSizes := getSize(s.sr, []string{})
+	beforeSizes := getSizes(s.sr)
 	httpWriter, httpRequest := utils.HttpMock("PUT", "/size", sizeToCreate)
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -112,10 +109,11 @@ func (s *SizeTestSuite) TestCreateSize() {
 
 	s.Assert().Equal(http.StatusCreated, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	afterSizes := getSize(s.sr, []string{})
+	afterSizes := getSizes(s.sr)
 	s.Assert().Len(afterSizes, len(beforeSizes)+1, "Same amount of sizes before and after creation")
-	createdSizes := getSize(s.sr, []string{sizeToCreate.ID})
-	s.Assert().Len(createdSizes, 1, "Size created more than once")
+	createdSize, err := getSize(s.sr, sizeToCreate.ID)
+	s.Require().Nil(err, "Created size not found")
+	s.Assert().Equal(createdSize.ID, sizeToCreate.ID, "Size created more than once")
 }
 
 func (s *SizeTestSuite) TestCreateSizeInvalidPayload() {
@@ -132,7 +130,7 @@ func (s *SizeTestSuite) TestCreateSizeInvalidPayload() {
 func (s *SizeTestSuite) TestUpdateSize() {
 	sizeToUpdate := dummySizes[0]
 	sizeToUpdate.Description = "Modified Description"
-	beforeSizes := getSize(s.sr, []string{})
+	beforeSizes := getSizes(s.sr)
 	httpWriter, httpRequest := utils.HttpMock("POST", "/size", sizeToUpdate)
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -141,10 +139,9 @@ func (s *SizeTestSuite) TestUpdateSize() {
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	afterSizes := getSize(s.sr, []string{})
+	afterSizes := getSizes(s.sr)
 	s.Assert().Len(afterSizes, len(beforeSizes), "Different amount of sizes after update")
-	updatedSizes := getSize(s.sr, []string{sizeToUpdate.ID})
-	s.Require().Len(updatedSizes, 1, "Updated size found more than once")
-	updatedSize := updatedSizes[0]
+	updatedSize, err := getSize(s.sr, sizeToUpdate.ID)
+	s.Require().Nil(err, "Updated size not found")
 	s.Assert().Equal(updatedSize.Description, sizeToUpdate.Description, "Field was not updated properly")
 }

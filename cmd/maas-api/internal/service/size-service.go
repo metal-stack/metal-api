@@ -1,12 +1,10 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -43,6 +41,7 @@ type sizeResource struct {
 	sizes map[string]*maas.Size
 }
 
+// NewSize returns a new size endpoint
 func NewSize() *restful.WebService {
 	sr := sizeResource{
 		sizes: make(map[string]*maas.Size),
@@ -72,9 +71,16 @@ func (sr sizeResource) webService() *restful.WebService {
 
 	tags := []string{"size"}
 
-	ws.Route(ws.GET("/").To(sr.getSize).
-		Doc("get sizes").
-		Param(ws.QueryParameter("id", "identifier of the size").AllowMultiple(true).DataType("string")).
+	ws.Route(ws.GET("/{id}").To(sr.getSize).
+		Doc("get sizes by id").
+		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(maas.Size{}).
+		Returns(http.StatusOK, "OK", maas.Image{}).
+		Returns(http.StatusNotFound, "Not Found", nil))
+
+	ws.Route(ws.GET("/").To(sr.getSizes).
+		Doc("get all sizes").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Size{}).
 		Returns(http.StatusOK, "OK", []maas.Size{}))
@@ -104,27 +110,32 @@ func (sr sizeResource) webService() *restful.WebService {
 
 	return ws
 }
+
 func (sr sizeResource) getSize(request *restful.Request, response *restful.Response) {
-	request.Request.ParseForm()
-	ids := request.Request.Form["id"]
-	res := getSize(sr, ids)
+	id := request.PathParameter("id")
+	size, err := getSize(sr, id)
+	if err != nil {
+		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the device-id %q was not found", id))
+	}
+	response.WriteEntity(size)
+}
+
+func getSize(sr sizeResource, id string) (*maas.Size, error) {
+	if s, ok := sr.sizes[id]; ok {
+		return s, nil
+	}
+	return nil, fmt.Errorf("size with id %q not found", id)
+}
+
+func (sr sizeResource) getSizes(request *restful.Request, response *restful.Response) {
+	res := getSizes(sr)
 	response.WriteEntity(res)
 }
 
-func getSize(sr sizeResource, want []string) []*maas.Size {
-	all := sr.sizes
-	var res []*maas.Size
-
-	if len(want) == 0 {
-		for _, size := range all {
-			res = append(res, size)
-		}
-	} else {
-		for _, size := range all {
-			if utils.StringInSlice(size.ID, want) {
-				res = append(res, size)
-			}
-		}
+func getSizes(sr sizeResource) []*maas.Size {
+	res := make([]*maas.Size, 0)
+	for _, v := range sr.sizes {
+		res = append(res, v)
 	}
 	return res
 }
@@ -145,7 +156,7 @@ func deleteSize(sr sizeResource, id string) (*maas.Size, error) {
 	if ok {
 		delete(all, id)
 	} else {
-		return nil, errors.New(fmt.Sprintf("size with id %q not found", id))
+		return nil, fmt.Errorf("size with id %q not found", id)
 	}
 	return size, nil
 }
@@ -196,10 +207,10 @@ func updateSize(sr sizeResource, s *maas.Size) (int, error) {
 
 	old, ok := all[s.ID]
 	if !ok {
-		return http.StatusNotFound, errors.New(fmt.Sprintf("size with id %q not found", s.ID))
+		return http.StatusNotFound, fmt.Errorf("size with id %q not found", s.ID)
 	}
 	if !s.Changed.Equal(old.Changed) {
-		return http.StatusConflict, errors.New(fmt.Sprintf("size with id %q was changed in the meantime", s.ID))
+		return http.StatusConflict, fmt.Errorf("size with id %q was changed in the meantime", s.ID)
 	}
 
 	s.Created = old.Created
