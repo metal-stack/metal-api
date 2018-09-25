@@ -16,7 +16,7 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-func RestulLogger(logger log15.Logger) restful.FilterFunction {
+func RestfulLogger(logger log15.Logger) restful.FilterFunction {
 	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 		chain.ProcessFilter(req, resp)
 		logger.Info("Rest Call",
