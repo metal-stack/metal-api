@@ -2,6 +2,7 @@ package service
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/inconshreveable/log15"
 
@@ -60,9 +61,17 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("get devices").
 		Param(ws.QueryParameter("id", "identifier of the device").DataType("string").AllowMultiple(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Facility{}).
-		Returns(http.StatusOK, "OK", maas.Facility{}).
+		Writes([]maas.Device{}).
+		Returns(http.StatusOK, "OK", []maas.Device{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
+
+	ws.Route(ws.GET("/find").To(dr.findDevice).
+		Doc("search devices").
+		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]maas.Device{}).
+		Returns(http.StatusOK, "OK", maas.Device{}).
+		Returns(http.StatusNotFound, "No device with MAC found", nil))
 
 	ws.Route(ws.POST("/register").To(dr.registerDevice).
 		Doc("register a device").
@@ -70,8 +79,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(maas.Device{}).
 		Returns(http.StatusOK, "OK", maas.Device{}).
-		Returns(http.StatusCreated, "Created", maas.Device{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusCreated, "Created", maas.Device{}))
 
 	return ws
 }
@@ -93,6 +101,19 @@ func (dr deviceResource) getDevice(request *restful.Request, response *restful.R
 		}
 	}
 
+	response.WriteEntity(res)
+}
+
+func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
+	mac := strings.TrimSpace(request.QueryParameter("mac"))
+	if mac == "" {
+		msg := "empty MAC in findDevice"
+		dr.Logger.Info(msg)
+		http.Error(response, msg, http.StatusNotFound)
+		return
+	}
+	res := []*maas.Device{}
+	// todo: search by MAC
 	response.WriteEntity(res)
 }
 
