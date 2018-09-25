@@ -23,5 +23,6 @@ services:
     ports:
       - "8080:8080"
     environment:
+      MAAS_API_WITH_MOCK_DATA: "true"
       MAAS_API_BIND_ADDR: 0.0.0.0
     command: /maas-api

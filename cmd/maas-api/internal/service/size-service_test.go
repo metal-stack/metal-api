@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
@@ -18,7 +19,7 @@ var (
 func init() {
 	// dummy as long we do not have a database
 	sr = sizeResource{
-		sizes: make(map[string]*maas.Size),
+		ds: datastore.NewHashmapStore(),
 	}
 	restful.Add(sr.webService())
 }
@@ -30,11 +31,11 @@ type SizeTestSuite struct {
 
 func (s *SizeTestSuite) SetupTest() {
 	s.sr = sr
-	addDummySizes(s.sr.sizes)
+	s.sr.ds.AddMockData()
 }
 
 func (s *SizeTestSuite) TearDownTest() {
-	deleteSizes(s.sr.sizes)
+	s.sr.ds.DeleteSizes()
 }
 
 func TestSizeTestSuite(t *testing.T) {
@@ -50,11 +51,11 @@ func (s *SizeTestSuite) TestGetSizes() {
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	s.Assert().Equal(len(dummySizes), len(result), "Not all sizes were returned")
+	s.Assert().Equal(len(maas.DummySizes), len(result), "Not all sizes were returned")
 }
 
 func (s *SizeTestSuite) TestGetSize() {
-	size := dummySizes[0]
+	size := maas.DummySizes[0]
 	httpWriter, httpRequest := utils.HttpMock("GET", fmt.Sprintf("/size/%s", size.ID), "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -68,7 +69,7 @@ func (s *SizeTestSuite) TestGetSize() {
 
 func (s *SizeTestSuite) TestDeletingSize() {
 	sizeToDelete := "m2.xlarge.x86"
-	beforeSizes := getSizes(s.sr)
+	beforeSizes := s.sr.ds.ListSizes()
 	httpWriter, httpRequest := utils.HttpMock("DELETE", fmt.Sprintf("/size/%s", sizeToDelete), "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -78,7 +79,7 @@ func (s *SizeTestSuite) TestDeletingSize() {
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
 	s.Assert().Equal(sizeToDelete, result.ID, "Deleted size id was not returned")
-	afterSizes := getSizes(s.sr)
+	afterSizes := s.sr.ds.ListSizes()
 	s.Assert().NotContains(afterSizes, sizeToDelete, "Deleted size still exists")
 	s.Assert().Len(afterSizes, len(beforeSizes)-1, "Same amount of sizes before and after deletion")
 }
@@ -100,7 +101,7 @@ func (s *SizeTestSuite) TestCreateSize() {
 		Name:        "new.size.x86",
 		Description: "A test size.",
 	}
-	beforeSizes := getSizes(s.sr)
+	beforeSizes := s.sr.ds.ListSizes()
 	httpWriter, httpRequest := utils.HttpMock("PUT", "/size", sizeToCreate)
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -109,9 +110,9 @@ func (s *SizeTestSuite) TestCreateSize() {
 
 	s.Assert().Equal(http.StatusCreated, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	afterSizes := getSizes(s.sr)
+	afterSizes := s.sr.ds.ListSizes()
 	s.Assert().Len(afterSizes, len(beforeSizes)+1, "Same amount of sizes before and after creation")
-	createdSize, err := getSize(s.sr, sizeToCreate.ID)
+	createdSize, err := s.sr.ds.FindSize(sizeToCreate.ID)
 	s.Require().Nil(err, "Created size not found")
 	s.Assert().Equal(createdSize.ID, sizeToCreate.ID, "Size created more than once")
 }
@@ -128,9 +129,9 @@ func (s *SizeTestSuite) TestCreateSizeInvalidPayload() {
 }
 
 func (s *SizeTestSuite) TestUpdateSize() {
-	sizeToUpdate := dummySizes[0]
+	sizeToUpdate := maas.DummySizes[0]
 	sizeToUpdate.Description = "Modified Description"
-	beforeSizes := getSizes(s.sr)
+	beforeSizes := s.sr.ds.ListSizes()
 	httpWriter, httpRequest := utils.HttpMock("POST", "/size", sizeToUpdate)
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -139,9 +140,9 @@ func (s *SizeTestSuite) TestUpdateSize() {
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	afterSizes := getSizes(s.sr)
+	afterSizes := s.sr.ds.ListSizes()
 	s.Assert().Len(afterSizes, len(beforeSizes), "Different amount of sizes after update")
-	updatedSize, err := getSize(s.sr, sizeToUpdate.ID)
+	updatedSize, err := s.sr.ds.FindSize(sizeToUpdate.ID)
 	s.Require().Nil(err, "Updated size not found")
 	s.Assert().Equal(updatedSize.Description, sizeToUpdate.Description, "Field was not updated properly")
 }

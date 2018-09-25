@@ -5,61 +5,22 @@ import (
 	"net/http"
 	"time"
 
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
 
-var (
-	dummySizes = []*maas.Size{
-		&maas.Size{
-			ID:          "t1.small.x86",
-			Name:        "t1.small.x86",
-			Description: "The Tiny But Mighty!",
-			Created:     time.Now(),
-			Changed:     time.Now(),
-		},
-		&maas.Size{
-			ID:          "m2.xlarge.x86",
-			Name:        "m2.xlarge.x86",
-			Description: "The Latest and Greatest",
-			Created:     time.Now(),
-			Changed:     time.Now(),
-		},
-		&maas.Size{
-			ID:          "c1.large.arm",
-			Name:        "c1.large.arm",
-			Description: "The Armv8 Beast!",
-			Created:     time.Now(),
-			Changed:     time.Now(),
-		},
-	}
-)
-
 type sizeResource struct {
-	// dummy as long we do not have a database
-	sizes map[string]*maas.Size
+	ds datastore.Datastore
 }
 
 // NewSize returns a new size endpoint
-func NewSize() *restful.WebService {
+func NewSize(ds datastore.Datastore) *restful.WebService {
 	sr := sizeResource{
-		sizes: make(map[string]*maas.Size),
+		ds: ds,
 	}
-	addDummySizes(sr.sizes)
 	return sr.webService()
-}
-
-func addDummySizes(sizes map[string]*maas.Size) {
-	for _, ds := range dummySizes {
-		sizes[ds.ID] = ds
-	}
-}
-
-func deleteSizes(sizes map[string]*maas.Size) {
-	for _, size := range sizes {
-		delete(sizes, size.ID)
-	}
 }
 
 func (sr sizeResource) webService() *restful.WebService {
@@ -71,15 +32,15 @@ func (sr sizeResource) webService() *restful.WebService {
 
 	tags := []string{"size"}
 
-	ws.Route(ws.GET("/{id}").To(sr.getSize).
-		Doc("get sizes by id").
+	ws.Route(ws.GET("/{id}").To(sr.findSize).
+		Doc("get size by id").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(maas.Size{}).
 		Returns(http.StatusOK, "OK", maas.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/").To(sr.getSizes).
+	ws.Route(ws.GET("/").To(sr.listSizes).
 		Doc("get all sizes").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Size{}).
@@ -111,54 +72,28 @@ func (sr sizeResource) webService() *restful.WebService {
 	return ws
 }
 
-func (sr sizeResource) getSize(request *restful.Request, response *restful.Response) {
+func (sr sizeResource) findSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	size, err := getSize(sr, id)
+	size, err := sr.ds.FindSize(id)
 	if err != nil {
 		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the device-id %q was not found", id))
 	}
 	response.WriteEntity(size)
 }
 
-func getSize(sr sizeResource, id string) (*maas.Size, error) {
-	if s, ok := sr.sizes[id]; ok {
-		return s, nil
-	}
-	return nil, fmt.Errorf("size with id %q not found", id)
-}
-
-func (sr sizeResource) getSizes(request *restful.Request, response *restful.Response) {
-	res := getSizes(sr)
+func (sr sizeResource) listSizes(request *restful.Request, response *restful.Response) {
+	res := sr.ds.ListSizes()
 	response.WriteEntity(res)
-}
-
-func getSizes(sr sizeResource) []*maas.Size {
-	res := make([]*maas.Size, 0)
-	for _, v := range sr.sizes {
-		res = append(res, v)
-	}
-	return res
 }
 
 func (sr sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	size, err := deleteSize(sr, id)
+	size, err := sr.ds.DeleteSize(id)
 	if err != nil {
 		response.WriteError(http.StatusNotFound, err)
 	} else {
 		response.WriteEntity(size)
 	}
-}
-
-func deleteSize(sr sizeResource, id string) (*maas.Size, error) {
-	all := sr.sizes
-	size, ok := all[id]
-	if ok {
-		delete(all, id)
-	} else {
-		return nil, fmt.Errorf("size with id %q not found", id)
-	}
-	return size, nil
 }
 
 func (sr sizeResource) createSize(request *restful.Request, response *restful.Response) {
@@ -170,7 +105,7 @@ func (sr sizeResource) createSize(request *restful.Request, response *restful.Re
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
-	err = createSize(sr, &s)
+	err = sr.ds.CreateSize(&s)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot create size: %v", err))
 	} else {
@@ -178,44 +113,24 @@ func (sr sizeResource) createSize(request *restful.Request, response *restful.Re
 	}
 }
 
-func createSize(sr sizeResource, s *maas.Size) error {
-	all := sr.sizes
-	// well, check if this id already exist ... but
-	// we do not have a database, so this is ok here :-)
-	all[s.ID] = s
-	return nil
-}
-
 func (sr sizeResource) updateSize(request *restful.Request, response *restful.Response) {
-	var s maas.Size
-	err := request.ReadEntity(&s)
+	var newSize maas.Size
+	err := request.ReadEntity(&newSize)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
 		return
 	}
-	returnCode, err := updateSize(sr, &s)
+
+	oldSize, err := sr.ds.FindSize(newSize.ID)
+	if err != nil {
+		response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the device-id %q was not found", newSize.ID))
+		return
+	}
+
+	err = sr.ds.UpdateSize(oldSize, &newSize)
 
 	if err != nil {
-		response.WriteError(returnCode, err)
-	} else {
-		response.WriteHeaderAndEntity(http.StatusOK, s)
+		response.WriteError(http.StatusConflict, err)
 	}
-}
-
-func updateSize(sr sizeResource, s *maas.Size) (int, error) {
-	all := sr.sizes
-
-	old, ok := all[s.ID]
-	if !ok {
-		return http.StatusNotFound, fmt.Errorf("size with id %q not found", s.ID)
-	}
-	if !s.Changed.Equal(old.Changed) {
-		return http.StatusConflict, fmt.Errorf("size with id %q was changed in the meantime", s.ID)
-	}
-
-	s.Created = old.Created
-	s.Changed = time.Now()
-
-	all[s.ID] = s
-	return http.StatusOK, nil
+	response.WriteHeaderAndEntity(http.StatusOK, newSize)
 }

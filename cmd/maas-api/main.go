@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
+
 	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
@@ -54,6 +56,7 @@ func init() {
 	rootCmd.Flags().StringP("log-formatter", "", "text", "the application log fromatter (text or json)")
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
+	rootCmd.Flags().BoolP("with-mock-data", "", false, "creates some mock data on startup")
 
 	viper.BindPFlags(rootCmd.Flags())
 }
@@ -128,9 +131,16 @@ func getVersionString() string {
 func run() {
 	log := log15.New("app", "maas-api")
 
+	// as long as we have not database
+	datastore := datastore.NewHashmapStore()
+	if viper.GetBool("with-mock-data") {
+		datastore.AddMockData()
+		log15.Info("Initialized mock data")
+	}
+
 	restful.DefaultContainer.Add(service.NewFacility())
 	restful.DefaultContainer.Add(service.NewImage())
-	restful.DefaultContainer.Add(service.NewSize())
+	restful.DefaultContainer.Add(service.NewSize(datastore))
 	restful.DefaultContainer.Add(service.NewDevice(log))
 
 	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
