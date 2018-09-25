@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"git.f-i-ts.de/ize0h88/maas-service/cmd/maas-api/internal/utils"
@@ -101,7 +100,8 @@ func (fr facilityResource) webService() *restful.WebService {
 }
 
 func (fr facilityResource) getFacility(request *restful.Request, response *restful.Response) {
-	ids := strings.Split(request.QueryParameter("id"), ",")
+	request.Request.ParseForm()
+	ids := request.Request.Form["id"]
 	res := []*maas.Facility{}
 	for _, f := range fr.facilities {
 		if ids == nil {
