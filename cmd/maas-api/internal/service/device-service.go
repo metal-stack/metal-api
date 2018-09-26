@@ -3,51 +3,42 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
-	"github.com/inconshreveable/log15"
-
+	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
-	"github.com/mitchellh/mapstructure"
 )
 
-// A lshwInformation contains the required fields from the discovered information data. We only
-// declare the fields which are needed, not a full LSHW model because we are not sure if the
-// transported data is always identical over all hardware types.
-type lshwInformation struct {
-	Configuration struct {
-		UUID string `json:"uuid"`
-	} `json:"configuration"`
+type deviceResource struct {
+	ds datastore.Datastore
 }
 
-type lshwElement map[string]interface{}
-
-type devicePool struct {
-	all       map[string]*maas.Device
-	free      map[string]*maas.Device
-	allocated map[string]*maas.Device
+type allocateRequest struct {
+	Name        string `json:"name" description:"the new name for the allocated device" optional:"true"`
+	Description string `json:"description" description:"the description for the allocated device" optional:"true"`
+	ProjectID   string `json:"projectid" description:"the project id to assign this device to"`
+	FacilityID  string `json:"facilityid" description:"the facility id to assign this device to"`
+	SizeID      string `json:"sizeid" description:"the size id to assign this device to"`
+	ImageID     string `json:"imageid" description:"the image id to assign this device to"`
 }
 
-// NewDevice returns a new Device endpoint
-func NewDevice(log log15.Logger) *restful.WebService {
+type registerRequest struct {
+	UUID       string   `json:"uuid" description:"the uuid of the device to register"`
+	Macs       []string `json:"macs" description:"the mac addresses to register this device with"`
+	FacilityID string   `json:"facilityid" description:"the facility id to register this device with"`
+	SizeID     string   `json:"sizeid" description:"the size id to register this device with"`
+	// Memory     int64  `json:"memory" description:"the size id to assign this device to"`
+	// CpuCores   int    `json:"cpucores" description:"the size id to assign this device to"`
+}
+
+func NewDevice(ds datastore.Datastore) *restful.WebService {
 	dr := deviceResource{
-		Logger: log,
-		pool: devicePool{
-			all:       make(map[string]*maas.Device),
-			free:      make(map[string]*maas.Device),
-			allocated: make(map[string]*maas.Device),
-		},
+		ds: ds,
 	}
 	return dr.webService()
-}
-
-// The deviceResource is the entrypoint for the whole device endpoints
-type deviceResource struct {
-	log15.Logger
-	// dummy as long we do not have a database
-	pool devicePool
 }
 
 // webService creates the webservice endpoint
@@ -60,7 +51,7 @@ func (dr deviceResource) webService() *restful.WebService {
 
 	tags := []string{"device"}
 
-	ws.Route(ws.GET("/{id}").To(dr.getDevice).
+	ws.Route(ws.GET("/{id}").To(dr.findDevice).
 		Doc("get device by id").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -68,116 +59,123 @@ func (dr deviceResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", maas.Device{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/").To(dr.getDevices).
+	ws.Route(ws.GET("/").To(dr.listDevices).
 		Doc("get all known devices").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Device{}).
 		Returns(http.StatusOK, "OK", []maas.Device{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/find").To(dr.findDevice).
+	ws.Route(ws.GET("/find").To(dr.searchDevice).
 		Doc("search devices").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
 		Param(ws.QueryParameter("projectid", "search for devices with the givne projectid").DataType("string")).
+		Param(ws.QueryParameter("allocated", "returns allocated machines if set to true, free machines when set to false, all machines when not provided").DataType("bool")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]maas.Device{}).
 		Returns(http.StatusOK, "OK", []maas.Device{}))
 
 	ws.Route(ws.POST("/register").To(dr.registerDevice).
 		Doc("register a device").
-		Param(ws.BodyParameter("rawdata", "raw json data").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(registerRequest{}).
 		Writes(maas.Device{}).
 		Returns(http.StatusOK, "OK", maas.Device{}).
 		Returns(http.StatusCreated, "Created", maas.Device{}))
 
+	ws.Route(ws.POST("/allocate").To(dr.allocateDevice).
+		Doc("allocate a device").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(allocateRequest{}).
+		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusInternalServerError, "Internal Server Error", maas.Device{}))
+
+	ws.Route(ws.DELETE("/{id}/release").To(dr.freeDevice).
+		Doc("release a device").
+		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusInternalServerError, "Internal Server Error", maas.Device{}))
+
 	return ws
 }
 
-func (dr deviceResource) getDevice(request *restful.Request, response *restful.Response) {
+func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	if d, ok := dr.pool.all[id]; ok {
-		response.WriteEntity(d)
-		return
+	device, err := dr.ds.FindDevice(id)
+	if err != nil {
+		response.WriteError(http.StatusNotFound, err)
 	}
-	response.WriteErrorString(http.StatusNotFound, fmt.Sprintf("the device-id %q was not found", id))
+	response.WriteEntity(device)
 }
 
-func (dr deviceResource) getDevices(request *restful.Request, response *restful.Response) {
-	res := make([]*maas.Device, 0)
-	for _, v := range dr.pool.all {
-		res = append(res, v)
-	}
+func (dr deviceResource) listDevices(request *restful.Request, response *restful.Response) {
+	res := dr.ds.ListDevices()
 	response.WriteEntity(res)
 }
 
-func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
+func (dr deviceResource) searchDevice(request *restful.Request, response *restful.Response) {
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
 	prjid := strings.TrimSpace(request.QueryParameter("projectid"))
+	allocated, err := strconv.ParseBool(request.QueryParameter("allocated"))
 
-	if mac == "" {
-		msg := "empty MAC in findDevice"
-		dr.Logger.Info(msg)
-		http.Error(response, msg, http.StatusNotFound)
-		return
-	}
-	result := make([]*maas.Device, 0)
-	for _, d := range dr.pool.all {
-		if prjid != "" && d.Project != prjid {
-			continue
-		}
-		if d.HasMAC(mac) {
-			result = append(result, d)
+	pool := "all"
+	if err == nil {
+		if allocated {
+			pool = "allocated"
+		} else {
+			pool = "free"
 		}
 	}
+
+	result := dr.ds.SearchDevice(prjid, mac, pool)
+
 	response.WriteEntity(result)
 }
 
 func (dr deviceResource) registerDevice(request *restful.Request, response *restful.Response) {
-	data := make(map[string]interface{})
+	var data registerRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
-		dr.Error("cannot read json from request", "error", err)
-		http.Error(response, "Cannot read raw data from request", http.StatusInternalServerError)
+		response.WriteError(http.StatusInternalServerError, fmt.Errorf("Cannot read data from request: %v", err))
 		return
 	}
-	var info lshwInformation
-	err = mapstructure.Decode(data, &info)
+	if data.UUID == "" {
+		response.WriteErrorString(http.StatusInternalServerError, "No UUID given")
+		return
+	}
+
+	device, err := dr.ds.RegisterDevice(data.UUID, data.Macs, data.FacilityID, data.SizeID)
+
 	if err != nil {
-		dr.Error("cannot decode required lshw information", "error", err)
-		http.Error(response, "Cannot decode required lshw information", http.StatusInternalServerError)
+		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	result, has := dr.pool.all[info.Configuration.UUID]
-	resultStatus := http.StatusOK
-	if !has {
-		result = new(maas.Device)
-		resultStatus = http.StatusCreated
-	}
-	var macs []lshwElement
-	result.ID = info.Configuration.UUID
-	searchNetworkEntries(data, &macs)
-	for _, m := range macs {
-		result.MACAddresses = append(result.MACAddresses, m["serial"].(string))
-	}
-	dr.pool.all[info.Configuration.UUID] = result
-	response.WriteHeaderAndEntity(resultStatus, result)
+
+	response.WriteEntity(device)
 }
 
-func searchNetworkEntries(data map[string]interface{}, result *[]lshwElement) {
-	clzz, has := data["class"]
-	if !has {
+func (dr deviceResource) allocateDevice(request *restful.Request, response *restful.Response) {
+	var allocate allocateRequest
+	err := request.ReadEntity(&allocate)
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
-	if clzz == "network" {
-		*result = append(*result, data)
+	err = dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.ProjectID, allocate.FacilityID, allocate.SizeID, allocate.ImageID)
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
 	}
-	child, has := data["children"]
-	if has {
-		childs := child.([]interface{})
-		for i := range childs {
-			cc := childs[i]
-			searchNetworkEntries(cc.(map[string]interface{}), result)
-		}
+	response.WriteHeader(http.StatusOK)
+}
+
+func (dr deviceResource) freeDevice(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	err := dr.ds.FreeDevice(id)
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
 	}
+	response.WriteHeader(http.StatusOK)
 }
