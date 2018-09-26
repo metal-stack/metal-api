@@ -12,6 +12,6 @@ test:
 
 push:
     stage: push
-    script: docker-make -s
+    script: docker-make --exclude-linting-rules rule3 --summary
     only:
       - prod

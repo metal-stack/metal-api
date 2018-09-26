@@ -1,0 +1,10 @@
+---
+version: '1'
+name: metal-api
+username: metal
+registry-host: registry.fi-ts.io
+builds:
+  -
+    name: "metal-api"
+    tags:
+      - latest
