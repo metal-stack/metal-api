@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore/hashmapstore"
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/hashmapstore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	restful "github.com/emicklei/go-restful"
 	"github.com/stretchr/testify/suite"
 )
@@ -46,20 +46,20 @@ func (s *SizeTestSuite) TestGetSizes() {
 	httpWriter, httpRequest := utils.HttpMock("GET", "/size", "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
-	var result []*maas.Size
+	var result []*metal.Size
 	resp, _, err := utils.ParseHTTPResponse(s.T(), httpWriter, &result)
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	s.Assert().Equal(len(maas.DummySizes), len(result), "Not all sizes were returned")
+	s.Assert().Equal(len(metal.DummySizes), len(result), "Not all sizes were returned")
 }
 
 func (s *SizeTestSuite) TestGetSize() {
-	size := maas.DummySizes[0]
+	size := metal.DummySizes[0]
 	httpWriter, httpRequest := utils.HttpMock("GET", fmt.Sprintf("/size/%s", size.ID), "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
-	var result *maas.Size
+	var result *metal.Size
 	resp, _, err := utils.ParseHTTPResponse(s.T(), httpWriter, &result)
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
@@ -73,7 +73,7 @@ func (s *SizeTestSuite) TestDeletingSize() {
 	httpWriter, httpRequest := utils.HttpMock("DELETE", fmt.Sprintf("/size/%s", sizeToDelete), "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
-	var result *maas.Size
+	var result *metal.Size
 	resp, _, err := utils.ParseHTTPResponse(s.T(), httpWriter, &result)
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
@@ -96,7 +96,7 @@ func (s *SizeTestSuite) TestDeletingUnexistingImage() {
 }
 
 func (s *SizeTestSuite) TestCreateSize() {
-	sizeToCreate := &maas.Size{
+	sizeToCreate := &metal.Size{
 		ID:          "new.size.x86",
 		Name:        "new.size.x86",
 		Description: "A test size.",
@@ -105,7 +105,7 @@ func (s *SizeTestSuite) TestCreateSize() {
 	httpWriter, httpRequest := utils.HttpMock("PUT", "/size", sizeToCreate)
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
-	var result *maas.Size
+	var result *metal.Size
 	resp, _, err := utils.ParseHTTPResponse(s.T(), httpWriter, &result)
 
 	s.Assert().Equal(http.StatusCreated, resp.StatusCode, "Wrong status code in response")
@@ -129,13 +129,13 @@ func (s *SizeTestSuite) TestCreateSizeInvalidPayload() {
 }
 
 func (s *SizeTestSuite) TestUpdateSize() {
-	sizeToUpdate := maas.DummySizes[0]
+	sizeToUpdate := metal.DummySizes[0]
 	sizeToUpdate.Description = "Modified Description"
 	beforeSizes := s.sr.ds.ListSizes()
 	httpWriter, httpRequest := utils.HttpMock("POST", "/size", sizeToUpdate)
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
-	var result *maas.Size
+	var result *metal.Size
 	resp, _, err := utils.ParseHTTPResponse(s.T(), httpWriter, &result)
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")

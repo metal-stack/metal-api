@@ -16,5 +16,5 @@ RUN make
 
 FROM alpine:3.8
 LABEL maintainer FI-TS Devops <devops@f-i-ts.de>
-COPY --from=builder /app/cmd/maas-api/bin/maas-api /maas-api
-CMD ["/maas-api"]
+COPY --from=builder /app/cmd/metal-api/bin/metal-api /metal-api
+CMD ["/metal-api"]

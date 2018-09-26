@@ -4,7 +4,7 @@ GITVERSION := $(shell git describe --long --all)
 BUILDDATE := $(shell date -Iseconds)
 VERSION := $(or ${VERSION},devel)
 
-BINARY := maas-api
+BINARY := metal-api
 
 all: $(BINARY);
 

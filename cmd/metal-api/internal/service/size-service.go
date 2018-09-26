@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -35,36 +35,36 @@ func (sr sizeResource) webService() *restful.WebService {
 		Doc("get size by id").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Size{}).
-		Returns(http.StatusOK, "OK", maas.Image{}).
+		Writes(metal.Size{}).
+		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/").To(sr.listSizes).
 		Doc("get all sizes").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Size{}).
-		Returns(http.StatusOK, "OK", []maas.Size{}))
+		Writes([]metal.Size{}).
+		Returns(http.StatusOK, "OK", []metal.Size{}))
 
 	ws.Route(ws.DELETE("/{id}").To(sr.deleteSize).
 		Doc("deletes an size and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Size{}).
-		Returns(http.StatusOK, "OK", maas.Size{}).
+		Writes(metal.Size{}).
+		Returns(http.StatusOK, "OK", metal.Size{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.PUT("/").To(sr.createSize).
 		Doc("create a size. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(maas.Size{}).
-		Returns(http.StatusCreated, "Created", maas.Size{}).
+		Reads(metal.Size{}).
+		Returns(http.StatusCreated, "Created", metal.Size{}).
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	ws.Route(ws.POST("/").To(sr.updateSize).
 		Doc("updates a size. if the size was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(maas.Size{}).
-		Returns(http.StatusOK, "OK", maas.Size{}).
+		Reads(metal.Size{}).
+		Returns(http.StatusOK, "OK", metal.Size{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusConflict, "Conflict", nil))
 
@@ -96,7 +96,7 @@ func (sr sizeResource) deleteSize(request *restful.Request, response *restful.Re
 }
 
 func (sr sizeResource) createSize(request *restful.Request, response *restful.Response) {
-	var s maas.Size
+	var s metal.Size
 	err := request.ReadEntity(&s)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
@@ -113,7 +113,7 @@ func (sr sizeResource) createSize(request *restful.Request, response *restful.Re
 }
 
 func (sr sizeResource) updateSize(request *restful.Request, response *restful.Response) {
-	var newSize maas.Size
+	var newSize metal.Size
 	err := request.ReadEntity(&newSize)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))

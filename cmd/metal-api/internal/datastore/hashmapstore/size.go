@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 )
 
 func (h HashmapStore) addDummySizes() {
-	for _, size := range maas.DummySizes {
+	for _, size := range metal.DummySizes {
 		h.sizes[size.ID] = size
 	}
 }
 
-func (h HashmapStore) FindSize(id string) (*maas.Size, error) {
+func (h HashmapStore) FindSize(id string) (*metal.Size, error) {
 	if size, ok := h.sizes[id]; ok {
 		return size, nil
 	}
@@ -24,22 +24,22 @@ func (h HashmapStore) SearchSize() {
 
 }
 
-func (h HashmapStore) ListSizes() []*maas.Size {
-	res := make([]*maas.Size, 0)
+func (h HashmapStore) ListSizes() []*metal.Size {
+	res := make([]*metal.Size, 0)
 	for _, size := range h.sizes {
 		res = append(res, size)
 	}
 	return res
 }
 
-func (h HashmapStore) CreateSize(size *maas.Size) error {
+func (h HashmapStore) CreateSize(size *metal.Size) error {
 	// well, check if this id already exist ... but
 	// we do not have a database, so this is ok here :-)
 	h.sizes[size.ID] = size
 	return nil
 }
 
-func (h HashmapStore) DeleteSize(id string) (*maas.Size, error) {
+func (h HashmapStore) DeleteSize(id string) (*metal.Size, error) {
 	size, ok := h.sizes[id]
 	if ok {
 		delete(h.sizes, id)
@@ -55,7 +55,7 @@ func (h HashmapStore) DeleteSizes() {
 	}
 }
 
-func (h HashmapStore) UpdateSize(oldSize *maas.Size, newSize *maas.Size) error {
+func (h HashmapStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) error {
 	if !newSize.Changed.Equal(oldSize.Changed) {
 		return fmt.Errorf("size with id %q was changed in the meantime", newSize.ID)
 	}
