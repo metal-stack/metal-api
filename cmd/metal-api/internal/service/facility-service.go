@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -35,36 +35,36 @@ func (fr facilityResource) webService() *restful.WebService {
 		Doc("get facility by id").
 		Param(ws.PathParameter("id", "identifier of the facility").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Facility{}).
-		Returns(http.StatusOK, "OK", maas.Facility{}).
+		Writes(metal.Facility{}).
+		Returns(http.StatusOK, "OK", metal.Facility{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/").To(fr.listFacilities).
 		Doc("get all facilities").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Facility{}).
-		Returns(http.StatusOK, "OK", []maas.Facility{}))
+		Writes([]metal.Facility{}).
+		Returns(http.StatusOK, "OK", []metal.Facility{}))
 
 	ws.Route(ws.DELETE("/{id}").To(fr.deleteFacility).
 		Doc("deletes a facility and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the facility").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Facility{}).
-		Returns(http.StatusOK, "OK", maas.Facility{}).
+		Writes(metal.Facility{}).
+		Returns(http.StatusOK, "OK", metal.Facility{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.PUT("/").To(fr.createFacility).
 		Doc("create a facility. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(maas.Facility{}).
-		Returns(http.StatusCreated, "Created", maas.Facility{}).
+		Reads(metal.Facility{}).
+		Returns(http.StatusCreated, "Created", metal.Facility{}).
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	ws.Route(ws.POST("/").To(fr.updateFacility).
 		Doc("updates a facility. if the facility was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(maas.Facility{}).
-		Returns(http.StatusOK, "OK", maas.Facility{}).
+		Reads(metal.Facility{}).
+		Returns(http.StatusOK, "OK", metal.Facility{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusConflict, "Conflict", nil))
 
@@ -96,7 +96,7 @@ func (fr facilityResource) deleteFacility(request *restful.Request, response *re
 }
 
 func (fr facilityResource) createFacility(request *restful.Request, response *restful.Response) {
-	var s maas.Facility
+	var s metal.Facility
 	err := request.ReadEntity(&s)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read facility from request: %v", err))
@@ -113,7 +113,7 @@ func (fr facilityResource) createFacility(request *restful.Request, response *re
 }
 
 func (fr facilityResource) updateFacility(request *restful.Request, response *restful.Response) {
-	var newFacility maas.Facility
+	var newFacility metal.Facility
 	err := request.ReadEntity(&newFacility)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read facility from request: %v", err))

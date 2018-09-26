@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -55,15 +55,15 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("get device by id").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Device{}).
-		Returns(http.StatusOK, "OK", maas.Device{}).
+		Writes(metal.Device{}).
+		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/").To(dr.listDevices).
 		Doc("get all known devices").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Device{}).
-		Returns(http.StatusOK, "OK", []maas.Device{}).
+		Writes([]metal.Device{}).
+		Returns(http.StatusOK, "OK", []metal.Device{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/find").To(dr.searchDevice).
@@ -72,30 +72,30 @@ func (dr deviceResource) webService() *restful.WebService {
 		Param(ws.QueryParameter("projectid", "search for devices with the givne projectid").DataType("string")).
 		Param(ws.QueryParameter("allocated", "returns allocated machines if set to true, free machines when set to false, all machines when not provided").DataType("bool")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Device{}).
-		Returns(http.StatusOK, "OK", []maas.Device{}))
+		Writes([]metal.Device{}).
+		Returns(http.StatusOK, "OK", []metal.Device{}))
 
 	ws.Route(ws.POST("/register").To(dr.registerDevice).
 		Doc("register a device").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(registerRequest{}).
-		Writes(maas.Device{}).
-		Returns(http.StatusOK, "OK", maas.Device{}).
-		Returns(http.StatusCreated, "Created", maas.Device{}))
+		Writes(metal.Device{}).
+		Returns(http.StatusOK, "OK", metal.Device{}).
+		Returns(http.StatusCreated, "Created", metal.Device{}))
 
 	ws.Route(ws.POST("/allocate").To(dr.allocateDevice).
 		Doc("allocate a device").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(allocateRequest{}).
 		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", maas.Device{}))
+		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
 
 	ws.Route(ws.DELETE("/{id}/release").To(dr.freeDevice).
 		Doc("release a device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", maas.Device{}))
+		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
 
 	return ws
 }

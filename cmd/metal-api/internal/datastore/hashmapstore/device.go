@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 )
 
 type devicePool struct {
-	all       map[string]*maas.Device
-	free      map[string]*maas.Device
-	allocated map[string]*maas.Device
+	all       map[string]*metal.Device
+	free      map[string]*metal.Device
+	allocated map[string]*metal.Device
 }
 
 func (h HashmapStore) addDummyDevices() {
-	for _, device := range maas.DummyDevices {
+	for _, device := range metal.DummyDevices {
 		h.devices.all[device.ID] = device
 		if device.Name == "" {
 			h.devices.free[device.ID] = device
@@ -24,15 +24,15 @@ func (h HashmapStore) addDummyDevices() {
 	}
 }
 
-func (h HashmapStore) FindDevice(id string) (*maas.Device, error) {
+func (h HashmapStore) FindDevice(id string) (*metal.Device, error) {
 	if device, ok := h.devices.all[id]; ok {
 		return device, nil
 	}
 	return nil, fmt.Errorf("device with id %q not found", id)
 }
 
-func (h HashmapStore) SearchDevice(projectid string, mac string, pool string) []*maas.Device {
-	var devicePool map[string]*maas.Device
+func (h HashmapStore) SearchDevice(projectid string, mac string, pool string) []*metal.Device {
+	var devicePool map[string]*metal.Device
 	if pool == "allocated" {
 		devicePool = h.devices.allocated
 	} else if pool == "free" {
@@ -41,7 +41,7 @@ func (h HashmapStore) SearchDevice(projectid string, mac string, pool string) []
 		devicePool = h.devices.all
 	}
 
-	result := make([]*maas.Device, 0)
+	result := make([]*metal.Device, 0)
 	for _, d := range devicePool {
 		if projectid != "" && d.Project != projectid {
 			continue
@@ -54,15 +54,15 @@ func (h HashmapStore) SearchDevice(projectid string, mac string, pool string) []
 	return result
 }
 
-func (h HashmapStore) ListDevices() []*maas.Device {
-	res := make([]*maas.Device, 0)
+func (h HashmapStore) ListDevices() []*metal.Device {
+	res := make([]*metal.Device, 0)
 	for _, devices := range h.devices.all {
 		res = append(res, devices)
 	}
 	return res
 }
 
-func (h HashmapStore) CreateDevice(device *maas.Device) error {
+func (h HashmapStore) CreateDevice(device *metal.Device) error {
 	// well, check if this id already exist ... but
 	// we do not have a database, so this is ok here :-)
 	device.Created = time.Now()
@@ -72,7 +72,7 @@ func (h HashmapStore) CreateDevice(device *maas.Device) error {
 	return nil
 }
 
-func (h HashmapStore) DeleteDevice(id string) (*maas.Device, error) {
+func (h HashmapStore) DeleteDevice(id string) (*metal.Device, error) {
 	device, ok := h.devices.all[id]
 	if ok {
 		delete(h.devices.all, id)
@@ -90,7 +90,7 @@ func (h HashmapStore) DeleteDevice(id string) (*maas.Device, error) {
 	return device, nil
 }
 
-func (h HashmapStore) UpdateDevice(oldDevice *maas.Device, newDevice *maas.Device) error {
+func (h HashmapStore) UpdateDevice(oldDevice *metal.Device, newDevice *metal.Device) error {
 	if !newDevice.Changed.Equal(oldDevice.Changed) {
 		return fmt.Errorf("device with id %q was changed in the meantime", newDevice.ID)
 	}
@@ -118,7 +118,7 @@ func (h HashmapStore) AllocateDevice(name string, description string, projectid 
 		return fmt.Errorf("size with id %q not found", sizeid)
 	}
 
-	var device *maas.Device
+	var device *metal.Device
 	for _, freeDevice := range h.devices.free {
 		if freeDevice.Size.ID == size.ID && freeDevice.Facility.ID == facility.ID {
 			device = freeDevice
@@ -152,9 +152,9 @@ func (h HashmapStore) FreeDevice(id string) error {
 	device.Name = ""
 	device.Project = ""
 	device.Description = ""
-	device.Facility = maas.Facility{}
-	device.Image = maas.Image{}
-	device.Size = maas.Size{}
+	device.Facility = metal.Facility{}
+	device.Image = metal.Image{}
+	device.Size = metal.Size{}
 	device.Changed = time.Now()
 
 	delete(h.devices.allocated, id)
@@ -163,7 +163,7 @@ func (h HashmapStore) FreeDevice(id string) error {
 	return nil
 }
 
-func (h HashmapStore) RegisterDevice(id string, macs []string, facilityid string, sizeid string) (*maas.Device, error) {
+func (h HashmapStore) RegisterDevice(id string, macs []string, facilityid string, sizeid string) (*metal.Device, error) {
 	facility, err := h.FindFacility(facilityid)
 	if err != nil {
 		return nil, fmt.Errorf("facility with id %q not found", facilityid)
@@ -176,7 +176,7 @@ func (h HashmapStore) RegisterDevice(id string, macs []string, facilityid string
 
 	device, err := h.FindDevice(id)
 	if err != nil {
-		device = &maas.Device{
+		device = &metal.Device{
 			ID:           id,
 			MACAddresses: macs,
 			Facility:     *facility,

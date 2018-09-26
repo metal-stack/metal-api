@@ -14,7 +14,7 @@ services:
     environment:
       - API_URL=http://localhost:8080/apidocs.json
 
-  maas-api:
+  metal-api:
     tty: true
     networks:
       - appl
@@ -23,6 +23,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      MAAS_API_WITH_MOCK_DATA: "true"
-      MAAS_API_BIND_ADDR: 0.0.0.0
-    command: /maas-api
+      METAL_API_WITH_MOCK_DATA: "true"
+      METAL_API_BIND_ADDR: 0.0.0.0
+    command: /metal-api

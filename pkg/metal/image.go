@@ -1,4 +1,4 @@
-package maas
+package metal
 
 import (
 	"time"

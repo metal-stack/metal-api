@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 )
 
 func (h HashmapStore) addDummyFacilities() {
-	for _, facility := range maas.DummyFacilities {
+	for _, facility := range metal.DummyFacilities {
 		h.facilities[facility.ID] = facility
 	}
 }
 
-func (h HashmapStore) FindFacility(id string) (*maas.Facility, error) {
+func (h HashmapStore) FindFacility(id string) (*metal.Facility, error) {
 	if facility, ok := h.facilities[id]; ok {
 		return facility, nil
 	}
@@ -24,22 +24,22 @@ func (h HashmapStore) SearchFacility() {
 
 }
 
-func (h HashmapStore) ListFacilities() []*maas.Facility {
-	res := make([]*maas.Facility, 0)
+func (h HashmapStore) ListFacilities() []*metal.Facility {
+	res := make([]*metal.Facility, 0)
 	for _, facility := range h.facilities {
 		res = append(res, facility)
 	}
 	return res
 }
 
-func (h HashmapStore) CreateFacility(facility *maas.Facility) error {
+func (h HashmapStore) CreateFacility(facility *metal.Facility) error {
 	// well, check if this id already exist ... but
 	// we do not have a database, so this is ok here :-)
 	h.facilities[facility.ID] = facility
 	return nil
 }
 
-func (h HashmapStore) DeleteFacility(id string) (*maas.Facility, error) {
+func (h HashmapStore) DeleteFacility(id string) (*metal.Facility, error) {
 	facility, ok := h.facilities[id]
 	if ok {
 		delete(h.facilities, id)
@@ -55,7 +55,7 @@ func (h HashmapStore) DeleteFacilities() {
 	}
 }
 
-func (h HashmapStore) UpdateFacility(oldFacility *maas.Facility, newFacility *maas.Facility) error {
+func (h HashmapStore) UpdateFacility(oldFacility *metal.Facility, newFacility *metal.Facility) error {
 	if !newFacility.Changed.Equal(oldFacility.Changed) {
 		return fmt.Errorf("facility with id %q was changed in the meantime", newFacility.ID)
 	}
