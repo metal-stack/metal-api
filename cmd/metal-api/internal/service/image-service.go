@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/pkg/maas"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -36,36 +36,36 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("get image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Image{}).
-		Returns(http.StatusOK, "OK", maas.Image{}).
+		Writes(metal.Image{}).
+		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/").To(ir.listImages).
 		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]maas.Image{}).
-		Returns(http.StatusOK, "OK", []maas.Image{}))
+		Writes([]metal.Image{}).
+		Returns(http.StatusOK, "OK", []metal.Image{}))
 
 	ws.Route(ws.DELETE("/{id}").To(ir.deleteImage).
 		Doc("deletes an image and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(maas.Image{}).
-		Returns(http.StatusOK, "OK", maas.Image{}).
+		Writes(metal.Image{}).
+		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.PUT("/").To(ir.createImage).
 		Doc("create an image. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(maas.Image{}).
-		Returns(http.StatusCreated, "Created", maas.Image{}).
+		Reads(metal.Image{}).
+		Returns(http.StatusCreated, "Created", metal.Image{}).
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	ws.Route(ws.POST("/").To(ir.updateImage).
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(maas.Image{}).
-		Returns(http.StatusOK, "OK", maas.Image{}).
+		Reads(metal.Image{}).
+		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusConflict, "Conflict", nil))
 
@@ -97,7 +97,7 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 }
 
 func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
-	var s maas.Image
+	var s metal.Image
 	err := request.ReadEntity(&s)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))
@@ -114,7 +114,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
-	var newImage maas.Image
+	var newImage metal.Image
 	err := request.ReadEntity(&newImage)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))

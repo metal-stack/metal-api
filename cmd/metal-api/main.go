@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/datastore/hashmapstore"
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/service"
-	"git.f-i-ts.de/cloud-native/maas/maas-service/cmd/maas-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/hashmapstore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
@@ -30,8 +30,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     "maas-api",
-	Short:   "an api to offer metal as a service",
+	Use:     "metal-api",
+	Short:   "an api to offer pure metal",
 	Version: getVersionString(),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		initLogging()
@@ -61,7 +61,7 @@ func init() {
 }
 
 func initConfig() {
-	viper.SetEnvPrefix("MAAS_API")
+	viper.SetEnvPrefix("METAL_API")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
@@ -74,8 +74,8 @@ func initConfig() {
 		}
 	} else {
 		viper.SetConfigName("config")
-		viper.AddConfigPath("/etc/maas-api")
-		viper.AddConfigPath("$HOME/.maas-api")
+		viper.AddConfigPath("/etc/metal-api")
+		viper.AddConfigPath("$HOME/.metal-api")
 		viper.AddConfigPath(".")
 		if err := viper.ReadInConfig(); err != nil {
 			usedCfg := viper.ConfigFileUsed()
@@ -128,7 +128,7 @@ func getVersionString() string {
 }
 
 func run() {
-	log := log15.New("app", "maas-api")
+	log := log15.New("app", "metal-api")
 
 	// as long as we have not database
 	datastore := hashmapstore.NewHashmapStore()
@@ -137,10 +137,10 @@ func run() {
 		log15.Info("Initialized mock data")
 	}
 
-	restful.DefaultContainer.Add(service.NewFacility())
+	restful.DefaultContainer.Add(service.NewFacility(datastore))
 	restful.DefaultContainer.Add(service.NewImage(datastore))
 	restful.DefaultContainer.Add(service.NewSize(datastore))
-	restful.DefaultContainer.Add(service.NewDevice(log))
+	restful.DefaultContainer.Add(service.NewDevice(datastore))
 
 	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
 
@@ -159,15 +159,15 @@ func run() {
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	log.Info("start maas api", "revision", revision, "builddate", builddate, "address", addr)
+	log.Info("start metal api", "revision", revision, "builddate", builddate, "address", addr)
 	http.ListenAndServe(addr, nil)
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {
 	swo.Info = &spec.Info{
 		InfoProps: spec.InfoProps{
-			Title:       "MAAS Service",
-			Description: "Resource for managing metal as a service",
+			Title:       "metal-api",
+			Description: "Resource for managing pure metal",
 			Contact: &spec.ContactInfo{
 				Name:  "Devops Team",
 				Email: "devops@f-i-ts.de",

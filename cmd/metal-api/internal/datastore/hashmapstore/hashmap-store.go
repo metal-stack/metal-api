@@ -1,0 +1,41 @@
+package hashmapstore
+
+import (
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"github.com/inconshreveable/log15"
+)
+
+type HashmapStore struct {
+	sizes      map[string]*metal.Size
+	images     map[string]*metal.Image
+	facilities map[string]*metal.Facility
+	devices    devicePool
+}
+
+func NewHashmapStore() *HashmapStore {
+	return &HashmapStore{
+		sizes:      make(map[string]*metal.Size),
+		images:     make(map[string]*metal.Image),
+		facilities: make(map[string]*metal.Facility),
+		devices: devicePool{
+			all:       make(map[string]*metal.Device),
+			free:      make(map[string]*metal.Device),
+			allocated: make(map[string]*metal.Device),
+		},
+	}
+}
+
+func (h HashmapStore) Connect() {
+	log15.Info("HashmapStore connected")
+}
+
+func (h HashmapStore) Close() {
+	log15.Info("HashmapStore disconnected")
+}
+
+func (h HashmapStore) AddMockData() {
+	h.addDummySizes()
+	h.addDummyImages()
+	h.addDummyFacilities()
+	h.addDummyDevices()
+}
