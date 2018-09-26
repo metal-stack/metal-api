@@ -137,10 +137,10 @@ func run() {
 		log15.Info("Initialized mock data")
 	}
 
-	restful.DefaultContainer.Add(service.NewFacility())
+	restful.DefaultContainer.Add(service.NewFacility(datastore))
 	restful.DefaultContainer.Add(service.NewImage(datastore))
 	restful.DefaultContainer.Add(service.NewSize(datastore))
-	restful.DefaultContainer.Add(service.NewDevice(log))
+	restful.DefaultContainer.Add(service.NewDevice(datastore))
 
 	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
 
