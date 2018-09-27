@@ -12,6 +12,9 @@ type Datastore interface {
 	AddMockData()
 }
 
+type Allocation chan metal.Device
+type Allocator func(Allocation) error
+
 type DeviceStore interface {
 	FindDevice(id string) (*metal.Device, error)
 	SearchDevice(projectid string, mac string, pool string) []*metal.Device
@@ -22,6 +25,7 @@ type DeviceStore interface {
 	AllocateDevice(name string, description string, projectid string, facilityid string, sizeid string, imageid string) error
 	FreeDevice(id string) error
 	RegisterDevice(id string, macs []string, facilityid string, sizeid string) (*metal.Device, error)
+	Wait(id string, alloc Allocator)
 }
 
 type SizeStore interface {

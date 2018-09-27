@@ -5,11 +5,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+)
+
+const (
+	waitFormServerTimeout = 30 * time.Second
 )
 
 type deviceResource struct {
@@ -97,7 +102,32 @@ func (dr deviceResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
 
+	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
+		Doc("wait for an allocation of this device").
+		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "OK", metal.Device{}).
+		Returns(http.StatusGatewayTimeout, "Timeout", nil).
+		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
+
 	return ws
+}
+
+func (dr deviceResource) waitForAllocation(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	ctx := request.Request.Context()
+	dr.ds.Wait(id, func(alloc datastore.Allocation) error {
+		select {
+		case <-time.After(waitFormServerTimeout):
+			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
+			return fmt.Errorf("server timeout")
+		case a := <-alloc:
+			response.WriteEntity(a)
+		case <-ctx.Done():
+			return fmt.Errorf("client timeout")
+		}
+		return nil
+	})
 }
 
 func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {

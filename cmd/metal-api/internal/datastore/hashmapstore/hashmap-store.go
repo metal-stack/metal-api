@@ -1,6 +1,7 @@
 package hashmapstore
 
 import (
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	"github.com/inconshreveable/log15"
 )
@@ -21,6 +22,7 @@ func NewHashmapStore() *HashmapStore {
 			all:       make(map[string]*metal.Device),
 			free:      make(map[string]*metal.Device),
 			allocated: make(map[string]*metal.Device),
+			waitfor:   make(map[string]datastore.Allocation),
 		},
 	}
 }

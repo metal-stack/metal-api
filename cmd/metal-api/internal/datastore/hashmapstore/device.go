@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"time"
 
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"github.com/inconshreveable/log15"
 )
 
 type devicePool struct {
 	all       map[string]*metal.Device
 	free      map[string]*metal.Device
 	allocated map[string]*metal.Device
+	waitfor   map[string]datastore.Allocation
 }
 
 func (h HashmapStore) addDummyDevices() {
@@ -22,6 +25,14 @@ func (h HashmapStore) addDummyDevices() {
 			h.devices.allocated[device.ID] = device
 		}
 	}
+}
+
+func (h HashmapStore) Wait(id string, alloc datastore.Allocator) {
+	a := make(datastore.Allocation)
+	h.devices.waitfor[id] = a
+	alloc(a)
+	// in any case (error or not) we do use this device as waiting any more
+	delete(h.devices.waitfor, id)
 }
 
 func (h HashmapStore) FindDevice(id string) (*metal.Device, error) {
@@ -120,6 +131,10 @@ func (h HashmapStore) AllocateDevice(name string, description string, projectid 
 
 	var device *metal.Device
 	for _, freeDevice := range h.devices.free {
+		if _, ok := h.devices.waitfor[freeDevice.ID]; !ok {
+			log15.Error("device not waiting", "free-id", freeDevice.ID)
+			continue
+		}
 		if freeDevice.Size.ID == size.ID && freeDevice.Facility.ID == facility.ID {
 			device = freeDevice
 			break
@@ -129,13 +144,18 @@ func (h HashmapStore) AllocateDevice(name string, description string, projectid 
 		return fmt.Errorf("no free device available for allocation in facility")
 	}
 
+	alloc := h.devices.waitfor[device.ID]
+
 	device.Name = name
 	device.Project = projectid
 	device.Description = description
 	device.Image = *image
 	device.Changed = time.Now()
+	// we must set the IP, the network config, ...
 
 	delete(h.devices.free, device.ID)
+	alloc <- *device
+
 	h.devices.allocated[device.ID] = device
 
 	return nil
