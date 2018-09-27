@@ -25,4 +25,3 @@ services:
     environment:
       METAL_API_WITH_MOCK_DATA: "true"
       METAL_API_BIND_ADDR: 0.0.0.0
-    command: /metal-api
