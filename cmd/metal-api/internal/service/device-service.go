@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	waitFormServerTimeout = 30 * time.Second
+	waitForServerTimeout = 30 * time.Second
 )
 
 type deviceResource struct {
@@ -118,7 +118,7 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 	ctx := request.Request.Context()
 	dr.ds.Wait(id, func(alloc datastore.Allocation) error {
 		select {
-		case <-time.After(waitFormServerTimeout):
+		case <-time.After(waitForServerTimeout):
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
 			return fmt.Errorf("server timeout")
 		case a := <-alloc:
