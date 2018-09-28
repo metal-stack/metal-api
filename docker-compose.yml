@@ -20,6 +20,7 @@ services:
       - appl
     build:
       context: .
+    image: registry.fi-ts.io/metal/metal-api
     ports:
       - "8080:8080"
     environment:
