@@ -30,9 +30,8 @@ func (h HashmapStore) addDummyDevices() {
 func (h HashmapStore) Wait(id string, alloc datastore.Allocator) {
 	a := make(datastore.Allocation)
 	h.devices.waitfor[id] = a
+	defer delete(h.devices.waitfor, id)
 	alloc(a)
-	// in any case (error or not) we do use this device as waiting any more
-	delete(h.devices.waitfor, id)
 }
 
 func (h HashmapStore) FindDevice(id string) (*metal.Device, error) {
