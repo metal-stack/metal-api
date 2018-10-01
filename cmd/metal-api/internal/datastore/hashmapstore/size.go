@@ -8,7 +8,7 @@ import (
 )
 
 func (h HashmapStore) addDummySizes() {
-	for _, size := range metal.DummySizes {
+	for _, size := range DummySizes {
 		h.sizes[size.ID] = size
 	}
 }

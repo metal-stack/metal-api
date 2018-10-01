@@ -1,0 +1,17 @@
+[
+    {
+        "id":          "t1.small.x86",
+        "name":        "t1.small.x86",
+        "description": "The Tiny But Mighty!"
+    },
+    {
+        "id":          "m2.xlarge.x86",
+        "name":        "m2.xlarge.x86",
+        "description": "The Latest and Greatest"
+    },
+    {
+        "id":          "c1.large.arm",
+        "name":        "c1.large.arm",
+        "description": "The Armv8 Beast!"
+    }
+]

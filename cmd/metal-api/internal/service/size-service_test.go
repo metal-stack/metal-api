@@ -51,11 +51,11 @@ func (s *SizeTestSuite) TestGetSizes() {
 
 	s.Assert().Equal(http.StatusOK, resp.StatusCode, "Wrong status code in response")
 	s.Require().Nil(err, "Response not JSON parsable", err)
-	s.Assert().Equal(len(metal.DummySizes), len(result), "Not all sizes were returned")
+	s.Assert().Equal(len(hashmapstore.DummySizes), len(result), "Not all sizes were returned")
 }
 
 func (s *SizeTestSuite) TestGetSize() {
-	size := metal.DummySizes[0]
+	size := hashmapstore.DummySizes[0]
 	httpWriter, httpRequest := utils.HttpMock("GET", fmt.Sprintf("/size/%s", size.ID), "")
 
 	restful.DefaultContainer.ServeHTTP(httpWriter, httpRequest)
@@ -129,7 +129,7 @@ func (s *SizeTestSuite) TestCreateSizeInvalidPayload() {
 }
 
 func (s *SizeTestSuite) TestUpdateSize() {
-	sizeToUpdate := metal.DummySizes[0]
+	sizeToUpdate := hashmapstore.DummySizes[0]
 	sizeToUpdate.Description = "Modified Description"
 	beforeSizes := s.sr.ds.ListSizes()
 	httpWriter, httpRequest := utils.HttpMock("POST", "/size", sizeToUpdate)

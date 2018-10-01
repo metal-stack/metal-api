@@ -1,0 +1,17 @@
+[
+    {
+        "id":          "NBG1",
+        "name":        "Nuernberg 1",
+        "description": "Location number one in NBG"
+    },
+    {
+        "id":          "NBG2",
+        "name":        "Nuernberg 2",
+        "description": "Location number two in NBG"
+    },
+    {
+        "id":          "FRA",
+        "name":        "Frankfurt",
+        "description": "A location in frankfurt"
+    }
+]

@@ -17,7 +17,7 @@ type devicePool struct {
 }
 
 func (h HashmapStore) addDummyDevices() {
-	for _, device := range metal.DummyDevices {
+	for _, device := range DummyDevices {
 		h.devices.all[device.ID] = device
 		if device.Name == "" {
 			h.devices.free[device.ID] = device

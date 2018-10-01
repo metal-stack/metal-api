@@ -8,7 +8,7 @@ import (
 )
 
 func (h HashmapStore) addDummyImages() {
-	for _, image := range metal.DummyImages {
+	for _, image := range DummyImages {
 		h.images[image.ID] = image
 	}
 }

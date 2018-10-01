@@ -8,7 +8,7 @@ import (
 )
 
 func (h HashmapStore) addDummyFacilities() {
-	for _, facility := range metal.DummyFacilities {
+	for _, facility := range DummyFacilities {
 		h.facilities[facility.ID] = facility
 	}
 }
