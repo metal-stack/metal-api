@@ -9,15 +9,18 @@ import (
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/inconshreveable/log15"
 )
 
 type facilityResource struct {
+	log15.Logger
 	ds datastore.Datastore
 }
 
-func NewFacility(ds datastore.Datastore) *restful.WebService {
+func NewFacility(log log15.Logger, ds datastore.Datastore) *restful.WebService {
 	fr := facilityResource{
-		ds: ds,
+		Logger: log,
+		ds:     ds,
 	}
 	return fr.webService()
 }

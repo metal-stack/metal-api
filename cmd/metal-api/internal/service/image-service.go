@@ -10,15 +10,18 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/inconshreveable/log15"
 )
 
 type imageResource struct {
+	log15.Logger
 	ds datastore.Datastore
 }
 
-func NewImage(ds datastore.Datastore) *restful.WebService {
+func NewImage(log log15.Logger, ds datastore.Datastore) *restful.WebService {
 	ir := imageResource{
-		ds: ds,
+		Logger: log,
+		ds:     ds,
 	}
 	return ir.webService()
 }

@@ -9,15 +9,18 @@ import (
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/inconshreveable/log15"
 )
 
 type sizeResource struct {
+	log15.Logger
 	ds datastore.Datastore
 }
 
-func NewSize(ds datastore.Datastore) *restful.WebService {
+func NewSize(log log15.Logger, ds datastore.Datastore) *restful.WebService {
 	sr := sizeResource{
-		ds: ds,
+		Logger: log,
+		ds:     ds,
 	}
 	return sr.webService()
 }

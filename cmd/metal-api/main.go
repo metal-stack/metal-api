@@ -146,10 +146,10 @@ func run() {
 		datastore = ds
 	}
 
-	restful.DefaultContainer.Add(service.NewFacility(datastore))
-	restful.DefaultContainer.Add(service.NewImage(datastore))
-	restful.DefaultContainer.Add(service.NewSize(datastore))
-	restful.DefaultContainer.Add(service.NewDevice(datastore))
+	restful.DefaultContainer.Add(service.NewFacility(log, datastore))
+	restful.DefaultContainer.Add(service.NewImage(log, datastore))
+	restful.DefaultContainer.Add(service.NewSize(log, datastore))
+	restful.DefaultContainer.Add(service.NewDevice(log, datastore))
 
 	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
 
