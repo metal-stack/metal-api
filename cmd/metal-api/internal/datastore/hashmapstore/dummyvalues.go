@@ -25,7 +25,7 @@ var (
 			Changed:      time.Now(),
 			Project:      "metal",
 			Facility:     *DummyFacilities[0],
-			Image:        *DummyImages[0],
+			Image:        DummyImages[0],
 			Size:         *DummySizes[0],
 			MACAddresses: []string{"56:56:56:56:56:56", "78:78:78:78:78:78"},
 		},

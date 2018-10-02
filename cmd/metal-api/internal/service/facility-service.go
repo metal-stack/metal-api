@@ -81,7 +81,11 @@ func (fr facilityResource) findFacility(request *restful.Request, response *rest
 }
 
 func (fr facilityResource) listFacilities(request *restful.Request, response *restful.Response) {
-	res := fr.ds.ListFacilities()
+	res, err := fr.ds.ListFacilities()
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
 	response.WriteEntity(res)
 }
 

@@ -20,16 +20,16 @@ func (h HashmapStore) FindFacility(id string) (*metal.Facility, error) {
 	return nil, fmt.Errorf("facility with id %q not found", id)
 }
 
-func (h HashmapStore) SearchFacility() {
-
+func (h HashmapStore) SearchFacility() error {
+	return nil
 }
 
-func (h HashmapStore) ListFacilities() []*metal.Facility {
-	res := make([]*metal.Facility, 0)
+func (h HashmapStore) ListFacilities() ([]metal.Facility, error) {
+	res := make([]metal.Facility, 0)
 	for _, facility := range h.facilities {
-		res = append(res, facility)
+		res = append(res, *facility)
 	}
-	return res
+	return res, nil
 }
 
 func (h HashmapStore) CreateFacility(facility *metal.Facility) error {
@@ -49,10 +49,11 @@ func (h HashmapStore) DeleteFacility(id string) (*metal.Facility, error) {
 	return facility, nil
 }
 
-func (h HashmapStore) DeleteFacilities() {
+func (h HashmapStore) DeleteFacilities() error {
 	for _, facility := range h.facilities {
 		delete(h.facilities, facility.ID)
 	}
+	return nil
 }
 
 func (h HashmapStore) UpdateFacility(oldFacility *metal.Facility, newFacility *metal.Facility) error {

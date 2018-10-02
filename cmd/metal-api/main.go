@@ -6,7 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/hashmapstore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
@@ -130,11 +132,18 @@ func getVersionString() string {
 func run() {
 	log := log15.New("app", "metal-api")
 
-	// as long as we have not database
-	datastore := hashmapstore.NewHashmapStore()
+	var datastore datastore.Datastore
 	if viper.GetBool("with-mock-data") {
-		datastore.AddMockData()
+		ds := hashmapstore.NewHashmapStore()
+		ds.AddMockData()
+		datastore = ds
 		log15.Info("Initialized mock data")
+	} else {
+		ds, err := rethinkstore.New(log, viper.GetString("DB_ADDR"), "metal")
+		if err != nil {
+			panic(err)
+		}
+		datastore = ds
 	}
 
 	restful.DefaultContainer.Add(service.NewFacility(datastore))
@@ -145,8 +154,8 @@ func run() {
 	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
 
 	config := restfulspec.Config{
-		WebServices: restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:     "/apidocs.json",
+		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:                       "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 

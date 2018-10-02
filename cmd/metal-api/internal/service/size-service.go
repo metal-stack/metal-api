@@ -81,7 +81,11 @@ func (sr sizeResource) findSize(request *restful.Request, response *restful.Resp
 }
 
 func (sr sizeResource) listSizes(request *restful.Request, response *restful.Response) {
-	res := sr.ds.ListSizes()
+	res, err := sr.ds.ListSizes()
+	if err != nil {
+		response.WriteError(http.StatusNotFound, err)
+		return
+	}
 	response.WriteEntity(res)
 }
 

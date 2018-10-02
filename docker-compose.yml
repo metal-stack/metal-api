@@ -5,6 +5,13 @@ networks:
     driver: bridge
 
 services:
+  rethinkdb:
+    image: rethinkdb
+    networks:
+      - appl
+    ports:
+      - "10080:8080"
+      - "28015:28015"
   swagger:
     image: swaggerapi/swagger-ui
     networks:
@@ -24,5 +31,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      METAL_API_WITH_MOCK_DATA: "true"
+      METAL_API_WITH_MOCK_DATA: "false"
       METAL_API_BIND_ADDR: 0.0.0.0
+      METAL_API_DB_ADDR: rethinkdb:28015

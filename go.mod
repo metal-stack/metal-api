@@ -18,10 +18,10 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.0
 	github.com/stretchr/testify v1.2.2
 	golang.org/x/net v0.0.0-20180925072008-f04abc6bdfa7 // indirect
+	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.0
 )

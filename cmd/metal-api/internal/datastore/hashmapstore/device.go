@@ -27,11 +27,12 @@ func (h HashmapStore) addDummyDevices() {
 	}
 }
 
-func (h HashmapStore) Wait(id string, alloc datastore.Allocator) {
+func (h HashmapStore) Wait(id string, alloc datastore.Allocator) error {
 	a := make(datastore.Allocation)
 	h.devices.waitfor[id] = a
 	defer delete(h.devices.waitfor, id)
 	alloc(a)
+	return nil
 }
 
 func (h HashmapStore) FindDevice(id string) (*metal.Device, error) {
@@ -41,17 +42,17 @@ func (h HashmapStore) FindDevice(id string) (*metal.Device, error) {
 	return nil, fmt.Errorf("device with id %q not found", id)
 }
 
-func (h HashmapStore) SearchDevice(projectid string, mac string, pool string) []*metal.Device {
-	var devicePool map[string]*metal.Device
-	if pool == "allocated" {
-		devicePool = h.devices.allocated
-	} else if pool == "free" {
-		devicePool = h.devices.free
-	} else {
-		devicePool = h.devices.all
+func (h HashmapStore) SearchDevice(projectid string, mac string, free *bool) ([]metal.Device, error) {
+	devicePool := h.devices.all
+	if free != nil {
+		if *free {
+			devicePool = h.devices.free
+		} else {
+			devicePool = h.devices.allocated
+		}
 	}
 
-	result := make([]*metal.Device, 0)
+	result := make([]metal.Device, 0)
 	for _, d := range devicePool {
 		if projectid != "" && d.Project != projectid {
 			continue
@@ -59,17 +60,17 @@ func (h HashmapStore) SearchDevice(projectid string, mac string, pool string) []
 		if mac != "" && !d.HasMAC(mac) {
 			continue
 		}
-		result = append(result, d)
+		result = append(result, *d)
 	}
-	return result
+	return result, nil
 }
 
-func (h HashmapStore) ListDevices() []*metal.Device {
-	res := make([]*metal.Device, 0)
-	for _, devices := range h.devices.all {
-		res = append(res, devices)
+func (h HashmapStore) ListDevices() ([]metal.Device, error) {
+	res := make([]metal.Device, 0)
+	for _, dev := range h.devices.all {
+		res = append(res, *dev)
 	}
-	return res
+	return res, nil
 }
 
 func (h HashmapStore) CreateDevice(device *metal.Device) error {
@@ -112,20 +113,20 @@ func (h HashmapStore) UpdateDevice(oldDevice *metal.Device, newDevice *metal.Dev
 	return nil
 }
 
-func (h HashmapStore) AllocateDevice(name string, description string, projectid string, facilityid string, sizeid string, imageid string) error {
+func (h HashmapStore) AllocateDevice(name string, description string, projectid string, facilityid string, sizeid string, imageid string) (*metal.Device, error) {
 	facility, err := h.FindFacility(facilityid)
 	if err != nil {
-		return fmt.Errorf("facility with id %q not found", facilityid)
+		return nil, fmt.Errorf("facility with id %q not found", facilityid)
 	}
 
 	image, err := h.FindImage(imageid)
 	if err != nil {
-		return fmt.Errorf("image with id %q not found", imageid)
+		return nil, fmt.Errorf("image with id %q not found", imageid)
 	}
 
 	size, err := h.FindSize(sizeid)
 	if err != nil {
-		return fmt.Errorf("size with id %q not found", sizeid)
+		return nil, fmt.Errorf("size with id %q not found", sizeid)
 	}
 
 	var device *metal.Device
@@ -140,7 +141,7 @@ func (h HashmapStore) AllocateDevice(name string, description string, projectid 
 		}
 	}
 	if device == nil {
-		return fmt.Errorf("no free device available for allocation in facility")
+		return nil, fmt.Errorf("no free device available for allocation in facility")
 	}
 
 	alloc := h.devices.waitfor[device.ID]
@@ -148,7 +149,7 @@ func (h HashmapStore) AllocateDevice(name string, description string, projectid 
 	device.Name = name
 	device.Project = projectid
 	device.Description = description
-	device.Image = *image
+	device.Image = image
 	device.Changed = time.Now()
 	// we must set the IP, the network config, ...
 
@@ -157,7 +158,7 @@ func (h HashmapStore) AllocateDevice(name string, description string, projectid 
 
 	h.devices.allocated[device.ID] = device
 
-	return nil
+	return device, nil
 }
 
 func (h HashmapStore) FreeDevice(id string) error {
@@ -172,7 +173,7 @@ func (h HashmapStore) FreeDevice(id string) error {
 	device.Project = ""
 	device.Description = ""
 	device.Facility = metal.Facility{}
-	device.Image = metal.Image{}
+	device.Image = nil
 	device.Size = metal.Size{}
 	device.Changed = time.Now()
 

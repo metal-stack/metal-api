@@ -82,7 +82,11 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 }
 
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
-	res := ir.ds.ListImages()
+	res, err := ir.ds.ListImages()
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
 	response.WriteEntity(res)
 }
 
@@ -105,11 +109,11 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
-	err = ir.ds.CreateImage(&s)
+	img, err := ir.ds.CreateImage(&s)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot create image: %v", err))
 	} else {
-		response.WriteHeaderAndEntity(http.StatusCreated, s)
+		response.WriteHeaderAndEntity(http.StatusCreated, img)
 	}
 }
 

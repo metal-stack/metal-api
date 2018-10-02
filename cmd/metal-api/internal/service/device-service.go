@@ -75,7 +75,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("search devices").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
 		Param(ws.QueryParameter("projectid", "search for devices with the givne projectid").DataType("string")).
-		Param(ws.QueryParameter("allocated", "returns allocated machines if set to true, free machines when set to false, all machines when not provided").DataType("bool")).
+		Param(ws.QueryParameter("allocated", "returns allocated machines if set to true, free machines when set to false, all machines when not provided").DataType("boolean")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Device{}).
 		Returns(http.StatusOK, "OK", []metal.Device{}))
@@ -92,8 +92,9 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("allocate a device").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(allocateRequest{}).
-		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
+		Returns(http.StatusOK, "OK", metal.Device{}).
+		Returns(http.StatusNotFound, "No free device for allocation found", nil).
+		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
 	ws.Route(ws.DELETE("/{id}/release").To(dr.freeDevice).
 		Doc("release a device").
@@ -140,25 +141,30 @@ func (dr deviceResource) findDevice(request *restful.Request, response *restful.
 }
 
 func (dr deviceResource) listDevices(request *restful.Request, response *restful.Response) {
-	res := dr.ds.ListDevices()
+	res, err := dr.ds.ListDevices()
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
 	response.WriteEntity(res)
 }
 
 func (dr deviceResource) searchDevice(request *restful.Request, response *restful.Response) {
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
 	prjid := strings.TrimSpace(request.QueryParameter("projectid"))
-	allocated, err := strconv.ParseBool(request.QueryParameter("allocated"))
-
-	pool := "all"
-	if err == nil {
-		if allocated {
-			pool = "allocated"
-		} else {
-			pool = "free"
-		}
+	var free *bool
+	salloc := request.QueryParameter("allocated")
+	if salloc != "" {
+		allocated, _ := strconv.ParseBool(salloc)
+		allocated = !allocated
+		free = &allocated
 	}
 
-	result := dr.ds.SearchDevice(prjid, mac, pool)
+	result, err := dr.ds.SearchDevice(prjid, mac, free)
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
 
 	response.WriteEntity(result)
 }
@@ -192,12 +198,16 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
-	err = dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.ProjectID, allocate.FacilityID, allocate.SizeID, allocate.ImageID)
+	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.ProjectID, allocate.FacilityID, allocate.SizeID, allocate.ImageID)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, err)
+		if err == datastore.ErrNoDeviceAvailable {
+			response.WriteError(http.StatusNotFound, err)
+		} else {
+			response.WriteError(http.StatusInternalServerError, err)
+		}
 		return
 	}
-	response.WriteHeader(http.StatusOK)
+	response.WriteEntity(d)
 }
 
 func (dr deviceResource) freeDevice(request *restful.Request, response *restful.Response) {
