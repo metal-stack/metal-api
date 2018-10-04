@@ -16,8 +16,7 @@ type Datastore interface {
 	ImageStore
 	FacilityStore
 	Connect()
-	Close()
-	//AddMockData()
+	Close() error
 }
 
 type Allocation chan metal.Device

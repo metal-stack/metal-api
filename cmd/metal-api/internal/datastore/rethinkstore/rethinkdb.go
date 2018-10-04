@@ -17,13 +17,21 @@ type RethinkStore struct {
 	facilityTable r.Term
 	deviceTable   r.Term
 	waitTable     r.Term
+
+	dbname string
+	dbuser string
+	dbpass string
+	dbhost string
 }
 
-func New(log log15.Logger, host, dbname string) (*RethinkStore, error) {
-	db, s := RetryConnect([]string{host}, dbname, "", "")
-	res := &RethinkStore{Logger: log, database: db, session: s}
-	res.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
-	return res, nil
+func New(log log15.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
+	return &RethinkStore{
+		Logger: log,
+		dbhost: dbhost,
+		dbname: dbname,
+		dbuser: dbuser,
+		dbpass: dbpass,
+	}
 }
 
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) {
@@ -41,12 +49,19 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) {
 	rs.deviceTable.IndexCreate("project").RunWrite(rs.session)
 }
 
-func (rs *RethinkStore) Close() {
+func (rs *RethinkStore) Close() error {
+	err := rs.session.Close()
+	if err != nil {
+		return err
+	}
 	log15.Info("Rethinkstore disconnected")
+	return nil
 }
 
 func (rs *RethinkStore) Connect() {
+	rs.database, rs.session = RetryConnect([]string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	log15.Info("Rethinkstore connected")
+	rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
 }
 
 func Connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, error) {
@@ -79,7 +94,7 @@ func MustConnect(hosts []string, dbname, username, pwd string) (*r.Term, *r.Sess
 }
 
 // RetryConnect versucht endlos eine Verbindung zur DB herzustellen. Wenn
-// die Verbindung nicht klappt wird eine zeit lange gewartet und erneut
+// die Verbindung nicht klappt wird eine zeit lang gewartet und erneut
 // versucht.
 func RetryConnect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session) {
 tryAgain:
