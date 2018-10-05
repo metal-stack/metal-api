@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
@@ -32,7 +33,7 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 		if err != nil {
 			return nil, fmt.Errorf("illegal size-id %q in device %q", d.SizeID, id)
 		}
-		d.Size = *s
+		d.Size = s
 	}
 	if d.ImageID != "" {
 		f, err := rs.FindImage(d.ImageID)
@@ -132,7 +133,7 @@ func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) err
 	return nil
 }
 
-func (rs *RethinkStore) AllocateDevice(name string, description string, projectid string, facilityid string, sizeid string, imageid string) (*metal.Device, error) {
+func (rs *RethinkStore) AllocateDevice(name string, description string, hostname string, projectid string, facilityid string, sizeid string, imageid string, sshPubKey string) (*metal.Device, error) {
 	image, err := rs.FindImage(imageid)
 	if err != nil {
 		return nil, fmt.Errorf("image with id %q not found", imageid)
@@ -153,11 +154,20 @@ func (rs *RethinkStore) AllocateDevice(name string, description string, projecti
 	if len(res) < 1 {
 		return nil, datastore.ErrNoDeviceAvailable
 	}
+	ip, err := ipam.AllocateIP()
+	if err != nil {
+		return nil, err
+	}
+
 	old := res[0]
+	rs.fillDeviceList(res[0:1])
 	res[0].Name = name
+	res[0].Hostname = hostname
 	res[0].Project = projectid
 	res[0].Description = description
 	res[0].Image = image
+	res[0].SSHPubKey = sshPubKey
+	res[0].IP = ip
 	res[0].Changed = time.Now()
 	err = rs.UpdateDevice(&old, &res[0])
 	if err != nil {
@@ -170,38 +180,36 @@ func (rs *RethinkStore) AllocateDevice(name string, description string, projecti
 	return &res[0], nil
 }
 
-func (rs *RethinkStore) FreeDevice(id string) error {
+func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	device, err := rs.FindDevice(id)
 	if err != nil {
-		return fmt.Errorf("cannot free device: %v", err)
+		return nil, fmt.Errorf("cannot free device: %v", err)
 	}
 	old := *device
-	device.Name, device.Project, device.Description = "", "", ""
+	ipam.FreeIP(device.IP)
+	device.Name, device.Project, device.Description, device.IP, device.Hostname, device.SSHPubKey = "", "", "", "", "", ""
 	err = rs.UpdateDevice(&old, device)
 	if err != nil {
-		return fmt.Errorf("cannot clear device data: %v", err)
+		return nil, fmt.Errorf("cannot clear device data: %v", err)
 	}
-	return nil
+	return device, nil
 }
 
-func (rs *RethinkStore) RegisterDevice(id string, macs []string, facilityid string, sizeid string) (*metal.Device, error) {
+func (rs *RethinkStore) RegisterDevice(id string, facilityid string, hardware metal.DeviceHardware) (*metal.Device, error) {
 	fc, err := rs.FindFacility(facilityid)
 	if err != nil {
 		return nil, fmt.Errorf("facility with id %q not found", facilityid)
 	}
 
-	sz, err := rs.FindSize(sizeid)
-	if err != nil {
-		return nil, fmt.Errorf("size with id %q not found", sizeid)
-	}
+	sz := rs.determineSizeFromHardware(hardware)
 
 	device, err := rs.FindDevice(id)
 	if err != nil {
 		device = &metal.Device{
-			ID:           id,
-			MACAddresses: macs,
-			Size:         *sz,
-			Facility:     *fc,
+			ID:       id,
+			Size:     sz,
+			Facility: *fc,
+			Hardware: hardware,
 		}
 		err = rs.CreateDevice(device)
 		if err != nil {
@@ -210,9 +218,9 @@ func (rs *RethinkStore) RegisterDevice(id string, macs []string, facilityid stri
 		return device, nil
 	}
 	old := *device
-	device.MACAddresses = macs
+	device.Hardware = hardware
 	device.Facility = *fc
-	device.Size = *sz
+	device.Size = sz
 
 	err = rs.UpdateDevice(&old, device)
 	if err != nil {
@@ -279,7 +287,8 @@ func (rs *RethinkStore) fillDeviceList(data []metal.Device) ([]metal.Device, err
 
 	for i, d := range data {
 		data[i].Facility = facmap[d.FacilityID]
-		data[i].Size = szmap[d.SizeID]
+		size := szmap[d.SizeID]
+		data[i].Size = &size
 		if d.ImageID != "" {
 			img := imgmap[d.ImageID]
 			data[i].Image = &img

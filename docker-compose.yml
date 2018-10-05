@@ -34,3 +34,4 @@ services:
     environment:
       METAL_API_BIND_ADDR: 0.0.0.0
       METAL_API_DB_ADDR: rethinkdb:28015
+      METAL_API_LOG_LEVEL: "debug"

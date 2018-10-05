@@ -161,56 +161,46 @@ func (h HashmapStore) AllocateDevice(name string, description string, projectid 
 	return device, nil
 }
 
-func (h HashmapStore) FreeDevice(id string) error {
-	device, ok := h.devices.all[id]
-	if !ok {
-		return fmt.Errorf("device with id %q not found", id)
-	}
+// func (h HashmapStore) FreeDevice(id string) error {
+// 	device, ok := h.devices.all[id]
+// 	if !ok {
+// 		return fmt.Errorf("device with id %q not found", id)
+// 	}
 
-	// TODO: Actually the device needs to be deleted completely and then rebooted
+// 	// TODO: Actually the device needs to be deleted completely and then rebooted
 
-	device.Name = ""
-	device.Project = ""
-	device.Description = ""
-	device.Facility = metal.Facility{}
-	device.Image = nil
-	device.Size = metal.Size{}
-	device.Changed = time.Now()
+// 	device.Name = ""
+// 	device.Project = ""
+// 	device.Description = ""
+// 	device.Facility = metal.Facility{}
+// 	device.Image = nil
+// 	device.Size = metal.Size{}
+// 	device.Changed = time.Now()
 
-	delete(h.devices.allocated, id)
-	h.devices.free[id] = device
+// 	delete(h.devices.allocated, id)
+// 	h.devices.free[id] = device
 
-	return nil
-}
+// 	return nil
+// }
 
-func (h HashmapStore) RegisterDevice(id string, macs []string, facilityid string, sizeid string) (*metal.Device, error) {
-	facility, err := h.FindFacility(facilityid)
-	if err != nil {
-		return nil, fmt.Errorf("facility with id %q not found", facilityid)
-	}
+// func (h HashmapStore) RegisterDevice(id string) (*metal.Device, error) {
+// 	device, err := h.FindDevice(id)
+// 	if err != nil {
+// 		device = &metal.Device{
+// 			ID:           id,
+// 			MACAddresses: macs,
+// 			Facility:     *facility,
+// 			Size:         *size,
+// 		}
+// 		err = h.CreateDevice(device)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	}
 
-	size, err := h.FindSize(sizeid)
-	if err != nil {
-		return nil, fmt.Errorf("size with id %q not found", sizeid)
-	}
+// 	device.MACAddresses = macs
+// 	device.Facility = *facility
+// 	device.Size = *size
 
-	device, err := h.FindDevice(id)
-	if err != nil {
-		device = &metal.Device{
-			ID:           id,
-			MACAddresses: macs,
-			Facility:     *facility,
-			Size:         *size,
-		}
-		err = h.CreateDevice(device)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	device.MACAddresses = macs
-	device.Facility = *facility
-	device.Size = *size
-
-	return device, nil
-}
+// 	return device, nil
+// }

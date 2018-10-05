@@ -1,14 +1,8 @@
 [
     {
         "id":"1",
-        "name":        "Discovery",
-        "description": "Image for initial discovery",
-        "url":         "https://registry.maas/discovery/dicoverer:latest"
-    },
-    {
-        "id":"2",
-        "name":        "Alpine 3.8",
-        "description": "Alpine 3.8",
-        "url":         "https://registry.maas/alpine/alpine:3.8"
+        "name":        "Ubuntu 18.04",
+        "description": "Ubuntu 18.04 Minimal",
+        "url":         "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.04/img.tar.gz"
     }
 ]

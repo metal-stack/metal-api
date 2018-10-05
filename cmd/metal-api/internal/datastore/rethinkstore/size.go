@@ -76,3 +76,13 @@ func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) err
 	}
 	return nil
 }
+
+func (rs *RethinkStore) determineSizeFromHardware(hardware metal.DeviceHardware) *metal.Size {
+	// FIXME: For POC always return small if present
+	size, err := rs.FindSize("t1.small.x86")
+	if err != nil {
+		rs.Error("size could not be determined from the hardware")
+		return nil
+	}
+	return size
+}

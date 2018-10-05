@@ -25,20 +25,19 @@ type deviceResource struct {
 
 type allocateRequest struct {
 	Name        string `json:"name" description:"the new name for the allocated device" optional:"true"`
+	Hostname    string `json:"hostname" description:"the hostname for the allocated device"`
 	Description string `json:"description" description:"the description for the allocated device" optional:"true"`
 	ProjectID   string `json:"projectid" description:"the project id to assign this device to"`
 	FacilityID  string `json:"facilityid" description:"the facility id to assign this device to"`
 	SizeID      string `json:"sizeid" description:"the size id to assign this device to"`
 	ImageID     string `json:"imageid" description:"the image id to assign this device to"`
+	SSHPubKey   string `json:"ssh_pub_key" description:"the public ssh key to access the device with"`
 }
 
 type registerRequest struct {
-	UUID       string   `json:"uuid" description:"the uuid of the device to register"`
-	Macs       []string `json:"macs" description:"the mac addresses to register this device with"`
-	FacilityID string   `json:"facilityid" description:"the facility id to register this device with"`
-	SizeID     string   `json:"sizeid" description:"the size id to register this device with"`
-	// Memory     int64  `json:"memory" description:"the size id to assign this device to"`
-	// CpuCores   int    `json:"cpucores" description:"the size id to assign this device to"`
+	UUID       string               `json:"uuid" description:"the product uuid of the device to register"`
+	FacilityID string               `json:"facilityid" description:"the facility id to register this device with"`
+	Hardware   metal.DeviceHardware `json:"hardware" description:"the hardware of this device"`
 }
 
 func NewDevice(log log15.Logger, ds datastore.Datastore) *restful.WebService {
@@ -99,11 +98,11 @@ func (dr deviceResource) webService() *restful.WebService {
 		Returns(http.StatusNotFound, "No free device for allocation found", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
-	ws.Route(ws.DELETE("/{id}/release").To(dr.freeDevice).
-		Doc("release a device").
+	ws.Route(ws.DELETE("/{id}/free").To(dr.freeDevice).
+		Doc("free a device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
 
 	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
@@ -190,7 +189,7 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		return
 	}
 
-	device, err := dr.ds.RegisterDevice(data.UUID, data.Macs, data.FacilityID, data.SizeID)
+	device, err := dr.ds.RegisterDevice(data.UUID, data.FacilityID, data.Hardware)
 
 	if err != nil {
 		dr.Error("error registering device", "error", err, "entity", data)
@@ -209,7 +208,7 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		response.WriteError(http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
-	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.ProjectID, allocate.FacilityID, allocate.SizeID, allocate.ImageID)
+	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname, allocate.ProjectID, allocate.FacilityID, allocate.SizeID, allocate.ImageID, allocate.SSHPubKey)
 	if err != nil {
 		if err == datastore.ErrNoDeviceAvailable {
 			dr.Warn("no device found for allocation", "request", allocate, "error", err)
@@ -225,11 +224,11 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 
 func (dr deviceResource) freeDevice(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	err := dr.ds.FreeDevice(id)
+	device, err := dr.ds.FreeDevice(id)
 	if err != nil {
 		dr.Error("cannot free device", "id", id, "error", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	response.WriteHeader(http.StatusOK)
+	response.WriteEntity(device)
 }

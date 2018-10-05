@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/hashmapstore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
@@ -31,8 +30,8 @@ var (
 	gitsha1   string
 	builddate string
 	cfgFile   string
-	logger    = log15.New("app", "metal-api")
 	ds        datastore.Datastore
+	logger    log15.Logger
 )
 
 var rootCmd = &cobra.Command{
@@ -61,6 +60,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
 	rootCmd.Flags().StringP("log-level", "", "info", "the application log level")
 	rootCmd.Flags().StringP("log-formatter", "", "text", "the application log fromatter (text or json)")
+
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
 
@@ -124,6 +124,7 @@ func initLogging() {
 	handler := log15.LvlFilterHandler(level, formatHandler)
 
 	log15.Root().SetHandler(handler)
+	logger = log15.New("app", "metal-api")
 }
 
 func getVersionString() string {
@@ -168,8 +169,6 @@ func initDataStore() {
 			viper.GetString("db-user"),
 			viper.GetString("db-password"),
 		)
-	} else if dbAdapter == "devhashmap" {
-		ds = hashmapstore.New()
 	} else {
 		log15.Error("database not supported", "db", dbAdapter)
 	}
@@ -177,6 +176,8 @@ func initDataStore() {
 }
 
 func run() {
+	log15.Debug("Root logger")
+	logger.Debug("Test")
 	restful.DefaultContainer.Add(service.NewFacility(logger, ds))
 	restful.DefaultContainer.Add(service.NewImage(logger, ds))
 	restful.DefaultContainer.Add(service.NewSize(logger, ds))
