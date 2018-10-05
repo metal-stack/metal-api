@@ -32,6 +32,7 @@ var (
 	cfgFile   string
 	ds        datastore.Datastore
 	logger    log15.Logger
+	debug     = false
 )
 
 var rootCmd = &cobra.Command{
@@ -121,6 +122,10 @@ func initLogging() {
 		os.Exit(1)
 	}
 
+	if level == log15.LvlDebug {
+		debug = true
+	}
+
 	handler := log15.LvlFilterHandler(level, formatHandler)
 
 	log15.Root().SetHandler(handler)
@@ -176,14 +181,12 @@ func initDataStore() {
 }
 
 func run() {
-	log15.Debug("Root logger")
-	logger.Debug("Test")
 	restful.DefaultContainer.Add(service.NewFacility(logger, ds))
 	restful.DefaultContainer.Add(service.NewImage(logger, ds))
 	restful.DefaultContainer.Add(service.NewSize(logger, ds))
 	restful.DefaultContainer.Add(service.NewDevice(logger, ds))
 
-	restful.DefaultContainer.Filter(utils.RestfulLogger(logger))
+	restful.DefaultContainer.Filter(utils.RestfulLogger(logger, debug))
 
 	config := restfulspec.Config{
 		WebServices: restful.RegisteredWebServices(), // you control what services are visible

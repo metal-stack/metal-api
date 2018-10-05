@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"net/http/httputil"
 	"strings"
 
 	restful "github.com/emicklei/go-restful"
@@ -16,15 +17,23 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-func RestfulLogger(logger log15.Logger) restful.FilterFunction {
+func RestfulLogger(logger log15.Logger, debug bool) restful.FilterFunction {
 	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
-		chain.ProcessFilter(req, resp)
-		logger.Info("Rest Call",
+		info := []interface{}{
 			"remoteaddr", strings.Split(req.Request.RemoteAddr, ":")[0],
 			"method", req.Request.Method,
 			"uri", req.Request.URL.RequestURI(),
 			"protocol", req.Request.Proto,
 			"status", resp.StatusCode(),
-			"content-length", resp.ContentLength())
+			"content-length", resp.ContentLength(),
+		}
+
+		if debug {
+			body, _ := httputil.DumpRequest(req.Request, true)
+			info = append(info, "body")
+			info = append(info, string(body))
+		}
+		chain.ProcessFilter(req, resp)
+		logger.Info("Rest Call", info...)
 	}
 }

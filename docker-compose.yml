@@ -20,7 +20,7 @@ services:
     ports:
      - "9090:8080"
     environment:
-      - API_URL=http://localhost:8080/apidocs.json
+      API_URL: http://localhost:8080/apidocs.json
 
   metal-api:
     tty: true
