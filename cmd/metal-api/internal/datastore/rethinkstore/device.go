@@ -166,6 +166,7 @@ func (rs *RethinkStore) AllocateDevice(name string, description string, hostname
 	res[0].Project = projectid
 	res[0].Description = description
 	res[0].Image = image
+	res[0].ImageID = image.ID
 	res[0].SSHPubKey = sshPubKey
 	res[0].IP = ip
 	res[0].Changed = time.Now()
@@ -259,7 +260,9 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 		}
 		var response responseType
 		for ch.Next(&response) {
-			a <- response.NewVal
+			// device details need to be populated, therfore find again
+			dev, err = rs.FindDevice(response.NewVal.ID)
+			a <- *dev
 			return
 		}
 
