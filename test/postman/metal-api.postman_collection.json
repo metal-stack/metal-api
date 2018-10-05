@@ -80,20 +80,20 @@
 			"response": []
 		},
 		{
-			"name": "Release Device",
+			"name": "Free Device",
 			"request": {
 				"method": "DELETE",
 				"header": [],
 				"body": {},
 				"url": {
-					"raw": "{{base}}/device/ae671b8b-a158-52c2-8c22-985ca0503873/release",
+					"raw": "{{base}}/device/ae671b8b-a158-52c2-8c22-985ca0503873/free",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
 						"device",
 						"ae671b8b-a158-52c2-8c22-985ca0503873",
-						"release"
+						"free"
 					]
 				}
 			},
