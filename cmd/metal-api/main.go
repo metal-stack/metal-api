@@ -115,7 +115,6 @@ func initLogging() {
 		log15.Error("Unsupported log formatter", "log-formatter", viper.GetString("log-formatter"))
 		os.Exit(1)
 	}
-
 	level, err := log15.LvlFromString(viper.GetString("log-level"))
 	if err != nil {
 		log15.Error("Unparsable log level", "log-level", viper.GetString("log-level"))
@@ -126,7 +125,8 @@ func initLogging() {
 		debug = true
 	}
 
-	handler := log15.LvlFilterHandler(level, formatHandler)
+	handler := log15.CallerFileHandler(formatHandler)
+	handler = log15.LvlFilterHandler(level, handler)
 
 	log15.Root().SetHandler(handler)
 	logger = log15.New("app", "metal-api")
