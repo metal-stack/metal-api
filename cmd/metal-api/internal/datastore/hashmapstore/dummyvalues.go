@@ -8,27 +8,27 @@ import (
 
 var (
 	DummyDevices = []*metal.Device{
-		&metal.Device{
-			ID:           "1234-1234-1234",
-			Name:         "",
-			Description:  "",
-			Created:      time.Now(),
-			Changed:      time.Now(),
-			Project:      "",
-			MACAddresses: []string{"12:12:12:12:12:12", "34:34:34:34:34:34"},
-		},
-		&metal.Device{
-			ID:           "5678-5678-5678",
-			Name:         "metal-test-host-1",
-			Description:  "A test host.",
-			Created:      time.Now(),
-			Changed:      time.Now(),
-			Project:      "metal",
-			Facility:     *DummyFacilities[0],
-			Image:        *DummyImages[0],
-			Size:         *DummySizes[0],
-			MACAddresses: []string{"56:56:56:56:56:56", "78:78:78:78:78:78"},
-		},
+		// &metal.Device{
+		// 	ID:           "1234-1234-1234",
+		// 	Name:         "",
+		// 	Description:  "",
+		// 	Created:      time.Now(),
+		// 	Changed:      time.Now(),
+		// 	Project:      "",
+		// 	MACAddresses: []string{"12:12:12:12:12:12", "34:34:34:34:34:34"},
+		// },
+		// &metal.Device{
+		// 	ID:           "5678-5678-5678",
+		// 	Name:         "metal-test-host-1",
+		// 	Description:  "A test host.",
+		// 	Created:      time.Now(),
+		// 	Changed:      time.Now(),
+		// 	Project:      "metal",
+		// 	Facility:     *DummyFacilities[0],
+		// 	Image:        DummyImages[0],
+		// 	Size:         *DummySizes[0],
+		// 	MACAddresses: []string{"56:56:56:56:56:56", "78:78:78:78:78:78"},
+		// },
 	}
 
 	DummyFacilities = []*metal.Facility{

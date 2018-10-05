@@ -20,23 +20,23 @@ func (h HashmapStore) FindImage(id string) (*metal.Image, error) {
 	return nil, fmt.Errorf("image with id %q not found", id)
 }
 
-func (h HashmapStore) SearchImage() {
-
+func (h HashmapStore) SearchImage() error {
+	return nil
 }
 
-func (h HashmapStore) ListImages() []*metal.Image {
-	res := make([]*metal.Image, 0)
+func (h HashmapStore) ListImages() ([]metal.Image, error) {
+	res := make([]metal.Image, 0)
 	for _, image := range h.images {
-		res = append(res, image)
+		res = append(res, *image)
 	}
-	return res
+	return res, nil
 }
 
-func (h HashmapStore) CreateImage(image *metal.Image) error {
+func (h HashmapStore) CreateImage(image *metal.Image) (*metal.Image, error) {
 	// well, check if this id already exist ... but
 	// we do not have a database, so this is ok here :-)
 	h.images[image.ID] = image
-	return nil
+	return image, nil
 }
 
 func (h HashmapStore) DeleteImage(id string) (*metal.Image, error) {
@@ -49,10 +49,11 @@ func (h HashmapStore) DeleteImage(id string) (*metal.Image, error) {
 	return image, nil
 }
 
-func (h HashmapStore) DeleteImages() {
+func (h HashmapStore) DeleteImages() error {
 	for _, image := range h.images {
 		delete(h.images, image.ID)
 	}
+	return nil
 }
 
 func (h HashmapStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image) error {

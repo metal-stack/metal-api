@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/hashmapstore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
@@ -27,6 +30,8 @@ var (
 	gitsha1   string
 	builddate string
 	cfgFile   string
+	ds        datastore.Datastore
+	logger    log15.Logger
 )
 
 var rootCmd = &cobra.Command{
@@ -35,6 +40,8 @@ var rootCmd = &cobra.Command{
 	Version: getVersionString(),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		initLogging()
+		initDataStore()
+		initSignalHandlers()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		run()
@@ -53,9 +60,15 @@ func init() {
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
 	rootCmd.Flags().StringP("log-level", "", "info", "the application log level")
 	rootCmd.Flags().StringP("log-formatter", "", "text", "the application log fromatter (text or json)")
+
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
-	rootCmd.Flags().BoolP("with-mock-data", "", false, "creates some mock data on startup")
+
+	rootCmd.Flags().StringP("db", "", "rethinkdb", "the database adapter to use")
+	rootCmd.Flags().StringP("db-name", "", "metalapi", "the database name to use")
+	rootCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
+	rootCmd.Flags().StringP("db-user", "", "", "the database user to use")
+	rootCmd.Flags().StringP("db-password", "", "", "the database password to use")
 
 	viper.BindPFlags(rootCmd.Flags())
 }
@@ -111,6 +124,7 @@ func initLogging() {
 	handler := log15.LvlFilterHandler(level, formatHandler)
 
 	log15.Root().SetHandler(handler)
+	logger = log15.New("app", "metal-api")
 }
 
 func getVersionString() string {
@@ -127,22 +141,49 @@ func getVersionString() string {
 	return versionString
 }
 
-func run() {
-	log := log15.New("app", "metal-api")
+func initSignalHandlers() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		log15.Error("Received keyboard interrupt, shutting down...")
+		if ds != nil {
+			log15.Info("Closing connection to datastore")
+			err := ds.Close()
+			if err != nil {
+				log15.Info("Unable to properly shutdown datastore", "error", err)
+				os.Exit(1)
+			}
+			os.Exit(0)
+		}
+	}()
+}
 
-	// as long as we have not database
-	datastore := hashmapstore.NewHashmapStore()
-	if viper.GetBool("with-mock-data") {
-		datastore.AddMockData()
-		log15.Info("Initialized mock data")
+func initDataStore() {
+	dbAdapter := viper.GetString("db")
+	if dbAdapter == "rethinkdb" {
+		ds = rethinkstore.New(
+			logger,
+			viper.GetString("db-addr"),
+			viper.GetString("db-name"),
+			viper.GetString("db-user"),
+			viper.GetString("db-password"),
+		)
+	} else {
+		log15.Error("database not supported", "db", dbAdapter)
 	}
+	ds.Connect()
+}
 
-	restful.DefaultContainer.Add(service.NewFacility(datastore))
-	restful.DefaultContainer.Add(service.NewImage(datastore))
-	restful.DefaultContainer.Add(service.NewSize(datastore))
-	restful.DefaultContainer.Add(service.NewDevice(datastore))
+func run() {
+	log15.Debug("Root logger")
+	logger.Debug("Test")
+	restful.DefaultContainer.Add(service.NewFacility(logger, ds))
+	restful.DefaultContainer.Add(service.NewImage(logger, ds))
+	restful.DefaultContainer.Add(service.NewSize(logger, ds))
+	restful.DefaultContainer.Add(service.NewDevice(logger, ds))
 
-	restful.DefaultContainer.Filter(utils.RestfulLogger(log))
+	restful.DefaultContainer.Filter(utils.RestfulLogger(logger))
 
 	config := restfulspec.Config{
 		WebServices: restful.RegisteredWebServices(), // you control what services are visible
@@ -159,7 +200,7 @@ func run() {
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	log.Info("start metal api", "revision", revision, "builddate", builddate, "address", addr)
+	log15.Info("start metal api", "revision", revision, "builddate", builddate, "address", addr)
 	http.ListenAndServe(addr, nil)
 }
 

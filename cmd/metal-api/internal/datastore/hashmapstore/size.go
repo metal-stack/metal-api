@@ -20,16 +20,16 @@ func (h HashmapStore) FindSize(id string) (*metal.Size, error) {
 	return nil, fmt.Errorf("size with id %q not found", id)
 }
 
-func (h HashmapStore) SearchSize() {
-
+func (h HashmapStore) SearchSize() error {
+	return nil
 }
 
-func (h HashmapStore) ListSizes() []*metal.Size {
-	res := make([]*metal.Size, 0)
+func (h HashmapStore) ListSizes() ([]metal.Size, error) {
+	res := make([]metal.Size, 0)
 	for _, size := range h.sizes {
-		res = append(res, size)
+		res = append(res, *size)
 	}
-	return res
+	return res, nil
 }
 
 func (h HashmapStore) CreateSize(size *metal.Size) error {
@@ -49,10 +49,11 @@ func (h HashmapStore) DeleteSize(id string) (*metal.Size, error) {
 	return size, nil
 }
 
-func (h HashmapStore) DeleteSizes() {
+func (h HashmapStore) DeleteSizes() error {
 	for _, size := range h.sizes {
 		delete(h.sizes, size.ID)
 	}
+	return nil
 }
 
 func (h HashmapStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) error {

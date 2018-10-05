@@ -13,7 +13,7 @@ type HashmapStore struct {
 	devices    devicePool
 }
 
-func NewHashmapStore() *HashmapStore {
+func New() *HashmapStore {
 	return &HashmapStore{
 		sizes:      make(map[string]*metal.Size),
 		images:     make(map[string]*metal.Image),
@@ -31,8 +31,9 @@ func (h HashmapStore) Connect() {
 	log15.Info("HashmapStore connected")
 }
 
-func (h HashmapStore) Close() {
+func (h HashmapStore) Close() error {
 	log15.Info("HashmapStore disconnected")
+	return nil
 }
 
 func (h HashmapStore) AddMockData() {
