@@ -186,6 +186,9 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot free device: %v", err)
 	}
+	if device.Project == "" {
+		return nil, fmt.Errorf("device is not allocated")
+	}
 	old := *device
 	ipam.FreeIP(device.IP)
 	device.Name, device.Project, device.Description, device.IP, device.Hostname, device.SSHPubKey = "", "", "", "", "", ""
@@ -239,14 +242,15 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	if dev.Project != "" {
 		return fmt.Errorf("device is already allocated, needs to be released first")
 	}
-	res, err := rs.waitTable.Insert(dev).Run(rs.session)
+
+	_, err = rs.waitTable.Insert(dev).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot create device in wait table: %v", err)
+		return fmt.Errorf("cannot insert device into wait table: %v", err)
 	}
 	defer func() {
 		rs.waitTable.Get(id).Delete().Run(rs.session)
-		res.Close()
 	}()
+
 	a := make(datastore.Allocation)
 	go func() {
 		ch, err := rs.waitTable.Get(id).Changes().Run(rs.session)
@@ -257,12 +261,14 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 			// occur without an allocation
 			return
 		}
-
-		var response metal.Device
+		type responseType struct {
+			NewVal metal.Device `rethinkdb:"new_val"`
+		}
+		var response responseType
 		for ch.Next(&response) {
-			res, err := rs.fillDeviceList([]metal.Device{response})
+			res, err := rs.fillDeviceList([]metal.Device{response.NewVal})
 			if err != nil {
-				rs.Logger.Error("Device could not be populated", "error", err, "id", response.ID)
+				rs.Logger.Error("device could not be populated", "error", err, "id", response.NewVal.ID)
 				continue
 			}
 			a <- res[0]
