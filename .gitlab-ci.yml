@@ -4,11 +4,11 @@ stages:
     - test
     - push
 
-test:  
-    stage: test
-    script: make test-ci
-    except:
-      - prod
+# test:  
+#     stage: test
+#     script: make test-ci
+#     except:
+#       - prod
 
 push:
     stage: push
