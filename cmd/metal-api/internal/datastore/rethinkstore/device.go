@@ -279,7 +279,7 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 
 	}()
 	alloc(a)
-	return nil
+	return fmt.Errorf("cannot fetch changed device")
 }
 
 func (rs *RethinkStore) fillDeviceList(data []metal.Device) ([]metal.Device, error) {
