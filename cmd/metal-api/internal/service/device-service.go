@@ -119,7 +119,7 @@ func (dr deviceResource) webService() *restful.WebService {
 func (dr deviceResource) waitForAllocation(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	ctx := request.Request.Context()
-	dr.ds.Wait(id, func(alloc datastore.Allocation) error {
+	err := dr.ds.Wait(id, func(alloc datastore.Allocation) error {
 		select {
 		case <-time.After(waitForServerTimeout):
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
@@ -131,6 +131,7 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 		}
 		return nil
 	})
+	response.WriteError(http.StatusInternalServerError, err)
 }
 
 func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {

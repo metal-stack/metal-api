@@ -236,6 +236,9 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	if err != nil {
 		return fmt.Errorf("cannot wait for unknown device: %v", err)
 	}
+	if dev.Project != "" {
+		return fmt.Errorf("device is already allocated, needs to be released first")
+	}
 	res, err := rs.waitTable.Insert(dev).Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot create device in wait table: %v", err)
@@ -254,15 +257,15 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 			// occur without an allocation
 			return
 		}
-		//var allocdev metal.Device
-		type responseType struct {
-			NewVal metal.Device `rethinkdb:"new_val"`
-		}
-		var response responseType
+
+		var response metal.Device
 		for ch.Next(&response) {
-			// device details need to be populated, therfore find again
-			dev, err = rs.FindDevice(response.NewVal.ID)
-			a <- *dev
+			res, err := rs.fillDeviceList([]metal.Device{response})
+			if err != nil {
+				rs.Logger.Error("Device could not be populated", "error", err, "id", response.ID)
+				continue
+			}
+			a <- res[0]
 			return
 		}
 
