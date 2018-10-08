@@ -131,7 +131,9 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 		}
 		return nil
 	})
-	response.WriteError(http.StatusInternalServerError, err)
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+	}
 }
 
 func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
