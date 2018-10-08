@@ -243,7 +243,8 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 		return fmt.Errorf("device is already allocated, needs to be released first")
 	}
 
-	_, err = rs.waitTable.Insert(dev).RunWrite(rs.session)
+	// does not prehibit concurrent wait calls for the same UUID
+	_, err = rs.waitTable.Insert(dev).Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot insert device into wait table: %v", err)
 	}
