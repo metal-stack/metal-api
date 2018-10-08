@@ -244,12 +244,13 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	}
 
 	// does not prehibit concurrent wait calls for the same UUID
-	_, err = rs.waitTable.Insert(dev).Run(rs.session)
+	c, err := rs.waitTable.Insert(dev).Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot insert device into wait table: %v", err)
 	}
 	defer func() {
 		rs.waitTable.Get(id).Delete().Run(rs.session)
+		c.Close()
 	}()
 
 	a := make(datastore.Allocation)
@@ -278,7 +279,7 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 
 	}()
 	alloc(a)
-	return fmt.Errorf("cannot fetch changed device")
+	return nil
 }
 
 func (rs *RethinkStore) fillDeviceList(data []metal.Device) ([]metal.Device, error) {
