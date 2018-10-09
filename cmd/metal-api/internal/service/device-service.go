@@ -125,6 +125,7 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
 			return fmt.Errorf("server timeout")
 		case a := <-alloc:
+			dr.Info("return allocated device", "device", a)
 			response.WriteEntity(a)
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
