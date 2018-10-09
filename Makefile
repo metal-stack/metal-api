@@ -5,6 +5,7 @@ BUILDDATE := $(shell date -Iseconds)
 VERSION := $(or ${VERSION},devel)
 
 BINARY := metal-api
+.PHONY: test
 
 all: $(BINARY);
 
