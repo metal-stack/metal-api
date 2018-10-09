@@ -239,8 +239,14 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	if err != nil {
 		return fmt.Errorf("cannot wait for unknown device: %v", err)
 	}
+	a := make(datastore.Allocation)
+
 	if dev.Project != "" {
-		return fmt.Errorf("device is already allocated, needs to be released first")
+		go func() {
+			a <- *dev
+		}()
+		alloc(a)
+		return nil
 	}
 
 	// does not prehibit concurrent wait calls for the same UUID
@@ -254,7 +260,6 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 		rs.waitTable.Get(id).Delete().RunWrite(rs.session)
 	}()
 
-	a := make(datastore.Allocation)
 	go func() {
 		ch, err := rs.waitTable.Get(id).Changes().Run(rs.session)
 		if err != nil {
@@ -276,7 +281,7 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 			res, err := rs.fillDeviceList(response.NewVal)
 			if err != nil {
 				rs.Error("device could not be populated", "error", err, "id", response.NewVal.ID)
-				continue
+				break
 			}
 			a <- res[0]
 			break
@@ -305,14 +310,15 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 	}
 	facmap := metal.Facilities(allfacs).ByID()
 
+	res := make([]metal.Device, len(data), len(data))
 	for i, d := range data {
-		data[i].Facility = facmap[d.FacilityID]
+		res[i].Facility = facmap[d.FacilityID]
 		size := szmap[d.SizeID]
-		data[i].Size = &size
+		res[i].Size = &size
 		if d.ImageID != "" {
 			img := imgmap[d.ImageID]
-			data[i].Image = &img
+			res[i].Image = &img
 		}
 	}
-	return data, nil
+	return res, nil
 }
