@@ -244,7 +244,9 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	}
 
 	// does not prehibit concurrent wait calls for the same UUID
-	_, err = rs.waitTable.Insert(dev).RunWrite(rs.session)
+	_, err = rs.waitTable.Insert(dev, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot insert device into wait table: %v", err)
 	}
