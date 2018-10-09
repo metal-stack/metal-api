@@ -75,7 +75,7 @@ func (rs *RethinkStore) SearchDevice(projectid string, mac string, free *bool) (
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
-	return rs.fillDeviceList(data)
+	return rs.fillDeviceList(data...)
 }
 
 func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
@@ -89,7 +89,7 @@ func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
-	return rs.fillDeviceList(data)
+	return rs.fillDeviceList(data...)
 }
 
 func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
@@ -160,7 +160,7 @@ func (rs *RethinkStore) AllocateDevice(name string, description string, hostname
 	}
 
 	old := res[0]
-	rs.fillDeviceList(res[0:1])
+	rs.fillDeviceList(res[0:1]...)
 	res[0].Name = name
 	res[0].Hostname = hostname
 	res[0].Project = projectid
@@ -269,21 +269,26 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 		}
 		var response responseType
 		for ch.Next(&response) {
-			res, err := rs.fillDeviceList([]metal.Device{response.NewVal})
+			if response.NewVal.ID == "" {
+				// the entry was deleted, no wait any more
+				break
+			}
+			res, err := rs.fillDeviceList(response.NewVal)
 			if err != nil {
-				rs.Logger.Error("device could not be populated", "error", err, "id", response.NewVal.ID)
+				rs.Error("device could not be populated", "error", err, "id", response.NewVal.ID)
 				continue
 			}
 			a <- res[0]
-			return
+			break
 		}
-
+		rs.Info("stop waiting for changes", "id", id)
+		close(a)
 	}()
 	alloc(a)
 	return nil
 }
 
-func (rs *RethinkStore) fillDeviceList(data []metal.Device) ([]metal.Device, error) {
+func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, error) {
 	allsz, err := rs.ListSizes()
 	if err != nil {
 		return nil, fmt.Errorf("cannot query all sizes: %v", err)
