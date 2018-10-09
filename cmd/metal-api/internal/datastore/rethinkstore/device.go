@@ -244,13 +244,12 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	}
 
 	// does not prehibit concurrent wait calls for the same UUID
-	c, err := rs.waitTable.Insert(dev).Run(rs.session)
+	_, err = rs.waitTable.Insert(dev).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot insert device into wait table: %v", err)
 	}
 	defer func() {
-		rs.waitTable.Get(id).Delete().Run(rs.session)
-		c.Close()
+		rs.waitTable.Get(id).Delete().RunWrite(rs.session)
 	}()
 
 	a := make(datastore.Allocation)
