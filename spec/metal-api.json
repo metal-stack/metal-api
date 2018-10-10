@@ -1,0 +1,1255 @@
+{
+ "swagger": "2.0",
+ "info": {
+  "description": "Resource for managing pure metal",
+  "title": "metal-api",
+  "contact": {
+   "name": "Devops Team",
+   "url": "http://www.f-i-ts.de",
+   "email": "devops@f-i-ts.de"
+  },
+  "license": {
+   "name": "MIT",
+   "url": "http://mit.org"
+  },
+  "version": "1.0.0"
+ },
+ "paths": {
+  "/device": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "get all known devices",
+    "operationId": "listDevices",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Device"
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Device"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/device/allocate": {
+   "post": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "allocate a device",
+    "operationId": "allocateDevice",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/service.allocateRequest"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "404": {
+      "description": "No free device for allocation found"
+     },
+     "500": {
+      "description": "Internal Server Error"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     }
+    }
+   }
+  },
+  "/device/find": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "search devices",
+    "operationId": "searchDevice",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "one of the MAC address of the device",
+      "name": "mac",
+      "in": "query"
+     },
+     {
+      "type": "string",
+      "description": "search for devices with the givne projectid",
+      "name": "projectid",
+      "in": "query"
+     },
+     {
+      "type": "boolean",
+      "description": "returns allocated machines if set to true, free machines when set to false, all machines when not provided",
+      "name": "allocated",
+      "in": "query"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Device"
+       }
+      }
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Device"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/device/register": {
+   "post": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "register a device",
+    "operationId": "registerDevice",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/service.registerRequest"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "201": {
+      "description": "Created",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     }
+    }
+   }
+  },
+  "/device/{id}": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "get device by id",
+    "operationId": "findDevice",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the device",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     }
+    }
+   }
+  },
+  "/device/{id}/free": {
+   "delete": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "free a device",
+    "operationId": "freeDevice",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the device",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "500": {
+      "description": "Internal Server Error",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     }
+    }
+   }
+  },
+  "/device/{id}/wait": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "wait for an allocation of this device",
+    "operationId": "waitForAllocation",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the device",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "500": {
+      "description": "Internal Server Error"
+     },
+     "504": {
+      "description": "Timeout"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     }
+    }
+   }
+  },
+  "/facility": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "facility"
+    ],
+    "summary": "get all facilities",
+    "operationId": "listFacilities",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Facility"
+       }
+      }
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Facility"
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "facility"
+    ],
+    "summary": "create a facility. if the given ID already exists a conflict is returned",
+    "operationId": "createFacility",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     },
+     "409": {
+      "description": "Conflict"
+     }
+    }
+   },
+   "post": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "facility"
+    ],
+    "summary": "updates a facility. if the facility was changed since this one was read, a conflict is returned",
+    "operationId": "updateFacility",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "409": {
+      "description": "Conflict"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     }
+    }
+   }
+  },
+  "/facility/{id}": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "facility"
+    ],
+    "summary": "get facility by id",
+    "operationId": "findFacility",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the facility",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     }
+    }
+   },
+   "delete": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "facility"
+    ],
+    "summary": "deletes a facility and returns the deleted entity",
+    "operationId": "deleteFacility",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the facility",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Facility"
+      }
+     }
+    }
+   }
+  },
+  "/image": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "image"
+    ],
+    "summary": "get all images",
+    "operationId": "listImages",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Image"
+       }
+      }
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Image"
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "image"
+    ],
+    "summary": "create an image. if the given ID already exists a conflict is returned",
+    "operationId": "createImage",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     },
+     "409": {
+      "description": "Conflict"
+     }
+    }
+   },
+   "post": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "image"
+    ],
+    "summary": "updates an image. if the image was changed since this one was read, a conflict is returned",
+    "operationId": "updateImage",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "409": {
+      "description": "Conflict"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     }
+    }
+   }
+  },
+  "/image/{id}": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "image"
+    ],
+    "summary": "get image by id",
+    "operationId": "findImage",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the image",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     }
+    }
+   },
+   "delete": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "image"
+    ],
+    "summary": "deletes an image and returns the deleted entity",
+    "operationId": "deleteImage",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the image",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     }
+    }
+   }
+  },
+  "/size": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "size"
+    ],
+    "summary": "get all sizes",
+    "operationId": "listSizes",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Size"
+       }
+      }
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "type": "array",
+       "items": {
+        "$ref": "#/definitions/metal.Size"
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "size"
+    ],
+    "summary": "create a size. if the given ID already exists a conflict is returned",
+    "operationId": "createSize",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/metal.Size"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Created",
+      "schema": {
+       "$ref": "#/definitions/metal.Size"
+      }
+     },
+     "409": {
+      "description": "Conflict"
+     }
+    }
+   },
+   "post": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "size"
+    ],
+    "summary": "updates a size. if the size was changed since this one was read, a conflict is returned",
+    "operationId": "updateSize",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/metal.Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Size"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "409": {
+      "description": "Conflict"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Size"
+      }
+     }
+    }
+   }
+  },
+  "/size/{id}": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "size"
+    ],
+    "summary": "get size by id",
+    "operationId": "findSize",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the size",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Image"
+      }
+     }
+    }
+   },
+   "delete": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "size"
+    ],
+    "summary": "deletes an size and returns the deleted entity",
+    "operationId": "deleteSize",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the size",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Size"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.Size"
+      }
+     }
+    }
+   }
+  }
+ },
+ "definitions": {
+  "metal.BlockDevice": {
+   "required": [
+    "name",
+    "size"
+   ],
+   "properties": {
+    "name": {
+     "description": "the name of this block device",
+     "type": "string"
+    },
+    "size": {
+     "description": "the size of this block device",
+     "type": "integer"
+    }
+   }
+  },
+  "metal.Device": {
+   "description": "A device representing a bare metal machine.",
+   "required": [
+    "id",
+    "name",
+    "project",
+    "facility",
+    "image",
+    "size",
+    "hardware",
+    "ip",
+    "hostname",
+    "ssh_pub_key"
+   ],
+   "properties": {
+    "changed": {
+     "description": "the last changed timestamp",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "created": {
+     "description": "the creation time of this machine",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "description": {
+     "description": "a description for this machine",
+     "type": "string"
+    },
+    "facility": {
+     "description": "the facility assigned to this device",
+     "$ref": "#/definitions/metal.Facility",
+     "readOnly": true
+    },
+    "hardware": {
+     "description": "the hardware of this device",
+     "$ref": "#/definitions/metal.DeviceHardware"
+    },
+    "hostname": {
+     "description": "the hostname of the device",
+     "type": "string"
+    },
+    "id": {
+     "description": "a unique ID",
+     "type": "string",
+     "uniqueItems": true,
+     "readOnly": true
+    },
+    "image": {
+     "description": "the image assigned to this device",
+     "$ref": "#/definitions/metal.Image",
+     "readOnly": true
+    },
+    "ip": {
+     "description": "the ip address of the allocated device",
+     "type": "string"
+    },
+    "name": {
+     "description": "the name of the device",
+     "type": "string"
+    },
+    "project": {
+     "description": "the project that this device is assigned to",
+     "type": "string"
+    },
+    "size": {
+     "description": "the size of this device",
+     "$ref": "#/definitions/metal.Size",
+     "readOnly": true
+    },
+    "ssh_pub_key": {
+     "description": "the public ssh key to access the device with",
+     "type": "string"
+    }
+   }
+  },
+  "metal.DeviceHardware": {
+   "required": [
+    "memory",
+    "cpu_cores",
+    "nics",
+    "disks"
+   ],
+   "properties": {
+    "cpu_cores": {
+     "description": "the total memory of the device",
+     "type": "integer"
+    },
+    "disks": {
+     "description": "the list of block devices of this device",
+     "type": "array",
+     "items": {
+      "$ref": "#/definitions/metal.BlockDevice"
+     }
+    },
+    "memory": {
+     "description": "the total memory of the device",
+     "type": "integer",
+     "format": "int64"
+    },
+    "nics": {
+     "description": "the list of network interfaces of this device",
+     "type": "array",
+     "items": {
+      "$ref": "#/definitions/metal.Nic"
+     }
+    }
+   }
+  },
+  "metal.Facility": {
+   "description": "A Facility describes the location where a device is placed.",
+   "required": [
+    "id",
+    "name"
+   ],
+   "properties": {
+    "changed": {
+     "description": "the last changed timestamp",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "created": {
+     "description": "the creation time of this facility",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "description": {
+     "description": "a description for this facility",
+     "type": "string"
+    },
+    "id": {
+     "description": "a unique ID",
+     "type": "string",
+     "uniqueItems": true
+    },
+    "name": {
+     "description": "the readable name",
+     "type": "string"
+    }
+   }
+  },
+  "metal.Image": {
+   "description": "An image that can be put on a device.",
+   "required": [
+    "id",
+    "name",
+    "url"
+   ],
+   "properties": {
+    "changed": {
+     "description": "the last changed timestamp",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "created": {
+     "description": "the creation time of this image",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "description": {
+     "description": "a description for this image",
+     "type": "string"
+    },
+    "id": {
+     "description": "a unique ID",
+     "type": "string",
+     "uniqueItems": true
+    },
+    "name": {
+     "description": "the readable name",
+     "type": "string"
+    },
+    "url": {
+     "description": "the url to this image",
+     "type": "string"
+    }
+   }
+  },
+  "metal.Nic": {
+   "required": [
+    "mac",
+    "name",
+    "vendor",
+    "features"
+   ],
+   "properties": {
+    "features": {
+     "description": "the features of this network interface",
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "mac": {
+     "description": "the mac address of this network interface",
+     "type": "string"
+    },
+    "name": {
+     "description": "the name of this network interface",
+     "type": "string"
+    },
+    "vendor": {
+     "description": "the vendor of this network interface",
+     "type": "string"
+    }
+   }
+  },
+  "metal.Size": {
+   "description": "An image that can be put on a device.",
+   "required": [
+    "id",
+    "name"
+   ],
+   "properties": {
+    "changed": {
+     "description": "the last changed timestamp",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "created": {
+     "description": "the creation time of this image",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
+    "description": {
+     "description": "a description for this image",
+     "type": "string"
+    },
+    "id": {
+     "description": "a unique ID",
+     "type": "string",
+     "uniqueItems": true
+    },
+    "name": {
+     "description": "the readable name",
+     "type": "string"
+    }
+   }
+  },
+  "service.allocateRequest": {
+   "required": [
+    "hostname",
+    "projectid",
+    "facilityid",
+    "sizeid",
+    "imageid",
+    "ssh_pub_key"
+   ],
+   "properties": {
+    "description": {
+     "description": "the description for the allocated device",
+     "type": "string"
+    },
+    "facilityid": {
+     "description": "the facility id to assign this device to",
+     "type": "string"
+    },
+    "hostname": {
+     "description": "the hostname for the allocated device",
+     "type": "string"
+    },
+    "imageid": {
+     "description": "the image id to assign this device to",
+     "type": "string"
+    },
+    "name": {
+     "description": "the new name for the allocated device",
+     "type": "string"
+    },
+    "projectid": {
+     "description": "the project id to assign this device to",
+     "type": "string"
+    },
+    "sizeid": {
+     "description": "the size id to assign this device to",
+     "type": "string"
+    },
+    "ssh_pub_key": {
+     "description": "the public ssh key to access the device with",
+     "type": "string"
+    }
+   }
+  },
+  "service.registerRequest": {
+   "required": [
+    "uuid",
+    "facilityid",
+    "hardware"
+   ],
+   "properties": {
+    "facilityid": {
+     "description": "the facility id to register this device with",
+     "type": "string"
+    },
+    "hardware": {
+     "description": "the hardware of this device",
+     "$ref": "#/definitions/metal.DeviceHardware"
+    },
+    "uuid": {
+     "description": "the product uuid of the device to register",
+     "type": "string"
+    }
+   }
+  }
+ },
+ "tags": [
+  {
+   "description": "Managing facility entities",
+   "name": "facility"
+  },
+  {
+   "description": "Managing image entities",
+   "name": "image"
+  },
+  {
+   "description": "Managing size entities",
+   "name": "size"
+  },
+  {
+   "description": "Managing devices",
+   "name": "device"
+  }
+ ]
+}
