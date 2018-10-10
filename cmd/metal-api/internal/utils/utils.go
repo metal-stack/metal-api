@@ -24,16 +24,14 @@ func RestfulLogger(logger log15.Logger, debug bool) restful.FilterFunction {
 			"method", req.Request.Method,
 			"uri", req.Request.URL.RequestURI(),
 			"protocol", req.Request.Proto,
-			"status", resp.StatusCode(),
-			"content-length", resp.ContentLength(),
 		}
 
 		if debug {
 			body, _ := httputil.DumpRequest(req.Request, true)
-			info = append(info, "body")
-			info = append(info, string(body))
+			info = append(info, "body", string(body))
 		}
 		chain.ProcessFilter(req, resp)
+		info = append(info, "status", resp.StatusCode(), "content-length", resp.ContentLength())
 		logger.Info("Rest Call", info...)
 	}
 }
