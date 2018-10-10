@@ -8,7 +8,7 @@ BINARY := metal-api
 MODULE := git.f-i-ts.de/cloud-native/maas/metal-api
 GOSRC = $(shell find cmd/ -type f -name '*.go') $(shell find pkg/ -type f -name '*.go')
 
-.PHONY: all test up test-ci createmasterdata createtestdevices
+.PHONY: all test up test-ci createmasterdata createtestdevices spec generate-client
 
 all: bin/$(BINARY);
 
@@ -17,6 +17,14 @@ bin/$(BINARY): $(GOSRC)
 
 up:
 	docker-compose up --build
+
+spec:
+	curl http://localhost:8080/apidocs.json >spec/metal-api.json
+
+generate-client:
+	# you need an installation of go-swagger, look at https://goswagger.io/install.html
+	mkdir generate
+	swagger generate client -f spec/metal-api.json -t generate
 
 test:
 	go test -cover ./...
