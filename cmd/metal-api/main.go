@@ -85,7 +85,7 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 		if err := viper.ReadInConfig(); err != nil {
-			log15.Error("Config file path set explicitly, but unreadble", "error", err)
+			log15.Error("Config file path set explicitly, but unreadable", "error", err)
 		}
 	} else {
 		viper.SetConfigName("config")
