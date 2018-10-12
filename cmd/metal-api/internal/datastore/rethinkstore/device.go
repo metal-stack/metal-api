@@ -75,7 +75,7 @@ func (rs *RethinkStore) SearchDevice(projectid string, mac string, free *bool) (
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
-	return rs.fillDeviceList(data)
+	return rs.fillDeviceList(data...)
 }
 
 func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
@@ -89,7 +89,7 @@ func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
-	return rs.fillDeviceList(data)
+	return rs.fillDeviceList(data...)
 }
 
 func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
@@ -160,7 +160,7 @@ func (rs *RethinkStore) AllocateDevice(name string, description string, hostname
 	}
 
 	old := res[0]
-	rs.fillDeviceList(res[0:1])
+	rs.fillDeviceList(res[0:1]...)
 	res[0].Name = name
 	res[0].Hostname = hostname
 	res[0].Project = projectid
@@ -239,21 +239,27 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	if err != nil {
 		return fmt.Errorf("cannot wait for unknown device: %v", err)
 	}
+	a := make(datastore.Allocation)
+
 	if dev.Project != "" {
-		return fmt.Errorf("device is already allocated, needs to be released first")
+		go func() {
+			a <- *dev
+		}()
+		alloc(a)
+		return nil
 	}
 
 	// does not prehibit concurrent wait calls for the same UUID
-	c, err := rs.waitTable.Insert(dev).Run(rs.session)
+	_, err = rs.waitTable.Insert(dev, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot insert device into wait table: %v", err)
 	}
 	defer func() {
-		rs.waitTable.Get(id).Delete().Run(rs.session)
-		c.Close()
+		rs.waitTable.Get(id).Delete().RunWrite(rs.session)
 	}()
 
-	a := make(datastore.Allocation)
 	go func() {
 		ch, err := rs.waitTable.Get(id).Changes().Run(rs.session)
 		if err != nil {
@@ -268,21 +274,26 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 		}
 		var response responseType
 		for ch.Next(&response) {
-			res, err := rs.fillDeviceList([]metal.Device{response.NewVal})
+			if response.NewVal.ID == "" {
+				// the entry was deleted, no wait any more
+				break
+			}
+			res, err := rs.fillDeviceList(response.NewVal)
 			if err != nil {
-				rs.Logger.Error("device could not be populated", "error", err, "id", response.NewVal.ID)
-				continue
+				rs.Error("device could not be populated", "error", err, "id", response.NewVal.ID)
+				break
 			}
 			a <- res[0]
-			return
+			break
 		}
-
+		rs.Info("stop waiting for changes", "id", id)
+		close(a)
 	}()
 	alloc(a)
 	return nil
 }
 
-func (rs *RethinkStore) fillDeviceList(data []metal.Device) ([]metal.Device, error) {
+func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, error) {
 	allsz, err := rs.ListSizes()
 	if err != nil {
 		return nil, fmt.Errorf("cannot query all sizes: %v", err)
@@ -299,14 +310,15 @@ func (rs *RethinkStore) fillDeviceList(data []metal.Device) ([]metal.Device, err
 	}
 	facmap := metal.Facilities(allfacs).ByID()
 
+	res := make([]metal.Device, len(data), len(data))
 	for i, d := range data {
-		data[i].Facility = facmap[d.FacilityID]
+		res[i].Facility = facmap[d.FacilityID]
 		size := szmap[d.SizeID]
-		data[i].Size = &size
+		res[i].Size = &size
 		if d.ImageID != "" {
 			img := imgmap[d.ImageID]
-			data[i].Image = &img
+			res[i].Image = &img
 		}
 	}
-	return data, nil
+	return res, nil
 }

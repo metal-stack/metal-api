@@ -1,19 +1,18 @@
 module git.f-i-ts.de/cloud-native/maas/metal-api
 
 require (
-	github.com/PuerkitoBio/purell v1.1.0 // indirect
-	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/emicklei/go-restful v2.8.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
-	github.com/go-openapi/jsonpointer v0.0.0-20180825180259-52eb3d4b47c6 // indirect
-	github.com/go-openapi/jsonreference v0.0.0-20180825180305-1c6a3fa339f2 // indirect
-	github.com/go-openapi/spec v0.0.0-20180825180323-f1468acb3b29
-	github.com/go-openapi/swag v0.0.0-20180908172849-dd0dad036e67 // indirect
+	github.com/go-openapi/errors v0.17.0
+	github.com/go-openapi/runtime v0.0.0-20180920151709-4f900dc2ade9
+	github.com/go-openapi/spec v0.17.0
+	github.com/go-openapi/strfmt v0.17.0
+	github.com/go-openapi/swag v0.17.0
+	github.com/go-openapi/validate v0.17.0
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -21,7 +20,6 @@ require (
 	github.com/satori/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.0
-	github.com/stretchr/testify v1.2.2
-	golang.org/x/net v0.0.0-20180925072008-f04abc6bdfa7 // indirect
+	golang.org/x/net v0.0.0-20181005035420-146acd28ed58
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.0
 )

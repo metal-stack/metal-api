@@ -12,6 +12,7 @@ import (
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
+    "git.f-i-ts.de/cloud-native/maas/metal-api/pkg/health"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
@@ -84,7 +85,7 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 		if err := viper.ReadInConfig(); err != nil {
-			log15.Error("Config file path set explicitly, but unreadble", "error", err)
+			log15.Error("Config file path set explicitly, but unreadable", "error", err)
 		}
 	} else {
 		viper.SetConfigName("config")
@@ -185,7 +186,7 @@ func run() {
 	restful.DefaultContainer.Add(service.NewImage(logger, ds))
 	restful.DefaultContainer.Add(service.NewSize(logger, ds))
 	restful.DefaultContainer.Add(service.NewDevice(logger, ds))
-
+	restful.DefaultContainer.Add(health.New (logger, func () error {return nil}))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(logger, debug))
 
 	config := restfulspec.Config{

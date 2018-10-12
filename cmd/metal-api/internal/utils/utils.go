@@ -3,6 +3,7 @@ package utils
 import (
 	"net/http/httputil"
 	"strings"
+	"time"
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/inconshreveable/log15"
@@ -24,20 +25,18 @@ func RestfulLogger(logger log15.Logger, debug bool) restful.FilterFunction {
 			"method", req.Request.Method,
 			"uri", req.Request.URL.RequestURI(),
 			"protocol", req.Request.Proto,
+			"route", req.SelectedRoutePath(),
 		}
 
 		if debug {
 			body, _ := httputil.DumpRequest(req.Request, true)
-			info = append(info, "body")
-			info = append(info, string(body))
+			info = append(info, "body", string(body))
 		}
 
+		t := time.Now()
 		chain.ProcessFilter(req, resp)
 
-		info = append(info, "status")
-		info = append(info, resp.StatusCode())
-		info = append(info, "content-length")
-		info = append(info, resp.ContentLength())
+		info = append(info, "status", resp.StatusCode(), "content-length", resp.ContentLength(), "duration", time.Since(t))
 
 		if resp.StatusCode() < 400 {
 			logger.Info("Rest Call", info...)
