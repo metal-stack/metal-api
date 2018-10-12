@@ -24,8 +24,6 @@ func RestfulLogger(logger log15.Logger, debug bool) restful.FilterFunction {
 			"method", req.Request.Method,
 			"uri", req.Request.URL.RequestURI(),
 			"protocol", req.Request.Proto,
-			"status", resp.StatusCode(),
-			"content-length", resp.ContentLength(),
 		}
 
 		if debug {
@@ -33,7 +31,18 @@ func RestfulLogger(logger log15.Logger, debug bool) restful.FilterFunction {
 			info = append(info, "body")
 			info = append(info, string(body))
 		}
+
 		chain.ProcessFilter(req, resp)
-		logger.Info("Rest Call", info...)
+
+		info = append(info, "status")
+		info = append(info, resp.StatusCode())
+		info = append(info, "content-length")
+		info = append(info, resp.ContentLength())
+
+		if resp.StatusCode() < 400 {
+			logger.Info("Rest Call", info...)
+		} else {
+			logger.Error("Rest Call", info...)
+		}
 	}
 }
