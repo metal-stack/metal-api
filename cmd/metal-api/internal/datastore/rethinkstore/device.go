@@ -312,6 +312,7 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 
 	res := make([]metal.Device, len(data), len(data))
 	for i, d := range data {
+		res[i] = d
 		res[i].Facility = facmap[d.FacilityID]
 		size := szmap[d.SizeID]
 		res[i].Size = &size
