@@ -6,18 +6,18 @@ VERSION := $(or ${VERSION},devel)
 
 BINARY := metal-api
 MODULE := git.f-i-ts.de/cloud-native/maas/metal-api
-MODPROXY := https://gomods.fi-ts.io
-
 GOSRC = $(shell find cmd/ -type f -name '*.go') $(shell find pkg/ -type f -name '*.go')
+
+export GOPROXY := https://gomods.fi-ts.io
+export GO11MODULE := on
+export CGO_ENABLED := 0
+
 
 .PHONY: all test up test-ci createmasterdata createtestdevices spec generate-client clean
 
 all: bin/$(BINARY);
 
 bin/$(BINARY): $(GOSRC)
-	CGO_ENABLE=0 \
-	GO111MODULE=on \
-	GOPROXY=$(MODPROXY) \
 	go build -tags netgo -ldflags \
 		"-X 'main.version=$(VERSION)' \
 		 -X 'main.revision=$(GITVERSION)' \
