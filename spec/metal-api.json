@@ -519,6 +519,32 @@
     }
    }
   },
+  "/health": {
+   "get": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "health"
+    ],
+    "summary": "perform a healtcheck",
+    "operationId": "func1",
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "500": {
+      "description": "Unhealthy"
+     },
+     "default": {
+      "description": "OK"
+     }
+    }
+   }
+  },
   "/image": {
    "get": {
     "consumes": [
