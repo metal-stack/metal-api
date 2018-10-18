@@ -2,6 +2,7 @@ FROM golang:1.11-stretch as builder
 RUN apt update \
  && apt -y install make git
 WORKDIR /app
+ENV GOPROXY=https://gomods.fi-ts.io
 
 # Install dependencies
 COPY go.mod .
