@@ -123,5 +123,7 @@ gopkg.in/fatih/pool.v2 v2.0.0 h1:xIFeWtxifuQJGk/IEPKsTduEKcKvPmhoiVDGpC40nKg=
 gopkg.in/fatih/pool.v2 v2.0.0/go.mod h1:8xVGeu1/2jr2wm5V9SPuMht2H5AEmf5aFMGSQixtjTY=
 gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.0 h1:vCqKDFwa3HQEmiRgEkPQE4zh1s0I/rv/qH40viXqSZI=
 gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.0/go.mod h1:x+1XKi70FH0kHCpvPQ78hGBCCxoNdE7sP+kEFdKgN6A=
+gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1 h1:cBTUuUFTllRYtInK6FtBRa+tOBlZqpeDTnZF54xjGbg=
+gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1/go.mod h1:x+1XKi70FH0kHCpvPQ78hGBCCxoNdE7sP+kEFdKgN6A=
 gopkg.in/yaml.v2 v2.2.1 h1:mUhvW9EsL+naU5Q3cakzfE91YhliOondGd6ZrsDBHQE=
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=

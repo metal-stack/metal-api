@@ -21,5 +21,5 @@ require (
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.0
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58
-	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.0
+	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1
 )
