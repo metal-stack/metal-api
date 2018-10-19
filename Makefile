@@ -9,7 +9,7 @@ MODULE := git.f-i-ts.de/cloud-native/maas/metal-api
 GOSRC = $(shell find cmd/ -type f -name '*.go') $(shell find pkg/ -type f -name '*.go')
 
 export GOPROXY := https://gomods.fi-ts.io
-export GO11MODULE := on
+export GO111MODULE := on
 export CGO_ENABLED := 0
 
 
