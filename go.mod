@@ -9,7 +9,7 @@ require (
 	github.com/go-openapi/strfmt v0.17.0
 	github.com/go-openapi/swag v0.17.0
 	github.com/go-openapi/validate v0.17.0
-	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/go-stack/stack v1.8.0
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
