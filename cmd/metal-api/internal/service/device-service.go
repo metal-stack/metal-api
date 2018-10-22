@@ -141,8 +141,7 @@ func (dr deviceResource) findDevice(request *restful.Request, response *restful.
 	id := request.PathParameter("id")
 	device, err := dr.ds.FindDevice(id)
 	if err != nil {
-		dr.Error("error finding device", "id", id, "error", err)
-		response.WriteError(http.StatusNotFound, err)
+		sendError(dr, response, "findDevice", http.StatusNotFound, err)
 		return
 	}
 	response.WriteEntity(device)
@@ -151,8 +150,7 @@ func (dr deviceResource) findDevice(request *restful.Request, response *restful.
 func (dr deviceResource) listDevices(request *restful.Request, response *restful.Response) {
 	res, err := dr.ds.ListDevices()
 	if err != nil {
-		dr.Error("cannot list devices", "error", err)
-		response.WriteError(http.StatusInternalServerError, err)
+		sendError(dr, response, "listDevices", http.StatusInternalServerError, err)
 		return
 	}
 	response.WriteEntity(res)
@@ -171,8 +169,7 @@ func (dr deviceResource) searchDevice(request *restful.Request, response *restfu
 
 	result, err := dr.ds.SearchDevice(prjid, mac, free)
 	if err != nil {
-		dr.Error("error searching devices", "mac", mac, "projectid", prjid, "free", free, "error", err)
-		response.WriteError(http.StatusInternalServerError, err)
+		sendError(dr, response, "searchDevice", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -183,21 +180,18 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 	var data registerRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
-		dr.Error("cannot read entity from input", "error", err)
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("Cannot read data from request: %v", err))
+		sendError(dr, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read data from request: %v", err))
 		return
 	}
 	if data.UUID == "" {
-		dr.Error("no UUID given in entity", "entity", data)
-		response.WriteErrorString(http.StatusInternalServerError, "No UUID given")
+		sendError(dr, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("No UUID given"))
 		return
 	}
 
 	device, err := dr.ds.RegisterDevice(data.UUID, data.FacilityID, data.Hardware)
 
 	if err != nil {
-		dr.Error("error registering device", "error", err, "entity", data)
-		response.WriteError(http.StatusInternalServerError, err)
+		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -208,18 +202,15 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 	var allocate allocateRequest
 	err := request.ReadEntity(&allocate)
 	if err != nil {
-		dr.Error("cannot read entity from input", "error", err)
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
+		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
 	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname, allocate.ProjectID, allocate.FacilityID, allocate.SizeID, allocate.ImageID, allocate.SSHPubKey)
 	if err != nil {
 		if err == datastore.ErrNoDeviceAvailable {
-			dr.Warn("no device found for allocation", "request", allocate, "error", err)
-			response.WriteError(http.StatusNotFound, err)
+			sendError(dr, response, "allocateDevice", http.StatusNotFound, err)
 		} else {
-			dr.Error("cannot allocate a device", "error", err, "request", allocate)
-			response.WriteError(http.StatusInternalServerError, err)
+			sendError(dr, response, "allocateDevice", http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -230,8 +221,7 @@ func (dr deviceResource) freeDevice(request *restful.Request, response *restful.
 	id := request.PathParameter("id")
 	device, err := dr.ds.FreeDevice(id)
 	if err != nil {
-		dr.Error("cannot free device", "id", id, "error", err)
-		response.WriteError(http.StatusInternalServerError, err)
+		sendError(dr, response, "freeDevice", http.StatusInternalServerError, err)
 		return
 	}
 	response.WriteEntity(device)

@@ -7,7 +7,6 @@ import (
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
-
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/inconshreveable/log15"
@@ -79,7 +78,8 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 	id := request.PathParameter("id")
 	image, err := ir.ds.FindImage(id)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(ir, response, "findImage", http.StatusNotFound, err)
+		return
 	}
 	response.WriteEntity(image)
 }
@@ -87,7 +87,7 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
 	res, err := ir.ds.ListImages()
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, err)
+		sendError(ir, response, "listImages", http.StatusInternalServerError, err)
 		return
 	}
 	response.WriteEntity(res)
@@ -97,7 +97,7 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 	id := request.PathParameter("id")
 	image, err := ir.ds.DeleteImage(id)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(ir, response, "deleteImage", http.StatusNotFound, err)
 	} else {
 		response.WriteEntity(image)
 	}
@@ -107,14 +107,14 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	var s metal.Image
 	err := request.ReadEntity(&s)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))
+		sendError(ir, response, "createImage", http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	img, err := ir.ds.CreateImage(&s)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot create image: %v", err))
+		sendError(ir, response, "createImage", http.StatusInternalServerError, err)
 	} else {
 		response.WriteHeaderAndEntity(http.StatusCreated, img)
 	}
@@ -124,20 +124,21 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	var newImage metal.Image
 	err := request.ReadEntity(&newImage)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))
+		sendError(ir, response, "updateImage", http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))
 		return
 	}
 
 	oldImage, err := ir.ds.FindImage(newImage.ID)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(ir, response, "updateImage", http.StatusNotFound, err)
 		return
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)
 
 	if err != nil {
-		response.WriteError(http.StatusConflict, err)
+		sendError(ir, response, "updateImage", http.StatusConflict, err)
+		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newImage)
 }

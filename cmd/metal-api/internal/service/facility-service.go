@@ -78,7 +78,8 @@ func (fr facilityResource) findFacility(request *restful.Request, response *rest
 	id := request.PathParameter("id")
 	facility, err := fr.ds.FindFacility(id)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(fr, response, "findFacility", http.StatusNotFound, err)
+		return
 	}
 	response.WriteEntity(facility)
 }
@@ -86,7 +87,7 @@ func (fr facilityResource) findFacility(request *restful.Request, response *rest
 func (fr facilityResource) listFacilities(request *restful.Request, response *restful.Response) {
 	res, err := fr.ds.ListFacilities()
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, err)
+		sendError(fr, response, "listFAcilities", http.StatusInternalServerError, err)
 		return
 	}
 	response.WriteEntity(res)
@@ -96,7 +97,7 @@ func (fr facilityResource) deleteFacility(request *restful.Request, response *re
 	id := request.PathParameter("id")
 	facility, err := fr.ds.DeleteFacility(id)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(fr, response, "deleteFaility", http.StatusNotFound, err)
 	} else {
 		response.WriteEntity(facility)
 	}
@@ -106,14 +107,14 @@ func (fr facilityResource) createFacility(request *restful.Request, response *re
 	var s metal.Facility
 	err := request.ReadEntity(&s)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read facility from request: %v", err))
+		sendError(fr, response, "createFacility", http.StatusInternalServerError, fmt.Errorf("cannot read facility from request: %v", err))
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	err = fr.ds.CreateFacility(&s)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot create facility: %v", err))
+		sendError(fr, response, "createFacility", http.StatusInternalServerError, fmt.Errorf("cannot create facility: %v", err))
 	} else {
 		response.WriteHeaderAndEntity(http.StatusCreated, s)
 	}
@@ -123,20 +124,21 @@ func (fr facilityResource) updateFacility(request *restful.Request, response *re
 	var newFacility metal.Facility
 	err := request.ReadEntity(&newFacility)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read facility from request: %v", err))
+		sendError(fr, response, "updateFacility", http.StatusInternalServerError, fmt.Errorf("cannot read facility from request: %v", err))
 		return
 	}
 
 	oldFacility, err := fr.ds.FindFacility(newFacility.ID)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(fr, response, "updateFacility", http.StatusNotFound, err)
 		return
 	}
 
 	err = fr.ds.UpdateFacility(oldFacility, &newFacility)
 
 	if err != nil {
-		response.WriteError(http.StatusConflict, err)
+		sendError(fr, response, "updateFacility", http.StatusConflict, err)
+		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newFacility)
 }

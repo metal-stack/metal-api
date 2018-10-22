@@ -78,7 +78,8 @@ func (sr sizeResource) findSize(request *restful.Request, response *restful.Resp
 	id := request.PathParameter("id")
 	size, err := sr.ds.FindSize(id)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(sr, response, "findSize", http.StatusNotFound, err)
+		return
 	}
 	response.WriteEntity(size)
 }
@@ -86,7 +87,7 @@ func (sr sizeResource) findSize(request *restful.Request, response *restful.Resp
 func (sr sizeResource) listSizes(request *restful.Request, response *restful.Response) {
 	res, err := sr.ds.ListSizes()
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(sr, response, "listSizes", http.StatusNotFound, err)
 		return
 	}
 	response.WriteEntity(res)
@@ -96,7 +97,7 @@ func (sr sizeResource) deleteSize(request *restful.Request, response *restful.Re
 	id := request.PathParameter("id")
 	size, err := sr.ds.DeleteSize(id)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(sr, response, "deleteSize", http.StatusNotFound, err)
 	} else {
 		response.WriteEntity(size)
 	}
@@ -106,14 +107,14 @@ func (sr sizeResource) createSize(request *restful.Request, response *restful.Re
 	var s metal.Size
 	err := request.ReadEntity(&s)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
+		sendError(sr, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	err = sr.ds.CreateSize(&s)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot create size: %v", err))
+		sendError(sr, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot create size: %v", err))
 	} else {
 		response.WriteHeaderAndEntity(http.StatusCreated, s)
 	}
@@ -123,20 +124,21 @@ func (sr sizeResource) updateSize(request *restful.Request, response *restful.Re
 	var newSize metal.Size
 	err := request.ReadEntity(&newSize)
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
+		sendError(sr, response, "updateSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
 		return
 	}
 
 	oldSize, err := sr.ds.FindSize(newSize.ID)
 	if err != nil {
-		response.WriteError(http.StatusNotFound, err)
+		sendError(sr, response, "updateSize", http.StatusNotFound, err)
 		return
 	}
 
 	err = sr.ds.UpdateSize(oldSize, &newSize)
 
 	if err != nil {
-		response.WriteError(http.StatusConflict, err)
+		sendError(sr, response, "updateSize", http.StatusConflict, err)
+		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSize)
 }
