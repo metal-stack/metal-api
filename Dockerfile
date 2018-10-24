@@ -9,10 +9,7 @@ COPY go.mod .
 RUN go mod download
 
 # Build
-COPY .git ./.git
-COPY cmd ./cmd
-COPY pkg ./pkg
-COPY Makefile ./Makefile
+COPY . .
 RUN make
 
 FROM alpine:3.8
