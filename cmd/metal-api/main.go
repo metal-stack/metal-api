@@ -12,7 +12,7 @@ import (
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
-    "git.f-i-ts.de/cloud-native/maas/metal-api/pkg/health"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/health"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
@@ -186,12 +186,12 @@ func run() {
 	restful.DefaultContainer.Add(service.NewImage(logger, ds))
 	restful.DefaultContainer.Add(service.NewSize(logger, ds))
 	restful.DefaultContainer.Add(service.NewDevice(logger, ds))
-	restful.DefaultContainer.Add(health.New (logger, func () error {return nil}))
+	restful.DefaultContainer.Add(health.New(logger, func() error { return nil }))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(logger, debug))
 
 	config := restfulspec.Config{
-		WebServices: restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:     "/apidocs.json",
+		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:                       "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 
