@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client"
+	"github.com/go-openapi/strfmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +15,7 @@ import (
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/health"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/mq"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
@@ -32,6 +35,8 @@ var (
 	builddate string
 	cfgFile   string
 	ds        datastore.Datastore
+	producer  *mq.Publisher
+	netbox    *client.NetboxAPIProxy
 	logger    log15.Logger
 	debug     = false
 )
@@ -43,6 +48,8 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		initLogging()
 		initDataStore()
+		initEventBus()
+		initNetboxProxy()
 		initSignalHandlers()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -71,6 +78,11 @@ func init() {
 	rootCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
 	rootCmd.Flags().StringP("db-user", "", "", "the database user to use")
 	rootCmd.Flags().StringP("db-password", "", "", "the database password to use")
+
+	rootCmd.Flags().StringP("nsqd-addr", "", "nsqd:4150", "the address of the nsqd")
+	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the address of the nsqlookupd as a commalist")
+
+	rootCmd.Flags().StringP("netbox-addr", "", "localhost:8001", "the address of netbox proxy")
 
 	viper.BindPFlags(rootCmd.Flags())
 }
@@ -165,6 +177,24 @@ func initSignalHandlers() {
 	}()
 }
 
+func initNetboxProxy() {
+	netboxAddr := viper.GetString("netbox-addr")
+	cfg := client.DefaultTransportConfig().WithHost(netboxAddr)
+	netbox = client.NewHTTPClientWithConfig(strfmt.Default, cfg)
+}
+
+func initEventBus() {
+	nsqd := viper.GetString("nsqd-addr")
+	lookupds := viper.GetString("nsqlookupd-addr")
+	client := mq.NewClient(strings.Split(lookupds, ","))
+	p, err := client.Producer(nsqd)
+	if err != nil {
+		panic(err)
+	}
+	log15.Info("nsq connected", "nsqd", nsqd, "lookupds", lookupds)
+	producer = p
+}
+
 func initDataStore() {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
@@ -185,7 +215,7 @@ func run() {
 	restful.DefaultContainer.Add(service.NewFacility(logger, ds))
 	restful.DefaultContainer.Add(service.NewImage(logger, ds))
 	restful.DefaultContainer.Add(service.NewSize(logger, ds))
-	restful.DefaultContainer.Add(service.NewDevice(logger, ds))
+	restful.DefaultContainer.Add(service.NewDevice(logger, ds, producer, netbox))
 	restful.DefaultContainer.Add(health.New(logger, func() error { return nil }))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(logger, debug))
 

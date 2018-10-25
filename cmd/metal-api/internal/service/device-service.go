@@ -8,7 +8,11 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client"
+	nbdevice "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/device"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/mq"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/inconshreveable/log15"
@@ -20,7 +24,9 @@ const (
 
 type deviceResource struct {
 	log15.Logger
-	ds datastore.Datastore
+	*mq.Publisher
+	netbox *client.NetboxAPIProxy
+	ds     datastore.Datastore
 }
 
 type allocateRequest struct {
@@ -35,15 +41,22 @@ type allocateRequest struct {
 }
 
 type registerRequest struct {
-	UUID       string               `json:"uuid" description:"the product uuid of the device to register"`
-	FacilityID string               `json:"facilityid" description:"the facility id to register this device with"`
-	Hardware   metal.DeviceHardware `json:"hardware" description:"the hardware of this device"`
+	UUID     string               `json:"uuid" description:"the product uuid of the device to register"`
+	SiteID   string               `json:"siteid" description:"the site id to register this device with"`
+	RackID   string               `json:"rackid" description:"the rack id where this device is connected to"`
+	Hardware metal.DeviceHardware `json:"hardware" description:"the hardware of this device"`
 }
 
-func NewDevice(log log15.Logger, ds datastore.Datastore) *restful.WebService {
+func NewDevice(
+	log log15.Logger,
+	ds datastore.Datastore,
+	pub *mq.Publisher,
+	netbox *client.NetboxAPIProxy) *restful.WebService {
 	dr := deviceResource{
-		Logger: log,
-		ds:     ds,
+		Logger:    log,
+		ds:        ds,
+		Publisher: pub,
+		netbox:    netbox,
 	}
 	return dr.webService()
 }
@@ -188,7 +201,13 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		return
 	}
 
-	device, err := dr.ds.RegisterDevice(data.UUID, data.FacilityID, data.Hardware)
+	err = dr.netboxRegister(data)
+	if err != nil {
+		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
+		return
+	}
+
+	device, err := dr.ds.RegisterDevice(data.UUID, data.SiteID, data.Hardware)
 
 	if err != nil {
 		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
@@ -224,5 +243,34 @@ func (dr deviceResource) freeDevice(request *restful.Request, response *restful.
 		sendError(dr, response, "freeDevice", http.StatusInternalServerError, err)
 		return
 	}
+	evt := metal.DeviceEvent{Type: metal.DELETE, Old: device}
+	dr.Publish("device", evt)
+	dr.Info("publish delete event", "event", evt)
 	response.WriteEntity(device)
+}
+
+func (dr deviceResource) netboxRegister(data registerRequest) error {
+	parms := nbdevice.NewLibServerRegisterDeviceParams()
+	parms.UUID = data.UUID
+	size := calculateSize(data)
+	var nics []*models.Nic
+	for _, n := range data.Hardware.Nics {
+		nic := models.Nic{Mac: &n.MacAddress, Name: &n.Name}
+		nics = append(nics, &nic)
+	}
+	parms.Request = &models.DeviceRegistrationRequest{
+		Rack: &data.RackID,
+		Site: &data.SiteID,
+		Size: &size,
+		Nics: nics,
+	}
+	_, err := dr.netbox.Device.LibServerRegisterDevice(parms)
+	if err != nil {
+		return fmt.Errorf("error calling netbox: %v", err)
+	}
+	return nil
+}
+
+func calculateSize(rq registerRequest) string {
+	return "t1.small.x86"
 }

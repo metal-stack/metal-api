@@ -13,5 +13,10 @@
         "id":          "FRA",
         "name":        "Frankfurt",
         "description": "A location in frankfurt"
+    },
+    {
+        "id":          "vagrant-lab",
+        "name":        "Vagrant Lab",
+        "description": "The vagrant lab"
     }
 ]

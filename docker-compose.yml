@@ -5,6 +5,36 @@ networks:
     driver: bridge
 
 services:
+  nsqlookupd:
+    image: nsqio/nsq:v1.1.0
+    networks:
+      - appl
+    command: /nsqlookupd -log-level error
+    ports:
+      - "4160"
+      - "4161"
+
+  nsqd:
+    image: nsqio/nsq:v1.1.0
+    networks:
+      - appl
+    command: /nsqd -log-level error --lookupd-tcp-address=nsqlookupd:4160
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4150"
+      - "4151"
+
+  nsqadmin:
+    image: nsqio/nsq:v1.1.0
+    networks:
+      - appl
+    command: /nsqadmin -log-level error --lookupd-http-address=nsqlookupd:4161
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4171:4171"
+
   rethinkdb:
     image: rethinkdb
     networks:
@@ -18,7 +48,7 @@ services:
     networks:
       - appl
     ports:
-     - "9090:8080"
+     - "9099:8080"
     environment:
       API_URL: http://localhost:8080/apidocs.json
 
@@ -34,4 +64,8 @@ services:
     environment:
       METAL_API_BIND_ADDR: 0.0.0.0
       METAL_API_DB_ADDR: rethinkdb:28015
+      # we need a better solution for this. establish a docker-network? use "host_mode" for anything?
+      METAL_API_NETBOX_ADDR: 172.17.0.1:8001
+      METAL_API_NSQ_ADDR: nsqd:4150
+      METAL_API_NSQLOOKUPD_ADDR: nsqlookupd:4160
       METAL_API_LOG_LEVEL: "debug"

@@ -17,7 +17,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"facilityid\": \"NBG1\",\n  \"hardware\": {\n    \"cpu_cores\": 1,\n    \"disks\": [\n      {\n        \"name\": \"sda\",\n        \"size\": 12\n      }\n    ],\n    \"memory\": 1024,\n    \"nics\": [\n      {\n        \"features\": [\n        ],\n        \"mac\": \"aa:aa:aa:aa:aa:aa\",\n        \"name\": \"eth0\",\n        \"vendor\": \"Dell\"\n      }\n    ]\n  },\n  \"uuid\": \"ae671b8b-a158-52c2-8c22-985ca0503873\"\n}"
+					"raw": "{\n  \"siteid\": \"vagrant-lab\",\n  \"hardware\": {\n    \"cpu_cores\": 1,\n    \"disks\": [\n      {\n        \"name\": \"sda\",\n        \"size\": 12\n      }\n    ],\n    \"memory\": 1024,\n    \"nics\": [\n      {\n        \"features\": [\n        ],\n        \"mac\": \"aa:aa:aa:aa:aa:aa\",\n        \"name\": \"eth0\",\n        \"vendor\": \"Dell\"\n      }\n    ]\n  },\n  \"uuid\": \"ae671b8b-a158-52c2-8c22-985ca0503873\"\n}"
 				},
 				"url": {
 					"raw": "{{base}}/device/register",
@@ -44,7 +44,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"description\": \"My first metal host\",\n  \"facilityid\": \"NBG1\",\n  \"hostname\": \"metal-test-1\",\n  \"imageid\": \"1\",\n  \"name\": \"Metal Host 1\",\n  \"projectid\": \"1\",\n  \"sizeid\": \"t1.small.x86\",\n  \"ssh_pub_key\": \"keiner\"\n}"
+					"raw": "{\n  \"description\": \"My first metal host\",\n  \"facilityid\": \"vagrant-lab\",\n  \"hostname\": \"metal-test-1\",\n  \"imageid\": \"1\",\n  \"name\": \"Metal Host 1\",\n  \"projectid\": \"1\",\n  \"sizeid\": \"t1.small.x86\",\n  \"ssh_pub_key\": \"keiner\"\n}"
 				},
 				"url": {
 					"raw": "{{base}}/device/allocate",

@@ -1241,17 +1241,22 @@
   "service.registerRequest": {
    "required": [
     "uuid",
-    "facilityid",
+    "siteid",
+    "rackid",
     "hardware"
    ],
    "properties": {
-    "facilityid": {
-     "description": "the facility id to register this device with",
-     "type": "string"
-    },
     "hardware": {
      "description": "the hardware of this device",
      "$ref": "#/definitions/metal.DeviceHardware"
+    },
+    "rackid": {
+     "description": "the rack id where this device is connected to",
+     "type": "string"
+    },
+    "siteid": {
+     "description": "the site id to register this device with",
+     "type": "string"
     },
     "uuid": {
      "description": "the product uuid of the device to register",

@@ -51,3 +51,9 @@ func (d *Device) HasMAC(m string) bool {
 	}
 	return false
 }
+
+type DeviceEvent struct {
+	Type EventType `json:"type,omitempty"`
+	Old  *Device   `json:"old,omitempty"`
+	New  *Device   `json:"new,omitempty"`
+}
