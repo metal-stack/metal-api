@@ -1,0 +1,167 @@
+swagger: "2.0"
+info:
+  description: "Proxy server for the metal project to communicate with netbox using pynetbox."
+  version: "1.0.0"
+  title: "Netbox API Proxy"
+  termsOfService: "http://swagger.io/terms/"
+  contact:
+    email: "devops@f-i-ts.de"
+  license:
+    name: "MIT"
+    url: "http://mit.org"
+basePath: "/api/v1"
+tags:
+- name: "device"
+  description: "Endpoints for managing devices in the netbox"
+schemes:
+- "http"
+paths:
+  /register-device/{uuid}:
+    post:
+      tags:
+      - "device"
+      summary: "Register a new device"
+      description: "Register a new device to the netbox"
+      operationId: "lib.server.register_device"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - $ref: "#/parameters/DeviceUUID"
+      - name: "request"
+        in: "body"
+        description: "The device registration body"
+        required: true
+        schema:
+          $ref: "#/definitions/DeviceRegistrationRequest"
+      responses:
+        200:
+          description: "OK"
+        400:
+          description: "Bad request"
+        404:
+          description: "Not found"
+        500:
+          description: "Internal server error"
+  /allocate-device/{uuid}:
+    post:
+      tags:
+      - "device"
+      summary: "Allocate a device"
+      description: "Allocated a registered device for a tenant"
+      operationId: "lib.server.allocate_device"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - $ref: "#/parameters/DeviceUUID"
+      - name: "request"
+        in: "body"
+        description: "The device allocation body"
+        required: true
+        schema:
+          $ref: "#/definitions/DeviceAllocationRequest"
+      responses:
+        200:
+          description: "OK"
+          schema:
+            $ref: "#/definitions/DeviceAllocationResponse"
+        400:
+          description: "Bad request"
+        404:
+          description: "Not found"
+        500:
+          description: "Internal server error"
+  /release-device/{uuid}:
+    post:
+      tags:
+      - "device"
+      summary: "Releases a device"
+      description: "Releases an allocated device"
+      operationId: "lib.server.release_device"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - $ref: "#/parameters/DeviceUUID"
+      responses:
+        200:
+          description: "OK"
+        400:
+          description: "Bad request"
+        404:
+          description: "Not found"
+        500:
+          description: "Internal server error"
+parameters:
+  DeviceUUID:
+    name: "uuid"
+    description: "The product serial of the device (unique identifier of this device)"
+    in: path
+    type: string
+    required: true
+definitions:
+  DeviceRegistrationRequest:
+    type: "object"
+    required:
+    - "size"
+    - "site"
+    - "rack"
+    - "nics"
+    properties:
+      size:
+        description: "The size of the device"
+        type: "string"
+        enum:
+          - "t1.small.x86"
+      site:
+        description: "The id of the site"
+        type: "string"
+      rack:
+        description: "The name of the rack"
+        type: "string"
+      nics:
+        description: "The network interfaces of this device"
+        type: "array"
+        items:
+          $ref: "#/definitions/Nic"
+  DeviceAllocationRequest:
+    type: "object"
+    required:
+    - "name"
+    - "tenant"
+    - "tenant_group"
+    properties:
+      name:
+        description: "The desired name for this host in the netbox"
+        type: "string"
+      tenant:
+        description: "The name of the tenant to assign this device to"
+        type: "string"
+      tenant_group:
+        description: "The name of the tenant group to assign this device to"
+        type: "string"
+  DeviceAllocationResponse:
+    type: "object"
+    properties:
+      ip:
+        description: "The allocated ip address"
+        type: "string"
+  Nic:
+    type: "object"
+    required:
+    - "name"
+    - "mac"
+    properties:
+      name:
+        description: "The name of the network interface"
+        type: "string"
+      mac:
+        description: "The mac address of the network interface"
+        type: "string"
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"

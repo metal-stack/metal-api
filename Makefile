@@ -35,9 +35,7 @@ spec:
 	curl http://localhost:8080/apidocs.json >spec/metal-api.json
 
 generate-client:
-	# you need an installation of go-swagger, look at https://goswagger.io/install.html
-	mkdir generate
-	swagger generate client -f spec/metal-api.json -t generate
+	swagger generate client -f netbox-api/api.yaml -t netbox-api
 
 test:
 	go test -cover ./...
