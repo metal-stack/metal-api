@@ -9,8 +9,8 @@ type Device struct {
 	Created     time.Time      `json:"created" description:"the creation time of this machine" optional:"true" readOnly:"true" rethinkdb:"created"`
 	Changed     time.Time      `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
 	Project     string         `json:"project" description:"the project that this device is assigned to" rethinkdb:"project"`
-	Facility    Facility       `json:"facility" description:"the facility assigned to this device" readOnly:"true" rethinkdb:"-"`
-	FacilityID  string         `json:"-" rethinkdb:"facilityid"`
+	Site        Facility       `json:"site" description:"the site assigned to this device" readOnly:"true" rethinkdb:"-"`
+	SiteID      string         `json:"-" rethinkdb:"siteid"`
 	Image       *Image         `json:"image" description:"the image assigned to this device" readOnly:"true"  rethinkdb:"-"`
 	ImageID     string         `json:"-" rethinkdb:"imageid"`
 	Size        *Size          `json:"size" description:"the size of this device" readOnly:"true" rethinkdb:"-"`

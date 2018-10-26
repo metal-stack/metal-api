@@ -1,6 +1,7 @@
 module git.f-i-ts.de/cloud-native/maas/metal-api
 
 require (
+	git.f-i-ts.de/cloud-native/metallib v0.0.0-20181026124130-dac2b6e8a196
 	github.com/emicklei/go-restful v2.8.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
 	github.com/go-openapi/errors v0.17.0
@@ -10,7 +11,6 @@ require (
 	github.com/go-openapi/swag v0.17.0
 	github.com/go-openapi/validate v0.17.0
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
@@ -25,3 +25,5 @@ require (
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1
 )
+
+// replace git.f-i-ts.de/cloud-native/metallib => ../../metallib

@@ -4,11 +4,16 @@ networks:
   appl:
     driver: bridge
 
+volumes:
+  nsq-data-volume:
+
 services:
   nsqlookupd:
     image: nsqio/nsq:v1.1.0
     networks:
       - appl
+    volumes:
+      - nsq-data-volume:/data
     command: /nsqlookupd -log-level error
     ports:
       - "4160"
@@ -66,6 +71,20 @@ services:
       METAL_API_DB_ADDR: rethinkdb:28015
       # we need a better solution for this. establish a docker-network? use "host_mode" for anything?
       METAL_API_NETBOX_ADDR: 172.17.0.1:8001
-      METAL_API_NSQ_ADDR: nsqd:4150
-      METAL_API_NSQLOOKUPD_ADDR: nsqlookupd:4160
+      METAL_API_NSQD_ADDR: nsqd:4150
+      METAL_API_NSQD_HTTP_ADDR: nsqd:4151
       METAL_API_LOG_LEVEL: "debug"
+
+  metal-core:
+    networks:
+      - appl
+    image: registry.fi-ts.io/metal/metal-core
+    container_name: metal-core
+    environment:
+      METAL_CORE_MQ_ADDRESS: nsqlookupd:4161
+      METAL_CORE_CONTROL_PLANE_IP: localhost
+      METAL_CORE_SITE_ID: FRA
+      METAL_CORE_RACK_ID: Vagrant Rack 1
+      METAL_CORE_LOG_LEVEL: DEBUG
+      METAL_CORE_METAL_API_PORT: 8090
+      METAL_CORE_HAMMER_IMAGE_PREFIX: metal-hammer

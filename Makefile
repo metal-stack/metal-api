@@ -13,7 +13,7 @@ export GO111MODULE := on
 export CGO_ENABLED := 0
 
 
-.PHONY: all test up test-ci createmasterdata createtestdevices spec generate-client clean
+.PHONY: all test up test-ci createmasterdata createtestdevices spec generate-client clean vendor restart
 
 all: bin/$(BINARY);
 
@@ -30,6 +30,9 @@ clean:
 	rm -rf bin/$(BINARY)
 up:
 	docker-compose up --build
+
+vendor:
+	go mod vendor
 
 spec:
 	curl http://localhost:8080/apidocs.json >spec/metal-api.json
@@ -50,3 +53,7 @@ createmasterdata:
 
 createtestdevices:
 	@cat masterdata/testdevices.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPOST -H "Content-Type: application/json" -d '{}' http://localhost:8080/device/register
+
+restart:
+	docker build -t registry.fi-ts.io/metal/metal-api -f Dockerfile.dev .
+	docker-compose restart metal-api

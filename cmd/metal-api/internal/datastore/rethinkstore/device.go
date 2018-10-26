@@ -21,12 +21,12 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
-	if d.FacilityID != "" {
-		f, err := rs.FindFacility(d.FacilityID)
+	if d.SiteID != "" {
+		f, err := rs.FindFacility(d.SiteID)
 		if err != nil {
-			return nil, fmt.Errorf("illegal facility-id %q in device %q", d.FacilityID, id)
+			return nil, fmt.Errorf("illegal siteid %q in device %q", d.SiteID, id)
 		}
-		d.Facility = *f
+		d.Site = *f
 	}
 	if d.SizeID != "" {
 		s, err := rs.FindSize(d.SizeID)
@@ -100,8 +100,10 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 		d.ImageID = d.Image.ID
 	}
 	d.SizeID = d.Size.ID
-	d.FacilityID = d.Facility.ID
-	res, err := rs.deviceTable.Insert(d).RunWrite(rs.session)
+	d.SiteID = d.Site.ID
+	res, err := rs.deviceTable.Insert(d, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot create device in database: %v", err)
 	}
@@ -128,20 +130,20 @@ func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) err
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldD.Changed)), newD, r.Error("the device was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot update size: %v", err)
+		return fmt.Errorf("cannot update device: %v", err)
 	}
 	return nil
 }
 
-func (rs *RethinkStore) AllocateDevice(name string, description string, hostname string, projectid string, facilityid string, sizeid string, imageid string, sshPubKey string) (*metal.Device, error) {
+func (rs *RethinkStore) AllocateDevice(name string, description string, hostname string, projectid string, siteid string, sizeid string, imageid string, sshPubKey string) (*metal.Device, error) {
 	image, err := rs.FindImage(imageid)
 	if err != nil {
 		return nil, fmt.Errorf("image with id %q not found", imageid)
 	}
 	available, err := rs.waitTable.Filter(map[string]interface{}{
-		"project":    "",
-		"facilityid": facilityid,
-		"sizeid":     sizeid,
+		"project": "",
+		"siteid":  siteid,
+		"sizeid":  sizeid,
 	}).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find free device: %v", err)
@@ -199,10 +201,10 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	return device, nil
 }
 
-func (rs *RethinkStore) RegisterDevice(id string, facilityid string, hardware metal.DeviceHardware) (*metal.Device, error) {
-	fc, err := rs.FindFacility(facilityid)
+func (rs *RethinkStore) RegisterDevice(id string, siteid string, hardware metal.DeviceHardware) (*metal.Device, error) {
+	fc, err := rs.FindFacility(siteid)
 	if err != nil {
-		return nil, fmt.Errorf("facility with id %q not found", facilityid)
+		return nil, fmt.Errorf("facility with id %q not found", siteid)
 	}
 
 	sz := rs.determineSizeFromHardware(hardware)
@@ -212,7 +214,8 @@ func (rs *RethinkStore) RegisterDevice(id string, facilityid string, hardware me
 		device = &metal.Device{
 			ID:       id,
 			Size:     sz,
-			Facility: *fc,
+			Site:     *fc,
+			SiteID:   fc.ID,
 			Hardware: hardware,
 		}
 		err = rs.CreateDevice(device)
@@ -223,7 +226,8 @@ func (rs *RethinkStore) RegisterDevice(id string, facilityid string, hardware me
 	}
 	old := *device
 	device.Hardware = hardware
-	device.Facility = *fc
+	device.Site = *fc
+	device.SiteID = fc.ID
 	device.Size = sz
 
 	err = rs.UpdateDevice(&old, device)
@@ -313,7 +317,7 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 	res := make([]metal.Device, len(data), len(data))
 	for i, d := range data {
 		res[i] = d
-		res[i].Facility = facmap[d.FacilityID]
+		res[i].Site = facmap[d.SiteID]
 		size := szmap[d.SizeID]
 		res[i].Size = &size
 		if d.ImageID != "" {

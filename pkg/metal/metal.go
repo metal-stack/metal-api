@@ -2,9 +2,19 @@ package metal
 
 type EventType string
 
-// Some EventType enums.
+type NSQTopic string
+
+// Some enums.
 const (
 	CREATE EventType = "create"
 	UPDATE EventType = "update"
 	DELETE EventType = "delete"
+
+	TopicDevice NSQTopic = "device"
+)
+
+var (
+	Topics = []NSQTopic{
+		TopicDevice,
+	}
 )

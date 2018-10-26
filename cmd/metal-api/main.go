@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client"
-	"github.com/go-openapi/strfmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,11 +12,15 @@ import (
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/health"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/mq"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/metallib/bus"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
+	"github.com/go-openapi/strfmt"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,7 +37,7 @@ var (
 	builddate string
 	cfgFile   string
 	ds        datastore.Datastore
-	producer  *mq.Publisher
+	producer  *bus.Publisher
 	netbox    *client.NetboxAPIProxy
 	logger    log15.Logger
 	debug     = false
@@ -80,6 +82,7 @@ func init() {
 	rootCmd.Flags().StringP("db-password", "", "", "the database password to use")
 
 	rootCmd.Flags().StringP("nsqd-addr", "", "nsqd:4150", "the address of the nsqd")
+	rootCmd.Flags().StringP("nsqd-http-addr", "", "nsqd:4151", "the address of the nsqd rest endpoint")
 	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the address of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("netbox-addr", "", "localhost:8001", "the address of netbox proxy")
@@ -185,13 +188,15 @@ func initNetboxProxy() {
 
 func initEventBus() {
 	nsqd := viper.GetString("nsqd-addr")
-	lookupds := viper.GetString("nsqlookupd-addr")
-	client := mq.NewClient(strings.Split(lookupds, ","))
-	p, err := client.Producer(nsqd)
+	httpnsqd := viper.GetString("nsqd-http-addr")
+	p, err := bus.NewPublisher(zapup.MustRootLogger(), nsqd, httpnsqd)
 	if err != nil {
 		panic(err)
 	}
-	log15.Info("nsq connected", "nsqd", nsqd, "lookupds", lookupds)
+	log15.Info("nsq connected", "nsqd", nsqd)
+	if err := p.CreateTopic(string(metal.TopicDevice)); err != nil {
+		panic(err)
+	}
 	producer = p
 }
 

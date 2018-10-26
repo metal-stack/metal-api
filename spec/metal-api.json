@@ -953,7 +953,7 @@
     "id",
     "name",
     "project",
-    "facility",
+    "site",
     "image",
     "size",
     "hardware",
@@ -977,11 +977,6 @@
     "description": {
      "description": "a description for this machine",
      "type": "string"
-    },
-    "facility": {
-     "description": "the facility assigned to this device",
-     "$ref": "#/definitions/metal.Facility",
-     "readOnly": true
     },
     "hardware": {
      "description": "the hardware of this device",
@@ -1013,6 +1008,11 @@
     "project": {
      "description": "the project that this device is assigned to",
      "type": "string"
+    },
+    "site": {
+     "description": "the site assigned to this device",
+     "$ref": "#/definitions/metal.Facility",
+     "readOnly": true
     },
     "size": {
      "description": "the size of this device",
@@ -1198,7 +1198,7 @@
    "required": [
     "hostname",
     "projectid",
-    "facilityid",
+    "siteid",
     "sizeid",
     "imageid",
     "ssh_pub_key"
@@ -1206,10 +1206,6 @@
    "properties": {
     "description": {
      "description": "the description for the allocated device",
-     "type": "string"
-    },
-    "facilityid": {
-     "description": "the facility id to assign this device to",
      "type": "string"
     },
     "hostname": {
@@ -1226,6 +1222,10 @@
     },
     "projectid": {
      "description": "the project id to assign this device to",
+     "type": "string"
+    },
+    "siteid": {
+     "description": "the site id to assign this device to",
      "type": "string"
     },
     "sizeid": {

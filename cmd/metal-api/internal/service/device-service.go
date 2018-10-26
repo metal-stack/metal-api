@@ -12,7 +12,7 @@ import (
 	nbdevice "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/device"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/mq"
+	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/inconshreveable/log15"
@@ -24,7 +24,7 @@ const (
 
 type deviceResource struct {
 	log15.Logger
-	*mq.Publisher
+	*bus.Publisher
 	netbox *client.NetboxAPIProxy
 	ds     datastore.Datastore
 }
@@ -34,7 +34,7 @@ type allocateRequest struct {
 	Hostname    string `json:"hostname" description:"the hostname for the allocated device"`
 	Description string `json:"description" description:"the description for the allocated device" optional:"true"`
 	ProjectID   string `json:"projectid" description:"the project id to assign this device to"`
-	FacilityID  string `json:"facilityid" description:"the facility id to assign this device to"`
+	SiteID      string `json:"siteid" description:"the site id to assign this device to"`
 	SizeID      string `json:"sizeid" description:"the size id to assign this device to"`
 	ImageID     string `json:"imageid" description:"the image id to assign this device to"`
 	SSHPubKey   string `json:"ssh_pub_key" description:"the public ssh key to access the device with"`
@@ -50,7 +50,7 @@ type registerRequest struct {
 func NewDevice(
 	log log15.Logger,
 	ds datastore.Datastore,
-	pub *mq.Publisher,
+	pub *bus.Publisher,
 	netbox *client.NetboxAPIProxy) *restful.WebService {
 	dr := deviceResource{
 		Logger:    log,
@@ -224,7 +224,7 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
-	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname, allocate.ProjectID, allocate.FacilityID, allocate.SizeID, allocate.ImageID, allocate.SSHPubKey)
+	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname, allocate.ProjectID, allocate.SiteID, allocate.SizeID, allocate.ImageID, allocate.SSHPubKey)
 	if err != nil {
 		if err == datastore.ErrNoDeviceAvailable {
 			sendError(dr, response, "allocateDevice", http.StatusNotFound, err)
