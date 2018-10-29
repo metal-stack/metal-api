@@ -16,6 +16,7 @@ import (
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/health"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
+	"git.f-i-ts.de/cloud-native/metallib/version"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -31,10 +32,6 @@ const (
 )
 
 var (
-	version   = "devel"
-	revision  string
-	gitsha1   string
-	builddate string
 	cfgFile   string
 	ds        datastore.Datastore
 	producer  *bus.Publisher
@@ -46,7 +43,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:     "metal-api",
 	Short:   "an api to offer pure metal",
-	Version: getVersionString(),
+	Version: version.V.String(),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		initLogging()
 		initDataStore()
@@ -148,20 +145,6 @@ func initLogging() {
 	logger = log15.New("app", "metal-api")
 }
 
-func getVersionString() string {
-	var versionString = version
-	if gitsha1 != "" {
-		versionString += " (" + gitsha1 + ")"
-	}
-	if revision != "" {
-		versionString += ", " + revision
-	}
-	if builddate != "" {
-		versionString += ", " + builddate
-	}
-	return versionString
-}
-
 func initSignalHandlers() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -239,7 +222,7 @@ func run() {
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	log15.Info("start metal api", "revision", revision, "builddate", builddate, "address", addr)
+	log15.Info("start metal api", "version", version.V.String())
 	http.ListenAndServe(addr, nil)
 }
 
