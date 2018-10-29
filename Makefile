@@ -38,7 +38,7 @@ spec:
 	curl http://localhost:8080/apidocs.json >spec/metal-api.json
 
 generate-client:
-	swagger generate client -f netbox-api/api.yaml -t netbox-api
+	GO111MODULE=off swagger generate client -f netbox-api/api.yaml -t netbox-api
 
 test:
 	go test -cover ./...
