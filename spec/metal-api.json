@@ -957,7 +957,7 @@
     "image",
     "size",
     "hardware",
-    "ip",
+    "cidr",
     "hostname",
     "ssh_pub_key"
    ],
@@ -967,6 +967,10 @@
      "type": "string",
      "format": "date-time",
      "readOnly": true
+    },
+    "cidr": {
+     "description": "the cidr address of the allocated device",
+     "type": "string"
     },
     "created": {
      "description": "the creation time of this machine",
@@ -996,10 +1000,6 @@
      "description": "the image assigned to this device",
      "$ref": "#/definitions/metal.Image",
      "readOnly": true
-    },
-    "ip": {
-     "description": "the ip address of the allocated device",
-     "type": "string"
     },
     "name": {
      "description": "the name of the device",
@@ -1196,6 +1196,8 @@
   },
   "service.allocateRequest": {
    "required": [
+    "tenant",
+    "tenant_group",
     "hostname",
     "projectid",
     "siteid",
@@ -1234,6 +1236,14 @@
     },
     "ssh_pub_key": {
      "description": "the public ssh key to access the device with",
+     "type": "string"
+    },
+    "tenant": {
+     "description": "the name of the owning tenant",
+     "type": "string"
+    },
+    "tenant_group": {
+     "description": "the name of the owning tenant group",
      "type": "string"
     }
    }
