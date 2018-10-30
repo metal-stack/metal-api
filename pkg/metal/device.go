@@ -16,7 +16,7 @@ type Device struct {
 	Size        *Size          `json:"size" description:"the size of this device" readOnly:"true" rethinkdb:"-"`
 	SizeID      string         `json:"-" rethinkdb:"sizeid"`
 	Hardware    DeviceHardware `json:"hardware" description:"the hardware of this device" rethinkdb:"hardware"`
-	Cidr        string         `json:"cidr" description:"the cidr address of the allocated device" rethinkdb:"-"`
+	Cidr        string         `json:"cidr" description:"the cidr address of the allocated device" rethinkdb:"cidr"`
 	Hostname    string         `json:"hostname" description:"the hostname of the device" rethinkdb:"hostname"`
 	SSHPubKey   string         `json:"ssh_pub_key" description:"the public ssh key to access the device with" rethinkdb:"sshPubKey"`
 }
