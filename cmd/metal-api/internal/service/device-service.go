@@ -255,8 +255,10 @@ func (dr deviceResource) netboxRegister(data registerRequest) error {
 	size := calculateSize(data)
 	var nics []*models.Nic
 	for _, n := range data.Hardware.Nics {
-		nic := models.Nic{Mac: &n.MacAddress, Name: &n.Name}
-		nics = append(nics, &nic)
+		nic := new(models.Nic)
+		nic.Mac = &n.MacAddress
+		nic.Name = &n.Name
+		nics = append(nics, nic)
 	}
 	parms.Request = &models.DeviceRegistrationRequest{
 		Rack: &data.RackID,
