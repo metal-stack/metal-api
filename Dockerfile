@@ -1,16 +1,4 @@
-FROM golang:1.11-stretch as builder
-RUN apt update \
- && apt -y install make git
-WORKDIR /app
-ENV GOPROXY=https://gomods.fi-ts.io
-
-# Install dependencies
-COPY go.mod .
-RUN go mod download
-
-# Build
-COPY . .
-RUN make
+FROM registry.fi-ts.io/cloud-native/go-builder:latest as builder
 
 FROM alpine:3.8
 LABEL maintainer FI-TS Devops <devops@f-i-ts.de>
