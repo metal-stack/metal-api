@@ -238,6 +238,7 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 	cidr, err := dr.netboxAllocate(allocate.Tenant, allocate.TenantGroup, d)
 	if err != nil {
 		sendError(dr, response, "cannot allocate at netbox", http.StatusInternalServerError, err)
+		return
 	}
 	d.Cidr = cidr
 

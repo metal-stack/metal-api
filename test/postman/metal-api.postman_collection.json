@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "c010ae09-444b-4804-ac74-cff8398f0a64",
+		"_postman_id": "ae457b4f-d6ef-4bd6-aac5-ad2c18082342",
 		"name": "metal-api",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -64,7 +64,10 @@
 			"request": {
 				"method": "GET",
 				"header": [],
-				"body": {},
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
 				"url": {
 					"raw": "{{base}}/device/ae671b8b-a158-52c2-8c22-985ca0503873/wait",
 					"host": [
@@ -84,7 +87,10 @@
 			"request": {
 				"method": "DELETE",
 				"header": [],
-				"body": {},
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
 				"url": {
 					"raw": "{{base}}/device/ae671b8b-a158-52c2-8c22-985ca0503873/free",
 					"host": [

@@ -1,8 +1,10 @@
 module git.f-i-ts.de/cloud-native/maas/metal-api
 
 require (
-	git.f-i-ts.de/cloud-native/metallib v0.0.0-20181026124130-dac2b6e8a196
-	git.f-i-ts.de/cloud-native/metallib/version v0.0.0-20181029133253-78cdbc943347
+	git.f-i-ts.de/cloud-native/metallib v0.0.0-20181030140848-7c2730708c40
+	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/emicklei/go-restful v2.8.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
 	github.com/go-openapi/errors v0.17.0
@@ -19,11 +21,12 @@ require (
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/nsqio/go-nsq v1.0.7
-	github.com/satori/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5 // indirect
+	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.0
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58
+	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
+	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1
 )
 
