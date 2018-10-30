@@ -226,7 +226,13 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
-	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname, allocate.ProjectID, allocate.SiteID, allocate.SizeID, allocate.ImageID, allocate.SSHPubKey)
+
+	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname,
+		allocate.ProjectID, allocate.SiteID, allocate.SizeID,
+		allocate.ImageID, allocate.SSHPubKey,
+		allocate.Tenant,
+		allocate.TenantGroup,
+		dr.netboxAllocate)
 	if err != nil {
 		if err == datastore.ErrNoDeviceAvailable {
 			sendError(dr, response, "allocateDevice", http.StatusNotFound, err)
@@ -235,13 +241,6 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		}
 		return
 	}
-	cidr, err := dr.netboxAllocate(allocate.Tenant, allocate.TenantGroup, d)
-	if err != nil {
-		sendError(dr, response, "cannot allocate at netbox", http.StatusInternalServerError, err)
-		return
-	}
-	d.Cidr = cidr
-
 	response.WriteEntity(d)
 }
 

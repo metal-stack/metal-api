@@ -21,6 +21,7 @@ type Datastore interface {
 
 type Allocation chan metal.Device
 type Allocator func(Allocation) error
+type CidrAllocator func(string, string, *metal.Device) (string, error)
 
 type DeviceStore interface {
 	FindDevice(id string) (*metal.Device, error)
@@ -29,7 +30,18 @@ type DeviceStore interface {
 	CreateDevice(device *metal.Device) error
 	DeleteDevice(id string) (*metal.Device, error)
 	UpdateDevice(oldDevice *metal.Device, newDevice *metal.Device) error
-	AllocateDevice(name string, description string, hostname string, projectid string, siteid string, sizeid string, imageid string, sshPubKey string) (*metal.Device, error)
+	AllocateDevice(name string,
+		description string,
+		hostname string,
+		projectid string,
+		siteid string,
+		sizeid string,
+		imageid string,
+		sshPubKey string,
+		tenant string,
+		tenantGroup string,
+		cidrAllocator CidrAllocator,
+	) (*metal.Device, error)
 	FreeDevice(id string) (*metal.Device, error)
 	RegisterDevice(id string, siteid string, hardware metal.DeviceHardware) (*metal.Device, error)
 	Wait(id string, alloc Allocator) error

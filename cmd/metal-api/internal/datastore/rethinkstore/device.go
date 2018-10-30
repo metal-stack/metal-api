@@ -139,7 +139,14 @@ func (rs *RethinkStore) AllocateDevice(
 	description string,
 	hostname string,
 	projectid string,
-	siteid string, sizeid string, imageid string, sshPubKey string) (*metal.Device, error) {
+	siteid string,
+	sizeid string,
+	imageid string,
+	sshPubKey string,
+	tenant string,
+	tenantGroup string,
+	cidrAllocator datastore.CidrAllocator,
+) (*metal.Device, error) {
 	image, err := rs.FindImage(imageid)
 	if err != nil {
 		return nil, fmt.Errorf("image with id %q not found", imageid)
@@ -162,6 +169,12 @@ func (rs *RethinkStore) AllocateDevice(
 	}
 
 	old := res[0]
+
+	cidr, err := cidrAllocator(tenant, tenantGroup, &res[0])
+	if err != nil {
+		return nil, fmt.Errorf("cannot allocate at netbox: %v", err)
+	}
+
 	rs.fillDeviceList(res[0:1]...)
 	res[0].Name = name
 	res[0].Hostname = hostname
@@ -170,7 +183,7 @@ func (rs *RethinkStore) AllocateDevice(
 	res[0].Image = image
 	res[0].ImageID = image.ID
 	res[0].SSHPubKey = sshPubKey
-	res[0].Cidr = ""
+	res[0].Cidr = cidr
 	res[0].Changed = time.Now()
 	err = rs.UpdateDevice(&old, &res[0])
 	if err != nil {
