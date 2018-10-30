@@ -252,7 +252,7 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 		return nil
 	}
 
-	// does not prehibit concurrent wait calls for the same UUID
+	// does not prohibit concurrent wait calls for the same UUID
 	_, err = rs.waitTable.Insert(dev, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
