@@ -7,10 +7,13 @@ package device
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
 )
 
 // LibServerReleaseDeviceReader is a Reader for the LibServerReleaseDevice structure.
@@ -86,13 +89,21 @@ func NewLibServerReleaseDeviceBadRequest() *LibServerReleaseDeviceBadRequest {
 Bad request
 */
 type LibServerReleaseDeviceBadRequest struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerReleaseDeviceBadRequest) Error() string {
-	return fmt.Sprintf("[POST /release-device/{uuid}][%d] libServerReleaseDeviceBadRequest ", 400)
+	return fmt.Sprintf("[POST /release-device/{uuid}][%d] libServerReleaseDeviceBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *LibServerReleaseDeviceBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -107,13 +118,21 @@ func NewLibServerReleaseDeviceNotFound() *LibServerReleaseDeviceNotFound {
 Not found
 */
 type LibServerReleaseDeviceNotFound struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerReleaseDeviceNotFound) Error() string {
-	return fmt.Sprintf("[POST /release-device/{uuid}][%d] libServerReleaseDeviceNotFound ", 404)
+	return fmt.Sprintf("[POST /release-device/{uuid}][%d] libServerReleaseDeviceNotFound  %+v", 404, o.Payload)
 }
 
 func (o *LibServerReleaseDeviceNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -128,13 +147,21 @@ func NewLibServerReleaseDeviceInternalServerError() *LibServerReleaseDeviceInter
 Internal server error
 */
 type LibServerReleaseDeviceInternalServerError struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerReleaseDeviceInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /release-device/{uuid}][%d] libServerReleaseDeviceInternalServerError ", 500)
+	return fmt.Sprintf("[POST /release-device/{uuid}][%d] libServerReleaseDeviceInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *LibServerReleaseDeviceInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

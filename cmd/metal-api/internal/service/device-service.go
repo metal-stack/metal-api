@@ -31,6 +31,8 @@ type deviceResource struct {
 
 type allocateRequest struct {
 	Name        string `json:"name" description:"the new name for the allocated device" optional:"true"`
+	Tenant      string `json:"tenant" description:"the name of the owning tenant"`
+	TenantGroup string `json:"tenant_group" description:"the name of the owning tenant group"`
 	Hostname    string `json:"hostname" description:"the hostname for the allocated device"`
 	Description string `json:"description" description:"the description for the allocated device" optional:"true"`
 	ProjectID   string `json:"projectid" description:"the project id to assign this device to"`
@@ -233,6 +235,12 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		}
 		return
 	}
+	cidr, err := dr.netboxAllocate(allocate.Tenant, allocate.TenantGroup, d)
+	if err != nil {
+		sendError(dr, response, "cannot allocate at netbox", http.StatusInternalServerError, err)
+	}
+	d.Cidr = cidr
+
 	response.WriteEntity(d)
 }
 
@@ -273,6 +281,22 @@ func (dr deviceResource) netboxRegister(data registerRequest) error {
 		return fmt.Errorf("error calling netbox: %v", err)
 	}
 	return nil
+}
+
+func (dr deviceResource) netboxAllocate(tenant, tenantgroup string, d *metal.Device) (string, error) {
+	parms := nbdevice.NewLibServerAllocateDeviceParams()
+	parms.UUID = d.ID
+	parms.Request = &models.DeviceAllocationRequest{
+		Name:        &d.Name,
+		Tenant:      &tenant,
+		TenantGroup: &tenantgroup,
+	}
+
+	rsp, err := dr.netbox.Device.LibServerAllocateDevice(parms)
+	if err != nil {
+		return "", fmt.Errorf("error calling netbox: %v", err)
+	}
+	return rsp.Payload.Cidr, nil
 }
 
 func calculateSize(rq registerRequest) string {

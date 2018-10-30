@@ -97,13 +97,21 @@ func NewLibServerAllocateDeviceBadRequest() *LibServerAllocateDeviceBadRequest {
 Bad request
 */
 type LibServerAllocateDeviceBadRequest struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerAllocateDeviceBadRequest) Error() string {
-	return fmt.Sprintf("[POST /allocate-device/{uuid}][%d] libServerAllocateDeviceBadRequest ", 400)
+	return fmt.Sprintf("[POST /allocate-device/{uuid}][%d] libServerAllocateDeviceBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *LibServerAllocateDeviceBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -118,13 +126,21 @@ func NewLibServerAllocateDeviceNotFound() *LibServerAllocateDeviceNotFound {
 Not found
 */
 type LibServerAllocateDeviceNotFound struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerAllocateDeviceNotFound) Error() string {
-	return fmt.Sprintf("[POST /allocate-device/{uuid}][%d] libServerAllocateDeviceNotFound ", 404)
+	return fmt.Sprintf("[POST /allocate-device/{uuid}][%d] libServerAllocateDeviceNotFound  %+v", 404, o.Payload)
 }
 
 func (o *LibServerAllocateDeviceNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -139,13 +155,21 @@ func NewLibServerAllocateDeviceInternalServerError() *LibServerAllocateDeviceInt
 Internal server error
 */
 type LibServerAllocateDeviceInternalServerError struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerAllocateDeviceInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /allocate-device/{uuid}][%d] libServerAllocateDeviceInternalServerError ", 500)
+	return fmt.Sprintf("[POST /allocate-device/{uuid}][%d] libServerAllocateDeviceInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *LibServerAllocateDeviceInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

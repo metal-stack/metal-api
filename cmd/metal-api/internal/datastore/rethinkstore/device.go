@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
@@ -135,7 +134,12 @@ func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) err
 	return nil
 }
 
-func (rs *RethinkStore) AllocateDevice(name string, description string, hostname string, projectid string, siteid string, sizeid string, imageid string, sshPubKey string) (*metal.Device, error) {
+func (rs *RethinkStore) AllocateDevice(
+	name string,
+	description string,
+	hostname string,
+	projectid string,
+	siteid string, sizeid string, imageid string, sshPubKey string) (*metal.Device, error) {
 	image, err := rs.FindImage(imageid)
 	if err != nil {
 		return nil, fmt.Errorf("image with id %q not found", imageid)
@@ -156,10 +160,6 @@ func (rs *RethinkStore) AllocateDevice(name string, description string, hostname
 	if len(res) < 1 {
 		return nil, datastore.ErrNoDeviceAvailable
 	}
-	ip, err := ipam.AllocateIP()
-	if err != nil {
-		return nil, err
-	}
 
 	old := res[0]
 	rs.fillDeviceList(res[0:1]...)
@@ -170,7 +170,7 @@ func (rs *RethinkStore) AllocateDevice(name string, description string, hostname
 	res[0].Image = image
 	res[0].ImageID = image.ID
 	res[0].SSHPubKey = sshPubKey
-	res[0].IP = ip
+	res[0].Cidr = ""
 	res[0].Changed = time.Now()
 	err = rs.UpdateDevice(&old, &res[0])
 	if err != nil {
@@ -192,8 +192,7 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 		return nil, fmt.Errorf("device is not allocated")
 	}
 	old := *device
-	ipam.FreeIP(device.IP)
-	device.Name, device.Project, device.Description, device.IP, device.Hostname, device.SSHPubKey = "", "", "", "", "", ""
+	device.Name, device.Project, device.Description, device.Cidr, device.Hostname, device.SSHPubKey = "", "", "", "", "", ""
 	err = rs.UpdateDevice(&old, device)
 	if err != nil {
 		return nil, fmt.Errorf("cannot clear device data: %v", err)

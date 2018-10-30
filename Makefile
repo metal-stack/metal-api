@@ -29,5 +29,6 @@ spec:
 
 .PHONY: generate-client
 generate-client:
-	GO111MODULE=off swagger generate client -f netbox-api/api.yaml -t netbox-api
+	cp ../netbox-api-proxy/lib/api/v1.yaml netbox-api/v1.yaml
+	GO111MODULE=off swagger generate client -f netbox-api/v1.yaml -t netbox-api
 

@@ -16,7 +16,7 @@ import (
 type DeviceAllocationResponse struct {
 
 	// The allocated ip address
-	IP string `json:"ip,omitempty"`
+	Cidr string `json:"cidr,omitempty"`
 }
 
 // Validate validates this device allocation response

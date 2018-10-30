@@ -7,10 +7,13 @@ package device
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	models "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
 )
 
 // LibServerRegisterDeviceReader is a Reader for the LibServerRegisterDevice structure.
@@ -86,13 +89,21 @@ func NewLibServerRegisterDeviceBadRequest() *LibServerRegisterDeviceBadRequest {
 Bad request
 */
 type LibServerRegisterDeviceBadRequest struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerRegisterDeviceBadRequest) Error() string {
-	return fmt.Sprintf("[POST /register-device/{uuid}][%d] libServerRegisterDeviceBadRequest ", 400)
+	return fmt.Sprintf("[POST /register-device/{uuid}][%d] libServerRegisterDeviceBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *LibServerRegisterDeviceBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -107,13 +118,21 @@ func NewLibServerRegisterDeviceNotFound() *LibServerRegisterDeviceNotFound {
 Not found
 */
 type LibServerRegisterDeviceNotFound struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerRegisterDeviceNotFound) Error() string {
-	return fmt.Sprintf("[POST /register-device/{uuid}][%d] libServerRegisterDeviceNotFound ", 404)
+	return fmt.Sprintf("[POST /register-device/{uuid}][%d] libServerRegisterDeviceNotFound  %+v", 404, o.Payload)
 }
 
 func (o *LibServerRegisterDeviceNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -128,13 +147,21 @@ func NewLibServerRegisterDeviceInternalServerError() *LibServerRegisterDeviceInt
 Internal server error
 */
 type LibServerRegisterDeviceInternalServerError struct {
+	Payload *models.Problem
 }
 
 func (o *LibServerRegisterDeviceInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /register-device/{uuid}][%d] libServerRegisterDeviceInternalServerError ", 500)
+	return fmt.Sprintf("[POST /register-device/{uuid}][%d] libServerRegisterDeviceInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *LibServerRegisterDeviceInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Problem)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
