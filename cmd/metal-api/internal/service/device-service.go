@@ -254,11 +254,12 @@ func (dr deviceResource) netboxRegister(data registerRequest) error {
 	parms.UUID = data.UUID
 	size := calculateSize(data)
 	var nics []*models.Nic
-	for _, n := range data.Hardware.Nics {
-		nic := new(models.Nic)
-		nic.Mac = &n.MacAddress
-		nic.Name = &n.Name
-		nics = append(nics, nic)
+	for i := range data.Hardware.Nics {
+		nic := data.Hardware.Nics[i]
+		newnic := new(models.Nic)
+		newnic.Mac = &nic.MacAddress
+		newnic.Name = &nic.Name
+		nics = append(nics, newnic)
 	}
 	parms.Request = &models.DeviceRegistrationRequest{
 		Rack: &data.RackID,
@@ -266,6 +267,7 @@ func (dr deviceResource) netboxRegister(data registerRequest) error {
 		Size: &size,
 		Nics: nics,
 	}
+
 	_, err := dr.netbox.Device.LibServerRegisterDevice(parms)
 	if err != nil {
 		return fmt.Errorf("error calling netbox: %v", err)
