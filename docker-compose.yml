@@ -71,8 +71,8 @@ services:
       METAL_API_DB_ADDR: rethinkdb:28015
       # we need a better solution for this. establish a docker-network? use "host_mode" for anything?
       METAL_API_NETBOX_ADDR: 172.17.0.1:8001
-      METAL_API_NSQD_ADDR: nsqd:4150
-      METAL_API_NSQD_HTTP_ADDR: nsqd:4151
+      METAL_API_NSQD_ADDR: nsqlookupd:4160
+      METAL_API_NSQD_HTTP_ADDR: nsqlookupd:4161
       METAL_API_LOG_LEVEL: "debug"
 
   metal-core:
