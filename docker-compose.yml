@@ -2,7 +2,12 @@ version: '2'
 
 networks:
   appl:
+    name: metal
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.0.0/24
 
 volumes:
   nsq-data-volume:
@@ -69,8 +74,7 @@ services:
     environment:
       METAL_API_BIND_ADDR: 0.0.0.0
       METAL_API_DB_ADDR: rethinkdb:28015
-      # we need a better solution for this. establish a docker-network? use "host_mode" for anything?
-      METAL_API_NETBOX_ADDR: 172.17.0.1:8001
+      METAL_API_NETBOX_ADDR: 10.0.0.1:8001
       METAL_API_NSQD_ADDR: nsqlookupd:4160
       METAL_API_NSQD_HTTP_ADDR: nsqlookupd:4161
       METAL_API_LOG_LEVEL: "debug"
@@ -82,7 +86,7 @@ services:
     container_name: metal-core
     environment:
       METAL_CORE_MQ_ADDRESS: nsqlookupd:4161
-      METAL_CORE_CONTROL_PLANE_IP: localhost
+      METAL_CORE_IP: 127.0.0.1
       METAL_CORE_SITE_ID: FRA
       METAL_CORE_RACK_ID: Vagrant Rack 1
       METAL_CORE_LOG_LEVEL: DEBUG
