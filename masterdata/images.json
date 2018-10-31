@@ -3,6 +3,6 @@
         "id":"1",
         "name":        "Ubuntu 18.04",
         "description": "Ubuntu 18.04 Minimal",
-        "url":         "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.04/img.tar.gz"
+        "url":         "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.04/img.tar.lz4"
     }
 ]
