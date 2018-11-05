@@ -1,4 +1,4 @@
-version: '2'
+version: '3.5'
 
 networks:
   appl:
@@ -75,8 +75,8 @@ services:
       METAL_API_BIND_ADDR: 0.0.0.0
       METAL_API_DB_ADDR: rethinkdb:28015
       METAL_API_NETBOX_ADDR: 10.0.0.1:8001
-      METAL_API_NSQD_ADDR: nsqlookupd:4160
-      METAL_API_NSQD_HTTP_ADDR: nsqlookupd:4161
+      METAL_API_NSQD_ADDR: nsqd:4150
+      METAL_API_NSQD_HTTP_ADDR: nsqd:4151
       METAL_API_LOG_LEVEL: "debug"
 
   metal-core:
