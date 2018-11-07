@@ -66,7 +66,7 @@ type DeviceEvent struct {
 	New  *Device   `json:"new,omitempty"`
 }
 
-type DeviceWithToken struct {
-	Device *Device `json:"device"`
-	Token  string  `json:"token"`
+type DeviceWithPhoneHomeToken struct {
+	Device         *Device `json:"device"`
+	PhoneHomeToken string  `json:"phone_home_token"`
 }

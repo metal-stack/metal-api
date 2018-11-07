@@ -128,7 +128,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("wait for an allocation of this device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.DeviceWithToken{}).
+		Returns(http.StatusOK, "OK", metal.DeviceWithPhoneHomeToken{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
@@ -158,7 +158,7 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 			if err != nil {
 				return fmt.Errorf("could not create jwt: %v", err)
 			}
-			response.WriteEntity(metal.DeviceWithToken{Device: &a, Token: token})
+			response.WriteEntity(metal.DeviceWithPhoneHomeToken{Device: &a, PhoneHomeToken: token})
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
 		}
