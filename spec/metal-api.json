@@ -180,6 +180,9 @@
      "200": {
       "description": "OK"
      },
+     "400": {
+      "description": "Bad Request"
+     },
      "404": {
       "description": "Device could not be found by id"
      },
@@ -1296,10 +1299,10 @@
   },
   "service.phoneHomeRequest": {
    "required": [
-    "token"
+    "phone_home_token"
    ],
    "properties": {
-    "token": {
+    "phone_home_token": {
      "description": "the jwt that was issued for the device",
      "type": "string"
     }

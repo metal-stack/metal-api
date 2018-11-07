@@ -49,7 +49,7 @@ type registerRequest struct {
 }
 
 type phoneHomeRequest struct {
-	Token string `json:"token" description:"the jwt that was issued for the device"`
+	PhoneHomeToken string `json:"phone_home_token" description:"the jwt that was issued for the device"`
 }
 
 func NewDevice(
@@ -138,6 +138,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(phoneHomeRequest{}).
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "Device could not be found by id", nil).
+		Returns(http.StatusBadRequest, "Bad Request", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
 	return ws
@@ -173,16 +174,16 @@ func (dr deviceResource) phoneHome(request *restful.Request, response *restful.R
 	var data phoneHomeRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
-		sendError(dr, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("Cannot read data from request: %v", err))
+		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Cannot read data from request: %v", err))
 		return
 	}
-	c, err := jwt.FromJWT(data.Token)
+	c, err := jwt.FromJWT(data.PhoneHomeToken)
 	if err != nil {
-		sendError(dr, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("Token is invalid: %v", err))
+		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token is invalid: %v", err))
 		return
 	}
 	if c.Device == nil || c.Device.ID == "" {
-		sendError(dr, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("Token contains malformed data"))
+		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token contains malformed data"))
 		return
 	}
 	oldDevice, err := dr.ds.FindDevice(c.Device.ID)
