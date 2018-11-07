@@ -8,6 +8,7 @@ type Device struct {
 	Description string         `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
 	Created     time.Time      `json:"created" description:"the creation time of this machine" optional:"true" readOnly:"true" rethinkdb:"created"`
 	Changed     time.Time      `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
+	LastPing    time.Time      `json:"last_ping" description:"the timestamp of the last phone home call/ping from the device" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
 	Project     string         `json:"project" description:"the project that this device is assigned to" rethinkdb:"project"`
 	Site        Site           `json:"site" description:"the site assigned to this device" readOnly:"true" rethinkdb:"-"`
 	SiteID      string         `json:"-" rethinkdb:"siteid"`
@@ -63,4 +64,9 @@ type DeviceEvent struct {
 	Type EventType `json:"type,omitempty"`
 	Old  *Device   `json:"old,omitempty"`
 	New  *Device   `json:"new,omitempty"`
+}
+
+type DeviceWithToken struct {
+	Device *Device `json:"device"`
+	Token  string  `json:"token"`
 }

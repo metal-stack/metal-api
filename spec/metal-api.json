@@ -309,7 +309,7 @@
      "200": {
       "description": "OK",
       "schema": {
-       "$ref": "#/definitions/metal.Device"
+       "$ref": "#/definitions/metal.DeviceWithToken"
       }
      },
      "500": {
@@ -321,7 +321,7 @@
      "default": {
       "description": "OK",
       "schema": {
-       "$ref": "#/definitions/metal.Device"
+       "$ref": "#/definitions/metal.DeviceWithToken"
       }
      }
     }
@@ -1055,6 +1055,20 @@
      "items": {
       "$ref": "#/definitions/metal.Nic"
      }
+    }
+   }
+  },
+  "metal.DeviceWithToken": {
+   "required": [
+    "device",
+    "token"
+   ],
+   "properties": {
+    "device": {
+     "$ref": "#/definitions/metal.Device"
+    },
+    "token": {
+     "type": "string"
     }
    }
   },
