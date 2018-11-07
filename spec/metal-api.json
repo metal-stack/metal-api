@@ -1134,28 +1134,15 @@
   "metal.Nic": {
    "required": [
     "mac",
-    "name",
-    "vendor",
-    "features"
+    "name"
    ],
    "properties": {
-    "features": {
-     "description": "the features of this network interface",
-     "type": "array",
-     "items": {
-      "type": "string"
-     }
-    },
     "mac": {
      "description": "the mac address of this network interface",
      "type": "string"
     },
     "name": {
      "description": "the name of this network interface",
-     "type": "string"
-    },
-    "vendor": {
-     "description": "the vendor of this network interface",
      "type": "string"
     }
    }
