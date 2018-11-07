@@ -198,6 +198,7 @@ func (dr deviceResource) phoneHome(request *restful.Request, response *restful.R
 		sendError(dr, response, "phoneHome", http.StatusInternalServerError, err)
 		return
 	}
+	response.WriteEntity(nil)
 }
 
 func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
