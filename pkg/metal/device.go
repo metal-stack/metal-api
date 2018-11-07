@@ -29,10 +29,8 @@ type DeviceHardware struct {
 }
 
 type Nic struct {
-	MacAddress string   `json:"mac"  description:"the mac address of this network interface" rethinkdb:"macAddress"`
-	Name       string   `json:"name"  description:"the name of this network interface" rethinkdb:"name"`
-	Vendor     string   `json:"vendor"  description:"the vendor of this network interface" rethinkdb:"vendor"`
-	Features   []string `json:"features"  description:"the features of this network interface" rethinkdb:"features"`
+	MacAddress string `json:"mac"  description:"the mac address of this network interface" rethinkdb:"macAddress"`
+	Name       string `json:"name"  description:"the name of this network interface" rethinkdb:"name"`
 }
 
 type BlockDevice struct {
