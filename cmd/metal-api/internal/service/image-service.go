@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/inconshreveable/log15"

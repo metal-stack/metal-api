@@ -3,7 +3,7 @@ package rethinkstore
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 

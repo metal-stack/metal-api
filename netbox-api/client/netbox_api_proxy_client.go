@@ -11,7 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/device"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/devices"
 )
 
 // Default netbox API proxy HTTP client.
@@ -57,7 +57,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *NetboxAPIP
 	cli := new(NetboxAPIProxy)
 	cli.Transport = transport
 
-	cli.Device = device.New(transport, formats)
+	cli.Devices = devices.New(transport, formats)
 
 	return cli
 }
@@ -103,7 +103,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // NetboxAPIProxy is a client for netbox API proxy
 type NetboxAPIProxy struct {
-	Device *device.Client
+	Devices *devices.Client
 
 	Transport runtime.ClientTransport
 }
@@ -112,6 +112,6 @@ type NetboxAPIProxy struct {
 func (c *NetboxAPIProxy) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 
-	c.Device.SetTransport(transport)
+	c.Devices.SetTransport(transport)
 
 }

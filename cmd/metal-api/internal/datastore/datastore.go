@@ -3,7 +3,7 @@ package datastore
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 )
 
 var (
@@ -14,14 +14,14 @@ type Datastore interface {
 	DeviceStore
 	SizeStore
 	ImageStore
-	FacilityStore
+	SiteStore
 	Connect()
 	Close() error
 }
 
 type Allocation chan metal.Device
 type Allocator func(Allocation) error
-type CidrAllocator func(string, string, *metal.Device) (string, error)
+type CidrAllocator func(uuid, tenant, project, name, description, os string) (string, error)
 
 type DeviceStore interface {
 	FindDevice(id string) (*metal.Device, error)
@@ -34,27 +34,25 @@ type DeviceStore interface {
 		description string,
 		hostname string,
 		projectid string,
-		siteid string,
-		sizeid string,
-		imageid string,
-		sshPubKey string,
+		site *metal.Site,
+		size *metal.Size,
+		img *metal.Image,
+		sshPubKeys []string,
 		tenant string,
-		tenantGroup string,
 		cidrAllocator CidrAllocator,
 	) (*metal.Device, error)
 	FreeDevice(id string) (*metal.Device, error)
-	RegisterDevice(id string, siteid string, hardware metal.DeviceHardware) (*metal.Device, error)
+	RegisterDevice(id string, site metal.Site, size metal.Size, hardware metal.DeviceHardware, ipmi metal.IPMI) (*metal.Device, error)
 	Wait(id string, alloc Allocator) error
 }
 
 type SizeStore interface {
 	FindSize(id string) (*metal.Size, error)
-	SearchSize() error
 	ListSizes() ([]metal.Size, error)
 	CreateSize(size *metal.Size) error
 	DeleteSize(id string) (*metal.Size, error)
-	DeleteSizes() error
 	UpdateSize(oldSize *metal.Size, newSize *metal.Size) error
+	FromHardware(hw metal.DeviceHardware) (*metal.Size, error)
 }
 
 type ImageStore interface {
@@ -67,12 +65,10 @@ type ImageStore interface {
 	UpdateImage(oldImage *metal.Image, newImage *metal.Image) error
 }
 
-type FacilityStore interface {
-	FindFacility(id string) (*metal.Facility, error)
-	SearchFacility() error
-	ListFacilities() ([]metal.Facility, error)
-	CreateFacility(facility *metal.Facility) error
-	DeleteFacility(id string) (*metal.Facility, error)
-	DeleteFacilities() error
-	UpdateFacility(oldFacility *metal.Facility, newFacility *metal.Facility) error
+type SiteStore interface {
+	FindSite(id string) (*metal.Site, error)
+	ListSites() ([]metal.Site, error)
+	CreateSite(size *metal.Site) error
+	DeleteSite(id string) (*metal.Site, error)
+	UpdateSite(oldSite *metal.Site, newSite *metal.Site) error
 }

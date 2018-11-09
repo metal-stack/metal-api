@@ -5,6 +5,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful v2.8.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
 	github.com/go-openapi/errors v0.17.0

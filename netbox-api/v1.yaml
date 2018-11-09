@@ -11,18 +11,26 @@ info:
     url: "http://mit.org"
 basePath: "/api/v1"
 tags:
-- name: "device"
+- name: "devices"
   description: "Endpoints for managing devices in the netbox"
 schemes:
 - "http"
+securityDefinitions:
+  Bearer:
+    in: "header"
+    name: "Authorization"
+    type: "apiKey"
+    x-apikeyInfoFunc: "netbox_api_proxy.api.api_key_auth"
+security:
+- Bearer: []
 paths:
-  /register-device/{uuid}:
+  /devices/{uuid}/register:
     post:
       tags:
-      - "device"
+      - "devices"
       summary: "Register a new device"
       description: "Register a new device to the netbox"
-      operationId: "lib.server.register_device"
+      operationId: "netbox_api_proxy.api.device_register"
       consumes:
       - "application/json"
       produces:
@@ -43,6 +51,14 @@ paths:
           description: "Bad request"
           schema:
             $ref: "#/definitions/Problem"
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/Problem"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/Problem"
         404:
           description: "Not found"
           schema:
@@ -51,13 +67,13 @@ paths:
           description: "Internal server error"
           schema:
             $ref: "#/definitions/Problem"
-  /allocate-device/{uuid}:
+  /devices/{uuid}/allocate:
     post:
       tags:
-      - "device"
+      - "devices"
       summary: "Allocate a device"
       description: "Allocated a registered device for a tenant"
-      operationId: "lib.server.allocate_device"
+      operationId: "netbox_api_proxy.api.device_allocate"
       consumes:
       - "application/json"
       produces:
@@ -80,6 +96,14 @@ paths:
           description: "Bad request"
           schema:
             $ref: "#/definitions/Problem"
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/Problem"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/Problem"
         404:
           description: "Not found"
           schema:
@@ -88,13 +112,13 @@ paths:
           description: "Internal server error"
           schema:
             $ref: "#/definitions/Problem"
-  /release-device/{uuid}:
+  /devices/{uuid}/release:
     post:
       tags:
-      - "device"
+      - "devices"
       summary: "Releases a device"
       description: "Releases an allocated device"
-      operationId: "lib.server.release_device"
+      operationId: "netbox_api_proxy.api.device_release"
       consumes:
       - "application/json"
       produces:
@@ -109,6 +133,14 @@ paths:
           description: "Bad request"
           schema:
             $ref: "#/definitions/Problem"
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/Problem"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/Problem"
         404:
           description: "Not found"
           schema:
@@ -119,9 +151,9 @@ paths:
             $ref: "#/definitions/Problem"
 parameters:
   DeviceUUID:
+    in: "path"
     name: "uuid"
     description: "The product serial of the device (unique identifier of this device)"
-    in: "path"
     type: "string"
     required: true
 definitions:
@@ -137,13 +169,16 @@ definitions:
         description: "The size of the device"
         type: "string"
         enum:
-          - "t1.small.x86"
+        - "unknown"
+        - "t1-small-x86"
       site:
         description: "The id of the site"
         type: "string"
+        minLength: 1
       rack:
         description: "The name of the rack"
         type: "string"
+        minLength: 1
       nics:
         description: "The network interfaces of this device"
         type: "array"
@@ -154,22 +189,35 @@ definitions:
     required:
     - "name"
     - "tenant"
-    - "tenant_group"
+    - "project"
     properties:
       name:
-        description: "The desired name for this host in the netbox"
+        description: "The desired name for this device in the netbox"
         type: "string"
+        minLength: 1
       tenant:
         description: "The name of the tenant to assign this device to"
         type: "string"
-      tenant_group:
-        description: "The name of the tenant group to assign this device to"
+        minLength: 1
+      project:
+        description: "The name of the project to assign this device to"
         type: "string"
+        minLength: 1
+      os:
+        description: "The operating system name that will be installed on this device"
+        type: "string"
+        minLength: 1
+      description:
+        description: "Additional description for this device in the netbox"
+        type: "string"
+        minLength: 1
   DeviceAllocationResponse:
     type: "object"
+    required:
+    - "cidr"
     properties:
       cidr:
-        description: "The allocated ip address"
+        description: "The allocated cidr"
         type: "string"
   Nic:
     type: "object"
@@ -180,9 +228,11 @@ definitions:
       name:
         description: "The name of the network interface"
         type: "string"
+        minLength: 1
       mac:
         description: "The mac address of the network interface"
         type: "string"
+        minLength: 1
   Problem:
     type: "object"
     properties:
@@ -194,7 +244,6 @@ definitions:
           it SHOULD provide human-readable documentation for the problem type
           (e.g., using HTML).
         default: "about:blank"
-        example: "https://zalando.github.io/problem/constraint-violation"
       title:
         type: "string"
         description: |

@@ -3,7 +3,7 @@ package rethinkstore
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -19,10 +19,6 @@ func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
 	return &r, nil
-}
-
-func (rs *RethinkStore) SearchSize() error {
-	return fmt.Errorf("not implemented yet")
 }
 
 func (rs *RethinkStore) ListSizes() ([]metal.Size, error) {
@@ -62,11 +58,6 @@ func (rs *RethinkStore) DeleteSize(id string) (*metal.Size, error) {
 	return sz, nil
 }
 
-func (rs *RethinkStore) DeleteSizes() error {
-	// we do not support this here! do we really need such a method?
-	return nil
-}
-
 func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) error {
 	_, err := rs.sizeTable.Get(oldSize.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldSize.Changed)), newSize, r.Error("the size was changed from another, please retry"))
@@ -77,12 +68,10 @@ func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) err
 	return nil
 }
 
-func (rs *RethinkStore) determineSizeFromHardware(hardware metal.DeviceHardware) *metal.Size {
-	// FIXME: For POC always return small if present
-	size, err := rs.FindSize("t1.small.x86")
+func (rs *RethinkStore) FromHardware(hw metal.DeviceHardware) (*metal.Size, error) {
+	sz, err := rs.ListSizes()
 	if err != nil {
-		rs.Error("size could not be determined from the hardware")
-		return nil
+		return nil, err
 	}
-	return size
+	return metal.Sizes(sz).FromHardware(hw)
 }

@@ -8,10 +8,8 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client"
-	nbdevice "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/device"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/netbox"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -25,21 +23,20 @@ const (
 type deviceResource struct {
 	log15.Logger
 	*bus.Publisher
-	netbox *client.NetboxAPIProxy
+	netbox *netbox.APIProxy
 	ds     datastore.Datastore
 }
 
 type allocateRequest struct {
-	Name        string `json:"name" description:"the new name for the allocated device" optional:"true"`
-	Tenant      string `json:"tenant" description:"the name of the owning tenant"`
-	TenantGroup string `json:"tenant_group" description:"the name of the owning tenant group"`
-	Hostname    string `json:"hostname" description:"the hostname for the allocated device"`
-	Description string `json:"description" description:"the description for the allocated device" optional:"true"`
-	ProjectID   string `json:"projectid" description:"the project id to assign this device to"`
-	SiteID      string `json:"siteid" description:"the site id to assign this device to"`
-	SizeID      string `json:"sizeid" description:"the size id to assign this device to"`
-	ImageID     string `json:"imageid" description:"the image id to assign this device to"`
-	SSHPubKey   string `json:"ssh_pub_key" description:"the public ssh key to access the device with"`
+	Name        string   `json:"name" description:"the new name for the allocated device" optional:"true"`
+	Tenant      string   `json:"tenant" description:"the name of the owning tenant"`
+	Hostname    string   `json:"hostname" description:"the hostname for the allocated device"`
+	Description string   `json:"description" description:"the description for the allocated device" optional:"true"`
+	ProjectID   string   `json:"projectid" description:"the project id to assign this device to"`
+	SiteID      string   `json:"siteid" description:"the site id to assign this device to"`
+	SizeID      string   `json:"sizeid" description:"the size id to assign this device to"`
+	ImageID     string   `json:"imageid" description:"the image id to assign this device to"`
+	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the device with"`
 }
 
 type registerRequest struct {
@@ -47,13 +44,14 @@ type registerRequest struct {
 	SiteID   string               `json:"siteid" description:"the site id to register this device with"`
 	RackID   string               `json:"rackid" description:"the rack id where this device is connected to"`
 	Hardware metal.DeviceHardware `json:"hardware" description:"the hardware of this device"`
+	IPMI     metal.IPMI           `json:"ipmi" description:"the ipmi access infos"`
 }
 
 func NewDevice(
 	log log15.Logger,
 	ds datastore.Datastore,
 	pub *bus.Publisher,
-	netbox *client.NetboxAPIProxy) *restful.WebService {
+	netbox *netbox.APIProxy) *restful.WebService {
 	dr := deviceResource{
 		Logger:    log,
 		ds:        ds,
@@ -103,7 +101,8 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(registerRequest{}).
 		Writes(metal.Device{}).
 		Returns(http.StatusOK, "OK", metal.Device{}).
-		Returns(http.StatusCreated, "Created", metal.Device{}))
+		Returns(http.StatusCreated, "Created", metal.Device{}).
+		Returns(http.StatusNotFound, "one of the given key values was not found", nil))
 
 	ws.Route(ws.POST("/allocate").To(dr.allocateDevice).
 		Doc("allocate a device").
@@ -159,11 +158,24 @@ func (dr deviceResource) findDevice(request *restful.Request, response *restful.
 		sendError(dr, response, "findDevice", http.StatusNotFound, err)
 		return
 	}
+	if device.SiteID != "" {
+		site, err := dr.ds.FindSite(device.SiteID)
+		if err != nil {
+			sendError(dr, response, "findDevice", http.StatusInternalServerError, err)
+			return
+		}
+		device.Site = *site
+	}
 	response.WriteEntity(device)
 }
 
 func (dr deviceResource) listDevices(request *restful.Request, response *restful.Response) {
 	res, err := dr.ds.ListDevices()
+	if err != nil {
+		sendError(dr, response, "listDevices", http.StatusInternalServerError, err)
+		return
+	}
+	res, err = dr.fillDeviceList(res...)
 	if err != nil {
 		sendError(dr, response, "listDevices", http.StatusInternalServerError, err)
 		return
@@ -187,6 +199,11 @@ func (dr deviceResource) searchDevice(request *restful.Request, response *restfu
 		sendError(dr, response, "searchDevice", http.StatusInternalServerError, err)
 		return
 	}
+	result, err = dr.fillDeviceList(result...)
+	if err != nil {
+		sendError(dr, response, "searchDevice", http.StatusInternalServerError, err)
+		return
+	}
 
 	response.WriteEntity(result)
 }
@@ -202,14 +219,25 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		sendError(dr, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("No UUID given"))
 		return
 	}
-
-	err = dr.netboxRegister(data)
+	site, err := dr.ds.FindSite(data.SiteID)
 	if err != nil {
 		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
 		return
 	}
 
-	device, err := dr.ds.RegisterDevice(data.UUID, data.SiteID, data.Hardware)
+	size, err := dr.ds.FromHardware(data.Hardware)
+	if err != nil {
+		size = metal.UnknownSize
+		dr.Error("no size found for hardware", "hardware", data.Hardware)
+	}
+
+	err = dr.netbox.Register(site.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
+	if err != nil {
+		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
+		return
+	}
+
+	device, err := dr.ds.RegisterDevice(data.UUID, *site, *size, data.Hardware, data.IPMI)
 
 	if err != nil {
 		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
@@ -226,13 +254,27 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
+	image, err := dr.ds.FindImage(allocate.ImageID)
+	if err != nil {
+		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot find image %q: %v", allocate.ImageID, err))
+		return
+	}
+	size, err := dr.ds.FindSize(allocate.SizeID)
+	if err != nil {
+		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot find size %q: %v", allocate.SizeID, err))
+		return
+	}
+	site, err := dr.ds.FindSite(allocate.SiteID)
+	if err != nil {
+		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, err)
+		return
+	}
 
 	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname,
-		allocate.ProjectID, allocate.SiteID, allocate.SizeID,
-		allocate.ImageID, allocate.SSHPubKey,
+		allocate.ProjectID, site, size,
+		image, allocate.SSHPubKeys,
 		allocate.Tenant,
-		allocate.TenantGroup,
-		dr.netboxAllocate)
+		dr.netbox.Allocate)
 	if err != nil {
 		if err == datastore.ErrNoDeviceAvailable {
 			sendError(dr, response, "allocateDevice", http.StatusNotFound, err)
@@ -251,54 +293,29 @@ func (dr deviceResource) freeDevice(request *restful.Request, response *restful.
 		sendError(dr, response, "freeDevice", http.StatusInternalServerError, err)
 		return
 	}
+	err = dr.netbox.Release(id)
+	if err != nil {
+		sendError(dr, response, "freeDevice", http.StatusInternalServerError, err)
+		return
+	}
+
 	evt := metal.DeviceEvent{Type: metal.DELETE, Old: device}
 	dr.Publish("device", evt)
 	dr.Info("publish delete event", "event", evt)
 	response.WriteEntity(device)
 }
 
-func (dr deviceResource) netboxRegister(data registerRequest) error {
-	parms := nbdevice.NewLibServerRegisterDeviceParams()
-	parms.UUID = data.UUID
-	size := calculateSize(data)
-	var nics []*models.Nic
-	for i := range data.Hardware.Nics {
-		nic := data.Hardware.Nics[i]
-		newnic := new(models.Nic)
-		newnic.Mac = &nic.MacAddress
-		newnic.Name = &nic.Name
-		nics = append(nics, newnic)
-	}
-	parms.Request = &models.DeviceRegistrationRequest{
-		Rack: &data.RackID,
-		Site: &data.SiteID,
-		Size: &size,
-		Nics: nics,
-	}
-
-	_, err := dr.netbox.Device.LibServerRegisterDevice(parms)
+func (dr deviceResource) fillDeviceList(data ...metal.Device) ([]metal.Device, error) {
+	all, err := dr.ds.ListSites()
 	if err != nil {
-		return fmt.Errorf("error calling netbox: %v", err)
+		return nil, fmt.Errorf("cannot query all sites: %v", err)
 	}
-	return nil
-}
+	sitemap := metal.Sites(all).ByID()
 
-func (dr deviceResource) netboxAllocate(tenant, tenantgroup string, d *metal.Device) (string, error) {
-	parms := nbdevice.NewLibServerAllocateDeviceParams()
-	parms.UUID = d.ID
-	parms.Request = &models.DeviceAllocationRequest{
-		Name:        &d.Name,
-		Tenant:      &tenant,
-		TenantGroup: &tenantgroup,
+	res := make([]metal.Device, len(data), len(data))
+	for i, d := range data {
+		res[i] = d
+		res[i].Site = sitemap[d.SiteID]
 	}
-
-	rsp, err := dr.netbox.Device.LibServerAllocateDevice(parms)
-	if err != nil {
-		return "", fmt.Errorf("error calling netbox: %v", err)
-	}
-	return rsp.Payload.Cidr, nil
-}
-
-func calculateSize(rq registerRequest) string {
-	return "t1.small.x86"
+	return res, nil
 }

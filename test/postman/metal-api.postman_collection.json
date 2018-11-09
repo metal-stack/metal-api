@@ -44,7 +44,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"description\": \"My first metal host\",\n  \"siteid\": \"vagrant-lab\",\n  \"hostname\": \"metal-test-1\",\n  \"imageid\": \"1\",\n  \"name\": \"Metal Host 1\",\n  \"projectid\": \"1\",\n  \"sizeid\": \"t1.small.x86\",\n  \"ssh_pub_key\": \"keiner\"\n}"
+					"raw": "{\n  \"description\": \"My first metal host\",\n  \"siteid\": \"vagrant-lab\",\n  \"hostname\": \"metal-test-1\",\n  \"imageid\": \"1\",\n  \"name\": \"Metal Host 1\",\n  \"projectid\": \"test\",\n  \"tenant\": \"dkb\",\n  \"sizeid\": \"t1-small-x86\",\n  \"ssh_pub_keys\": [\"keiner\"]\n}"
 				},
 				"url": {
 					"raw": "{{base}}/device/allocate",
@@ -101,6 +101,42 @@
 						"ae671b8b-a158-52c2-8c22-985ca0503873",
 						"free"
 					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Sites",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": ""
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Images",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": ""
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get SIzes",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": ""
 				}
 			},
 			"response": []

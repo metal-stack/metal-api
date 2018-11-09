@@ -10,18 +10,17 @@ import (
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/health"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/health"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/version"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
-	"github.com/go-openapi/strfmt"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,12 +31,12 @@ const (
 )
 
 var (
-	cfgFile   string
-	ds        datastore.Datastore
-	producer  *bus.Publisher
-	netbox    *client.NetboxAPIProxy
-	logger    log15.Logger
-	debug     = false
+	cfgFile  string
+	ds       datastore.Datastore
+	producer *bus.Publisher
+	nbproxy  *netbox.APIProxy
+	logger   log15.Logger
+	debug    = false
 )
 
 var rootCmd = &cobra.Command{
@@ -83,6 +82,8 @@ func init() {
 	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the address of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("netbox-addr", "", "localhost:8001", "the address of netbox proxy")
+	rootCmd.Flags().StringP("netbox-api-token", "", "", "the api token to access the netbox proxy")
+	rootCmd.Flags().StringP("netbox-api-private-key", "", "", "the private key to access the netbox proxy")
 
 	viper.BindPFlags(rootCmd.Flags())
 }
@@ -164,9 +165,7 @@ func initSignalHandlers() {
 }
 
 func initNetboxProxy() {
-	netboxAddr := viper.GetString("netbox-addr")
-	cfg := client.DefaultTransportConfig().WithHost(netboxAddr)
-	netbox = client.NewHTTPClientWithConfig(strfmt.Default, cfg)
+	nbproxy = netbox.New()
 }
 
 func initEventBus() {
@@ -200,10 +199,10 @@ func initDataStore() {
 }
 
 func run() {
-	restful.DefaultContainer.Add(service.NewFacility(logger, ds))
+	restful.DefaultContainer.Add(service.NewSite(logger, ds))
 	restful.DefaultContainer.Add(service.NewImage(logger, ds))
 	restful.DefaultContainer.Add(service.NewSize(logger, ds))
-	restful.DefaultContainer.Add(service.NewDevice(logger, ds, producer, netbox))
+	restful.DefaultContainer.Add(service.NewDevice(logger, ds, producer, nbproxy))
 	restful.DefaultContainer.Add(health.New(logger, func() error { return nil }))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(logger, debug))
 

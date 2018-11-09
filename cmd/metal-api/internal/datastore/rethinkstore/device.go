@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/pkg/metal"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -19,13 +19,6 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	err = res.One(&d)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
-	}
-	if d.SiteID != "" {
-		f, err := rs.FindFacility(d.SiteID)
-		if err != nil {
-			return nil, fmt.Errorf("illegal siteid %q in device %q", d.SiteID, id)
-		}
-		d.Site = *f
 	}
 	if d.SizeID != "" {
 		s, err := rs.FindSize(d.SizeID)
@@ -112,6 +105,17 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 	return nil
 }
 
+func (rs *RethinkStore) UpsertIpmi(id string, ipmi *metal.IPMI) error {
+	ipmi.ID = id
+	_, err := rs.ipmiTable.Insert(ipmi, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot create ipmi in database: %v", err)
+	}
+	return nil
+}
+
 func (rs *RethinkStore) DeleteDevice(id string) (*metal.Device, error) {
 	d, err := rs.FindDevice(id)
 	if err != nil {
@@ -139,22 +143,17 @@ func (rs *RethinkStore) AllocateDevice(
 	description string,
 	hostname string,
 	projectid string,
-	siteid string,
-	sizeid string,
-	imageid string,
-	sshPubKey string,
+	site *metal.Site,
+	size *metal.Size,
+	img *metal.Image,
+	sshPubKeys []string,
 	tenant string,
-	tenantGroup string,
 	cidrAllocator datastore.CidrAllocator,
 ) (*metal.Device, error) {
-	image, err := rs.FindImage(imageid)
-	if err != nil {
-		return nil, fmt.Errorf("image with id %q not found", imageid)
-	}
 	available, err := rs.waitTable.Filter(map[string]interface{}{
 		"project": "",
-		"siteid":  siteid,
-		"sizeid":  sizeid,
+		"siteid":  site.ID,
+		"sizeid":  size.ID,
 	}).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find free device: %v", err)
@@ -169,8 +168,8 @@ func (rs *RethinkStore) AllocateDevice(
 	}
 
 	old := res[0]
-
-	cidr, err := cidrAllocator(tenant, tenantGroup, &res[0])
+	//uuid, tenant, project, name, description, os
+	cidr, err := cidrAllocator(res[0].ID, tenant, projectid, name, description, img.Name)
 	if err != nil {
 		return nil, fmt.Errorf("cannot allocate at netbox: %v", err)
 	}
@@ -180,9 +179,9 @@ func (rs *RethinkStore) AllocateDevice(
 	res[0].Hostname = hostname
 	res[0].Project = projectid
 	res[0].Description = description
-	res[0].Image = image
-	res[0].ImageID = image.ID
-	res[0].SSHPubKey = sshPubKey
+	res[0].Image = img
+	res[0].ImageID = img.ID
+	res[0].SSHPubKeys = sshPubKeys
 	res[0].Cidr = cidr
 	res[0].Changed = time.Now()
 	err = rs.UpdateDevice(&old, &res[0])
@@ -205,7 +204,7 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 		return nil, fmt.Errorf("device is not allocated")
 	}
 	old := *device
-	device.Name, device.Project, device.Description, device.Cidr, device.Hostname, device.SSHPubKey = "", "", "", "", "", ""
+	device.Name, device.Project, device.Description, device.Cidr, device.Hostname, device.SSHPubKeys = "", "", "", "", "", nil
 	err = rs.UpdateDevice(&old, device)
 	if err != nil {
 		return nil, fmt.Errorf("cannot clear device data: %v", err)
@@ -213,21 +212,20 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	return device, nil
 }
 
-func (rs *RethinkStore) RegisterDevice(id string, siteid string, hardware metal.DeviceHardware) (*metal.Device, error) {
-	fc, err := rs.FindFacility(siteid)
-	if err != nil {
-		return nil, fmt.Errorf("facility with id %q not found", siteid)
-	}
-
-	sz := rs.determineSizeFromHardware(hardware)
+func (rs *RethinkStore) RegisterDevice(
+	id string,
+	site metal.Site,
+	sz metal.Size,
+	hardware metal.DeviceHardware,
+	ipmi metal.IPMI) (*metal.Device, error) {
 
 	device, err := rs.FindDevice(id)
 	if err != nil {
 		device = &metal.Device{
 			ID:       id,
-			Size:     sz,
-			Site:     *fc,
-			SiteID:   fc.ID,
+			Size:     &sz,
+			Site:     site,
+			SiteID:   site.ID,
 			Hardware: hardware,
 		}
 		err = rs.CreateDevice(device)
@@ -238,11 +236,15 @@ func (rs *RethinkStore) RegisterDevice(id string, siteid string, hardware metal.
 	}
 	old := *device
 	device.Hardware = hardware
-	device.Site = *fc
-	device.SiteID = fc.ID
-	device.Size = sz
+	device.Site = site
+	device.SiteID = site.ID
+	device.Size = &sz
 
 	err = rs.UpdateDevice(&old, device)
+	if err != nil {
+		return nil, err
+	}
+	err = rs.UpsertIpmi(id, &ipmi)
 	if err != nil {
 		return nil, err
 	}
@@ -320,16 +322,10 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 		return nil, fmt.Errorf("cannot query all images: %v", err)
 	}
 	imgmap := metal.Images(allimg).ByID()
-	allfacs, err := rs.ListFacilities()
-	if err != nil {
-		return nil, fmt.Errorf("cannot query all facilities: %v", err)
-	}
-	facmap := metal.Facilities(allfacs).ByID()
 
 	res := make([]metal.Device, len(data), len(data))
 	for i, d := range data {
 		res[i] = d
-		res[i].Site = facmap[d.SiteID]
 		size := szmap[d.SizeID]
 		res[i].Size = &size
 		if d.ImageID != "" {

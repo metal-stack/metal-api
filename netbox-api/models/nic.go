@@ -19,10 +19,12 @@ type Nic struct {
 
 	// The mac address of the network interface
 	// Required: true
+	// Min Length: 1
 	Mac *string `json:"mac"`
 
 	// The name of the network interface
 	// Required: true
+	// Min Length: 1
 	Name *string `json:"name"`
 }
 
@@ -50,12 +52,20 @@ func (m *Nic) validateMac(formats strfmt.Registry) error {
 		return err
 	}
 
+	if err := validate.MinLength("mac", "body", string(*m.Mac), 1); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (m *Nic) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("name", "body", string(*m.Name), 1); err != nil {
 		return err
 	}
 

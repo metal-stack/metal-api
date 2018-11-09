@@ -17,32 +17,51 @@ import (
 // swagger:model DeviceAllocationRequest
 type DeviceAllocationRequest struct {
 
-	// The desired name for this host in the netbox
+	// Additional description for this device in the netbox
+	// Min Length: 1
+	Description string `json:"description,omitempty"`
+
+	// The desired name for this device in the netbox
 	// Required: true
+	// Min Length: 1
 	Name *string `json:"name"`
+
+	// The operating system name that will be installed on this device
+	// Min Length: 1
+	Os string `json:"os,omitempty"`
+
+	// The name of the project to assign this device to
+	// Required: true
+	// Min Length: 1
+	Project *string `json:"project"`
 
 	// The name of the tenant to assign this device to
 	// Required: true
+	// Min Length: 1
 	Tenant *string `json:"tenant"`
-
-	// The name of the tenant group to assign this device to
-	// Required: true
-	TenantGroup *string `json:"tenant_group"`
 }
 
 // Validate validates this device allocation request
 func (m *DeviceAllocationRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateDescription(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateName(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateTenant(formats); err != nil {
+	if err := m.validateOs(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateTenantGroup(formats); err != nil {
+	if err := m.validateProject(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTenant(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -52,9 +71,52 @@ func (m *DeviceAllocationRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *DeviceAllocationRequest) validateDescription(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Description) { // not required
+		return nil
+	}
+
+	if err := validate.MinLength("description", "body", string(m.Description), 1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *DeviceAllocationRequest) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("name", "body", string(*m.Name), 1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DeviceAllocationRequest) validateOs(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Os) { // not required
+		return nil
+	}
+
+	if err := validate.MinLength("os", "body", string(m.Os), 1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DeviceAllocationRequest) validateProject(formats strfmt.Registry) error {
+
+	if err := validate.Required("project", "body", m.Project); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("project", "body", string(*m.Project), 1); err != nil {
 		return err
 	}
 
@@ -67,12 +129,7 @@ func (m *DeviceAllocationRequest) validateTenant(formats strfmt.Registry) error 
 		return err
 	}
 
-	return nil
-}
-
-func (m *DeviceAllocationRequest) validateTenantGroup(formats strfmt.Registry) error {
-
-	if err := validate.Required("tenant_group", "body", m.TenantGroup); err != nil {
+	if err := validate.MinLength("tenant", "body", string(*m.Tenant), 1); err != nil {
 		return err
 	}
 

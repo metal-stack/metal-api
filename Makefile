@@ -9,7 +9,7 @@ include $(COMMONDIR)/Makefile.inc
 createmasterdata:
 	@cat masterdata/images.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/image
 	@cat masterdata/sizes.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/size
-	@cat masterdata/facilities.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/facility
+	@cat masterdata/sites.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/site
 
 .PHONY: createtestdevices
 createtestdevices:
@@ -29,6 +29,7 @@ spec:
 
 .PHONY: generate-client
 generate-client:
-	cp ../netbox-api-proxy/lib/api/v1.yaml netbox-api/v1.yaml
+	rm -rf netbox-api/*
+	cp ../netbox-api-proxy/netbox_api_proxy/api_schemas/v1.yaml netbox-api/v1.yaml
 	GO111MODULE=off swagger generate client -f netbox-api/v1.yaml -t netbox-api
 

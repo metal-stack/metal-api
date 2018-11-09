@@ -10,13 +10,14 @@ import (
 
 type RethinkStore struct {
 	log15.Logger
-	session       *r.Session
-	database      *r.Term
-	imageTable    r.Term
-	sizeTable     r.Term
-	facilityTable r.Term
-	deviceTable   r.Term
-	waitTable     r.Term
+	session     *r.Session
+	database    *r.Term
+	imageTable  r.Term
+	sizeTable   r.Term
+	siteTable   r.Term
+	deviceTable r.Term
+	waitTable   r.Term
+	ipmiTable   r.Term
 
 	dbname string
 	dbuser string
@@ -37,15 +38,17 @@ func New(log log15.Logger, dbhost string, dbname string, dbuser string, dbpass s
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) {
 	rs.database.TableCreate("image", opts).Exec(rs.session)
 	rs.database.TableCreate("size", opts).Exec(rs.session)
-	rs.database.TableCreate("facility", opts).Exec(rs.session)
+	rs.database.TableCreate("site", opts).Exec(rs.session)
 	rs.database.TableCreate("device", opts).Exec(rs.session)
 	rs.database.TableCreate("wait", opts).Exec(rs.session)
+	rs.database.TableCreate("ipmi", opts).Exec(rs.session)
 
 	rs.imageTable = rs.database.Table("image")
 	rs.sizeTable = rs.database.Table("size")
-	rs.facilityTable = rs.database.Table("facility")
+	rs.siteTable = rs.database.Table("site")
 	rs.waitTable = rs.database.Table("wait")
 	rs.deviceTable = rs.database.Table("device")
+	rs.ipmiTable = rs.database.Table("ipmi")
 	rs.deviceTable.IndexCreate("project").RunWrite(rs.session)
 }
 

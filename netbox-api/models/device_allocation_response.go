@@ -8,19 +8,40 @@ package models
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // DeviceAllocationResponse device allocation response
 // swagger:model DeviceAllocationResponse
 type DeviceAllocationResponse struct {
 
-	// The allocated ip address
-	Cidr string `json:"cidr,omitempty"`
+	// The allocated cidr
+	// Required: true
+	Cidr *string `json:"cidr"`
 }
 
 // Validate validates this device allocation response
 func (m *DeviceAllocationResponse) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateCidr(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *DeviceAllocationResponse) validateCidr(formats strfmt.Registry) error {
+
+	if err := validate.Required("cidr", "body", m.Cidr); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -26,15 +26,17 @@ type DeviceRegistrationRequest struct {
 
 	// The name of the rack
 	// Required: true
+	// Min Length: 1
 	Rack *string `json:"rack"`
 
 	// The id of the site
 	// Required: true
+	// Min Length: 1
 	Site *string `json:"site"`
 
 	// The size of the device
 	// Required: true
-	// Enum: [t1.small.x86]
+	// Enum: [unknown t1-small-x86]
 	Size *string `json:"size"`
 }
 
@@ -95,12 +97,20 @@ func (m *DeviceRegistrationRequest) validateRack(formats strfmt.Registry) error 
 		return err
 	}
 
+	if err := validate.MinLength("rack", "body", string(*m.Rack), 1); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (m *DeviceRegistrationRequest) validateSite(formats strfmt.Registry) error {
 
 	if err := validate.Required("site", "body", m.Site); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("site", "body", string(*m.Site), 1); err != nil {
 		return err
 	}
 
@@ -111,7 +121,7 @@ var deviceRegistrationRequestTypeSizePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["t1.small.x86"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["unknown","t1-small-x86"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -121,8 +131,11 @@ func init() {
 
 const (
 
-	// DeviceRegistrationRequestSizeT1SmallX86 captures enum value "t1.small.x86"
-	DeviceRegistrationRequestSizeT1SmallX86 string = "t1.small.x86"
+	// DeviceRegistrationRequestSizeUnknown captures enum value "unknown"
+	DeviceRegistrationRequestSizeUnknown string = "unknown"
+
+	// DeviceRegistrationRequestSizeT1SmallX86 captures enum value "t1-small-x86"
+	DeviceRegistrationRequestSizeT1SmallX86 string = "t1-small-x86"
 )
 
 // prop value enum
