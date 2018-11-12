@@ -26,6 +26,7 @@ require (
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.0
+	github.com/stretchr/testify v1.2.2
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect

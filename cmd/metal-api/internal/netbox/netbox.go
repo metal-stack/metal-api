@@ -12,6 +12,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	nbregister = client.NetboxAPIProxy{}.Devices.NetboxAPIProxyAPIDeviceRegister
+	nballocate = client.NetboxAPIProxy{}.Devices.NetboxAPIProxyAPIDeviceAllocate
+	nbrelease  = client.NetboxAPIProxy{}.Devices.NetboxAPIProxyAPIDeviceRelease
+)
+
 type APIProxy struct {
 	*client.NetboxAPIProxy
 	apitoken string
@@ -55,7 +61,7 @@ func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.N
 		Nics: nics,
 	}
 
-	_, err := nb.NetboxAPIProxy.Devices.NetboxAPIProxyAPIDeviceRegister(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
+	_, err := nbregister(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
 		return fmt.Errorf("error calling netbox: %v", err)
 	}
@@ -75,7 +81,7 @@ func (nb *APIProxy) Allocate(uuid, tenant, project, name, description, os string
 		Os:          os,
 	}
 
-	rsp, err := nb.NetboxAPIProxy.Devices.NetboxAPIProxyAPIDeviceAllocate(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
+	rsp, err := nballocate(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
 		return "", fmt.Errorf("error calling netbox: %v", err)
 	}
@@ -86,7 +92,7 @@ func (nb *APIProxy) Release(uuid string) error {
 	parms := nbdevice.NewNetboxAPIProxyAPIDeviceReleaseParams()
 	parms.UUID = uuid
 
-	_, err := nb.NetboxAPIProxy.Devices.NetboxAPIProxyAPIDeviceRelease(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
+	_, err := nbrelease(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
 		return fmt.Errorf("error calling netbox: %v", err)
 	}
