@@ -153,6 +153,48 @@
     }
    }
   },
+  "/device/phoneHome": {
+   "post": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "phone back home from the device",
+    "operationId": "phoneHome",
+    "parameters": [
+     {
+      "name": "body",
+      "in": "body",
+      "required": true,
+      "schema": {
+       "$ref": "#/definitions/service.phoneHomeRequest"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "400": {
+      "description": "Bad Request"
+     },
+     "404": {
+      "description": "Device could not be found by id"
+     },
+     "500": {
+      "description": "Internal Server Error"
+     },
+     "default": {
+      "description": "OK"
+     }
+    }
+   }
+  },
   "/device/register": {
    "post": {
     "consumes": [
@@ -309,7 +351,7 @@
      "200": {
       "description": "OK",
       "schema": {
-       "$ref": "#/definitions/metal.Device"
+       "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
       }
      },
      "500": {
@@ -321,7 +363,7 @@
      "default": {
       "description": "OK",
       "schema": {
-       "$ref": "#/definitions/metal.Device"
+       "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
       }
      }
     }
@@ -1001,6 +1043,12 @@
      "$ref": "#/definitions/metal.Image",
      "readOnly": true
     },
+    "last_ping": {
+     "description": "the timestamp of the last phone home call/ping from the device",
+     "type": "string",
+     "format": "date-time",
+     "readOnly": true
+    },
     "name": {
      "description": "the name of the device",
      "type": "string"
@@ -1055,6 +1103,20 @@
      "items": {
       "$ref": "#/definitions/metal.Nic"
      }
+    }
+   }
+  },
+  "metal.DeviceWithPhoneHomeToken": {
+   "required": [
+    "device",
+    "phone_home_token"
+   ],
+   "properties": {
+    "device": {
+     "$ref": "#/definitions/metal.Device"
+    },
+    "phone_home_token": {
+     "type": "string"
     }
    }
   },
@@ -1231,6 +1293,17 @@
     },
     "tenant_group": {
      "description": "the name of the owning tenant group",
+     "type": "string"
+    }
+   }
+  },
+  "service.phoneHomeRequest": {
+   "required": [
+    "phone_home_token"
+   ],
+   "properties": {
+    "phone_home_token": {
+     "description": "the jwt that was issued for the device",
      "type": "string"
     }
    }

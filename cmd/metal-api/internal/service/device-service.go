@@ -9,6 +9,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/netbox"
+	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils/jwt"
 	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
@@ -45,6 +46,10 @@ type registerRequest struct {
 	RackID   string               `json:"rackid" description:"the rack id where this device is connected to"`
 	Hardware metal.DeviceHardware `json:"hardware" description:"the hardware of this device"`
 	IPMI     metal.IPMI           `json:"ipmi" description:"the ipmi access infos"`
+}
+
+type phoneHomeRequest struct {
+	PhoneHomeToken string `json:"phone_home_token" description:"the jwt that was issued for the device"`
 }
 
 func NewDevice(
@@ -123,8 +128,17 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("wait for an allocation of this device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.Device{}).
+		Returns(http.StatusOK, "OK", metal.DeviceWithPhoneHomeToken{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", nil).
+		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
+
+	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
+		Doc("phone back home from the device").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(phoneHomeRequest{}).
+		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusNotFound, "Device could not be found by id", nil).
+		Returns(http.StatusBadRequest, "Bad Request", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
 	return ws
@@ -140,7 +154,12 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 			return fmt.Errorf("server timeout")
 		case a := <-alloc:
 			dr.Info("return allocated device", "device", a)
-			response.WriteEntity(a)
+			ka := jwt.NewPhoneHomeClaims(&a)
+			token, err := ka.JWT()
+			if err != nil {
+				return fmt.Errorf("could not create jwt: %v", err)
+			}
+			response.WriteEntity(metal.DeviceWithPhoneHomeToken{Device: &a, PhoneHomeToken: token})
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
 		}
@@ -149,6 +168,37 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 	}
+}
+
+func (dr deviceResource) phoneHome(request *restful.Request, response *restful.Response) {
+	var data phoneHomeRequest
+	err := request.ReadEntity(&data)
+	if err != nil {
+		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Cannot read data from request: %v", err))
+		return
+	}
+	c, err := jwt.FromJWT(data.PhoneHomeToken)
+	if err != nil {
+		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token is invalid: %v", err))
+		return
+	}
+	if c.Device == nil || c.Device.ID == "" {
+		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token contains malformed data"))
+		return
+	}
+	oldDevice, err := dr.ds.FindDevice(c.Device.ID)
+	if err != nil {
+		sendError(dr, response, "phoneHome", http.StatusNotFound, err)
+		return
+	}
+	newDevice := *oldDevice
+	newDevice.LastPing = time.Now()
+	err = dr.ds.UpdateDevice(oldDevice, &newDevice)
+	if err != nil {
+		sendError(dr, response, "phoneHome", http.StatusInternalServerError, err)
+		return
+	}
+	response.WriteEntity(nil)
 }
 
 func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
