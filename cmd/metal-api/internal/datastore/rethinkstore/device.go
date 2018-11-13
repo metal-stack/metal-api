@@ -105,6 +105,22 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 	return nil
 }
 
+func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
+	res, err := rs.ipmiTable.Get(id).Run(rs.session)
+	if err != nil {
+		return nil, fmt.Errorf("cannot query ipmi data: %v", err)
+	}
+	if res.IsNil() {
+		return nil, datastore.ErrNotFound
+	}
+	var ipmi metal.IPMI
+	err = res.One(&ipmi)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch ipmi data: %v", err)
+	}
+	return &ipmi, nil
+}
+
 func (rs *RethinkStore) UpsertIpmi(id string, ipmi *metal.IPMI) error {
 	ipmi.ID = id
 	_, err := rs.ipmiTable.Insert(ipmi, r.InsertOpts{

@@ -328,6 +328,53 @@
     }
    }
   },
+  "/device/{id}/ipmi": {
+   "post": {
+    "consumes": [
+     "application/json"
+    ],
+    "produces": [
+     "application/json"
+    ],
+    "tags": [
+     "device"
+    ],
+    "summary": "returns the IPMI connection data for a device",
+    "operationId": "ipmiData",
+    "parameters": [
+     {
+      "type": "string",
+      "description": "identifier of the device",
+      "name": "id",
+      "in": "path",
+      "required": true
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.IPMI"
+      }
+     },
+     "404": {
+      "description": "Not Found"
+     },
+     "500": {
+      "description": "Internal Server Error",
+      "schema": {
+       "$ref": "#/definitions/metal.Device"
+      }
+     },
+     "default": {
+      "description": "OK",
+      "schema": {
+       "$ref": "#/definitions/metal.IPMI"
+      }
+     }
+    }
+   }
+  },
   "/device/{id}/wait": {
    "get": {
     "consumes": [

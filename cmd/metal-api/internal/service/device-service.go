@@ -124,6 +124,14 @@ func (dr deviceResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
 
+	ws.Route(ws.POST("/{id}/ipmi").To(dr.ipmiData).
+		Doc("returns the IPMI connection data for a device").
+		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "OK", metal.IPMI{}).
+		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
+
 	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
 		Doc("wait for an allocation of this device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
@@ -295,6 +303,21 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 	}
 
 	response.WriteEntity(device)
+}
+
+func (dr deviceResource) ipmiData(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	ipmi, err := dr.ds.FindIPMI(id)
+
+	if err != nil {
+		if err == datastore.ErrNotFound {
+			sendError(dr, response, "ipmiData", http.StatusNotFound, err)
+			return
+		}
+		sendError(dr, response, "ipmiData", http.StatusInternalServerError, err)
+		return
+	}
+	response.WriteEntity(ipmi)
 }
 
 func (dr deviceResource) allocateDevice(request *restful.Request, response *restful.Response) {

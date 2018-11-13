@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrNoDeviceAvailable = fmt.Errorf("no device available")
+	ErrNotFound          = fmt.Errorf("no entity found")
 )
 
 type Datastore interface {
@@ -24,6 +25,7 @@ type Allocator func(Allocation) error
 type CidrAllocator func(uuid, tenant, project, name, description, os string) (string, error)
 
 type DeviceStore interface {
+	FindIPMI(id string) (*metal.IPMI, error)
 	FindDevice(id string) (*metal.Device, error)
 	SearchDevice(projectid string, mac string, free *bool) ([]metal.Device, error)
 	ListDevices() ([]metal.Device, error)
