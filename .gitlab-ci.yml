@@ -6,7 +6,7 @@ stages:
 
 test:
     stage: test
-    script: make test
+    script: CGO_ENABLED=1 go test -cover ./...
     except:
        - prod
 
