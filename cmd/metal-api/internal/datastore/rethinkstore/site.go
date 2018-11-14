@@ -8,7 +8,7 @@ import (
 )
 
 func (rs *RethinkStore) FindSite(id string) (*metal.Site, error) {
-	res, err := rs.siteTable.Get(id).Run(rs.session)
+	res, err := rs.siteTable().Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get Site from database: %v", err)
 	}
@@ -22,7 +22,7 @@ func (rs *RethinkStore) FindSite(id string) (*metal.Site, error) {
 }
 
 func (rs *RethinkStore) ListSites() ([]metal.Site, error) {
-	res, err := rs.siteTable.Run(rs.session)
+	res, err := rs.siteTable().Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot search facilities from database: %v", err)
 	}
@@ -36,7 +36,7 @@ func (rs *RethinkStore) ListSites() ([]metal.Site, error) {
 }
 
 func (rs *RethinkStore) CreateSite(f *metal.Site) error {
-	res, err := rs.siteTable.Insert(f).RunWrite(rs.session)
+	res, err := rs.siteTable().Insert(f).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot create Site in database: %v", err)
 	}
@@ -51,7 +51,7 @@ func (rs *RethinkStore) DeleteSite(id string) (*metal.Site, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot find Site with id %q: %v", id, err)
 	}
-	_, err = rs.siteTable.Get(id).Delete().RunWrite(rs.session)
+	_, err = rs.siteTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot delete Site from database: %v", err)
 	}
@@ -59,7 +59,7 @@ func (rs *RethinkStore) DeleteSite(id string) (*metal.Site, error) {
 }
 
 func (rs *RethinkStore) UpdateSite(oldF *metal.Site, newF *metal.Site) error {
-	_, err := rs.siteTable.Get(oldF.ID).Replace(func(row r.Term) r.Term {
+	_, err := rs.siteTable().Get(oldF.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldF.Changed)), newF, r.Error("the Site was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {

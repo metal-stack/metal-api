@@ -10,7 +10,7 @@ import (
 )
 
 func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
-	res, err := rs.deviceTable.Get(id).Run(rs.session)
+	res, err := rs.deviceTable().Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get device from database: %v", err)
 	}
@@ -38,7 +38,7 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 }
 
 func (rs *RethinkStore) SearchDevice(projectid string, mac string, free *bool) ([]metal.Device, error) {
-	q := rs.deviceTable
+	q := *rs.deviceTable()
 	if projectid != "" {
 		q = q.Filter(map[string]interface{}{
 			"project": projectid,
@@ -71,7 +71,7 @@ func (rs *RethinkStore) SearchDevice(projectid string, mac string, free *bool) (
 }
 
 func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
-	res, err := rs.deviceTable.Run(rs.session)
+	res, err := rs.deviceTable().Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot list devices from database: %v", err)
 	}
@@ -93,7 +93,7 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 	}
 	d.SizeID = d.Size.ID
 	d.SiteID = d.Site.ID
-	res, err := rs.deviceTable.Insert(d, r.InsertOpts{
+	res, err := rs.deviceTable().Insert(d, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
@@ -106,7 +106,7 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 }
 
 func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
-	res, err := rs.ipmiTable.Get(id).Run(rs.session)
+	res, err := rs.ipmiTable().Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot query ipmi data: %v", err)
 	}
@@ -123,7 +123,7 @@ func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
 
 func (rs *RethinkStore) UpsertIpmi(id string, ipmi *metal.IPMI) error {
 	ipmi.ID = id
-	_, err := rs.ipmiTable.Insert(ipmi, r.InsertOpts{
+	_, err := rs.ipmiTable().Insert(ipmi, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
@@ -137,7 +137,7 @@ func (rs *RethinkStore) DeleteDevice(id string) (*metal.Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot find device with id %q: %v", id, err)
 	}
-	_, err = rs.deviceTable.Get(id).Delete().RunWrite(rs.session)
+	_, err = rs.deviceTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot delete device from database: %v", err)
 	}
@@ -145,7 +145,7 @@ func (rs *RethinkStore) DeleteDevice(id string) (*metal.Device, error) {
 }
 
 func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) error {
-	_, err := rs.deviceTable.Get(oldD.ID).Replace(func(row r.Term) r.Term {
+	_, err := rs.deviceTable().Get(oldD.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldD.Changed)), newD, r.Error("the device was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
@@ -166,7 +166,7 @@ func (rs *RethinkStore) AllocateDevice(
 	tenant string,
 	cidrAllocator datastore.CidrAllocator,
 ) (*metal.Device, error) {
-	available, err := rs.waitTable.Filter(map[string]interface{}{
+	available, err := rs.waitTable().Filter(map[string]interface{}{
 		"project": "",
 		"siteid":  site.ID,
 		"sizeid":  size.ID,
@@ -204,7 +204,7 @@ func (rs *RethinkStore) AllocateDevice(
 	if err != nil {
 		return nil, fmt.Errorf("error when allocating device %q, %v", res[0].ID, err)
 	}
-	_, err = rs.waitTable.Get(res[0].ID).Update(res[0]).RunWrite(rs.session)
+	_, err = rs.waitTable().Get(res[0].ID).Update(res[0]).RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot allocate device in DB: %v", err)
 	}
@@ -284,18 +284,18 @@ func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
 	}
 
 	// does not prohibit concurrent wait calls for the same UUID
-	_, err = rs.waitTable.Insert(dev, r.InsertOpts{
+	_, err = rs.waitTable().Insert(dev, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot insert device into wait table: %v", err)
 	}
 	defer func() {
-		rs.waitTable.Get(id).Delete().RunWrite(rs.session)
+		rs.waitTable().Get(id).Delete().RunWrite(rs.session)
 	}()
 
 	go func() {
-		ch, err := rs.waitTable.Get(id).Changes().Run(rs.session)
+		ch, err := rs.waitTable().Get(id).Changes().Run(rs.session)
 		if err != nil {
 			rs.Error("cannot wait for allocation", "error", err)
 			// simply return so this device will not be allocated

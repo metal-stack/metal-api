@@ -10,14 +10,9 @@ import (
 
 type RethinkStore struct {
 	log15.Logger
-	session     *r.Session
-	database    *r.Term
-	imageTable  r.Term
-	sizeTable   r.Term
-	siteTable   r.Term
-	deviceTable r.Term
-	waitTable   r.Term
-	ipmiTable   r.Term
+	session   r.QueryExecutor
+	dbsession *r.Session
+	database  *r.Term
 
 	dbname string
 	dbuser string
@@ -36,34 +31,67 @@ func New(log log15.Logger, dbhost string, dbname string, dbuser string, dbpass s
 }
 
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) {
-	rs.database.TableCreate("image", opts).Exec(rs.session)
-	rs.database.TableCreate("size", opts).Exec(rs.session)
-	rs.database.TableCreate("site", opts).Exec(rs.session)
-	rs.database.TableCreate("device", opts).Exec(rs.session)
-	rs.database.TableCreate("wait", opts).Exec(rs.session)
-	rs.database.TableCreate("ipmi", opts).Exec(rs.session)
+	rs.db().TableCreate("image", opts).Exec(rs.session)
+	rs.db().TableCreate("size", opts).Exec(rs.session)
+	rs.db().TableCreate("site", opts).Exec(rs.session)
+	rs.db().TableCreate("device", opts).Exec(rs.session)
+	rs.db().TableCreate("wait", opts).Exec(rs.session)
+	rs.db().TableCreate("ipmi", opts).Exec(rs.session)
 
-	rs.imageTable = rs.database.Table("image")
-	rs.sizeTable = rs.database.Table("size")
-	rs.siteTable = rs.database.Table("site")
-	rs.waitTable = rs.database.Table("wait")
-	rs.deviceTable = rs.database.Table("device")
-	rs.ipmiTable = rs.database.Table("ipmi")
-	rs.deviceTable.IndexCreate("project").RunWrite(rs.session)
+	rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
+}
+
+func (rs *RethinkStore) sizeTable() *r.Term {
+	res := r.DB(rs.dbname).Table("size")
+	return &res
+}
+func (rs *RethinkStore) imageTable() *r.Term {
+	res := r.DB(rs.dbname).Table("image")
+	return &res
+}
+func (rs *RethinkStore) siteTable() *r.Term {
+	res := r.DB(rs.dbname).Table("site")
+	return &res
+}
+func (rs *RethinkStore) deviceTable() *r.Term {
+	res := r.DB(rs.dbname).Table("device")
+	return &res
+}
+func (rs *RethinkStore) waitTable() *r.Term {
+	res := r.DB(rs.dbname).Table("wait")
+	return &res
+}
+func (rs *RethinkStore) ipmiTable() *r.Term {
+	res := r.DB(rs.dbname).Table("ipmi")
+	return &res
+}
+
+func (rs *RethinkStore) db() *r.Term {
+	res := r.DB(rs.dbname)
+	return &res
+}
+
+func (rs *RethinkStore) Mock() *r.Mock {
+	m := r.NewMock()
+	rs.session = m
+	return m
 }
 
 func (rs *RethinkStore) Close() error {
-	err := rs.session.Close()
-	if err != nil {
-		return err
+	if rs.dbsession != nil {
+		err := rs.dbsession.Close()
+		if err != nil {
+			return err
+		}
 	}
 	log15.Info("Rethinkstore disconnected")
 	return nil
 }
 
 func (rs *RethinkStore) Connect() {
-	rs.database, rs.session = RetryConnect([]string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
+	rs.database, rs.dbsession = RetryConnect([]string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	log15.Info("Rethinkstore connected")
+	rs.session = rs.dbsession
 	rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
 }
 
