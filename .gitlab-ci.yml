@@ -1,14 +1,7 @@
 image: registry.cloud.fits/fits/builder:7-dev
 
 stages:
-    - test
     - push
-
-test:
-    stage: test
-    script: CGO_ENABLED=1 go test -cover ./...
-    except:
-       - prod
 
 push:
     stage: push
