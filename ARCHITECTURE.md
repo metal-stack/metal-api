@@ -26,7 +26,7 @@ The main issues we had on our journey with Netbox turned out to be:
 - Data model basically provides us with everything we need, but some stuff is called differently or is not there
 - Performance (a lot of client calls are required in order to achieve what we want)
 
-In order to tackle the main issue regarding the Swagger Client, we decided to introduce another microservice. The [netbox-api-proxy](https://git.f-i-ts.de/cloud-native/maas/netbox-api-proxy).
+In order to tackle the main issue regarding the Swagger Client, we decided to introduce another microservice. The [netbox-api-proxy](https://git.f-i-ts.de/cloud-native/metal/netbox-api-proxy).
 
 ## On How Netbox is Being Utilized in Metal
 

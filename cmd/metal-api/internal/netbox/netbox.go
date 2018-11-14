@@ -3,10 +3,10 @@ package netbox
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client"
-	nbdevice "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/devices"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client"
+	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/spf13/viper"

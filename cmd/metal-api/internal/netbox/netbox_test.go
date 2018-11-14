@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
-	nbdevice "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/devices"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 
 	"github.com/go-openapi/runtime"
 )

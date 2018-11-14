@@ -8,13 +8,13 @@ import (
 	"strings"
 	"syscall"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/netbox"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/service"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/health"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/health"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/version"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
@@ -207,8 +207,8 @@ func run() {
 	restful.DefaultContainer.Filter(utils.RestfulLogger(logger, debug))
 
 	config := restfulspec.Config{
-		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:                       "/apidocs.json",
+		WebServices: restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:     "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 

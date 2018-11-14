@@ -1,5 +1,5 @@
-[![pipeline status](https://git.f-i-ts.de/cloud-native/maas/metal-api/badges/master/pipeline.svg)](https://git.f-i-ts.de/cloud-native/maas/metal-api/commits/master)
-[![coverage report](https://git.f-i-ts.de/cloud-native/maas/metal-api/badges/master/coverage.svg)](https://git.f-i-ts.de/cloud-native/maas/metal-api/commits/master)
+[![pipeline status](https://git.f-i-ts.de/cloud-native/metal/metal-api/badges/master/pipeline.svg)](https://git.f-i-ts.de/cloud-native/metal/metal-api/commits/master)
+[![coverage report](https://git.f-i-ts.de/cloud-native/metal/metal-api/badges/master/coverage.svg)](https://git.f-i-ts.de/cloud-native/metal/metal-api/commits/master)
 
 # Metal API
 
