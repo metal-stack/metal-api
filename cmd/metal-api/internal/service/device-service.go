@@ -286,7 +286,7 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 	size, err := dr.ds.FromHardware(data.Hardware)
 	if err != nil {
 		size = metal.UnknownSize
-		dr.Error("no size found for hardware", "hardware", data.Hardware)
+		dr.Error("no size found for hardware", "hardware", data.Hardware, "error", err)
 	}
 
 	err = dr.netbox.Register(site.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
