@@ -23,7 +23,7 @@ const (
 
 type deviceResource struct {
 	log15.Logger
-	*bus.Publisher
+	bus.Publisher
 	netbox *netbox.APIProxy
 	ds     datastore.Datastore
 }
@@ -55,7 +55,7 @@ type phoneHomeRequest struct {
 func NewDevice(
 	log log15.Logger,
 	ds datastore.Datastore,
-	pub *bus.Publisher,
+	pub bus.Publisher,
 	netbox *netbox.APIProxy) *restful.WebService {
 	dr := deviceResource{
 		Logger:    log,

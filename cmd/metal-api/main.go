@@ -33,7 +33,7 @@ const (
 var (
 	cfgFile  string
 	ds       datastore.Datastore
-	producer *bus.Publisher
+	producer bus.Publisher
 	nbproxy  *netbox.APIProxy
 	logger   log15.Logger
 	debug    = false
