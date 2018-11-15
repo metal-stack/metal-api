@@ -94,7 +94,7 @@ func (dr deviceResource) webService() *restful.WebService {
 	ws.Route(ws.GET("/find").To(dr.searchDevice).
 		Doc("search devices").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
-		Param(ws.QueryParameter("projectid", "search for devices with the givne projectid").DataType("string")).
+		Param(ws.QueryParameter("projectid", "search for devices with the given projectid").DataType("string")).
 		Param(ws.QueryParameter("allocated", "returns allocated machines if set to true, free machines when set to false, all machines when not provided").DataType("boolean")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Device{}).
