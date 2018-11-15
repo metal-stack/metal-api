@@ -22,8 +22,8 @@ func TestGetSizes(t *testing.T) {
 		map[string]interface{}{"id": 2, "name": "size2", "description": "description 2"},
 	}, nil)
 
-	siteservice := NewSize(testlogger, ds)
-	container := restful.NewContainer().Add(siteservice)
+	sizeservice := NewSize(testlogger, ds)
+	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/size", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -48,8 +48,8 @@ func TestGetSize(t *testing.T) {
 		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
 	}, nil)
 
-	siteservice := NewSize(testlogger, ds)
-	container := restful.NewContainer().Add(siteservice)
+	sizeservice := NewSize(testlogger, ds)
+	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/size/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -68,8 +68,8 @@ func TestGetSizeNotFound(t *testing.T) {
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(nil, nil)
 
-	siteservice := NewSize(testlogger, ds)
-	container := restful.NewContainer().Add(siteservice)
+	sizeservice := NewSize(testlogger, ds)
+	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/size/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -87,8 +87,8 @@ func TestDeleteSize(t *testing.T) {
 		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
 	}, nil)
 
-	siteservice := NewSize(testlogger, ds)
-	container := restful.NewContainer().Add(siteservice)
+	sizeservice := NewSize(testlogger, ds)
+	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("DELETE", "/size/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -112,8 +112,8 @@ func TestCreateSize(t *testing.T) {
 		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
 	}, nil)
 
-	siteservice := NewSize(testlogger, ds)
-	container := restful.NewContainer().Add(siteservice)
+	sizeservice := NewSize(testlogger, ds)
+	container := restful.NewContainer().Add(sizeservice)
 
 	sz := metal.Size{
 		ID:          "1",
@@ -148,8 +148,8 @@ func TestUpdateSize(t *testing.T) {
 		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
 	}, nil)
 
-	siteservice := NewSize(testlogger, ds)
-	container := restful.NewContainer().Add(siteservice)
+	sizeservice := NewSize(testlogger, ds)
+	container := restful.NewContainer().Add(sizeservice)
 
 	sz := metal.Size{
 		ID:          "1",
