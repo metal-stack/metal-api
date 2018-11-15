@@ -37,7 +37,7 @@ func TestRegister(t *testing.T) {
 	proxy := New()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			proxy.register = func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
+			proxy.DoRegister = func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
 				require.Equal(t, td.siteid, *params.Request.Site)
 				require.Equal(t, td.rackid, *params.Request.Rack)
@@ -74,7 +74,7 @@ func TestAllocate(t *testing.T) {
 	proxy := New()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			proxy.allocate = func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error) {
+			proxy.DoAllocate = func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
 				require.Equal(t, td.tenant, *(params.Request.Tenant))
 				require.Equal(t, td.name, *(params.Request.Name))
@@ -104,7 +104,7 @@ func TestRelease(t *testing.T) {
 	proxy := New()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			proxy.release = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
+			proxy.DoRelease = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
 				return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
 			}

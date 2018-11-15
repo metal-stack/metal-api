@@ -14,10 +14,10 @@ import (
 
 type APIProxy struct {
 	*client.NetboxAPIProxy
-	apitoken string
-	register func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error)
-	allocate func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error)
-	release  func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error)
+	apitoken   string
+	DoRegister func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error)
+	DoAllocate func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error)
+	DoRelease  func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error)
 }
 
 func New() *APIProxy {
@@ -26,9 +26,9 @@ func New() *APIProxy {
 	return &APIProxy{
 		NetboxAPIProxy: proxy,
 		apitoken:       apitoken,
-		register:       proxy.Devices.NetboxAPIProxyAPIDeviceRegister,
-		allocate:       proxy.Devices.NetboxAPIProxyAPIDeviceAllocate,
-		release:        proxy.Devices.NetboxAPIProxyAPIDeviceRelease,
+		DoRegister:     proxy.Devices.NetboxAPIProxyAPIDeviceRegister,
+		DoAllocate:     proxy.Devices.NetboxAPIProxyAPIDeviceAllocate,
+		DoRelease:      proxy.Devices.NetboxAPIProxyAPIDeviceRelease,
 	}
 }
 
@@ -62,7 +62,7 @@ func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.N
 		Nics: nics,
 	}
 
-	_, err := nb.register(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
+	_, err := nb.DoRegister(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
 		return fmt.Errorf("error calling netbox: %v", err)
 	}
@@ -82,7 +82,7 @@ func (nb *APIProxy) Allocate(uuid, tenant, project, name, description, os string
 		Os:          os,
 	}
 
-	rsp, err := nb.allocate(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
+	rsp, err := nb.DoAllocate(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
 		return "", fmt.Errorf("error calling netbox: %v", err)
 	}
@@ -93,7 +93,7 @@ func (nb *APIProxy) Release(uuid string) error {
 	parms := nbdevice.NewNetboxAPIProxyAPIDeviceReleaseParams()
 	parms.UUID = uuid
 
-	_, err := nb.release(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
+	_, err := nb.DoRelease(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
 		return fmt.Errorf("error calling netbox: %v", err)
 	}
