@@ -65,3 +65,39 @@ func TestGetDevices(t *testing.T) {
 	require.Equal(t, "2", result[1].ID)
 	require.Equal(t, "d2", result[1].Name)
 }
+
+func TestGetDevice(t *testing.T) {
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return([]interface{}{
+		map[string]interface{}{"id": 1, "name": "d1", "sizeid": 1, "imageid": 1, "siteid": 1},
+		map[string]interface{}{"id": 2, "name": "d2", "sizeid": 2},
+	}, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{
+		map[string]interface{}{"id": 1, "name": "sz1"},
+	}, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return([]interface{}{
+		map[string]interface{}{"id": 1, "name": "i1"},
+	}, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{
+		map[string]interface{}{"id": 1, "name": "s1"},
+	}, nil)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	req := httptest.NewRequest("GET", "/device/1", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var result metal.Device
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	require.Nil(t, err)
+	require.Equal(t, "1", result.ID)
+	require.Equal(t, "d1", result.Name)
+	require.Equal(t, "sz1", result.Size.Name)
+	require.Equal(t, "i1", result.Image.Name)
+	require.Equal(t, "s1", result.Site.Name)
+}
