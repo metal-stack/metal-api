@@ -78,5 +78,16 @@ func (rs *RethinkStore) FromHardware(hw metal.DeviceHardware) (*metal.Size, erro
 	if err != nil {
 		return nil, err
 	}
-	return metal.Sizes(sz).FromHardware(hw)
+	if len(sz) < 1 {
+		return nil, fmt.Errorf("no sizes found in database")
+	}
+	var sizes []metal.Size
+	for _, s := range sz {
+		if len(s.Constraints) < 1 {
+			rs.Error("missing constraints", "size", s)
+			continue
+		}
+		sizes = append(sizes, s)
+	}
+	return metal.Sizes(sizes).FromHardware(hw)
 }
