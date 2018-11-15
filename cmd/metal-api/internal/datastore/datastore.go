@@ -3,7 +3,7 @@ package datastore
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 )
 
 var (

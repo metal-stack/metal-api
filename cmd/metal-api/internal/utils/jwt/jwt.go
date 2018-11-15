@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	"github.com/dgrijalva/jwt-go"
 )
 

@@ -7,13 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	"github.com/stretchr/testify/require"
 
 	"github.com/emicklei/go-restful"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/maas/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"github.com/inconshreveable/log15"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )

@@ -11,7 +11,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/client/devices"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
 )
 
 // Default netbox API proxy HTTP client.

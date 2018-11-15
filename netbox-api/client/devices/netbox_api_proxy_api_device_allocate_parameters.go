@@ -17,7 +17,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	models "git.f-i-ts.de/cloud-native/maas/metal-api/netbox-api/models"
+	models "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 )
 
 // NewNetboxAPIProxyAPIDeviceAllocateParams creates a new NetboxAPIProxyAPIDeviceAllocateParams object
