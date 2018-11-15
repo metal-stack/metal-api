@@ -248,17 +248,17 @@ func (rs *RethinkStore) RegisterDevice(
 		if err != nil {
 			return nil, err
 		}
-		return device, nil
-	}
-	old := *device
-	device.Hardware = hardware
-	device.Site = site
-	device.SiteID = site.ID
-	device.Size = &sz
+	} else {
+		old := *device
+		device.Hardware = hardware
+		device.Site = site
+		device.SiteID = site.ID
+		device.Size = &sz
 
-	err = rs.UpdateDevice(&old, device)
-	if err != nil {
-		return nil, err
+		err = rs.UpdateDevice(&old, device)
+		if err != nil {
+			return nil, err
+		}
 	}
 	err = rs.UpsertIpmi(id, &ipmi)
 	if err != nil {
