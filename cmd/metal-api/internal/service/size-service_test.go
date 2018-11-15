@@ -12,32 +12,8 @@ import (
 
 	"github.com/emicklei/go-restful"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
-	"github.com/inconshreveable/log15"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
-
-var (
-	testlogger = log15.New()
-)
-
-func init() {
-	testlogger.SetHandler(log15.DiscardHandler())
-}
-
-func initMockDB() (datastore.Datastore, *r.Mock) {
-	rs := rethinkstore.New(
-		testlogger,
-		"db-addr",
-		"mockdb",
-		"db-user",
-		"db-password",
-	)
-	mock := rs.Mock()
-
-	return rs, mock
-}
 
 func TestGetSizes(t *testing.T) {
 	ds, mock := initMockDB()
@@ -53,17 +29,17 @@ func TestGetSizes(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, resp.StatusCode, http.StatusOK)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var result []metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Len(t, result, 2)
-	require.Equal(t, "1", result[0].ID)
-	require.Equal(t, "size1", result[0].Name)
-	require.Equal(t, "description 1", result[0].Description)
-	require.Equal(t, "2", result[1].ID)
-	require.Equal(t, "size2", result[1].Name)
-	require.Equal(t, "description 2", result[1].Description)
+	require.Equal(t, result[0].ID, "1")
+	require.Equal(t, result[0].Name, "size1")
+	require.Equal(t, result[0].Description, "description 1")
+	require.Equal(t, result[1].ID, "2")
+	require.Equal(t, result[1].Name, "size2")
+	require.Equal(t, result[1].Description, "description 2")
 }
 
 func TestGetSize(t *testing.T) {
@@ -79,13 +55,13 @@ func TestGetSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, resp.StatusCode, http.StatusOK)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "size1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, result.ID, "1")
+	require.Equal(t, result.Name, "size1")
+	require.Equal(t, result.Description, "description 1")
 }
 
 func TestGetSizeNotFound(t *testing.T) {
@@ -99,7 +75,7 @@ func TestGetSizeNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, resp.StatusCode, http.StatusNotFound)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
 func TestDeleteSize(t *testing.T) {
@@ -118,7 +94,7 @@ func TestDeleteSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, resp.StatusCode, http.StatusOK)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
@@ -156,9 +132,9 @@ func TestCreateSize(t *testing.T) {
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, result.ID, "1")
-	require.Equal(t, result.Name, "size1")
-	require.Equal(t, result.Description, "description 1")
+	require.Equal(t, "1", result.ID)
+	require.Equal(t, "size1", result.Name)
+	require.Equal(t, "description 1", result.Description)
 }
 
 func TestUpdateSize(t *testing.T) {
@@ -192,7 +168,7 @@ func TestUpdateSize(t *testing.T) {
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, result.ID, "1")
-	require.Equal(t, result.Name, "size1")
-	require.Equal(t, result.Description, "description 1")
+	require.Equal(t, "1", result.ID)
+	require.Equal(t, "size1", result.Name)
+	require.Equal(t, "description 1", result.Description)
 }
