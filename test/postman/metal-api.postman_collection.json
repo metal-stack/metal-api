@@ -17,7 +17,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"siteid\": \"vagrant-lab\",\n  \"hardware\": {\n    \"cpu_cores\": 1,\n    \"disks\": [\n      {\n        \"name\": \"sda\",\n        \"size\": 12\n      }\n    ],\n    \"memory\": 1024,\n    \"nics\": [\n      {\n        \"features\": [\n        ],\n        \"mac\": \"aa:aa:aa:aa:aa:aa\",\n        \"name\": \"eth0\",\n        \"vendor\": \"Dell\"\n      }\n    ]\n  },\n  \"uuid\": \"ae671b8b-a158-52c2-8c22-985ca0503873\"\n}"
+					"raw": "{\n  \"siteid\": \"vagrant-lab\",\n  \"rackid\": \"Vagrant Rack 1\",\n  \"hardware\": {\n    \"cpu_cores\": 1,\n    \"disks\": [\n      {\n        \"name\": \"sda\",\n        \"size\": 12\n      }\n    ],\n    \"memory\": 1024,\n    \"nics\": [\n      {\n        \"features\": [\n        ],\n        \"mac\": \"aa:aa:aa:aa:aa:aa\",\n        \"name\": \"eth0\",\n        \"vendor\": \"Dell\"\n      },\n      {\n        \"features\": [\n        ],\n        \"mac\": \"00:00:00:00:00:00\",\n        \"name\": \"lo\",\n        \"vendor\": \"Dell\"\n      }\n    ]\n  },\n  \"uuid\": \"ae671b8b-a158-52c2-8c22-985ca0503873\"\n}"
 				},
 				"url": {
 					"raw": "{{base}}/device/register",
@@ -112,7 +112,13 @@
 				"header": [],
 				"body": {},
 				"url": {
-					"raw": ""
+					"raw": "{{base}}/site",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"site"
+					]
 				}
 			},
 			"response": []
@@ -124,7 +130,13 @@
 				"header": [],
 				"body": {},
 				"url": {
-					"raw": ""
+					"raw": "{{base}}/image",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"image"
+					]
 				}
 			},
 			"response": []
@@ -136,7 +148,13 @@
 				"header": [],
 				"body": {},
 				"url": {
-					"raw": ""
+					"raw": "{{base}}/size",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"size"
+					]
 				}
 			},
 			"response": []

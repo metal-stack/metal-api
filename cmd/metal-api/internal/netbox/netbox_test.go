@@ -12,10 +12,6 @@ import (
 	"github.com/go-openapi/runtime"
 )
 
-func dummyRegister(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
-	return nil, nil
-}
-
 func TestRegister(t *testing.T) {
 	testdata := []struct {
 		name   string
@@ -39,11 +35,9 @@ func TestRegister(t *testing.T) {
 			}},
 	}
 	proxy := New()
-	orig := nbregister
-	defer func() { nbregister = orig }()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			nbregister = func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
+			proxy.register = func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
 				require.Equal(t, td.siteid, *params.Request.Site)
 				require.Equal(t, td.rackid, *params.Request.Rack)
@@ -78,11 +72,9 @@ func TestAllocate(t *testing.T) {
 		},
 	}
 	proxy := New()
-	orig := nballocate
-	defer func() { nballocate = orig }()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			nballocate = func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error) {
+			proxy.allocate = func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
 				require.Equal(t, td.tenant, *(params.Request.Tenant))
 				require.Equal(t, td.name, *(params.Request.Name))
@@ -110,11 +102,9 @@ func TestRelease(t *testing.T) {
 		},
 	}
 	proxy := New()
-	orig := nbrelease
-	defer func() { nbrelease = orig }()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			nbrelease = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
+			proxy.release = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
 				return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
 			}

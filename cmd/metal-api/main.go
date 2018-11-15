@@ -83,7 +83,6 @@ func init() {
 
 	rootCmd.Flags().StringP("netbox-addr", "", "localhost:8001", "the address of netbox proxy")
 	rootCmd.Flags().StringP("netbox-api-token", "", "", "the api token to access the netbox proxy")
-	rootCmd.Flags().StringP("netbox-api-private-key", "", "", "the private key to access the netbox proxy")
 
 	viper.BindPFlags(rootCmd.Flags())
 }
