@@ -1,1479 +1,1479 @@
 {
- "swagger": "2.0",
- "info": {
-  "description": "Resource for managing pure metal",
-  "title": "metal-api",
-  "contact": {
-   "name": "Devops Team",
-   "url": "http://www.f-i-ts.de",
-   "email": "devops@f-i-ts.de"
+  "swagger": "2.0",
+  "info": {
+    "description": "Resource for managing pure metal",
+    "title": "metal-api",
+    "contact": {
+      "name": "Devops Team",
+      "url": "http://www.f-i-ts.de",
+      "email": "devops@f-i-ts.de"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "http://mit.org"
+    },
+    "version": "1.0.0"
   },
-  "license": {
-   "name": "MIT",
-   "url": "http://mit.org"
+  "paths": {
+    "/device": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "get all known devices",
+        "operationId": "listDevices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Device"
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Device"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/allocate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "allocate a device",
+        "operationId": "allocateDevice",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/service.allocateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          },
+          "404": {
+            "description": "No free device for allocation found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          }
+        }
+      }
+    },
+    "/device/find": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "search devices",
+        "operationId": "searchDevice",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "one of the MAC address of the device",
+            "name": "mac",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Device"
+              }
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Device"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/phoneHome": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "phone back home from the device",
+        "operationId": "phoneHome",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/service.phoneHomeRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Device could not be found by id"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "default": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/device/register": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "register a device",
+        "operationId": "registerDevice",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/service.registerRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          },
+          "404": {
+            "description": "one of the given key values was not found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          }
+        }
+      }
+    },
+    "/device/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "get device by id",
+        "operationId": "findDevice",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the device",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          }
+        }
+      }
+    },
+    "/device/{id}/free": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "free a device",
+        "operationId": "freeDevice",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the device",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          }
+        }
+      }
+    },
+    "/device/{id}/ipmi": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "returns the IPMI connection data for a device",
+        "operationId": "ipmiData",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the device",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.IPMI"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/metal.Device"
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.IPMI"
+            }
+          }
+        }
+      }
+    },
+    "/device/{id}/wait": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "wait for an allocation of this device",
+        "operationId": "waitForAllocation",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the device",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "504": {
+            "description": "Timeout"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "health"
+        ],
+        "summary": "perform a healtcheck",
+        "operationId": "func1",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Unhealthy"
+          },
+          "default": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/image": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "image"
+        ],
+        "summary": "get all images",
+        "operationId": "listImages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Image"
+              }
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Image"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "image"
+        ],
+        "summary": "create an image. if the given ID already exists a conflict is returned",
+        "operationId": "createImage",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "image"
+        ],
+        "summary": "updates an image. if the image was changed since this one was read, a conflict is returned",
+        "operationId": "updateImage",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          }
+        }
+      }
+    },
+    "/image/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "image"
+        ],
+        "summary": "get image by id",
+        "operationId": "findImage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the image",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "image"
+        ],
+        "summary": "deletes an image and returns the deleted entity",
+        "operationId": "deleteImage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the image",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          }
+        }
+      }
+    },
+    "/site": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Site"
+        ],
+        "summary": "get all Sites",
+        "operationId": "listSites",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Site"
+              }
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Site"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Site"
+        ],
+        "summary": "create a Site. if the given ID already exists a conflict is returned",
+        "operationId": "createSite",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Site"
+        ],
+        "summary": "updates a Site. if the Site was changed since this one was read, a conflict is returned",
+        "operationId": "updateSite",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          }
+        }
+      }
+    },
+    "/site/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Site"
+        ],
+        "summary": "get Site by id",
+        "operationId": "findSite",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the Site",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Site"
+        ],
+        "summary": "deletes a Site and returns the deleted entity",
+        "operationId": "deleteSite",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the Site",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Site"
+            }
+          }
+        }
+      }
+    },
+    "/size": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "size"
+        ],
+        "summary": "get all sizes",
+        "operationId": "listSizes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Size"
+              }
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Size"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "size"
+        ],
+        "summary": "create a size. if the given ID already exists a conflict is returned",
+        "operationId": "createSize",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.Size"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/metal.Size"
+            }
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "size"
+        ],
+        "summary": "updates a size. if the size was changed since this one was read, a conflict is returned",
+        "operationId": "updateSize",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Size"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Size"
+            }
+          }
+        }
+      }
+    },
+    "/size/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "size"
+        ],
+        "summary": "get size by id",
+        "operationId": "findSize",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the size",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Image"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "size"
+        ],
+        "summary": "deletes an size and returns the deleted entity",
+        "operationId": "deleteSize",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the size",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Size"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Size"
+            }
+          }
+        }
+      }
+    }
   },
-  "version": "1.0.0"
- },
- "paths": {
-  "/device": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "get all known devices",
-    "operationId": "listDevices",
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Device"
-       }
+  "definitions": {
+    "metal.BlockDevice": {
+      "required": [
+        "name",
+        "size"
+      ],
+      "properties": {
+        "name": {
+          "description": "the name of this block device",
+          "type": "string"
+        },
+        "size": {
+          "description": "the size of this block device",
+          "type": "integer"
+        }
       }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Device"
-       }
+    },
+    "metal.Constraint": {
+      "required": [
+        "mincores",
+        "maxcores",
+        "minmemory",
+        "maxmemory"
+      ],
+      "properties": {
+        "maxcores": {
+          "description": "the maximal number of cores",
+          "type": "integer",
+          "format": "int32"
+        },
+        "maxmemory": {
+          "description": "the maximal amount of memory",
+          "type": "integer"
+        },
+        "mincores": {
+          "description": "the minimal number of cores",
+          "type": "integer",
+          "format": "int32"
+        },
+        "minmemory": {
+          "description": "the minimal amount of memory",
+          "type": "integer"
+        }
       }
-     }
+    },
+    "metal.Device": {
+      "description": "A device representing a bare metal machine.",
+      "required": [
+        "id",
+        "site",
+        "size",
+        "hardware",
+        "allocation"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated device",
+          "$ref": "#/definitions/metal.DeviceAllocation"
+        },
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this machine",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "hardware": {
+          "description": "the hardware of this device",
+          "$ref": "#/definitions/metal.DeviceHardware"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true,
+          "readOnly": true
+        },
+        "site": {
+          "description": "the site assigned to this device",
+          "$ref": "#/definitions/metal.Site",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this device",
+          "$ref": "#/definitions/metal.Size",
+          "readOnly": true
+        }
+      }
+    },
+    "metal.DeviceAllocation": {
+      "required": [
+        "name",
+        "tenant",
+        "project",
+        "cidr",
+        "hostname",
+        "ssh_pub_keys"
+      ],
+      "properties": {
+        "cidr": {
+          "description": "the cidr address of the allocated device",
+          "type": "string"
+        },
+        "description": {
+          "description": "a description for this machine",
+          "type": "string"
+        },
+        "hostname": {
+          "description": "the hostname which will be used when creating the device",
+          "type": "string"
+        },
+        "image": {
+          "description": "the image assigned to this device",
+          "$ref": "#/definitions/metal.Image",
+          "readOnly": true
+        },
+        "last_ping": {
+          "description": "the timestamp of the last phone home call/ping from the device",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "name": {
+          "description": "the name of the device",
+          "type": "string"
+        },
+        "project": {
+          "description": "the project that this device is assigned to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the device with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the tenant that this device is assigned to",
+          "type": "string"
+        }
+      }
+    },
+    "metal.DeviceHardware": {
+      "required": [
+        "memory",
+        "cpu_cores",
+        "nics",
+        "disks"
+      ],
+      "properties": {
+        "cpu_cores": {
+          "description": "the number of cpu cores",
+          "type": "integer",
+          "format": "int32"
+        },
+        "disks": {
+          "description": "the list of block devices of this device",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.BlockDevice"
+          }
+        },
+        "memory": {
+          "description": "the total memory of the device",
+          "type": "integer"
+        },
+        "nics": {
+          "description": "the list of network interfaces of this device",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Nic"
+          }
+        }
+      }
+    },
+    "metal.DeviceWithPhoneHomeToken": {
+      "required": [
+        "device",
+        "phone_home_token"
+      ],
+      "properties": {
+        "device": {
+          "$ref": "#/definitions/metal.Device"
+        },
+        "phone_home_token": {
+          "type": "string"
+        }
+      }
+    },
+    "metal.IPMI": {
+      "description": "The IPMI connection data",
+      "required": [
+        "address",
+        "mac",
+        "user",
+        "password",
+        "interface"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "interface": {
+          "type": "string"
+        },
+        "mac": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "metal.Image": {
+      "description": "An image that can be put on a device.",
+      "required": [
+        "id",
+        "name",
+        "url"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this image",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this image",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "url": {
+          "description": "the url to this image",
+          "type": "string"
+        }
+      }
+    },
+    "metal.Nic": {
+      "required": [
+        "mac",
+        "name"
+      ],
+      "properties": {
+        "mac": {
+          "description": "the mac address of this network interface",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of this network interface",
+          "type": "string"
+        }
+      }
+    },
+    "metal.Site": {
+      "description": "A Facility describes the location where a device is placed.",
+      "required": [
+        "id",
+        "name",
+        "description"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this image",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a small description",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "metal.Size": {
+      "description": "An image that can be put on a device.",
+      "required": [
+        "id",
+        "name",
+        "constraints"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "constraints": {
+          "description": "a list of constraints that defines this size",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Constraint"
+          }
+        },
+        "created": {
+          "description": "the creation time of this image",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this image",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "service.allocateRequest": {
+      "required": [
+        "tenant",
+        "hostname",
+        "projectid",
+        "siteid",
+        "sizeid",
+        "imageid",
+        "ssh_pub_keys"
+      ],
+      "properties": {
+        "description": {
+          "description": "the description for the allocated device",
+          "type": "string"
+        },
+        "hostname": {
+          "description": "the hostname for the allocated device",
+          "type": "string"
+        },
+        "imageid": {
+          "description": "the image id to assign this device to",
+          "type": "string"
+        },
+        "name": {
+          "description": "the new name for the allocated device",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id to assign this device to",
+          "type": "string"
+        },
+        "siteid": {
+          "description": "the site id to assign this device to",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id to assign this device to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the device with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the name of the owning tenant",
+          "type": "string"
+        }
+      }
+    },
+    "service.phoneHomeRequest": {
+      "required": [
+        "phone_home_token"
+      ],
+      "properties": {
+        "phone_home_token": {
+          "description": "the jwt that was issued for the device",
+          "type": "string"
+        }
+      }
+    },
+    "service.registerRequest": {
+      "required": [
+        "uuid",
+        "siteid",
+        "rackid",
+        "hardware",
+        "ipmi"
+      ],
+      "properties": {
+        "hardware": {
+          "description": "the hardware of this device",
+          "$ref": "#/definitions/metal.DeviceHardware"
+        },
+        "ipmi": {
+          "description": "the ipmi access infos",
+          "$ref": "#/definitions/metal.IPMI"
+        },
+        "rackid": {
+          "description": "the rack id where this device is connected to",
+          "type": "string"
+        },
+        "siteid": {
+          "description": "the site id to register this device with",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "the product uuid of the device to register",
+          "type": "string"
+        }
+      }
     }
-   }
   },
-  "/device/allocate": {
-   "post": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "allocate a device",
-    "operationId": "allocateDevice",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/service.allocateRequest"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     },
-     "404": {
-      "description": "No free device for allocation found"
-     },
-     "500": {
-      "description": "Internal Server Error"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     }
+  "tags": [
+    {
+      "description": "Managing facility entities",
+      "name": "facility"
+    },
+    {
+      "description": "Managing image entities",
+      "name": "image"
+    },
+    {
+      "description": "Managing size entities",
+      "name": "size"
+    },
+    {
+      "description": "Managing devices",
+      "name": "device"
     }
-   }
-  },
-  "/device/find": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "search devices",
-    "operationId": "searchDevice",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "one of the MAC address of the device",
-      "name": "mac",
-      "in": "query"
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Device"
-       }
-      }
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Device"
-       }
-      }
-     }
-    }
-   }
-  },
-  "/device/phoneHome": {
-   "post": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "phone back home from the device",
-    "operationId": "phoneHome",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/service.phoneHomeRequest"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK"
-     },
-     "400": {
-      "description": "Bad Request"
-     },
-     "404": {
-      "description": "Device could not be found by id"
-     },
-     "500": {
-      "description": "Internal Server Error"
-     },
-     "default": {
-      "description": "OK"
-     }
-    }
-   }
-  },
-  "/device/register": {
-   "post": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "register a device",
-    "operationId": "registerDevice",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/service.registerRequest"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     },
-     "201": {
-      "description": "Created",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     },
-     "404": {
-      "description": "one of the given key values was not found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     }
-    }
-   }
-  },
-  "/device/{id}": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "get device by id",
-    "operationId": "findDevice",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the device",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     }
-    }
-   }
-  },
-  "/device/{id}/free": {
-   "delete": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "free a device",
-    "operationId": "freeDevice",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the device",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     },
-     "500": {
-      "description": "Internal Server Error",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     }
-    }
-   }
-  },
-  "/device/{id}/ipmi": {
-   "post": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "returns the IPMI connection data for a device",
-    "operationId": "ipmiData",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the device",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.IPMI"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "500": {
-      "description": "Internal Server Error",
-      "schema": {
-       "$ref": "#/definitions/metal.Device"
-      }
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.IPMI"
-      }
-     }
-    }
-   }
-  },
-  "/device/{id}/wait": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "device"
-    ],
-    "summary": "wait for an allocation of this device",
-    "operationId": "waitForAllocation",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the device",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
-      }
-     },
-     "500": {
-      "description": "Internal Server Error"
-     },
-     "504": {
-      "description": "Timeout"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
-      }
-     }
-    }
-   }
-  },
-  "/health": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "health"
-    ],
-    "summary": "perform a healtcheck",
-    "operationId": "func1",
-    "responses": {
-     "200": {
-      "description": "OK"
-     },
-     "500": {
-      "description": "Unhealthy"
-     },
-     "default": {
-      "description": "OK"
-     }
-    }
-   }
-  },
-  "/image": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "image"
-    ],
-    "summary": "get all images",
-    "operationId": "listImages",
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Image"
-       }
-      }
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Image"
-       }
-      }
-     }
-    }
-   },
-   "put": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "image"
-    ],
-    "summary": "create an image. if the given ID already exists a conflict is returned",
-    "operationId": "createImage",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     }
-    ],
-    "responses": {
-     "201": {
-      "description": "Created",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     },
-     "409": {
-      "description": "Conflict"
-     }
-    }
-   },
-   "post": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "image"
-    ],
-    "summary": "updates an image. if the image was changed since this one was read, a conflict is returned",
-    "operationId": "updateImage",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "409": {
-      "description": "Conflict"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     }
-    }
-   }
-  },
-  "/image/{id}": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "image"
-    ],
-    "summary": "get image by id",
-    "operationId": "findImage",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the image",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     }
-    }
-   },
-   "delete": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "image"
-    ],
-    "summary": "deletes an image and returns the deleted entity",
-    "operationId": "deleteImage",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the image",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     }
-    }
-   }
-  },
-  "/site": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "Site"
-    ],
-    "summary": "get all Sites",
-    "operationId": "listSites",
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Site"
-       }
-      }
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Site"
-       }
-      }
-     }
-    }
-   },
-   "put": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "Site"
-    ],
-    "summary": "create a Site. if the given ID already exists a conflict is returned",
-    "operationId": "createSite",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     }
-    ],
-    "responses": {
-     "201": {
-      "description": "Created",
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     },
-     "409": {
-      "description": "Conflict"
-     }
-    }
-   },
-   "post": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "Site"
-    ],
-    "summary": "updates a Site. if the Site was changed since this one was read, a conflict is returned",
-    "operationId": "updateSite",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "409": {
-      "description": "Conflict"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     }
-    }
-   }
-  },
-  "/site/{id}": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "Site"
-    ],
-    "summary": "get Site by id",
-    "operationId": "findSite",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the Site",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     }
-    }
-   },
-   "delete": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "Site"
-    ],
-    "summary": "deletes a Site and returns the deleted entity",
-    "operationId": "deleteSite",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the Site",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Site"
-      }
-     }
-    }
-   }
-  },
-  "/size": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "size"
-    ],
-    "summary": "get all sizes",
-    "operationId": "listSizes",
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Size"
-       }
-      }
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "type": "array",
-       "items": {
-        "$ref": "#/definitions/metal.Size"
-       }
-      }
-     }
-    }
-   },
-   "put": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "size"
-    ],
-    "summary": "create a size. if the given ID already exists a conflict is returned",
-    "operationId": "createSize",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/metal.Size"
-      }
-     }
-    ],
-    "responses": {
-     "201": {
-      "description": "Created",
-      "schema": {
-       "$ref": "#/definitions/metal.Size"
-      }
-     },
-     "409": {
-      "description": "Conflict"
-     }
-    }
-   },
-   "post": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "size"
-    ],
-    "summary": "updates a size. if the size was changed since this one was read, a conflict is returned",
-    "operationId": "updateSize",
-    "parameters": [
-     {
-      "name": "body",
-      "in": "body",
-      "required": true,
-      "schema": {
-       "$ref": "#/definitions/metal.Size"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Size"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "409": {
-      "description": "Conflict"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Size"
-      }
-     }
-    }
-   }
-  },
-  "/size/{id}": {
-   "get": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "size"
-    ],
-    "summary": "get size by id",
-    "operationId": "findSize",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the size",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Image"
-      }
-     }
-    }
-   },
-   "delete": {
-    "consumes": [
-     "application/json"
-    ],
-    "produces": [
-     "application/json"
-    ],
-    "tags": [
-     "size"
-    ],
-    "summary": "deletes an size and returns the deleted entity",
-    "operationId": "deleteSize",
-    "parameters": [
-     {
-      "type": "string",
-      "description": "identifier of the size",
-      "name": "id",
-      "in": "path",
-      "required": true
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Size"
-      }
-     },
-     "404": {
-      "description": "Not Found"
-     },
-     "default": {
-      "description": "OK",
-      "schema": {
-       "$ref": "#/definitions/metal.Size"
-      }
-     }
-    }
-   }
-  }
- },
- "definitions": {
-  "metal.BlockDevice": {
-   "required": [
-    "name",
-    "size"
-   ],
-   "properties": {
-    "name": {
-     "description": "the name of this block device",
-     "type": "string"
-    },
-    "size": {
-     "description": "the size of this block device",
-     "type": "integer"
-    }
-   }
-  },
-  "metal.Constraint": {
-   "required": [
-    "mincores",
-    "maxcores",
-    "minmemory",
-    "maxmemory"
-   ],
-   "properties": {
-    "maxcores": {
-     "description": "the maximal number of cores",
-     "type": "integer",
-     "format": "int32"
-    },
-    "maxmemory": {
-     "description": "the maximal amount of memory",
-     "type": "integer"
-    },
-    "mincores": {
-     "description": "the minimal number of cores",
-     "type": "integer",
-     "format": "int32"
-    },
-    "minmemory": {
-     "description": "the minimal amount of memory",
-     "type": "integer"
-    }
-   }
-  },
-  "metal.Device": {
-   "description": "A device representing a bare metal machine.",
-   "required": [
-    "id",
-    "site",
-    "size",
-    "hardware",
-    "allocation"
-   ],
-   "properties": {
-    "allocation": {
-     "description": "the allocation data of an allocated device",
-     "$ref": "#/definitions/metal.DeviceAllocation"
-    },
-    "changed": {
-     "description": "the last changed timestamp",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "created": {
-     "description": "the creation time of this machine",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "hardware": {
-     "description": "the hardware of this device",
-     "$ref": "#/definitions/metal.DeviceHardware"
-    },
-    "id": {
-     "description": "a unique ID",
-     "type": "string",
-     "uniqueItems": true,
-     "readOnly": true
-    },
-    "site": {
-     "description": "the site assigned to this device",
-     "$ref": "#/definitions/metal.Site",
-     "readOnly": true
-    },
-    "size": {
-     "description": "the size of this device",
-     "$ref": "#/definitions/metal.Size",
-     "readOnly": true
-    }
-   }
-  },
-  "metal.DeviceAllocation": {
-   "required": [
-    "name",
-    "tenant",
-    "project",
-    "cidr",
-    "hostname",
-    "ssh_pub_keys"
-   ],
-   "properties": {
-    "cidr": {
-     "description": "the cidr address of the allocated device",
-     "type": "string"
-    },
-    "description": {
-     "description": "a description for this machine",
-     "type": "string"
-    },
-    "hostname": {
-     "description": "the hostname which will be used when creating the device",
-     "type": "string"
-    },
-    "image": {
-     "description": "the image assigned to this device",
-     "$ref": "#/definitions/metal.Image",
-     "readOnly": true
-    },
-    "last_ping": {
-     "description": "the timestamp of the last phone home call/ping from the device",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "name": {
-     "description": "the name of the device",
-     "type": "string"
-    },
-    "project": {
-     "description": "the project that this device is assigned to",
-     "type": "string"
-    },
-    "ssh_pub_keys": {
-     "description": "the public ssh keys to access the device with",
-     "type": "array",
-     "items": {
-      "type": "string"
-     }
-    },
-    "tenant": {
-     "description": "the tenant that this device is assigned to",
-     "type": "string"
-    }
-   }
-  },
-  "metal.DeviceHardware": {
-   "required": [
-    "memory",
-    "cpu_cores",
-    "nics",
-    "disks"
-   ],
-   "properties": {
-    "cpu_cores": {
-     "description": "the number of cpu cores",
-     "type": "integer",
-     "format": "int32"
-    },
-    "disks": {
-     "description": "the list of block devices of this device",
-     "type": "array",
-     "items": {
-      "$ref": "#/definitions/metal.BlockDevice"
-     }
-    },
-    "memory": {
-     "description": "the total memory of the device",
-     "type": "integer"
-    },
-    "nics": {
-     "description": "the list of network interfaces of this device",
-     "type": "array",
-     "items": {
-      "$ref": "#/definitions/metal.Nic"
-     }
-    }
-   }
-  },
-  "metal.DeviceWithPhoneHomeToken": {
-   "required": [
-    "device",
-    "phone_home_token"
-   ],
-   "properties": {
-    "device": {
-     "$ref": "#/definitions/metal.Device"
-    },
-    "phone_home_token": {
-     "type": "string"
-    }
-   }
-  },
-  "metal.IPMI": {
-   "description": "The IPMI connection data",
-   "required": [
-    "address",
-    "mac",
-    "user",
-    "password",
-    "interface"
-   ],
-   "properties": {
-    "address": {
-     "type": "string"
-    },
-    "interface": {
-     "type": "string"
-    },
-    "mac": {
-     "type": "string"
-    },
-    "password": {
-     "type": "string"
-    },
-    "user": {
-     "type": "string"
-    }
-   }
-  },
-  "metal.Image": {
-   "description": "An image that can be put on a device.",
-   "required": [
-    "id",
-    "name",
-    "url"
-   ],
-   "properties": {
-    "changed": {
-     "description": "the last changed timestamp",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "created": {
-     "description": "the creation time of this image",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "description": {
-     "description": "a description for this image",
-     "type": "string"
-    },
-    "id": {
-     "description": "a unique ID",
-     "type": "string",
-     "uniqueItems": true
-    },
-    "name": {
-     "description": "the readable name",
-     "type": "string"
-    },
-    "url": {
-     "description": "the url to this image",
-     "type": "string"
-    }
-   }
-  },
-  "metal.Nic": {
-   "required": [
-    "mac",
-    "name"
-   ],
-   "properties": {
-    "mac": {
-     "description": "the mac address of this network interface",
-     "type": "string"
-    },
-    "name": {
-     "description": "the name of this network interface",
-     "type": "string"
-    }
-   }
-  },
-  "metal.Site": {
-   "description": "A Facility describes the location where a device is placed.",
-   "required": [
-    "id",
-    "name",
-    "description"
-   ],
-   "properties": {
-    "changed": {
-     "description": "the last changed timestamp",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "created": {
-     "description": "the creation time of this image",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "description": {
-     "description": "a small description",
-     "type": "string"
-    },
-    "id": {
-     "description": "a unique ID",
-     "type": "string",
-     "uniqueItems": true
-    },
-    "name": {
-     "description": "the readable name",
-     "type": "string"
-    }
-   }
-  },
-  "metal.Size": {
-   "description": "An image that can be put on a device.",
-   "required": [
-    "id",
-    "name",
-    "constraints"
-   ],
-   "properties": {
-    "changed": {
-     "description": "the last changed timestamp",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "constraints": {
-     "description": "a list of constraints that defines this size",
-     "type": "array",
-     "items": {
-      "$ref": "#/definitions/metal.Constraint"
-     }
-    },
-    "created": {
-     "description": "the creation time of this image",
-     "type": "string",
-     "format": "date-time",
-     "readOnly": true
-    },
-    "description": {
-     "description": "a description for this image",
-     "type": "string"
-    },
-    "id": {
-     "description": "a unique ID",
-     "type": "string",
-     "uniqueItems": true
-    },
-    "name": {
-     "description": "the readable name",
-     "type": "string"
-    }
-   }
-  },
-  "service.allocateRequest": {
-   "required": [
-    "tenant",
-    "hostname",
-    "projectid",
-    "siteid",
-    "sizeid",
-    "imageid",
-    "ssh_pub_keys"
-   ],
-   "properties": {
-    "description": {
-     "description": "the description for the allocated device",
-     "type": "string"
-    },
-    "hostname": {
-     "description": "the hostname for the allocated device",
-     "type": "string"
-    },
-    "imageid": {
-     "description": "the image id to assign this device to",
-     "type": "string"
-    },
-    "name": {
-     "description": "the new name for the allocated device",
-     "type": "string"
-    },
-    "projectid": {
-     "description": "the project id to assign this device to",
-     "type": "string"
-    },
-    "siteid": {
-     "description": "the site id to assign this device to",
-     "type": "string"
-    },
-    "sizeid": {
-     "description": "the size id to assign this device to",
-     "type": "string"
-    },
-    "ssh_pub_keys": {
-     "description": "the public ssh keys to access the device with",
-     "type": "array",
-     "items": {
-      "type": "string"
-     }
-    },
-    "tenant": {
-     "description": "the name of the owning tenant",
-     "type": "string"
-    }
-   }
-  },
-  "service.phoneHomeRequest": {
-   "required": [
-    "phone_home_token"
-   ],
-   "properties": {
-    "phone_home_token": {
-     "description": "the jwt that was issued for the device",
-     "type": "string"
-    }
-   }
-  },
-  "service.registerRequest": {
-   "required": [
-    "uuid",
-    "siteid",
-    "rackid",
-    "hardware",
-    "ipmi"
-   ],
-   "properties": {
-    "hardware": {
-     "description": "the hardware of this device",
-     "$ref": "#/definitions/metal.DeviceHardware"
-    },
-    "ipmi": {
-     "description": "the ipmi access infos",
-     "$ref": "#/definitions/metal.IPMI"
-    },
-    "rackid": {
-     "description": "the rack id where this device is connected to",
-     "type": "string"
-    },
-    "siteid": {
-     "description": "the site id to register this device with",
-     "type": "string"
-    },
-    "uuid": {
-     "description": "the product uuid of the device to register",
-     "type": "string"
-    }
-   }
-  }
- },
- "tags": [
-  {
-   "description": "Managing facility entities",
-   "name": "facility"
-  },
-  {
-   "description": "Managing image entities",
-   "name": "image"
-  },
-  {
-   "description": "Managing size entities",
-   "name": "size"
-  },
-  {
-   "description": "Managing devices",
-   "name": "device"
-  }
- ]
+  ]
 }

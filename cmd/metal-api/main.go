@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,19 +43,27 @@ var rootCmd = &cobra.Command{
 	Use:     "metal-api",
 	Short:   "an api to offer pure metal",
 	Version: version.V.String(),
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) {
 		initLogging()
 		initDataStore()
 		initEventBus()
 		initNetboxProxy()
 		initSignalHandlers()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
 		run()
 	},
 }
 
+var dumpSwagger = &cobra.Command{
+	Use:     "dump-swagger",
+	Short:   "dump the current swagger configuration",
+	Version: version.V.String(),
+	Run: func(cmd *cobra.Command, args []string) {
+		dumpSwaggerJSON()
+	},
+}
+
 func main() {
+	rootCmd.AddCommand(dumpSwagger)
 	if err := rootCmd.Execute(); err != nil {
 		log15.Error("failed executing root command", "error", err)
 	}
@@ -196,7 +205,7 @@ func initDataStore() {
 	ds.Connect()
 }
 
-func run() {
+func initRestServices() *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSite(logger, ds))
 	restful.DefaultContainer.Add(service.NewImage(logger, ds))
 	restful.DefaultContainer.Add(service.NewSize(logger, ds))
@@ -209,6 +218,21 @@ func run() {
 		APIPath:                       "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
+	return &config
+}
+
+func dumpSwaggerJSON() {
+	cfg := initRestServices()
+	actual := restfulspec.BuildSwagger(*cfg)
+	js, err := json.MarshalIndent(actual, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s\n", js)
+}
+
+func run() {
+	initRestServices()
 
 	// enable CORS for the UI to work.
 	cors := restful.CrossOriginResourceSharing{

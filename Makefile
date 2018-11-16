@@ -5,6 +5,10 @@ COMMONDIR := $(or ${COMMONDIR},../../common)
 
 include $(COMMONDIR)/Makefile.inc
 
+.PHONY: all
+all::
+	bin/metal-api dump-swagger >spec/metal-api.json
+
 .PHONY: createmasterdata
 createmasterdata:
 	@cat masterdata/images.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/image
@@ -25,7 +29,7 @@ restart: localbuild
 
 .PHONY: spec
 spec:
-	curl http://localhost:8080/apidocs.json >spec/metal-api.json
+	bin/metal-api dump-swagger >spec/metal-api.json
 
 .PHONY: generate-client
 generate-client:
