@@ -5,6 +5,48 @@ import (
 	"testing"
 )
 
+var (
+	microSize = Size{
+		Name: "micro",
+		Constraints: []Constraint{
+			Constraint{
+				MinCores:  1,
+				MaxCores:  1,
+				MinMemory: 1024,
+				MaxMemory: 1024,
+			},
+		},
+	}
+	tinySize = Size{
+		Name: "tiny",
+		Constraints: []Constraint{
+			Constraint{
+				MinCores:  1,
+				MaxCores:  1,
+				MinMemory: 1024,
+				MaxMemory: 1077838336,
+			},
+		},
+	}
+	microAndTinySize = Size{
+		Name: "microAndTiny",
+		Constraints: []Constraint{
+			Constraint{
+				MinCores:  1,
+				MaxCores:  1,
+				MinMemory: 1024,
+				MaxMemory: 1077838336,
+			},
+			Constraint{
+				MinCores:  1,
+				MaxCores:  1,
+				MinMemory: 1024,
+				MaxMemory: 1024,
+			},
+		},
+	}
+)
+
 func TestSizes_FromHardware(t *testing.T) {
 	type args struct {
 		hardware DeviceHardware
@@ -19,28 +61,8 @@ func TestSizes_FromHardware(t *testing.T) {
 		{
 			name: "real live data",
 			sz: Sizes{
-				Size{
-					Name: "micro",
-					Constraints: []Constraint{
-						Constraint{
-							MinCores:  1,
-							MaxCores:  1,
-							MinMemory: 1024,
-							MaxMemory: 1024,
-						},
-					},
-				},
-				Size{
-					Name: "tiny",
-					Constraints: []Constraint{
-						Constraint{
-							MinCores:  1,
-							MaxCores:  1,
-							MinMemory: 1024,
-							MaxMemory: 1077838336,
-						},
-					},
-				},
+				microSize,
+				tinySize,
 			},
 			args: args{
 				hardware: DeviceHardware{
@@ -48,79 +70,40 @@ func TestSizes_FromHardware(t *testing.T) {
 					Memory:   1069838336,
 				},
 			},
-			want: &Size{
-				Name: "tiny",
-				Constraints: []Constraint{
-					Constraint{
-						MinCores:  1,
-						MaxCores:  1,
-						MinMemory: 1024,
-						MaxMemory: 1077838336,
-					},
-				},
-			},
+			want:    &tinySize,
 			wantErr: false,
 		},
 		{
 			name: "match",
-			sz: Sizes{
-				Size{
-					Constraints: []Constraint{
-						Constraint{
-							MinCores:  1,
-							MaxCores:  1,
-							MinMemory: 100,
-							MaxMemory: 200,
-						},
-					},
-				},
-			},
+			sz:   Sizes{tinySize},
 			args: args{
 				hardware: DeviceHardware{
 					CPUCores: 1,
-					Memory:   150,
+					Memory:   1024,
 				},
 			},
-			want: &Size{
-				Constraints: []Constraint{
-					Constraint{
-						MinCores:  1,
-						MaxCores:  1,
-						MinMemory: 100,
-						MaxMemory: 200,
-					},
+			want:    &tinySize,
+			wantErr: false,
+		},
+		{
+			name: "one constraint matches",
+			sz:   Sizes{microAndTinySize},
+			args: args{
+				hardware: DeviceHardware{
+					CPUCores: 1,
+					Memory:   1024,
 				},
 			},
+			want:    &microAndTinySize,
 			wantErr: false,
 		},
 		{
 			name: "too many matches",
-			sz: Sizes{
-				Size{
-					Constraints: []Constraint{
-						Constraint{
-							MinCores:  1,
-							MaxCores:  1,
-							MinMemory: 100,
-							MaxMemory: 200,
-						},
-					},
-				},
-				Size{
-					Constraints: []Constraint{
-						Constraint{
-							MinCores:  1,
-							MaxCores:  1,
-							MinMemory: 100,
-							MaxMemory: 300,
-						},
-					},
-				},
-			},
+			sz:   Sizes{microSize, tinySize},
 			args: args{
 				hardware: DeviceHardware{
 					CPUCores: 1,
-					Memory:   150,
+					Memory:   1024,
 				},
 			},
 			want:    nil,
@@ -128,22 +111,11 @@ func TestSizes_FromHardware(t *testing.T) {
 		},
 		{
 			name: "no match",
-			sz: Sizes{
-				Size{
-					Constraints: []Constraint{
-						Constraint{
-							MinCores:  1,
-							MaxCores:  1,
-							MinMemory: 100,
-							MaxMemory: 200,
-						},
-					},
-				},
-			},
+			sz:   Sizes{microSize},
 			args: args{
 				hardware: DeviceHardware{
 					CPUCores: 1,
-					Memory:   250,
+					Memory:   2500,
 				},
 			},
 			want:    nil,

@@ -43,22 +43,9 @@ func (sz Sizes) ByID() SizeMap {
 	return res
 }
 
-/*
-	return &metal.Size{
-		ID:   "t1-small-x86",
-		Name: "t1-small-x86",
-	}, nil
-
-	/*return &metal.Size{
-		ID:   "unknown",
-		Name: "unknown",
-	}, nil
-*/
-
+// FromHardware searches a Size for given hardware specs. It will search
+// for a size where at least one constraint matches the given hardware.
 func (sz Sizes) FromHardware(hardware DeviceHardware) (*Size, error) {
-	// this could be done by a DB-query too, but we will not have that many
-	// sizes i think. so a go implementation of this mapping would be ok
-
 	var found []Size
 	for _, s := range sz {
 		for _, c := range s.Constraints {
@@ -69,6 +56,7 @@ func (sz Sizes) FromHardware(hardware DeviceHardware) (*Size, error) {
 				continue
 			}
 			found = append(found, s)
+			break
 		}
 	}
 
