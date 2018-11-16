@@ -1105,6 +1105,7 @@
     },
     "metal.DeviceAllocation": {
       "required": [
+        "created",
         "name",
         "tenant",
         "project",
@@ -1116,6 +1117,11 @@
         "cidr": {
           "description": "the cidr address of the allocated device",
           "type": "string"
+        },
+        "created": {
+          "description": "the time when the device was created",
+          "type": "string",
+          "format": "date-time"
         },
         "description": {
           "description": "a description for this machine",

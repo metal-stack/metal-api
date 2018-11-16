@@ -180,6 +180,7 @@ func (rs *RethinkStore) AllocateDevice(
 
 	rs.fillDeviceList(res[0:1]...)
 	alloc := &metal.DeviceAllocation{
+		Created:     time.Now(),
 		Name:        name,
 		Hostname:    hostname,
 		Tenant:      tenant,

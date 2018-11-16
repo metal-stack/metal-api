@@ -19,6 +19,7 @@ type Device struct {
 
 // A DeviceAllocation stores the data which are only present for allocated devices.
 type DeviceAllocation struct {
+	Created     time.Time `json:"created" description:"the time when the device was created" rethinkdb:"created"`
 	Name        string    `json:"name" description:"the name of the device" rethinkdb:"name"`
 	Description string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
 	LastPing    time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the device" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
