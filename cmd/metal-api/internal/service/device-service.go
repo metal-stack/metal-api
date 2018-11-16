@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -94,8 +93,6 @@ func (dr deviceResource) webService() *restful.WebService {
 	ws.Route(ws.GET("/find").To(dr.searchDevice).
 		Doc("search devices").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
-		Param(ws.QueryParameter("projectid", "search for devices with the given projectid").DataType("string")).
-		Param(ws.QueryParameter("allocated", "returns allocated machines if set to true, free machines when set to false, all machines when not provided").DataType("boolean")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Device{}).
 		Returns(http.StatusOK, "OK", []metal.Device{}))
@@ -247,16 +244,8 @@ func (dr deviceResource) listDevices(request *restful.Request, response *restful
 
 func (dr deviceResource) searchDevice(request *restful.Request, response *restful.Response) {
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
-	prjid := strings.TrimSpace(request.QueryParameter("projectid"))
-	var free *bool
-	salloc := request.QueryParameter("allocated")
-	if salloc != "" {
-		allocated, _ := strconv.ParseBool(salloc)
-		allocated = !allocated
-		free = &allocated
-	}
 
-	result, err := dr.ds.SearchDevice(prjid, mac, free)
+	result, err := dr.ds.SearchDevice(mac)
 	if err != nil {
 		sendError(dr, response, "searchDevice", http.StatusInternalServerError, err)
 		return

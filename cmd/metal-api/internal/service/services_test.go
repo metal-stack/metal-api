@@ -39,6 +39,12 @@ var (
 		ID:          "1",
 		Name:        "sz1",
 		Description: "description 1",
+		Constraints: []metal.Constraint{metal.Constraint{
+			MinCores:  1,
+			MaxCores:  1,
+			MinMemory: 100,
+			MaxMemory: 100,
+		}},
 	}
 	sz2 = metal.Size{
 		ID:          "2",

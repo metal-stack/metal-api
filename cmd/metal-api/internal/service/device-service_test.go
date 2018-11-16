@@ -1,7 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -133,4 +135,190 @@ func TestFreeDevice(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	require.True(t, called, "netbox.DoRelease was not called")
+}
+
+func TestSearchDevice(t *testing.T) {
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{d1}, nil)
+	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{sz1}, nil)
+	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{img1}, nil)
+	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{site1}, nil)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	req := httptest.NewRequest("GET", "/device/find?mac=1", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var results []metal.Device
+	err := json.NewDecoder(resp.Body).Decode(&results)
+	require.Nil(t, err)
+	require.Len(t, results, 1)
+	result := results[0]
+	require.Equal(t, d1.ID, result.ID)
+	require.Equal(t, d1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, sz1.Name, result.Size.Name)
+	require.Equal(t, img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, site1.Name, result.Site.Name)
+}
+
+func TestRegisterDevice(t *testing.T) {
+	testdata := []struct {
+		name             string
+		uuid             string
+		siteid           string
+		numcores         int
+		memory           int
+		dbsites          []metal.Site
+		dbsizes          []metal.Size
+		dbdevices        []metal.Device
+		netboxerror      error
+		ipmidberror      error
+		expectedStatus   int
+		expectedSizeName string
+	}{
+		{
+			name:             "insert new",
+			uuid:             "1",
+			siteid:           "1",
+			dbsites:          []metal.Site{site1},
+			dbsizes:          []metal.Size{sz1},
+			numcores:         1,
+			memory:           100,
+			expectedStatus:   http.StatusOK,
+			expectedSizeName: sz1.Name,
+		},
+		{
+			name:             "insert existing",
+			uuid:             "1",
+			siteid:           "1",
+			dbsites:          []metal.Site{site1},
+			dbsizes:          []metal.Size{sz1},
+			dbdevices:        []metal.Device{d3},
+			numcores:         1,
+			memory:           100,
+			expectedStatus:   http.StatusOK,
+			expectedSizeName: sz1.Name,
+		},
+		{
+			name:           "empty uuid",
+			uuid:           "",
+			siteid:         "1",
+			dbsites:        []metal.Site{site1},
+			dbsizes:        []metal.Size{sz1},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "error when impi update fails",
+			uuid:           "1",
+			siteid:         "1",
+			dbsites:        []metal.Site{site1},
+			dbsizes:        []metal.Size{sz1},
+			ipmidberror:    fmt.Errorf("ipmi insert fails"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "empty site",
+			uuid:           "1",
+			siteid:         "",
+			dbsites:        nil,
+			dbsizes:        []metal.Size{sz1},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:             "unknown size because wrong cpu",
+			uuid:             "1",
+			siteid:           "1",
+			dbsites:          []metal.Site{site1},
+			dbsizes:          []metal.Size{sz1},
+			numcores:         2,
+			memory:           100,
+			expectedStatus:   http.StatusOK,
+			expectedSizeName: metal.UnknownSize.Name,
+		},
+		{
+			name:           "fail on netbox error",
+			uuid:           "1",
+			siteid:         "1",
+			dbsites:        []metal.Site{site1},
+			dbsizes:        []metal.Size{sz1},
+			numcores:       2,
+			memory:         100,
+			netboxerror:    fmt.Errorf("this should happen"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+	for _, test := range testdata {
+		t.Run(test.name, func(t *testing.T) {
+			ds, mock := initMockDB()
+			ipmi := metal.IPMI{
+				Address:    "address",
+				Interface:  "interface",
+				MacAddress: "mac",
+			}
+			rr := registerRequest{
+				UUID:   test.uuid,
+				SiteID: test.siteid,
+				RackID: "1",
+				IPMI:   ipmi,
+				Hardware: metal.DeviceHardware{
+					CPUCores: test.numcores,
+					Memory:   uint64(test.memory),
+				},
+			}
+
+			mock.On(r.DB("mockdb").Table("site").Get(test.siteid)).Return(test.dbsites, nil)
+			mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{sz1}, nil)
+			mock.On(r.DB("mockdb").Table("device").Get("1")).Return(test.dbdevices, nil)
+			if len(test.dbdevices) > 0 {
+				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{sz1}, nil)
+				mock.On(r.DB("mockdb").Table("device").Get(test.dbdevices[0].ID).Replace(r.MockAnything())).Return(emptyResult, nil)
+			} else {
+				mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything(), r.InsertOpts{
+					Conflict: "replace",
+				})).Return(emptyResult, nil)
+			}
+			mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
+				Conflict: "replace",
+			})).Return(emptyResult, test.ipmidberror)
+
+			pub := &emptyPublisher{}
+			nb := netbox.New()
+			called := false
+			nb.DoRegister = func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
+				called = true
+				return &nbdevice.NetboxAPIProxyAPIDeviceRegisterOK{}, test.netboxerror
+			}
+			js, _ := json.Marshal(rr)
+			body := bytes.NewBuffer(js)
+
+			dservice := NewDevice(testlogger, ds, pub, nb)
+			container := restful.NewContainer().Add(dservice)
+			req := httptest.NewRequest("POST", "/device/register", body)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
+
+			resp := w.Result()
+			require.Equal(t, test.expectedStatus, resp.StatusCode, w.Body.String())
+			if resp.StatusCode >= 300 {
+				return
+			}
+			var result metal.Device
+			err := json.NewDecoder(resp.Body).Decode(&result)
+			require.Nil(t, err)
+			require.True(t, called, "netbox register was not called")
+			expectedid := d1.ID
+			if len(test.dbdevices) > 0 {
+				expectedid = test.dbdevices[0].ID
+			}
+			require.Equal(t, expectedid, result.ID)
+			require.Equal(t, test.expectedSizeName, result.Size.Name)
+			require.Equal(t, site1.Name, result.Site.Name)
+		})
+	}
 }

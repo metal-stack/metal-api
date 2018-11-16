@@ -38,24 +38,11 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	return &d, nil
 }
 
-func (rs *RethinkStore) SearchDevice(projectid string, mac string, free *bool) ([]metal.Device, error) {
+func (rs *RethinkStore) SearchDevice(mac string) ([]metal.Device, error) {
 	q := *rs.deviceTable()
-	if projectid != "" {
-		q = q.Filter(map[string]interface{}{
-			"project": projectid,
-		})
-	}
 	if mac != "" {
 		q = q.Filter(func(d r.Term) r.Term {
 			return d.Field("macAddresses").Contains(mac)
-		})
-	}
-	if free != nil {
-		q = q.Filter(func(d r.Term) r.Term {
-			if *free {
-				return d.Field("project").Eq("")
-			}
-			return d.Field("project").Ne("")
 		})
 	}
 	res, err := q.Run(rs.session)
