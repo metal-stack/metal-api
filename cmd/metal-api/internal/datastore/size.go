@@ -1,9 +1,7 @@
-package rethinkstore
+package datastore
 
 import (
 	"fmt"
-
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -16,7 +14,7 @@ func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, datastore.ErrNotFound
+		return nil, ErrNotFound
 	}
 	var r metal.Size
 	err = res.One(&r)

@@ -25,7 +25,7 @@ type deviceResource struct {
 	log15.Logger
 	bus.Publisher
 	netbox *netbox.APIProxy
-	ds     datastore.Datastore
+	ds     *datastore.RethinkStore
 }
 
 type allocateRequest struct {
@@ -54,7 +54,7 @@ type phoneHomeRequest struct {
 
 func NewDevice(
 	log log15.Logger,
-	ds datastore.Datastore,
+	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	netbox *netbox.APIProxy) *restful.WebService {
 	dr := deviceResource{

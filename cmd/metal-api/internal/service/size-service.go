@@ -14,10 +14,10 @@ import (
 
 type sizeResource struct {
 	log15.Logger
-	ds datastore.Datastore
+	ds *datastore.RethinkStore
 }
 
-func NewSize(log log15.Logger, ds datastore.Datastore) *restful.WebService {
+func NewSize(log log15.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	sr := sizeResource{
 		Logger: log,
 		ds:     ds,

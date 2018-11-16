@@ -14,10 +14,10 @@ import (
 
 type imageResource struct {
 	log15.Logger
-	ds datastore.Datastore
+	ds *datastore.RethinkStore
 }
 
-func NewImage(log log15.Logger, ds datastore.Datastore) *restful.WebService {
+func NewImage(log log15.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
 		Logger: log,
 		ds:     ds,

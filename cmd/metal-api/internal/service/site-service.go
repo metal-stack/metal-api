@@ -14,10 +14,10 @@ import (
 
 type SiteResource struct {
 	log15.Logger
-	ds datastore.Datastore
+	ds *datastore.RethinkStore
 }
 
-func NewSite(log log15.Logger, ds datastore.Datastore) *restful.WebService {
+func NewSite(log log15.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	fr := SiteResource{
 		Logger: log,
 		ds:     ds,

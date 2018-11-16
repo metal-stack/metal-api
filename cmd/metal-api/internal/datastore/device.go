@@ -1,10 +1,9 @@
-package rethinkstore
+package datastore
 
 import (
 	"fmt"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
@@ -111,7 +110,7 @@ func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
 		return nil, fmt.Errorf("cannot query ipmi data: %v", err)
 	}
 	if res.IsNil() {
-		return nil, datastore.ErrNotFound
+		return nil, ErrNotFound
 	}
 	var ipmi metal.IPMI
 	err = res.One(&ipmi)
@@ -164,7 +163,7 @@ func (rs *RethinkStore) AllocateDevice(
 	img *metal.Image,
 	sshPubKeys []string,
 	tenant string,
-	cidrAllocator datastore.CidrAllocator,
+	cidrAllocator CidrAllocator,
 ) (*metal.Device, error) {
 	available, err := rs.waitTable().Filter(map[string]interface{}{
 		"project": "",
@@ -180,7 +179,7 @@ func (rs *RethinkStore) AllocateDevice(
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
 	if len(res) < 1 {
-		return nil, datastore.ErrNoDeviceAvailable
+		return nil, ErrNoDeviceAvailable
 	}
 
 	old := res[0]
@@ -268,12 +267,12 @@ func (rs *RethinkStore) RegisterDevice(
 	return device, nil
 }
 
-func (rs *RethinkStore) Wait(id string, alloc datastore.Allocator) error {
+func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	dev, err := rs.FindDevice(id)
 	if err != nil {
 		return fmt.Errorf("cannot wait for unknown device: %v", err)
 	}
-	a := make(datastore.Allocation)
+	a := make(Allocation)
 
 	if dev.Project != "" {
 		go func() {

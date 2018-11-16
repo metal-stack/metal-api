@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore/rethinkstore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
@@ -32,7 +31,7 @@ const (
 
 var (
 	cfgFile  string
-	ds       datastore.Datastore
+	ds       *datastore.RethinkStore
 	producer bus.Publisher
 	nbproxy  *netbox.APIProxy
 	logger   log15.Logger
@@ -184,7 +183,7 @@ func initEventBus() {
 func initDataStore() {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
-		ds = rethinkstore.New(
+		ds = datastore.New(
 			logger,
 			viper.GetString("db-addr"),
 			viper.GetString("db-name"),

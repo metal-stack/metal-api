@@ -1,4 +1,4 @@
-package rethinkstore
+package datastore
 
 import (
 	"fmt"
