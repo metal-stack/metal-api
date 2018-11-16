@@ -182,6 +182,7 @@ func (rs *RethinkStore) AllocateDevice(
 	alloc := &metal.DeviceAllocation{
 		Name:        name,
 		Hostname:    hostname,
+		Tenant:      tenant,
 		Project:     projectid,
 		Description: description,
 		Image:       img,
