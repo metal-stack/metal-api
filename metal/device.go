@@ -22,6 +22,7 @@ type DeviceAllocation struct {
 	Name        string    `json:"name" description:"the name of the device" rethinkdb:"name"`
 	Description string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
 	LastPing    time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the device" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
+	Tenant      string    `json:"tenant" description:"the tenant that this device is assigned to" rethinkdb:"tenant"`
 	Project     string    `json:"project" description:"the project that this device is assigned to" rethinkdb:"project"`
 	Image       *Image    `json:"image" description:"the image assigned to this device" readOnly:"true" optional:"true" rethinkdb:"-"`
 	ImageID     string    `json:"-" rethinkdb:"imageid"`
@@ -38,16 +39,19 @@ type DeviceHardware struct {
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this device" rethinkdb:"block_devices"`
 }
 
+// Nic information.
 type Nic struct {
 	MacAddress string `json:"mac"  description:"the mac address of this network interface" rethinkdb:"macAddress"`
 	Name       string `json:"name"  description:"the name of this network interface" rethinkdb:"name"`
 }
 
+// BlockDevice information.
 type BlockDevice struct {
 	Name string `json:"name" description:"the name of this block device" rethinkdb:"name"`
 	Size uint64 `json:"size" description:"the size of this block device" rethinkdb:"size"`
 }
 
+// IPMI connection data
 type IPMI struct {
 	ID         string `json:"-" rethinkdb:"id"`
 	Address    string `json:"address" rethinkdb:"address" modelDescription:"The IPMI connection data"`
@@ -56,8 +60,6 @@ type IPMI struct {
 	Password   string `json:"password" rethinkdb:"password"`
 	Interface  string `json:"interface" rethinkdb:"interface"`
 }
-
-//`rethinkdb:"author_ids,reference" rethinkdb_ref:"id"`
 
 // HasMAC returns true if this device has the given MAC.
 func (d *Device) HasMAC(m string) bool {
@@ -69,12 +71,15 @@ func (d *Device) HasMAC(m string) bool {
 	return false
 }
 
+// DeviceEvent is propagated when a device is create/updated/deleted.
 type DeviceEvent struct {
 	Type EventType `json:"type,omitempty"`
 	Old  *Device   `json:"old,omitempty"`
 	New  *Device   `json:"new,omitempty"`
 }
 
+// DeviceWithPhoneHomeToken enriches a device with a token. This is only
+// used for the communication with the client.
 type DeviceWithPhoneHomeToken struct {
 	Device         *Device `json:"device"`
 	PhoneHomeToken string  `json:"phone_home_token"`
