@@ -199,8 +199,12 @@ func (dr deviceResource) phoneHome(request *restful.Request, response *restful.R
 		sendError(dr, response, "phoneHome", http.StatusNotFound, err)
 		return
 	}
+	if oldDevice.Allocation == nil {
+		dr.Error("unallocated devices sends phoneHome", "device", *oldDevice)
+		sendError(dr, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this device is not allocated"))
+	}
 	newDevice := *oldDevice
-	newDevice.LastPing = time.Now()
+	newDevice.Allocation.LastPing = time.Now()
 	err = dr.ds.UpdateDevice(oldDevice, &newDevice)
 	if err != nil {
 		sendError(dr, response, "phoneHome", http.StatusInternalServerError, err)

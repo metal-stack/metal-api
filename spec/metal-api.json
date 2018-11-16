@@ -120,7 +120,7 @@
      },
      {
       "type": "string",
-      "description": "search for devices with the givne projectid",
+      "description": "search for devices with the given projectid",
       "name": "projectid",
       "in": "query"
      },
@@ -1071,26 +1071,21 @@
    "description": "A device representing a bare metal machine.",
    "required": [
     "id",
-    "name",
-    "project",
     "site",
-    "image",
     "size",
     "hardware",
-    "cidr",
-    "hostname",
-    "ssh_pub_keys"
+    "allocation"
    ],
    "properties": {
+    "allocation": {
+     "description": "the allocation data of an allocated device",
+     "$ref": "#/definitions/metal.DeviceAllocation"
+    },
     "changed": {
      "description": "the last changed timestamp",
      "type": "string",
      "format": "date-time",
      "readOnly": true
-    },
-    "cidr": {
-     "description": "the cidr address of the allocated device",
-     "type": "string"
     },
     "created": {
      "description": "the creation time of this machine",
@@ -1098,23 +1093,48 @@
      "format": "date-time",
      "readOnly": true
     },
-    "description": {
-     "description": "a description for this machine",
-     "type": "string"
-    },
     "hardware": {
      "description": "the hardware of this device",
      "$ref": "#/definitions/metal.DeviceHardware"
-    },
-    "hostname": {
-     "description": "the hostname which will be used when creating the device",
-     "type": "string"
     },
     "id": {
      "description": "a unique ID",
      "type": "string",
      "uniqueItems": true,
      "readOnly": true
+    },
+    "site": {
+     "description": "the site assigned to this device",
+     "$ref": "#/definitions/metal.Site",
+     "readOnly": true
+    },
+    "size": {
+     "description": "the size of this device",
+     "$ref": "#/definitions/metal.Size",
+     "readOnly": true
+    }
+   }
+  },
+  "metal.DeviceAllocation": {
+   "required": [
+    "name",
+    "project",
+    "cidr",
+    "hostname",
+    "ssh_pub_keys"
+   ],
+   "properties": {
+    "cidr": {
+     "description": "the cidr address of the allocated device",
+     "type": "string"
+    },
+    "description": {
+     "description": "a description for this machine",
+     "type": "string"
+    },
+    "hostname": {
+     "description": "the hostname which will be used when creating the device",
+     "type": "string"
     },
     "image": {
      "description": "the image assigned to this device",
@@ -1134,16 +1154,6 @@
     "project": {
      "description": "the project that this device is assigned to",
      "type": "string"
-    },
-    "site": {
-     "description": "the site assigned to this device",
-     "$ref": "#/definitions/metal.Site",
-     "readOnly": true
-    },
-    "size": {
-     "description": "the size of this device",
-     "$ref": "#/definitions/metal.Size",
-     "readOnly": true
     },
     "ssh_pub_keys": {
      "description": "the public ssh keys to access the device with",

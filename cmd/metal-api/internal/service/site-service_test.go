@@ -17,10 +17,7 @@ import (
 
 func TestGetSites(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-		map[string]interface{}{"id": 2, "name": "site2", "description": "description 2"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{site1, site2}, nil)
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
@@ -29,24 +26,20 @@ func TestGetSites(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Len(t, result, 2)
-	require.Equal(t, "1", result[0].ID)
-	require.Equal(t, "site1", result[0].Name)
-	require.Equal(t, "description 1", result[0].Description)
-	require.Equal(t, "2", result[1].ID)
-	require.Equal(t, "site2", result[1].Name)
-	require.Equal(t, "description 2", result[1].Description)
+	require.Equal(t, site1.ID, result[0].ID)
+	require.Equal(t, site1.Name, result[0].Name)
+	require.Equal(t, site2.ID, result[1].ID)
+	require.Equal(t, site2.Name, result[1].Name)
 }
 
 func TestGetSite(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
@@ -55,13 +48,12 @@ func TestGetSite(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "site1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, site1.ID, result.ID)
+	require.Equal(t, site1.Name, result.Name)
 }
 
 func TestGetSiteNotFound(t *testing.T) {
@@ -75,17 +67,13 @@ func TestGetSiteNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 
 func TestDeleteSite(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1").Delete()).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1").Delete()).Return(emptyResult, nil)
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
@@ -94,33 +82,24 @@ func TestDeleteSite(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "site1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, site1.ID, result.ID)
+	require.Equal(t, site1.Name, result.Name)
 }
 
 func TestCreateSite(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("site").Insert(r.MockAnything())).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-	}, nil)
+
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
+	mock.On(r.DB("mockdb").Table("site").Insert(r.MockAnything())).Return(emptyResult, nil)
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 
-	sz := metal.Site{
-		ID:          "1",
-		Name:        "site1",
-		Description: "description 1",
-	}
-	js, _ := json.Marshal(sz)
+	js, _ := json.Marshal(site1)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/site", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -128,35 +107,27 @@ func TestCreateSite(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "site1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, site1.ID, result.ID)
+	require.Equal(t, site1.Name, result.Name)
+	require.Equal(t, site1.Description, result.Description)
 }
 
 func TestUpdateSite(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-	}, nil)
+
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
 	mock.On(r.DB("mockdb").Table("site").Get("1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
-	})).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "site1", "description": "description 1"},
-	}, nil)
+	})).Return(emptyResult, nil)
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 
-	sz := metal.Site{
-		ID:          "1",
-		Name:        "site1",
-		Description: "description 1",
-	}
-	js, _ := json.Marshal(sz)
+	js, _ := json.Marshal(site1)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/site", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -164,11 +135,11 @@ func TestUpdateSite(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "site1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, site1.ID, result.ID)
+	require.Equal(t, site1.Name, result.Name)
+	require.Equal(t, site1.Description, result.Description)
 }

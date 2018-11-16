@@ -26,12 +26,14 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 		}
 		d.Size = s
 	}
-	if d.ImageID != "" {
-		f, err := rs.FindImage(d.ImageID)
-		if err != nil {
-			return nil, fmt.Errorf("illegal imageid-id %q in device %q", d.ImageID, id)
+	if d.Allocation != nil {
+		if d.Allocation.ImageID != "" {
+			f, err := rs.FindImage(d.Allocation.ImageID)
+			if err != nil {
+				return nil, fmt.Errorf("illegal imageid-id %q in device %q", d.Allocation.ImageID, id)
+			}
+			d.Allocation.Image = f
 		}
-		d.Image = f
 	}
 	return &d, nil
 }
@@ -87,8 +89,8 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 	d.Changed = time.Now()
 	d.Created = d.Changed
 
-	if d.Image != nil {
-		d.ImageID = d.Image.ID
+	if d.Allocation != nil {
+		return fmt.Errorf("a device cannot be created when it is allocated: %q: %+v", d.ID, *d.Allocation)
 	}
 	d.SizeID = d.Size.ID
 	d.SiteID = d.Site.ID
@@ -166,9 +168,9 @@ func (rs *RethinkStore) AllocateDevice(
 	cidrAllocator CidrAllocator,
 ) (*metal.Device, error) {
 	available, err := rs.waitTable().Filter(map[string]interface{}{
-		"project": "",
-		"siteid":  site.ID,
-		"sizeid":  size.ID,
+		"allocation": nil,
+		"siteid":     site.ID,
+		"sizeid":     size.ID,
 	}).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find free device: %v", err)
@@ -190,14 +192,17 @@ func (rs *RethinkStore) AllocateDevice(
 	}
 
 	rs.fillDeviceList(res[0:1]...)
-	res[0].Name = name
-	res[0].Hostname = hostname
-	res[0].Project = projectid
-	res[0].Description = description
-	res[0].Image = img
-	res[0].ImageID = img.ID
-	res[0].SSHPubKeys = sshPubKeys
-	res[0].Cidr = cidr
+	alloc := &metal.DeviceAllocation{
+		Name:        name,
+		Hostname:    hostname,
+		Project:     projectid,
+		Description: description,
+		Image:       img,
+		ImageID:     img.ID,
+		SSHPubKeys:  sshPubKeys,
+		Cidr:        cidr,
+	}
+	res[0].Allocation = alloc
 	res[0].Changed = time.Now()
 	err = rs.UpdateDevice(&old, &res[0])
 	if err != nil {
@@ -215,11 +220,11 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot free device: %v", err)
 	}
-	if device.Project == "" {
+	if device.Allocation == nil {
 		return nil, fmt.Errorf("device is not allocated")
 	}
 	old := *device
-	device.Name, device.Project, device.Description, device.Cidr, device.Hostname, device.SSHPubKeys = "", "", "", "", "", nil
+	device.Allocation = nil
 	err = rs.UpdateDevice(&old, device)
 	if err != nil {
 		return nil, fmt.Errorf("cannot clear device data: %v", err)
@@ -274,7 +279,7 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	}
 	a := make(chan metal.Device)
 
-	if dev.Project != "" {
+	if dev.Allocation != nil {
 		go func() {
 			a <- *dev
 		}()
@@ -332,6 +337,7 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 		return nil, fmt.Errorf("cannot query all sizes: %v", err)
 	}
 	szmap := metal.Sizes(allsz).ByID()
+
 	allimg, err := rs.ListImages()
 	if err != nil {
 		return nil, fmt.Errorf("cannot query all images: %v", err)
@@ -343,9 +349,11 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 		res[i] = d
 		size := szmap[d.SizeID]
 		res[i].Size = &size
-		if d.ImageID != "" {
-			img := imgmap[d.ImageID]
-			res[i].Image = &img
+		if d.Allocation != nil {
+			if d.Allocation.ImageID != "" {
+				img := imgmap[d.Allocation.ImageID]
+				res[i].Allocation.Image = &img
+			}
 		}
 	}
 	return res, nil

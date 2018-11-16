@@ -17,10 +17,7 @@ import (
 
 func TestGetSizes(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-		map[string]interface{}{"id": 2, "name": "size2", "description": "description 2"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{sz1, sz2}, nil)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
@@ -29,24 +26,22 @@ func TestGetSizes(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Len(t, result, 2)
-	require.Equal(t, result[0].ID, "1")
-	require.Equal(t, result[0].Name, "size1")
-	require.Equal(t, result[0].Description, "description 1")
-	require.Equal(t, result[1].ID, "2")
-	require.Equal(t, result[1].Name, "size2")
-	require.Equal(t, result[1].Description, "description 2")
+	require.Equal(t, sz1.ID, result[0].ID)
+	require.Equal(t, sz1.Name, result[0].Name)
+	require.Equal(t, sz1.Description, result[0].Description)
+	require.Equal(t, sz2.ID, result[1].ID)
+	require.Equal(t, sz2.Name, result[1].Name)
+	require.Equal(t, sz2.Description, result[1].Description)
 }
 
 func TestGetSize(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
@@ -55,13 +50,13 @@ func TestGetSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, result.ID, "1")
-	require.Equal(t, result.Name, "size1")
-	require.Equal(t, result.Description, "description 1")
+	require.Equal(t, sz1.ID, result.ID)
+	require.Equal(t, sz1.Name, result.Name)
+	require.Equal(t, sz1.Description, result.Description)
 }
 
 func TestGetSizeNotFound(t *testing.T) {
@@ -75,17 +70,13 @@ func TestGetSizeNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 
 func TestDeleteSize(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1").Delete()).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1").Delete()).Return(emptyResult, nil)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
@@ -94,33 +85,24 @@ func TestDeleteSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "size1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, sz1.ID, result.ID)
+	require.Equal(t, sz1.Name, result.Name)
+	require.Equal(t, sz1.Description, result.Description)
 }
 
 func TestCreateSize(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(emptyResult, nil)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
 
-	sz := metal.Size{
-		ID:          "1",
-		Name:        "size1",
-		Description: "description 1",
-	}
-	js, _ := json.Marshal(sz)
+	js, _ := json.Marshal(sz1)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/size", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -128,35 +110,26 @@ func TestCreateSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "size1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, sz1.ID, result.ID)
+	require.Equal(t, sz1.Name, result.Name)
+	require.Equal(t, sz1.Description, result.Description)
 }
 
 func TestUpdateSize(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
-	})).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "size1", "description": "description 1"},
-	}, nil)
+	})).Return(emptyResult, nil)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
 
-	sz := metal.Size{
-		ID:          "1",
-		Name:        "size1",
-		Description: "description 1",
-	}
-	js, _ := json.Marshal(sz)
+	js, _ := json.Marshal(sz1)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/size", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -164,11 +137,11 @@ func TestUpdateSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "size1", result.Name)
-	require.Equal(t, "description 1", result.Description)
+	require.Equal(t, sz1.ID, result.ID)
+	require.Equal(t, sz1.Name, result.Name)
+	require.Equal(t, sz1.Description, result.Description)
 }

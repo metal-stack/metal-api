@@ -34,20 +34,10 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 
 func TestGetDevices(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "d1", "sizeid": 1, "imageid": 1, "siteid": 1},
-		map[string]interface{}{"id": 2, "name": "d2", "sizeid": 2},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "sz1"},
-		map[string]interface{}{"id": 2, "name": "sz2"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "i1"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "s1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("device")).Return([]interface{}{d1, d2}, nil)
+	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{sz1, sz2}, nil)
+	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{img1}, nil)
+	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{site1}, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -58,35 +48,24 @@ func TestGetDevices(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []metal.Device
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Len(t, result, 2)
-	require.Equal(t, "1", result[0].ID)
-	require.Equal(t, "d1", result[0].Name)
-	require.Equal(t, "sz1", result[0].Size.Name)
-	require.Equal(t, "i1", result[0].Image.Name)
-	require.Equal(t, "s1", result[0].Site.Name)
-	require.Equal(t, "2", result[1].ID)
-	require.Equal(t, "d2", result[1].Name)
+	require.Equal(t, d1.ID, result[0].ID)
+	require.Equal(t, d1.Allocation.Name, result[0].Allocation.Name)
+	require.Equal(t, sz1.Name, result[0].Size.Name)
+	require.Equal(t, site1.Name, result[0].Site.Name)
+	require.Equal(t, d2.ID, result[1].ID)
 }
 
 func TestGetDevice(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "d1", "sizeid": 1, "imageid": 1, "siteid": 1},
-		map[string]interface{}{"id": 2, "name": "d2", "sizeid": 2},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "sz1"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "i1"},
-	}, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "s1"},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return([]interface{}{d1, d2}, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{sz1}, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return([]interface{}{img1}, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{site1}, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -97,15 +76,15 @@ func TestGetDevice(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Device
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, "1", result.ID)
-	require.Equal(t, "d1", result.Name)
-	require.Equal(t, "sz1", result.Size.Name)
-	require.Equal(t, "i1", result.Image.Name)
-	require.Equal(t, "s1", result.Site.Name)
+	require.Equal(t, d1.ID, result.ID)
+	require.Equal(t, d1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, sz1.Name, result.Size.Name)
+	require.Equal(t, img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, site1.Name, result.Site.Name)
 }
 
 func TestGetDeviceNotFound(t *testing.T) {
@@ -121,18 +100,16 @@ func TestGetDeviceNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 func TestFreeDevice(t *testing.T) {
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "d1", "project": 1},
-	}, nil)
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
-	})).Return([]interface{}{
-		map[string]interface{}{"id": 1, "name": "d1", "project": 1},
-	}, nil)
+	})).Return(emptyResult, nil)
 
 	pub := &emptyPublisher{}
 	pub.doPublish = func(topic string, data interface{}) error {
@@ -154,6 +131,6 @@ func TestFreeDevice(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	require.True(t, called, "netbox.DoRelease was not called")
 }

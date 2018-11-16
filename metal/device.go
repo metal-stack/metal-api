@@ -2,26 +2,35 @@ package metal
 
 import "time"
 
+// A Device is a piece of metal which is under the control of our system. It registers itself
+// and can be allocated or freed. If the device is allocated, the substructure Allocation will
+// be filled. Any unallocated (free) device won't have such values.
 type Device struct {
-	ID          string         `json:"id" description:"a unique ID" unique:"true" readOnly:"true" modelDescription:"A device representing a bare metal machine." rethinkdb:"id,omitempty"`
-	Name        string         `json:"name" description:"the name of the device" rethinkdb:"name"`
-	Description string         `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
-	Created     time.Time      `json:"created" description:"the creation time of this machine" optional:"true" readOnly:"true" rethinkdb:"created"`
-	Changed     time.Time      `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
-	LastPing    time.Time      `json:"last_ping" description:"the timestamp of the last phone home call/ping from the device" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
-	Project     string         `json:"project" description:"the project that this device is assigned to" rethinkdb:"project"`
-	Site        Site           `json:"site" description:"the site assigned to this device" readOnly:"true" rethinkdb:"-"`
-	SiteID      string         `json:"-" rethinkdb:"siteid"`
-	Image       *Image         `json:"image" description:"the image assigned to this device" readOnly:"true"  rethinkdb:"-"`
-	ImageID     string         `json:"-" rethinkdb:"imageid"`
-	Size        *Size          `json:"size" description:"the size of this device" readOnly:"true" rethinkdb:"-"`
-	SizeID      string         `json:"-" rethinkdb:"sizeid"`
-	Hardware    DeviceHardware `json:"hardware" description:"the hardware of this device" rethinkdb:"hardware"`
-	Cidr        string         `json:"cidr" description:"the cidr address of the allocated device" rethinkdb:"cidr"`
-	Hostname    string         `json:"hostname" description:"the hostname which will be used when creating the device" rethinkdb:"hostname"`
-	SSHPubKeys  []string       `json:"ssh_pub_keys" description:"the public ssh keys to access the device with" rethinkdb:"sshPubKeys"`
+	ID         string            `json:"id" description:"a unique ID" unique:"true" readOnly:"true" modelDescription:"A device representing a bare metal machine." rethinkdb:"id,omitempty"`
+	Created    time.Time         `json:"created" description:"the creation time of this machine" optional:"true" readOnly:"true" rethinkdb:"created"`
+	Changed    time.Time         `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
+	Site       Site              `json:"site" description:"the site assigned to this device" readOnly:"true" rethinkdb:"-"`
+	SiteID     string            `json:"-" rethinkdb:"siteid"`
+	Size       *Size             `json:"size" description:"the size of this device" readOnly:"true" rethinkdb:"-"`
+	SizeID     string            `json:"-" rethinkdb:"sizeid"`
+	Hardware   DeviceHardware    `json:"hardware" description:"the hardware of this device" rethinkdb:"hardware"`
+	Allocation *DeviceAllocation `json:"allocation" description:"the allocation data of an allocated device" rethinkdb:"allocation"`
 }
 
+// A DeviceAllocation stores the data which are only present for allocated devices.
+type DeviceAllocation struct {
+	Name        string    `json:"name" description:"the name of the device" rethinkdb:"name"`
+	Description string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
+	LastPing    time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the device" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
+	Project     string    `json:"project" description:"the project that this device is assigned to" rethinkdb:"project"`
+	Image       *Image    `json:"image" description:"the image assigned to this device" readOnly:"true" optional:"true" rethinkdb:"-"`
+	ImageID     string    `json:"-" rethinkdb:"imageid"`
+	Cidr        string    `json:"cidr" description:"the cidr address of the allocated device" rethinkdb:"cidr"`
+	Hostname    string    `json:"hostname" description:"the hostname which will be used when creating the device" rethinkdb:"hostname"`
+	SSHPubKeys  []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the device with" rethinkdb:"sshPubKeys"`
+}
+
+// DeviceHardware stores the data which is collected by our system on the hardware when it registeres itself.
 type DeviceHardware struct {
 	Memory   uint64        `json:"memory" description:"the total memory of the device" rethinkdb:"memory"`
 	CPUCores int           `json:"cpu_cores" description:"the number of cpu cores" rethinkdb:"cpu_cores"`
