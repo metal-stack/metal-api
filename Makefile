@@ -1,7 +1,7 @@
 
 BINARY := metal-api
 MAINMODULE := git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api
-COMMONDIR := $(or ${COMMONDIR},../../common)
+COMMONDIR := $(or ${COMMONDIR},../common)
 
 include $(COMMONDIR)/Makefile.inc
 
