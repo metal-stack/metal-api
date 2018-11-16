@@ -117,18 +117,6 @@
       "description": "one of the MAC address of the device",
       "name": "mac",
       "in": "query"
-     },
-     {
-      "type": "string",
-      "description": "search for devices with the given projectid",
-      "name": "projectid",
-      "in": "query"
-     },
-     {
-      "type": "boolean",
-      "description": "returns allocated machines if set to true, free machines when set to false, all machines when not provided",
-      "name": "allocated",
-      "in": "query"
      }
     ],
     "responses": {
@@ -1118,6 +1106,7 @@
   "metal.DeviceAllocation": {
    "required": [
     "name",
+    "tenant",
     "project",
     "cidr",
     "hostname",
@@ -1161,6 +1150,10 @@
      "items": {
       "type": "string"
      }
+    },
+    "tenant": {
+     "description": "the tenant that this device is assigned to",
+     "type": "string"
     }
    }
   },
