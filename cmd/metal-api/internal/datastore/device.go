@@ -272,7 +272,7 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	if err != nil {
 		return fmt.Errorf("cannot wait for unknown device: %v", err)
 	}
-	a := make(Allocation)
+	a := make(chan metal.Device)
 
 	if dev.Project != "" {
 		go func() {
