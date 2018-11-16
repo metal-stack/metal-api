@@ -27,10 +27,6 @@ localbuild: bin/$(BINARY) Dockerfile.dev
 restart: localbuild
 	docker-compose restart metal-api
 
-.PHONY: spec
-spec:
-	bin/metal-api dump-swagger >spec/metal-api.json
-
 .PHONY: generate-client
 generate-client:
 	rm -rf netbox-api/*
