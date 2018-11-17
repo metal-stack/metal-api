@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/inconshreveable/log15"
+	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 type RethinkStore struct {
-	log15.Logger
+	*zap.SugaredLogger
 	session   r.QueryExecutor
 	dbsession *r.Session
 	database  *r.Term
@@ -20,13 +20,13 @@ type RethinkStore struct {
 	dbhost string
 }
 
-func New(log log15.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
+func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
 	return &RethinkStore{
-		Logger: log,
-		dbhost: dbhost,
-		dbname: dbname,
-		dbuser: dbuser,
-		dbpass: dbpass,
+		SugaredLogger: log.Sugar(),
+		dbhost:        dbhost,
+		dbname:        dbname,
+		dbuser:        dbuser,
+		dbpass:        dbpass,
 	}
 }
 
@@ -84,13 +84,13 @@ func (rs *RethinkStore) Close() error {
 			return err
 		}
 	}
-	log15.Info("Rethinkstore disconnected")
+	rs.Info("Rethinkstore disconnected")
 	return nil
 }
 
 func (rs *RethinkStore) Connect() {
-	rs.database, rs.dbsession = RetryConnect([]string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
-	log15.Info("Rethinkstore connected")
+	rs.database, rs.dbsession = RetryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
+	rs.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
 	rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
 }
@@ -127,11 +127,11 @@ func MustConnect(hosts []string, dbname, username, pwd string) (*r.Term, *r.Sess
 // RetryConnect versucht endlos eine Verbindung zur DB herzustellen. Wenn
 // die Verbindung nicht klappt wird eine zeit lang gewartet und erneut
 // versucht.
-func RetryConnect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session) {
+func RetryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) (*r.Term, *r.Session) {
 tryAgain:
 	db, s, err := Connect(hosts, dbname, user, pwd)
 	if err != nil {
-		log15.Error("db connection error", "db", dbname, "hosts", hosts, "error", err)
+		log.Errorw("db connection error", "db", dbname, "hosts", hosts, "error", err)
 		time.Sleep(3 * time.Second)
 		goto tryAgain
 	}

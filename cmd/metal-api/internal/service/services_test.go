@@ -3,12 +3,12 @@ package service
 import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
-	"github.com/inconshreveable/log15"
+	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 var (
-	testlogger = log15.New()
+	testlogger = zap.NewNop()
 
 	d1 = metal.Device{
 		ID:     "1",
@@ -74,10 +74,6 @@ var (
 
 	emptyResult = map[string]interface{}{}
 )
-
-func init() {
-	testlogger.SetHandler(log15.DiscardHandler())
-}
 
 func initMockDB() (*datastore.RethinkStore, *r.Mock) {
 	rs := datastore.New(

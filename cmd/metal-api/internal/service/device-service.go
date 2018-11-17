@@ -13,7 +13,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
-	"github.com/inconshreveable/log15"
+	"go.uber.org/zap"
 )
 
 const (
@@ -21,7 +21,8 @@ const (
 )
 
 type deviceResource struct {
-	log15.Logger
+	*zap.SugaredLogger
+	log *zap.Logger
 	bus.Publisher
 	netbox *netbox.APIProxy
 	ds     *datastore.RethinkStore
@@ -52,15 +53,16 @@ type phoneHomeRequest struct {
 }
 
 func NewDevice(
-	log log15.Logger,
+	log *zap.Logger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	netbox *netbox.APIProxy) *restful.WebService {
 	dr := deviceResource{
-		Logger:    log,
-		ds:        ds,
-		Publisher: pub,
-		netbox:    netbox,
+		log:           log,
+		SugaredLogger: log.Sugar(),
+		ds:            ds,
+		Publisher:     pub,
+		netbox:        netbox,
 	}
 	return dr.webService()
 }
@@ -179,32 +181,32 @@ func (dr deviceResource) phoneHome(request *restful.Request, response *restful.R
 	var data phoneHomeRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
-		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Cannot read data from request: %v", err))
+		sendError(dr.log, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Cannot read data from request: %v", err))
 		return
 	}
 	c, err := jwt.FromJWT(data.PhoneHomeToken)
 	if err != nil {
-		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token is invalid: %v", err))
+		sendError(dr.log, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token is invalid: %v", err))
 		return
 	}
 	if c.Device == nil || c.Device.ID == "" {
-		sendError(dr, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token contains malformed data"))
+		sendError(dr.log, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token contains malformed data"))
 		return
 	}
 	oldDevice, err := dr.ds.FindDevice(c.Device.ID)
 	if err != nil {
-		sendError(dr, response, "phoneHome", http.StatusNotFound, err)
+		sendError(dr.log, response, "phoneHome", http.StatusNotFound, err)
 		return
 	}
 	if oldDevice.Allocation == nil {
 		dr.Error("unallocated devices sends phoneHome", "device", *oldDevice)
-		sendError(dr, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this device is not allocated"))
+		sendError(dr.log, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this device is not allocated"))
 	}
 	newDevice := *oldDevice
 	newDevice.Allocation.LastPing = time.Now()
 	err = dr.ds.UpdateDevice(oldDevice, &newDevice)
 	if err != nil {
-		sendError(dr, response, "phoneHome", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "phoneHome", http.StatusInternalServerError, err)
 		return
 	}
 	response.WriteEntity(nil)
@@ -214,13 +216,13 @@ func (dr deviceResource) findDevice(request *restful.Request, response *restful.
 	id := request.PathParameter("id")
 	device, err := dr.ds.FindDevice(id)
 	if err != nil {
-		sendError(dr, response, "findDevice", http.StatusNotFound, err)
+		sendError(dr.log, response, "findDevice", http.StatusNotFound, err)
 		return
 	}
 	if device.SiteID != "" {
 		site, err := dr.ds.FindSite(device.SiteID)
 		if err != nil {
-			sendError(dr, response, "findDevice", http.StatusInternalServerError, err)
+			sendError(dr.log, response, "findDevice", http.StatusInternalServerError, err)
 			return
 		}
 		device.Site = *site
@@ -231,12 +233,12 @@ func (dr deviceResource) findDevice(request *restful.Request, response *restful.
 func (dr deviceResource) listDevices(request *restful.Request, response *restful.Response) {
 	res, err := dr.ds.ListDevices()
 	if err != nil {
-		sendError(dr, response, "listDevices", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "listDevices", http.StatusInternalServerError, err)
 		return
 	}
 	res, err = dr.fillDeviceList(res...)
 	if err != nil {
-		sendError(dr, response, "listDevices", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "listDevices", http.StatusInternalServerError, err)
 		return
 	}
 	response.WriteEntity(res)
@@ -247,12 +249,12 @@ func (dr deviceResource) searchDevice(request *restful.Request, response *restfu
 
 	result, err := dr.ds.SearchDevice(mac)
 	if err != nil {
-		sendError(dr, response, "searchDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "searchDevice", http.StatusInternalServerError, err)
 		return
 	}
 	result, err = dr.fillDeviceList(result...)
 	if err != nil {
-		sendError(dr, response, "searchDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "searchDevice", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -263,16 +265,16 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 	var data registerRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
-		sendError(dr, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read data from request: %v", err))
+		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read data from request: %v", err))
 		return
 	}
 	if data.UUID == "" {
-		sendError(dr, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("No UUID given"))
+		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("No UUID given"))
 		return
 	}
 	site, err := dr.ds.FindSite(data.SiteID)
 	if err != nil {
-		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -284,14 +286,14 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 
 	err = dr.netbox.Register(site.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
 	if err != nil {
-		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, err)
 		return
 	}
 
 	device, err := dr.ds.RegisterDevice(data.UUID, *site, *size, data.Hardware, data.IPMI)
 
 	if err != nil {
-		sendError(dr, response, "registerDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -304,10 +306,10 @@ func (dr deviceResource) ipmiData(request *restful.Request, response *restful.Re
 
 	if err != nil {
 		if err == datastore.ErrNotFound {
-			sendError(dr, response, "ipmiData", http.StatusNotFound, err)
+			sendError(dr.log, response, "ipmiData", http.StatusNotFound, err)
 			return
 		}
-		sendError(dr, response, "ipmiData", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "ipmiData", http.StatusInternalServerError, err)
 		return
 	}
 	response.WriteEntity(ipmi)
@@ -317,22 +319,22 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 	var allocate allocateRequest
 	err := request.ReadEntity(&allocate)
 	if err != nil {
-		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
+		sendError(dr.log, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
 		return
 	}
 	image, err := dr.ds.FindImage(allocate.ImageID)
 	if err != nil {
-		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot find image %q: %v", allocate.ImageID, err))
+		sendError(dr.log, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot find image %q: %v", allocate.ImageID, err))
 		return
 	}
 	size, err := dr.ds.FindSize(allocate.SizeID)
 	if err != nil {
-		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot find size %q: %v", allocate.SizeID, err))
+		sendError(dr.log, response, "allocateDevice", http.StatusInternalServerError, fmt.Errorf("Cannot find size %q: %v", allocate.SizeID, err))
 		return
 	}
 	site, err := dr.ds.FindSite(allocate.SiteID)
 	if err != nil {
-		sendError(dr, response, "allocateDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "allocateDevice", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -343,9 +345,9 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		dr.netbox.Allocate)
 	if err != nil {
 		if err == datastore.ErrNoDeviceAvailable {
-			sendError(dr, response, "allocateDevice", http.StatusNotFound, err)
+			sendError(dr.log, response, "allocateDevice", http.StatusNotFound, err)
 		} else {
-			sendError(dr, response, "allocateDevice", http.StatusInternalServerError, err)
+			sendError(dr.log, response, "allocateDevice", http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -356,12 +358,12 @@ func (dr deviceResource) freeDevice(request *restful.Request, response *restful.
 	id := request.PathParameter("id")
 	device, err := dr.ds.FreeDevice(id)
 	if err != nil {
-		sendError(dr, response, "freeDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "freeDevice", http.StatusInternalServerError, err)
 		return
 	}
 	err = dr.netbox.Release(id)
 	if err != nil {
-		sendError(dr, response, "freeDevice", http.StatusInternalServerError, err)
+		sendError(dr.log, response, "freeDevice", http.StatusInternalServerError, err)
 		return
 	}
 

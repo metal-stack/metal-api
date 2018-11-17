@@ -2,14 +2,13 @@ package service
 
 import (
 	"github.com/go-stack/stack"
-)
-import (
+
 	restful "github.com/emicklei/go-restful"
-	"github.com/inconshreveable/log15"
+	"go.uber.org/zap"
 )
 
-func sendError(log log15.Logger, rsp *restful.Response, service string, status int, err error) {
+func sendError(log *zap.Logger, rsp *restful.Response, service string, status int, err error) {
 	s := stack.Caller(1)
-	log.Error("service error", "service", service, "error", err, "service-caller", s)
+	log.Error("service error", zap.String("service", service), zap.String("error", err.Error()), zap.Stringer("service-caller", s))
 	rsp.WriteError(status, err)
 }

@@ -5,22 +5,25 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/zap"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
-	"github.com/inconshreveable/log15"
 )
 
 type sizeResource struct {
-	log15.Logger
-	ds *datastore.RethinkStore
+	*zap.SugaredLogger
+	log *zap.Logger
+	ds  *datastore.RethinkStore
 }
 
-func NewSize(log log15.Logger, ds *datastore.RethinkStore) *restful.WebService {
+func NewSize(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	sr := sizeResource{
-		Logger: log,
-		ds:     ds,
+		SugaredLogger: log.Sugar(),
+		log:           log,
+		ds:            ds,
 	}
 	return sr.webService()
 }
@@ -78,7 +81,7 @@ func (sr sizeResource) findSize(request *restful.Request, response *restful.Resp
 	id := request.PathParameter("id")
 	size, err := sr.ds.FindSize(id)
 	if err != nil {
-		sendError(sr, response, "findSize", http.StatusNotFound, err)
+		sendError(sr.log, response, "findSize", http.StatusNotFound, err)
 		return
 	}
 	response.WriteEntity(size)
@@ -87,7 +90,7 @@ func (sr sizeResource) findSize(request *restful.Request, response *restful.Resp
 func (sr sizeResource) listSizes(request *restful.Request, response *restful.Response) {
 	res, err := sr.ds.ListSizes()
 	if err != nil {
-		sendError(sr, response, "listSizes", http.StatusNotFound, err)
+		sendError(sr.log, response, "listSizes", http.StatusNotFound, err)
 		return
 	}
 	response.WriteEntity(res)
@@ -97,7 +100,7 @@ func (sr sizeResource) deleteSize(request *restful.Request, response *restful.Re
 	id := request.PathParameter("id")
 	size, err := sr.ds.DeleteSize(id)
 	if err != nil {
-		sendError(sr, response, "deleteSize", http.StatusNotFound, err)
+		sendError(sr.log, response, "deleteSize", http.StatusNotFound, err)
 	} else {
 		response.WriteEntity(size)
 	}
@@ -107,14 +110,14 @@ func (sr sizeResource) createSize(request *restful.Request, response *restful.Re
 	var s metal.Size
 	err := request.ReadEntity(&s)
 	if err != nil {
-		sendError(sr, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
+		sendError(sr.log, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	err = sr.ds.CreateSize(&s)
 	if err != nil {
-		sendError(sr, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot create size: %v", err))
+		sendError(sr.log, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot create size: %v", err))
 	} else {
 		response.WriteHeaderAndEntity(http.StatusCreated, s)
 	}
@@ -124,20 +127,20 @@ func (sr sizeResource) updateSize(request *restful.Request, response *restful.Re
 	var newSize metal.Size
 	err := request.ReadEntity(&newSize)
 	if err != nil {
-		sendError(sr, response, "updateSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
+		sendError(sr.log, response, "updateSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
 		return
 	}
 
 	oldSize, err := sr.ds.FindSize(newSize.ID)
 	if err != nil {
-		sendError(sr, response, "updateSize", http.StatusNotFound, err)
+		sendError(sr.log, response, "updateSize", http.StatusNotFound, err)
 		return
 	}
 
 	err = sr.ds.UpdateSize(oldSize, &newSize)
 
 	if err != nil {
-		sendError(sr, response, "updateSize", http.StatusConflict, err)
+		sendError(sr.log, response, "updateSize", http.StatusConflict, err)
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSize)

@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	restful "github.com/emicklei/go-restful"
-	"github.com/inconshreveable/log15"
 )
 
 type loggingResponseWriter struct {
@@ -44,33 +45,34 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-func RestfulLogger(logger log15.Logger, debug bool) restful.FilterFunction {
+func RestfulLogger(logger *zap.Logger, debug bool) restful.FilterFunction {
 	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
-		info := []interface{}{
-			"remoteaddr", strings.Split(req.Request.RemoteAddr, ":")[0],
-			"method", req.Request.Method,
-			"uri", req.Request.URL.RequestURI(),
-			"protocol", req.Request.Proto,
-			"route", req.SelectedRoutePath(),
+		fields := []zap.Field{
+			zap.String("remoteaddr", strings.Split(req.Request.RemoteAddr, ":")[0]),
+			zap.String("method", req.Request.Method),
+			zap.String("uri", req.Request.URL.RequestURI()),
+			zap.String("protocol", req.Request.Proto),
+			zap.String("route", req.SelectedRoutePath()),
 		}
 
 		if debug {
 			body, _ := httputil.DumpRequest(req.Request, true)
-			info = append(info, "body", string(body))
+			fields = append(fields, zap.String("body", string(body)))
 			resp.ResponseWriter = &loggingResponseWriter{w: resp.ResponseWriter}
 		}
 
 		t := time.Now()
 		chain.ProcessFilter(req, resp)
 
-		info = append(info, "status", resp.StatusCode(), "content-length", resp.ContentLength(), "duration", time.Since(t))
+		fields = append(fields, zap.Int("status", resp.StatusCode()), zap.Int("content-length", resp.ContentLength()), zap.Duration("duration", time.Since(t)))
+
 		if debug {
-			info = append(info, "response", resp.ResponseWriter.(*loggingResponseWriter).Content())
+			fields = append(fields, zap.String("response", resp.ResponseWriter.(*loggingResponseWriter).Content()))
 		}
 		if resp.StatusCode() < 400 {
-			logger.Info("Rest Call", info...)
+			logger.Info("Rest Call", fields...)
 		} else {
-			logger.Error("Rest Call", info...)
+			logger.Error("Rest Call", fields...)
 		}
 	}
 }

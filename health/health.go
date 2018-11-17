@@ -5,7 +5,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
-	"github.com/inconshreveable/log15"
+	"go.uber.org/zap"
 )
 
 type HealthCheck func() error
@@ -14,7 +14,7 @@ type healtstatus struct {
 	Message string `json:"message"`
 }
 
-func New(log log15.Logger, h HealthCheck) *restful.WebService {
+func New(log *zap.Logger, h HealthCheck) *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path("/health").
@@ -31,12 +31,12 @@ func New(log log15.Logger, h HealthCheck) *restful.WebService {
 	return ws
 }
 
-func check(log log15.Logger, h HealthCheck) func(request *restful.Request, response *restful.Response) {
+func check(log *zap.Logger, h HealthCheck) func(request *restful.Request, response *restful.Response) {
 	return func(request *restful.Request, response *restful.Response) {
 		e := h()
 		if e != nil {
 			s := healtstatus{Message: e.Error()}
-			log.Error("unhealthy", "error", e)
+			log.Error("unhealthy", zap.String("error", e.Error()))
 			response.WriteHeaderAndEntity(http.StatusInternalServerError, s)
 		} else {
 			s := healtstatus{Message: "OK"}
