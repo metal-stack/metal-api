@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -152,17 +153,24 @@ func initNetboxProxy() {
 }
 
 func initEventBus() {
-	nsqd := viper.GetString("nsqd-addr")
-	httpnsqd := viper.GetString("nsqd-http-addr")
-	p, err := bus.NewPublisher(zapup.MustRootLogger(), nsqd, httpnsqd)
-	if err != nil {
-		panic(err)
+	for {
+		nsqd := viper.GetString("nsqd-addr")
+		httpnsqd := viper.GetString("nsqd-http-addr")
+		p, err := bus.NewPublisher(zapup.MustRootLogger(), nsqd, httpnsqd)
+		if err != nil {
+			logger.Errorw("cannot create nsq publisher", "error", err)
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		logger.Infow("nsq connected", "nsqd", nsqd)
+		if err := p.CreateTopic(string(metal.TopicDevice)); err != nil {
+			logger.Errorw("cannot create TopicDevice", "error", err)
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		producer = p
+		break
 	}
-	logger.Info("nsq connected", "nsqd", nsqd)
-	if err := p.CreateTopic(string(metal.TopicDevice)); err != nil {
-		panic(err)
-	}
-	producer = p
 }
 
 func initDataStore() {
