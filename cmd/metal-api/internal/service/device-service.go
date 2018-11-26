@@ -52,6 +52,14 @@ type phoneHomeRequest struct {
 	PhoneHomeToken string `json:"phone_home_token" description:"the jwt that was issued for the device"`
 }
 
+// An AllocationReport is sent to the api after a device was successfully
+// allocated and provisioned.
+type allocationReport struct {
+	Success         bool   `json:"success" description:"signals if the allocation was successful" optional:"false"`
+	ErrorMessage    string `json:"errormessage" description:"contains an errormessage when there was no success" optional:"true"`
+	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning" optional:"false"`
+}
+
 func NewDevice(
 	log *zap.Logger,
 	ds *datastore.RethinkStore,
@@ -137,6 +145,14 @@ func (dr deviceResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.DeviceWithPhoneHomeToken{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", nil).
+		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
+
+	ws.Route(ws.POST("/{id}/report").To(dr.allocationReport).
+		Doc("send the allocation report of a given device").
+		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "OK", metal.DeviceAllocation{}).
+		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
 
 	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
@@ -386,4 +402,38 @@ func (dr deviceResource) fillDeviceList(data ...metal.Device) ([]metal.Device, e
 		res[i].Site = sitemap[d.SiteID]
 	}
 	return res, nil
+}
+
+func (dr deviceResource) allocationReport(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	var report allocationReport
+	err := request.ReadEntity(&report)
+	if err != nil {
+		sendError(dr.log, response, "allocationReport", http.StatusInternalServerError, fmt.Errorf("Cannot read request: %v", err))
+		return
+	}
+
+	dev, err := dr.ds.FindDevice(id)
+
+	if err != nil {
+		if err == datastore.ErrNotFound {
+			sendError(dr.log, response, "allocationReport", http.StatusNotFound, err)
+			return
+		}
+		sendError(dr.log, response, "allocationReport", http.StatusInternalServerError, err)
+		return
+	}
+	if !report.Success {
+		dr.Errorw("failed allocation", "id", id, "error-message", report.ErrorMessage)
+		response.WriteEntity(dev.Allocation)
+		return
+	}
+	if dev.Allocation == nil {
+		sendError(dr.log, response, "allocationReport", http.StatusInternalServerError, fmt.Errorf("the device %q is not allocated", id))
+		return
+	}
+	old := *dev
+	dev.Allocation.ConsolePassword = report.ConsolePassword
+	dr.ds.UpdateDevice(&old, dev)
+	response.WriteEntity(dev.Allocation)
 }

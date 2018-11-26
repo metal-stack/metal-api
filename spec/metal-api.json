@@ -363,6 +363,50 @@
         }
       }
     },
+    "/device/{id}/report": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "device"
+        ],
+        "summary": "send the allocation report of a given device",
+        "operationId": "allocationReport",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the device",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.DeviceAllocation"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.DeviceAllocation"
+            }
+          }
+        }
+      }
+    },
     "/device/{id}/wait": {
       "get": {
         "consumes": [
@@ -1116,6 +1160,10 @@
       "properties": {
         "cidr": {
           "description": "the cidr address of the allocated device",
+          "type": "string"
+        },
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
           "type": "string"
         },
         "created": {

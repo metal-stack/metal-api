@@ -322,3 +322,90 @@ func TestRegisterDevice(t *testing.T) {
 		})
 	}
 }
+
+func TestReportDevice(t *testing.T) {
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
+	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
+		return r.MockAnything()
+	})).Return(emptyResult, nil)
+
+	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{site1}, nil)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	rep := allocationReport{
+		Success:         true,
+		ConsolePassword: "blubber",
+	}
+	js, _ := json.Marshal(rep)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/device/1/report", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result metal.DeviceAllocation
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	require.Nil(t, err)
+	require.Equal(t, result.ConsolePassword, rep.ConsolePassword)
+}
+
+func TestReportFailureDevice(t *testing.T) {
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	rep := allocationReport{
+		Success:         false,
+		ErrorMessage:    "my error message",
+		ConsolePassword: "blubber",
+	}
+	js, _ := json.Marshal(rep)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/device/1/report", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result metal.DeviceAllocation
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	require.Nil(t, err)
+}
+
+func TestReportUnknownDevice(t *testing.T) {
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("10")).Return(nil, nil)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	rep := allocationReport{
+		Success:         false,
+		ErrorMessage:    "my error message",
+		ConsolePassword: "blubber",
+	}
+	js, _ := json.Marshal(rep)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/device/10/report", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
+}
