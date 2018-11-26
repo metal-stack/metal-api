@@ -14,6 +14,10 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 		return nil, fmt.Errorf("cannot get device from database: %v", err)
 	}
 	defer res.Close()
+	if res.IsNil() {
+		return nil, ErrNotFound
+	}
+
 	var d metal.Device
 	err = res.One(&d)
 	if err != nil {

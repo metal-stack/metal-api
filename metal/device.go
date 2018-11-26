@@ -19,17 +19,18 @@ type Device struct {
 
 // A DeviceAllocation stores the data which are only present for allocated devices.
 type DeviceAllocation struct {
-	Created     time.Time `json:"created" description:"the time when the device was created" rethinkdb:"created"`
-	Name        string    `json:"name" description:"the name of the device" rethinkdb:"name"`
-	Description string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
-	LastPing    time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the device" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
-	Tenant      string    `json:"tenant" description:"the tenant that this device is assigned to" rethinkdb:"tenant"`
-	Project     string    `json:"project" description:"the project that this device is assigned to" rethinkdb:"project"`
-	Image       *Image    `json:"image" description:"the image assigned to this device" readOnly:"true" optional:"true" rethinkdb:"-"`
-	ImageID     string    `json:"-" rethinkdb:"imageid"`
-	Cidr        string    `json:"cidr" description:"the cidr address of the allocated device" rethinkdb:"cidr"`
-	Hostname    string    `json:"hostname" description:"the hostname which will be used when creating the device" rethinkdb:"hostname"`
-	SSHPubKeys  []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the device with" rethinkdb:"sshPubKeys"`
+	Created         time.Time `json:"created" description:"the time when the device was created" rethinkdb:"created"`
+	Name            string    `json:"name" description:"the name of the device" rethinkdb:"name"`
+	Description     string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
+	LastPing        time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the device" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
+	Tenant          string    `json:"tenant" description:"the tenant that this device is assigned to" rethinkdb:"tenant"`
+	Project         string    `json:"project" description:"the project that this device is assigned to" rethinkdb:"project"`
+	Image           *Image    `json:"image" description:"the image assigned to this device" readOnly:"true" optional:"true" rethinkdb:"-"`
+	ImageID         string    `json:"-" rethinkdb:"imageid"`
+	Cidr            string    `json:"cidr" description:"the cidr address of the allocated device" rethinkdb:"cidr"`
+	Hostname        string    `json:"hostname" description:"the hostname which will be used when creating the device" rethinkdb:"hostname"`
+	SSHPubKeys      []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the device with" rethinkdb:"sshPubKeys"`
+	ConsolePassword string    `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
 }
 
 // DeviceHardware stores the data which is collected by our system on the hardware when it registeres itself.
