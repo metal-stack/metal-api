@@ -167,42 +167,84 @@ func TestSearchDevice(t *testing.T) {
 }
 
 func TestRegisterDevice(t *testing.T) {
+	ipmi := metal.IPMI{
+		Address:    "address",
+		Interface:  "interface",
+		MacAddress: "mac",
+	}
 	testdata := []struct {
-		name             string
-		uuid             string
-		siteid           string
-		numcores         int
-		memory           int
-		dbsites          []metal.Site
-		dbsizes          []metal.Size
-		dbdevices        []metal.Device
-		netboxerror      error
-		ipmidberror      error
-		expectedStatus   int
-		expectedSizeName string
+		name               string
+		uuid               string
+		siteid             string
+		numcores           int
+		memory             int
+		dbsites            []metal.Site
+		dbsizes            []metal.Size
+		dbdevices          []metal.Device
+		netboxerror        error
+		ipmidberror        error
+		ipmiresult         []metal.IPMI
+		ipmiresulterror    error
+		expectedIPMIStatus int
+		expectedStatus     int
+		expectedSizeName   string
 	}{
 		{
-			name:             "insert new",
-			uuid:             "1",
-			siteid:           "1",
-			dbsites:          []metal.Site{site1},
-			dbsizes:          []metal.Size{sz1},
-			numcores:         1,
-			memory:           100,
-			expectedStatus:   http.StatusOK,
-			expectedSizeName: sz1.Name,
+			name:               "insert new",
+			uuid:               "1",
+			siteid:             "1",
+			dbsites:            []metal.Site{site1},
+			dbsizes:            []metal.Size{sz1},
+			numcores:           1,
+			memory:             100,
+			expectedStatus:     http.StatusOK,
+			expectedIPMIStatus: http.StatusOK,
+			expectedSizeName:   sz1.Name,
+			ipmiresult:         []metal.IPMI{ipmi},
+			ipmiresulterror:    nil,
 		},
 		{
-			name:             "insert existing",
-			uuid:             "1",
-			siteid:           "1",
-			dbsites:          []metal.Site{site1},
-			dbsizes:          []metal.Size{sz1},
-			dbdevices:        []metal.Device{d3},
-			numcores:         1,
-			memory:           100,
-			expectedStatus:   http.StatusOK,
-			expectedSizeName: sz1.Name,
+			name:               "no ipmi data",
+			uuid:               "1",
+			siteid:             "1",
+			dbsites:            []metal.Site{site1},
+			dbsizes:            []metal.Size{sz1},
+			numcores:           1,
+			memory:             100,
+			expectedStatus:     http.StatusOK,
+			expectedIPMIStatus: http.StatusNotFound,
+			expectedSizeName:   sz1.Name,
+			ipmiresult:         []metal.IPMI{},
+			ipmiresulterror:    nil,
+		},
+		{
+			name:               "ipmi fetch error",
+			uuid:               "1",
+			siteid:             "1",
+			dbsites:            []metal.Site{site1},
+			dbsizes:            []metal.Size{sz1},
+			numcores:           1,
+			memory:             100,
+			expectedStatus:     http.StatusOK,
+			expectedIPMIStatus: http.StatusInternalServerError,
+			expectedSizeName:   sz1.Name,
+			ipmiresult:         []metal.IPMI{},
+			ipmiresulterror:    fmt.Errorf("nope"),
+		},
+		{
+			name:               "insert existing",
+			uuid:               "1",
+			siteid:             "1",
+			dbsites:            []metal.Site{site1},
+			dbsizes:            []metal.Size{sz1},
+			dbdevices:          []metal.Device{d3},
+			numcores:           1,
+			memory:             100,
+			expectedStatus:     http.StatusOK,
+			expectedIPMIStatus: http.StatusOK,
+			expectedSizeName:   sz1.Name,
+			ipmiresult:         []metal.IPMI{ipmi},
+			ipmiresulterror:    nil,
 		},
 		{
 			name:           "empty uuid",
@@ -230,15 +272,18 @@ func TestRegisterDevice(t *testing.T) {
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
-			name:             "unknown size because wrong cpu",
-			uuid:             "1",
-			siteid:           "1",
-			dbsites:          []metal.Site{site1},
-			dbsizes:          []metal.Size{sz1},
-			numcores:         2,
-			memory:           100,
-			expectedStatus:   http.StatusOK,
-			expectedSizeName: metal.UnknownSize.Name,
+			name:               "unknown size because wrong cpu",
+			uuid:               "1",
+			siteid:             "1",
+			dbsites:            []metal.Site{site1},
+			dbsizes:            []metal.Size{sz1},
+			numcores:           2,
+			memory:             100,
+			expectedStatus:     http.StatusOK,
+			expectedSizeName:   metal.UnknownSize.Name,
+			ipmiresult:         []metal.IPMI{ipmi},
+			expectedIPMIStatus: http.StatusOK,
+			ipmiresulterror:    nil,
 		},
 		{
 			name:           "fail on netbox error",
@@ -255,11 +300,7 @@ func TestRegisterDevice(t *testing.T) {
 	for _, test := range testdata {
 		t.Run(test.name, func(t *testing.T) {
 			ds, mock := initMockDB()
-			ipmi := metal.IPMI{
-				Address:    "address",
-				Interface:  "interface",
-				MacAddress: "mac",
-			}
+
 			rr := registerRequest{
 				UUID:   test.uuid,
 				SiteID: test.siteid,
@@ -285,7 +326,7 @@ func TestRegisterDevice(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
 				Conflict: "replace",
 			})).Return(emptyResult, test.ipmidberror)
-
+			mock.On(r.DB("mockdb").Table("ipmi").Get(test.uuid)).Return(test.ipmiresult, test.ipmiresulterror)
 			pub := &emptyPublisher{}
 			nb := netbox.New()
 			called := false
@@ -319,6 +360,23 @@ func TestRegisterDevice(t *testing.T) {
 			require.Equal(t, expectedid, result.ID)
 			require.Equal(t, test.expectedSizeName, result.Size.Name)
 			require.Equal(t, site1.Name, result.Site.Name)
+			// no read ipmi data
+			req = httptest.NewRequest("POST", fmt.Sprintf("/device/%s/ipmi", test.uuid), nil)
+			req.Header.Add("Content-Type", "application/json")
+			w = httptest.NewRecorder()
+			container.ServeHTTP(w, req)
+
+			resp = w.Result()
+			require.Equal(t, test.expectedIPMIStatus, resp.StatusCode, w.Body.String())
+			if resp.StatusCode >= 300 {
+				return
+			}
+			var ipmiresult metal.IPMI
+			err = json.NewDecoder(resp.Body).Decode(&ipmiresult)
+			require.Nil(t, err)
+			require.Equal(t, ipmi.Address, ipmiresult.Address)
+			require.Equal(t, ipmi.Interface, ipmiresult.Interface)
+			require.Equal(t, ipmi.MacAddress, ipmiresult.MacAddress)
 		})
 	}
 }
