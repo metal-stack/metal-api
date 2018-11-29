@@ -117,6 +117,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	s.Changed = s.Created
 	img, err := ir.ds.CreateImage(&s)
 	if err != nil {
+		// FIXME: Return statement missing?
 		sendError(ir.log, response, "createImage", http.StatusInternalServerError, err)
 	} else {
 		response.WriteHeaderAndEntity(http.StatusCreated, img)

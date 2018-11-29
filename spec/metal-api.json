@@ -1086,41 +1086,9 @@
             }
           }
         }
-      },
-      "put": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "switch"
-        ],
-        "summary": "create an switch. if the given ID already exists a conflict is returned",
-        "operationId": "createSwitch",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/metal.Switch"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/metal.Switch"
-            }
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      },
+      }
+    },
+    "/switch/register": {
       "post": {
         "consumes": [
           "application/json"
@@ -1131,8 +1099,8 @@
         "tags": [
           "switch"
         ],
-        "summary": "updates an switch. if the switch was changed since this one was read, a conflict is returned",
-        "operationId": "updateSwitch",
+        "summary": "register a switch",
+        "operationId": "registerSwitch",
         "parameters": [
           {
             "name": "body",
@@ -1150,8 +1118,11 @@
               "$ref": "#/definitions/metal.Switch"
             }
           },
-          "404": {
-            "description": "Not Found"
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
           },
           "409": {
             "description": "Conflict"
