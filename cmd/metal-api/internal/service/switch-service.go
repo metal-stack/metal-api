@@ -51,19 +51,12 @@ func (sr switchResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Switch{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.PUT("/").To(sr.createSwitch).
-		Doc("create an switch. if the given ID already exists a conflict is returned").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.Switch{}).
-		Returns(http.StatusCreated, "Created", metal.Switch{}).
-		Returns(http.StatusConflict, "Conflict", nil))
-
-	ws.Route(ws.POST("/").To(sr.updateSwitch).
-		Doc("updates an switch. if the switch was changed since this one was read, a conflict is returned").
+	ws.Route(ws.POST("/register").To(sr.registerSwitch).
+		Doc("register a switch").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Switch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusCreated, "Created", metal.Switch{}).
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	return ws
@@ -88,51 +81,37 @@ func (sr switchResource) deleteSwitch(request *restful.Request, response *restfu
 	}
 }
 
-func (sr switchResource) createSwitch(request *restful.Request, response *restful.Response) {
-	var s metal.Switch
-	err := request.ReadEntity(&s)
-	if err != nil {
-		sendError(sr.log, response, "createSwitch", http.StatusInternalServerError, fmt.Errorf("cannot read switch from request: %v", err))
-		return
-	}
-	_, err = sr.ds.FindSite(s.SiteID)
-	if err != nil {
-		sendError(sr.log, response, "createSwitch", http.StatusInternalServerError, fmt.Errorf("Cannot find site %q: %v", s.SiteID, err))
-		return
-	}
-	s.Created = time.Now()
-	s.Changed = s.Created
-	img, err := sr.ds.CreateSwitch(&s)
-	if err != nil {
-		sendError(sr.log, response, "createSwitch", http.StatusInternalServerError, err)
-	} else {
-		response.WriteHeaderAndEntity(http.StatusCreated, img)
-	}
-}
-
-func (sr switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
+func (sr switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
 	var newSwitch metal.Switch
 	err := request.ReadEntity(&newSwitch)
 	if err != nil {
-		sendError(sr.log, response, "updateSwitch", http.StatusInternalServerError, fmt.Errorf("cannot read switch from request: %v", err))
+		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, fmt.Errorf("cannot read switch from request: %v", err))
 		return
 	}
 	_, err = sr.ds.FindSite(newSwitch.SiteID)
 	if err != nil {
-		sendError(sr.log, response, "updateSwitch", http.StatusInternalServerError, fmt.Errorf("Cannot find site %q: %v", newSwitch.SiteID, err))
+		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, fmt.Errorf("Cannot find site %q: %v", newSwitch.SiteID, err))
 		return
 	}
 
 	oldSwitch, err := sr.ds.FindSwitch(newSwitch.ID)
 	if err != nil {
-		sendError(sr.log, response, "updateSwitch", http.StatusNotFound, err)
-		return
+		newSwitch.Created = time.Now()
+		newSwitch.Changed = newSwitch.Created
+		sw, err := sr.ds.CreateSwitch(&newSwitch)
+		if err != nil {
+			sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
+			return
+		} else {
+			response.WriteHeaderAndEntity(http.StatusCreated, sw)
+			return
+		}
 	}
 
 	err = sr.ds.UpdateSwitch(oldSwitch, &newSwitch)
 
 	if err != nil {
-		sendError(sr.log, response, "updateSwitch", http.StatusConflict, err)
+		sendError(sr.log, response, "registerSwitch", http.StatusConflict, err)
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSwitch)
