@@ -33,18 +33,12 @@ type DeviceAllocation struct {
 	ConsolePassword string    `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
 }
 
-// DeviceHardware stores the data which is collected by our system on the hardware when it registeres itself.
+// DeviceHardware stores the data which is collected by our system on the hardware when it registers itself.
 type DeviceHardware struct {
 	Memory   uint64        `json:"memory" description:"the total memory of the device" rethinkdb:"memory"`
 	CPUCores int           `json:"cpu_cores" description:"the number of cpu cores" rethinkdb:"cpu_cores"`
 	Nics     []Nic         `json:"nics" description:"the list of network interfaces of this device" rethinkdb:"network_interfaces"`
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this device" rethinkdb:"block_devices"`
-}
-
-// Nic information.
-type Nic struct {
-	MacAddress string `json:"mac"  description:"the mac address of this network interface" rethinkdb:"macAddress"`
-	Name       string `json:"name"  description:"the name of this network interface" rethinkdb:"name"`
 }
 
 // BlockDevice information.

@@ -195,12 +195,13 @@ func initRestServices() *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewImage(lg, ds))
 	restful.DefaultContainer.Add(service.NewSize(lg, ds))
 	restful.DefaultContainer.Add(service.NewDevice(lg, ds, producer, nbproxy))
+	restful.DefaultContainer.Add(service.NewSwitch(lg, ds))
 	restful.DefaultContainer.Add(health.New(lg, func() error { return nil }))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(lg, debug))
 
 	config := restfulspec.Config{
-		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:                       "/apidocs.json",
+		WebServices: restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:     "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
@@ -261,7 +262,9 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Description: "Managing size entities"}},
 		spec.Tag{TagProps: spec.TagProps{
 			Name:        "device",
-			Description: "Managing devices"},
-		},
+			Description: "Managing devices"}},
+		spec.Tag{TagProps: spec.TagProps{
+			Name:        "switch",
+			Description: "Managing switches"}},
 	}
 }
