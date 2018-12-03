@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "ae457b4f-d6ef-4bd6-aac5-ad2c18082342",
+		"_postman_id": "83e2b51f-1223-469c-b5a3-e45819f404bc",
 		"name": "metal-api",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -110,7 +110,10 @@
 			"request": {
 				"method": "GET",
 				"header": [],
-				"body": {},
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
 				"url": {
 					"raw": "{{base}}/site",
 					"host": [
@@ -124,11 +127,35 @@
 			"response": []
 		},
 		{
+			"name": "Get Switches",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{base}}/switch",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"switch"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Get Images",
 			"request": {
 				"method": "GET",
 				"header": [],
-				"body": {},
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
 				"url": {
 					"raw": "{{base}}/image",
 					"host": [
@@ -146,7 +173,10 @@
 			"request": {
 				"method": "GET",
 				"header": [],
-				"body": {},
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
 				"url": {
 					"raw": "{{base}}/size",
 					"host": [
@@ -154,6 +184,35 @@
 					],
 					"path": [
 						"size"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Register Switch",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id\": \"switch1\",\n  \"nics\": [\n    {\n      \"mac\": \"11:11:11:11:11:11\",\n      \"name\": \"eth1\"\n    }\n  ],\n  \"site_id\": \"vagrant-lab\"\n}\n"
+				},
+				"url": {
+					"raw": "{{base}}/switch/register",
+					"host": [
+						"{{base}}"
+					],
+					"path": [
+						"switch",
+						"register"
 					]
 				}
 			},
