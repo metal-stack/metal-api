@@ -1578,7 +1578,8 @@
         "id",
         "nics",
         "connections",
-        "site_id"
+        "site_id",
+        "rack_id"
       ],
       "properties": {
         "changed": {
@@ -1611,6 +1612,10 @@
           "items": {
             "$ref": "#/definitions/metal.Nic"
           }
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
         },
         "site_id": {
           "description": "the id of the site in which this switch is located",
