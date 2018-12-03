@@ -96,14 +96,19 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 
 	oldSwitch, err := sr.ds.FindSwitch(newSwitch.ID)
 	if err != nil {
-		newSwitch.Created = time.Now()
-		newSwitch.Changed = newSwitch.Created
-		sw, err := sr.ds.CreateSwitch(&newSwitch)
-		if err != nil {
-			sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
-			return
+		if metal.IsNotFound(err) {
+			newSwitch.Created = time.Now()
+			newSwitch.Changed = newSwitch.Created
+			sw, err := sr.ds.CreateSwitch(&newSwitch)
+			if err != nil {
+				sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
+				return
+			} else {
+				response.WriteHeaderAndEntity(http.StatusCreated, sw)
+				return
+			}
 		} else {
-			response.WriteHeaderAndEntity(http.StatusCreated, sw)
+			sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
 			return
 		}
 	}

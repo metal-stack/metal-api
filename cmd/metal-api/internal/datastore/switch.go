@@ -13,6 +13,9 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 		return nil, fmt.Errorf("cannot get switch from database: %v", err)
 	}
 	defer res.Close()
+	if res.IsNil() {
+		return nil, metal.ErrNotFound
+	}
 	var sw metal.Switch
 	err = res.One(&sw)
 	if err != nil {
