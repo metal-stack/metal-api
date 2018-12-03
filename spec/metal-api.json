@@ -1052,6 +1052,130 @@
           }
         }
       }
+    },
+    "/switch": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "switch"
+        ],
+        "summary": "get all switches",
+        "operationId": "listSwitches",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Switch"
+              }
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.Switch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/switch/register": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "switch"
+        ],
+        "summary": "register a switch",
+        "operationId": "registerSwitch",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          },
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          }
+        }
+      }
+    },
+    "/switch/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "switch"
+        ],
+        "summary": "deletes an switch and returns the deleted entity",
+        "operationId": "deleteSwitch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the switch",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -1068,6 +1192,21 @@
         "size": {
           "description": "the size of this block device",
           "type": "integer"
+        }
+      }
+    },
+    "metal.Connection": {
+      "required": [
+        "nic"
+      ],
+      "properties": {
+        "device_id": {
+          "description": "the device id of the device connected to the nic",
+          "type": "string"
+        },
+        "nic": {
+          "description": "a network interface on the switch",
+          "$ref": "#/definitions/metal.Nic"
         }
       }
     },
@@ -1327,7 +1466,8 @@
     "metal.Nic": {
       "required": [
         "mac",
-        "name"
+        "name",
+        "neighbors"
       ],
       "properties": {
         "mac": {
@@ -1337,6 +1477,13 @@
         "name": {
           "description": "the name of this network interface",
           "type": "string"
+        },
+        "neighbors": {
+          "description": "the neighbors visible to this network interface",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Nic"
+          }
         }
       }
     },
@@ -1413,6 +1560,52 @@
         },
         "name": {
           "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "metal.Switch": {
+      "description": "A switch that can register at the api.",
+      "required": [
+        "id",
+        "nics",
+        "connections",
+        "site_id"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "connections": {
+          "description": "a connection between a switch port and a device",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Connection"
+          }
+        },
+        "created": {
+          "description": "the creation time of this switch",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "nics": {
+          "description": "the list of network interfaces on the switch",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Nic"
+          }
+        },
+        "site_id": {
+          "description": "the id of the site in which this switch is located",
           "type": "string"
         }
       }
@@ -1528,6 +1721,10 @@
     {
       "description": "Managing devices",
       "name": "device"
+    },
+    {
+      "description": "Managing switches",
+      "name": "switch"
     }
   ]
 }

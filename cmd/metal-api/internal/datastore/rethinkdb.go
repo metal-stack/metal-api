@@ -35,6 +35,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) {
 	rs.db().TableCreate("size", opts).Exec(rs.session)
 	rs.db().TableCreate("site", opts).Exec(rs.session)
 	rs.db().TableCreate("device", opts).Exec(rs.session)
+	rs.db().TableCreate("switch", opts).Exec(rs.session)
 	rs.db().TableCreate("wait", opts).Exec(rs.session)
 	rs.db().TableCreate("ipmi", opts).Exec(rs.session)
 
@@ -55,6 +56,10 @@ func (rs *RethinkStore) siteTable() *r.Term {
 }
 func (rs *RethinkStore) deviceTable() *r.Term {
 	res := r.DB(rs.dbname).Table("device")
+	return &res
+}
+func (rs *RethinkStore) switchTable() *r.Term {
+	res := r.DB(rs.dbname).Table("switch")
 	return &res
 }
 func (rs *RethinkStore) waitTable() *r.Term {
