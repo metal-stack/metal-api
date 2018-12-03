@@ -151,6 +151,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("send the allocation report of a given device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(allocationReport{}).
 		Returns(http.StatusOK, "OK", metal.DeviceAllocation{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
