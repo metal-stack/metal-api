@@ -1463,17 +1463,6 @@
         }
       }
     },
-    "metal.Neighbor": {
-      "required": [
-        "mac"
-      ],
-      "properties": {
-        "mac": {
-          "description": "the mac address of the neighbor interface",
-          "type": "string"
-        }
-      }
-    },
     "metal.Nic": {
       "required": [
         "mac",
@@ -1493,7 +1482,7 @@
           "description": "the neighbors visible to this network interface",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/metal.Neighbor"
+            "$ref": "#/definitions/metal.Nic"
           }
         }
       }
