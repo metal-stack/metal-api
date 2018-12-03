@@ -383,6 +383,14 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/service.allocationReport"
+            }
           }
         ],
         "responses": {
@@ -1659,6 +1667,26 @@
         "tenant": {
           "description": "the name of the owning tenant",
           "type": "string"
+        }
+      }
+    },
+    "service.allocationReport": {
+      "required": [
+        "success",
+        "console_password"
+      ],
+      "properties": {
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
+          "type": "string"
+        },
+        "errormessage": {
+          "description": "contains an errormessage when there was no success",
+          "type": "string"
+        },
+        "success": {
+          "description": "signals if the allocation was successful",
+          "type": "boolean"
         }
       }
     },
