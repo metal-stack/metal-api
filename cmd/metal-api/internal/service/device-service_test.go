@@ -315,6 +315,9 @@ func TestRegisterDevice(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("site").Get(test.siteid)).Return(test.dbsites, nil)
 			mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{sz1}, nil)
 			mock.On(r.DB("mockdb").Table("device").Get("1")).Return(test.dbdevices, nil)
+			// TODO Filter mock is currently noop, makes switch result in device service empty.
+			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
+
 			if len(test.dbdevices) > 0 {
 				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{sz1}, nil)
 				mock.On(r.DB("mockdb").Table("device").Get(test.dbdevices[0].ID).Replace(r.MockAnything())).Return(emptyResult, nil)

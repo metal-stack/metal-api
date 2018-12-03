@@ -21,6 +21,27 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 	return &sw, nil
 }
 
+func (rs *RethinkStore) findSwitchByRack(rackid string) ([]metal.Switch, error) {
+	q := *rs.switchTable()
+	if rackid != "" {
+		q = q.Filter(func(s r.Term) r.Term {
+			return s.Field("rackid").Eq(rackid)
+		})
+	}
+	res, err := q.Run(rs.session)
+	if err != nil {
+		return nil, fmt.Errorf("cannot search switch by rackid: %v", err)
+	}
+	defer res.Close()
+	data := make([]metal.Switch, 0)
+	err = res.All(&data)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch results: %v", err)
+	}
+
+	return data, nil
+}
+
 func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
 	res, err := rs.switchTable().Run(rs.session)
 	if err != nil {
