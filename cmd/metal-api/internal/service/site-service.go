@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -80,8 +79,7 @@ func (fr SiteResource) webService() *restful.WebService {
 func (fr SiteResource) findSite(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	Site, err := fr.ds.FindSite(id)
-	if err != nil {
-		sendError(fr.log, response, "findSite", http.StatusNotFound, err)
+	if checkError(fr.log, response, "findSite", err) {
 		return
 	}
 	response.WriteEntity(Site)
@@ -89,8 +87,7 @@ func (fr SiteResource) findSite(request *restful.Request, response *restful.Resp
 
 func (fr SiteResource) listSites(request *restful.Request, response *restful.Response) {
 	res, err := fr.ds.ListSites()
-	if err != nil {
-		sendError(fr.log, response, "listSites", http.StatusInternalServerError, err)
+	if checkError(fr.log, response, "listSites", err) {
 		return
 	}
 	response.WriteEntity(res)
@@ -99,48 +96,42 @@ func (fr SiteResource) listSites(request *restful.Request, response *restful.Res
 func (fr SiteResource) deleteSite(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	Site, err := fr.ds.DeleteSite(id)
-	if err != nil {
-		sendError(fr.log, response, "deleteFaility", http.StatusNotFound, err)
-	} else {
-		response.WriteEntity(Site)
+	if checkError(fr.log, response, "deleteSite", err) {
+		return
 	}
+	response.WriteEntity(Site)
 }
 
 func (fr SiteResource) createSite(request *restful.Request, response *restful.Response) {
 	var s metal.Site
 	err := request.ReadEntity(&s)
-	if err != nil {
-		sendError(fr.log, response, "createSite", http.StatusInternalServerError, fmt.Errorf("cannot read Site from request: %v", err))
+	if checkError(fr.log, response, "createSite", err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	err = fr.ds.CreateSite(&s)
-	if err != nil {
-		sendError(fr.log, response, "createSite", http.StatusInternalServerError, fmt.Errorf("cannot create Site: %v", err))
-	} else {
-		response.WriteHeaderAndEntity(http.StatusCreated, s)
+	if checkError(fr.log, response, "createSite", err) {
+		return
 	}
+	response.WriteHeaderAndEntity(http.StatusCreated, s)
 }
 
 func (fr SiteResource) updateSite(request *restful.Request, response *restful.Response) {
 	var newSite metal.Site
 	err := request.ReadEntity(&newSite)
-	if err != nil {
-		sendError(fr.log, response, "updateSite", http.StatusInternalServerError, fmt.Errorf("cannot read Site from request: %v", err))
+	if checkError(fr.log, response, "updateSite", err) {
 		return
 	}
 
 	oldSite, err := fr.ds.FindSite(newSite.ID)
-	if err != nil {
-		sendError(fr.log, response, "updateSite", http.StatusNotFound, err)
+	if checkError(fr.log, response, "updateSite", err) {
 		return
 	}
 
 	err = fr.ds.UpdateSite(oldSite, &newSite)
 
-	if err != nil {
-		sendError(fr.log, response, "updateSite", http.StatusConflict, err)
+	if checkError(fr.log, response, "updateSite", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSite)

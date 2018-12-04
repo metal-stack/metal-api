@@ -14,7 +14,7 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, metal.ErrNotFound
+		return nil, metal.NotFound("no switch %q found", id)
 	}
 	var sw metal.Switch
 	err = res.One(&sw)
@@ -73,7 +73,7 @@ func (rs *RethinkStore) CreateSwitch(s *metal.Switch) (*metal.Switch, error) {
 func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
 	img, err := rs.FindSwitch(id)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find switch with id %q: %v", id, err)
+		return nil, err
 	}
 	_, err = rs.switchTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {

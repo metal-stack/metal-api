@@ -13,6 +13,9 @@ func (rs *RethinkStore) FindSite(id string) (*metal.Site, error) {
 		return nil, fmt.Errorf("cannot get Site from database: %v", err)
 	}
 	defer res.Close()
+	if res.IsNil() {
+		return nil, metal.NotFound("no siete %q found", id)
+	}
 	var r metal.Site
 	err = res.One(&r)
 	if err != nil {
@@ -49,7 +52,7 @@ func (rs *RethinkStore) CreateSite(f *metal.Site) error {
 func (rs *RethinkStore) DeleteSite(id string) (*metal.Site, error) {
 	f, err := rs.FindSite(id)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find Site with id %q: %v", id, err)
+		return nil, err
 	}
 	_, err = rs.siteTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {

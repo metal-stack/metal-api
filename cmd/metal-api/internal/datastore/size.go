@@ -14,7 +14,7 @@ func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, ErrNotFound
+		return nil, metal.NotFound("no size %q found", id)
 	}
 	var r metal.Size
 	err = res.One(&r)
@@ -52,7 +52,7 @@ func (rs *RethinkStore) CreateSize(size *metal.Size) error {
 func (rs *RethinkStore) DeleteSize(id string) (*metal.Size, error) {
 	sz, err := rs.FindSize(id)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find size with id %q: %v", id, err)
+		return nil, err
 	}
 	_, err = rs.sizeTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {

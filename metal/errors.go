@@ -1,11 +1,19 @@
 package metal
 
-import "fmt"
+import (
+	"fmt"
 
-var (
-	ErrNotFound = fmt.Errorf("not found")
+	"github.com/pkg/errors"
 )
 
+var (
+	errNotFound = fmt.Errorf("NotFound")
+)
+
+func NotFound(format string, args ...interface{}) error {
+	return errors.Wrapf(errNotFound, format, args...)
+}
+
 func IsNotFound(e error) bool {
-	return e == ErrNotFound
+	return errors.Cause(e) == errNotFound
 }

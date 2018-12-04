@@ -269,7 +269,7 @@ func TestRegisterDevice(t *testing.T) {
 			siteid:         "",
 			dbsites:        nil,
 			dbsizes:        []metal.Size{sz1},
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:               "unknown size because wrong cpu",

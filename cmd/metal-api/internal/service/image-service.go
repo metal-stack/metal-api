@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -80,8 +79,7 @@ func (ir imageResource) webService() *restful.WebService {
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	image, err := ir.ds.FindImage(id)
-	if err != nil {
-		sendError(ir.log, response, "findImage", http.StatusNotFound, err)
+	if checkError(ir.log, response, "findImage", err) {
 		return
 	}
 	response.WriteEntity(image)
@@ -89,8 +87,7 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
 	res, err := ir.ds.ListImages()
-	if err != nil {
-		sendError(ir.log, response, "listImages", http.StatusInternalServerError, err)
+	if checkError(ir.log, response, "listImages", err) {
 		return
 	}
 	response.WriteEntity(res)
@@ -99,48 +96,42 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	image, err := ir.ds.DeleteImage(id)
-	if err != nil {
-		sendError(ir.log, response, "deleteImage", http.StatusNotFound, err)
-	} else {
-		response.WriteEntity(image)
+	if checkError(ir.log, response, "deleteImage", err) {
+		return
 	}
+	response.WriteEntity(image)
 }
 
 func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
 	var s metal.Image
 	err := request.ReadEntity(&s)
-	if err != nil {
-		sendError(ir.log, response, "createImage", http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))
+	if checkError(ir.log, response, "createImage", err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	img, err := ir.ds.CreateImage(&s)
-	if err != nil {
-		sendError(ir.log, response, "createImage", http.StatusInternalServerError, err)
-	} else {
-		response.WriteHeaderAndEntity(http.StatusCreated, img)
+	if checkError(ir.log, response, "createImage", err) {
+		return
 	}
+	response.WriteHeaderAndEntity(http.StatusCreated, img)
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
 	var newImage metal.Image
 	err := request.ReadEntity(&newImage)
-	if err != nil {
-		sendError(ir.log, response, "updateImage", http.StatusInternalServerError, fmt.Errorf("cannot read image from request: %v", err))
+	if checkError(ir.log, response, "updateImage", err) {
 		return
 	}
 
 	oldImage, err := ir.ds.FindImage(newImage.ID)
-	if err != nil {
-		sendError(ir.log, response, "updateImage", http.StatusNotFound, err)
+	if checkError(ir.log, response, "updateImage", err) {
 		return
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)
 
-	if err != nil {
-		sendError(ir.log, response, "updateImage", http.StatusConflict, err)
+	if checkError(ir.log, response, "updateImage", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newImage)

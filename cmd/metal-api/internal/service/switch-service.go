@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -71,8 +70,7 @@ func (sr switchResource) webService() *restful.WebService {
 
 func (sr switchResource) listSwitches(request *restful.Request, response *restful.Response) {
 	res, err := sr.ds.ListSwitches()
-	if err != nil {
-		sendError(sr.log, response, "listSwitches", http.StatusInternalServerError, err)
+	if checkError(sr.log, response, "listSwitches", err) {
 		return
 	}
 	response.WriteEntity(res)
@@ -81,23 +79,20 @@ func (sr switchResource) listSwitches(request *restful.Request, response *restfu
 func (sr switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	sw, err := sr.ds.DeleteSwitch(id)
-	if err != nil {
-		sendError(sr.log, response, "deleteSwitch", http.StatusNotFound, err)
-	} else {
-		response.WriteEntity(sw)
+	if checkError(sr.log, response, "deleteSwitch", err) {
+		return
 	}
+	response.WriteEntity(sw)
 }
 
 func (sr switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
 	var newSwitch switchRegistration
 	err := request.ReadEntity(&newSwitch)
-	if err != nil {
-		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, fmt.Errorf("cannot read switch from request: %v", err))
+	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
 	_, err = sr.ds.FindSite(newSwitch.SiteID)
-	if err != nil {
-		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, fmt.Errorf("Cannot find site %q: %v", newSwitch.SiteID, err))
+	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
 
@@ -108,8 +103,7 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 			sw.Created = time.Now()
 			sw.Changed = sw.Created
 			sw, err = sr.ds.CreateSwitch(sw)
-			if err != nil {
-				sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
+			if checkError(sr.log, response, "registerSwitch", err) {
 				return
 			}
 			response.WriteHeaderAndEntity(http.StatusCreated, sw)
@@ -123,8 +117,7 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 
 	err = sr.ds.UpdateSwitch(oldSwitch, sw)
 
-	if err != nil {
-		sendError(sr.log, response, "registerSwitch", http.StatusConflict, err)
+	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, sw)

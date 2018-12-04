@@ -13,16 +13,15 @@ func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 		return nil, fmt.Errorf("cannot get image from database: %v", err)
 	}
 	defer res.Close()
+	if res.IsNil() {
+		return nil, metal.NotFound("no image %q found", id)
+	}
 	var img metal.Image
 	err = res.One(&img)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
 	return &img, nil
-}
-
-func (rs *RethinkStore) SearchImage() error {
-	return fmt.Errorf("not implemented yet")
 }
 
 func (rs *RethinkStore) ListImages() ([]metal.Image, error) {
@@ -53,18 +52,13 @@ func (rs *RethinkStore) CreateImage(i *metal.Image) (*metal.Image, error) {
 func (rs *RethinkStore) DeleteImage(id string) (*metal.Image, error) {
 	img, err := rs.FindImage(id)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find image with id %q: %v", id, err)
+		return nil, err
 	}
 	_, err = rs.imageTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot delete image from database: %v", err)
 	}
 	return img, nil
-}
-
-func (rs *RethinkStore) DeleteImages() error {
-	// we do not support this here! do we really need such a method?
-	return nil
 }
 
 func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image) error {

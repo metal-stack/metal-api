@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -80,8 +79,7 @@ func (sr sizeResource) webService() *restful.WebService {
 func (sr sizeResource) findSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	size, err := sr.ds.FindSize(id)
-	if err != nil {
-		sendError(sr.log, response, "findSize", http.StatusNotFound, err)
+	if checkError(sr.log, response, "findSize", err) {
 		return
 	}
 	response.WriteEntity(size)
@@ -89,8 +87,7 @@ func (sr sizeResource) findSize(request *restful.Request, response *restful.Resp
 
 func (sr sizeResource) listSizes(request *restful.Request, response *restful.Response) {
 	res, err := sr.ds.ListSizes()
-	if err != nil {
-		sendError(sr.log, response, "listSizes", http.StatusNotFound, err)
+	if checkError(sr.log, response, "listSizes", err) {
 		return
 	}
 	response.WriteEntity(res)
@@ -99,48 +96,42 @@ func (sr sizeResource) listSizes(request *restful.Request, response *restful.Res
 func (sr sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	size, err := sr.ds.DeleteSize(id)
-	if err != nil {
-		sendError(sr.log, response, "deleteSize", http.StatusNotFound, err)
-	} else {
-		response.WriteEntity(size)
+	if checkError(sr.log, response, "deleteSize", err) {
+		return
 	}
+	response.WriteEntity(size)
 }
 
 func (sr sizeResource) createSize(request *restful.Request, response *restful.Response) {
 	var s metal.Size
 	err := request.ReadEntity(&s)
-	if err != nil {
-		sendError(sr.log, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
+	if checkError(sr.log, response, "createSize", err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	err = sr.ds.CreateSize(&s)
-	if err != nil {
-		sendError(sr.log, response, "createSize", http.StatusInternalServerError, fmt.Errorf("cannot create size: %v", err))
-	} else {
-		response.WriteHeaderAndEntity(http.StatusCreated, s)
+	if checkError(sr.log, response, "createSize", err) {
+		return
 	}
+	response.WriteHeaderAndEntity(http.StatusCreated, s)
 }
 
 func (sr sizeResource) updateSize(request *restful.Request, response *restful.Response) {
 	var newSize metal.Size
 	err := request.ReadEntity(&newSize)
-	if err != nil {
-		sendError(sr.log, response, "updateSize", http.StatusInternalServerError, fmt.Errorf("cannot read size from request: %v", err))
+	if checkError(sr.log, response, "updateSize", err) {
 		return
 	}
 
 	oldSize, err := sr.ds.FindSize(newSize.ID)
-	if err != nil {
-		sendError(sr.log, response, "updateSize", http.StatusNotFound, err)
+	if checkError(sr.log, response, "updateSize", err) {
 		return
 	}
 
 	err = sr.ds.UpdateSize(oldSize, &newSize)
 
-	if err != nil {
-		sendError(sr.log, response, "updateSize", http.StatusConflict, err)
+	if checkError(sr.log, response, "updateSize", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSize)

@@ -9,7 +9,6 @@ import (
 // Some predefined error values.
 var (
 	ErrNoDeviceAvailable = fmt.Errorf("no device available")
-	ErrNotFound          = fmt.Errorf("no entity found")
 )
 
 // An Allocation is a queue of allocated devices. You can read the devices

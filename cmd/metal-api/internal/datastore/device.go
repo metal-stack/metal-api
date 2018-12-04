@@ -15,7 +15,7 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, ErrNotFound
+		return nil, metal.NotFound("no device with %q found", id)
 	}
 
 	var d metal.Device
@@ -103,7 +103,7 @@ func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
 		return nil, fmt.Errorf("cannot query ipmi data: %v", err)
 	}
 	if res.IsNil() {
-		return nil, ErrNotFound
+		return nil, metal.NotFound("no impi for device %q found", id)
 	}
 	var ipmi metal.IPMI
 	err = res.One(&ipmi)
@@ -127,7 +127,7 @@ func (rs *RethinkStore) UpsertIpmi(id string, ipmi *metal.IPMI) error {
 func (rs *RethinkStore) DeleteDevice(id string) (*metal.Device, error) {
 	d, err := rs.FindDevice(id)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find device with id %q: %v", id, err)
+		return nil, err
 	}
 	_, err = rs.deviceTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
@@ -211,7 +211,7 @@ func (rs *RethinkStore) AllocateDevice(
 func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	device, err := rs.FindDevice(id)
 	if err != nil {
-		return nil, fmt.Errorf("cannot free device: %v", err)
+		return nil, err
 	}
 	if device.Allocation == nil {
 		return nil, fmt.Errorf("device is not allocated")
@@ -235,16 +235,20 @@ func (rs *RethinkStore) RegisterDevice(
 
 	device, err := rs.FindDevice(id)
 	if err != nil {
-		device = &metal.Device{
-			ID:       id,
-			Size:     &sz,
-			Site:     site,
-			SiteID:   site.ID,
-			RackID:   rackid,
-			Hardware: hardware,
-		}
-		err = rs.CreateDevice(device)
-		if err != nil {
+		if metal.IsNotFound(err) {
+			device = &metal.Device{
+				ID:       id,
+				Size:     &sz,
+				Site:     site,
+				SiteID:   site.ID,
+				RackID:   rackid,
+				Hardware: hardware,
+			}
+			err = rs.CreateDevice(device)
+			if err != nil {
+				return nil, err
+			}
+		} else {
 			return nil, err
 		}
 	} else {
@@ -271,7 +275,7 @@ func (rs *RethinkStore) RegisterDevice(
 func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	dev, err := rs.FindDevice(id)
 	if err != nil {
-		return fmt.Errorf("cannot wait for unknown device: %v", err)
+		return err
 	}
 	a := make(chan metal.Device)
 
@@ -330,13 +334,13 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, error) {
 	allsz, err := rs.ListSizes()
 	if err != nil {
-		return nil, fmt.Errorf("cannot query all sizes: %v", err)
+		return nil, err
 	}
 	szmap := metal.Sizes(allsz).ByID()
 
 	allimg, err := rs.ListImages()
 	if err != nil {
-		return nil, fmt.Errorf("cannot query all images: %v", err)
+		return nil, err
 	}
 	imgmap := metal.Images(allimg).ByID()
 
