@@ -205,6 +205,7 @@ func (rs *RethinkStore) AllocateDevice(
 	_, err = rs.waitTable().Get(res[0].ID).Update(res[0]).RunWrite(rs.session)
 	if err != nil {
 		cidrAllocator.Release(res[0].ID)
+		rs.UpdateDevice(&res[0], &old)
 		return nil, fmt.Errorf("cannot allocate device in DB: %v", err)
 	}
 	return &res[0], nil
