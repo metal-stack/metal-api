@@ -14,7 +14,7 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, ErrNotFound
+		return nil, metal.ErrNotFound
 	}
 	var sw metal.Switch
 	err = res.One(&sw)
