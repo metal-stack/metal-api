@@ -118,6 +118,8 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
 		return
 	}
+	// Make sure we do not delete current connections
+	sw.Connections = oldSwitch.Connections
 
 	err = sr.ds.UpdateSwitch(oldSwitch, sw)
 
