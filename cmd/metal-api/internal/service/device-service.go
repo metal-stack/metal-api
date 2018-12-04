@@ -344,7 +344,7 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		allocate.ProjectID, site, size,
 		image, allocate.SSHPubKeys,
 		allocate.Tenant,
-		dr.netbox.Allocate)
+		dr.netbox)
 	if err != nil {
 		if err == datastore.ErrNoDeviceAvailable {
 			sendError(dr.log, response, "allocateDevice", http.StatusNotFound, err)

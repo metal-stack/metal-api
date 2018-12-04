@@ -177,7 +177,7 @@ func (rs *RethinkStore) AllocateDevice(
 
 	old := res[0]
 	//uuid, tenant, project, name, description, os
-	cidr, err := cidrAllocator(res[0].ID, tenant, projectid, name, description, img.Name)
+	cidr, err := cidrAllocator.Allocate(res[0].ID, tenant, projectid, name, description, img.Name)
 	if err != nil {
 		return nil, fmt.Errorf("cannot allocate at netbox: %v", err)
 	}
@@ -199,10 +199,12 @@ func (rs *RethinkStore) AllocateDevice(
 	res[0].Changed = time.Now()
 	err = rs.UpdateDevice(&old, &res[0])
 	if err != nil {
+		cidrAllocator.Release(res[0].ID)
 		return nil, fmt.Errorf("error when allocating device %q, %v", res[0].ID, err)
 	}
 	_, err = rs.waitTable().Get(res[0].ID).Update(res[0]).RunWrite(rs.session)
 	if err != nil {
+		cidrAllocator.Release(res[0].ID)
 		return nil, fmt.Errorf("cannot allocate device in DB: %v", err)
 	}
 	return &res[0], nil

@@ -19,4 +19,7 @@ type Allocation <-chan metal.Device
 // allocated devices.
 type Allocator func(Allocation) error
 
-type CidrAllocator func(uuid, tenant, project, name, description, os string) (string, error)
+type CidrAllocator interface {
+	Allocate(uuid, tenant, project, name, description, os string) (string, error)
+	Release(uuid string) error
+}
