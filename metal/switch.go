@@ -36,7 +36,6 @@ func (s *Switch) ConnectDevice(device *Device) {
 			newConnections = append(newConnections[:i], newConnections[i+1:]...)
 		}
 	}
-	s.Connections = newConnections
 
 	// calculate the connections for this device
 	for _, switchNic := range s.Nics {
@@ -47,10 +46,10 @@ func (s *Switch) ConnectDevice(device *Device) {
 						Nic:      switchNic,
 						DeviceID: device.ID,
 					}
-					s.Connections = append(s.Connections, conn)
+					newConnections = append(newConnections, conn)
 				}
 			}
 		}
 	}
-
+	s.Connections = newConnections
 }
