@@ -6,7 +6,7 @@ type MacAddress string
 type Nic struct {
 	MacAddress MacAddress `json:"mac"  description:"the mac address of this network interface" rethinkdb:"macAddress"`
 	Name       string     `json:"name"  description:"the name of this network interface" rethinkdb:"name"`
-	Neighbors  Nics       `json:"neighbors" description:"the neighbors visible to this network interface"`
+	Neighbors  Nics       `json:"neighbors" description:"the neighbors visible to this network interface" rethinkdb:"neighbors"`
 }
 
 type Nics []Nic
