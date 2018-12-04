@@ -30,7 +30,7 @@ func TestRegister(t *testing.T) {
 			hw: []metal.Nic{
 				metal.Nic{
 					Name:       "nicname",
-					MacAddress: "12345",
+					MacAddress: metal.MacAddress("12345"),
 				},
 			}},
 	}
@@ -44,7 +44,7 @@ func TestRegister(t *testing.T) {
 				require.Equal(t, td.size, *params.Request.Size)
 				for i, n := range td.hw {
 					require.Equal(t, n.Name, *params.Request.Nics[i].Name)
-					require.Equal(t, n.MacAddress, *params.Request.Nics[i].Mac)
+					require.Equal(t, string(n.MacAddress), *params.Request.Nics[i].Mac)
 				}
 				return &nbdevice.NetboxAPIProxyAPIDeviceRegisterOK{}, nil
 			}

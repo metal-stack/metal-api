@@ -1115,7 +1115,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Switch"
+              "$ref": "#/definitions/service.switchRegistration"
             }
           }
         ],
@@ -1203,7 +1203,7 @@
         }
       }
     },
-    "metal.Connection": {
+    "metal.Connections": {
       "required": [
         "nic"
       ],
@@ -1251,6 +1251,7 @@
       "required": [
         "id",
         "site",
+        "rackid",
         "size",
         "hardware",
         "allocation"
@@ -1280,6 +1281,11 @@
           "description": "a unique ID",
           "type": "string",
           "uniqueItems": true,
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this device",
+          "type": "string",
           "readOnly": true
         },
         "site": {
@@ -1590,9 +1596,9 @@
         },
         "connections": {
           "description": "a connection between a switch port and a device",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Connection"
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/metal.Connections"
           }
         },
         "created": {
@@ -1733,6 +1739,36 @@
         },
         "uuid": {
           "description": "the product uuid of the device to register",
+          "type": "string"
+        }
+      }
+    },
+    "service.switchRegistration": {
+      "required": [
+        "id",
+        "nics",
+        "site_id",
+        "rack_id"
+      ],
+      "properties": {
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "nics": {
+          "description": "the list of network interfaces on the switch",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Nic"
+          }
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        },
+        "site_id": {
+          "description": "the id of the site in which this switch is located",
           "type": "string"
         }
       }

@@ -314,6 +314,12 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		return
 	}
 
+	err = dr.ds.UpdateSwitchConnections(device)
+	if err != nil {
+		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, err)
+		return
+	}
+
 	response.WriteEntity(device)
 }
 

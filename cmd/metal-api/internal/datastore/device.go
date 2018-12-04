@@ -240,6 +240,7 @@ func (rs *RethinkStore) RegisterDevice(
 			Size:     &sz,
 			Site:     site,
 			SiteID:   site.ID,
+			RackID:   rackid,
 			Hardware: hardware,
 		}
 		err = rs.CreateDevice(device)
@@ -252,6 +253,7 @@ func (rs *RethinkStore) RegisterDevice(
 		device.Site = site
 		device.SiteID = site.ID
 		device.Size = &sz
+		device.RackID = rackid
 
 		err = rs.UpdateDevice(&old, device)
 		if err != nil {
@@ -261,19 +263,6 @@ func (rs *RethinkStore) RegisterDevice(
 	err = rs.UpsertIpmi(id, &ipmi)
 	if err != nil {
 		return nil, err
-	}
-
-	switches, err := rs.findSwitchByRack(rackid)
-	if err != nil {
-		return nil, err
-	}
-	for _, sw := range switches {
-		oldSwitch := sw
-		sw.ConnectDevice(device)
-		err := rs.UpdateSwitch(&oldSwitch, &sw)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return device, nil

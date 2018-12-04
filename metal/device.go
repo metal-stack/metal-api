@@ -11,6 +11,7 @@ type Device struct {
 	Changed    time.Time         `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
 	Site       Site              `json:"site" description:"the site assigned to this device" readOnly:"true" rethinkdb:"-"`
 	SiteID     string            `json:"-" rethinkdb:"siteid"`
+	RackID     string            `json:"rackid" description:"the rack assigned to this device" readOnly:"true" rethinkdb:"rackid"`
 	Size       *Size             `json:"size" description:"the size of this device" readOnly:"true" rethinkdb:"-"`
 	SizeID     string            `json:"-" rethinkdb:"sizeid"`
 	Hardware   DeviceHardware    `json:"hardware" description:"the hardware of this device" rethinkdb:"hardware"`
@@ -37,7 +38,7 @@ type DeviceAllocation struct {
 type DeviceHardware struct {
 	Memory   uint64        `json:"memory" description:"the total memory of the device" rethinkdb:"memory"`
 	CPUCores int           `json:"cpu_cores" description:"the number of cpu cores" rethinkdb:"cpu_cores"`
-	Nics     []Nic         `json:"nics" description:"the list of network interfaces of this device" rethinkdb:"network_interfaces"`
+	Nics     Nics          `json:"nics" description:"the list of network interfaces of this device" rethinkdb:"network_interfaces"`
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this device" rethinkdb:"block_devices"`
 }
 
@@ -60,7 +61,7 @@ type IPMI struct {
 // HasMAC returns true if this device has the given MAC.
 func (d *Device) HasMAC(m string) bool {
 	for _, nic := range d.Hardware.Nics {
-		if nic.MacAddress == m {
+		if string(nic.MacAddress) == m {
 			return true
 		}
 	}
