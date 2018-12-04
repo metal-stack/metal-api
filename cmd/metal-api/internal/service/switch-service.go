@@ -19,6 +19,13 @@ type switchResource struct {
 	ds  *datastore.RethinkStore
 }
 
+type switchRegistration struct {
+	ID     string     `json:"id" description:"a unique ID" unique:"true"`
+	Nics   metal.Nics `json:"nics" description:"the list of network interfaces on the switch"`
+	SiteID string     `json:"site_id" description:"the id of the site in which this switch is located"`
+	RackID string     `json:"rack_id" description:"the id of the rack in which this switch is located"`
+}
+
 func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	sr := switchResource{
 		SugaredLogger: log.Sugar(),
@@ -54,7 +61,7 @@ func (sr switchResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/register").To(sr.registerSwitch).
 		Doc("register a switch").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.Switch{}).
+		Reads(switchRegistration{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).
 		Returns(http.StatusCreated, "Created", metal.Switch{}).
 		Returns(http.StatusConflict, "Conflict", nil))
@@ -82,7 +89,7 @@ func (sr switchResource) deleteSwitch(request *restful.Request, response *restfu
 }
 
 func (sr switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
-	var newSwitch metal.Switch
+	var newSwitch switchRegistration
 	err := request.ReadEntity(&newSwitch)
 	if err != nil {
 		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, fmt.Errorf("cannot read switch from request: %v", err))
@@ -95,29 +102,28 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 	}
 
 	oldSwitch, err := sr.ds.FindSwitch(newSwitch.ID)
+	sw := metal.NewSwitch(newSwitch.ID, newSwitch.SiteID, newSwitch.RackID, newSwitch.Nics)
 	if err != nil {
 		if metal.IsNotFound(err) {
-			newSwitch.Created = time.Now()
-			newSwitch.Changed = newSwitch.Created
-			sw, err := sr.ds.CreateSwitch(&newSwitch)
+			sw.Created = time.Now()
+			sw.Changed = sw.Created
+			sw, err = sr.ds.CreateSwitch(sw)
 			if err != nil {
 				sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
 				return
-			} else {
-				response.WriteHeaderAndEntity(http.StatusCreated, sw)
-				return
 			}
-		} else {
-			sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
+			response.WriteHeaderAndEntity(http.StatusCreated, sw)
 			return
 		}
+		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
+		return
 	}
 
-	err = sr.ds.UpdateSwitch(oldSwitch, &newSwitch)
+	err = sr.ds.UpdateSwitch(oldSwitch, sw)
 
 	if err != nil {
 		sendError(sr.log, response, "registerSwitch", http.StatusConflict, err)
 		return
 	}
-	response.WriteHeaderAndEntity(http.StatusOK, newSwitch)
+	response.WriteHeaderAndEntity(http.StatusOK, sw)
 }

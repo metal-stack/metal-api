@@ -24,6 +24,27 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 	return &sw, nil
 }
 
+func (rs *RethinkStore) findSwitchByRack(rackid string) ([]metal.Switch, error) {
+	q := *rs.switchTable()
+	if rackid != "" {
+		q = q.Filter(func(s r.Term) r.Term {
+			return s.Field("rackid").Eq(rackid)
+		})
+	}
+	res, err := q.Run(rs.session)
+	if err != nil {
+		return nil, fmt.Errorf("cannot search switch by rackid: %v", err)
+	}
+	defer res.Close()
+	data := make([]metal.Switch, 0)
+	err = res.All(&data)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch results: %v", err)
+	}
+
+	return data, nil
+}
+
 func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
 	res, err := rs.switchTable().Run(rs.session)
 	if err != nil {
@@ -69,4 +90,42 @@ func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.S
 		return fmt.Errorf("cannot update switch: %v", err)
 	}
 	return nil
+}
+
+func (rs *RethinkStore) UpdateSwitchConnections(dev *metal.Device) error {
+	switches, err := rs.findSwitchByRack(dev.RackID)
+	if err != nil {
+		return err
+	}
+	for _, sw := range switches {
+		oldSwitch := sw
+		sw.ConnectDevice(dev)
+		err := rs.UpdateSwitch(&oldSwitch, &sw)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rs *RethinkStore) findSwithcByMac(macs []metal.Nic) ([]metal.Switch, error) {
+	var searchmacs []string
+	for _, m := range macs {
+		searchmacs = append(searchmacs, string(m.MacAddress))
+	}
+	macexpr := r.Expr(searchmacs)
+
+	res, err := rs.switchTable().Filter(func(row r.Term) r.Term {
+		return macexpr.SetIntersection(row.Field("network_interfaces").Field("macAddress")).Count().Gt(1)
+	}).Run(rs.session)
+	if err != nil {
+		return nil, fmt.Errorf("cannot search switches from database: %v", err)
+	}
+	defer res.Close()
+	switches := make([]metal.Switch, 0)
+	err = res.All(&switches)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch results: %v", err)
+	}
+	return switches, nil
 }

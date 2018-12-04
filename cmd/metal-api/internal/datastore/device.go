@@ -51,7 +51,7 @@ func (rs *RethinkStore) SearchDevice(mac string) ([]metal.Device, error) {
 	}
 	res, err := q.Run(rs.session)
 	if err != nil {
-		return nil, fmt.Errorf("cannt search devices from database: %v", err)
+		return nil, fmt.Errorf("cannot search devices from database: %v", err)
 	}
 	defer res.Close()
 	data := make([]metal.Device, 0)
@@ -228,6 +228,7 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 func (rs *RethinkStore) RegisterDevice(
 	id string,
 	site metal.Site,
+	rackid string,
 	sz metal.Size,
 	hardware metal.DeviceHardware,
 	ipmi metal.IPMI) (*metal.Device, error) {
@@ -239,6 +240,7 @@ func (rs *RethinkStore) RegisterDevice(
 			Size:     &sz,
 			Site:     site,
 			SiteID:   site.ID,
+			RackID:   rackid,
 			Hardware: hardware,
 		}
 		err = rs.CreateDevice(device)
@@ -251,6 +253,7 @@ func (rs *RethinkStore) RegisterDevice(
 		device.Site = site
 		device.SiteID = site.ID
 		device.Size = &sz
+		device.RackID = rackid
 
 		err = rs.UpdateDevice(&old, device)
 		if err != nil {

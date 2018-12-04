@@ -50,8 +50,9 @@ func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.N
 	var nics []*models.Nic
 	for i := range hwnics {
 		nic := hwnics[i]
+		m := string(nic.MacAddress)
 		newnic := new(models.Nic)
-		newnic.Mac = &nic.MacAddress
+		newnic.Mac = &m
 		newnic.Name = &nic.Name
 		nics = append(nics, newnic)
 	}

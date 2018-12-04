@@ -307,8 +307,14 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		return
 	}
 
-	device, err := dr.ds.RegisterDevice(data.UUID, *site, *size, data.Hardware, data.IPMI)
+	device, err := dr.ds.RegisterDevice(data.UUID, *site, data.RackID, *size, data.Hardware, data.IPMI)
 
+	if err != nil {
+		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, err)
+		return
+	}
+
+	err = dr.ds.UpdateSwitchConnections(device)
 	if err != nil {
 		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, err)
 		return
