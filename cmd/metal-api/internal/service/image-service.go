@@ -13,16 +13,16 @@ import (
 )
 
 type imageResource struct {
-	*zap.SugaredLogger
-	log *zap.Logger
-	ds  *datastore.RethinkStore
+	webResource
 }
 
 func NewImage(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
-		SugaredLogger: log.Sugar(),
-		log:           log,
-		ds:            ds,
+		webResource: webResource{
+			SugaredLogger: log.Sugar(),
+			log:           log,
+			ds:            ds,
+		},
 	}
 	return ir.webService()
 }
@@ -36,7 +36,9 @@ func (ir imageResource) webService() *restful.WebService {
 
 	tags := []string{"image"}
 
-	ws.Route(ws.GET("/{id}").To(ir.findImage).
+	ws.Route(ws.GET("/{id}").
+		To(ir.restEntityGet(ir.ds.FindImage)).
+		Operation("findImage").
 		Doc("get image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -44,13 +46,17 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/").To(ir.listImages).
+	ws.Route(ws.GET("/").
+		To(ir.restListGet(ir.ds.ListImages)).
+		Operation("listImages").
 		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Image{}).
 		Returns(http.StatusOK, "OK", []metal.Image{}))
 
-	ws.Route(ws.DELETE("/{id}").To(ir.deleteImage).
+	ws.Route(ws.DELETE("/{id}").
+		To(ir.restEntityGet(ir.ds.DeleteImage)).
+		Operation("deleteImage").
 		Doc("deletes an image and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -74,32 +80,6 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	return ws
-}
-
-func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	image, err := ir.ds.FindImage(id)
-	if checkError(ir.log, response, "findImage", err) {
-		return
-	}
-	response.WriteEntity(image)
-}
-
-func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
-	res, err := ir.ds.ListImages()
-	if checkError(ir.log, response, "listImages", err) {
-		return
-	}
-	response.WriteEntity(res)
-}
-
-func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	image, err := ir.ds.DeleteImage(id)
-	if checkError(ir.log, response, "deleteImage", err) {
-		return
-	}
-	response.WriteEntity(image)
 }
 
 func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {

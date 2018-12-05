@@ -13,16 +13,16 @@ import (
 )
 
 type SiteResource struct {
-	*zap.SugaredLogger
-	log *zap.Logger
-	ds  *datastore.RethinkStore
+	webResource
 }
 
 func NewSite(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	fr := SiteResource{
-		SugaredLogger: log.Sugar(),
-		log:           log,
-		ds:            ds,
+		webResource: webResource{
+			SugaredLogger: log.Sugar(),
+			log:           log,
+			ds:            ds,
+		},
 	}
 	return fr.webService()
 }
@@ -36,7 +36,9 @@ func (fr SiteResource) webService() *restful.WebService {
 
 	tags := []string{"Site"}
 
-	ws.Route(ws.GET("/{id}").To(fr.findSite).
+	ws.Route(ws.GET("/{id}").
+		To(fr.restEntityGet(fr.ds.FindSite)).
+		Operation("findSite").
 		Doc("get Site by id").
 		Param(ws.PathParameter("id", "identifier of the Site").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -44,13 +46,17 @@ func (fr SiteResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Site{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/").To(fr.listSites).
+	ws.Route(ws.GET("/").
+		To(fr.restListGet(fr.ds.ListSites)).
+		Operation("listSites").
 		Doc("get all Sites").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Site{}).
 		Returns(http.StatusOK, "OK", []metal.Site{}))
 
-	ws.Route(ws.DELETE("/{id}").To(fr.deleteSite).
+	ws.Route(ws.DELETE("/{id}").
+		To(fr.restEntityGet(fr.ds.DeleteSite)).
+		Operation("deleteSite").
 		Doc("deletes a Site and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the Site").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -74,32 +80,6 @@ func (fr SiteResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	return ws
-}
-
-func (fr SiteResource) findSite(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	Site, err := fr.ds.FindSite(id)
-	if checkError(fr.log, response, "findSite", err) {
-		return
-	}
-	response.WriteEntity(Site)
-}
-
-func (fr SiteResource) listSites(request *restful.Request, response *restful.Response) {
-	res, err := fr.ds.ListSites()
-	if checkError(fr.log, response, "listSites", err) {
-		return
-	}
-	response.WriteEntity(res)
-}
-
-func (fr SiteResource) deleteSite(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	Site, err := fr.ds.DeleteSite(id)
-	if checkError(fr.log, response, "deleteSite", err) {
-		return
-	}
-	response.WriteEntity(Site)
 }
 
 func (fr SiteResource) createSite(request *restful.Request, response *restful.Response) {

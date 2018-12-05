@@ -13,16 +13,16 @@ import (
 )
 
 type sizeResource struct {
-	*zap.SugaredLogger
-	log *zap.Logger
-	ds  *datastore.RethinkStore
+	webResource
 }
 
 func NewSize(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	sr := sizeResource{
-		SugaredLogger: log.Sugar(),
-		log:           log,
-		ds:            ds,
+		webResource: webResource{
+			SugaredLogger: log.Sugar(),
+			log:           log,
+			ds:            ds,
+		},
 	}
 	return sr.webService()
 }
@@ -36,7 +36,9 @@ func (sr sizeResource) webService() *restful.WebService {
 
 	tags := []string{"size"}
 
-	ws.Route(ws.GET("/{id}").To(sr.findSize).
+	ws.Route(ws.GET("/{id}").
+		To(sr.restEntityGet(sr.ds.FindSize)).
+		Operation("findSize").
 		Doc("get size by id").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -44,13 +46,17 @@ func (sr sizeResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/").To(sr.listSizes).
+	ws.Route(ws.GET("/").
+		To(sr.restListGet(sr.ds.ListSizes)).
+		Operation("listSizes").
 		Doc("get all sizes").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Size{}).
 		Returns(http.StatusOK, "OK", []metal.Size{}))
 
-	ws.Route(ws.DELETE("/{id}").To(sr.deleteSize).
+	ws.Route(ws.DELETE("/{id}").
+		To(sr.restEntityGet(sr.ds.DeleteSize)).
+		Operation("deleteSize").
 		Doc("deletes an size and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -74,32 +80,6 @@ func (sr sizeResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	return ws
-}
-
-func (sr sizeResource) findSize(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	size, err := sr.ds.FindSize(id)
-	if checkError(sr.log, response, "findSize", err) {
-		return
-	}
-	response.WriteEntity(size)
-}
-
-func (sr sizeResource) listSizes(request *restful.Request, response *restful.Response) {
-	res, err := sr.ds.ListSizes()
-	if checkError(sr.log, response, "listSizes", err) {
-		return
-	}
-	response.WriteEntity(res)
-}
-
-func (sr sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	size, err := sr.ds.DeleteSize(id)
-	if checkError(sr.log, response, "deleteSize", err) {
-		return
-	}
-	response.WriteEntity(size)
 }
 
 func (sr sizeResource) createSize(request *restful.Request, response *restful.Response) {

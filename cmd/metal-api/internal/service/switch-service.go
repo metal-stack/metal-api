@@ -13,9 +13,7 @@ import (
 )
 
 type switchResource struct {
-	*zap.SugaredLogger
-	log *zap.Logger
-	ds  *datastore.RethinkStore
+	webResource
 }
 
 type switchRegistration struct {
@@ -27,9 +25,11 @@ type switchRegistration struct {
 
 func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	sr := switchResource{
-		SugaredLogger: log.Sugar(),
-		log:           log,
-		ds:            ds,
+		webResource: webResource{
+			SugaredLogger: log.Sugar(),
+			log:           log,
+			ds:            ds,
+		},
 	}
 	return sr.webService()
 }
@@ -43,13 +43,15 @@ func (sr switchResource) webService() *restful.WebService {
 
 	tags := []string{"switch"}
 
-	ws.Route(ws.GET("/").To(sr.listSwitches).
+	ws.Route(ws.GET("/").To(sr.restListGet(sr.ds.ListSwitches)).
+		Operation("listSwitches").
 		Doc("get all switches").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Switch{}).
 		Returns(http.StatusOK, "OK", []metal.Switch{}))
 
-	ws.Route(ws.DELETE("/{id}").To(sr.deleteSwitch).
+	ws.Route(ws.DELETE("/{id}").To(sr.restEntityGet(sr.ds.DeleteSwitch)).
+		Operation("deleteSwitch").
 		Doc("deletes an switch and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -66,23 +68,6 @@ func (sr switchResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", nil))
 
 	return ws
-}
-
-func (sr switchResource) listSwitches(request *restful.Request, response *restful.Response) {
-	res, err := sr.ds.ListSwitches()
-	if checkError(sr.log, response, "listSwitches", err) {
-		return
-	}
-	response.WriteEntity(res)
-}
-
-func (sr switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	sw, err := sr.ds.DeleteSwitch(id)
-	if checkError(sr.log, response, "deleteSwitch", err) {
-		return
-	}
-	response.WriteEntity(sw)
 }
 
 func (sr switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
