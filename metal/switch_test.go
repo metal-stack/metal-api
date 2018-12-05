@@ -9,13 +9,13 @@ import (
 // Gerrit and me implemented that monster in a one shot which worked.
 func TestSwitch_ConnectDevice(t *testing.T) {
 	type fields struct {
-		ID          string
-		Nics        []Nic
-		Connections DeviceConnections
-		SiteID      string
-		RackID      string
-		Created     time.Time
-		Changed     time.Time
+		ID                string
+		Nics              []Nic
+		DeviceConnections ConnectionMap
+		SiteID            string
+		RackID            string
+		Created           time.Time
+		Changed           time.Time
 	}
 	tests := []struct {
 		name   string
@@ -42,7 +42,7 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 				},
 				SiteID: "nbg1",
 				RackID: "rack1",
-				Connections: DeviceConnections{
+				DeviceConnections: ConnectionMap{
 					"device-1": []Connection{
 						Connection{
 							Nic: Nic{
@@ -96,8 +96,8 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSwitch(tt.fields.ID, tt.fields.SiteID, tt.fields.RackID, tt.fields.Nics)
 			s.ConnectDevice(tt.device)
-			if !reflect.DeepEqual(s.Connections, tt.fields.Connections) {
-				t.Errorf("expected:%v, got:%v", s.Connections, tt.fields.Connections)
+			if !reflect.DeepEqual(s.DeviceConnections, tt.fields.DeviceConnections) {
+				t.Errorf("expected:%v, got:%v", s.DeviceConnections, tt.fields.DeviceConnections)
 			}
 		})
 	}

@@ -1203,7 +1203,7 @@
         }
       }
     },
-    "metal.Connections": {
+    "metal.Connection": {
       "required": [
         "nic"
       ],
@@ -1596,9 +1596,9 @@
         },
         "connections": {
           "description": "a connection between a switch port and a device",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/metal.Connections"
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Connection"
           }
         },
         "created": {

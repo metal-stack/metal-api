@@ -21,6 +21,7 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
+	sw.FillSwitchConnections()
 	return &sw, nil
 }
 
@@ -41,7 +42,7 @@ func (rs *RethinkStore) findSwitchByRack(rackid string) ([]metal.Switch, error) 
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
-
+	metal.FillAllConnections(data)
 	return data, nil
 }
 
@@ -56,6 +57,7 @@ func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
+	metal.FillAllConnections(switches)
 	return switches, nil
 }
 
@@ -67,11 +69,12 @@ func (rs *RethinkStore) CreateSwitch(s *metal.Switch) (*metal.Switch, error) {
 	if s.ID == "" {
 		s.ID = res.GeneratedKeys[0]
 	}
+	s.FillSwitchConnections()
 	return s, nil
 }
 
 func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
-	img, err := rs.FindSwitch(id)
+	sw, err := rs.FindSwitch(id)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +82,7 @@ func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot delete switch from database: %v", err)
 	}
-	return img, nil
+	return sw, nil
 }
 
 func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.Switch) error {
@@ -127,5 +130,6 @@ func (rs *RethinkStore) findSwithcByMac(macs []metal.Nic) ([]metal.Switch, error
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
+	metal.FillAllConnections(switches)
 	return switches, nil
 }
