@@ -36,9 +36,11 @@ var (
 		SizeID: "1",
 	}
 	sz1 = metal.Size{
-		ID:          "1",
-		Name:        "sz1",
-		Description: "description 1",
+		Base: metal.Base{
+			ID:          "1",
+			Name:        "sz1",
+			Description: "description 1",
+		},
 		Constraints: []metal.Constraint{metal.Constraint{
 			MinCores:  1,
 			MaxCores:  1,
@@ -47,29 +49,39 @@ var (
 		}},
 	}
 	sz2 = metal.Size{
-		ID:          "2",
-		Name:        "sz2",
-		Description: "description 2",
+		Base: metal.Base{
+			ID:          "2",
+			Name:        "sz2",
+			Description: "description 2",
+		},
 	}
 	img1 = metal.Image{
-		ID:          "1",
-		Name:        "img1",
-		Description: "description 1",
+		Base: metal.Base{
+			ID:          "1",
+			Name:        "img1",
+			Description: "description 1",
+		},
 	}
 	img2 = metal.Image{
-		ID:          "2",
-		Name:        "img2",
-		Description: "description 2",
+		Base: metal.Base{
+			ID:          "2",
+			Name:        "img2",
+			Description: "description 2",
+		},
 	}
 	site1 = metal.Site{
-		ID:          "1",
-		Name:        "site1",
-		Description: "description 1",
+		Base: metal.Base{
+			ID:          "1",
+			Name:        "site1",
+			Description: "description 1",
+		},
 	}
 	site2 = metal.Site{
-		ID:          "2",
-		Name:        "site2",
-		Description: "description 2",
+		Base: metal.Base{
+			ID:          "2",
+			Name:        "site2",
+			Description: "description 2",
+		},
 	}
 
 	emptyResult = map[string]interface{}{}

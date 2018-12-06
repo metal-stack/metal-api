@@ -1337,7 +1337,6 @@
       }
     },
     "metal.Device": {
-      "description": "A device representing a bare metal machine.",
       "required": [
         "id",
         "site",
@@ -1543,13 +1542,13 @@
           "readOnly": true
         },
         "created": {
-          "description": "the creation time of this image",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
         },
         "description": {
-          "description": "a description for this image",
+          "description": "a description for this entity",
           "type": "string"
         },
         "id": {
@@ -1684,11 +1683,9 @@
       }
     },
     "metal.Site": {
-      "description": "A Facility describes the location where a device is placed.",
       "required": [
         "id",
-        "name",
-        "description"
+        "name"
       ],
       "properties": {
         "changed": {
@@ -1698,13 +1695,13 @@
           "readOnly": true
         },
         "created": {
-          "description": "the creation time of this image",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
         },
         "description": {
-          "description": "a small description",
+          "description": "a description for this entity",
           "type": "string"
         },
         "id": {
@@ -1719,7 +1716,7 @@
       }
     },
     "metal.Size": {
-      "description": "An image that can be put on a device.",
+      "description": "A Size describes our supported t-shirt sizes.",
       "required": [
         "id",
         "name",
@@ -1740,13 +1737,13 @@
           }
         },
         "created": {
-          "description": "the creation time of this image",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
         },
         "description": {
-          "description": "a description for this image",
+          "description": "a description for this entity",
           "type": "string"
         },
         "id": {
@@ -1764,6 +1761,7 @@
       "description": "A switch that can register at the api.",
       "required": [
         "id",
+        "name",
         "nics",
         "connections",
         "site_id",
@@ -1784,15 +1782,23 @@
           }
         },
         "created": {
-          "description": "the creation time of this switch",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
         },
         "id": {
           "description": "a unique ID",
           "type": "string",
           "uniqueItems": true
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
         },
         "nics": {
           "description": "the list of network interfaces on the switch",

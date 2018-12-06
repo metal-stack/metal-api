@@ -6,7 +6,7 @@ import "time"
 // and can be allocated or freed. If the device is allocated, the substructure Allocation will
 // be filled. Any unallocated (free) device won't have such values.
 type Device struct {
-	ID         string            `json:"id" description:"a unique ID" unique:"true" readOnly:"true" modelDescription:"A device representing a bare metal machine." rethinkdb:"id,omitempty"`
+	ID         string            `json:"id" description:"a unique ID" unique:"true" readOnly:"true" rethinkdb:"id,omitempty"`
 	Created    time.Time         `json:"created" description:"the creation time of this machine" optional:"true" readOnly:"true" rethinkdb:"created"`
 	Changed    time.Time         `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
 	Site       Site              `json:"site" description:"the site assigned to this device" readOnly:"true" rethinkdb:"-"`
