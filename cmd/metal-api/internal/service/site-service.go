@@ -30,7 +30,7 @@ func NewSite(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 func (fr SiteResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/site").
+		Path("/v1/site").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 

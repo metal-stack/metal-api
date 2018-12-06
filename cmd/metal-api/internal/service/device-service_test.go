@@ -45,7 +45,7 @@ func TestGetDevices(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/device", nil)
+	req := httptest.NewRequest("GET", "/v1/device", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -73,7 +73,7 @@ func TestGetDevice(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/device/1", nil)
+	req := httptest.NewRequest("GET", "/v1/device/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -97,7 +97,7 @@ func TestGetDeviceNotFound(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/device/1", nil)
+	req := httptest.NewRequest("GET", "/v1/device/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -128,7 +128,7 @@ func TestFreeDevice(t *testing.T) {
 	}
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("DELETE", "/device/1/free", nil)
+	req := httptest.NewRequest("DELETE", "/v1/device/1/free", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -148,7 +148,7 @@ func TestSearchDevice(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/device/find?mac=1", nil)
+	req := httptest.NewRequest("GET", "/v1/device/find?mac=1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -342,7 +342,7 @@ func TestRegisterDevice(t *testing.T) {
 
 			dservice := NewDevice(testlogger, ds, pub, nb)
 			container := restful.NewContainer().Add(dservice)
-			req := httptest.NewRequest("POST", "/device/register", body)
+			req := httptest.NewRequest("POST", "/v1/device/register", body)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -364,7 +364,7 @@ func TestRegisterDevice(t *testing.T) {
 			require.Equal(t, test.expectedSizeName, result.Size.Name)
 			require.Equal(t, site1.Name, result.Site.Name)
 			// no read ipmi data
-			req = httptest.NewRequest("POST", fmt.Sprintf("/device/%s/ipmi", test.uuid), nil)
+			req = httptest.NewRequest("POST", fmt.Sprintf("/v1/device/%s/ipmi", test.uuid), nil)
 			req.Header.Add("Content-Type", "application/json")
 			w = httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -405,7 +405,7 @@ func TestReportDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/device/1/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/1/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -435,7 +435,7 @@ func TestReportFailureDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/device/1/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/1/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -462,7 +462,7 @@ func TestReportUnknownDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/device/10/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/10/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -486,7 +486,7 @@ func TestReportUnknownFailure(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/device/10/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/10/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -512,7 +512,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/device/1/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/1/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

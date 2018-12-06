@@ -15,7 +15,7 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/device": {
+    "/v1/device": {
       "get": {
         "consumes": [
           "application/json"
@@ -53,7 +53,7 @@
         }
       }
     },
-    "/device/allocate": {
+    "/v1/device/allocate": {
       "post": {
         "consumes": [
           "application/json"
@@ -98,7 +98,7 @@
         }
       }
     },
-    "/device/find": {
+    "/v1/device/find": {
       "get": {
         "consumes": [
           "application/json"
@@ -141,7 +141,7 @@
         }
       }
     },
-    "/device/phoneHome": {
+    "/v1/device/phoneHome": {
       "post": {
         "consumes": [
           "application/json"
@@ -183,7 +183,7 @@
         }
       }
     },
-    "/device/register": {
+    "/v1/device/register": {
       "post": {
         "consumes": [
           "application/json"
@@ -231,7 +231,7 @@
         }
       }
     },
-    "/device/{id}": {
+    "/v1/device/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -272,7 +272,7 @@
         }
       }
     },
-    "/device/{id}/free": {
+    "/v1/device/{id}/free": {
       "delete": {
         "consumes": [
           "application/json"
@@ -316,7 +316,7 @@
         }
       }
     },
-    "/device/{id}/ipmi": {
+    "/v1/device/{id}/ipmi": {
       "post": {
         "consumes": [
           "application/json"
@@ -363,7 +363,7 @@
         }
       }
     },
-    "/device/{id}/report": {
+    "/v1/device/{id}/report": {
       "post": {
         "consumes": [
           "application/json"
@@ -415,7 +415,7 @@
         }
       }
     },
-    "/device/{id}/wait": {
+    "/v1/device/{id}/wait": {
       "get": {
         "consumes": [
           "application/json"
@@ -459,7 +459,42 @@
         }
       }
     },
-    "/image": {
+    "/v1/health": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "health"
+        ],
+        "summary": "perform a healtcheck",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
+          },
+          "500": {
+            "description": "Unhealthy",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
+          }
+        }
+      }
+    },
+    "/v1/image": {
       "get": {
         "consumes": [
           "application/json"
@@ -571,7 +606,7 @@
         }
       }
     },
-    "/image/{id}": {
+    "/v1/image/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -651,7 +686,7 @@
         }
       }
     },
-    "/site": {
+    "/v1/site": {
       "get": {
         "consumes": [
           "application/json"
@@ -763,7 +798,7 @@
         }
       }
     },
-    "/site/{id}": {
+    "/v1/site/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -843,7 +878,7 @@
         }
       }
     },
-    "/size": {
+    "/v1/size": {
       "get": {
         "consumes": [
           "application/json"
@@ -955,7 +990,7 @@
         }
       }
     },
-    "/size/{id}": {
+    "/v1/size/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -1035,7 +1070,7 @@
         }
       }
     },
-    "/switch": {
+    "/v1/switch": {
       "get": {
         "consumes": [
           "application/json"
@@ -1070,7 +1105,7 @@
         }
       }
     },
-    "/switch/register": {
+    "/v1/switch/register": {
       "post": {
         "consumes": [
           "application/json"
@@ -1118,7 +1153,7 @@
         }
       }
     },
-    "/switch/{id}": {
+    "/v1/switch/{id}": {
       "delete": {
         "consumes": [
           "application/json"
@@ -1154,41 +1189,6 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/metal.Switch"
-            }
-          }
-        }
-      }
-    },
-    "/v1/health": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "health"
-        ],
-        "summary": "perform a healtcheck",
-        "operationId": "health",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/rest.status"
-            }
-          },
-          "500": {
-            "description": "Unhealthy",
-            "schema": {
-              "$ref": "#/definitions/rest.status"
-            }
-          },
-          "default": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/rest.status"
             }
           }
         }

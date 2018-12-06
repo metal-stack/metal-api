@@ -79,7 +79,7 @@ func NewDevice(
 func (dr deviceResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/device").
+		Path("/v1/device").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 

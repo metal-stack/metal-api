@@ -30,7 +30,7 @@ func NewImage(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 func (ir imageResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/image").
+		Path("/v1/image").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 

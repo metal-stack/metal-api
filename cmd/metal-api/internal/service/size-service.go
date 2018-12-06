@@ -30,7 +30,7 @@ func NewSize(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 func (sr sizeResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/size").
+		Path("/v1/size").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 

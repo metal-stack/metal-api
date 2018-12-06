@@ -37,7 +37,7 @@ func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService 
 func (sr switchResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/switch").
+		Path("/v1/switch").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
