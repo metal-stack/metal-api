@@ -1,5 +1,7 @@
 package metal
 
+// A MacAddress is the type for mac adresses. When using a
+// custom type, we cannot use strings directly.
 type MacAddress string
 
 // Nic information.
@@ -9,8 +11,10 @@ type Nic struct {
 	Neighbors  Nics       `json:"neighbors" description:"the neighbors visible to this network interface" rethinkdb:"neighbors"`
 }
 
+// Nics is a list of nics.
 type Nics []Nic
 
+// ByMac creates a indexed map from a nic list.
 func (nics Nics) ByMac() map[MacAddress]*Nic {
 	res := make(map[MacAddress]*Nic)
 	for i, n := range nics {

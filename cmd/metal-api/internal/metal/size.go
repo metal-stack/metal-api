@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	// UnknownSize is the size to use, when someone requires a size we do not know.
 	UnknownSize = &Size{
 		Base: Base{
 			ID:   "unknown",
@@ -15,6 +16,7 @@ var (
 	}
 )
 
+// A Size represents a supported machine size.
 type Size struct {
 	Base
 	Constraints []Constraint `json:"constraints" modelDescription:"A Size describes our supported t-shirt sizes." description:"a list of constraints that defines this size" rethinkdb:"constraints"`
@@ -29,9 +31,13 @@ type Constraint struct {
 	MaxMemory uint64 `json:"maxmemory" rethinkdb:"maxmemory" description:"the maximal amount of memory"`
 }
 
+// Sizes is a list of sizes.
 type Sizes []Size
+
+// SizeMap is an indexed map of sizes.
 type SizeMap map[string]Size
 
+// ByID creates a map of sizes with the id as the index.
 func (sz Sizes) ByID() SizeMap {
 	res := make(SizeMap)
 	for i, f := range sz {

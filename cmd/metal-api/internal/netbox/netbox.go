@@ -12,6 +12,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// An APIProxy can be used to call netbox api functions. It wraps the token
+// and has fields for the different functions. One can override the functions
+// if this is needed (for example in testing code).
 type APIProxy struct {
 	*client.NetboxAPIProxy
 	apitoken   string
@@ -20,6 +23,7 @@ type APIProxy struct {
 	DoRelease  func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error)
 }
 
+// New creates a new API proxy and uses the token from the viper-environment "netbox-api-token".
 func New() *APIProxy {
 	apitoken := viper.GetString("netbox-api-token")
 	proxy := initNetboxProxy()
@@ -44,6 +48,7 @@ func (nb *APIProxy) authenticate(rq runtime.ClientRequest, rg strfmt.Registry) e
 	return nil
 }
 
+// Register registers the given device in netbox.
 func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.Nic) error {
 	parms := nbdevice.NewNetboxAPIProxyAPIDeviceRegisterParams()
 	parms.UUID = uuid
@@ -90,6 +95,7 @@ func (nb *APIProxy) Allocate(uuid, tenant, project, name, description, os string
 	return *rsp.Payload.Cidr, nil
 }
 
+// Release releases the device with the given uuid in the netbox.
 func (nb *APIProxy) Release(uuid string) error {
 	parms := nbdevice.NewNetboxAPIProxyAPIDeviceReleaseParams()
 	parms.UUID = uuid

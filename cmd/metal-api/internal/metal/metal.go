@@ -2,8 +2,10 @@ package metal
 
 import "time"
 
+// EventType is the type for event types.
 type EventType string
 
+// NSQTopic .
 type NSQTopic string
 
 // Some enums.
