@@ -3,11 +3,11 @@ package jwt
 import (
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 )
 
 func TestSerialization(t *testing.T) {
-	e := NewPhoneHomeClaims(&metal.Device{ID: "1"})
+	e := NewPhoneHomeClaims(&metal.Device{Base: metal.Base{ID: "1"}})
 	jwt, err := e.JWT()
 	if err != nil {
 		t.Fatalf("coult not sign %v", err)

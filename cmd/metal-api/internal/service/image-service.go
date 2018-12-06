@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -30,7 +30,7 @@ func NewImage(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 func (ir imageResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/image").
+		Path("/v1/image").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 

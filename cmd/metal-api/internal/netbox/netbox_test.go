@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 

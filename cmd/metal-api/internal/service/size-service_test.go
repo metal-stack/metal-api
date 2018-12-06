@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"github.com/stretchr/testify/require"
 
 	"github.com/emicklei/go-restful"
@@ -21,7 +21,7 @@ func TestGetSizes(t *testing.T) {
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
-	req := httptest.NewRequest("GET", "/size", nil)
+	req := httptest.NewRequest("GET", "/v1/size", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -45,7 +45,7 @@ func TestGetSize(t *testing.T) {
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
-	req := httptest.NewRequest("GET", "/size/1", nil)
+	req := httptest.NewRequest("GET", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -65,7 +65,7 @@ func TestGetSizeNotFound(t *testing.T) {
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
-	req := httptest.NewRequest("GET", "/size/1", nil)
+	req := httptest.NewRequest("GET", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -80,7 +80,7 @@ func TestDeleteSize(t *testing.T) {
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
-	req := httptest.NewRequest("DELETE", "/size/1", nil)
+	req := httptest.NewRequest("DELETE", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -104,7 +104,7 @@ func TestCreateSize(t *testing.T) {
 
 	js, _ := json.Marshal(sz1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("PUT", "/size", body)
+	req := httptest.NewRequest("PUT", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -131,7 +131,7 @@ func TestUpdateSize(t *testing.T) {
 
 	js, _ := json.Marshal(sz1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/size", body)
+	req := httptest.NewRequest("POST", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

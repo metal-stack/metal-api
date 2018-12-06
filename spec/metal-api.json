@@ -15,7 +15,7 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/device": {
+    "/v1/device": {
       "get": {
         "consumes": [
           "application/json"
@@ -53,7 +53,7 @@
         }
       }
     },
-    "/device/allocate": {
+    "/v1/device/allocate": {
       "post": {
         "consumes": [
           "application/json"
@@ -72,7 +72,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.allocateRequest"
+              "$ref": "#/definitions/metal.AllocateDevice"
             }
           }
         ],
@@ -98,7 +98,7 @@
         }
       }
     },
-    "/device/find": {
+    "/v1/device/find": {
       "get": {
         "consumes": [
           "application/json"
@@ -141,7 +141,7 @@
         }
       }
     },
-    "/device/phoneHome": {
+    "/v1/device/phoneHome": {
       "post": {
         "consumes": [
           "application/json"
@@ -160,7 +160,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.phoneHomeRequest"
+              "$ref": "#/definitions/metal.PhoneHomeRequest"
             }
           }
         ],
@@ -183,7 +183,7 @@
         }
       }
     },
-    "/device/register": {
+    "/v1/device/register": {
       "post": {
         "consumes": [
           "application/json"
@@ -202,7 +202,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.registerRequest"
+              "$ref": "#/definitions/metal.RegisterDevice"
             }
           }
         ],
@@ -231,7 +231,7 @@
         }
       }
     },
-    "/device/{id}": {
+    "/v1/device/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -272,7 +272,7 @@
         }
       }
     },
-    "/device/{id}/free": {
+    "/v1/device/{id}/free": {
       "delete": {
         "consumes": [
           "application/json"
@@ -316,7 +316,7 @@
         }
       }
     },
-    "/device/{id}/ipmi": {
+    "/v1/device/{id}/ipmi": {
       "post": {
         "consumes": [
           "application/json"
@@ -363,7 +363,7 @@
         }
       }
     },
-    "/device/{id}/report": {
+    "/v1/device/{id}/report": {
       "post": {
         "consumes": [
           "application/json"
@@ -389,7 +389,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.allocationReport"
+              "$ref": "#/definitions/metal.ReportAllocation"
             }
           }
         ],
@@ -415,7 +415,7 @@
         }
       }
     },
-    "/device/{id}/wait": {
+    "/v1/device/{id}/wait": {
       "get": {
         "consumes": [
           "application/json"
@@ -459,7 +459,42 @@
         }
       }
     },
-    "/image": {
+    "/v1/health": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "health"
+        ],
+        "summary": "perform a healtcheck",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
+          },
+          "500": {
+            "description": "Unhealthy",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
+          }
+        }
+      }
+    },
+    "/v1/image": {
       "get": {
         "consumes": [
           "application/json"
@@ -571,7 +606,7 @@
         }
       }
     },
-    "/image/{id}": {
+    "/v1/image/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -651,7 +686,7 @@
         }
       }
     },
-    "/site": {
+    "/v1/site": {
       "get": {
         "consumes": [
           "application/json"
@@ -763,7 +798,7 @@
         }
       }
     },
-    "/site/{id}": {
+    "/v1/site/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -843,7 +878,7 @@
         }
       }
     },
-    "/size": {
+    "/v1/size": {
       "get": {
         "consumes": [
           "application/json"
@@ -955,7 +990,7 @@
         }
       }
     },
-    "/size/{id}": {
+    "/v1/size/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -1035,7 +1070,7 @@
         }
       }
     },
-    "/switch": {
+    "/v1/switch": {
       "get": {
         "consumes": [
           "application/json"
@@ -1070,7 +1105,7 @@
         }
       }
     },
-    "/switch/register": {
+    "/v1/switch/register": {
       "post": {
         "consumes": [
           "application/json"
@@ -1089,7 +1124,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.switchRegistration"
+              "$ref": "#/definitions/metal.RegisterSwitch"
             }
           }
         ],
@@ -1118,7 +1153,7 @@
         }
       }
     },
-    "/switch/{id}": {
+    "/v1/switch/{id}": {
       "delete": {
         "consumes": [
           "application/json"
@@ -1159,41 +1194,6 @@
         }
       }
     },
-    "/v1/health": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "health"
-        ],
-        "summary": "perform a healtcheck",
-        "operationId": "health",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/rest.status"
-            }
-          },
-          "500": {
-            "description": "Unhealthy",
-            "schema": {
-              "$ref": "#/definitions/rest.status"
-            }
-          },
-          "default": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/rest.status"
-            }
-          }
-        }
-      }
-    },
     "/v1/version": {
       "get": {
         "consumes": [
@@ -1225,6 +1225,58 @@
     }
   },
   "definitions": {
+    "metal.AllocateDevice": {
+      "required": [
+        "tenant",
+        "hostname",
+        "projectid",
+        "siteid",
+        "sizeid",
+        "imageid",
+        "ssh_pub_keys"
+      ],
+      "properties": {
+        "description": {
+          "description": "the description for the allocated device",
+          "type": "string"
+        },
+        "hostname": {
+          "description": "the hostname for the allocated device",
+          "type": "string"
+        },
+        "imageid": {
+          "description": "the image id to assign this device to",
+          "type": "string"
+        },
+        "name": {
+          "description": "the new name for the allocated device",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id to assign this device to",
+          "type": "string"
+        },
+        "siteid": {
+          "description": "the site id to assign this device to",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id to assign this device to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the device with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the name of the owning tenant",
+          "type": "string"
+        }
+      }
+    },
     "metal.BlockDevice": {
       "required": [
         "name",
@@ -1306,10 +1358,14 @@
           "readOnly": true
         },
         "created": {
-          "description": "the creation time of this machine",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
         },
         "hardware": {
           "description": "the hardware of this device",
@@ -1318,8 +1374,11 @@
         "id": {
           "description": "a unique ID",
           "type": "string",
-          "uniqueItems": true,
-          "readOnly": true
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
         },
         "rackid": {
           "description": "the rack assigned to this device",
@@ -1480,7 +1539,6 @@
       "description": "An image that can be put on a device.",
       "required": [
         "id",
-        "name",
         "url"
       ],
       "properties": {
@@ -1491,13 +1549,13 @@
           "readOnly": true
         },
         "created": {
-          "description": "the creation time of this image",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
         },
         "description": {
-          "description": "a description for this image",
+          "description": "a description for this entity",
           "type": "string"
         },
         "id": {
@@ -1539,12 +1597,101 @@
         }
       }
     },
-    "metal.Site": {
-      "description": "A Facility describes the location where a device is placed.",
+    "metal.PhoneHomeRequest": {
+      "required": [
+        "phone_home_token"
+      ],
+      "properties": {
+        "phone_home_token": {
+          "description": "the jwt that was issued for the device",
+          "type": "string"
+        }
+      }
+    },
+    "metal.RegisterDevice": {
+      "required": [
+        "uuid",
+        "siteid",
+        "rackid",
+        "hardware",
+        "ipmi"
+      ],
+      "properties": {
+        "hardware": {
+          "description": "the hardware of this device",
+          "$ref": "#/definitions/metal.DeviceHardware"
+        },
+        "ipmi": {
+          "description": "the ipmi access infos",
+          "$ref": "#/definitions/metal.IPMI"
+        },
+        "rackid": {
+          "description": "the rack id where this device is connected to",
+          "type": "string"
+        },
+        "siteid": {
+          "description": "the site id to register this device with",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "the product uuid of the device to register",
+          "type": "string"
+        }
+      }
+    },
+    "metal.RegisterSwitch": {
       "required": [
         "id",
-        "name",
-        "description"
+        "nics",
+        "site_id",
+        "rack_id"
+      ],
+      "properties": {
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "nics": {
+          "description": "the list of network interfaces on the switch",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Nic"
+          }
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        },
+        "site_id": {
+          "description": "the id of the site in which this switch is located",
+          "type": "string"
+        }
+      }
+    },
+    "metal.ReportAllocation": {
+      "required": [
+        "success",
+        "console_password"
+      ],
+      "properties": {
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
+          "type": "string"
+        },
+        "errormessage": {
+          "description": "contains an errormessage when there was no success",
+          "type": "string"
+        },
+        "success": {
+          "description": "signals if the allocation was successful",
+          "type": "boolean"
+        }
+      }
+    },
+    "metal.Site": {
+      "required": [
+        "id"
       ],
       "properties": {
         "changed": {
@@ -1554,13 +1701,13 @@
           "readOnly": true
         },
         "created": {
-          "description": "the creation time of this image",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
         },
         "description": {
-          "description": "a small description",
+          "description": "a description for this entity",
           "type": "string"
         },
         "id": {
@@ -1575,10 +1722,9 @@
       }
     },
     "metal.Size": {
-      "description": "An image that can be put on a device.",
+      "description": "A Size describes our supported t-shirt sizes.",
       "required": [
         "id",
-        "name",
         "constraints"
       ],
       "properties": {
@@ -1596,13 +1742,13 @@
           }
         },
         "created": {
-          "description": "the creation time of this image",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
         },
         "description": {
-          "description": "a description for this image",
+          "description": "a description for this entity",
           "type": "string"
         },
         "id": {
@@ -1640,15 +1786,23 @@
           }
         },
         "created": {
-          "description": "the creation time of this switch",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
         },
         "id": {
           "description": "a unique ID",
           "type": "string",
           "uniqueItems": true
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
         },
         "nics": {
           "description": "the list of network interfaces on the switch",
@@ -1699,150 +1853,6 @@
           "type": "string"
         },
         "version": {
-          "type": "string"
-        }
-      }
-    },
-    "service.allocateRequest": {
-      "required": [
-        "tenant",
-        "hostname",
-        "projectid",
-        "siteid",
-        "sizeid",
-        "imageid",
-        "ssh_pub_keys"
-      ],
-      "properties": {
-        "description": {
-          "description": "the description for the allocated device",
-          "type": "string"
-        },
-        "hostname": {
-          "description": "the hostname for the allocated device",
-          "type": "string"
-        },
-        "imageid": {
-          "description": "the image id to assign this device to",
-          "type": "string"
-        },
-        "name": {
-          "description": "the new name for the allocated device",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project id to assign this device to",
-          "type": "string"
-        },
-        "siteid": {
-          "description": "the site id to assign this device to",
-          "type": "string"
-        },
-        "sizeid": {
-          "description": "the size id to assign this device to",
-          "type": "string"
-        },
-        "ssh_pub_keys": {
-          "description": "the public ssh keys to access the device with",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tenant": {
-          "description": "the name of the owning tenant",
-          "type": "string"
-        }
-      }
-    },
-    "service.allocationReport": {
-      "required": [
-        "success",
-        "console_password"
-      ],
-      "properties": {
-        "console_password": {
-          "description": "the console password which was generated while provisioning",
-          "type": "string"
-        },
-        "errormessage": {
-          "description": "contains an errormessage when there was no success",
-          "type": "string"
-        },
-        "success": {
-          "description": "signals if the allocation was successful",
-          "type": "boolean"
-        }
-      }
-    },
-    "service.phoneHomeRequest": {
-      "required": [
-        "phone_home_token"
-      ],
-      "properties": {
-        "phone_home_token": {
-          "description": "the jwt that was issued for the device",
-          "type": "string"
-        }
-      }
-    },
-    "service.registerRequest": {
-      "required": [
-        "uuid",
-        "siteid",
-        "rackid",
-        "hardware",
-        "ipmi"
-      ],
-      "properties": {
-        "hardware": {
-          "description": "the hardware of this device",
-          "$ref": "#/definitions/metal.DeviceHardware"
-        },
-        "ipmi": {
-          "description": "the ipmi access infos",
-          "$ref": "#/definitions/metal.IPMI"
-        },
-        "rackid": {
-          "description": "the rack id where this device is connected to",
-          "type": "string"
-        },
-        "siteid": {
-          "description": "the site id to register this device with",
-          "type": "string"
-        },
-        "uuid": {
-          "description": "the product uuid of the device to register",
-          "type": "string"
-        }
-      }
-    },
-    "service.switchRegistration": {
-      "required": [
-        "id",
-        "nics",
-        "site_id",
-        "rack_id"
-      ],
-      "properties": {
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "nics": {
-          "description": "the list of network interfaces on the switch",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Nic"
-          }
-        },
-        "rack_id": {
-          "description": "the id of the rack in which this switch is located",
-          "type": "string"
-        },
-        "site_id": {
-          "description": "the id of the site in which this switch is located",
           "type": "string"
         }
       }

@@ -2,25 +2,24 @@ package metal
 
 import (
 	"fmt"
-	"time"
 
 	humanize "github.com/dustin/go-humanize"
 )
 
 var (
+	// UnknownSize is the size to use, when someone requires a size we do not know.
 	UnknownSize = &Size{
-		ID:   "unknown",
-		Name: "unknown",
+		Base: Base{
+			ID:   "unknown",
+			Name: "unknown",
+		},
 	}
 )
 
+// A Size represents a supported machine size.
 type Size struct {
-	ID          string       `json:"id" description:"a unique ID" unique:"true" modelDescription:"An image that can be put on a device." rethinkdb:"id,omitempty"`
-	Name        string       `json:"name" description:"the readable name" rethinkdb:"name"`
-	Description string       `json:"description,omitempty" description:"a description for this image" optional:"true" rethinkdb:"description"`
-	Constraints []Constraint `json:"constraints" description:"a list of constraints that defines this size" rethinkdb:"constraints"`
-	Created     time.Time    `json:"created" description:"the creation time of this image" optional:"true" readOnly:"true" rethinkdb:"created"`
-	Changed     time.Time    `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
+	Base
+	Constraints []Constraint `json:"constraints" modelDescription:"A Size describes our supported t-shirt sizes." description:"a list of constraints that defines this size" rethinkdb:"constraints"`
 }
 
 // A Constraint describes the hardware constraints for a given size. At the moment we only
@@ -32,9 +31,13 @@ type Constraint struct {
 	MaxMemory uint64 `json:"maxmemory" rethinkdb:"maxmemory" description:"the maximal amount of memory"`
 }
 
+// Sizes is a list of sizes.
 type Sizes []Size
+
+// SizeMap is an indexed map of sizes.
 type SizeMap map[string]Size
 
+// ByID creates a map of sizes with the id as the index.
 func (sz Sizes) ByID() SizeMap {
 	res := make(SizeMap)
 	for i, f := range sz {

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"github.com/stretchr/testify/require"
 
 	"github.com/emicklei/go-restful"
@@ -21,7 +21,7 @@ func TestGetSites(t *testing.T) {
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
-	req := httptest.NewRequest("GET", "/site", nil)
+	req := httptest.NewRequest("GET", "/v1/site", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -43,7 +43,7 @@ func TestGetSite(t *testing.T) {
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
-	req := httptest.NewRequest("GET", "/site/1", nil)
+	req := httptest.NewRequest("GET", "/v1/site/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -62,7 +62,7 @@ func TestGetSiteNotFound(t *testing.T) {
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
-	req := httptest.NewRequest("GET", "/site/1", nil)
+	req := httptest.NewRequest("GET", "/v1/site/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -77,7 +77,7 @@ func TestDeleteSite(t *testing.T) {
 
 	siteservice := NewSite(testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
-	req := httptest.NewRequest("DELETE", "/site/1", nil)
+	req := httptest.NewRequest("DELETE", "/v1/site/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -101,7 +101,7 @@ func TestCreateSite(t *testing.T) {
 
 	js, _ := json.Marshal(site1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("PUT", "/site", body)
+	req := httptest.NewRequest("PUT", "/v1/site", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -129,7 +129,7 @@ func TestUpdateSite(t *testing.T) {
 
 	js, _ := json.Marshal(site1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/site", body)
+	req := httptest.NewRequest("POST", "/v1/site", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

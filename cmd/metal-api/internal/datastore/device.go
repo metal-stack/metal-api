@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	humanize "github.com/dustin/go-humanize"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -237,10 +238,16 @@ func (rs *RethinkStore) RegisterDevice(
 	ipmi metal.IPMI) (*metal.Device, error) {
 
 	device, err := rs.FindDevice(id)
+	name := fmt.Sprintf("%d-core/%s", hardware.CPUCores, humanize.Bytes(hardware.Memory))
+	descr := fmt.Sprintf("a device with %d core(s) and %s of RAM", hardware.CPUCores, humanize.Bytes(hardware.Memory))
 	if err != nil {
 		if metal.IsNotFound(err) {
 			device = &metal.Device{
-				ID:       id,
+				Base: metal.Base{
+					ID:          id,
+					Name:        name,
+					Description: descr,
+				},
 				Size:     &sz,
 				Site:     site,
 				SiteID:   site.ID,
@@ -261,6 +268,8 @@ func (rs *RethinkStore) RegisterDevice(
 		device.SiteID = site.ID
 		device.Size = &sz
 		device.RackID = rackid
+		device.Name = name
+		device.Description = descr
 
 		err = rs.UpdateDevice(&old, device)
 		if err != nil {

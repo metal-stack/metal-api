@@ -13,10 +13,10 @@ import (
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"git.f-i-ts.de/cloud-native/metallib/version"

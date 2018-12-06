@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"github.com/stretchr/testify/require"
 
 	"github.com/emicklei/go-restful"
@@ -21,7 +21,7 @@ func TestGetImages(t *testing.T) {
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/image", nil)
+	req := httptest.NewRequest("GET", "/v1/image", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -43,7 +43,7 @@ func TestGetImage(t *testing.T) {
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/image/1", nil)
+	req := httptest.NewRequest("GET", "/v1/image/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -62,7 +62,7 @@ func TestGetImageNotFound(t *testing.T) {
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/image/1", nil)
+	req := httptest.NewRequest("GET", "/v1/image/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -77,7 +77,7 @@ func TestDeleteImage(t *testing.T) {
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("DELETE", "/image/1", nil)
+	req := httptest.NewRequest("DELETE", "/v1/image/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -100,7 +100,7 @@ func TestCreateImage(t *testing.T) {
 
 	js, _ := json.Marshal(img1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("PUT", "/image", body)
+	req := httptest.NewRequest("PUT", "/v1/image", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -129,7 +129,7 @@ func TestUpdateImage(t *testing.T) {
 
 	js, _ := json.Marshal(img1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/image", body)
+	req := httptest.NewRequest("POST", "/v1/image", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

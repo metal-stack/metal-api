@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils/jwt"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -21,43 +21,9 @@ const (
 )
 
 type deviceResource struct {
-	*zap.SugaredLogger
-	log *zap.Logger
+	webResource
 	bus.Publisher
 	netbox *netbox.APIProxy
-	ds     *datastore.RethinkStore
-}
-
-type allocateRequest struct {
-	Name        string   `json:"name" description:"the new name for the allocated device" optional:"true"`
-	Tenant      string   `json:"tenant" description:"the name of the owning tenant"`
-	Hostname    string   `json:"hostname" description:"the hostname for the allocated device"`
-	Description string   `json:"description" description:"the description for the allocated device" optional:"true"`
-	ProjectID   string   `json:"projectid" description:"the project id to assign this device to"`
-	SiteID      string   `json:"siteid" description:"the site id to assign this device to"`
-	SizeID      string   `json:"sizeid" description:"the size id to assign this device to"`
-	ImageID     string   `json:"imageid" description:"the image id to assign this device to"`
-	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the device with"`
-}
-
-type registerRequest struct {
-	UUID     string               `json:"uuid" description:"the product uuid of the device to register"`
-	SiteID   string               `json:"siteid" description:"the site id to register this device with"`
-	RackID   string               `json:"rackid" description:"the rack id where this device is connected to"`
-	Hardware metal.DeviceHardware `json:"hardware" description:"the hardware of this device"`
-	IPMI     metal.IPMI           `json:"ipmi" description:"the ipmi access infos"`
-}
-
-type phoneHomeRequest struct {
-	PhoneHomeToken string `json:"phone_home_token" description:"the jwt that was issued for the device"`
-}
-
-// An AllocationReport is sent to the api after a device was successfully
-// allocated and provisioned.
-type allocationReport struct {
-	Success         bool   `json:"success" description:"signals if the allocation was successful" optional:"false"`
-	ErrorMessage    string `json:"errormessage" description:"contains an errormessage when there was no success" optional:"true"`
-	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning" optional:"false"`
 }
 
 func NewDevice(
@@ -66,11 +32,13 @@ func NewDevice(
 	pub bus.Publisher,
 	netbox *netbox.APIProxy) *restful.WebService {
 	dr := deviceResource{
-		log:           log,
-		SugaredLogger: log.Sugar(),
-		ds:            ds,
-		Publisher:     pub,
-		netbox:        netbox,
+		webResource: webResource{
+			log:           log,
+			SugaredLogger: log.Sugar(),
+			ds:            ds,
+		},
+		Publisher: pub,
+		netbox:    netbox,
 	}
 	return dr.webService()
 }
@@ -79,7 +47,7 @@ func NewDevice(
 func (dr deviceResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/device").
+		Path("/v1/device").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -110,7 +78,7 @@ func (dr deviceResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/register").To(dr.registerDevice).
 		Doc("register a device").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(registerRequest{}).
+		Reads(metal.RegisterDevice{}).
 		Writes(metal.Device{}).
 		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusCreated, "Created", metal.Device{}).
@@ -119,7 +87,7 @@ func (dr deviceResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/allocate").To(dr.allocateDevice).
 		Doc("allocate a device").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(allocateRequest{}).
+		Reads(metal.AllocateDevice{}).
 		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusNotFound, "No free device for allocation found", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
@@ -151,7 +119,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Doc("send the allocation report of a given device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(allocationReport{}).
+		Reads(metal.ReportAllocation{}).
 		Returns(http.StatusOK, "OK", metal.DeviceAllocation{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
@@ -159,7 +127,7 @@ func (dr deviceResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
 		Doc("phone back home from the device").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(phoneHomeRequest{}).
+		Reads(metal.PhoneHomeRequest{}).
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "Device could not be found by id", nil).
 		Returns(http.StatusBadRequest, "Bad Request", nil).
@@ -195,7 +163,7 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 }
 
 func (dr deviceResource) phoneHome(request *restful.Request, response *restful.Response) {
-	var data phoneHomeRequest
+	var data metal.PhoneHomeRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
 		sendError(dr.log, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Cannot read data from request: %v", err))
@@ -272,7 +240,7 @@ func (dr deviceResource) searchDevice(request *restful.Request, response *restfu
 }
 
 func (dr deviceResource) registerDevice(request *restful.Request, response *restful.Response) {
-	var data registerRequest
+	var data metal.RegisterDevice
 	err := request.ReadEntity(&data)
 	if checkError(dr.log, response, "registerDevice", err) {
 		return
@@ -322,7 +290,7 @@ func (dr deviceResource) ipmiData(request *restful.Request, response *restful.Re
 }
 
 func (dr deviceResource) allocateDevice(request *restful.Request, response *restful.Response) {
-	var allocate allocateRequest
+	var allocate metal.AllocateDevice
 	err := request.ReadEntity(&allocate)
 	if checkError(dr.log, response, "allocateDevice", err) {
 		return
@@ -390,7 +358,7 @@ func (dr deviceResource) fillDeviceList(data ...metal.Device) ([]metal.Device, e
 
 func (dr deviceResource) allocationReport(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	var report allocationReport
+	var report metal.ReportAllocation
 	err := request.ReadEntity(&report)
 	if checkError(dr.log, response, "allocationReport", err) {
 		return

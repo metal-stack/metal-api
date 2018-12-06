@@ -17,14 +17,15 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"siteid\": \"vagrant-lab\",\n  \"rackid\": \"Vagrant Rack 1\",\n  \"hardware\": {\n    \"cpu_cores\": 1,\n    \"disks\": [\n      {\n        \"name\": \"sda\",\n        \"size\": 12\n      }\n    ],\n    \"memory\": 1024,\n    \"nics\": [\n      {\n        \"features\": [\n        ],\n        \"mac\": \"aa:aa:aa:aa:aa:aa\",\n        \"name\": \"eth0\",\n        \"vendor\": \"Dell\"\n      },\n      {\n        \"features\": [\n        ],\n        \"mac\": \"00:00:00:00:00:00\",\n        \"name\": \"lo\",\n        \"vendor\": \"Dell\"\n      }\n    ]\n  },\n  \"uuid\": \"ae671b8b-a158-52c2-8c22-985ca0503873\"\n}"
+					"raw": "{\n  \"siteid\": \"vagrant-lab\",\n  \"rackid\": \"Vagrant Rack 1\",\n  \"hardware\": {\n    \"cpu_cores\": 1,\n    \"disks\": [\n      {\n        \"name\": \"sda\",\n        \"size\": 12\n      }\n    ],\n    \"memory\": 1024,\n    \"nics\": [\n      {\n        \"features\": [\n        ],\n        \"mac\": \"aa:aa:aa:aa:aa:aa\",\n        \"name\": \"eth0\",\n        \"vendor\": \"Dell\",\n        \"neighbors\": [\n        \t{\n        \t\t\"mac\":\"11:11:11:11:11:11\",\n        \t\t\"name\":\"switch\"\n        \t}\n        ]\n      },\n      {\n        \"features\": [\n        ],\n        \"mac\": \"00:00:00:00:00:00\",\n        \"name\": \"lo\",\n        \"vendor\": \"Dell\"\n      }\n    ]\n  },\n  \"uuid\": \"ae671b8b-a158-52c2-8c22-985ca0503873\"\n}"
 				},
 				"url": {
-					"raw": "{{base}}/device/register",
+					"raw": "{{base}}/v1/device/register",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"device",
 						"register"
 					]
@@ -47,11 +48,12 @@
 					"raw": "{\n  \"description\": \"My first metal host\",\n  \"siteid\": \"vagrant-lab\",\n  \"hostname\": \"metal-test-1\",\n  \"imageid\": \"1\",\n  \"name\": \"Metal Host 1\",\n  \"projectid\": \"test\",\n  \"tenant\": \"dkb\",\n  \"sizeid\": \"t1-small-x86\",\n  \"ssh_pub_keys\": [\"keiner\"]\n}"
 				},
 				"url": {
-					"raw": "{{base}}/device/allocate",
+					"raw": "{{base}}/v1/device/allocate",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"device",
 						"allocate"
 					]
@@ -69,11 +71,12 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/device/ae671b8b-a158-52c2-8c22-985ca0503873/wait",
+					"raw": "{{base}}/v1/device/ae671b8b-a158-52c2-8c22-985ca0503873/wait",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"device",
 						"ae671b8b-a158-52c2-8c22-985ca0503873",
 						"wait"
@@ -92,11 +95,12 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/device/ae671b8b-a158-52c2-8c22-985ca0503873/free",
+					"raw": "{{base}}/v1/device/ae671b8b-a158-52c2-8c22-985ca0503873/free",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"device",
 						"ae671b8b-a158-52c2-8c22-985ca0503873",
 						"free"
@@ -115,11 +119,12 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/site",
+					"raw": "{{base}}/v1/site",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"site"
 					]
 				}
@@ -136,11 +141,12 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/switch",
+					"raw": "{{base}}/v1/switch",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"switch"
 					]
 				}
@@ -157,11 +163,12 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/image",
+					"raw": "{{base}}/v1/image",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"image"
 					]
 				}
@@ -178,11 +185,12 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/size",
+					"raw": "{{base}}/v1/size",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"size"
 					]
 				}
@@ -206,11 +214,12 @@
 					"raw": "{\n  \"id\": \"switch1\",\n  \"nics\": [\n    {\n      \"mac\": \"11:11:11:11:11:11\",\n      \"name\": \"eth1\"\n    }\n  ],\n  \"site_id\": \"vagrant-lab\",\n  \"rack_id\": \"Vagrant Rack 1\"\n}\n"
 				},
 				"url": {
-					"raw": "{{base}}/switch/register",
+					"raw": "{{base}}/v1/switch/register",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
+						"v1",
 						"switch",
 						"register"
 					]

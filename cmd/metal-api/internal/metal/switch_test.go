@@ -62,7 +62,9 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 				},
 			},
 			device: &Device{
-				ID: "device-1",
+				Base: Base{
+					ID: "device-1",
+				},
 				Hardware: DeviceHardware{
 					Nics: []Nic{
 						Nic{

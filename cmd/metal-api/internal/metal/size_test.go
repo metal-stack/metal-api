@@ -7,7 +7,9 @@ import (
 
 var (
 	microSize = Size{
-		Name: "micro",
+		Base: Base{
+			Name: "micro",
+		},
 		Constraints: []Constraint{
 			Constraint{
 				MinCores:  1,
@@ -18,7 +20,9 @@ var (
 		},
 	}
 	tinySize = Size{
-		Name: "tiny",
+		Base: Base{
+			Name: "tiny",
+		},
 		Constraints: []Constraint{
 			Constraint{
 				MinCores:  1,
@@ -29,7 +33,9 @@ var (
 		},
 	}
 	microAndTinySize = Size{
-		Name: "microAndTiny",
+		Base: Base{
+			Name: "microAndTiny",
+		},
 		Constraints: []Constraint{
 			Constraint{
 				MinCores:  1,
