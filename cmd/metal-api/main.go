@@ -16,9 +16,9 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/health"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
+	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"git.f-i-ts.de/cloud-native/metallib/version"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
@@ -30,6 +30,7 @@ import (
 
 const (
 	cfgFileType = "yaml"
+	moduleName  = "metal-api"
 )
 
 var (
@@ -42,7 +43,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     "metal-api",
+	Use:     moduleName,
 	Short:   "an api to offer pure metal",
 	Version: version.V.String(),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -109,8 +110,8 @@ func initConfig() {
 		}
 	} else {
 		viper.SetConfigName("config")
-		viper.AddConfigPath("/etc/metal-api")
-		viper.AddConfigPath("$HOME/.metal-api")
+		viper.AddConfigPath("/etc/" + moduleName)
+		viper.AddConfigPath("$HOME/." + moduleName)
 		viper.AddConfigPath(".")
 		if err := viper.ReadInConfig(); err != nil {
 			usedCfg := viper.ConfigFileUsed()
@@ -196,12 +197,13 @@ func initRestServices() *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSize(lg, ds))
 	restful.DefaultContainer.Add(service.NewDevice(lg, ds, producer, nbproxy))
 	restful.DefaultContainer.Add(service.NewSwitch(lg, ds))
-	restful.DefaultContainer.Add(health.New(lg, func() error { return nil }))
+	restful.DefaultContainer.Add(rest.NewHealth(lg))
+	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(lg, debug))
 
 	config := restfulspec.Config{
-		WebServices: restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:     "/apidocs.json",
+		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
+		APIPath:                       "/apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
@@ -220,9 +222,16 @@ func dumpSwaggerJSON() {
 func run() {
 	initRestServices()
 
+	// enable OPTIONS-request so clients can query CORS information
+	restful.DefaultContainer.Filter(restful.DefaultContainer.OPTIONSFilter)
+
 	// enable CORS for the UI to work.
+	// if we will add support for api-tokens as headers, we had to add them
+	// here to. note: the token's should not contain the product (aka. metal)
+	// because customers should have ONE token for many products.
+	// ExposeHeaders:  []string{"X-FITS-TOKEN"},
 	cors := restful.CrossOriginResourceSharing{
-		AllowedHeaders: []string{"Content-Type", "Accept"},
+		AllowedHeaders: []string{"Content-Type", "Accept", "Authorization"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		CookiesAllowed: false,
 		Container:      restful.DefaultContainer}
@@ -236,7 +245,7 @@ func run() {
 func enrichSwaggerObject(swo *spec.Swagger) {
 	swo.Info = &spec.Info{
 		InfoProps: spec.InfoProps{
-			Title:       "metal-api",
+			Title:       moduleName,
 			Description: "Resource for managing pure metal",
 			Contact: &spec.ContactInfo{
 				Name:  "Devops Team",
@@ -251,9 +260,6 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{
-		spec.Tag{TagProps: spec.TagProps{
-			Name:        "facility",
-			Description: "Managing facility entities"}},
 		spec.Tag{TagProps: spec.TagProps{
 			Name:        "image",
 			Description: "Managing image entities"}},

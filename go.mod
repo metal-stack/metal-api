@@ -1,7 +1,7 @@
 module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
-	git.f-i-ts.de/cloud-native/metallib v0.0.0-20181123160908-b82358c7496c
+	git.f-i-ts.de/cloud-native/metallib v0.0.0-20181206060729-7945b4bd61d6
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -24,9 +24,6 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/google/uuid v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/sirupsen/logrus v1.2.0 // indirect
 	github.com/spf13/cast v1.3.0 // indirect

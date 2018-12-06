@@ -471,16 +471,25 @@
           "health"
         ],
         "summary": "perform a healtcheck",
-        "operationId": "func1",
+        "operationId": "health",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
           },
           "500": {
-            "description": "Unhealthy"
+            "description": "Unhealthy",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
           },
           "default": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.status"
+            }
           }
         }
       }
@@ -1184,6 +1193,35 @@
           }
         }
       }
+    },
+    "/version": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "version"
+        ],
+        "summary": "returns the current version information of this module",
+        "operationId": "info",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.version"
+            }
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/rest.version"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -1629,6 +1667,42 @@
         }
       }
     },
+    "rest.status": {
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "rest.version": {
+      "required": [
+        "name",
+        "version",
+        "builddate",
+        "revision",
+        "gitsha1"
+      ],
+      "properties": {
+        "builddate": {
+          "type": "string"
+        },
+        "gitsha1": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
     "service.allocateRequest": {
       "required": [
         "tenant",
@@ -1775,10 +1849,6 @@
     }
   },
   "tags": [
-    {
-      "description": "Managing facility entities",
-      "name": "facility"
-    },
     {
       "description": "Managing image entities",
       "name": "image"
