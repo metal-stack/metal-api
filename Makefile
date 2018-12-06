@@ -10,6 +10,8 @@ all::
 	@bin/metal-api dump-swagger >spec/metal-api.json
 	go mod tidy
 
+release:: all;
+
 .PHONY: createmasterdata
 createmasterdata:
 	@cat masterdata/images.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/image
