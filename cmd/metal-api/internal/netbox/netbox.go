@@ -3,7 +3,7 @@ package netbox
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client"
 	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"

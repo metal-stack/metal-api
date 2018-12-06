@@ -72,7 +72,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.allocateRequest"
+              "$ref": "#/definitions/metal.AllocateDevice"
             }
           }
         ],
@@ -160,7 +160,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.phoneHomeRequest"
+              "$ref": "#/definitions/metal.PhoneHomeRequest"
             }
           }
         ],
@@ -202,7 +202,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.registerRequest"
+              "$ref": "#/definitions/metal.RegisterDevice"
             }
           }
         ],
@@ -389,7 +389,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.allocationReport"
+              "$ref": "#/definitions/metal.ReportAllocation"
             }
           }
         ],
@@ -1124,7 +1124,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.switchRegistration"
+              "$ref": "#/definitions/metal.RegisterSwitch"
             }
           }
         ],
@@ -1225,6 +1225,58 @@
     }
   },
   "definitions": {
+    "metal.AllocateDevice": {
+      "required": [
+        "tenant",
+        "hostname",
+        "projectid",
+        "siteid",
+        "sizeid",
+        "imageid",
+        "ssh_pub_keys"
+      ],
+      "properties": {
+        "description": {
+          "description": "the description for the allocated device",
+          "type": "string"
+        },
+        "hostname": {
+          "description": "the hostname for the allocated device",
+          "type": "string"
+        },
+        "imageid": {
+          "description": "the image id to assign this device to",
+          "type": "string"
+        },
+        "name": {
+          "description": "the new name for the allocated device",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id to assign this device to",
+          "type": "string"
+        },
+        "siteid": {
+          "description": "the site id to assign this device to",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id to assign this device to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the device with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the name of the owning tenant",
+          "type": "string"
+        }
+      }
+    },
     "metal.BlockDevice": {
       "required": [
         "name",
@@ -1539,6 +1591,98 @@
         }
       }
     },
+    "metal.PhoneHomeRequest": {
+      "required": [
+        "phone_home_token"
+      ],
+      "properties": {
+        "phone_home_token": {
+          "description": "the jwt that was issued for the device",
+          "type": "string"
+        }
+      }
+    },
+    "metal.RegisterDevice": {
+      "required": [
+        "uuid",
+        "siteid",
+        "rackid",
+        "hardware",
+        "ipmi"
+      ],
+      "properties": {
+        "hardware": {
+          "description": "the hardware of this device",
+          "$ref": "#/definitions/metal.DeviceHardware"
+        },
+        "ipmi": {
+          "description": "the ipmi access infos",
+          "$ref": "#/definitions/metal.IPMI"
+        },
+        "rackid": {
+          "description": "the rack id where this device is connected to",
+          "type": "string"
+        },
+        "siteid": {
+          "description": "the site id to register this device with",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "the product uuid of the device to register",
+          "type": "string"
+        }
+      }
+    },
+    "metal.RegisterSwitch": {
+      "required": [
+        "id",
+        "nics",
+        "site_id",
+        "rack_id"
+      ],
+      "properties": {
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "nics": {
+          "description": "the list of network interfaces on the switch",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Nic"
+          }
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        },
+        "site_id": {
+          "description": "the id of the site in which this switch is located",
+          "type": "string"
+        }
+      }
+    },
+    "metal.ReportAllocation": {
+      "required": [
+        "success",
+        "console_password"
+      ],
+      "properties": {
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
+          "type": "string"
+        },
+        "errormessage": {
+          "description": "contains an errormessage when there was no success",
+          "type": "string"
+        },
+        "success": {
+          "description": "signals if the allocation was successful",
+          "type": "boolean"
+        }
+      }
+    },
     "metal.Site": {
       "description": "A Facility describes the location where a device is placed.",
       "required": [
@@ -1699,150 +1843,6 @@
           "type": "string"
         },
         "version": {
-          "type": "string"
-        }
-      }
-    },
-    "service.allocateRequest": {
-      "required": [
-        "tenant",
-        "hostname",
-        "projectid",
-        "siteid",
-        "sizeid",
-        "imageid",
-        "ssh_pub_keys"
-      ],
-      "properties": {
-        "description": {
-          "description": "the description for the allocated device",
-          "type": "string"
-        },
-        "hostname": {
-          "description": "the hostname for the allocated device",
-          "type": "string"
-        },
-        "imageid": {
-          "description": "the image id to assign this device to",
-          "type": "string"
-        },
-        "name": {
-          "description": "the new name for the allocated device",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project id to assign this device to",
-          "type": "string"
-        },
-        "siteid": {
-          "description": "the site id to assign this device to",
-          "type": "string"
-        },
-        "sizeid": {
-          "description": "the size id to assign this device to",
-          "type": "string"
-        },
-        "ssh_pub_keys": {
-          "description": "the public ssh keys to access the device with",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tenant": {
-          "description": "the name of the owning tenant",
-          "type": "string"
-        }
-      }
-    },
-    "service.allocationReport": {
-      "required": [
-        "success",
-        "console_password"
-      ],
-      "properties": {
-        "console_password": {
-          "description": "the console password which was generated while provisioning",
-          "type": "string"
-        },
-        "errormessage": {
-          "description": "contains an errormessage when there was no success",
-          "type": "string"
-        },
-        "success": {
-          "description": "signals if the allocation was successful",
-          "type": "boolean"
-        }
-      }
-    },
-    "service.phoneHomeRequest": {
-      "required": [
-        "phone_home_token"
-      ],
-      "properties": {
-        "phone_home_token": {
-          "description": "the jwt that was issued for the device",
-          "type": "string"
-        }
-      }
-    },
-    "service.registerRequest": {
-      "required": [
-        "uuid",
-        "siteid",
-        "rackid",
-        "hardware",
-        "ipmi"
-      ],
-      "properties": {
-        "hardware": {
-          "description": "the hardware of this device",
-          "$ref": "#/definitions/metal.DeviceHardware"
-        },
-        "ipmi": {
-          "description": "the ipmi access infos",
-          "$ref": "#/definitions/metal.IPMI"
-        },
-        "rackid": {
-          "description": "the rack id where this device is connected to",
-          "type": "string"
-        },
-        "siteid": {
-          "description": "the site id to register this device with",
-          "type": "string"
-        },
-        "uuid": {
-          "description": "the product uuid of the device to register",
-          "type": "string"
-        }
-      }
-    },
-    "service.switchRegistration": {
-      "required": [
-        "id",
-        "nics",
-        "site_id",
-        "rack_id"
-      ],
-      "properties": {
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "nics": {
-          "description": "the list of network interfaces on the switch",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Nic"
-          }
-        },
-        "rack_id": {
-          "description": "the id of the rack in which this switch is located",
-          "type": "string"
-        },
-        "site_id": {
-          "description": "the id of the site in which this switch is located",
           "type": "string"
         }
       }

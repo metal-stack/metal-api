@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
 	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/require"
 
@@ -301,7 +301,7 @@ func TestRegisterDevice(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ds, mock := initMockDB()
 
-			rr := registerRequest{
+			rr := metal.RegisterDevice{
 				UUID:   test.uuid,
 				SiteID: test.siteid,
 				RackID: "1",
@@ -399,7 +399,7 @@ func TestReportDevice(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	rep := allocationReport{
+	rep := metal.ReportAllocation{
 		Success:         true,
 		ConsolePassword: "blubber",
 	}
@@ -428,7 +428,7 @@ func TestReportFailureDevice(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	rep := allocationReport{
+	rep := metal.ReportAllocation{
 		Success:         false,
 		ErrorMessage:    "my error message",
 		ConsolePassword: "blubber",
@@ -455,7 +455,7 @@ func TestReportUnknownDevice(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	rep := allocationReport{
+	rep := metal.ReportAllocation{
 		Success:         false,
 		ErrorMessage:    "my error message",
 		ConsolePassword: "blubber",
@@ -479,7 +479,7 @@ func TestReportUnknownFailure(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	rep := allocationReport{
+	rep := metal.ReportAllocation{
 		Success:         false,
 		ErrorMessage:    "my error message",
 		ConsolePassword: "blubber",
@@ -505,7 +505,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	rep := allocationReport{
+	rep := metal.ReportAllocation{
 		Success:         true,
 		ErrorMessage:    "",
 		ConsolePassword: "blubber",

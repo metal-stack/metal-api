@@ -7,20 +7,13 @@ import (
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
 
 type switchResource struct {
 	webResource
-}
-
-type switchRegistration struct {
-	ID     string     `json:"id" description:"a unique ID" unique:"true"`
-	Nics   metal.Nics `json:"nics" description:"the list of network interfaces on the switch"`
-	SiteID string     `json:"site_id" description:"the id of the site in which this switch is located"`
-	RackID string     `json:"rack_id" description:"the id of the rack in which this switch is located"`
 }
 
 func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
@@ -62,7 +55,7 @@ func (sr switchResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/register").To(sr.registerSwitch).
 		Doc("register a switch").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(switchRegistration{}).
+		Reads(metal.RegisterSwitch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).
 		Returns(http.StatusCreated, "Created", metal.Switch{}).
 		Returns(http.StatusConflict, "Conflict", nil))
@@ -71,7 +64,7 @@ func (sr switchResource) webService() *restful.WebService {
 }
 
 func (sr switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
-	var newSwitch switchRegistration
+	var newSwitch metal.RegisterSwitch
 	err := request.ReadEntity(&newSwitch)
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return

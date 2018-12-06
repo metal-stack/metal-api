@@ -2,7 +2,7 @@ package service
 
 import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
