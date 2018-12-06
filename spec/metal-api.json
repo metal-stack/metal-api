@@ -1337,6 +1337,7 @@
       }
     },
     "metal.Device": {
+      "description": "A device representing a bare metal machine.",
       "required": [
         "id",
         "site",
@@ -1357,10 +1358,14 @@
           "readOnly": true
         },
         "created": {
-          "description": "the creation time of this machine",
+          "description": "the creation time of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
         },
         "hardware": {
           "description": "the hardware of this device",
@@ -1369,8 +1374,11 @@
         "id": {
           "description": "a unique ID",
           "type": "string",
-          "uniqueItems": true,
-          "readOnly": true
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
         },
         "rackid": {
           "description": "the rack assigned to this device",
@@ -1531,7 +1539,6 @@
       "description": "An image that can be put on a device.",
       "required": [
         "id",
-        "name",
         "url"
       ],
       "properties": {
@@ -1684,8 +1691,7 @@
     },
     "metal.Site": {
       "required": [
-        "id",
-        "name"
+        "id"
       ],
       "properties": {
         "changed": {
@@ -1719,7 +1725,6 @@
       "description": "A Size describes our supported t-shirt sizes.",
       "required": [
         "id",
-        "name",
         "constraints"
       ],
       "properties": {
@@ -1761,7 +1766,6 @@
       "description": "A switch that can register at the api.",
       "required": [
         "id",
-        "name",
         "nics",
         "connections",
         "site_id",

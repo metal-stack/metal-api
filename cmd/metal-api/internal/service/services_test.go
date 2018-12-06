@@ -11,7 +11,7 @@ var (
 	testlogger = zap.NewNop()
 
 	d1 = metal.Device{
-		ID:     "1",
+		Base:   metal.Base{ID: "1"},
 		SiteID: "1",
 		SizeID: "1",
 		Allocation: &metal.DeviceAllocation{
@@ -21,7 +21,7 @@ var (
 		},
 	}
 	d2 = metal.Device{
-		ID:     "2",
+		Base:   metal.Base{ID: "2"},
 		SiteID: "1",
 		SizeID: "1",
 		Allocation: &metal.DeviceAllocation{
@@ -31,7 +31,7 @@ var (
 		},
 	}
 	d3 = metal.Device{
-		ID:     "3",
+		Base:   metal.Base{ID: "3"},
 		SiteID: "1",
 		SizeID: "1",
 	}
