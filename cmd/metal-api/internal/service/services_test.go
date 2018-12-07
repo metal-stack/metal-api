@@ -83,6 +83,23 @@ var (
 			Description: "description 2",
 		},
 	}
+	switch1 = metal.Switch{
+		Base: metal.Base{
+			ID: "switch1",
+		},
+		SiteID: "1",
+		RackID: "rack1",
+		DeviceConnections: metal.ConnectionMap{
+			"d1": metal.Connections{
+				metal.Connection{
+					Nic: metal.Nic{
+						MacAddress: metal.MacAddress("mymac"),
+					},
+					DeviceID: "d1",
+				},
+			},
+		},
+	}
 
 	emptyResult = map[string]interface{}{}
 )
