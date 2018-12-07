@@ -13,6 +13,8 @@ basePath: "/api/v1"
 tags:
 - name: "devices"
   description: "Endpoints for managing devices in the netbox"
+- name: "switches"
+  description: "Endpoints for managing switches in the netbox"
 schemes:
 - "http"
 securityDefinitions:
@@ -149,6 +151,49 @@ paths:
           description: "Internal server error"
           schema:
             $ref: "#/definitions/Problem"
+  /switches/{uuid}/register:
+    post:
+      tags:
+      - "switches"
+      summary: "Register a new switch"
+      description: "Register a new switch to the netbox"
+      operationId: "netbox_api_proxy.api.switch_register"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      - "application/problem+json"
+      parameters:
+      - $ref: "#/parameters/DeviceUUID"
+      - name: "request"
+        in: "body"
+        description: "The switch registration body"
+        required: true
+        schema:
+          $ref: "#/definitions/SwitchRegistrationRequest"
+      responses:
+        200:
+          description: "OK"
+        400:
+          description: "Bad request"
+          schema:
+            $ref: "#/definitions/Problem"
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/Problem"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/Problem"
+        404:
+          description: "Not found"
+          schema:
+            $ref: "#/definitions/Problem"
+        500:
+          description: "Internal server error"
+          schema:
+            $ref: "#/definitions/Problem"
 parameters:
   DeviceUUID:
     in: "path"
@@ -233,6 +278,31 @@ definitions:
         description: "The mac address of the network interface"
         type: "string"
         minLength: 1
+  SwitchRegistrationRequest:
+    type: "object"
+    required:
+    - "name"
+    - "site"
+    - "rack"
+    - "nics"
+    properties:
+      name:
+        description: "The desired name for this device in the netbox"
+        type: "string"
+        minLength: 1
+      site:
+        description: "The id of the site"
+        type: "string"
+        minLength: 1
+      rack:
+        description: "The name of the rack"
+        type: "string"
+        minLength: 1
+      nics:
+        description: "The network interfaces of this device"
+        type: "array"
+        items:
+          $ref: "#/definitions/Nic"
   Problem:
     type: "object"
     properties:
