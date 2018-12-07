@@ -9,6 +9,8 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+// FindDevice returns the device with the given ID. If there is no
+// such device a metal.NotFound will be returned.
 func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	res, err := rs.deviceTable().Get(id).Run(rs.session)
 	if err != nil {
@@ -27,9 +29,16 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	if d.SizeID != "" {
 		s, err := rs.FindSize(d.SizeID)
 		if err != nil {
-			return nil, fmt.Errorf("illegal size-id %q in device %q", d.SizeID, id)
+			return nil, err
 		}
 		d.Size = s
+	}
+	if d.SiteID != "" {
+		st, err := rs.FindSite(d.SiteID)
+		if err != nil {
+			return nil, err
+		}
+		d.Site = *st
 	}
 	if d.Allocation != nil {
 		if d.Allocation.ImageID != "" {
@@ -43,6 +52,9 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	return &d, nil
 }
 
+// SearchDevice will search devices, optionally by mac. If no mac is
+// given all devices will be returned. If no devices are found you
+// will get an empty list.
 func (rs *RethinkStore) SearchDevice(mac string) ([]metal.Device, error) {
 	q := *rs.deviceTable()
 	if mac != "" {
@@ -63,20 +75,15 @@ func (rs *RethinkStore) SearchDevice(mac string) ([]metal.Device, error) {
 	return rs.fillDeviceList(data...)
 }
 
+// ListDevices returns all devices currently stored in the database.
 func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
-	res, err := rs.deviceTable().Run(rs.session)
-	if err != nil {
-		return nil, fmt.Errorf("cannot list devices from database: %v", err)
-	}
-	defer res.Close()
-	data := make([]metal.Device, 0)
-	err = res.All(&data)
-	if err != nil {
-		return nil, fmt.Errorf("cannot fetch results: %v", err)
-	}
-	return rs.fillDeviceList(data...)
+	return rs.SearchDevice("")
 }
 
+// CreateDevice creates a new device in the database as "unallocated new devices".
+// If the given device has an allocation, the function returns an error because
+// allocated devices cannot be created. If there is already a device with the
+// given ID in the database it will be replaced the the given device.
 func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 	d.Changed = time.Now()
 	d.Created = d.Changed
@@ -98,6 +105,7 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 	return nil
 }
 
+// FindIPMI returns the IPMI data for the given device id.
 func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
 	res, err := rs.ipmiTable().Get(id).Run(rs.session)
 	if err != nil {
@@ -114,7 +122,8 @@ func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
 	return &ipmi, nil
 }
 
-func (rs *RethinkStore) UpsertIpmi(id string, ipmi *metal.IPMI) error {
+// UpsertIPMI inserts or updates the IPMI data for a given device id.
+func (rs *RethinkStore) UpsertIPMI(id string, ipmi *metal.IPMI) error {
 	ipmi.ID = id
 	_, err := rs.ipmiTable().Insert(ipmi, r.InsertOpts{
 		Conflict: "replace",
@@ -125,6 +134,7 @@ func (rs *RethinkStore) UpsertIpmi(id string, ipmi *metal.IPMI) error {
 	return nil
 }
 
+// DeleteDevice removes a device from the database.
 func (rs *RethinkStore) DeleteDevice(id string) (*metal.Device, error) {
 	d, err := rs.FindDevice(id)
 	if err != nil {
@@ -137,6 +147,8 @@ func (rs *RethinkStore) DeleteDevice(id string) (*metal.Device, error) {
 	return d, nil
 }
 
+// UpdateDevice replaces a device in the database if the 'changed' field of
+// the old value equals the 'changed' field of the recored in the database.
 func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) error {
 	_, err := rs.deviceTable().Get(oldD.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldD.Changed)), newD, r.Error("the device was changed from another, please retry"))
@@ -147,6 +159,10 @@ func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) err
 	return nil
 }
 
+// AllocateDevice allocates a device in the database. It searches the 'waitTable'
+// for a device which matches the criteria for site and size. If a device is
+// found the system will allocate a CIDR, create an allocation and update the
+// device in the database.
 func (rs *RethinkStore) AllocateDevice(
 	name string,
 	description string,
@@ -212,6 +228,7 @@ func (rs *RethinkStore) AllocateDevice(
 	return &res[0], nil
 }
 
+// FreeDevice removes an allocation from a given device.
 func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	device, err := rs.FindDevice(id)
 	if err != nil {
@@ -229,6 +246,8 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 	return device, nil
 }
 
+// RegisterDevice creates or updates a device in the database. It also creates
+// an IPMI data record for this device.
 func (rs *RethinkStore) RegisterDevice(
 	id string,
 	site metal.Site,
@@ -276,7 +295,7 @@ func (rs *RethinkStore) RegisterDevice(
 			return nil, err
 		}
 	}
-	err = rs.UpsertIpmi(id, &ipmi)
+	err = rs.UpsertIPMI(id, &ipmi)
 	if err != nil {
 		return nil, err
 	}
@@ -284,6 +303,15 @@ func (rs *RethinkStore) RegisterDevice(
 	return device, nil
 }
 
+// Wait inserts the device with the given ID in the waittable, so
+// this device is ready for allocation. After this, this function waits
+// for an update of this record in the waittable, which is a signal that
+// this device is allocated. This allocation will be signaled via the
+// given allocator in a separate goroutine. The allocator is a function
+// which will receive a channel and the caller has to select on this
+// channel to get a result. Using a channel allows the caller of this
+// function to implement timeouts to not wait forever.
+// The user of this function will block until this device is allocated.
 func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	dev, err := rs.FindDevice(id)
 	if err != nil {
@@ -291,6 +319,7 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	}
 	a := make(chan metal.Device)
 
+	// the device IS already allocated, so notify this allocation back.
 	if dev.Allocation != nil {
 		go func() {
 			a <- *dev
@@ -343,6 +372,8 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	return nil
 }
 
+// fillDeviceList fills the output fields of a device which are not directly
+// stored in the database.
 func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, error) {
 	allsz, err := rs.ListSizes()
 	if err != nil {
@@ -356,6 +387,12 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 	}
 	imgmap := metal.Images(allimg).ByID()
 
+	all, err := rs.ListSites()
+	if err != nil {
+		return nil, err
+	}
+	sitemap := metal.Sites(all).ByID()
+
 	res := make([]metal.Device, len(data), len(data))
 	for i, d := range data {
 		res[i] = d
@@ -367,6 +404,7 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 				res[i].Allocation.Image = &img
 			}
 		}
+		res[i].Site = sitemap[d.SiteID]
 	}
 	return res, nil
 }

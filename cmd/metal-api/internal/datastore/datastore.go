@@ -19,6 +19,9 @@ type Allocation <-chan metal.Device
 // allocated devices.
 type Allocator func(Allocation) error
 
+// A CidrAllocator must return a new CIDR if the allocate method is invoked.
+// On the other hand it should release the cidr which is connected to the
+// device given with 'uuid' when the Release function is calle.d.
 type CidrAllocator interface {
 	Allocate(uuid, tenant, project, name, description, os string) (string, error)
 	Release(uuid string) error

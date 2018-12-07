@@ -16,6 +16,7 @@ type sizeResource struct {
 	webResource
 }
 
+// NewSize returns a webservice for size specific endpoints.
 func NewSize(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	sr := sizeResource{
 		webResource: webResource{

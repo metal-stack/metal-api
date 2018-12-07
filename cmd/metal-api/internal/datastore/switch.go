@@ -7,6 +7,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+// FindSwitch returns a switch for a given id.
 func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 	res, err := rs.switchTable().Get(id).Run(rs.session)
 	if err != nil {
@@ -46,6 +47,7 @@ func (rs *RethinkStore) findSwitchByRack(rackid string) ([]metal.Switch, error) 
 	return data, nil
 }
 
+// ListSwitches returns all known switches.
 func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
 	res, err := rs.switchTable().Run(rs.session)
 	if err != nil {
@@ -61,6 +63,7 @@ func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
 	return switches, nil
 }
 
+// CreateSwitch creates a new switch.
 func (rs *RethinkStore) CreateSwitch(s *metal.Switch) (*metal.Switch, error) {
 	res, err := rs.switchTable().Insert(s).RunWrite(rs.session)
 	if err != nil {
@@ -73,6 +76,7 @@ func (rs *RethinkStore) CreateSwitch(s *metal.Switch) (*metal.Switch, error) {
 	return s, nil
 }
 
+// DeleteSwitch deletes a switch.
 func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
 	sw, err := rs.FindSwitch(id)
 	if err != nil {
@@ -85,6 +89,7 @@ func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
 	return sw, nil
 }
 
+// UpdateSwitch updates a switch.
 func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.Switch) error {
 	_, err := rs.switchTable().Get(oldSwitch.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldSwitch.Changed)), newSwitch, r.Error("the switch was changed from another, please retry"))
@@ -95,6 +100,9 @@ func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.S
 	return nil
 }
 
+// UpdateSwitchConnections fills the output fiedl of the device with a list
+// of connections. As the connections are stored in a map which is not visible via
+// json, this map is transformed to a collection for the clients.
 func (rs *RethinkStore) UpdateSwitchConnections(dev *metal.Device) error {
 	switches, err := rs.findSwitchByRack(dev.RackID)
 	if err != nil {

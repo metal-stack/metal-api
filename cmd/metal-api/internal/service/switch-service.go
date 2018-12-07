@@ -16,6 +16,7 @@ type switchResource struct {
 	webResource
 }
 
+// NewSwitch returns a webservice for switch specific endpoints.
 func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	sr := switchResource{
 		webResource: webResource{
