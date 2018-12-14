@@ -6,6 +6,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client"
 	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
+	nbswitch "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -17,10 +18,11 @@ import (
 // if this is needed (for example in testing code).
 type APIProxy struct {
 	*client.NetboxAPIProxy
-	apitoken   string
-	DoRegister func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error)
-	DoAllocate func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error)
-	DoRelease  func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error)
+	apitoken         string
+	DoRegister       func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error)
+	DoAllocate       func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error)
+	DoRelease        func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error)
+	DoRegisterSwitch func(params *nbswitch.NetboxAPIProxyAPISwitchRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbswitch.NetboxAPIProxyAPISwitchRegisterOK, error)
 }
 
 // New creates a new API proxy and uses the token from the viper-environment "netbox-api-token".
@@ -28,11 +30,12 @@ func New() *APIProxy {
 	apitoken := viper.GetString("netbox-api-token")
 	proxy := initNetboxProxy()
 	return &APIProxy{
-		NetboxAPIProxy: proxy,
-		apitoken:       apitoken,
-		DoRegister:     proxy.Devices.NetboxAPIProxyAPIDeviceRegister,
-		DoAllocate:     proxy.Devices.NetboxAPIProxyAPIDeviceAllocate,
-		DoRelease:      proxy.Devices.NetboxAPIProxyAPIDeviceRelease,
+		NetboxAPIProxy:   proxy,
+		apitoken:         apitoken,
+		DoRegister:       proxy.Devices.NetboxAPIProxyAPIDeviceRegister,
+		DoAllocate:       proxy.Devices.NetboxAPIProxyAPIDeviceAllocate,
+		DoRelease:        proxy.Devices.NetboxAPIProxyAPIDeviceRelease,
+		DoRegisterSwitch: proxy.Switches.NetboxAPIProxyAPISwitchRegister,
 	}
 }
 
@@ -40,6 +43,19 @@ func initNetboxProxy() *client.NetboxAPIProxy {
 	netboxAddr := viper.GetString("netbox-addr")
 	cfg := client.DefaultTransportConfig().WithHost(netboxAddr)
 	return client.NewHTTPClientWithConfig(strfmt.Default, cfg)
+}
+
+func transformNicList(hwnics []metal.Nic) []*models.Nic {
+	var nics []*models.Nic
+	for i := range hwnics {
+		nic := hwnics[i]
+		m := string(nic.MacAddress)
+		newnic := new(models.Nic)
+		newnic.Mac = &m
+		newnic.Name = &nic.Name
+		nics = append(nics, newnic)
+	}
+	return nics
 }
 
 func (nb *APIProxy) authenticate(rq runtime.ClientRequest, rg strfmt.Registry) error {
@@ -52,15 +68,7 @@ func (nb *APIProxy) authenticate(rq runtime.ClientRequest, rg strfmt.Registry) e
 func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.Nic) error {
 	parms := nbdevice.NewNetboxAPIProxyAPIDeviceRegisterParams()
 	parms.UUID = uuid
-	var nics []*models.Nic
-	for i := range hwnics {
-		nic := hwnics[i]
-		m := string(nic.MacAddress)
-		newnic := new(models.Nic)
-		newnic.Mac = &m
-		newnic.Name = &nic.Name
-		nics = append(nics, newnic)
-	}
+	nics := transformNicList(hwnics)
 	parms.Request = &models.DeviceRegistrationRequest{
 		Rack: &rackid,
 		Site: &siteid,
@@ -101,6 +109,25 @@ func (nb *APIProxy) Release(uuid string) error {
 	parms.UUID = uuid
 
 	_, err := nb.DoRelease(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
+	if err != nil {
+		return fmt.Errorf("error calling netbox: %v", err)
+	}
+	return nil
+}
+
+// RegisterSwitch registers the switch on the netbox side.
+func (nb *APIProxy) RegisterSwitch(siteid, rackid, uuid, name string, hwnics []metal.Nic) error {
+	parms := nbswitch.NewNetboxAPIProxyAPISwitchRegisterParams()
+	parms.UUID = uuid
+	nics := transformNicList(hwnics)
+	parms.Request = &models.SwitchRegistrationRequest{
+		Name: &name,
+		Rack: &rackid,
+		Site: &siteid,
+		Nics: nics,
+	}
+
+	_, err := nb.DoRegisterSwitch(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
 		return fmt.Errorf("error calling netbox: %v", err)
 	}

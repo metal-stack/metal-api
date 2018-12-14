@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/require"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 
 	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -108,6 +108,7 @@ func TestFreeDevice(t *testing.T) {
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
@@ -388,6 +389,7 @@ func TestReportDevice(t *testing.T) {
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
@@ -422,6 +424,7 @@ func TestReportFailureDevice(t *testing.T) {
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
 
 	pub := &emptyPublisher{}
@@ -499,6 +502,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d3, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
 
 	pub := &emptyPublisher{}

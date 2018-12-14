@@ -16,6 +16,7 @@ type imageResource struct {
 	webResource
 }
 
+// NewImage returns a webservice for image specific endpoints.
 func NewImage(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
 		webResource: webResource{

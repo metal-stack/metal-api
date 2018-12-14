@@ -26,6 +26,7 @@ type deviceResource struct {
 	netbox *netbox.APIProxy
 }
 
+// NewDevice returns a webservice for device specific endpoints.
 func NewDevice(
 	log *zap.Logger,
 	ds *datastore.RethinkStore,
@@ -53,7 +54,9 @@ func (dr deviceResource) webService() *restful.WebService {
 
 	tags := []string{"device"}
 
-	ws.Route(ws.GET("/{id}").To(dr.findDevice).
+	ws.Route(ws.GET("/{id}").
+		To(dr.restEntityGet(dr.ds.FindDevice)).
+		Operation("findDevice").
 		Doc("get device by id").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -61,7 +64,9 @@ func (dr deviceResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/").To(dr.listDevices).
+	ws.Route(ws.GET("/").
+		To(dr.restListGet(dr.ds.ListDevices)).
+		Operation("listDevices").
 		Doc("get all known devices").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Device{}).
@@ -196,42 +201,10 @@ func (dr deviceResource) phoneHome(request *restful.Request, response *restful.R
 	response.WriteEntity(nil)
 }
 
-func (dr deviceResource) findDevice(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	device, err := dr.ds.FindDevice(id)
-	if checkError(dr.log, response, "findDevice", err) {
-		return
-	}
-	if device.SiteID != "" {
-		site, err := dr.ds.FindSite(device.SiteID)
-		if checkError(dr.log, response, "findDevice", err) {
-			return
-		}
-		device.Site = *site
-	}
-	response.WriteEntity(device)
-}
-
-func (dr deviceResource) listDevices(request *restful.Request, response *restful.Response) {
-	res, err := dr.ds.ListDevices()
-	if checkError(dr.log, response, "listDevices", err) {
-		return
-	}
-	res, err = dr.fillDeviceList(res...)
-	if checkError(dr.log, response, "listDevices", err) {
-		return
-	}
-	response.WriteEntity(res)
-}
-
 func (dr deviceResource) searchDevice(request *restful.Request, response *restful.Response) {
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
 
 	result, err := dr.ds.SearchDevice(mac)
-	if checkError(dr.log, response, "searchDevice", err) {
-		return
-	}
-	result, err = dr.fillDeviceList(result...)
 	if checkError(dr.log, response, "searchDevice", err) {
 		return
 	}
@@ -339,21 +312,6 @@ func (dr deviceResource) freeDevice(request *restful.Request, response *restful.
 	dr.Publish("device", evt)
 	dr.Info("publish delete event", "event", evt)
 	response.WriteEntity(device)
-}
-
-func (dr deviceResource) fillDeviceList(data ...metal.Device) ([]metal.Device, error) {
-	all, err := dr.ds.ListSites()
-	if err != nil {
-		return nil, fmt.Errorf("cannot query all sites: %v", err)
-	}
-	sitemap := metal.Sites(all).ByID()
-
-	res := make([]metal.Device, len(data), len(data))
-	for i, d := range data {
-		res[i] = d
-		res[i].Site = sitemap[d.SiteID]
-	}
-	return res, nil
 }
 
 func (dr deviceResource) allocationReport(request *restful.Request, response *restful.Response) {

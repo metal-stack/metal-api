@@ -7,6 +7,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+// FindImage returns an image or a given id.
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	res, err := rs.imageTable().Get(id).Run(rs.session)
 	if err != nil {
@@ -24,6 +25,7 @@ func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	return &img, nil
 }
 
+// ListImages returns all images.
 func (rs *RethinkStore) ListImages() ([]metal.Image, error) {
 	res, err := rs.imageTable().Run(rs.session)
 	if err != nil {
@@ -38,6 +40,7 @@ func (rs *RethinkStore) ListImages() ([]metal.Image, error) {
 	return imgs, nil
 }
 
+// CreateImage creates a new image.
 func (rs *RethinkStore) CreateImage(i *metal.Image) (*metal.Image, error) {
 	res, err := rs.imageTable().Insert(i).RunWrite(rs.session)
 	if err != nil {
@@ -49,6 +52,7 @@ func (rs *RethinkStore) CreateImage(i *metal.Image) (*metal.Image, error) {
 	return i, nil
 }
 
+// DeleteImage deletes an image.
 func (rs *RethinkStore) DeleteImage(id string) (*metal.Image, error) {
 	img, err := rs.FindImage(id)
 	if err != nil {
@@ -61,6 +65,7 @@ func (rs *RethinkStore) DeleteImage(id string) (*metal.Image, error) {
 	return img, nil
 }
 
+// UpdateImage updates an image.
 func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image) error {
 	_, err := rs.imageTable().Get(oldImage.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldImage.Changed)), newImage, r.Error("the image was changed from another, please retry"))

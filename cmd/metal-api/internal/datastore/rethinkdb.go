@@ -8,6 +8,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+// A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
 	*zap.SugaredLogger
 	session   r.QueryExecutor
@@ -20,6 +21,7 @@ type RethinkStore struct {
 	dbhost string
 }
 
+// New creates a new rethink store.
 func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
 	return &RethinkStore{
 		SugaredLogger: log.Sugar(),
@@ -76,12 +78,15 @@ func (rs *RethinkStore) db() *r.Term {
 	return &res
 }
 
+// Mock return the mock from the rethinkdb driver and sets the
+// session to this mock. This MUST NOT be called in productive code.
 func (rs *RethinkStore) Mock() *r.Mock {
 	m := r.NewMock()
 	rs.session = m
 	return m
 }
 
+// Close closes the database session.
 func (rs *RethinkStore) Close() error {
 	if rs.dbsession != nil {
 		err := rs.dbsession.Close()
@@ -93,14 +98,16 @@ func (rs *RethinkStore) Close() error {
 	return nil
 }
 
+// Connect connects to the database. If there is an error, it will run until there is
+// a connection.
 func (rs *RethinkStore) Connect() {
-	rs.database, rs.dbsession = RetryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
+	rs.database, rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
 	rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
 }
 
-func Connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, error) {
+func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, error) {
 	var err error
 	session, err := r.Connect(r.ConnectOpts{
 		Addresses: hosts,
@@ -119,22 +126,22 @@ func Connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, err
 	return &db, session, nil
 }
 
-// MustConnect versucht eine DB Verbindung herszustellen. Wenn es nicht
+// mustConnect versucht eine DB Verbindung herszustellen. Wenn es nicht
 // funktioniert kommt es zu einem panic.
-func MustConnect(hosts []string, dbname, username, pwd string) (*r.Term, *r.Session) {
-	d, s, e := Connect(hosts, dbname, username, pwd)
+func mustConnect(hosts []string, dbname, username, pwd string) (*r.Term, *r.Session) {
+	d, s, e := connect(hosts, dbname, username, pwd)
 	if e != nil {
 		panic(e)
 	}
 	return d, s
 }
 
-// RetryConnect versucht endlos eine Verbindung zur DB herzustellen. Wenn
+// retryConnect versucht endlos eine Verbindung zur DB herzustellen. Wenn
 // die Verbindung nicht klappt wird eine zeit lang gewartet und erneut
 // versucht.
-func RetryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) (*r.Term, *r.Session) {
+func retryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) (*r.Term, *r.Session) {
 tryAgain:
-	db, s, err := Connect(hosts, dbname, user, pwd)
+	db, s, err := connect(hosts, dbname, user, pwd)
 	if err != nil {
 		log.Errorw("db connection error", "db", dbname, "hosts", hosts, "error", err)
 		time.Sleep(3 * time.Second)

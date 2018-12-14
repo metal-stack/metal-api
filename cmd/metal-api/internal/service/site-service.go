@@ -12,12 +12,13 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
 
-type SiteResource struct {
+type siteResource struct {
 	webResource
 }
 
+// NewSite returns a webservice for site specific endpoints.
 func NewSite(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
-	fr := SiteResource{
+	fr := siteResource{
 		webResource: webResource{
 			SugaredLogger: log.Sugar(),
 			log:           log,
@@ -27,7 +28,7 @@ func NewSite(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	return fr.webService()
 }
 
-func (fr SiteResource) webService() *restful.WebService {
+func (fr siteResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path("/v1/site").
@@ -82,7 +83,7 @@ func (fr SiteResource) webService() *restful.WebService {
 	return ws
 }
 
-func (fr SiteResource) createSite(request *restful.Request, response *restful.Response) {
+func (fr siteResource) createSite(request *restful.Request, response *restful.Response) {
 	var s metal.Site
 	err := request.ReadEntity(&s)
 	if checkError(fr.log, response, "createSite", err) {
@@ -97,7 +98,7 @@ func (fr SiteResource) createSite(request *restful.Request, response *restful.Re
 	response.WriteHeaderAndEntity(http.StatusCreated, s)
 }
 
-func (fr SiteResource) updateSite(request *restful.Request, response *restful.Response) {
+func (fr siteResource) updateSite(request *restful.Request, response *restful.Response) {
 	var newSite metal.Site
 	err := request.ReadEntity(&newSite)
 	if checkError(fr.log, response, "updateSite", err) {

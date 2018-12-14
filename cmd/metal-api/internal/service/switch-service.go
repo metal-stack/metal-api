@@ -8,21 +8,25 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
 
 type switchResource struct {
 	webResource
+	netbox *netbox.APIProxy
 }
 
-func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
+// NewSwitch returns a webservice for switch specific endpoints.
+func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore, netbox *netbox.APIProxy) *restful.WebService {
 	sr := switchResource{
 		webResource: webResource{
 			SugaredLogger: log.Sugar(),
 			log:           log,
 			ds:            ds,
 		},
+		netbox: netbox,
 	}
 	return sr.webService()
 }
@@ -84,6 +88,10 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 			if checkError(sr.log, response, "registerSwitch", err) {
 				return
 			}
+			err = sr.netbox.RegisterSwitch(newSwitch.SiteID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
+			if checkError(sr.log, response, "registerSwitch", err) {
+				return
+			}
 			response.WriteHeaderAndEntity(http.StatusCreated, sw)
 			return
 		}
@@ -98,5 +106,10 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
+	err = sr.netbox.RegisterSwitch(newSwitch.SiteID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
+	if checkError(sr.log, response, "registerSwitch", err) {
+		return
+	}
+
 	response.WriteHeaderAndEntity(http.StatusOK, sw)
 }

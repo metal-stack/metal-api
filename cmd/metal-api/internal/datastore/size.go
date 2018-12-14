@@ -7,6 +7,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+// FindSize return a size for a given id.
 func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 	res, err := rs.sizeTable().Get(id).Run(rs.session)
 	if err != nil {
@@ -24,6 +25,7 @@ func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 	return &r, nil
 }
 
+// ListSizes returns all sizes.
 func (rs *RethinkStore) ListSizes() ([]metal.Size, error) {
 	res, err := rs.sizeTable().Run(rs.session)
 	if err != nil {
@@ -38,6 +40,7 @@ func (rs *RethinkStore) ListSizes() ([]metal.Size, error) {
 	return data, nil
 }
 
+// CreateSize creates a new size.
 func (rs *RethinkStore) CreateSize(size *metal.Size) error {
 	res, err := rs.sizeTable().Insert(size).RunWrite(rs.session)
 	if err != nil {
@@ -49,6 +52,7 @@ func (rs *RethinkStore) CreateSize(size *metal.Size) error {
 	return nil
 }
 
+// DeleteSize deletes a size.
 func (rs *RethinkStore) DeleteSize(id string) (*metal.Size, error) {
 	sz, err := rs.FindSize(id)
 	if err != nil {
@@ -61,6 +65,7 @@ func (rs *RethinkStore) DeleteSize(id string) (*metal.Size, error) {
 	return sz, nil
 }
 
+// UpdateSize updates a size.
 func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) error {
 	_, err := rs.sizeTable().Get(oldSize.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldSize.Changed)), newSize, r.Error("the size was changed from another, please retry"))
@@ -71,12 +76,14 @@ func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) err
 	return nil
 }
 
+// FromHardware tries to find a size which matches the given hardware specs.
 func (rs *RethinkStore) FromHardware(hw metal.DeviceHardware) (*metal.Size, error) {
 	sz, err := rs.ListSizes()
 	if err != nil {
 		return nil, err
 	}
 	if len(sz) < 1 {
+		// this should not happen, so we do not return a notfound
 		return nil, fmt.Errorf("no sizes found in database")
 	}
 	var sizes []metal.Size

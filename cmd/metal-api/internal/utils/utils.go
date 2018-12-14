@@ -36,15 +36,9 @@ func (w *loggingResponseWriter) Content() string {
 	return w.buf.String()
 }
 
-func StringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
+// RestfulLogger is a middleware around every rest call and logs some information
+// abount the request. If the 'debug' paramter is true, the body of the request
+// and the body of the response will also be logged.
 func RestfulLogger(logger *zap.Logger, debug bool) restful.FilterFunction {
 	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 		fields := []zap.Field{
