@@ -1,11 +1,11 @@
-image: registry.cloud.fits/fits/builder:7-dev
+image: registry.cloud.fits/fits/buildtools:1
 
 stages:
     - push
 
 push:
     stage: push
-    script: docker-make --exclude-linting-rules rule3 --summary
+    script: docker-make --Lint --summary
     only:
       - master
       - prod
