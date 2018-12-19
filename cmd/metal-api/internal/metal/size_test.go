@@ -141,3 +141,57 @@ func TestSizes_FromHardware(t *testing.T) {
 		})
 	}
 }
+
+func TestSizes_ByID(t *testing.T) {
+
+	sizes := Sizes{
+		{
+			Base: Base{ID: "BaseID"},
+			Constraints: []Constraint{
+				{
+					MinCores:  1,
+					MaxCores:  2,
+					MinMemory: 200000,
+					MaxMemory: 300000,
+				},
+			},
+		},
+	}
+
+	sizeM := make(SizeMap)
+	for i, f := range sizes {
+		sizeM[f.ID] = sizes[i]
+	}
+
+	tests := []struct {
+		name string
+		sz   Sizes
+		want SizeMap
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Test 1",
+			sz: Sizes{
+				{
+					Base: Base{ID: "BaseID"},
+					Constraints: []Constraint{
+						{
+							MinCores:  1,
+							MaxCores:  2,
+							MinMemory: 200000,
+							MaxMemory: 300000,
+						},
+					},
+				},
+			},
+			want: sizeM,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.sz.ByID(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Sizes.ByID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

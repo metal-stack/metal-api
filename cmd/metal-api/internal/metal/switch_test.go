@@ -104,3 +104,188 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 		})
 	}
 }
+
+func TestNewSwitch(t *testing.T) {
+	type args struct {
+		id     string
+		siteid string
+		rackid string
+		nics   Nics
+	}
+
+	// Create Nics, all have all as Neighbors
+	var countOfNics = 3
+	nicArray := make([]Nic, countOfNics)
+	for i := 0; i < countOfNics; i++ {
+		nicArray[i] = Nic{
+			MacAddress: MacAddress("11:11:1" + string(i)),
+			Name:       "swp" + string(i),
+			Neighbors:  nil,
+		}
+	}
+
+	for i := 0; i < countOfNics; i++ {
+		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want *Switch
+	}{
+		{
+			name: "Test 1",
+			args: args{
+				id:     "deviceID",
+				siteid: "siteID",
+				rackid: "rackID",
+				nics:   nicArray,
+			},
+
+			want: &Switch{
+				Base: Base{
+					ID:   "deviceID",
+					Name: "deviceID",
+				},
+				SiteID:            "siteID",
+				RackID:            "rackID",
+				Connections:       make([]Connection, 0),
+				DeviceConnections: make(ConnectionMap),
+				Nics:              nicArray,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewSwitch(tt.args.id, tt.args.siteid, tt.args.rackid, tt.args.nics); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewSwitch() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConnections_ByNic(t *testing.T) {
+
+	connections := []Connection{
+		Connection{
+			Nic: Nic{
+				Name:       "swp1",
+				MacAddress: "11:11:11",
+			},
+			DeviceID: "device-1",
+		},
+		Connection{
+			Nic: Nic{
+				Name:       "swp2",
+				MacAddress: "22:11:11",
+			},
+			DeviceID: "device-2",
+		},
+	}
+
+	connectionsMap := make(map[MacAddress]Connections)
+	for _, con := range connections {
+		cons := connectionsMap[con.Nic.MacAddress]
+		cons = append(cons, con)
+		connectionsMap[con.Nic.MacAddress] = cons
+	}
+
+	tests := []struct {
+		name string
+		c    Connections
+		want map[MacAddress]Connections
+	}{
+		{
+			name: "Test 1",
+			c:    connections,
+			want: connectionsMap,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.c.ByNic(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Connections.ByNic() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSwitch_FillSwitchConnections(t *testing.T) {
+
+	// Create Nics, all have all as Neighbors
+	var countOfNics = 3
+	nicArray := make([]Nic, countOfNics)
+	for i := 0; i < countOfNics; i++ {
+		nicArray[i] = Nic{
+			MacAddress: MacAddress("11:11:1" + string(i)),
+			Name:       "swp" + string(i),
+			Neighbors:  nil,
+		}
+	}
+
+	for i := 0; i < countOfNics; i++ {
+		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
+	}
+
+	var testSwitch = NewSwitch("deviceID", "siteID", "rackID", nicArray)
+
+	tests := []struct {
+		name string
+		s    *Switch
+	}{
+		{
+			name: "Test TestSwitch_FillSwitchConnections 1",
+			s:    testSwitch,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.s.FillSwitchConnections()
+		})
+	}
+}
+
+func TestFillAllConnections(t *testing.T) {
+
+	type args struct {
+		sw []Switch
+	}
+
+	// Create Nics, all have all as Neighbors
+	var countOfNics = 3
+	nicArray := make([]Nic, countOfNics)
+	for i := 0; i < countOfNics; i++ {
+		nicArray[i] = Nic{
+			MacAddress: MacAddress("11:11:1" + string(i)),
+			Name:       "swp" + string(i),
+			Neighbors:  nil,
+		}
+	}
+
+	for i := 0; i < countOfNics; i++ {
+		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
+	}
+
+	switches := make([]Switch, 3)
+	switches[0] = *NewSwitch("device-1", "site-1", "rack-1", nicArray)
+	switches[1] = *NewSwitch("device-2", "site-1", "rack-1", nicArray)
+	switches[2] = *NewSwitch("device-3", "site-2", "rack-2", nicArray)
+
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Test 1",
+			args: args{
+				sw: switches,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			FillAllConnections(tt.args.sw)
+		})
+	}
+}

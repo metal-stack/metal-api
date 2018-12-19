@@ -57,9 +57,9 @@ type IPMI struct {
 }
 
 // HasMAC returns true if this device has the given MAC.
-func (d *Device) HasMAC(m string) bool {
+func (d *Device) HasMAC(mac string) bool {
 	for _, nic := range d.Hardware.Nics {
-		if string(nic.MacAddress) == m {
+		if string(nic.MacAddress) == mac {
 			return true
 		}
 	}
