@@ -7,14 +7,6 @@ import (
 
 func TestImages_ByID(t *testing.T) {
 
-	/*
-			type Image struct {
-			Base
-			URL string `json:"url" modelDescription:"An image that can be put on a device."  description:"the url to this image" rethinkdb:"url"`
-		}
-
-	*/
-
 	var nameArray = []string{"micro", "tiny", "microAndTiny"}
 	length := len(nameArray)
 
@@ -39,7 +31,7 @@ func TestImages_ByID(t *testing.T) {
 		ii   Images
 		want ImageMap
 	}{
-		// TODO: Add test cases.
+		// Test Data Array (only 1 data):
 		{
 			name: "Test 1",
 			ii:   imageArray,

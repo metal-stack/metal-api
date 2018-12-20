@@ -6,15 +6,8 @@ import (
 )
 
 func TestNics_ByMac(t *testing.T) {
-	/*
-		type Nic struct {
-			MacAddress MacAddress `json:"mac"  description:"the mac address of this network interface" rethinkdb:"macAddress"`
-			Name       string     `json:"name"  description:"the name of this network interface" rethinkdb:"name"`
-			Neighbors  Nics       `json:"neighbors" description:"the neighbors visible to this network interface" rethinkdb:"neighbors"`
-		}
-	*/
 
-	// Create Nics, all have all as Neighbors
+	// Create Nics
 	var countOfNics = 3
 	nicArray := make([]Nic, countOfNics)
 	for i := 0; i < countOfNics; i++ {
@@ -25,6 +18,7 @@ func TestNics_ByMac(t *testing.T) {
 		}
 	}
 
+	// all have all as Neighbors
 	for i := 0; i < countOfNics; i++ {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
@@ -39,9 +33,9 @@ func TestNics_ByMac(t *testing.T) {
 		nics Nics
 		want map[MacAddress]*Nic
 	}{
+		// Test Data Array (only 1 data):
 		{
-			// TODO: Add test cases.
-			name: "das",
+			name: "Test 1",
 			nics: nicArray,
 			want: map1,
 		},

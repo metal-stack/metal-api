@@ -5,15 +5,12 @@ import (
 	"time"
 )
 
-/*
-Demodaten, sollten an reale Daten angepasst werden.
-(Datenüberprüfungen für die Structs nicht gegeben)
-*/
 func TestDevice_HasMAC(t *testing.T) {
 	type args struct {
 		mac string
 	}
 
+	// Create Nics
 	nicArray := make([]Nic, 9)
 	for i := 0; i < 9; i++ {
 		nicArray[i] = Nic{
@@ -29,7 +26,7 @@ func TestDevice_HasMAC(t *testing.T) {
 		args args
 		want bool
 	}{
-		// TODO: Add test cases.
+		// Test Data Array:
 		{
 			name: "Test 1",
 			d: &Device{

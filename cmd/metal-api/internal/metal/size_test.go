@@ -64,6 +64,7 @@ func TestSizes_FromHardware(t *testing.T) {
 		want    *Size
 		wantErr bool
 	}{
+		// Test Data Array:
 		{
 			name: "real live data",
 			sz: Sizes{
@@ -144,6 +145,7 @@ func TestSizes_FromHardware(t *testing.T) {
 
 func TestSizes_ByID(t *testing.T) {
 
+	// Create the Sizes for the Test Data
 	sizes := Sizes{
 		{
 			Base: Base{ID: "BaseID"},
@@ -158,6 +160,7 @@ func TestSizes_ByID(t *testing.T) {
 		},
 	}
 
+	// Create the SizeMap for the Test data
 	sizeM := make(SizeMap)
 	for i, f := range sizes {
 		sizeM[f.ID] = sizes[i]
@@ -168,7 +171,7 @@ func TestSizes_ByID(t *testing.T) {
 		sz   Sizes
 		want SizeMap
 	}{
-		// TODO: Add test cases.
+		// Test Data Array (only 1 data):
 		{
 			name: "Test 1",
 			sz: Sizes{

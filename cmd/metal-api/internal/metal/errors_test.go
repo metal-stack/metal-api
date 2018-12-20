@@ -21,7 +21,7 @@ func TestNotFound(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test Data Array (only 1 data):
 		{
 			name:    "Test 1",
 			args:    theargs,
@@ -55,7 +55,7 @@ func TestIsNotFound(t *testing.T) {
 		args args
 		want bool
 	}{
-		// TODO: Add test cases.
+		// Test Data Array:
 		{
 			name: "Test 1",
 			args: theargs,

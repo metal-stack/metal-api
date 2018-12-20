@@ -22,6 +22,7 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 		fields fields
 		device *Device
 	}{
+		// Test Data Array (Only 1 Value):
 		{
 			name: "simple connection",
 			fields: fields{
@@ -113,7 +114,7 @@ func TestNewSwitch(t *testing.T) {
 		nics   Nics
 	}
 
-	// Create Nics, all have all as Neighbors
+	// Create Nics
 	var countOfNics = 3
 	nicArray := make([]Nic, countOfNics)
 	for i := 0; i < countOfNics; i++ {
@@ -124,6 +125,7 @@ func TestNewSwitch(t *testing.T) {
 		}
 	}
 
+	// Everyone has everyone as neigbors
 	for i := 0; i < countOfNics; i++ {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
@@ -133,6 +135,7 @@ func TestNewSwitch(t *testing.T) {
 		args args
 		want *Switch
 	}{
+		// Test Data array:
 		{
 			name: "Test 1",
 			args: args{
@@ -167,6 +170,7 @@ func TestNewSwitch(t *testing.T) {
 
 func TestConnections_ByNic(t *testing.T) {
 
+	// Create the Connections Array
 	connections := []Connection{
 		Connection{
 			Nic: Nic{
@@ -184,6 +188,7 @@ func TestConnections_ByNic(t *testing.T) {
 		},
 	}
 
+	// Creates the Connections Map
 	connectionsMap := make(map[MacAddress]Connections)
 	for _, con := range connections {
 		cons := connectionsMap[con.Nic.MacAddress]
@@ -196,6 +201,7 @@ func TestConnections_ByNic(t *testing.T) {
 		c    Connections
 		want map[MacAddress]Connections
 	}{
+		// Test data Array:
 		{
 			name: "Test 1",
 			c:    connections,
@@ -213,7 +219,7 @@ func TestConnections_ByNic(t *testing.T) {
 
 func TestSwitch_FillSwitchConnections(t *testing.T) {
 
-	// Create Nics, all have all as Neighbors
+	// Create Nics
 	var countOfNics = 3
 	nicArray := make([]Nic, countOfNics)
 	for i := 0; i < countOfNics; i++ {
@@ -224,6 +230,7 @@ func TestSwitch_FillSwitchConnections(t *testing.T) {
 		}
 	}
 
+	// everyone has everyone else as Neighbors
 	for i := 0; i < countOfNics; i++ {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
@@ -234,6 +241,7 @@ func TestSwitch_FillSwitchConnections(t *testing.T) {
 		name string
 		s    *Switch
 	}{
+		// Test Data Array:
 		{
 			name: "Test TestSwitch_FillSwitchConnections 1",
 			s:    testSwitch,
@@ -267,6 +275,7 @@ func TestFillAllConnections(t *testing.T) {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
 
+	// Creates the Switches for the test data
 	switches := make([]Switch, 3)
 	switches[0] = *NewSwitch("device-1", "site-1", "rack-1", nicArray)
 	switches[1] = *NewSwitch("device-2", "site-1", "rack-1", nicArray)
@@ -276,6 +285,7 @@ func TestFillAllConnections(t *testing.T) {
 		name string
 		args args
 	}{
+		// Test Data Array (Only 1 Test):
 		{
 			name: "Test 1",
 			args: args{
