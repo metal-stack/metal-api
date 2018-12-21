@@ -41,13 +41,13 @@ func (rs *RethinkStore) ListSites() ([]metal.Site, error) {
 }
 
 // CreateSite creates a new site.
-func (rs *RethinkStore) CreateSite(f *metal.Site) error {
-	res, err := rs.siteTable().Insert(f).RunWrite(rs.session)
+func (rs *RethinkStore) CreateSite(site *metal.Site) error {
+	res, err := rs.siteTable().Insert(site).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot create Site in database: %v", err)
 	}
-	if f.ID == "" {
-		f.ID = res.GeneratedKeys[0]
+	if site.ID == "" {
+		site.ID = res.GeneratedKeys[0]
 	}
 	return nil
 }
