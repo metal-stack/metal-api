@@ -16,6 +16,7 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 		RackID            string
 		Created           time.Time
 		Changed           time.Time
+		Site              Site
 	}
 	tests := []struct {
 		name   string
@@ -41,6 +42,11 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 					},
 				},
 				SiteID: "nbg1",
+				Site: Site{
+					Base: Base{
+						ID: "nbg1",
+					},
+				},
 				RackID: "rack1",
 				DeviceConnections: ConnectionMap{
 					"device-1": []Connection{
@@ -96,7 +102,7 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSwitch(tt.fields.ID, tt.fields.SiteID, tt.fields.RackID, tt.fields.Nics)
+			s := NewSwitch(tt.fields.ID, tt.fields.RackID, tt.fields.Nics, &tt.fields.Site)
 			s.ConnectDevice(tt.device)
 			if !reflect.DeepEqual(s.DeviceConnections, tt.fields.DeviceConnections) {
 				t.Errorf("expected:%v, got:%v", s.DeviceConnections, tt.fields.DeviceConnections)

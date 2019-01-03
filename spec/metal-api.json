@@ -1293,6 +1293,27 @@
         }
       }
     },
+    "metal.BootConfiguration": {
+      "required": [
+        "imageurl",
+        "kernelurl",
+        "commandline"
+      ],
+      "properties": {
+        "commandline": {
+          "description": "the cmdline to the kernel for the boot image",
+          "type": "string"
+        },
+        "imageurl": {
+          "description": "the url to download the initrd for the boot image",
+          "type": "string"
+        },
+        "kernelurl": {
+          "description": "the url to download the kernel for the boot image",
+          "type": "string"
+        }
+      }
+    },
     "metal.Connection": {
       "required": [
         "nic"
@@ -1691,9 +1712,13 @@
     },
     "metal.Site": {
       "required": [
-        "id"
+        "id",
+        "bootconfig"
       ],
       "properties": {
+        "bootconfig": {
+          "$ref": "#/definitions/metal.BootConfiguration"
+        },
         "changed": {
           "description": "the last changed timestamp",
           "type": "string",
@@ -1769,7 +1794,8 @@
         "nics",
         "connections",
         "site_id",
-        "rack_id"
+        "rack_id",
+        "site"
       ],
       "properties": {
         "changed": {
@@ -1814,6 +1840,10 @@
         "rack_id": {
           "description": "the id of the rack in which this switch is located",
           "type": "string"
+        },
+        "site": {
+          "description": "the site in which this switch is located",
+          "$ref": "#/definitions/metal.Site"
         },
         "site_id": {
           "description": "the id of the site in which this switch is located",
