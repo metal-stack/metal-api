@@ -172,7 +172,8 @@ var (
 		Site1, Site2,
 	}
 	EmptyResult = map[string]interface{}{}
-	IPMI1       = IPMI{
+
+	IPMI1 = IPMI{
 		ID:         "IPMI-1",
 		Address:    "192.168.0.1",
 		MacAddress: "11:11:11",
