@@ -5,9 +5,16 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 func TestRethinkStore_FindImage(t *testing.T) {
+
+	// mock the DB
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(metal.Img2, nil)
+
 	type args struct {
 		id string
 	}
@@ -18,7 +25,25 @@ func TestRethinkStore_FindImage(t *testing.T) {
 		want    *metal.Image
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test Data Array:
+		{
+			name: "TestRethinkStore_FindImage Test 1",
+			rs:   ds,
+			args: args{
+				id: "1",
+			},
+			want:    &metal.Img1,
+			wantErr: false,
+		},
+		{
+			name: "TestRethinkStore_FindImage Test 2",
+			rs:   ds,
+			args: args{
+				id: "2",
+			},
+			want:    &metal.Img2,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -35,6 +60,13 @@ func TestRethinkStore_FindImage(t *testing.T) {
 }
 
 func TestRethinkStore_ListImages(t *testing.T) {
+
+	// mock the DBs
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("image")).Return([]metal.Image{metal.Img1, metal.Img2}, nil)
+	ds2, mock2 := initMockDB()
+	mock2.On(r.DB("mockdb").Table("image")).Return([]metal.Image{metal.Img1}, nil)
+
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
@@ -42,6 +74,18 @@ func TestRethinkStore_ListImages(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name:    "TestRethinkStore_ListImages Test 1",
+			rs:      ds,
+			want:    []metal.Image{metal.Img1, metal.Img2},
+			wantErr: false,
+		},
+		{
+			name:    "TestRethinkStore_ListImages Test 2",
+			rs:      ds2,
+			want:    []metal.Image{metal.Img1},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -58,6 +102,11 @@ func TestRethinkStore_ListImages(t *testing.T) {
 }
 
 func TestRethinkStore_CreateImage(t *testing.T) {
+
+	// mock the DBs
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("image").Insert(metal.Img1)).Return(metal.EmptyResult, nil)
+
 	type args struct {
 		i *metal.Image
 	}
@@ -69,6 +118,15 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name: "TestRethinkStore_CreateImage Test 1",
+			rs:   ds,
+			args: args{
+				i: &metal.Img1,
+			},
+			want:    &metal.Img1,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -85,6 +143,16 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 }
 
 func TestRethinkStore_DeleteImage(t *testing.T) {
+
+	// mock the DBs
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1").Delete()).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(metal.Img2, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("2").Delete()).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("3")).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("3").Delete()).Return(metal.EmptyResult, r.ErrEmptyResult)
+
 	type args struct {
 		id string
 	}
@@ -95,7 +163,34 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 		want    *metal.Image
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test Data Array / Test Cases:
+		{
+			name: "TestRethinkStore_DeleteSite Test 1",
+			rs:   ds,
+			args: args{
+				id: "1",
+			},
+			want:    &metal.Img1,
+			wantErr: false,
+		},
+		{
+			name: "TestRethinkStore_DeleteSite Test 2",
+			rs:   ds,
+			args: args{
+				id: "2",
+			},
+			want:    &metal.Img2,
+			wantErr: false,
+		},
+		{
+			name: "TestRethinkStore_DeleteSite Test 3",
+			rs:   ds,
+			args: args{
+				id: "3",
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -112,6 +207,16 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 }
 
 func TestRethinkStore_UpdateImage(t *testing.T) {
+
+	// mock the DBs
+	ds, mock := initMockDB()
+	mock.On(r.DB("mockdb").Table("image").Get("1").Replace(func(row r.Term) r.Term {
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Img1.Changed)), metal.Img2, r.Error("the image was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("2").Replace(func(row r.Term) r.Term {
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Img2.Changed)), metal.Img1, r.Error("the image was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
+
 	type args struct {
 		oldImage *metal.Image
 		newImage *metal.Image
@@ -122,7 +227,16 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test Data Array / Test Cases:
+
+		{
+			name: "TestRethinkStore_UpdateImage Test 1",
+			rs:   ds,
+			args: args{
+				&metal.Img1, &metal.Img2,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

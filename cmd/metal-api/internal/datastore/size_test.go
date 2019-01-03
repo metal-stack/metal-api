@@ -17,7 +17,7 @@ func TestRethinkStore_FindSize(t *testing.T) {
 
 	// mock the DB
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
 
 	tests := []struct {
 		name    string
@@ -33,7 +33,7 @@ func TestRethinkStore_FindSize(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &sz1,
+			want:    &metal.Sz1,
 			wantErr: false,
 		},
 	}
@@ -57,11 +57,11 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 	// mock the DBs
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
-		sz1, sz2,
+		metal.Sz1, metal.Sz2,
 	}, nil)
 	ds2, mock2 := initMockDB()
 	mock2.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
-		sz1,
+		metal.Sz1,
 	}, nil)
 
 	tests := []struct {
@@ -75,7 +75,7 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 			name: "TestRethinkStore_ListSizes Test 1",
 			rs:   ds,
 			want: []metal.Size{
-				sz1, sz2,
+				metal.Sz1, metal.Sz2,
 			},
 			wantErr: false,
 		},
@@ -83,7 +83,7 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 			name: "TestRethinkStore_ListSizes Test 2",
 			rs:   ds2,
 			want: []metal.Size{
-				sz1,
+				metal.Sz1,
 			},
 			wantErr: false,
 		},
@@ -106,7 +106,7 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 
 	// mock the DB
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size").Insert(sz1)).Return(emptyResult, nil)
+	mock.On(r.DB("mockdb").Table("size").Insert(metal.Sz1)).Return(metal.EmptyResult, nil)
 
 	type args struct {
 		size *metal.Size
@@ -122,7 +122,7 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 			name: "TestRethinkStore_CreateSize Test 1",
 			rs:   ds,
 			args: args{
-				size: &sz1,
+				size: &metal.Sz1,
 			},
 			wantErr: false,
 		},
@@ -140,12 +140,12 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1").Delete()).Return(emptyResult, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("2")).Return(sz2, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("2").Delete()).Return(emptyResult, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("3")).Return(emptyResult, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("3").Delete()).Return(emptyResult, r.ErrEmptyResult)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1").Delete()).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("2")).Return(metal.Sz2, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("2").Delete()).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("3")).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("3").Delete()).Return(metal.EmptyResult, r.ErrEmptyResult)
 
 	type args struct {
 		id string
@@ -164,7 +164,7 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &sz1,
+			want:    &metal.Sz1,
 			wantErr: false,
 		},
 		{
@@ -173,7 +173,7 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 			args: args{
 				id: "2",
 			},
-			want:    &sz2,
+			want:    &metal.Sz2,
 			wantErr: false,
 		},
 		{
@@ -205,11 +205,11 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 	// mock the DBs
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("size").Get("1").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(sz1.Changed)), sz2, r.Error("the size was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Sz1.Changed)), metal.Sz2, r.Error("the size was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("2").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(sz2.Changed)), sz1, r.Error("the size was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Sz2.Changed)), metal.Sz1, r.Error("the size was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
 
 	type args struct {
 		oldSize *metal.Size
@@ -226,7 +226,7 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 			name: "TestRethinkStore_UpdateSize Test 1",
 			rs:   ds,
 			args: args{
-				&sz1, &sz2,
+				&metal.Sz1, &metal.Sz2,
 			},
 			wantErr: false,
 		},
@@ -234,7 +234,7 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 			name: "TestRethinkStore_UpdateSize Test 2",
 			rs:   ds,
 			args: args{
-				&sz2, &sz1,
+				&metal.Sz2, &metal.Sz1,
 			},
 			wantErr: false,
 		},
@@ -253,7 +253,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 	// mock the DBs
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
-		sz1, sz2,
+		metal.Sz1, metal.Sz2,
 	}, nil)
 
 	type args struct {
@@ -271,9 +271,9 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 			name: "TestRethinkStore_FromHardware Test 1",
 			rs:   ds,
 			args: args{
-				hw: deviceHardware1,
+				hw: metal.DeviceHardware1,
 			},
-			want:    &sz1,
+			want:    &metal.Sz1,
 			wantErr: false,
 		},
 	}

@@ -12,7 +12,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 
 	// mock the DB
 	//ds, mock := initMockDB()
-	//mock.On(r.DB("mockdb").Table("switch").Get("2")).Return(switch2, nil)
+	//mock.On(r.DB("mockdb").Table("switch").Get("2")).Return(metal.Switch2, nil)
 
 	type args struct {
 		id string
@@ -32,7 +32,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 				args: args{
 					id: "2",
 				},
-				want:    &switch2,
+				want:    &metal.Switch2,
 				wantErr: false,
 			},
 		*/
@@ -54,12 +54,12 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 func TestRethinkStore_findSwitchByRack(t *testing.T) {
 
 	// mock the DB
-	//[{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
-	//[{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
+	//[{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
+	//[{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
 	/*
 		ds, mock := initMockDB()
 		mock.On(r.DB("mockdb").Table("switch").Filter(func(var_1 r.Term) r.Term { return var_1.Field("rackid").Eq("rack1") })).Return([]metal.Switch{
-			switch2,
+			metal.Switch2,
 		}, nil)
 	*/
 	type args struct {
@@ -81,7 +81,7 @@ func TestRethinkStore_findSwitchByRack(t *testing.T) {
 					rackid: "rack1",
 				},
 				want: []metal.Switch{
-					switch2,
+					metal.Switch2,
 				},
 				wantErr: false,
 			},
@@ -103,18 +103,18 @@ func TestRethinkStore_findSwitchByRack(t *testing.T) {
 
 func TestRethinkStore_ListSwitches(t *testing.T) {
 
-	// [{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
-	// [{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
+	// [{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
+	// [{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
 
 	// mock the DBs
 	/*
 		ds, mock := initMockDB()
 		mock.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
-			switch1, switch2,
+			metal.Switch1, metal.Switch2,
 		}, nil)
 		ds2, mock2 := initMockDB()
 		mock2.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
-			switch2,
+			metal.Switch2,
 		}, nil)
 	*/
 	tests := []struct {
@@ -129,7 +129,7 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 				name: "TestRethinkStore_ListSwitches Test 1",
 				rs:   ds,
 				want: []metal.Switch{
-					switch1, switch2,
+					metal.Switch1, metal.Switch2,
 				},
 				wantErr: false,
 			},
@@ -137,7 +137,7 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 				name: "TestRethinkStore_ListSwitches Test 2",
 				rs:   ds2,
 				want: []metal.Switch{
-					switch2,
+					metal.Switch2,
 				},
 				wantErr: false,
 			},
@@ -163,7 +163,7 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 
 	// mock the DB
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("switch").Insert(switch1)).Return(emptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switch").Insert(metal.Switch1)).Return(metal.EmptyResult, nil)
 
 	type args struct {
 		s *metal.Switch
@@ -180,9 +180,9 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 			name: "TestRethinkStore_CreateSwitch Test 1",
 			rs:   ds,
 			args: args{
-				s: &switch1,
+				s: &metal.Switch1,
 			},
-			want:    &switch1,
+			want:    &metal.Switch1,
 			wantErr: false,
 		},
 	}
@@ -202,17 +202,17 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 
 func TestRethinkStore_DeleteSwitch(t *testing.T) {
 	/*
-		&{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}
-		&{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}
+		&{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}
+		&{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}
 
 		// mock the DBs
 		ds, mock := initMockDB()
-		mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(switch1, nil)
-		mock.On(r.DB("mockdb").Table("switch").Get("switch1").Delete()).Return(emptyResult, nil)
-		mock.On(r.DB("mockdb").Table("switch").Get("switch2")).Return(switch2, nil)
-		mock.On(r.DB("mockdb").Table("switch").Get("switch2").Delete()).Return(emptyResult, nil)
-		mock.On(r.DB("mockdb").Table("switch").Get("switch3")).Return(emptyResult, nil)
-		mock.On(r.DB("mockdb").Table("switch").Get("switch3").Delete()).Return(emptyResult, r.ErrEmptyResult)
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch1")).Return(metal.Switch1, nil)
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch1").Delete()).Return(metal.EmptyResult, nil)
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch2")).Return(metal.Switch2, nil)
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch2").Delete()).Return(metal.EmptyResult, nil)
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch3")).Return(metal.EmptyResult, nil)
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch3").Delete()).Return(metal.EmptyResult, r.Errmetal.EmptyResult)
 	*/
 	type args struct {
 		id string
@@ -230,25 +230,25 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 				name: "TestRethinkStore_DeleteSwitch Test 1",
 				rs:   ds,
 				args: args{
-					id: "switch1",
+					id: "metal.Switch1",
 				},
-				want:    &switch1,
+				want:    &metal.Switch1,
 				wantErr: false,
 			},
 			{
 				name: "TestRethinkStore_DeleteSwitch Test 2",
 				rs:   ds,
 				args: args{
-					id: "switch2",
+					id: "metal.Switch2",
 				},
-				want:    &switch2,
+				want:    &metal.Switch2,
 				wantErr: false,
 			},
 			{
 				name: "TestRethinkStore_DeleteSwitch Test 3",
 				rs:   ds,
 				args: args{
-					id: "switch3",
+					id: "metal.Switch3",
 				},
 				want:    nil,
 				wantErr: true,
@@ -274,11 +274,11 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 	// mock the DB
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("switch").Get("switch2").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(switch2.Changed)), switch3, r.Error("the switch was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch2.Changed)), metal.Switch3, r.Error("the switch was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(switch3.Changed)), switch2, r.Error("the switch was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch3.Changed)), metal.Switch2, r.Error("the switch was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
 
 	type args struct {
 		oldSwitch *metal.Switch
@@ -295,18 +295,18 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 			name: "TestRethinkStore_UpdateSwitch Test 1",
 			rs:   ds,
 			args: args{
-				&switch2, &switch3,
+				&metal.Switch2, &metal.Switch3,
 			},
 			wantErr: false,
-		},
-		{
-			name: "TestRethinkStore_UpdateSwitch Test 2",
-			rs:   ds,
-			args: args{
-				&switch3, &switch2,
-			},
-			wantErr: false,
-		},
+		}, /*
+			{
+				name: "TestRethinkStore_UpdateSwitch Test 2",
+				rs:   ds,
+				args: args{
+					&metal.Switch3, &metal.Switch2,
+				},
+				wantErr: false,
+			},*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -322,18 +322,18 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 	// mock the DB
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("switch").Get("switch2").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(switch2.Changed)), switch2,
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch2.Changed)), metal.Switch2,
 			r.Error("the switch was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+	})).Return(metal.EmptyResult, nil)
 
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(switch3.Changed)), switch3, r.Error("the switch was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch3.Changed)), metal.Switch3, r.Error("the switch was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Filter(func(var_1 r.Term) r.Term { return var_1.Field("rackid").Eq("rack1") })).Return([]metal.Switch{
-		switch2,
+		metal.Switch2,
 	}, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
-		switch2, switch3,
+		metal.Switch2, metal.Switch3,
 	}, nil)
 
 	type args struct {
@@ -350,7 +350,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 			name: "TestRethinkStore_UpdateSwitchConnections Test 1",
 			rs:   ds,
 			args: args{
-				&d1,
+				&metal.D1,
 			},
 			wantErr: false,
 		},
@@ -358,7 +358,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 			name: "TestRethinkStore_UpdateSwitchConnections Test 2",
 			rs:   ds,
 			args: args{
-				&d2,
+				&metal.D2,
 			},
 			wantErr: false,
 		},
@@ -374,25 +374,25 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 
 func TestRethinkStore_findSwithcByMac(t *testing.T) {
 	/*
-		[{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1} {{switch3   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}], want
-		[{{switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1} {{switch3   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
+		[{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1} {{metal.Switch3   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}], want
+		[{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1} {{metal.Switch3   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
 	*/
 	/*
 		// mock the DB
 		ds, mock := initMockDB()
-		mock.On(r.DB("mockdb").Table("switch").Get("switch2").Replace(func(row r.Term) r.Term {
-			return r.Branch(row.Field("changed").Eq(r.Expr(switch2.Changed)), switch2,
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch2").Replace(func(row r.Term) r.Term {
+			return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch2.Changed)), metal.Switch2,
 				r.Error("the switch was changed from another, please retry"))
-		})).Return(emptyResult, nil)
+		})).Return(metal.EmptyResult, nil)
 
-		mock.On(r.DB("mockdb").Table("switch").Get("switch3").Replace(func(row r.Term) r.Term {
-			return r.Branch(row.Field("changed").Eq(r.Expr(switch3.Changed)), switch3, r.Error("the switch was changed from another, please retry"))
-		})).Return(emptyResult, nil)
+		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch3").Replace(func(row r.Term) r.Term {
+			return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch3.Changed)), metal.Switch3, r.Error("the switch was changed from another, please retry"))
+		})).Return(metal.EmptyResult, nil)
 		mock.On(r.DB("mockdb").Table("switch").Filter(func(var_1 r.Term) r.Term { return var_1.Field("rackid").Eq("rack1") })).Return([]metal.Switch{
-			switch2,
+			metal.Switch2,
 		}, nil)
 		mock.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
-			switch2, switch3,
+			metal.Switch2, metal.Switch3,
 		}, nil)
 
 		var macs = []metal.Nic{
@@ -407,7 +407,7 @@ func TestRethinkStore_findSwithcByMac(t *testing.T) {
 		mock.On(r.DB("mockdb").Table("switch").Filter(func(row r.Term) r.Term {
 			return macexpr.SetIntersection(row.Field("network_interfaces").Field("macAddress")).Count().Gt(1)
 		})).Return([]metal.Switch{
-			switch2, switch3,
+			metal.Switch2, metal.Switch3,
 		}, nil)
 	*/
 	type args struct {
@@ -431,7 +431,7 @@ func TestRethinkStore_findSwithcByMac(t *testing.T) {
 					},
 				},
 				want: []metal.Switch{
-					switch2, switch3,
+					metal.Switch2, metal.Switch3,
 				},
 				wantErr: false,
 			},

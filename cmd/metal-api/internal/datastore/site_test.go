@@ -12,8 +12,8 @@ func TestRethinkStore_FindSite(t *testing.T) {
 
 	// mock the DB
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("2")).Return(site2, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("2")).Return(metal.Site2, nil)
 
 	type args struct {
 		id string
@@ -32,7 +32,7 @@ func TestRethinkStore_FindSite(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &site1,
+			want:    &metal.Site1,
 			wantErr: false,
 		},
 		{
@@ -41,7 +41,7 @@ func TestRethinkStore_FindSite(t *testing.T) {
 			args: args{
 				id: "2",
 			},
-			want:    &site2,
+			want:    &metal.Site2,
 			wantErr: false,
 		},
 	}
@@ -64,11 +64,11 @@ func TestRethinkStore_ListSites(t *testing.T) {
 	// mock the DBs
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("site")).Return([]metal.Site{
-		site1, site2,
+		metal.Site1, metal.Site2,
 	}, nil)
 	ds2, mock2 := initMockDB()
 	mock2.On(r.DB("mockdb").Table("site")).Return([]metal.Site{
-		site1,
+		metal.Site1,
 	}, nil)
 
 	tests := []struct {
@@ -82,7 +82,7 @@ func TestRethinkStore_ListSites(t *testing.T) {
 			name: "TestRethinkStore_ListSites Test 1",
 			rs:   ds,
 			want: []metal.Site{
-				site1, site2,
+				metal.Site1, metal.Site2,
 			},
 			wantErr: false,
 		},
@@ -90,7 +90,7 @@ func TestRethinkStore_ListSites(t *testing.T) {
 			name: "TestRethinkStore_ListSites Test 2",
 			rs:   ds2,
 			want: []metal.Site{
-				site1,
+				metal.Site1,
 			},
 			wantErr: false,
 		},
@@ -113,7 +113,7 @@ func TestRethinkStore_CreateSite(t *testing.T) {
 
 	// mock the DB
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Insert(site1)).Return(emptyResult, nil)
+	mock.On(r.DB("mockdb").Table("site").Insert(metal.Site1)).Return(metal.EmptyResult, nil)
 
 	type args struct {
 		site *metal.Site
@@ -129,7 +129,7 @@ func TestRethinkStore_CreateSite(t *testing.T) {
 			name: "TestRethinkStore_CreateSite Test 1",
 			rs:   ds,
 			args: args{
-				site: &site1,
+				site: &metal.Site1,
 			},
 			wantErr: false,
 		},
@@ -147,12 +147,12 @@ func TestRethinkStore_DeleteSite(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1").Delete()).Return(emptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("2")).Return(site2, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("2").Delete()).Return(emptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("3")).Return(emptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("3").Delete()).Return(emptyResult, r.ErrEmptyResult)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1").Delete()).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("2")).Return(metal.Site2, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("2").Delete()).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("3")).Return(metal.EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("3").Delete()).Return(metal.EmptyResult, r.ErrEmptyResult)
 
 	type args struct {
 		id string
@@ -171,7 +171,7 @@ func TestRethinkStore_DeleteSite(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &site1,
+			want:    &metal.Site1,
 			wantErr: false,
 		},
 		{
@@ -180,7 +180,7 @@ func TestRethinkStore_DeleteSite(t *testing.T) {
 			args: args{
 				id: "2",
 			},
-			want:    &site2,
+			want:    &metal.Site2,
 			wantErr: false,
 		},
 		{
@@ -212,11 +212,11 @@ func TestRethinkStore_UpdateSite(t *testing.T) {
 	// mock the DBs
 	ds, mock := initMockDB()
 	mock.On(r.DB("mockdb").Table("site").Get("1").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(site1.Changed)), site2, r.Error("the Site was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Site1.Changed)), metal.Site2, r.Error("the Site was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("site").Get("2").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(site2.Changed)), site1, r.Error("the Site was changed from another, please retry"))
-	})).Return(emptyResult, nil)
+		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Site2.Changed)), metal.Site1, r.Error("the Site was changed from another, please retry"))
+	})).Return(metal.EmptyResult, nil)
 
 	type args struct {
 		oldF *metal.Site
@@ -233,7 +233,7 @@ func TestRethinkStore_UpdateSite(t *testing.T) {
 			name: "TestRethinkStore_UpdateSite Test 1",
 			rs:   ds,
 			args: args{
-				&site1, &site2,
+				&metal.Site1, &metal.Site2,
 			},
 			wantErr: false,
 		},
@@ -241,7 +241,7 @@ func TestRethinkStore_UpdateSite(t *testing.T) {
 			name: "TestRethinkStore_UpdateSite Test 2",
 			rs:   ds,
 			args: args{
-				&site2, &site1,
+				&metal.Site2, &metal.Site1,
 			},
 			wantErr: false,
 		},
