@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"github.com/go-openapi/runtime"
@@ -35,11 +36,11 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 }
 
 func TestGetDevices(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device")).Return([]interface{}{d1, d2}, nil)
-	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{sz1, sz2}, nil)
-	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{img1}, nil)
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{site1}, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device")).Return([]interface{}{metal.D1, metal.D2}, nil)
+	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{metal.Sz1, metal.Sz2}, nil)
+	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{metal.Img1}, nil)
+	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{metal.Site1}, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -55,19 +56,19 @@ func TestGetDevices(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Len(t, result, 2)
-	require.Equal(t, d1.ID, result[0].ID)
-	require.Equal(t, d1.Allocation.Name, result[0].Allocation.Name)
-	require.Equal(t, sz1.Name, result[0].Size.Name)
-	require.Equal(t, site1.Name, result[0].Site.Name)
-	require.Equal(t, d2.ID, result[1].ID)
+	require.Equal(t, metal.D1.ID, result[0].ID)
+	require.Equal(t, metal.D1.Allocation.Name, result[0].Allocation.Name)
+	require.Equal(t, metal.Sz1.Name, result[0].Size.Name)
+	require.Equal(t, metal.Site1.Name, result[0].Site.Name)
+	require.Equal(t, metal.D2.ID, result[1].ID)
 }
 
 func TestGetDevice(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return([]interface{}{d1, d2}, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{sz1}, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return([]interface{}{img1}, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{site1}, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return([]interface{}{metal.D1, metal.D2}, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{metal.Sz1}, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return([]interface{}{metal.Img1}, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{metal.Site1}, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -82,15 +83,15 @@ func TestGetDevice(t *testing.T) {
 	var result metal.Device
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, d1.ID, result.ID)
-	require.Equal(t, d1.Allocation.Name, result.Allocation.Name)
-	require.Equal(t, sz1.Name, result.Size.Name)
-	require.Equal(t, img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, site1.Name, result.Site.Name)
+	require.Equal(t, metal.D1.ID, result.ID)
+	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, metal.Sz1.Name, result.Size.Name)
+	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, metal.Site1.Name, result.Site.Name)
 }
 
 func TestGetDeviceNotFound(t *testing.T) {
-	ds, mock := initMockDB()
+	ds, mock := datastore.InitMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(nil, nil)
 
 	pub := &emptyPublisher{}
@@ -105,11 +106,11 @@ func TestGetDeviceNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 func TestFreeDevice(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
 	})).Return(emptyResult, nil)
@@ -139,11 +140,11 @@ func TestFreeDevice(t *testing.T) {
 }
 
 func TestSearchDevice(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{d1}, nil)
-	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{sz1}, nil)
-	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{img1}, nil)
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{site1}, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{metal.D1}, nil)
+	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{metal.Sz1}, nil)
+	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{metal.Img1}, nil)
+	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{metal.Site1}, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -160,11 +161,11 @@ func TestSearchDevice(t *testing.T) {
 	require.Nil(t, err)
 	require.Len(t, results, 1)
 	result := results[0]
-	require.Equal(t, d1.ID, result.ID)
-	require.Equal(t, d1.Allocation.Name, result.Allocation.Name)
-	require.Equal(t, sz1.Name, result.Size.Name)
-	require.Equal(t, img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, site1.Name, result.Site.Name)
+	require.Equal(t, metal.D1.ID, result.ID)
+	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, metal.Sz1.Name, result.Size.Name)
+	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, metal.Site1.Name, result.Site.Name)
 }
 
 func TestRegisterDevice(t *testing.T) {
@@ -194,13 +195,13 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "insert new",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{site1},
-			dbsizes:            []metal.Size{sz1},
+			dbsites:            []metal.Site{metal.Site1},
+			dbsizes:            []metal.Size{metal.Sz1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusOK,
-			expectedSizeName:   sz1.Name,
+			expectedSizeName:   metal.Sz1.Name,
 			ipmiresult:         []metal.IPMI{ipmi},
 			ipmiresulterror:    nil,
 		},
@@ -208,13 +209,13 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "no ipmi data",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{site1},
-			dbsizes:            []metal.Size{sz1},
+			dbsites:            []metal.Site{metal.Site1},
+			dbsizes:            []metal.Size{metal.Sz1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusNotFound,
-			expectedSizeName:   sz1.Name,
+			expectedSizeName:   metal.Sz1.Name,
 			ipmiresult:         []metal.IPMI{},
 			ipmiresulterror:    nil,
 		},
@@ -222,13 +223,13 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "ipmi fetch error",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{site1},
-			dbsizes:            []metal.Size{sz1},
+			dbsites:            []metal.Site{metal.Site1},
+			dbsizes:            []metal.Size{metal.Sz1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusInternalServerError,
-			expectedSizeName:   sz1.Name,
+			expectedSizeName:   metal.Sz1.Name,
 			ipmiresult:         []metal.IPMI{},
 			ipmiresulterror:    fmt.Errorf("nope"),
 		},
@@ -236,14 +237,14 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "insert existing",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{site1},
-			dbsizes:            []metal.Size{sz1},
-			dbdevices:          []metal.Device{d3},
+			dbsites:            []metal.Site{metal.Site1},
+			dbsizes:            []metal.Size{metal.Sz1},
+			dbdevices:          []metal.Device{metal.D3},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusOK,
-			expectedSizeName:   sz1.Name,
+			expectedSizeName:   metal.Sz1.Name,
 			ipmiresult:         []metal.IPMI{ipmi},
 			ipmiresulterror:    nil,
 		},
@@ -251,16 +252,16 @@ func TestRegisterDevice(t *testing.T) {
 			name:           "empty uuid",
 			uuid:           "",
 			siteid:         "1",
-			dbsites:        []metal.Site{site1},
-			dbsizes:        []metal.Size{sz1},
+			dbsites:        []metal.Site{metal.Site1},
+			dbsizes:        []metal.Size{metal.Sz1},
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "error when impi update fails",
 			uuid:           "1",
 			siteid:         "1",
-			dbsites:        []metal.Site{site1},
-			dbsizes:        []metal.Size{sz1},
+			dbsites:        []metal.Site{metal.Site1},
+			dbsizes:        []metal.Size{metal.Sz1},
 			ipmidberror:    fmt.Errorf("ipmi insert fails"),
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -269,15 +270,15 @@ func TestRegisterDevice(t *testing.T) {
 			uuid:           "1",
 			siteid:         "",
 			dbsites:        nil,
-			dbsizes:        []metal.Size{sz1},
+			dbsizes:        []metal.Size{metal.Sz1},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:               "unknown size because wrong cpu",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{site1},
-			dbsizes:            []metal.Size{sz1},
+			dbsites:            []metal.Site{metal.Site1},
+			dbsizes:            []metal.Size{metal.Sz1},
 			numcores:           2,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
@@ -290,8 +291,8 @@ func TestRegisterDevice(t *testing.T) {
 			name:           "fail on netbox error",
 			uuid:           "1",
 			siteid:         "1",
-			dbsites:        []metal.Site{site1},
-			dbsizes:        []metal.Size{sz1},
+			dbsites:        []metal.Site{metal.Site1},
+			dbsizes:        []metal.Size{metal.Sz1},
 			numcores:       2,
 			memory:         100,
 			netboxerror:    fmt.Errorf("this should happen"),
@@ -300,7 +301,7 @@ func TestRegisterDevice(t *testing.T) {
 	}
 	for _, test := range testdata {
 		t.Run(test.name, func(t *testing.T) {
-			ds, mock := initMockDB()
+			ds, mock := datastore.InitMockDB()
 
 			rr := metal.RegisterDevice{
 				UUID:   test.uuid,
@@ -314,13 +315,13 @@ func TestRegisterDevice(t *testing.T) {
 			}
 
 			mock.On(r.DB("mockdb").Table("site").Get(test.siteid)).Return(test.dbsites, nil)
-			mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{sz1}, nil)
+			mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{metal.Sz1}, nil)
 			mock.On(r.DB("mockdb").Table("device").Get("1")).Return(test.dbdevices, nil)
 			// TODO Filter mock is currently noop, makes switch result in device service empty.
 			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
 
 			if len(test.dbdevices) > 0 {
-				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{sz1}, nil)
+				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{metal.Sz1}, nil)
 				mock.On(r.DB("mockdb").Table("device").Get(test.dbdevices[0].ID).Replace(r.MockAnything())).Return(emptyResult, nil)
 			} else {
 				mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything(), r.InsertOpts{
@@ -357,13 +358,13 @@ func TestRegisterDevice(t *testing.T) {
 			err := json.NewDecoder(resp.Body).Decode(&result)
 			require.Nil(t, err)
 			require.True(t, called, "netbox register was not called")
-			expectedid := d1.ID
+			expectedid := metal.D1.ID
 			if len(test.dbdevices) > 0 {
 				expectedid = test.dbdevices[0].ID
 			}
 			require.Equal(t, expectedid, result.ID)
 			require.Equal(t, test.expectedSizeName, result.Size.Name)
-			require.Equal(t, site1.Name, result.Site.Name)
+			require.Equal(t, metal.Site1.Name, result.Site.Name)
 			// no read ipmi data
 			req = httptest.NewRequest("POST", fmt.Sprintf("/v1/device/%s/ipmi", test.uuid), nil)
 			req.Header.Add("Content-Type", "application/json")
@@ -386,16 +387,16 @@ func TestRegisterDevice(t *testing.T) {
 }
 
 func TestReportDevice(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
 	})).Return(emptyResult, nil)
 
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{site1}, nil)
+	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{metal.Site1}, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -421,11 +422,11 @@ func TestReportDevice(t *testing.T) {
 }
 
 func TestReportFailureDevice(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -451,7 +452,7 @@ func TestReportFailureDevice(t *testing.T) {
 }
 
 func TestReportUnknownDevice(t *testing.T) {
-	ds, mock := initMockDB()
+	ds, mock := datastore.InitMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("10")).Return(nil, nil)
 
 	pub := &emptyPublisher{}
@@ -475,7 +476,7 @@ func TestReportUnknownDevice(t *testing.T) {
 }
 
 func TestReportUnknownFailure(t *testing.T) {
-	ds, mock := initMockDB()
+	ds, mock := datastore.InitMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("10")).Return(nil, fmt.Errorf("nope"))
 
 	pub := &emptyPublisher{}
@@ -499,11 +500,11 @@ func TestReportUnknownFailure(t *testing.T) {
 }
 
 func TestReportUnallocatedDevice(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(d3, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(img1, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D3, nil)
+	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()

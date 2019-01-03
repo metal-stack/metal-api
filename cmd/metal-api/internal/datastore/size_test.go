@@ -16,7 +16,7 @@ func TestRethinkStore_FindSize(t *testing.T) {
 	}
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
 
 	tests := []struct {
@@ -55,11 +55,11 @@ func TestRethinkStore_FindSize(t *testing.T) {
 func TestRethinkStore_ListSizes(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
 		metal.Sz1, metal.Sz2,
 	}, nil)
-	ds2, mock2 := initMockDB()
+	ds2, mock2 := InitMockDB()
 	mock2.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
 		metal.Sz1,
 	}, nil)
@@ -105,7 +105,7 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 func TestRethinkStore_CreateSize(t *testing.T) {
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size").Insert(metal.Sz1)).Return(metal.EmptyResult, nil)
 
 	type args struct {
@@ -139,7 +139,7 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 func TestRethinkStore_DeleteSize(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("1").Delete()).Return(metal.EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("2")).Return(metal.Sz2, nil)
@@ -203,7 +203,7 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 func TestRethinkStore_UpdateSize(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size").Get("1").Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Sz1.Changed)), metal.Sz2, r.Error("the size was changed from another, please retry"))
 	})).Return(metal.EmptyResult, nil)
@@ -251,7 +251,7 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 func TestRethinkStore_FromHardware(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
 		metal.Sz1, metal.Sz2,
 	}, nil)

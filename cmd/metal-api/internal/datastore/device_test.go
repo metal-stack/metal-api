@@ -12,7 +12,7 @@ import (
 func TestRethinkStore_FindDevice(t *testing.T) {
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("2")).Return(metal.Sz2, nil)
 	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
@@ -67,7 +67,7 @@ func TestRethinkStore_FindDevice(t *testing.T) {
 func TestRethinkStore_SearchDevice(t *testing.T) {
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size").Get("2")).Return(metal.Sz2, nil)
 	mock.On(r.DB("mockdb").Table("size")).Return(metal.TestSizeArray, nil)
 	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
@@ -121,7 +121,7 @@ func TestRethinkStore_SearchDevice(t *testing.T) {
 func TestRethinkStore_ListDevices(t *testing.T) {
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size")).Return(metal.TestSizeArray, nil)
 	mock.On(r.DB("mockdb").Table("site")).Return(metal.TestSiteArray, nil)
 	mock.On(r.DB("mockdb").Table("image")).Return(metal.TestImageArray, nil)
@@ -160,7 +160,7 @@ func TestRethinkStore_CreateDevice(t *testing.T) {
 
 	/*
 		// mock the DBs
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("device").Insert(metal.D3, r.InsertOpts{
 			Conflict: "replace",
 		})).Return(metal.EmptyResult, nil)
@@ -197,7 +197,7 @@ func TestRethinkStore_CreateDevice(t *testing.T) {
 func TestRethinkStore_FindIPMI(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 
 	mock.On(r.DB("mockdb").Table("ipmi").Get("IPMI-1")).Return(metal.IPMI1, nil)
 
@@ -236,7 +236,7 @@ func TestRethinkStore_FindIPMI(t *testing.T) {
 func TestRethinkStore_UpsertIPMI(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("ipmi").Insert(metal.IPMI1, r.InsertOpts{
 		Conflict: "replace",
 	})).Return(metal.EmptyResult, nil)
@@ -273,7 +273,7 @@ func TestRethinkStore_UpsertIPMI(t *testing.T) {
 func TestRethinkStore_DeleteDevice(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 
 	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
@@ -318,7 +318,7 @@ func TestRethinkStore_DeleteDevice(t *testing.T) {
 func TestRethinkStore_UpdateDevice(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
 	})).Return(metal.EmptyResult, nil)
@@ -356,7 +356,7 @@ func TestRethinkStore_AllocateDevice(t *testing.T) {
 
 	/*
 		// mock the DBs
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
 			return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
 		})).Return(metal.EmptyResult, nil)
@@ -434,7 +434,7 @@ func TestRethinkStore_FreeDevice(t *testing.T) {
 	*/
 	/*
 		// mock the DBs
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("device").Get("1").Replace(
 			func(row r.Term) r.Term {
 				return r.Branch(row.Field("changed").Eq(r.Expr(metal.D2.Changed)), metal.D2_without_alloc, r.Error("the device was changed from another, please retry"))
@@ -491,7 +491,7 @@ func TestRethinkStore_FreeDevice(t *testing.T) {
 func TestRethinkStore_RegisterDevice(t *testing.T) {
 	/*
 		// mock the DBs
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
 			return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
 		})).Return(metal.EmptyResult, nil)
@@ -551,7 +551,7 @@ func TestRethinkStore_Wait(t *testing.T) {
 
 	/*
 		// mock the DBs
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
 			return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
 		})).Return(metal.EmptyResult, nil)
@@ -597,7 +597,7 @@ func TestRethinkStore_Wait(t *testing.T) {
 func TestRethinkStore_fillDeviceList(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("size")).Return(metal.TestSizeArray, nil)
 	mock.On(r.DB("mockdb").Table("site")).Return(metal.TestSiteArray, nil)
 	mock.On(r.DB("mockdb").Table("image")).Return(metal.TestImageArray, nil)

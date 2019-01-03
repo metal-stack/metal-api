@@ -1,12 +1,11 @@
 package service
 
-import (
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
-)
+import "go.uber.org/zap"
 
+var testlogger = zap.NewNop()
+var emptyResult = map[string]interface{}{}
+
+/*
 var (
 	testlogger = zap.NewNop()
 
@@ -116,3 +115,4 @@ func initMockDB() (*datastore.RethinkStore, *r.Mock) {
 
 	return rs, mock
 }
+*/

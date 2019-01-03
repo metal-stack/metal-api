@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
@@ -21,8 +22,8 @@ import (
 )
 
 func TestCreateSwitch(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(emptyResult, nil)
 
@@ -36,9 +37,9 @@ func TestCreateSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     switch1.ID,
-		SiteID: switch1.SiteID,
-		RackID: switch1.RackID,
+		ID:     metal.Switch1.ID,
+		SiteID: metal.Switch1.SiteID,
+		RackID: metal.Switch1.RackID,
 	})
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
@@ -52,17 +53,17 @@ func TestCreateSwitch(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.True(t, called)
-	require.Equal(t, switch1.ID, result.ID)
-	require.Equal(t, switch1.ID, result.Name)
-	require.Equal(t, switch1.RackID, result.RackID)
-	require.Equal(t, switch1.SiteID, result.SiteID)
+	require.Equal(t, metal.Switch1.ID, result.ID)
+	require.Equal(t, metal.Switch1.ID, result.Name)
+	require.Equal(t, metal.Switch1.RackID, result.RackID)
+	require.Equal(t, metal.Switch1.SiteID, result.SiteID)
 	require.Len(t, result.Connections, 0)
 }
 
 func TestUpdateSwitch(t *testing.T) {
-	ds, mock := initMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(site1, nil)
-	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(switch1, nil)
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(metal.Switch1, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(emptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch1").Replace(func(t r.Term) r.Term {
 		return r.MockAnything()
@@ -79,9 +80,9 @@ func TestUpdateSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     switch1.ID,
-		SiteID: switch1.SiteID,
-		RackID: switch1.RackID,
+		ID:     metal.Switch1.ID,
+		SiteID: metal.Switch1.SiteID,
+		RackID: metal.Switch1.RackID,
 	})
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
@@ -95,11 +96,11 @@ func TestUpdateSwitch(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.True(t, called)
-	require.Equal(t, switch1.ID, result.ID)
-	require.Equal(t, switch1.ID, result.Name)
-	require.Equal(t, switch1.RackID, result.RackID)
-	require.Equal(t, switch1.SiteID, result.SiteID)
+	require.Equal(t, metal.Switch1.ID, result.ID)
+	require.Equal(t, metal.Switch1.ID, result.Name)
+	require.Equal(t, metal.Switch1.RackID, result.RackID)
+	require.Equal(t, metal.Switch1.SiteID, result.SiteID)
 	require.Len(t, result.Connections, 1)
 	con := result.Connections[0]
-	require.Equal(t, switch1.DeviceConnections["d1"][0].Nic.MacAddress, con.Nic.MacAddress)
+	require.Equal(t, metal.Switch1.DeviceConnections["d1"][0].Nic.MacAddress, con.Nic.MacAddress)
 }

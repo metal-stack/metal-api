@@ -11,7 +11,7 @@ import (
 func TestRethinkStore_FindImage(t *testing.T) {
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(metal.Img2, nil)
 
@@ -62,9 +62,9 @@ func TestRethinkStore_FindImage(t *testing.T) {
 func TestRethinkStore_ListImages(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("image")).Return([]metal.Image{metal.Img1, metal.Img2}, nil)
-	ds2, mock2 := initMockDB()
+	ds2, mock2 := InitMockDB()
 	mock2.On(r.DB("mockdb").Table("image")).Return([]metal.Image{metal.Img1}, nil)
 
 	tests := []struct {
@@ -104,7 +104,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 func TestRethinkStore_CreateImage(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("image").Insert(metal.Img1)).Return(metal.EmptyResult, nil)
 
 	type args struct {
@@ -145,7 +145,7 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 func TestRethinkStore_DeleteImage(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("1").Delete()).Return(metal.EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(metal.Img2, nil)
@@ -209,7 +209,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 func TestRethinkStore_UpdateImage(t *testing.T) {
 
 	// mock the DBs
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("image").Get("1").Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Img1.Changed)), metal.Img2, r.Error("the image was changed from another, please retry"))
 	})).Return(metal.EmptyResult, nil)

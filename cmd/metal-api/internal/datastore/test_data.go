@@ -7,7 +7,7 @@ import (
 
 var testlogger = zap.NewNop()
 
-func initMockDB() (*RethinkStore, *r.Mock) {
+func InitMockDB() (*RethinkStore, *r.Mock) {
 	rs := New(
 		testlogger,
 		"db-addr",

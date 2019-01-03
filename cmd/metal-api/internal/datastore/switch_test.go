@@ -11,7 +11,7 @@ import (
 func TestRethinkStore_FindSwitch(t *testing.T) {
 
 	// mock the DB
-	//ds, mock := initMockDB()
+	//ds, mock := InitMockDB()
 	//mock.On(r.DB("mockdb").Table("switch").Get("2")).Return(metal.Switch2, nil)
 
 	type args struct {
@@ -57,7 +57,7 @@ func TestRethinkStore_findSwitchByRack(t *testing.T) {
 	//[{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
 	//[{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}]
 	/*
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("switch").Filter(func(var_1 r.Term) r.Term { return var_1.Field("rackid").Eq("rack1") })).Return([]metal.Switch{
 			metal.Switch2,
 		}, nil)
@@ -108,11 +108,11 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 
 	// mock the DBs
 	/*
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
 			metal.Switch1, metal.Switch2,
 		}, nil)
-		ds2, mock2 := initMockDB()
+		ds2, mock2 := InitMockDB()
 		mock2.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
 			metal.Switch2,
 		}, nil)
@@ -162,7 +162,7 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 	// Diff. to Size and Site: They return nil, this switch returns the created switch. ==> is it wanted like this??
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("switch").Insert(metal.Switch1)).Return(metal.EmptyResult, nil)
 
 	type args struct {
@@ -206,7 +206,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 		&{{metal.Switch2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} [] [] map[] 1 rack1}
 
 		// mock the DBs
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch1")).Return(metal.Switch1, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch1").Delete()).Return(metal.EmptyResult, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch2")).Return(metal.Switch2, nil)
@@ -272,7 +272,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 func TestRethinkStore_UpdateSwitch(t *testing.T) {
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("switch").Get("switch2").Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch2.Changed)), metal.Switch3, r.Error("the switch was changed from another, please retry"))
 	})).Return(metal.EmptyResult, nil)
@@ -320,7 +320,7 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 
 	// mock the DB
-	ds, mock := initMockDB()
+	ds, mock := InitMockDB()
 	mock.On(r.DB("mockdb").Table("switch").Get("switch2").Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch2.Changed)), metal.Switch2,
 			r.Error("the switch was changed from another, please retry"))
@@ -379,7 +379,7 @@ func TestRethinkStore_findSwithcByMac(t *testing.T) {
 	*/
 	/*
 		// mock the DB
-		ds, mock := initMockDB()
+		ds, mock := InitMockDB()
 		mock.On(r.DB("mockdb").Table("switch").Get("metal.Switch2").Replace(func(row r.Term) r.Term {
 			return r.Branch(row.Field("changed").Eq(r.Expr(metal.Switch2.Changed)), metal.Switch2,
 				r.Error("the switch was changed from another, please retry"))
