@@ -5,7 +5,7 @@
         "description": "The vagrant lab",
         "bootconfig": {
             "kernelurl": "https://blobstore.fi-ts.io/metal/images/metal-hammer/metal-hammer-kernel",
-            "imageurl": "https://blobstore.fi-ts.io/metal/images/metal-hammer/metal-hammer-initrd.lz4",
+            "imageurl": "https://blobstore.fi-ts.io/metal/images/metal-hammer/metal-hammer-initrd.img.lz4",
             "commandline": "console=tty0 console=ttyS0 ip=dhcp"
         }
     }
