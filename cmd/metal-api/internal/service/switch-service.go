@@ -73,13 +73,13 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
-	_, err = sr.ds.FindSite(newSwitch.SiteID)
+	site, err := sr.ds.FindSite(newSwitch.SiteID)
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
 
 	oldSwitch, err := sr.ds.FindSwitch(newSwitch.ID)
-	sw := metal.NewSwitch(newSwitch.ID, newSwitch.SiteID, newSwitch.RackID, newSwitch.Nics)
+	sw := metal.NewSwitch(newSwitch.ID, newSwitch.RackID, newSwitch.Nics, site)
 	if err != nil {
 		if metal.IsNotFound(err) {
 			sw.Created = time.Now()
