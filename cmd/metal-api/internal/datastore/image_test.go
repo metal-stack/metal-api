@@ -12,8 +12,7 @@ func TestRethinkStore_FindImage(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(metal.Img2, nil)
+	metal.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -63,9 +62,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("image")).Return([]metal.Image{metal.Img1, metal.Img2}, nil)
-	ds2, mock2 := InitMockDB()
-	mock2.On(r.DB("mockdb").Table("image")).Return([]metal.Image{metal.Img1}, nil)
+	metal.InitMockDBData(mock)
 
 	tests := []struct {
 		name    string
@@ -77,13 +74,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 		{
 			name:    "TestRethinkStore_ListImages Test 1",
 			rs:      ds,
-			want:    []metal.Image{metal.Img1, metal.Img2},
-			wantErr: false,
-		},
-		{
-			name:    "TestRethinkStore_ListImages Test 2",
-			rs:      ds2,
-			want:    []metal.Image{metal.Img1},
+			want:    metal.TestImageArray,
 			wantErr: false,
 		},
 	}
@@ -105,7 +96,7 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("image").Insert(metal.Img1)).Return(metal.EmptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	type args struct {
 		i *metal.Image
@@ -146,12 +137,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1").Delete()).Return(metal.EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(metal.Img2, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("2").Delete()).Return(metal.EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("3")).Return(metal.EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("3").Delete()).Return(metal.EmptyResult, r.ErrEmptyResult)
+	metal.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -186,7 +172,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 			name: "TestRethinkStore_DeleteSite Test 3",
 			rs:   ds,
 			args: args{
-				id: "3",
+				id: "404",
 			},
 			want:    nil,
 			wantErr: true,
@@ -210,6 +196,8 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
 	mock.On(r.DB("mockdb").Table("image").Get("1").Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Img1.Changed)), metal.Img2, r.Error("the image was changed from another, please retry"))
 	})).Return(metal.EmptyResult, nil)

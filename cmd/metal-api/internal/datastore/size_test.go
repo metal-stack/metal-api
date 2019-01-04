@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 func TestRethinkStore_FindSize(t *testing.T) {
@@ -17,7 +15,7 @@ func TestRethinkStore_FindSize(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+	metal.InitMockDBData(mock)
 
 	tests := []struct {
 		name    string
@@ -56,13 +54,7 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
-		metal.Sz1, metal.Sz2,
-	}, nil)
-	ds2, mock2 := InitMockDB()
-	mock2.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
-		metal.Sz1,
-	}, nil)
+	metal.InitMockDBData(mock)
 
 	tests := []struct {
 		name    string
@@ -72,19 +64,9 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 	}{
 		// Test Data Array / Test Cases:
 		{
-			name: "TestRethinkStore_ListSizes Test 1",
-			rs:   ds,
-			want: []metal.Size{
-				metal.Sz1, metal.Sz2,
-			},
-			wantErr: false,
-		},
-		{
-			name: "TestRethinkStore_ListSizes Test 2",
-			rs:   ds2,
-			want: []metal.Size{
-				metal.Sz1,
-			},
+			name:    "TestRethinkStore_ListSizes Test 1",
+			rs:      ds,
+			want:    metal.TestSizeArray,
 			wantErr: false,
 		},
 	}
@@ -106,7 +88,7 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Insert(metal.Sz1)).Return(metal.EmptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	type args struct {
 		size *metal.Size
@@ -140,12 +122,7 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1").Delete()).Return(metal.EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("2")).Return(metal.Sz2, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("2").Delete()).Return(metal.EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("3")).Return(metal.EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("3").Delete()).Return(metal.EmptyResult, r.ErrEmptyResult)
+	metal.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -180,7 +157,7 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 			name: "TestRethinkStore_DeleteSize Test 3",
 			rs:   ds,
 			args: args{
-				id: "3",
+				id: "404",
 			},
 			want:    nil,
 			wantErr: true,
@@ -204,12 +181,7 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Sz1.Changed)), metal.Sz2, r.Error("the size was changed from another, please retry"))
-	})).Return(metal.EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("2").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(metal.Sz2.Changed)), metal.Sz1, r.Error("the size was changed from another, please retry"))
-	})).Return(metal.EmptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	type args struct {
 		oldSize *metal.Size
@@ -252,9 +224,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{
-		metal.Sz1, metal.Sz2,
-	}, nil)
+	metal.InitMockDBData(mock)
 
 	type args struct {
 		hw metal.DeviceHardware

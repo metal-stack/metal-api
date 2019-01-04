@@ -12,13 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful"
-
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 func TestGetSizes(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{metal.Sz1, metal.Sz2}, nil)
+	metal.InitMockDBData(mock)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
@@ -31,18 +29,21 @@ func TestGetSizes(t *testing.T) {
 	var result []metal.Size
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Len(t, result, 2)
+	require.Len(t, result, 3)
 	require.Equal(t, metal.Sz1.ID, result[0].ID)
 	require.Equal(t, metal.Sz1.Name, result[0].Name)
 	require.Equal(t, metal.Sz1.Description, result[0].Description)
 	require.Equal(t, metal.Sz2.ID, result[1].ID)
 	require.Equal(t, metal.Sz2.Name, result[1].Name)
 	require.Equal(t, metal.Sz2.Description, result[1].Description)
+	require.Equal(t, metal.Sz3.ID, result[2].ID)
+	require.Equal(t, metal.Sz3.Name, result[2].Name)
+	require.Equal(t, metal.Sz3.Description, result[2].Description)
 }
 
 func TestGetSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+	metal.InitMockDBData(mock)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
@@ -62,11 +63,11 @@ func TestGetSize(t *testing.T) {
 
 func TestGetSizeNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(nil, nil)
+	metal.InitMockDBData(mock)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
-	req := httptest.NewRequest("GET", "/v1/size/1", nil)
+	req := httptest.NewRequest("GET", "/v1/size/999", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -76,8 +77,7 @@ func TestGetSizeNotFound(t *testing.T) {
 
 func TestDeleteSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1").Delete()).Return(emptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
@@ -97,8 +97,7 @@ func TestDeleteSize(t *testing.T) {
 
 func TestCreateSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(emptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)
@@ -122,10 +121,7 @@ func TestCreateSize(t *testing.T) {
 
 func TestUpdateSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1").Replace(func(t r.Term) r.Term {
-		return r.MockAnything()
-	})).Return(emptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	sizeservice := NewSize(testlogger, ds)
 	container := restful.NewContainer().Add(sizeservice)

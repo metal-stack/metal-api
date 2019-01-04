@@ -12,13 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful"
-
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 func TestGetImages(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{metal.Img1, metal.Img2}, nil)
+	metal.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -31,16 +29,18 @@ func TestGetImages(t *testing.T) {
 	var result []metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Len(t, result, 2)
+	require.Len(t, result, 3)
 	require.Equal(t, metal.Img1.ID, result[0].ID)
 	require.Equal(t, metal.Img1.Name, result[0].Name)
 	require.Equal(t, metal.Img2.ID, result[1].ID)
 	require.Equal(t, metal.Img2.Name, result[1].Name)
+	require.Equal(t, metal.Img3.ID, result[2].ID)
+	require.Equal(t, metal.Img3.Name, result[2].Name)
 }
 
 func TestGetImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
+	metal.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -59,11 +59,11 @@ func TestGetImage(t *testing.T) {
 
 func TestGetImageNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(nil, nil)
+	metal.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/v1/image/1", nil)
+	req := httptest.NewRequest("GET", "/v1/image/999", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -73,8 +73,7 @@ func TestGetImageNotFound(t *testing.T) {
 
 func TestDeleteImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return([]interface{}{metal.Img1}, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1").Delete()).Return(emptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -93,8 +92,7 @@ func TestDeleteImage(t *testing.T) {
 
 func TestCreateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-	mock.On(r.DB("mockdb").Table("image").Insert(r.MockAnything())).Return(emptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -117,13 +115,7 @@ func TestCreateImage(t *testing.T) {
 
 func TestUpdateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1").Replace(func(t r.Term) r.Term {
-		return r.MockAnything()
-	})).Return([]interface{}{
-		map[string]interface{}{},
-	}, nil)
+	metal.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)

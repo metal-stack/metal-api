@@ -289,7 +289,6 @@ func (rs *RethinkStore) RegisterDevice(
 		device.RackID = rackid
 		device.Name = name
 		device.Description = descr
-
 		err = rs.UpdateDevice(&old, device)
 		if err != nil {
 			return nil, err

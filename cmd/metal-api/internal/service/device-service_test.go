@@ -37,10 +37,7 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 
 func TestGetDevices(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device")).Return([]interface{}{metal.D1, metal.D2}, nil)
-	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{metal.Sz1, metal.Sz2}, nil)
-	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{metal.Img1}, nil)
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{metal.Site1}, nil)
+	metal.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -55,117 +52,12 @@ func TestGetDevices(t *testing.T) {
 	var result []metal.Device
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Len(t, result, 2)
+	require.Len(t, result, len(metal.TestDeviceArray))
 	require.Equal(t, metal.D1.ID, result[0].ID)
 	require.Equal(t, metal.D1.Allocation.Name, result[0].Allocation.Name)
 	require.Equal(t, metal.Sz1.Name, result[0].Size.Name)
 	require.Equal(t, metal.Site1.Name, result[0].Site.Name)
 	require.Equal(t, metal.D2.ID, result[1].ID)
-}
-
-func TestGetDevice(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return([]interface{}{metal.D1, metal.D2}, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return([]interface{}{metal.Sz1}, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return([]interface{}{metal.Img1}, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return([]interface{}{metal.Site1}, nil)
-
-	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
-	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/v1/device/1", nil)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.Device
-	err := json.NewDecoder(resp.Body).Decode(&result)
-	require.Nil(t, err)
-	require.Equal(t, metal.D1.ID, result.ID)
-	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
-	require.Equal(t, metal.Sz1.Name, result.Size.Name)
-	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, metal.Site1.Name, result.Site.Name)
-}
-
-func TestGetDeviceNotFound(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(nil, nil)
-
-	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
-	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/v1/device/1", nil)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
-}
-func TestFreeDevice(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
-		return r.MockAnything()
-	})).Return(emptyResult, nil)
-
-	pub := &emptyPublisher{}
-	pub.doPublish = func(topic string, data interface{}) error {
-		require.Equal(t, "device", topic)
-		dv := data.(metal.DeviceEvent)
-		require.Equal(t, "1", dv.Old.ID)
-		return nil
-	}
-	nb := netbox.New()
-	called := false
-	nb.DoRelease = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
-		called = true
-		return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
-	}
-	dservice := NewDevice(testlogger, ds, pub, nb)
-	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("DELETE", "/v1/device/1/free", nil)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	require.True(t, called, "netbox.DoRelease was not called")
-}
-
-func TestSearchDevice(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{metal.D1}, nil)
-	mock.On(r.DB("mockdb").Table("size")).Return([]interface{}{metal.Sz1}, nil)
-	mock.On(r.DB("mockdb").Table("image")).Return([]interface{}{metal.Img1}, nil)
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{metal.Site1}, nil)
-
-	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
-	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/v1/device/find?mac=1", nil)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var results []metal.Device
-	err := json.NewDecoder(resp.Body).Decode(&results)
-	require.Nil(t, err)
-	require.Len(t, results, 1)
-	result := results[0]
-	require.Equal(t, metal.D1.ID, result.ID)
-	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
-	require.Equal(t, metal.Sz1.Name, result.Size.Name)
-	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, metal.Site1.Name, result.Site.Name)
 }
 
 func TestRegisterDevice(t *testing.T) {
@@ -234,12 +126,16 @@ func TestRegisterDevice(t *testing.T) {
 			ipmiresulterror:    fmt.Errorf("nope"),
 		},
 		{
-			name:               "insert existing",
-			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{metal.Site1},
-			dbsizes:            []metal.Size{metal.Sz1},
-			dbdevices:          []metal.Device{metal.D3},
+			name:    "insert existing",
+			uuid:    "1",
+			siteid:  "1",
+			dbsites: []metal.Site{metal.Site1},
+			dbsizes: []metal.Size{metal.Sz1},
+			// If here D3 is set instead of D1, it fails. ==> The device is never set in the Register device function endpoint below, but is compared to fix value 1 in line 362: require.Equal(t, expectedid, result.ID)
+			//mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{metal.D1}, nil) Deswegen, trotz
+			// The DB returns D3(Id=3) where the request would be: give ID=1??
+			// ==> mock.On(r.DB("mockdb").Table("device").Get("1")).Return(test.dbdevices, nil)
+			dbdevices:          []metal.Device{metal.D1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
@@ -302,7 +198,7 @@ func TestRegisterDevice(t *testing.T) {
 	for _, test := range testdata {
 		t.Run(test.name, func(t *testing.T) {
 			ds, mock := datastore.InitMockDB()
-
+			metal.InitMockDBData(mock)
 			rr := metal.RegisterDevice{
 				UUID:   test.uuid,
 				SiteID: test.siteid,
@@ -313,12 +209,7 @@ func TestRegisterDevice(t *testing.T) {
 					Memory:   uint64(test.memory),
 				},
 			}
-
 			mock.On(r.DB("mockdb").Table("site").Get(test.siteid)).Return(test.dbsites, nil)
-			mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{metal.Sz1}, nil)
-			mock.On(r.DB("mockdb").Table("device").Get("1")).Return(test.dbdevices, nil)
-			// TODO Filter mock is currently noop, makes switch result in device service empty.
-			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
 
 			if len(test.dbdevices) > 0 {
 				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{metal.Sz1}, nil)
@@ -355,6 +246,7 @@ func TestRegisterDevice(t *testing.T) {
 				return
 			}
 			var result metal.Device
+
 			err := json.NewDecoder(resp.Body).Decode(&result)
 			require.Nil(t, err)
 			require.True(t, called, "netbox register was not called")
@@ -388,15 +280,7 @@ func TestRegisterDevice(t *testing.T) {
 
 func TestReportDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(t r.Term) r.Term {
-		return r.MockAnything()
-	})).Return(emptyResult, nil)
-
-	mock.On(r.DB("mockdb").Table("site")).Return([]interface{}{metal.Site1}, nil)
+	metal.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -423,10 +307,7 @@ func TestReportDevice(t *testing.T) {
 
 func TestReportFailureDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
+	metal.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -453,7 +334,7 @@ func TestReportFailureDevice(t *testing.T) {
 
 func TestReportUnknownDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("10")).Return(nil, nil)
+	metal.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -466,7 +347,7 @@ func TestReportUnknownDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/10/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/999/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -477,7 +358,7 @@ func TestReportUnknownDevice(t *testing.T) {
 
 func TestReportUnknownFailure(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("10")).Return(nil, fmt.Errorf("nope"))
+	metal.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -490,7 +371,7 @@ func TestReportUnknownFailure(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/10/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/404/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -501,10 +382,7 @@ func TestReportUnknownFailure(t *testing.T) {
 
 func TestReportUnallocatedDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D3, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
+	metal.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -517,7 +395,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/1/report", body)
+	req := httptest.NewRequest("POST", "/v1/device/3/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

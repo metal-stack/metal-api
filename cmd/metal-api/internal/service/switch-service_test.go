@@ -17,15 +17,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful"
-
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 func TestCreateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(emptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	nb := netbox.New()
 	called := false
@@ -37,9 +33,9 @@ func TestCreateSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     metal.Switch1.ID,
-		SiteID: metal.Switch1.SiteID,
-		RackID: metal.Switch1.RackID,
+		ID:     "switch999",
+		SiteID: "1",
+		RackID: "1",
 	})
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
@@ -53,21 +49,16 @@ func TestCreateSwitch(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.True(t, called)
-	require.Equal(t, metal.Switch1.ID, result.ID)
-	require.Equal(t, metal.Switch1.ID, result.Name)
-	require.Equal(t, metal.Switch1.RackID, result.RackID)
-	require.Equal(t, metal.Switch1.SiteID, result.SiteID)
+	require.Equal(t, "switch999", result.ID)
+	require.Equal(t, "switch999", result.Name)
+	require.Equal(t, "1", result.RackID)
+	require.Equal(t, "1", result.SiteID)
 	require.Len(t, result.Connections, 0)
 }
 
 func TestUpdateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(metal.Switch1, nil)
-	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(emptyResult, nil)
-	mock.On(r.DB("mockdb").Table("switch").Get("switch1").Replace(func(t r.Term) r.Term {
-		return r.MockAnything()
-	})).Return(emptyResult, nil)
+	metal.InitMockDBData(mock)
 
 	nb := netbox.New()
 	called := false
