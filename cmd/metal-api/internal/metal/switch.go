@@ -8,7 +8,7 @@ type Switch struct {
 	Nics              Nics          `json:"nics" modelDescription:"A switch that can register at the api." description:"the list of network interfaces on the switch" rethinkdb:"network_interfaces"`
 	Connections       Connections   `json:"connections" description:"a connection between a switch port and a device" rethinkdb:"-"`
 	DeviceConnections ConnectionMap `json:"-" description:"a connection between a switch port and a device" rethinkdb:"deviceconnections"`
-	SiteID            string        `json:"-" description:"the id of the site in which this switch is located" rethinkdb:"siteid"`
+	SiteID            string        `json:"site_id" description:"the id of the site in which this switch is located" rethinkdb:"siteid"`
 	RackID            string        `json:"rack_id" description:"the id of the rack in which this switch is located" rethinkdb:"rackid"`
 	Site              Site          `json:"site" description:"the site in which this switch is located" rethinkdb:"-"`
 }
