@@ -248,6 +248,7 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 
 // RegisterDevice creates or updates a device in the database. It also creates
 // an IPMI data record for this device.
+// Maby it would be good to give a Device As Parameter, insted of all Atributes of a Device.
 func (rs *RethinkStore) RegisterDevice(
 	id string,
 	site metal.Site,

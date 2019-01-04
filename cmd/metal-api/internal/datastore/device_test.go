@@ -47,7 +47,7 @@ func TestRethinkStore_FindDevice(t *testing.T) {
 			name: "TestRethinkStore_FindDevice Test 3",
 			rs:   ds,
 			args: args{
-				id: "someInvalidValue!§$%&/()=?",
+				id: "404",
 			},
 			want:    nil,
 			wantErr: true,
@@ -124,7 +124,7 @@ func TestRethinkStore_ListDevices(t *testing.T) {
 	}{
 		// Test Data Array
 		{
-			name:    "Test 1",
+			name:    "TestRethinkStore_ListDevices Test 1",
 			rs:      ds,
 			want:    metal.TestDeviceArray,
 			wantErr: false,
@@ -146,34 +146,10 @@ func TestRethinkStore_ListDevices(t *testing.T) {
 
 func TestRethinkStore_CreateDevice(t *testing.T) {
 
-	/*
-			var theD1 = metal.Device{
-				Base: metal.Base{ID: "2",
-					Changed: time.Now()},
-				SiteID: "1",
-				Site:   metal.Site1,
-				SizeID: "1",
-				Size:   &metal.Sz1,
+	// mock the DBs
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
 
-				Allocation: nil,
-			}
-
-			theD1.Changed = time.Now()
-			theD1.Created = theD1.Changed
-			theD1.SizeID = theD1.Size.ID
-			theD1.SiteID = theD1.Site.ID
-
-			// mock the DBs
-				ds, mock := InitMockDB()
-		metal.InitMockDBData(mock)
-
-			mock.On(r.DB("mockdb").Table("device").Insert(theD1, r.InsertOpts{
-				Conflict: "replace",
-			})).Return(metal.EmptyResult, nil)
-	*/
-
-	//{allocation=<nil>, id="3", siteid="1", created={timezone="+01:00", $reql_type$="TIME", epoch_time=1.546519797615738e+09}, hardware={cpu_cores=0, network_interfaces=[], block_devices=[], memory=0}, name="", rackid="", sizeid="1", description="", changed={epoch_time=1.546519797615738e+09, timezone="+01:00", $reql_type$="TIME"}}
-	//{{3   2019-01-03 13:51:28.575966322 +0100 CET m=+0.000954163 2019-01-03 13:51:28.575966322 +0100 CET m=+0.000954163} {{1 site1 description 1 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC}} 1  0xc36120 1 {0 0 [] []} <nil>}
 	type args struct {
 		d *metal.Device
 	}
@@ -183,19 +159,17 @@ func TestRethinkStore_CreateDevice(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		/*
-			{
-				name: "Test 1",
-				rs:   ds,
-				args: args{
-					&theD1,
-				},
-				wantErr: false,
+		// Test Data Array:
+		{
+			name: "TestRethinkStore_CreateDevice Test 1",
+			rs:   ds,
+			args: args{
+				&metal.D4,
 			},
-		*/
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
-		fmt.Printf("%v", metal.D3)
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.CreateDevice(tt.args.d); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateDevice() error = %v, wantErr %v", err, tt.wantErr)
@@ -220,8 +194,9 @@ func TestRethinkStore_FindIPMI(t *testing.T) {
 		want    *metal.IPMI
 		wantErr bool
 	}{
+		// Test Data Array:
 		{
-			name:    "Test 1",
+			name:    "TestRethinkStore_FindIPMI Test 1",
 			rs:      ds,
 			args:    args{"IPMI-1"},
 			want:    &metal.IPMI1,
@@ -258,8 +233,9 @@ func TestRethinkStore_UpsertIPMI(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
+		// Test Data Array:
 		{
-			name: "Test 1",
+			name: "TestRethinkStore_UpsertIPMI Test 1",
 			rs:   ds,
 			args: args{
 				id:   "IPMI-1",
@@ -293,8 +269,9 @@ func TestRethinkStore_DeleteDevice(t *testing.T) {
 		want    *metal.Device
 		wantErr bool
 	}{
+		// Test Data Array:
 		{
-			name: "Test 1",
+			name: "TestRethinkStore_DeleteDevice Test 1",
 			rs:   ds,
 			args: args{
 				id: "1",
@@ -333,8 +310,9 @@ func TestRethinkStore_UpdateDevice(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
+		// Test Data Array:
 		{
-			name: "Test 1",
+			name: "TestRethinkStore_UpdateDevice Test 1",
 			rs:   ds,
 			args: args{
 				oldD: &metal.D1,
@@ -353,22 +331,21 @@ func TestRethinkStore_UpdateDevice(t *testing.T) {
 }
 
 func TestRethinkStore_AllocateDevice(t *testing.T) {
+
 	/*
-			// mock the DBs
-				ds, mock := InitMockDB()
+		// Mock the DB
+		ds, mock := InitMockDB()
 		metal.InitMockDBData(mock)
 
+		mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
+			return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
+		})).Return(metal.EmptyResult, nil)
 
-			mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
-				return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
-			})).Return(metal.EmptyResult, nil)
-
-			mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-			mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-			mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-			mock.On(r.DB("mockdb").Table("device").Get("1").Delete()).Return(metal.EmptyResult, nil)
+		mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
+		mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
+		mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
+		mock.On(r.DB("mockdb").Table("device").Get("1").Delete()).Return(metal.EmptyResult, nil)
 	*/
-
 	type args struct {
 		name          string
 		description   string
@@ -429,33 +406,14 @@ func TestRethinkStore_AllocateDevice(t *testing.T) {
 }
 
 func TestRethinkStore_FreeDevice(t *testing.T) {
-	/*
-			{2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {{1 site1 description 1 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC
-		{rackid="", sizeid="1", hardware={cpu_cores=0, network_interfaces=[], block_devices=[], memory=0}, allocation=<nil>, description="", changed={epoch_time=-6.21355968e+10, timezone="+00:00", $reql_type$="TIME"}, id="2", created={epoch_time=-6.21355968e+10, timezone="+00:00", $reql_type$="TIME"}, siteid="1", name=""}
 
-	*/
-	/*
-			// mock the DBs
-				ds, mock := InitMockDB()
-		metal.InitMockDBData(mock)
+	//&{{2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {{1 site1 description 1 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC}} 1  0xc00011a280 1 {0 0 [] []} <nil>}
+	//&{{2   0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC} {{1 site1 description 1 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC}} 1  0xc62240 1 {0 0 [] []} 0xc62d20}
 
+	// Mock the DB
+	//ds, mock := InitMockDB()
+	//metal.InitMockDBData(mock)
 
-			mock.On(r.DB("mockdb").Table("device").Get("1").Replace(
-				func(row r.Term) r.Term {
-					return r.Branch(row.Field("changed").Eq(r.Expr(metal.D2.Changed)), metal.D2_without_alloc, r.Error("the device was changed from another, please retry"))
-				})).Return(metal.EmptyResult, nil)
-
-			mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
-				return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
-			})).Return(metal.EmptyResult, nil)
-
-			mock.On(r.DB("mockdb").Table("device").Get("2")).Return(metal.D2, nil)
-
-			mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-			mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-			mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-			mock.On(r.DB("mockdb").Table("device").Get("1").Delete()).Return(metal.EmptyResult, nil)
-	*/
 	type args struct {
 		id string
 	}
@@ -467,15 +425,16 @@ func TestRethinkStore_FreeDevice(t *testing.T) {
 		wantErr bool
 	}{
 		/*
-			{
-				name: "Test 1",
-				rs:   ds,
-				args: args{
-					id: "2",
+			// Test Data Array:
+				{
+					name: "TestRethinkStore_FreeDevice Test 1",
+					rs:   ds,
+					args: args{
+						id: "2",
+					},
+					want:    &metal.D2,
+					wantErr: false,
 				},
-				want:    &metal.D2,
-				wantErr: false,
-			},
 		*/
 	}
 	for _, tt := range tests {
@@ -494,21 +453,11 @@ func TestRethinkStore_FreeDevice(t *testing.T) {
 }
 
 func TestRethinkStore_RegisterDevice(t *testing.T) {
-	/*
-			// mock the DBs
-				ds, mock := InitMockDB()
-		metal.InitMockDBData(mock)
 
+	// mock the DBs
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
 
-			mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
-				return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
-			})).Return(metal.EmptyResult, nil)
-
-			mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-			mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-			mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-			mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
-	*/
 	type args struct {
 		id       string
 		site     metal.Site
@@ -524,22 +473,21 @@ func TestRethinkStore_RegisterDevice(t *testing.T) {
 		want    *metal.Device
 		wantErr bool
 	}{
-		/*
-			{
-				name: "Test 1",
-				rs:   ds,
-				args: args{
-					id:       "1",
-					site:     metal.Site1,
-					rackid:   "1",
-					sz:       metal.Sz1,
-					hardware: metal.DeviceHardware1,
-					ipmi:     metal.IPMI1,
-				},
-				want:    &metal.D1,
-				wantErr: false,
+		// Test Data Array:
+		{
+			name: "TestRethinkStore_RegisterDevice Test 1",
+			rs:   ds,
+			args: args{
+				id:       "5",
+				site:     metal.Site1,
+				rackid:   "1",
+				sz:       metal.Sz1,
+				hardware: metal.DeviceHardware1,
+				ipmi:     metal.IPMI1,
 			},
-		*/
+			want:    &metal.D5,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -559,17 +507,12 @@ func TestRethinkStore_Wait(t *testing.T) {
 
 	/*
 			// mock the DBs
-				ds, mock := InitMockDB()
-		metal.InitMockDBData(mock)
+			ds, mock := InitMockDB()
+			metal.InitMockDBData(mock)
 
-			mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
-				return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
-			})).Return(metal.EmptyResult, nil)
-
-			mock.On(r.DB("mockdb").Table("size").Get("1")).Return(metal.Sz1, nil)
-			mock.On(r.DB("mockdb").Table("site").Get("1")).Return(metal.Site1, nil)
-			mock.On(r.DB("mockdb").Table("image").Get("1")).Return(metal.Img1, nil)
-			mock.On(r.DB("mockdb").Table("device").Get("1")).Return(metal.D1, nil)
+		mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
+			return r.Branch(row.Field("changed").Eq(r.Expr(metal.D1.Changed)), metal.D2, r.Error("the device was changed from another, please retry"))
+		})).Return(metal.EmptyResult, nil)
 	*/
 
 	type args struct {
@@ -582,10 +525,10 @@ func TestRethinkStore_Wait(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		/*
+			// Test Data Array:
 			{
-				name: "Test 1",
+				name: "TestRethinkStore_Wait Test 1",
 				rs:   ds,
 				args: args{
 					id:    "1",
@@ -620,9 +563,9 @@ func TestRethinkStore_fillDeviceList(t *testing.T) {
 		want    []metal.Device
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test Data Array:
 		{
-			name: "Test 1",
+			name: "TestRethinkStore_fillDeviceList Test 1",
 			rs:   ds,
 			args: args{
 				data: []metal.Device{

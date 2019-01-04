@@ -3,7 +3,6 @@ package metal
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -53,6 +52,21 @@ var (
 		SizeID:     "1",
 		Size:       &Sz1,
 		Allocation: nil,
+	}
+	// 1-core/100 B a device with 1 core(s) and 100 B of RAM
+	D5 = Device{
+		Base: Base{
+			Name:        "1-core/100 B",
+			Description: "a device with 1 core(s) and 100 B of RAM",
+			ID:          "5",
+		},
+		RackID:     "1",
+		SiteID:     "1",
+		Site:       Site1,
+		SizeID:     "1",
+		Size:       &Sz1,
+		Allocation: nil,
+		Hardware:   DeviceHardware1,
 	}
 
 	// Sizes
@@ -262,13 +276,13 @@ Description:
 This Function initializes the Data of a mocked rethink DB.
 Te get a Mocked RethinkDB, execute datastore.InitMockDB()
 
+Hints:
+If there need to be additional mocks to be added, they should be added before default mocs with "r.MockAnything()"
+
 Parameters:
 - Mock 			// The Mock endpoint (Used for mocks)
 */
 func InitMockDBData(mock *r.Mock) {
-
-	// Mocks:
-	// Move to Metal, only Mock as parameter
 
 	// X.Get(i)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(Sz1, nil)
@@ -290,6 +304,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("device").Get("2")).Return(D2, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("3")).Return(D3, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("4")).Return(D4, nil)
+	mock.On(r.DB("mockdb").Table("device").Get("5")).Return(D5, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("device").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(Switch1, nil)
@@ -299,12 +314,13 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Get("switch999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get("IPMI-1")).Return(IPMI1, nil)
 
-	// Default: Moc all:
+	// X.Get: Default: Moc all, return Empty?? Something else?:
+	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("site").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("device").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
-
-	// X.Get with Errors
-	mock.On(r.DB("mockdb").Table("device").Get("someInvalidValue!§$%&/()=?")).Return(nil, errors.New("some Test error!"))
+	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 
 	// X.GetAll
 	mock.On(r.DB("mockdb").Table("size")).Return(TestSizeArray, nil)
@@ -321,17 +337,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 
-	// X.Filter
-	mock.On(r.DB("mockdb").Table("device").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]Device{
-		D1,
-	}, nil)
-	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]Switch{}, nil)
-
 	// X.Get.Replace
-	mock.On(r.DB("mockdb").Table("device").Get("1").Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(D1.Changed)), D2, r.Error("the device was changed from another, please retry"))
-	})).Return(EmptyResult, nil)
-	// Default: Accept all
 	mock.On(r.DB("mockdb").Table("device").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("site").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
@@ -343,15 +349,37 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ipmi").Insert(IPMI1, r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything(), r.InsertOpts{
-		Conflict: "replace",
-	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("site").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(EmptyResult, nil)
+
+	mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("image").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("site").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+
+	// X.Filter (very Test Specific)
+	mock.On(r.DB("mockdb").Table("device").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]Device{
+		D1,
+	}, nil)
+	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]Switch{}, nil)
 
 	return
 }

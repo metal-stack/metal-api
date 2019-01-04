@@ -123,7 +123,7 @@ func TestRegisterDevice(t *testing.T) {
 			expectedIPMIStatus: http.StatusInternalServerError,
 			expectedSizeName:   metal.Sz1.Name,
 			ipmiresult:         []metal.IPMI{},
-			ipmiresulterror:    fmt.Errorf("nope"),
+			ipmiresulterror:    fmt.Errorf("Test Error"),
 		},
 		{
 			name:    "insert existing",
@@ -198,6 +198,9 @@ func TestRegisterDevice(t *testing.T) {
 	for _, test := range testdata {
 		t.Run(test.name, func(t *testing.T) {
 			ds, mock := datastore.InitMockDB()
+			mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
+				Conflict: "replace",
+			})).Return(emptyResult, test.ipmidberror)
 			metal.InitMockDBData(mock)
 			rr := metal.RegisterDevice{
 				UUID:   test.uuid,
@@ -219,9 +222,6 @@ func TestRegisterDevice(t *testing.T) {
 					Conflict: "replace",
 				})).Return(emptyResult, nil)
 			}
-			mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
-				Conflict: "replace",
-			})).Return(emptyResult, test.ipmidberror)
 			mock.On(r.DB("mockdb").Table("ipmi").Get(test.uuid)).Return(test.ipmiresult, test.ipmiresulterror)
 			pub := &emptyPublisher{}
 			nb := netbox.New()
