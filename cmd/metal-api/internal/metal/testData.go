@@ -304,10 +304,11 @@ InitMockDBData ...
 
 Description:
 This Function initializes the Data of a mocked rethink DB.
-Te get a Mocked RethinkDB, execute datastore.InitMockDB()
+To get a Mocked RethinkDB, execute datastore.InitMockDB().
+If custom mocks should be used insted of here defined mocks, they can be added to the Mock Object bevore this function is called.
 
-Hints:
-If there need to be additional mocks to be added, they should be added before default mocs with "r.MockAnything()"
+Hints for modifying this function:
+If there need to be additional mocks added, they should be added before default mocs, which contain "r.MockAnything()"
 
 Parameters:
 - Mock 			// The Mock endpoint (Used for mocks)
