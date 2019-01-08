@@ -129,6 +129,7 @@ func TestSizes_FromHardware(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.sz.FromHardware(tt.args.hardware)
@@ -145,25 +146,10 @@ func TestSizes_FromHardware(t *testing.T) {
 
 func TestSizes_ByID(t *testing.T) {
 
-	// Create the Sizes for the Test Data
-	sizes := Sizes{
-		{
-			Base: Base{ID: "BaseID"},
-			Constraints: []Constraint{
-				{
-					MinCores:  1,
-					MaxCores:  2,
-					MinMemory: 200000,
-					MaxMemory: 300000,
-				},
-			},
-		},
-	}
-
 	// Create the SizeMap for the Test data
 	sizeM := make(SizeMap)
-	for i, f := range sizes {
-		sizeM[f.ID] = sizes[i]
+	for i, f := range TestSizeArray {
+		sizeM[f.ID] = TestSizeArray[i]
 	}
 
 	tests := []struct {
@@ -174,19 +160,7 @@ func TestSizes_ByID(t *testing.T) {
 		// Test Data Array (only 1 data):
 		{
 			name: "Test 1",
-			sz: Sizes{
-				{
-					Base: Base{ID: "BaseID"},
-					Constraints: []Constraint{
-						{
-							MinCores:  1,
-							MaxCores:  2,
-							MinMemory: 200000,
-							MaxMemory: 300000,
-						},
-					},
-				},
-			},
+			sz:   TestSizeArray,
 			want: sizeM,
 		},
 	}

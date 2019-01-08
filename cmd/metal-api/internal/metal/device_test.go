@@ -2,176 +2,61 @@ package metal
 
 import (
 	"testing"
-	"time"
 )
+
+func getAllTestStructsForTestDevice_HasMAC() []struct {
+	name string
+	d    *Device
+	args struct {
+		mac string
+	}
+	want bool
+} {
+	/*
+		Returns an struct Array of all Test Data
+		// Create all Test Data
+		tests := getAllTestStructs()
+	*/
+	type args struct {
+		mac string
+	}
+	structArray := make([]struct {
+		name string
+		d    *Device
+		args struct {
+			mac string
+		}
+		want bool
+	}, len(TestDeviceArray)*len(TestMacArray))
+	index := 0
+	for i := 0; i < len(TestDeviceArray); i++ {
+		for j := 0; j < len(TestMacArray); j++ {
+			structArray[index] = struct {
+				name string
+				d    *Device
+				args struct {
+					mac string
+				}
+				want bool
+			}{
+				name: "TestDevice_HasMAC Test " + string(i),
+				d:    &TestDeviceArray[i],
+				args: args{
+					mac: TestMacArray[j],
+				},
+				want: false,
+			}
+			index++
+		}
+	}
+	return structArray
+}
 
 func TestDevice_HasMAC(t *testing.T) {
 	type args struct {
 		mac string
 	}
-
-	// Create Nics
-	nicArray := make([]Nic, 9)
-	for i := 0; i < 9; i++ {
-		nicArray[i] = Nic{
-			MacAddress: "11:22:33:44:55:66",
-			Name:       "swp" + string(i),
-			Neighbors:  nil,
-		}
-	}
-
-	tests := []struct {
-		name string
-		d    *Device
-		args args
-		want bool
-	}{
-		// Test Data Array:
-		{
-			name: "Test 1",
-			d: &Device{
-				Base: Base{
-					ID: "theBaseId",
-				},
-				Site: Site{
-					Base: Base{
-						ID: "theBaseId",
-					},
-				},
-				SiteID: "site-1",
-				RackID: "rack-1",
-				Size: &Size{
-					Base: Base{
-						ID: "theBaseId",
-					},
-					Constraints: []Constraint{
-						{
-							MinCores:  1,
-							MaxCores:  2,
-							MinMemory: 2000000,
-							MaxMemory: 3000000,
-						},
-						{
-							MinCores:  2,
-							MaxCores:  3,
-							MinMemory: 2000000,
-							MaxMemory: 3000000,
-						},
-					},
-				},
-				SizeID: "size-1",
-				Hardware: DeviceHardware{
-					Memory:   2000200,
-					CPUCores: 2,
-					Nics:     nicArray,
-					Disks: []BlockDevice{
-						{
-							Name: "Blockdevicename",
-							Size: 200200,
-						},
-					},
-				},
-
-				Allocation: &DeviceAllocation{
-					Created: time.Date(
-						2009, 11, 17, 20, 34, 58, 651387237, time.UTC),
-					Name:        "DeviceName",
-					Description: "Description of the Device",
-					LastPing: time.Date(
-						2010, 11, 17, 20, 34, 58, 651387237, time.UTC),
-					Tenant:  "some Tenant",
-					Project: "some Project",
-					Image: &Image{
-						Base: Base{
-							ID: "BaseId",
-						},
-						URL: "example.net",
-					},
-					ImageID:         "TheImageID",
-					Cidr:            "theCidr",
-					Hostname:        "theHostname",
-					SSHPubKeys:      []string{"123", "passwort", "secret"},
-					ConsolePassword: "toor",
-				},
-			},
-			args: args{
-				mac: "11:22:33:44:55:66",
-			},
-			want: true,
-		},
-		{
-			name: "Test 1",
-			d: &Device{
-				Base: Base{
-					ID: "theBaseId",
-				},
-				Site: Site{
-					Base: Base{
-						ID: "theBaseId",
-					},
-				},
-				SiteID: "TheSiteId",
-				RackID: "TheRackId",
-				Size: &Size{
-					Base: Base{
-						ID: "theBaseId",
-					},
-					Constraints: []Constraint{
-						{
-							MinCores:  1,
-							MaxCores:  2,
-							MinMemory: 2000000,
-							MaxMemory: 3000000,
-						},
-						{
-							MinCores:  2,
-							MaxCores:  3,
-							MinMemory: 2000000,
-							MaxMemory: 3000000,
-						},
-					},
-				},
-				SizeID: "TheSizeId",
-				Hardware: DeviceHardware{
-					Memory:   2000200,
-					CPUCores: 2,
-					Nics:     nicArray,
-					Disks: []BlockDevice{
-						{
-							Name: "Blockdevicename",
-							Size: 200200,
-						},
-					},
-				},
-
-				Allocation: &DeviceAllocation{
-					Created: time.Date(
-						2009, 11, 17, 20, 34, 58, 651387237, time.UTC),
-					Name:        "DeviceName",
-					Description: "Description of the Device",
-					LastPing: time.Date(
-						2010, 11, 17, 20, 34, 58, 651387237, time.UTC),
-					Tenant:  "some Tenant",
-					Project: "some Project",
-					Image: &Image{
-						Base: Base{
-							ID: "BaseId",
-						},
-						URL: "example.net",
-					},
-					ImageID:         "TheImageID",
-					Cidr:            "theCidr",
-					Hostname:        "theHostname",
-					SSHPubKeys:      []string{"123", "passwort", "secret"},
-					ConsolePassword: "toor",
-				},
-			},
-			args: args{
-				mac: "11:22:33:44:55:67",
-			},
-			want: false,
-		},
-	}
+	tests := getAllTestStructsForTestDevice_HasMAC()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

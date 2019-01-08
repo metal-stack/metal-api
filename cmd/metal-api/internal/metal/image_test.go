@@ -7,23 +7,9 @@ import (
 
 func TestImages_ByID(t *testing.T) {
 
-	var nameArray = []string{"micro", "tiny", "microAndTiny"}
-	length := len(nameArray)
-
-	imageArray := make([]Image, length)
-	for i, n := range nameArray {
-		imageArray[i] = Image{
-			Base: Base{
-				Name: n,
-				ID:   n,
-			},
-			URL: "example.net",
-		}
-	}
-
 	imageMap := make(ImageMap)
-	for i, f := range imageArray {
-		imageMap[f.ID] = imageArray[i]
+	for i, f := range TestImageArray {
+		imageMap[f.ID] = TestImageArray[i]
 	}
 
 	tests := []struct {
@@ -34,7 +20,7 @@ func TestImages_ByID(t *testing.T) {
 		// Test Data Array (only 1 data):
 		{
 			name: "Test 1",
-			ii:   imageArray,
+			ii:   TestImageArray,
 			want: imageMap,
 		},
 	}

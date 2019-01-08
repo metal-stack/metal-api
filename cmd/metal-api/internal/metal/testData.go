@@ -254,6 +254,36 @@ var (
 	TestSwitchArray = []Switch{
 		Switch1, Switch2, Switch3,
 	}
+	TestMacArray = []string{
+		"11:11:11:11:11:11",
+		"11:11:11:11:11:22",
+		"11:11:11:11:11:33",
+		"11:11:11:11:11:11",
+		"22:11:11:11:11:11",
+		"33:11:11:11:11:11",
+	}
+
+	// Create the Connections Array
+	TestConnectionsArray = []Connection{
+		Connection{
+			Nic: Nic{
+				Name:       "swp1",
+				MacAddress: "11:11:11",
+			},
+			DeviceID: "device-1",
+		},
+		Connection{
+			Nic: Nic{
+				Name:       "swp2",
+				MacAddress: "22:11:11",
+			},
+			DeviceID: "device-2",
+		},
+	}
+
+	TestDeviceHardwareArray = []DeviceHardware{
+		DeviceHardware1, DeviceHardware2,
+	}
 
 	// All Devices
 	TestDeviceArray = []Device{
@@ -263,7 +293,7 @@ var (
 	EmptyResult = map[string]interface{}{}
 )
 
-func prepareTests() {
+func PrepareTests() {
 	Nic1.Neighbors = Nics{Nic2, Nic3}
 	Nic2.Neighbors = Nics{Nic1, Nic3}
 	Nic3.Neighbors = Nics{Nic1, Nic2}

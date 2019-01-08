@@ -10,29 +10,6 @@ func getMap(x int, y int, baseArray []Base) map[string]Site {
 	return map[string]Site{baseArray[x].ID: Site{baseArray[x]}, baseArray[y].ID: Site{baseArray[y]}}
 }
 
-func getTestStruct(x int, y int, baseArray []Base, siteArray []Site) struct {
-	name  string
-	sites Sites
-	want  SiteMap
-} {
-	/*
-		Returns 1 struct of Test Data
-	*/
-	return struct {
-		name  string
-		sites Sites
-		want  SiteMap
-	}{
-
-		name: "real live data",
-		sites: Sites{
-			siteArray[x],
-			siteArray[y],
-		},
-		want: getMap(x, y, baseArray),
-	}
-}
-
 func getAllTestStructs(baseArray []Base, siteArray []Site) []struct {
 	name  string
 	sites Sites
@@ -40,6 +17,8 @@ func getAllTestStructs(baseArray []Base, siteArray []Site) []struct {
 } {
 	/*
 		Returns an struct Array of all Test Data
+		// Create all Test Data
+		tests := getAllTestStructs(baseArray, siteArray)
 	*/
 	structArray := make([]struct {
 		name  string
@@ -49,7 +28,19 @@ func getAllTestStructs(baseArray []Base, siteArray []Site) []struct {
 	index := 0
 	for i := 0; i < len(baseArray); i++ {
 		for j := 0; j < len(siteArray); j++ {
-			structArray[index] = getTestStruct(i, j, baseArray, siteArray)
+			structArray[index] = struct {
+				name  string
+				sites Sites
+				want  SiteMap
+			}{
+
+				name: "real live data",
+				sites: Sites{
+					siteArray[i],
+					siteArray[j],
+				},
+				want: getMap(i, j, baseArray),
+			}
 			index++
 		}
 	}
