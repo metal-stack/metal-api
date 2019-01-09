@@ -317,7 +317,7 @@
       }
     },
     "/v1/device/{id}/ipmi": {
-      "post": {
+      "get": {
         "consumes": [
           "application/json"
         ],
