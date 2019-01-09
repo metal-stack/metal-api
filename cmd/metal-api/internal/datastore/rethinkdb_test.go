@@ -45,125 +45,6 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_sizeTable(t *testing.T) {
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.sizeTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.sizeTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_imageTable(t *testing.T) {
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.imageTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.imageTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_siteTable(t *testing.T) {
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.siteTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.siteTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_deviceTable(t *testing.T) {
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.deviceTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.deviceTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_switchTable(t *testing.T) {
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.switchTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.switchTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_waitTable(t *testing.T) {
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.waitTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.waitTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_ipmiTable(t *testing.T) {
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.ipmiTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.ipmiTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRethinkStore_db(t *testing.T) {
 	tests := []struct {
 		name string
@@ -401,6 +282,87 @@ func TestRethinkStore_initializeTables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.initializeTables(tt.args.opts); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.initializeTables() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_table(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	termimage := r.DB("mockdb").Table("image")
+	termsize := r.DB("mockdb").Table("size")
+	termsite := r.DB("mockdb").Table("site")
+	termswitch := r.DB("mockdb").Table("switch")
+	termwait := r.DB("mockdb").Table("wait")
+	termipmi := r.DB("mockdb").Table("ipmi")
+
+	type args struct {
+		tablename string
+	}
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		args args
+		want *r.Term
+	}{
+		// TODO: Add test cases.
+		{
+			name: "TestRethinkStore_table Test 1",
+			rs:   ds,
+			args: args{
+				tablename: "image",
+			},
+			want: &termimage,
+		},
+		{
+			name: "TestRethinkStore_table Test 1",
+			rs:   ds,
+			args: args{
+				tablename: "size",
+			},
+			want: &termsize,
+		},
+		{
+			name: "TestRethinkStore_table Test 1",
+			rs:   ds,
+			args: args{
+				tablename: "site",
+			},
+			want: &termsite,
+		},
+		{
+			name: "TestRethinkStore_table Test 1",
+			rs:   ds,
+			args: args{
+				tablename: "switch",
+			},
+			want: &termswitch,
+		},
+		{
+			name: "TestRethinkStore_table Test 1",
+			rs:   ds,
+			args: args{
+				tablename: "wait",
+			},
+			want: &termwait,
+		},
+		{
+			name: "TestRethinkStore_table Test 1",
+			rs:   ds,
+			args: args{
+				tablename: "ipmi",
+			},
+			want: &termipmi,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.table(tt.args.tablename); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.table() = %v, want %v", got, tt.want)
 			}
 		})
 	}

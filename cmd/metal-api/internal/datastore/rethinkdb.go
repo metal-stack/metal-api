@@ -49,36 +49,12 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		}
 	}
 
-	_, e := rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
+	_, e := rs.table("device").IndexCreate("project").RunWrite(rs.session)
 	return e
 }
 
-func (rs *RethinkStore) sizeTable() *r.Term {
-	res := r.DB(rs.dbname).Table("size")
-	return &res
-}
-func (rs *RethinkStore) imageTable() *r.Term {
-	res := r.DB(rs.dbname).Table("image")
-	return &res
-}
-func (rs *RethinkStore) siteTable() *r.Term {
-	res := r.DB(rs.dbname).Table("site")
-	return &res
-}
-func (rs *RethinkStore) deviceTable() *r.Term {
-	res := r.DB(rs.dbname).Table("device")
-	return &res
-}
-func (rs *RethinkStore) switchTable() *r.Term {
-	res := r.DB(rs.dbname).Table("switch")
-	return &res
-}
-func (rs *RethinkStore) waitTable() *r.Term {
-	res := r.DB(rs.dbname).Table("wait")
-	return &res
-}
-func (rs *RethinkStore) ipmiTable() *r.Term {
-	res := r.DB(rs.dbname).Table("ipmi")
+func (rs *RethinkStore) table(tablename string) *r.Term {
+	res := r.DB(rs.dbname).Table(tablename)
 	return &res
 }
 

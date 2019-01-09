@@ -9,7 +9,7 @@ import (
 
 // FindImage returns an image or a given id.
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
-	res, err := rs.imageTable().Get(id).Run(rs.session)
+	res, err := rs.table("image").Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get image from database: %v", err)
 	}
@@ -27,7 +27,7 @@ func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 
 // ListImages returns all images.
 func (rs *RethinkStore) ListImages() ([]metal.Image, error) {
-	res, err := rs.imageTable().Run(rs.session)
+	res, err := rs.table("image").Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot search images from database: %v", err)
 	}
@@ -42,7 +42,7 @@ func (rs *RethinkStore) ListImages() ([]metal.Image, error) {
 
 // CreateImage creates a new image.
 func (rs *RethinkStore) CreateImage(i *metal.Image) (*metal.Image, error) {
-	res, err := rs.imageTable().Insert(i).RunWrite(rs.session)
+	res, err := rs.table("image").Insert(i).RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create image in database: %v", err)
 	}
@@ -58,7 +58,7 @@ func (rs *RethinkStore) DeleteImage(id string) (*metal.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = rs.imageTable().Get(id).Delete().RunWrite(rs.session)
+	_, err = rs.table("image").Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot delete image from database: %v", err)
 	}
@@ -67,7 +67,7 @@ func (rs *RethinkStore) DeleteImage(id string) (*metal.Image, error) {
 
 // UpdateImage updates an image.
 func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image) error {
-	_, err := rs.imageTable().Get(oldImage.ID).Replace(func(row r.Term) r.Term {
+	_, err := rs.table("image").Get(oldImage.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldImage.Changed)), newImage, r.Error("the image was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
