@@ -32,16 +32,25 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 	}
 }
 
-func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) {
-	rs.db().TableCreate("image", opts).Exec(rs.session)
-	rs.db().TableCreate("size", opts).Exec(rs.session)
-	rs.db().TableCreate("site", opts).Exec(rs.session)
-	rs.db().TableCreate("device", opts).Exec(rs.session)
-	rs.db().TableCreate("switch", opts).Exec(rs.session)
-	rs.db().TableCreate("wait", opts).Exec(rs.session)
-	rs.db().TableCreate("ipmi", opts).Exec(rs.session)
+// Extracted from initializeTables.
+// Initializes 1 Table
+func (rs *RethinkStore) initializeTable(table string, opts r.TableCreateOpts) error {
+	return rs.db().TableCreate(table, opts).Exec(rs.session)
+}
 
-	rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
+func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
+
+	tables := [7]string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+
+	for i := 0; i < len(tables); i++ {
+		e := rs.db().TableCreate(tables[i], opts).Exec(rs.session)
+		if e != nil {
+			return e
+		}
+	}
+
+	_, e := rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
+	return e
 }
 
 func (rs *RethinkStore) sizeTable() *r.Term {

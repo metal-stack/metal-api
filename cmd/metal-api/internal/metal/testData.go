@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	rethinkdb "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // If you want to add some Test Data, add it also to the following places:
@@ -314,6 +315,15 @@ Parameters:
 - Mock 			// The Mock endpoint (Used for mocks)
 */
 func InitMockDBData(mock *r.Mock) {
+
+	// Create Tables
+	mock.On(r.DB("mockdb").TableCreate(r.MockAnything()))
+	mock.On(r.DB("mockdb").TableCreate(r.MockAnything(), r.TableCreateOpts{
+		Shards: 1, Replicas: 1,
+	}))
+
+	// Create index
+	mock.On(r.DB("mockdb").Table("device").IndexCreate("project")).Return(rethinkdb.WriteResponse{}, nil)
 
 	// X.Get(i)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(Sz1, nil)

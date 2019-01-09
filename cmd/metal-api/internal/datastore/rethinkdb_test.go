@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
@@ -22,30 +24,23 @@ func TestNew(t *testing.T) {
 		want *RethinkStore
 	}{
 		// TODO: Add test cases.
+		{
+			name: "TestNew Test 1",
+			args: args{
+				log:    zapup.MustRootLogger(),
+				dbhost: "dbhost",
+				dbname: "dbname",
+				dbuser: "dbuser",
+				dbpass: "password",
+			},
+			want: &RethinkStore1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := New(tt.args.log, tt.args.dbhost, tt.args.dbname, tt.args.dbuser, tt.args.dbpass); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("New() = %v, want %v", got, tt.want)
 			}
-		})
-	}
-}
-
-func TestRethinkStore_initializeTables(t *testing.T) {
-	type args struct {
-		opts r.TableCreateOpts
-	}
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.rs.initializeTables(tt.args.opts)
 		})
 	}
 }
@@ -319,6 +314,93 @@ func Test_retryConnect(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("retryConnect() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_initializeTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	type args struct {
+		table string
+		opts  r.TableCreateOpts
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "TestRethinkStore_initializeTable Test 1",
+			rs:   ds,
+			args: args{
+				table: "size",
+				opts:  r.TableCreateOpts{Shards: 1, Replicas: 1},
+			},
+			wantErr: false,
+		},
+		{
+			name: "TestRethinkStore_initializeTable Test 2",
+			rs:   ds,
+			args: args{
+				table: "size",
+				opts:  r.TableCreateOpts{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.rs.initializeTable(tt.args.table, tt.args.opts); (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.initializeTable() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_initializeTables(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	type args struct {
+		opts r.TableCreateOpts
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "TestRethinkStore_initializeTables Test 1",
+			rs:   ds,
+			args: args{
+				opts: r.TableCreateOpts{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "TestRethinkStore_initializeTables Test 2",
+			rs:   ds,
+			args: args{
+				opts: r.TableCreateOpts{Shards: 1, Replicas: 1},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.rs.initializeTables(tt.args.opts); (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.initializeTables() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
