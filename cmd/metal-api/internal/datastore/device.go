@@ -24,7 +24,7 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	var d metal.Device
 	err = res.One(&d)
 	if err != nil {
-		return nil, fmt.Errorf("cannot fetch results: %v", err)
+		return nil, fmt.Errorf("cannot fetch results: %v", err) // Not Reachable?
 	}
 	if d.SizeID != "" {
 		s, err := rs.FindSize(d.SizeID)

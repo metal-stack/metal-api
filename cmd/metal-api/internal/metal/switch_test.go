@@ -7,7 +7,7 @@ import (
 )
 
 // Gerrit and me implemented that monster in a one shot which worked.
-func TestSwitch_ConnectDevice(t *testing.T) {
+func TestSwitch_ConnectDevice2(t *testing.T) {
 	type fields struct {
 		ID                string
 		Nics              []Nic
@@ -157,6 +157,27 @@ func TestNewSwitch(t *testing.T) {
 				Nics:              nicArray,
 			},
 		},
+		{
+			name: "Test 2",
+			args: args{
+				id:     "deviceID",
+				siteid: "siteID",
+				rackid: "rackID",
+				nics:   nil,
+			},
+
+			want: &Switch{
+				Base: Base{
+					ID:   "deviceID",
+					Name: "deviceID",
+				},
+				SiteID:            "siteID",
+				RackID:            "rackID",
+				Connections:       make([]Connection, 0),
+				DeviceConnections: make(ConnectionMap),
+				Nics:              make([]Nic, 0),
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -261,6 +282,31 @@ func TestFillAllConnections(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			FillAllConnections(tt.args.sw)
+		})
+	}
+}
+
+func TestSwitch_ConnectDevice(t *testing.T) {
+	type args struct {
+		device *Device
+	}
+	tests := []struct {
+		name string
+		s    *Switch
+		args args
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Test 1",
+			s:    &Switch1,
+			args: args{
+				device: &D1,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.s.ConnectDevice(tt.args.device)
 		})
 	}
 }

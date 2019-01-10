@@ -73,6 +73,42 @@ func TestRethinkStore_FindDevice(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "TestRethinkStore_FindDevice Test 4",
+			rs:   ds,
+			args: args{
+				id: "999",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "TestRethinkStore_FindDevice Test 5",
+			rs:   ds,
+			args: args{
+				id: "6",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "TestRethinkStore_FindDevice Test 6",
+			rs:   ds,
+			args: args{
+				id: "7",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "TestRethinkStore_FindDevice Test 7",
+			rs:   ds,
+			args: args{
+				id: "8",
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

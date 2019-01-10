@@ -128,6 +128,21 @@ func TestSizes_FromHardware(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "real live data",
+			sz: Sizes{
+				Sz1,
+				Sz999,
+			},
+			args: args{
+				hardware: DeviceHardware{
+					CPUCores: 999,
+					Memory:   100,
+				},
+			},
+			want:    &Sz999,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

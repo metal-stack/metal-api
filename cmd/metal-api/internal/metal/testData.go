@@ -69,6 +69,60 @@ var (
 		Allocation: nil,
 		Hardware:   DeviceHardware1,
 	}
+	D6 = Device{
+		Base: Base{
+			Name:        "1-core/100 B",
+			Description: "a device with 1 core(s) and 100 B of RAM",
+			ID:          "6",
+		},
+		RackID: "1",
+		SiteID: "999",
+		Site:   Site1,
+		SizeID: "1", // No Size
+		Size:   nil,
+		Allocation: &DeviceAllocation{
+			Name:    "6",
+			ImageID: "999",
+			Project: "p2",
+		},
+		Hardware: DeviceHardware1,
+	}
+	D7 = Device{
+		Base: Base{
+			Name:        "1-core/100 B",
+			Description: "a device with 1 core(s) and 100 B of RAM",
+			ID:          "6",
+		},
+		RackID: "1",
+		SiteID: "1",
+		Site:   Site1,
+		SizeID: "999", // No Size
+		Size:   nil,
+		Allocation: &DeviceAllocation{
+			Name:    "7",
+			ImageID: "1",
+			Project: "p2",
+		},
+		Hardware: DeviceHardware1,
+	}
+	D8 = Device{
+		Base: Base{
+			Name:        "1-core/100 B",
+			Description: "a device with 1 core(s) and 100 B of RAM",
+			ID:          "6",
+		},
+		RackID: "1",
+		SiteID: "1",
+		Site:   Site1,
+		SizeID: "1", // No Size
+		Size:   nil,
+		Allocation: &DeviceAllocation{
+			Name:    "8",
+			ImageID: "999",
+			Project: "p2",
+		},
+		Hardware: DeviceHardware1,
+	}
 
 	// Sizes
 	Sz1 = Size{
@@ -97,6 +151,19 @@ var (
 			Name:        "sz3",
 			Description: "description 3",
 		},
+	}
+	Sz999 = Size{
+		Base: Base{
+			ID:          "999",
+			Name:        "sz1",
+			Description: "description 1",
+		},
+		Constraints: []Constraint{Constraint{
+			MinCores:  888,
+			MaxCores:  1111,
+			MinMemory: 100,
+			MaxMemory: 100,
+		}},
 	}
 
 	// Images
@@ -153,12 +220,12 @@ var (
 		SiteID: "1",
 		RackID: "rack1",
 		DeviceConnections: ConnectionMap{
-			"d1": Connections{
+			"1": Connections{
 				Connection{
 					Nic: Nic{
-						MacAddress: MacAddress("11:11:11"),
+						MacAddress: MacAddress("11:11:11:11:11:11"),
 					},
-					DeviceID: "d1",
+					DeviceID: "1",
 				},
 			},
 		},
@@ -182,17 +249,17 @@ var (
 
 	// Nics
 	Nic1 = Nic{
-		MacAddress: MacAddress("11:11:11"),
+		MacAddress: MacAddress("11:11:11:11:11:11"),
 		Name:       "swp1",
 		Neighbors:  nil,
 	}
 	Nic2 = Nic{
-		MacAddress: MacAddress("21:11:11"),
+		MacAddress: MacAddress("21:11:11:11:11:11"),
 		Name:       "swp2",
 		Neighbors:  nil,
 	}
 	Nic3 = Nic{
-		MacAddress: MacAddress("31:11:11"),
+		MacAddress: MacAddress("31:11:11:11:11:11"),
 		Name:       "swp3",
 		Neighbors:  nil,
 	}
@@ -288,7 +355,7 @@ var (
 
 	// All Devices
 	TestDeviceArray = []Device{
-		D1, D2, D3, D4,
+		D1, D2, D3, D4, D5,
 	}
 
 	EmptyResult = map[string]interface{}{}
@@ -346,6 +413,9 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("device").Get("3")).Return(D3, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("4")).Return(D4, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("5")).Return(D5, nil)
+	mock.On(r.DB("mockdb").Table("device").Get("6")).Return(D6, nil)
+	mock.On(r.DB("mockdb").Table("device").Get("7")).Return(D7, nil)
+	mock.On(r.DB("mockdb").Table("device").Get("8")).Return(D8, nil)
 	mock.On(r.DB("mockdb").Table("device").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("device").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(Switch1, nil)

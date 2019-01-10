@@ -31,6 +31,12 @@ func getAllTestStructsForTestDevice_HasMAC() []struct {
 	index := 0
 	for i := 0; i < len(TestDeviceArray); i++ {
 		for j := 0; j < len(TestMacArray); j++ {
+			want := false
+			if TestDeviceArray[i].ID == D5.ID && TestMacArray[j] == "11:11:11:11:11:11" {
+				want = true
+			} else {
+				want = false
+			}
 			structArray[index] = struct {
 				name string
 				d    *Device
@@ -44,7 +50,7 @@ func getAllTestStructsForTestDevice_HasMAC() []struct {
 				args: args{
 					mac: TestMacArray[j],
 				},
-				want: false,
+				want: want,
 			}
 			index++
 		}
