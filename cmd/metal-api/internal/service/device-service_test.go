@@ -201,7 +201,7 @@ func TestRegisterDevice(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
 				Conflict: "replace",
 			})).Return(emptyResult, test.ipmidberror)
-			metal.InitMockDBData(mock)
+
 			rr := metal.RegisterDevice{
 				UUID:   test.uuid,
 				SiteID: test.siteid,
@@ -223,6 +223,7 @@ func TestRegisterDevice(t *testing.T) {
 				})).Return(emptyResult, nil)
 			}
 			mock.On(r.DB("mockdb").Table("ipmi").Get(test.uuid)).Return(test.ipmiresult, test.ipmiresulterror)
+			metal.InitMockDBData(mock)
 			pub := &emptyPublisher{}
 			nb := netbox.New()
 			called := false

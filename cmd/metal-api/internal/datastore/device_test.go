@@ -4,10 +4,31 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"testing/quick"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 )
 
+// Tast that generates many input data
+// Reference: https://golang.org/pkg/testing/quick/
+func TestRethinkStore_FindDevice2(t *testing.T) {
+
+	// Mock the DB:
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	f := func(x string) bool {
+		_, err := ds.FindDevice(x)
+		returnvalue := true
+		if err != nil {
+			returnvalue = false
+		}
+		return returnvalue
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+}
 func TestRethinkStore_FindDevice(t *testing.T) {
 
 	// Mock the DB:

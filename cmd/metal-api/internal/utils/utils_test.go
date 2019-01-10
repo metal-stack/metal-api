@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	restful "github.com/emicklei/go-restful"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
@@ -238,34 +238,9 @@ func Test_loggingResponseWriter_Content(t *testing.T) {
 
 func TestRestfulLogger(t *testing.T) {
 
-	//z := zap.NewNop()
+	z := zap.NewNop()
+	X := RestfulLogger(z, false)
 
-	type args struct {
-		logger *zap.Logger
-		debug  bool
-	}
-	tests := []struct {
-		name string
-		args args
-		want restful.FilterFunction
-	}{
-		// TODO: Add test cases.
-		/*
-			{
-				name: "Test 1",
-				args: args{
-					logger: z,
-					debug:  false,
-				},
-				want: RestfulLogger(z, false),
-			},
-		*/
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := RestfulLogger(tt.args.logger, tt.args.debug); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RestfulLogger() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	// Only Pointer Comparison.
+	require.Equal(t, reflect.ValueOf(X).Pointer(), reflect.ValueOf(RestfulLogger(z, false)).Pointer())
 }
