@@ -46,12 +46,23 @@ func TestNew(t *testing.T) {
 }
 
 func TestRethinkStore_db(t *testing.T) {
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theDBTerm := r.DB("mockdb")
+
 	tests := []struct {
 		name string
 		rs   *RethinkStore
 		want *r.Term
 	}{
 		// TODO: Add test cases.
+		{
+			name: "TestRethinkStore_db Test 1",
+			rs:   ds,
+			want: &theDBTerm,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -63,12 +74,22 @@ func TestRethinkStore_db(t *testing.T) {
 }
 
 func TestRethinkStore_Mock(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
 	tests := []struct {
 		name string
 		rs   *RethinkStore
 		want *r.Mock
 	}{
 		// TODO: Add test cases.
+		{
+			name: "TestRethinkStore_Mock Test 1",
+			rs:   ds,
+			want: r.NewMock(),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -80,12 +101,22 @@ func TestRethinkStore_Mock(t *testing.T) {
 }
 
 func TestRethinkStore_Close(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name:    "TestRethinkStore_Close Test 1",
+			rs:      ds,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -97,11 +128,21 @@ func TestRethinkStore_Close(t *testing.T) {
 }
 
 func TestRethinkStore_Connect(t *testing.T) {
+
+	// mock the DB
+	// ds, mock := InitMockDB()
+	// metal.InitMockDBData(mock)
+
 	tests := []struct {
 		name string
 		rs   *RethinkStore
 	}{
-		// TODO: Add test cases.
+		/*
+			{
+				name: "TestRethinkStore_Connect Test 1",
+				rs:   ds,
+			},
+		*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -111,6 +152,25 @@ func TestRethinkStore_Connect(t *testing.T) {
 }
 
 func Test_connect(t *testing.T) {
+
+	/*
+		// mock the DB
+		_, mock := InitMockDB()
+		metal.InitMockDBData(mock)
+
+		db := r.DB("mockdb")
+
+		session, _ := r.Connect(r.ConnectOpts{
+			Addresses: []string{
+				"127.0.0.1",
+			},
+			Database: "mockdb",
+			Username: "db-user",
+			Password: "db-password",
+			MaxIdle:  10,
+			MaxOpen:  20,
+		})
+	*/
 	type args struct {
 		hosts  []string
 		dbname string
@@ -125,6 +185,22 @@ func Test_connect(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		/*
+			{
+				name: "Test_connect Test 1",
+				args: args{
+					hosts: []string{
+						"db-addr",
+					},
+					dbname: "mockdb",
+					user:   "db-user",
+					pwd:    "db-password",
+				},
+				want:    &db,
+				want1:   session,
+				wantErr: true,
+			},
+		*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -144,6 +220,26 @@ func Test_connect(t *testing.T) {
 }
 
 func Test_mustConnect(t *testing.T) {
+
+	// mock the DB
+	_, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	// The Connection has to be mocked here!!!
+	/*
+		db := r.DB("mockdb")
+
+		session, _ := r.Connect(r.ConnectOpts{
+			Addresses: []string{
+				"localhost",
+			},
+			Database: "mockdb",
+			Username: "user",
+			Password: "pwd",
+			MaxIdle:  10,
+			MaxOpen:  20,
+		})
+	*/
 	type args struct {
 		hosts    []string
 		dbname   string
@@ -157,6 +253,21 @@ func Test_mustConnect(t *testing.T) {
 		want1 *r.Session
 	}{
 		// TODO: Add test cases.
+		/*
+			{
+				name: "Test 1",
+				args: args{
+					hosts: []string{
+						"",
+					},
+					dbname:   "dbname",
+					username: "user",
+					pwd:      "password",
+				},
+				want:  &db,
+				want1: session,
+			},
+		*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -186,6 +297,22 @@ func Test_retryConnect(t *testing.T) {
 		want1 *r.Session
 	}{
 		// TODO: Add test cases.
+		/*
+			{
+				name: "Test 1",
+				args: args{
+					log: *zap.SugaredLogger,
+					hosts: []string{
+						"localhost",
+					},
+					dbname: "dbname",
+					user:   "user",
+					pwd:    "pwd",
+				},
+				want:  *r.Term,
+				want1: *r.Session,
+			},
+		*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
