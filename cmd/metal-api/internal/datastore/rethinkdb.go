@@ -42,19 +42,43 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 
 	tables := [...]string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
 
-	for i := 0; i < len(tables); i++ {
-		e := rs.db().TableCreate(tables[i], opts).Exec(rs.session)
+	for _, table := range tables {
+		e := rs.db().TableCreate(table, opts).Exec(rs.session)
 		if e != nil {
 			return e
 		}
 	}
 
-	_, e := rs.table("device").IndexCreate("project").RunWrite(rs.session)
+	_, e := rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
 	return e
 }
 
-func (rs *RethinkStore) table(tablename string) *r.Term {
-	res := r.DB(rs.dbname).Table(tablename)
+func (rs *RethinkStore) sizeTable() *r.Term {
+	res := r.DB(rs.dbname).Table("size")
+	return &res
+}
+func (rs *RethinkStore) imageTable() *r.Term {
+	res := r.DB(rs.dbname).Table("image")
+	return &res
+}
+func (rs *RethinkStore) siteTable() *r.Term {
+	res := r.DB(rs.dbname).Table("site")
+	return &res
+}
+func (rs *RethinkStore) deviceTable() *r.Term {
+	res := r.DB(rs.dbname).Table("device")
+	return &res
+}
+func (rs *RethinkStore) switchTable() *r.Term {
+	res := r.DB(rs.dbname).Table("switch")
+	return &res
+}
+func (rs *RethinkStore) waitTable() *r.Term {
+	res := r.DB(rs.dbname).Table("wait")
+	return &res
+}
+func (rs *RethinkStore) ipmiTable() *r.Term {
+	res := r.DB(rs.dbname).Table("ipmi")
 	return &res
 }
 

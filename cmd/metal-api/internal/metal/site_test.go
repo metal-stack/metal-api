@@ -1,10 +1,6 @@
 package metal
 
-import (
-	"reflect"
-	"testing"
-)
-
+/*
 func getMap(x int, y int, baseArray []Base) map[string]Site {
 	// Returns a Site Map
 	return map[string]Site{baseArray[x].ID: Site{baseArray[x]}, baseArray[y].ID: Site{baseArray[y]}}
@@ -15,11 +11,6 @@ func getAllTestStructs(baseArray []Base, siteArray []Site) []struct {
 	sites Sites
 	want  SiteMap
 } {
-	/*
-		Returns an struct Array of all Test Data
-		// Create all Test Data
-		tests := getAllTestStructs(baseArray, siteArray)
-	*/
 	structArray := make([]struct {
 		name  string
 		sites Sites
@@ -81,3 +72,4 @@ func TestSites_ByID(t *testing.T) {
 		})
 	}
 }
+*/

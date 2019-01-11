@@ -9,7 +9,7 @@ import (
 
 // FindSwitch returns a switch for a given id.
 func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
-	res, err := rs.table("switch").Get(id).Run(rs.session)
+	res, err := rs.switchTable().Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get switch from database: %v", err)
 	}
@@ -27,7 +27,7 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 }
 
 func (rs *RethinkStore) findSwitchByRack(rackid string) ([]metal.Switch, error) {
-	q := *rs.table("switch")
+	q := *rs.switchTable()
 	if rackid != "" {
 		q = q.Filter(func(s r.Term) r.Term {
 			return s.Field("rackid").Eq(rackid)
@@ -49,7 +49,7 @@ func (rs *RethinkStore) findSwitchByRack(rackid string) ([]metal.Switch, error) 
 
 // ListSwitches returns all known switches.
 func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
-	res, err := rs.table("switch").Run(rs.session)
+	res, err := rs.switchTable().Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot search switches from database: %v", err)
 	}
@@ -65,7 +65,7 @@ func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
 
 // CreateSwitch creates a new switch.
 func (rs *RethinkStore) CreateSwitch(s *metal.Switch) (*metal.Switch, error) {
-	res, err := rs.table("switch").Insert(s).RunWrite(rs.session)
+	res, err := rs.switchTable().Insert(s).RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create switch in database: %v", err)
 	}
@@ -82,7 +82,7 @@ func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = rs.table("switch").Get(id).Delete().RunWrite(rs.session)
+	_, err = rs.switchTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot delete switch from database: %v", err)
 	}
@@ -91,7 +91,7 @@ func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
 
 // UpdateSwitch updates a switch.
 func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.Switch) error {
-	_, err := rs.table("switch").Get(oldSwitch.ID).Replace(func(row r.Term) r.Term {
+	_, err := rs.switchTable().Get(oldSwitch.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldSwitch.Changed)), newSwitch, r.Error("the switch was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
@@ -126,7 +126,7 @@ func (rs *RethinkStore) findSwithcByMac(macs []metal.Nic) ([]metal.Switch, error
 	}
 	macexpr := r.Expr(searchmacs)
 
-	res, err := rs.table("switch").Filter(func(row r.Term) r.Term {
+	res, err := rs.switchTable().Filter(func(row r.Term) r.Term {
 		return macexpr.SetIntersection(row.Field("network_interfaces").Field("macAddress")).Count().Gt(1)
 	}).Run(rs.session)
 	if err != nil {

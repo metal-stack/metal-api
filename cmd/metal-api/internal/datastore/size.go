@@ -9,7 +9,7 @@ import (
 
 // FindSize return a size for a given id.
 func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
-	res, err := rs.table("size").Get(id).Run(rs.session)
+	res, err := rs.sizeTable().Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get size from database: %v", err)
 	}
@@ -27,7 +27,7 @@ func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 
 // ListSizes returns all sizes.
 func (rs *RethinkStore) ListSizes() ([]metal.Size, error) {
-	res, err := rs.table("size").Run(rs.session)
+	res, err := rs.sizeTable().Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot search sizes from database: %v", err)
 	}
@@ -42,7 +42,7 @@ func (rs *RethinkStore) ListSizes() ([]metal.Size, error) {
 
 // CreateSize creates a new size.
 func (rs *RethinkStore) CreateSize(size *metal.Size) error {
-	res, err := rs.table("size").Insert(size).RunWrite(rs.session)
+	res, err := rs.sizeTable().Insert(size).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot create size in database: %v", err)
 	}
@@ -58,7 +58,7 @@ func (rs *RethinkStore) DeleteSize(id string) (*metal.Size, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = rs.table("size").Get(id).Delete().RunWrite(rs.session)
+	_, err = rs.sizeTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot delete size from database: %v", err)
 	}
@@ -67,7 +67,7 @@ func (rs *RethinkStore) DeleteSize(id string) (*metal.Size, error) {
 
 // UpdateSize updates a size.
 func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) error {
-	_, err := rs.table("size").Get(oldSize.ID).Replace(func(row r.Term) r.Term {
+	_, err := rs.sizeTable().Get(oldSize.ID).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldSize.Changed)), newSize, r.Error("the size was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {

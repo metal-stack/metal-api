@@ -115,25 +115,9 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 func TestNewSwitch(t *testing.T) {
 	type args struct {
 		id     string
-		siteid string
 		rackid string
 		nics   Nics
-	}
-
-	// Create Nics
-	var countOfNics = 3
-	nicArray := make([]Nic, countOfNics)
-	for i := 0; i < countOfNics; i++ {
-		nicArray[i] = Nic{
-			MacAddress: MacAddress("11:11:1" + string(i)),
-			Name:       "swp" + string(i),
-			Neighbors:  nil,
-		}
-	}
-
-	// Everyone has everyone as neigbors
-	for i := 0; i < countOfNics; i++ {
-		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
+		site   *Site
 	}
 
 	tests := []struct {
@@ -145,50 +129,30 @@ func TestNewSwitch(t *testing.T) {
 		{
 			name: "Test 1",
 			args: args{
-				id:     "deviceID",
-				siteid: "siteID",
-				rackid: "rackID",
-				nics:   nicArray,
+				id:     "1",
+				rackid: "1",
+				nics:   TestNicArray,
+				site:   &Site1,
 			},
 
 			want: &Switch{
 				Base: Base{
-					ID:   "deviceID",
-					Name: "deviceID",
+					ID:   "1",
+					Name: "1",
 				},
-				SiteID:            "siteID",
-				RackID:            "rackID",
+				SiteID:            "1",
+				RackID:            "1",
 				Connections:       make([]Connection, 0),
 				DeviceConnections: make(ConnectionMap),
-				Nics:              nicArray,
-			},
-		},
-		{
-			name: "Test 2",
-			args: args{
-				id:     "deviceID",
-				siteid: "siteID",
-				rackid: "rackID",
-				nics:   nil,
-			},
-
-			want: &Switch{
-				Base: Base{
-					ID:   "deviceID",
-					Name: "deviceID",
-				},
-				SiteID:            "siteID",
-				RackID:            "rackID",
-				Connections:       make([]Connection, 0),
-				DeviceConnections: make(ConnectionMap),
-				Nics:              make([]Nic, 0),
+				Nics:              TestNicArray,
+				Site:              Site1,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewSwitch(tt.args.id, tt.args.siteid, tt.args.rackid, tt.args.nics); !reflect.DeepEqual(got, tt.want) {
+			if got := NewSwitch(tt.args.id, tt.args.rackid, tt.args.nics, tt.args.site); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewSwitch() = %v, want %v", got, tt.want)
 			}
 		})
@@ -269,9 +233,9 @@ func TestFillAllConnections(t *testing.T) {
 
 	// Creates the Switches for the test data
 	switches := make([]Switch, 3)
-	switches[0] = *NewSwitch("device-1", "site-1", "rack-1", TestNicArray)
-	switches[1] = *NewSwitch("device-2", "site-1", "rack-1", TestNicArray)
-	switches[2] = *NewSwitch("device-3", "site-2", "rack-2", TestNicArray)
+	switches[0] = *NewSwitch("device-1", "rack-1", TestNicArray, &Site1)
+	switches[1] = *NewSwitch("device-2", "rack-1", TestNicArray, &Site1)
+	switches[2] = *NewSwitch("device-3", "rack-2", TestNicArray, &Site2)
 
 	tests := []struct {
 		name string
