@@ -244,7 +244,7 @@ var (
 			ID: "switch2",
 		},
 		SiteID:            "1",
-		RackID:            "rack1",
+		RackID:            "2",
 		DeviceConnections: ConnectionMap{},
 	}
 	Switch3 = Switch{
@@ -252,7 +252,7 @@ var (
 			ID: "switch3",
 		},
 		SiteID:            "1",
-		RackID:            "rack1",
+		RackID:            "3",
 		DeviceConnections: ConnectionMap{},
 	}
 
@@ -514,6 +514,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("device").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]Device{
 		D1,
 	}, nil)
+
 	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]Switch{}, nil)
 
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)

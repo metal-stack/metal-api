@@ -126,15 +126,11 @@ func TestRegisterDevice(t *testing.T) {
 			ipmiresulterror:    fmt.Errorf("Test Error"),
 		},
 		{
-			name:    "insert existing",
-			uuid:    "1",
-			siteid:  "1",
-			dbsites: []metal.Site{metal.Site1},
-			dbsizes: []metal.Size{metal.Sz1},
-			// If here D3 is set instead of D1, it fails. ==> The device is never set in the Register device function endpoint below, but is compared to fix value 1 in line 362: require.Equal(t, expectedid, result.ID)
-			//mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{metal.D1}, nil) Deswegen, trotz
-			// The DB returns D3(Id=3) where the request would be: give ID=1??
-			// ==> mock.On(r.DB("mockdb").Table("device").Get("1")).Return(test.dbdevices, nil)
+			name:               "insert existing",
+			uuid:               "1",
+			siteid:             "1",
+			dbsites:            []metal.Site{metal.Site1},
+			dbsizes:            []metal.Size{metal.Sz1},
 			dbdevices:          []metal.Device{metal.D1},
 			numcores:           1,
 			memory:             100,
