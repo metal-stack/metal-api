@@ -84,12 +84,12 @@ func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
 // If the given device has an allocation, the function returns an error because
 // allocated devices cannot be created. If there is already a device with the
 // given ID in the database it will be replaced the the given device.
-func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
+func (rs *RethinkStore) CreateDevice(d *metal.Device) (*metal.Device, error) {
 	d.Changed = time.Now()
 	d.Created = d.Changed
 
 	if d.Allocation != nil {
-		return fmt.Errorf("a device cannot be created when it is allocated: %q: %+v", d.ID, *d.Allocation)
+		return nil, fmt.Errorf("a device cannot be created when it is allocated: %q: %+v", d.ID, *d.Allocation)
 	}
 	d.SizeID = d.Size.ID
 	d.SiteID = d.Site.ID
@@ -97,12 +97,12 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) error {
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot create device in database: %v", err)
+		return nil, fmt.Errorf("cannot create device in database: %v", err)
 	}
 	if d.ID == "" {
 		d.ID = res.GeneratedKeys[0]
 	}
-	return nil
+	return d, nil
 }
 
 // FindIPMI returns the IPMI data for the given device id.
@@ -274,7 +274,7 @@ func (rs *RethinkStore) RegisterDevice(
 				RackID:   rackid,
 				Hardware: hardware,
 			}
-			err = rs.CreateDevice(device)
+			_, err = rs.CreateDevice(device)
 			if err != nil {
 				return nil, err
 			}

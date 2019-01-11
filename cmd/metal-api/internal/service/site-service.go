@@ -91,7 +91,7 @@ func (fr siteResource) createSite(request *restful.Request, response *restful.Re
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
-	err = fr.ds.CreateSite(&s)
+	_, err = fr.ds.CreateSite(&s)
 	if checkError(fr.log, response, "createSite", err) {
 		return
 	}
