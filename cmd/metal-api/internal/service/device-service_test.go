@@ -404,3 +404,96 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusInternalServerError, resp.StatusCode, w.Body.String())
 }
+
+func TestGetDevice(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	metal.InitMockDBData(mock)
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	req := httptest.NewRequest("GET", "/v1/device/1", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result metal.Device
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	require.Nil(t, err)
+	require.Equal(t, metal.D1.ID, result.ID)
+	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, metal.Sz1.Name, result.Size.Name)
+	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, metal.Site1.Name, result.Site.Name)
+}
+
+func TestGetDeviceNotFound(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	metal.InitMockDBData(mock)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	req := httptest.NewRequest("GET", "/v1/device/999", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
+}
+func TestFreeDevice(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	metal.InitMockDBData(mock)
+
+	pub := &emptyPublisher{}
+	pub.doPublish = func(topic string, data interface{}) error {
+		require.Equal(t, "device", topic)
+		dv := data.(metal.DeviceEvent)
+		require.Equal(t, "1", dv.Old.ID)
+		return nil
+	}
+	nb := netbox.New()
+	called := false
+	nb.DoRelease = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
+		called = true
+		return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
+	}
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	req := httptest.NewRequest("DELETE", "/v1/device/1/free", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	require.True(t, called, "netbox.DoRelease was not called")
+}
+
+func TestSearchDevice(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{metal.D1}, nil)
+	metal.InitMockDBData(mock)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewDevice(testlogger, ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	req := httptest.NewRequest("GET", "/v1/device/find?mac=1", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var results []metal.Device
+	err := json.NewDecoder(resp.Body).Decode(&results)
+	require.Nil(t, err)
+	require.Len(t, results, 1)
+	result := results[0]
+	require.Equal(t, metal.D1.ID, result.ID)
+	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, metal.Sz1.Name, result.Size.Name)
+	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, metal.Site1.Name, result.Site.Name)
+}

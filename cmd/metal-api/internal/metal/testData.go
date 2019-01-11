@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
-	rethinkdb "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // If you want to add some Test Data, add it also to the following places:
@@ -397,7 +396,7 @@ InitMockDBData ...
 
 Description:
 This Function initializes the Data of a mocked rethink DB.
-To get a Mocked RethinkDB, execute datastore.InitMockDB().
+To get a Mocked r, execute datastore.InitMockDB().
 If custom mocks should be used insted of here defined mocks, they can be added to the Mock Object bevore this function is called.
 
 Hints for modifying this function:
@@ -415,7 +414,7 @@ func InitMockDBData(mock *r.Mock) {
 	}))
 
 	// Create index
-	mock.On(r.DB("mockdb").Table("device").IndexCreate("project")).Return(rethinkdb.WriteResponse{}, nil)
+	mock.On(r.DB("mockdb").Table("device").IndexCreate("project")).Return(r.WriteResponse{}, nil)
 
 	// X.Get(i)
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(Sz1, nil)
