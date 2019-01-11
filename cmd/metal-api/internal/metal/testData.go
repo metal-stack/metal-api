@@ -54,7 +54,6 @@ var (
 		Size:       &Sz1,
 		Allocation: nil,
 	}
-	// 1-core/100 B a device with 1 core(s) and 100 B of RAM
 	D5 = Device{
 		Base: Base{
 			Name:        "1-core/100 B",

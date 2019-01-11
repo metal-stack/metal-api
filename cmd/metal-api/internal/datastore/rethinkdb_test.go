@@ -446,7 +446,7 @@ func TestRethinkStore_table(t *testing.T) {
 			want: &termimage,
 		},
 		{
-			name: "TestRethinkStore_table Test 1",
+			name: "TestRethinkStore_table Test 2",
 			rs:   ds,
 			args: args{
 				tablename: "size",
@@ -454,7 +454,7 @@ func TestRethinkStore_table(t *testing.T) {
 			want: &termsize,
 		},
 		{
-			name: "TestRethinkStore_table Test 1",
+			name: "TestRethinkStore_table Test 3",
 			rs:   ds,
 			args: args{
 				tablename: "site",
@@ -462,7 +462,7 @@ func TestRethinkStore_table(t *testing.T) {
 			want: &termsite,
 		},
 		{
-			name: "TestRethinkStore_table Test 1",
+			name: "TestRethinkStore_table Test 4",
 			rs:   ds,
 			args: args{
 				tablename: "switch",
@@ -470,7 +470,7 @@ func TestRethinkStore_table(t *testing.T) {
 			want: &termswitch,
 		},
 		{
-			name: "TestRethinkStore_table Test 1",
+			name: "TestRethinkStore_table Test 5",
 			rs:   ds,
 			args: args{
 				tablename: "wait",
@@ -478,7 +478,7 @@ func TestRethinkStore_table(t *testing.T) {
 			want: &termwait,
 		},
 		{
-			name: "TestRethinkStore_table Test 1",
+			name: "TestRethinkStore_table Test 6",
 			rs:   ds,
 			args: args{
 				tablename: "ipmi",

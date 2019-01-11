@@ -40,7 +40,7 @@ func (rs *RethinkStore) initializeTable(table string, opts r.TableCreateOpts) er
 
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 
-	tables := [7]string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+	tables := [...]string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
 
 	for i := 0; i < len(tables); i++ {
 		e := rs.db().TableCreate(tables[i], opts).Exec(rs.session)
