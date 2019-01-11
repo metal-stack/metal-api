@@ -91,7 +91,7 @@ func TestUpdateSwitch(t *testing.T) {
 	require.Equal(t, metal.Switch1.ID, result.Name)
 	require.Equal(t, metal.Switch1.RackID, result.RackID)
 	require.Equal(t, metal.Switch1.SiteID, result.SiteID)
-	require.Len(t, result.Connections, 1)
+	require.Len(t, result.Connections, 2)
 	con := result.Connections[0]
 	require.Equal(t, metal.Switch1.DeviceConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)
 }

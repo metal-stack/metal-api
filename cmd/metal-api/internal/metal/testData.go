@@ -217,12 +217,23 @@ var (
 			ID: "switch1",
 		},
 		SiteID: "1",
-		RackID: "rack1",
+		RackID: "1",
+		Nics: []Nic{
+			Nic1,
+			Nic2,
+			Nic3,
+		},
 		DeviceConnections: ConnectionMap{
 			"1": Connections{
 				Connection{
 					Nic: Nic{
 						MacAddress: MacAddress("11:11:11:11:11:11"),
+					},
+					DeviceID: "1",
+				},
+				Connection{
+					Nic: Nic{
+						MacAddress: MacAddress("11:11:11:11:11:22"),
 					},
 					DeviceID: "1",
 				},
@@ -249,18 +260,39 @@ var (
 	// Nics
 	Nic1 = Nic{
 		MacAddress: MacAddress("11:11:11:11:11:11"),
-		Name:       "swp1",
-		Neighbors:  nil,
+		Name:       "eth0",
+		Neighbors: []Nic{
+			Nic{
+				MacAddress: "21:11:11:11:11:11",
+			},
+			Nic{
+				MacAddress: "31:11:11:11:11:11",
+			},
+		},
 	}
 	Nic2 = Nic{
 		MacAddress: MacAddress("21:11:11:11:11:11"),
-		Name:       "swp2",
-		Neighbors:  nil,
+		Name:       "swp1",
+		Neighbors: []Nic{
+			Nic{
+				MacAddress: "11:11:11:11:11:11",
+			},
+			Nic{
+				MacAddress: "31:11:11:11:11:11",
+			},
+		},
 	}
 	Nic3 = Nic{
 		MacAddress: MacAddress("31:11:11:11:11:11"),
-		Name:       "swp3",
-		Neighbors:  nil,
+		Name:       "swp2",
+		Neighbors: []Nic{
+			Nic{
+				MacAddress: "21:11:11:11:11:11",
+			},
+			Nic{
+				MacAddress: "11:11:11:11:11:11",
+			},
+		},
 	}
 
 	// IPMIs
@@ -359,12 +391,6 @@ var (
 
 	EmptyResult = map[string]interface{}{}
 )
-
-func PrepareTests() {
-	Nic1.Neighbors = Nics{Nic2, Nic3}
-	Nic2.Neighbors = Nics{Nic1, Nic3}
-	Nic3.Neighbors = Nics{Nic1, Nic2}
-}
 
 /*
 InitMockDBData ...

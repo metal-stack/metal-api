@@ -7,6 +7,7 @@ import (
 )
 
 // Gerrit and me implemented that monster in a one shot which worked.
+
 func TestSwitch_ConnectDevice2(t *testing.T) {
 	type fields struct {
 		ID                string
@@ -225,7 +226,6 @@ func TestFillAllConnections(t *testing.T) {
 			Neighbors:  nil,
 		}
 	}
-	PrepareTests()
 
 	for i := 0; i < countOfNics; i++ {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
@@ -270,7 +270,7 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 			name: "Test 1",
 			s:    &Switch1,
 			args: args{
-				device: &D1,
+				device: &D5,
 			},
 		},
 	}
