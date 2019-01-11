@@ -41,15 +41,15 @@ func (rs *RethinkStore) ListSizes() ([]metal.Size, error) {
 }
 
 // CreateSize creates a new size.
-func (rs *RethinkStore) CreateSize(size *metal.Size) error {
+func (rs *RethinkStore) CreateSize(size *metal.Size) (*metal.Size, error) {
 	res, err := rs.sizeTable().Insert(size).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot create size in database: %v", err)
+		return nil, fmt.Errorf("cannot create size in database: %v", err)
 	}
 	if size.ID == "" {
 		size.ID = res.GeneratedKeys[0]
 	}
-	return nil
+	return size, nil
 }
 
 // DeleteSize deletes a size.
