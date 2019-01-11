@@ -2,6 +2,7 @@
 BINARY := metal-api
 MAINMODULE := git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api
 COMMONDIR := $(or ${COMMONDIR},../common)
+API_BASE_URL := $(or ${API_BASE_URL},http://localhost:8080)
 
 include $(COMMONDIR)/Makefile.inc
 
@@ -14,13 +15,13 @@ release:: all;
 
 .PHONY: createmasterdata
 createmasterdata:
-	@cat masterdata/images.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/v1/image
-	@cat masterdata/sizes.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/v1/size
-	@cat masterdata/sites.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' http://localhost:8080/v1/site
+	@cat masterdata/images.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/image
+	@cat masterdata/sizes.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/size
+	@cat masterdata/sites.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/site
 
 .PHONY: createtestdevices
 createtestdevices:
-	@cat masterdata/testdevices.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPOST -H "Content-Type: application/json" -d '{}' http://localhost:8080/v1/device/register
+	@cat masterdata/testdevices.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPOST -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/device/register
 
 .PHONY: localbuild
 localbuild: bin/$(BINARY) Dockerfile.dev

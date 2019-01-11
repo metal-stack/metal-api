@@ -15,7 +15,7 @@ func (rs *RethinkStore) FindSite(id string) (*metal.Site, error) {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, metal.NotFound("no siete %q found", id)
+		return nil, metal.NotFound("no site %q found", id)
 	}
 	var r metal.Site
 	err = res.One(&r)

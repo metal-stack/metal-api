@@ -10,6 +10,7 @@ type Switch struct {
 	DeviceConnections ConnectionMap `json:"-" description:"a connection between a switch port and a device" rethinkdb:"deviceconnections"`
 	SiteID            string        `json:"site_id" description:"the id of the site in which this switch is located" rethinkdb:"siteid"`
 	RackID            string        `json:"rack_id" description:"the id of the rack in which this switch is located" rethinkdb:"rackid"`
+	Site              Site          `json:"site" description:"the site in which this switch is located" rethinkdb:"-"`
 }
 
 // Connection between switch port and device.
@@ -25,7 +26,7 @@ type Connections []Connection
 type ConnectionMap map[string]Connections
 
 // NewSwitch creates a new switch with the given data fields.
-func NewSwitch(id, siteid, rackid string, nics Nics) *Switch {
+func NewSwitch(id, rackid string, nics Nics, site *Site) *Switch {
 	if nics == nil {
 		nics = make([]Nic, 0)
 	}
@@ -34,11 +35,12 @@ func NewSwitch(id, siteid, rackid string, nics Nics) *Switch {
 			ID:   id,
 			Name: id,
 		},
-		SiteID:            siteid,
+		SiteID:            site.ID,
 		RackID:            rackid,
 		Connections:       make([]Connection, 0),
 		DeviceConnections: make(ConnectionMap),
 		Nics:              nics,
+		Site:              *site,
 	}
 }
 

@@ -259,7 +259,7 @@ func TestRegisterDevice(t *testing.T) {
 			require.Equal(t, test.expectedSizeName, result.Size.Name)
 			require.Equal(t, metal.Site1.Name, result.Site.Name)
 			// no read ipmi data
-			req = httptest.NewRequest("POST", fmt.Sprintf("/v1/device/%s/ipmi", test.uuid), nil)
+			req = httptest.NewRequest("GET", fmt.Sprintf("/v1/device/%s/ipmi", test.uuid), nil)
 			req.Header.Add("Content-Type", "application/json")
 			w = httptest.NewRecorder()
 			container.ServeHTTP(w, req)
