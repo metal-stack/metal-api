@@ -4,14 +4,16 @@ import (
 	"testing"
 )
 
-func getAllTestStructsForTestDevice_HasMAC() []struct {
+type testDataStruct struct {
 	name string
 	d    *Device
 	args struct {
 		mac string
 	}
 	want bool
-} {
+}
+
+func getAllTestStructsForTestDevice_HasMAC() []testDataStruct {
 	/*
 		Returns an struct Array of all Test Data
 		// Create all Test Data
@@ -20,14 +22,7 @@ func getAllTestStructsForTestDevice_HasMAC() []struct {
 	type args struct {
 		mac string
 	}
-	structArray := make([]struct {
-		name string
-		d    *Device
-		args struct {
-			mac string
-		}
-		want bool
-	}, len(TestDeviceArray)*len(TestMacArray))
+	returnData := make([]testDataStruct, len(TestDeviceArray)*len(TestMacArray))
 	index := 0
 	for i := 0; i < len(TestDeviceArray); i++ {
 		for j := 0; j < len(TestMacArray); j++ {
@@ -37,7 +32,7 @@ func getAllTestStructsForTestDevice_HasMAC() []struct {
 			} else {
 				want = false
 			}
-			structArray[index] = struct {
+			returnData[index] = struct {
 				name string
 				d    *Device
 				args struct {
@@ -55,7 +50,7 @@ func getAllTestStructsForTestDevice_HasMAC() []struct {
 			index++
 		}
 	}
-	return structArray
+	return returnData
 }
 
 func TestDevice_HasMAC(t *testing.T) {
