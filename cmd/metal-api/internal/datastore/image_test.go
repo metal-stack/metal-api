@@ -74,7 +74,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 		{
 			name:    "TestRethinkStore_ListImages Test 1",
 			rs:      ds,
-			want:    metal.TestImageArray,
+			want:    metal.TestImages,
 			wantErr: false,
 		},
 	}

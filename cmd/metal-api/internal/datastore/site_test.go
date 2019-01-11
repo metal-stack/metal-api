@@ -73,7 +73,7 @@ func TestRethinkStore_ListSites(t *testing.T) {
 		{
 			name:    "TestRethinkStore_ListSites Test 1",
 			rs:      ds,
-			want:    metal.TestSiteArray,
+			want:    metal.TestSites,
 			wantErr: false,
 		},
 	}

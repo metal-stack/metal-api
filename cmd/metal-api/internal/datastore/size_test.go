@@ -66,7 +66,7 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 		{
 			name:    "TestRethinkStore_ListSizes Test 1",
 			rs:      ds,
-			want:    metal.TestSizeArray,
+			want:    metal.TestSizes,
 			wantErr: false,
 		},
 	}

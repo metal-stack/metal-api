@@ -308,7 +308,7 @@ var (
 	DeviceHardware1 = DeviceHardware{
 		Memory:   100,
 		CPUCores: 1,
-		Nics:     TestNicArray,
+		Nics:     TestNics,
 		Disks: []BlockDevice{
 			{
 				Name: "blockdeviceName",
@@ -319,7 +319,7 @@ var (
 	DeviceHardware2 = DeviceHardware{
 		Memory:   1000,
 		CPUCores: 2,
-		Nics:     TestNicArray,
+		Nics:     TestNics,
 		Disks: []BlockDevice{
 			{
 				Name: "blockdeviceName",
@@ -329,30 +329,30 @@ var (
 	}
 
 	// All Images
-	TestImageArray = []Image{
+	TestImages = []Image{
 		Img1, Img2, Img3,
 	}
 
 	// All Sizes
-	TestSizeArray = []Size{
+	TestSizes = []Size{
 		Sz1, Sz2, Sz3,
 	}
 
 	// All Sites
-	TestSiteArray = []Site{
+	TestSites = []Site{
 		Site1, Site2, Site3,
 	}
 
 	// All Nics
-	TestNicArray = Nics{
+	TestNics = Nics{
 		Nic1, Nic2, Nic3,
 	}
 
 	// All Switches
-	TestSwitchArray = []Switch{
+	TestSwitches = []Switch{
 		Switch1, Switch2, Switch3,
 	}
-	TestMacArray = []string{
+	TestMacs = []string{
 		"11:11:11:11:11:11",
 		"11:11:11:11:11:22",
 		"11:11:11:11:11:33",
@@ -362,7 +362,7 @@ var (
 	}
 
 	// Create the Connections Array
-	TestConnectionsArray = []Connection{
+	TestConnections = []Connection{
 		Connection{
 			Nic: Nic{
 				Name:       "swp1",
@@ -379,12 +379,12 @@ var (
 		},
 	}
 
-	TestDeviceHardwareArray = []DeviceHardware{
+	TestDeviceHardwares = []DeviceHardware{
 		DeviceHardware1, DeviceHardware2,
 	}
 
 	// All Devices
-	TestDeviceArray = []Device{
+	TestDevices = []Device{
 		D1, D2, D3, D4, D5,
 	}
 
@@ -458,11 +458,11 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 
 	// X.GetAll
-	mock.On(r.DB("mockdb").Table("size")).Return(TestSizeArray, nil)
-	mock.On(r.DB("mockdb").Table("site")).Return(TestSiteArray, nil)
-	mock.On(r.DB("mockdb").Table("image")).Return(TestImageArray, nil)
-	mock.On(r.DB("mockdb").Table("device")).Return(TestDeviceArray, nil)
-	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitchArray, nil)
+	mock.On(r.DB("mockdb").Table("size")).Return(TestSizes, nil)
+	mock.On(r.DB("mockdb").Table("site")).Return(TestSites, nil)
+	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
+	mock.On(r.DB("mockdb").Table("device")).Return(TestDevices, nil)
+	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
 
 	// X.Delete
 	mock.On(r.DB("mockdb").Table("device").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)

@@ -52,7 +52,7 @@ func TestGetDevices(t *testing.T) {
 	var result []metal.Device
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Len(t, result, len(metal.TestDeviceArray))
+	require.Len(t, result, len(metal.TestDevices))
 	require.Equal(t, metal.D1.ID, result[0].ID)
 	require.Equal(t, metal.D1.Allocation.Name, result[0].Allocation.Name)
 	require.Equal(t, metal.Sz1.Name, result[0].Size.Name)

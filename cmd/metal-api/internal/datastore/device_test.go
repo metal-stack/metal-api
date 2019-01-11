@@ -183,7 +183,7 @@ func TestRethinkStore_ListDevices(t *testing.T) {
 		{
 			name:    "TestRethinkStore_ListDevices Test 1",
 			rs:      ds,
-			want:    metal.TestDeviceArray,
+			want:    metal.TestDevices,
 			wantErr: false,
 		},
 	}

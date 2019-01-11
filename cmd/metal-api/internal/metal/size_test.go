@@ -163,8 +163,8 @@ func TestSizes_ByID(t *testing.T) {
 
 	// Create the SizeMap for the Test data
 	sizeM := make(SizeMap)
-	for i, f := range TestSizeArray {
-		sizeM[f.ID] = TestSizeArray[i]
+	for i, f := range TestSizes {
+		sizeM[f.ID] = TestSizes[i]
 	}
 
 	tests := []struct {
@@ -175,7 +175,7 @@ func TestSizes_ByID(t *testing.T) {
 		// Test Data Array (only 1 data):
 		{
 			name: "Test 1",
-			sz:   TestSizeArray,
+			sz:   TestSizes,
 			want: sizeM,
 		},
 	}
