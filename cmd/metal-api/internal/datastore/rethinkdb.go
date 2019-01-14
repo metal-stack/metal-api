@@ -39,13 +39,13 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	for _, table := range tables {
 		e := rs.db().TableCreate(table, opts).Exec(rs.session)
 		if e != nil {
-			return e
+			return fmt.Errorf("cannot create table %s with opts %v: %v", table, opts, e)
 		}
 	}
 
 	_, e := rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
 
-	return e
+	return fmt.Errorf("cannot create Index in deviceTable with opts %v: %v", opts, e)
 }
 
 func (rs *RethinkStore) sizeTable() *r.Term {
