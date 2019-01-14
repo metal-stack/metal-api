@@ -1,15 +1,16 @@
 package netbox
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client"
 	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
-
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegister(t *testing.T) {
@@ -109,6 +110,195 @@ func TestRelease(t *testing.T) {
 				return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
 			}
 			proxy.Release(td.uuid)
+		})
+	}
+}
+
+func TestNew(t *testing.T) {
+	tests := []struct {
+		name string
+		want *APIProxy
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := New(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("New() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_initNetboxProxy(t *testing.T) {
+	tests := []struct {
+		name string
+		want *client.NetboxAPIProxy
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := initNetboxProxy(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("initNetboxProxy() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_transformNicList(t *testing.T) {
+	type args struct {
+		hwnics []metal.Nic
+	}
+	tests := []struct {
+		name string
+		args args
+		want []*models.Nic
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := transformNicList(tt.args.hwnics); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("transformNicList() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAPIProxy_authenticate(t *testing.T) {
+	type args struct {
+		rq runtime.ClientRequest
+		rg strfmt.Registry
+	}
+	tests := []struct {
+		name    string
+		nb      *APIProxy
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.nb.authenticate(tt.args.rq, tt.args.rg); (err != nil) != tt.wantErr {
+				t.Errorf("APIProxy.authenticate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIProxy_Register(t *testing.T) {
+	type args struct {
+		siteid string
+		rackid string
+		size   string
+		uuid   string
+		hwnics []metal.Nic
+	}
+	tests := []struct {
+		name    string
+		nb      *APIProxy
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.nb.Register(tt.args.siteid, tt.args.rackid, tt.args.size, tt.args.uuid, tt.args.hwnics); (err != nil) != tt.wantErr {
+				t.Errorf("APIProxy.Register() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIProxy_Allocate(t *testing.T) {
+	type args struct {
+		uuid        string
+		tenant      string
+		project     string
+		name        string
+		description string
+		os          string
+	}
+	tests := []struct {
+		name    string
+		nb      *APIProxy
+		args    args
+		want    string
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.nb.Allocate(tt.args.uuid, tt.args.tenant, tt.args.project, tt.args.name, tt.args.description, tt.args.os)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("APIProxy.Allocate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("APIProxy.Allocate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAPIProxy_Release(t *testing.T) {
+	type args struct {
+		uuid string
+	}
+	tests := []struct {
+		name    string
+		nb      *APIProxy
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.nb.Release(tt.args.uuid); (err != nil) != tt.wantErr {
+				t.Errorf("APIProxy.Release() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAPIProxy_RegisterSwitch(t *testing.T) {
+	type args struct {
+		siteid string
+		rackid string
+		uuid   string
+		name   string
+		hwnics []metal.Nic
+	}
+	tests := []struct {
+		name    string
+		nb      *APIProxy
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases. "wantErr=false"!
+		{
+			name: "Test 2",
+			nb:   New(),
+			args: args{
+				siteid: "1",
+				rackid: "1",
+				uuid:   "1",
+				name:   "1",
+				hwnics: metal.TestNics,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.nb.RegisterSwitch(tt.args.siteid, tt.args.rackid, tt.args.uuid, tt.args.name, tt.args.hwnics); (err != nil) != tt.wantErr {
+				t.Errorf("APIProxy.RegisterSwitch() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
