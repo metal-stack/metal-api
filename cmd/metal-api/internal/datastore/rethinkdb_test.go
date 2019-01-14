@@ -328,3 +328,206 @@ func TestRethinkStore_initializeTables(t *testing.T) {
 		})
 	}
 }
+
+func TestRethinkStore_sizeTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theWantedTerm := r.DB("mockdb").Table("size")
+
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		want *r.Term
+	}{
+		// test cases:
+		{
+			name: "TestRethinkStore_sizeTable Test 1",
+			rs:   ds,
+			want: &theWantedTerm,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.sizeTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.sizeTable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_imageTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theWantedTerm := r.DB("mockdb").Table("image")
+
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		want *r.Term
+	}{
+		// test cases:
+		{
+			name: "TestRethinkStore_imageTable Test 1",
+			rs:   ds,
+			want: &theWantedTerm,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.imageTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.imageTable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_siteTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theWantedTerm := r.DB("mockdb").Table("site")
+
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		want *r.Term
+	}{
+		// test cases:
+		{
+			name: "TestRethinkStore_siteTable Test 1",
+			rs:   ds,
+			want: &theWantedTerm,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.siteTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.siteTable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_deviceTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theWantedTerm := r.DB("mockdb").Table("device")
+
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		want *r.Term
+	}{
+		// test cases:
+		{
+			name: "TestRethinkStore_deviceTable Test 1",
+			rs:   ds,
+			want: &theWantedTerm,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.deviceTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.deviceTable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_switchTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theWantedTerm := r.DB("mockdb").Table("switch")
+
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		want *r.Term
+	}{
+		// test cases:
+		{
+			name: "TestRethinkStore_switchTable Test 1",
+			rs:   ds,
+			want: &theWantedTerm,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.switchTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.switchTable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_waitTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theWantedTerm := r.DB("mockdb").Table("wait")
+
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		want *r.Term
+	}{
+		// test cases:
+		{
+			name: "TestRethinkStore_waitTable Test 1",
+			rs:   ds,
+			want: &theWantedTerm,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.waitTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.waitTable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_ipmiTable(t *testing.T) {
+
+	// mock the DB
+	ds, mock := InitMockDB()
+	metal.InitMockDBData(mock)
+
+	theWantedTerm := r.DB("mockdb").Table("ipmi")
+
+	tests := []struct {
+		name string
+		rs   *RethinkStore
+		want *r.Term
+	}{
+		// test cases:
+		{
+			name: "TestRethinkStore_ipmiTable Test 1",
+			rs:   ds,
+			want: &theWantedTerm,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.ipmiTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.ipmiTable() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
