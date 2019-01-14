@@ -95,14 +95,14 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(metal.AllocateDevice{}).
 		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusNotFound, "No free device for allocation found", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
+		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}/free").To(dr.freeDevice).
 		Doc("free a device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.Device{}).
-		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
+		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/ipmi").To(dr.ipmiData).
 		Doc("returns the IPMI connection data for a device").
@@ -110,7 +110,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.IPMI{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", metal.Device{}))
+		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
 		Doc("wait for an allocation of this device").
@@ -118,7 +118,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.DeviceWithPhoneHomeToken{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
+		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/report").To(dr.allocationReport).
 		Doc("send the allocation report of a given device").
@@ -127,7 +127,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(metal.ReportAllocation{}).
 		Returns(http.StatusOK, "OK", metal.DeviceAllocation{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
+		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
 		Doc("phone back home from the device").
@@ -135,8 +135,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(metal.PhoneHomeRequest{}).
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "Device could not be found by id", nil).
-		Returns(http.StatusBadRequest, "Bad Request", nil).
-		Returns(http.StatusInternalServerError, "Internal Server Error", nil))
+		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
 
 	return ws
 }
@@ -219,7 +218,7 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		return
 	}
 	if data.UUID == "" {
-		sendError(dr.log, response, "registerDevice", http.StatusInternalServerError, fmt.Errorf("No UUID given"))
+		sendError(dr.log, response, "registerDevice", http.StatusBadRequest, fmt.Errorf("No UUID given"))
 		return
 	}
 	site, err := dr.ds.FindSite(data.SiteID)
@@ -268,6 +267,12 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 	if checkError(dr.log, response, "allocateDevice", err) {
 		return
 	}
+	if allocate.Tenant == "" {
+		if checkError(dr.log, response, "allocateDevice", fmt.Errorf("no tenant given")) {
+			dr.log.Error("allocate", zap.String("tenant", "missing"))
+			return
+		}
+	}
 	image, err := dr.ds.FindImage(allocate.ImageID)
 	if checkError(dr.log, response, "allocateDevice", err) {
 		return
@@ -290,7 +295,7 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		if err == datastore.ErrNoDeviceAvailable {
 			sendError(dr.log, response, "allocateDevice", http.StatusNotFound, err)
 		} else {
-			sendError(dr.log, response, "allocateDevice", http.StatusInternalServerError, err)
+			sendError(dr.log, response, "allocateDevice", http.StatusBadRequest, err)
 		}
 		return
 	}
@@ -333,7 +338,7 @@ func (dr deviceResource) allocationReport(request *restful.Request, response *re
 		return
 	}
 	if dev.Allocation == nil {
-		sendError(dr.log, response, "allocationReport", http.StatusInternalServerError, fmt.Errorf("the device %q is not allocated", id))
+		sendError(dr.log, response, "allocationReport", http.StatusBadRequest, fmt.Errorf("the device %q is not allocated", id))
 		return
 	}
 	old := *dev

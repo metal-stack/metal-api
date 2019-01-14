@@ -70,7 +70,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Image{}).
 		Returns(http.StatusCreated, "Created", metal.Image{}).
-		Returns(http.StatusConflict, "Conflict", nil))
+		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(ir.updateImage).
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
@@ -78,7 +78,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Reads(metal.Image{}).
 		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusConflict, "Conflict", nil))
+		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
 	return ws
 }

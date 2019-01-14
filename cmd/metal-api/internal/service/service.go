@@ -1,6 +1,8 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -21,8 +23,19 @@ type webResource struct {
 
 func sendError(log *zap.Logger, rsp *restful.Response, opname string, status int, err error) {
 	s := stack.Caller(1)
-	log.Error("service error", zap.String("operation", opname), zap.String("error", err.Error()), zap.Stringer("service-caller", s))
-	rsp.WriteError(status, err)
+	log.Error("service error", zap.String("operation", opname), zap.Int("status", status), zap.String("error", err.Error()), zap.Stringer("service-caller", s))
+	er := metal.ErrorResponse{
+		StatusCode: status,
+		Message:    err.Error(),
+		Operation:  opname,
+	}
+	response, merr := json.Marshal(er)
+	log.Info("response", zap.String("resp", string(response)))
+	if merr != nil {
+		rsp.WriteError(status, fmt.Errorf("unable to format error string: %v", err))
+		return
+	}
+	rsp.WriteErrorString(status, string(response))
 }
 
 func checkError(log *zap.Logger, rsp *restful.Response, opname string, err error) bool {
@@ -31,7 +44,11 @@ func checkError(log *zap.Logger, rsp *restful.Response, opname string, err error
 			sendError(log, rsp, opname, http.StatusNotFound, err)
 			return true
 		}
-		sendError(log, rsp, opname, http.StatusInternalServerError, err)
+		if metal.IsConflict(err) {
+			sendError(log, rsp, opname, http.StatusConflict, err)
+			return true
+		}
+		sendError(log, rsp, opname, http.StatusBadRequest, err)
 		return true
 	}
 	return false

@@ -70,7 +70,7 @@ func (sr sizeResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Size{}).
 		Returns(http.StatusCreated, "Created", metal.Size{}).
-		Returns(http.StatusConflict, "Conflict", nil))
+		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(sr.updateSize).
 		Doc("updates a size. if the size was changed since this one was read, a conflict is returned").
@@ -78,7 +78,7 @@ func (sr sizeResource) webService() *restful.WebService {
 		Reads(metal.Size{}).
 		Returns(http.StatusOK, "OK", metal.Size{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusConflict, "Conflict", nil))
+		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
 	return ws
 }
