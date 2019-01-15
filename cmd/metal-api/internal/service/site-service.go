@@ -91,11 +91,11 @@ func (fr siteResource) createSite(request *restful.Request, response *restful.Re
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
-	err = fr.ds.CreateSite(&s)
+	returnedSite, err := fr.ds.CreateSite(&s)
 	if checkError(fr.log, response, "createSite", err) {
 		return
 	}
-	response.WriteHeaderAndEntity(http.StatusCreated, s)
+	response.WriteHeaderAndEntity(http.StatusCreated, returnedSite)
 }
 
 func (fr siteResource) updateSite(request *restful.Request, response *restful.Response) {

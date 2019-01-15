@@ -104,8 +104,9 @@ func (dr deviceResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/ipmi").To(dr.ipmiData).
+	ws.Route(ws.GET("/{id}/ipmi").To(dr.ipmiData).
 		Doc("returns the IPMI connection data for a device").
+		Operation("ipmiData").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.IPMI{}).

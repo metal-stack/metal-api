@@ -91,11 +91,11 @@ func (sr sizeResource) createSize(request *restful.Request, response *restful.Re
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
-	err = sr.ds.CreateSize(&s)
+	returnSize, err := sr.ds.CreateSize(&s)
 	if checkError(sr.log, response, "createSize", err) {
 		return
 	}
-	response.WriteHeaderAndEntity(http.StatusCreated, s)
+	response.WriteHeaderAndEntity(http.StatusCreated, returnSize)
 }
 
 func (sr sizeResource) updateSize(request *restful.Request, response *restful.Response) {

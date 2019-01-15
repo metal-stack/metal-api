@@ -15,7 +15,7 @@ func (rs *RethinkStore) FindSite(id string) (*metal.Site, error) {
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, metal.NotFound("no siete %q found", id)
+		return nil, metal.NotFound("no site %q found", id)
 	}
 	var r metal.Site
 	err = res.One(&r)
@@ -41,15 +41,15 @@ func (rs *RethinkStore) ListSites() ([]metal.Site, error) {
 }
 
 // CreateSite creates a new site.
-func (rs *RethinkStore) CreateSite(f *metal.Site) error {
+func (rs *RethinkStore) CreateSite(f *metal.Site) (*metal.Site, error) {
 	res, err := rs.siteTable().Insert(f).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot create Site in database: %v", err)
+		return nil, fmt.Errorf("cannot create Site in database: %v", err)
 	}
 	if f.ID == "" {
 		f.ID = res.GeneratedKeys[0]
 	}
-	return nil
+	return f, nil
 }
 
 // DeleteSite delets a site.
