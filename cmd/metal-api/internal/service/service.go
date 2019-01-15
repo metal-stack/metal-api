@@ -48,6 +48,10 @@ func checkError(log *zap.Logger, rsp *restful.Response, opname string, err error
 			sendError(log, rsp, opname, http.StatusConflict, err)
 			return true
 		}
+		if metal.IsInternal(err) {
+			sendError(log, rsp, opname, http.StatusInternalServerError, err)
+			return true
+		}
 		sendError(log, rsp, opname, http.StatusUnprocessableEntity, err)
 		return true
 	}
