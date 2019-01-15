@@ -132,8 +132,8 @@ func TestNewSwitch(t *testing.T) {
 			args: args{
 				id:     "1",
 				rackid: "1",
-				nics:   TestNics,
-				site:   &Site1,
+				nics:   testNics,
+				site:   &site1,
 			},
 
 			want: &Switch{
@@ -145,8 +145,8 @@ func TestNewSwitch(t *testing.T) {
 				RackID:            "1",
 				Connections:       make([]Connection, 0),
 				DeviceConnections: make(ConnectionMap),
-				Nics:              TestNics,
-				Site:              Site1,
+				Nics:              testNics,
+				Site:              site1,
 			},
 		},
 	}
@@ -160,11 +160,11 @@ func TestNewSwitch(t *testing.T) {
 	}
 }
 
-func TestConnections_ByNic(t *testing.T) {
+func testConnections_ByNic(t *testing.T) {
 
 	// Creates the Connections Map
 	connectionsMap := make(map[MacAddress]Connections)
-	for _, con := range TestConnections {
+	for _, con := range testConnections {
 		cons := connectionsMap[con.Nic.MacAddress]
 		cons = append(cons, con)
 		connectionsMap[con.Nic.MacAddress] = cons
@@ -178,7 +178,7 @@ func TestConnections_ByNic(t *testing.T) {
 		// Test data Array:
 		{
 			name: "Test 1",
-			c:    TestConnections,
+			c:    testConnections,
 			want: connectionsMap,
 		},
 	}
@@ -200,7 +200,7 @@ func TestSwitch_FillSwitchConnections(t *testing.T) {
 		// Test Data Array:
 		{
 			name: "Test TestSwitch_FillSwitchConnections 1",
-			s:    &Switch1,
+			s:    &switch1,
 		},
 	}
 	for _, tt := range tests {
@@ -233,9 +233,9 @@ func TestFillAllConnections(t *testing.T) {
 
 	// Creates the Switches for the test data
 	switches := make([]Switch, 3)
-	switches[0] = *NewSwitch("device-1", "rack-1", TestNics, &Site1)
-	switches[1] = *NewSwitch("device-2", "rack-1", TestNics, &Site1)
-	switches[2] = *NewSwitch("device-3", "rack-2", TestNics, &Site2)
+	switches[0] = *NewSwitch("device-1", "rack-1", testNics, &site1)
+	switches[1] = *NewSwitch("device-2", "rack-1", testNics, &site1)
+	switches[2] = *NewSwitch("device-3", "rack-2", testNics, &site2)
 
 	tests := []struct {
 		name string
@@ -268,9 +268,9 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "Test 1",
-			s:    &Switch1,
+			s:    &switch1,
 			args: args{
-				device: &D5,
+				device: &d5,
 			},
 		},
 	}

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -33,7 +33,7 @@ func TestNew(t *testing.T) {
 				dbuser: "dbuser",
 				dbpass: "password",
 			},
-			want: &RethinkStore1,
+			want: &rethinkStore1,
 		},
 	}
 	for _, tt := range tests {
@@ -48,7 +48,7 @@ func TestNew(t *testing.T) {
 func TestRethinkStore_db(t *testing.T) {
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theDBTerm := r.DB("mockdb")
 
@@ -77,7 +77,7 @@ func TestRethinkStore_Mock(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	tests := []struct {
 		name string
@@ -104,7 +104,7 @@ func TestRethinkStore_Close(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	tests := []struct {
 		name    string
@@ -131,7 +131,7 @@ func TestRethinkStore_Connect(t *testing.T) {
 
 	// mock the DB
 	_, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	tests := []struct {
 		name string
@@ -184,7 +184,7 @@ func Test_mustConnect(t *testing.T) {
 
 	// mock the DB
 	_, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		hosts    []string
@@ -246,7 +246,7 @@ func TestRethinkStore_initializeTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		table string
@@ -291,7 +291,7 @@ func TestRethinkStore_initializeTables(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		opts r.TableCreateOpts
@@ -333,7 +333,7 @@ func TestRethinkStore_sizeTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("size")
 
@@ -362,7 +362,7 @@ func TestRethinkStore_imageTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("image")
 
@@ -391,7 +391,7 @@ func TestRethinkStore_siteTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("site")
 
@@ -420,7 +420,7 @@ func TestRethinkStore_deviceTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("device")
 
@@ -449,7 +449,7 @@ func TestRethinkStore_switchTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("switch")
 
@@ -478,7 +478,7 @@ func TestRethinkStore_waitTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("wait")
 
@@ -507,7 +507,7 @@ func TestRethinkStore_ipmiTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("ipmi")
 

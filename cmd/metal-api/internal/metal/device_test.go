@@ -21,7 +21,7 @@ func TestDevice_HasMAC(t *testing.T) {
 		// Test Data Array (only 1 data):
 		{
 			name: "TestDevice_HasMAC Test 1",
-			d:    &D5,
+			d:    &d5,
 			args: args{
 				mac: "11:11:11:11:11:11",
 			},
@@ -29,7 +29,7 @@ func TestDevice_HasMAC(t *testing.T) {
 		},
 		{
 			name: "TestDevice_HasMAC Test 1",
-			d:    &D1,
+			d:    &d1,
 			args: args{
 				mac: "11:11:11:11:11:11",
 			},

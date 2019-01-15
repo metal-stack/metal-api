@@ -9,6 +9,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful"
@@ -16,7 +17,7 @@ import (
 
 func TestGetImages(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -30,17 +31,17 @@ func TestGetImages(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Len(t, result, 3)
-	require.Equal(t, metal.Img1.ID, result[0].ID)
-	require.Equal(t, metal.Img1.Name, result[0].Name)
-	require.Equal(t, metal.Img2.ID, result[1].ID)
-	require.Equal(t, metal.Img2.Name, result[1].Name)
-	require.Equal(t, metal.Img3.ID, result[2].ID)
-	require.Equal(t, metal.Img3.Name, result[2].Name)
+	require.Equal(t, testdata.Img1.ID, result[0].ID)
+	require.Equal(t, testdata.Img1.Name, result[0].Name)
+	require.Equal(t, testdata.Img2.ID, result[1].ID)
+	require.Equal(t, testdata.Img2.Name, result[1].Name)
+	require.Equal(t, testdata.Img3.ID, result[2].ID)
+	require.Equal(t, testdata.Img3.Name, result[2].Name)
 }
 
 func TestGetImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -53,13 +54,13 @@ func TestGetImage(t *testing.T) {
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, metal.Img1.ID, result.ID)
-	require.Equal(t, metal.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img1.ID, result.ID)
+	require.Equal(t, testdata.Img1.Name, result.Name)
 }
 
 func TestGetImageNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -73,7 +74,7 @@ func TestGetImageNotFound(t *testing.T) {
 
 func TestDeleteImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
@@ -86,18 +87,18 @@ func TestDeleteImage(t *testing.T) {
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, metal.Img1.ID, result.ID)
-	require.Equal(t, metal.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img1.ID, result.ID)
+	require.Equal(t, testdata.Img1.Name, result.Name)
 }
 
 func TestCreateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
 
-	js, _ := json.Marshal(metal.Img1)
+	js, _ := json.Marshal(testdata.Img1)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -109,18 +110,18 @@ func TestCreateImage(t *testing.T) {
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, metal.Img1.ID, result.ID)
-	require.Equal(t, metal.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img1.ID, result.ID)
+	require.Equal(t, testdata.Img1.Name, result.Name)
 }
 
 func TestUpdateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	imageservice := NewImage(testlogger, ds)
 	container := restful.NewContainer().Add(imageservice)
 
-	js, _ := json.Marshal(metal.Img1)
+	js, _ := json.Marshal(testdata.Img1)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/image", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -132,6 +133,6 @@ func TestUpdateImage(t *testing.T) {
 	var result metal.Site
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, metal.Img1.ID, result.ID)
-	require.Equal(t, metal.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img1.ID, result.ID)
+	require.Equal(t, testdata.Img1.Name, result.Name)
 }

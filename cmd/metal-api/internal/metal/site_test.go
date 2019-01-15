@@ -12,9 +12,9 @@ func TestSites_ByID(t *testing.T) {
 		want SiteMap
 	}{
 		{
-			name: "TestSites_ByID Test 1",
-			sz:   TestSites,
-			want: map[string]Site{TestSites[0].ID: TestSites[0], TestSites[1].ID: TestSites[1], TestSites[2].ID: TestSites[2]},
+			name: "testSites_ByID Test 1",
+			sz:   testSites,
+			want: map[string]Site{testSites[0].ID: testSites[0], testSites[1].ID: testSites[1], testSites[2].ID: testSites[2]},
 		},
 	}
 	for _, tt := range tests {

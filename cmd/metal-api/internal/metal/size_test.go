@@ -53,7 +53,7 @@ var (
 	}
 )
 
-func TestSizes_FromHardware(t *testing.T) {
+func testSizes_FromHardware(t *testing.T) {
 	type args struct {
 		hardware DeviceHardware
 	}
@@ -131,8 +131,8 @@ func TestSizes_FromHardware(t *testing.T) {
 		{
 			name: "real live data",
 			sz: Sizes{
-				Sz1,
-				Sz999,
+				sz1,
+				sz999,
 			},
 			args: args{
 				hardware: DeviceHardware{
@@ -140,7 +140,7 @@ func TestSizes_FromHardware(t *testing.T) {
 					Memory:   100,
 				},
 			},
-			want:    &Sz999,
+			want:    &sz999,
 			wantErr: false,
 		},
 	}
@@ -163,8 +163,8 @@ func TestSizes_ByID(t *testing.T) {
 
 	// Create the SizeMap for the Test data
 	sizeM := make(SizeMap)
-	for i, f := range TestSizes {
-		sizeM[f.ID] = TestSizes[i]
+	for i, f := range testSizes {
+		sizeM[f.ID] = testSizes[i]
 	}
 
 	tests := []struct {
@@ -175,7 +175,7 @@ func TestSizes_ByID(t *testing.T) {
 		// Test Data Array (only 1 data):
 		{
 			name: "Test 1",
-			sz:   TestSizes,
+			sz:   testSizes,
 			want: sizeM,
 		},
 	}

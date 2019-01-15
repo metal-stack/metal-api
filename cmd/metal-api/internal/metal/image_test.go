@@ -8,8 +8,8 @@ import (
 func TestImages_ByID(t *testing.T) {
 
 	imageMap := make(ImageMap)
-	for i, f := range TestImages {
-		imageMap[f.ID] = TestImages[i]
+	for i, f := range testImages {
+		imageMap[f.ID] = testImages[i]
 	}
 
 	tests := []struct {
@@ -20,7 +20,7 @@ func TestImages_ByID(t *testing.T) {
 		// Test Data Array (only 1 data):
 		{
 			name: "Test 1",
-			ii:   TestImages,
+			ii:   testImages,
 			want: imageMap,
 		},
 	}

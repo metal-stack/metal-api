@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client"
 	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
@@ -289,7 +290,7 @@ func TestAPIProxy_RegisterSwitch(t *testing.T) {
 				rackid: "1",
 				uuid:   "1",
 				name:   "1",
-				hwnics: metal.TestNics,
+				hwnics: testdata.TestNics,
 			},
 			wantErr: true,
 		},

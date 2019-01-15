@@ -11,6 +11,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/require"
 
@@ -37,7 +38,7 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 
 func TestGetDevices(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -52,12 +53,12 @@ func TestGetDevices(t *testing.T) {
 	var result []metal.Device
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Len(t, result, len(metal.TestDevices))
-	require.Equal(t, metal.D1.ID, result[0].ID)
-	require.Equal(t, metal.D1.Allocation.Name, result[0].Allocation.Name)
-	require.Equal(t, metal.Sz1.Name, result[0].Size.Name)
-	require.Equal(t, metal.Site1.Name, result[0].Site.Name)
-	require.Equal(t, metal.D2.ID, result[1].ID)
+	require.Len(t, result, len(testdata.TestDevices))
+	require.Equal(t, testdata.D1.ID, result[0].ID)
+	require.Equal(t, testdata.D1.Allocation.Name, result[0].Allocation.Name)
+	require.Equal(t, testdata.Sz1.Name, result[0].Size.Name)
+	require.Equal(t, testdata.Site1.Name, result[0].Site.Name)
+	require.Equal(t, testdata.D2.ID, result[1].ID)
 }
 
 func TestRegisterDevice(t *testing.T) {
@@ -66,7 +67,7 @@ func TestRegisterDevice(t *testing.T) {
 		Interface:  "interface",
 		MacAddress: "mac",
 	}
-	testdata := []struct {
+	data := []struct {
 		name               string
 		uuid               string
 		siteid             string
@@ -87,13 +88,13 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "insert new",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{metal.Site1},
-			dbsizes:            []metal.Size{metal.Sz1},
+			dbsites:            []metal.Site{testdata.Site1},
+			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusOK,
-			expectedSizeName:   metal.Sz1.Name,
+			expectedSizeName:   testdata.Sz1.Name,
 			ipmiresult:         []metal.IPMI{ipmi},
 			ipmiresulterror:    nil,
 		},
@@ -101,13 +102,13 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "no ipmi data",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{metal.Site1},
-			dbsizes:            []metal.Size{metal.Sz1},
+			dbsites:            []metal.Site{testdata.Site1},
+			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusNotFound,
-			expectedSizeName:   metal.Sz1.Name,
+			expectedSizeName:   testdata.Sz1.Name,
 			ipmiresult:         []metal.IPMI{},
 			ipmiresulterror:    nil,
 		},
@@ -115,13 +116,13 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "ipmi fetch error",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{metal.Site1},
-			dbsizes:            []metal.Size{metal.Sz1},
+			dbsites:            []metal.Site{testdata.Site1},
+			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusInternalServerError,
-			expectedSizeName:   metal.Sz1.Name,
+			expectedSizeName:   testdata.Sz1.Name,
 			ipmiresult:         []metal.IPMI{},
 			ipmiresulterror:    fmt.Errorf("Test Error"),
 		},
@@ -129,14 +130,14 @@ func TestRegisterDevice(t *testing.T) {
 			name:               "insert existing",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{metal.Site1},
-			dbsizes:            []metal.Size{metal.Sz1},
-			dbdevices:          []metal.Device{metal.D1},
+			dbsites:            []metal.Site{testdata.Site1},
+			dbsizes:            []metal.Size{testdata.Sz1},
+			dbdevices:          []metal.Device{testdata.D1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
 			expectedIPMIStatus: http.StatusOK,
-			expectedSizeName:   metal.Sz1.Name,
+			expectedSizeName:   testdata.Sz1.Name,
 			ipmiresult:         []metal.IPMI{ipmi},
 			ipmiresulterror:    nil,
 		},
@@ -144,16 +145,16 @@ func TestRegisterDevice(t *testing.T) {
 			name:           "empty uuid",
 			uuid:           "",
 			siteid:         "1",
-			dbsites:        []metal.Site{metal.Site1},
-			dbsizes:        []metal.Size{metal.Sz1},
+			dbsites:        []metal.Site{testdata.Site1},
+			dbsizes:        []metal.Size{testdata.Sz1},
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "error when impi update fails",
 			uuid:           "1",
 			siteid:         "1",
-			dbsites:        []metal.Site{metal.Site1},
-			dbsizes:        []metal.Size{metal.Sz1},
+			dbsites:        []metal.Site{testdata.Site1},
+			dbsizes:        []metal.Size{testdata.Sz1},
 			ipmidberror:    fmt.Errorf("ipmi insert fails"),
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -162,15 +163,15 @@ func TestRegisterDevice(t *testing.T) {
 			uuid:           "1",
 			siteid:         "",
 			dbsites:        nil,
-			dbsizes:        []metal.Size{metal.Sz1},
+			dbsizes:        []metal.Size{testdata.Sz1},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:               "unknown size because wrong cpu",
 			uuid:               "1",
 			siteid:             "1",
-			dbsites:            []metal.Site{metal.Site1},
-			dbsizes:            []metal.Size{metal.Sz1},
+			dbsites:            []metal.Site{testdata.Site1},
+			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           2,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
@@ -183,15 +184,15 @@ func TestRegisterDevice(t *testing.T) {
 			name:           "fail on netbox error",
 			uuid:           "1",
 			siteid:         "1",
-			dbsites:        []metal.Site{metal.Site1},
-			dbsizes:        []metal.Size{metal.Sz1},
+			dbsites:        []metal.Site{testdata.Site1},
+			dbsizes:        []metal.Size{testdata.Sz1},
 			numcores:       2,
 			memory:         100,
 			netboxerror:    fmt.Errorf("this should happen"),
 			expectedStatus: http.StatusInternalServerError,
 		},
 	}
-	for _, test := range testdata {
+	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
 			ds, mock := datastore.InitMockDB()
 			mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
@@ -211,7 +212,7 @@ func TestRegisterDevice(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("site").Get(test.siteid)).Return(test.dbsites, nil)
 
 			if len(test.dbdevices) > 0 {
-				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{metal.Sz1}, nil)
+				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
 				mock.On(r.DB("mockdb").Table("device").Get(test.dbdevices[0].ID).Replace(r.MockAnything())).Return(emptyResult, nil)
 			} else {
 				mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything(), r.InsertOpts{
@@ -219,7 +220,7 @@ func TestRegisterDevice(t *testing.T) {
 				})).Return(emptyResult, nil)
 			}
 			mock.On(r.DB("mockdb").Table("ipmi").Get(test.uuid)).Return(test.ipmiresult, test.ipmiresulterror)
-			metal.InitMockDBData(mock)
+			testdata.InitMockDBData(mock)
 			pub := &emptyPublisher{}
 			nb := netbox.New()
 			called := false
@@ -247,13 +248,13 @@ func TestRegisterDevice(t *testing.T) {
 			err := json.NewDecoder(resp.Body).Decode(&result)
 			require.Nil(t, err)
 			require.True(t, called, "netbox register was not called")
-			expectedid := metal.D1.ID
+			expectedid := testdata.D1.ID
 			if len(test.dbdevices) > 0 {
 				expectedid = test.dbdevices[0].ID
 			}
 			require.Equal(t, expectedid, result.ID)
 			require.Equal(t, test.expectedSizeName, result.Size.Name)
-			require.Equal(t, metal.Site1.Name, result.Site.Name)
+			require.Equal(t, testdata.Site1.Name, result.Site.Name)
 			// no read ipmi data
 			req = httptest.NewRequest("GET", fmt.Sprintf("/v1/device/%s/ipmi", test.uuid), nil)
 			req.Header.Add("Content-Type", "application/json")
@@ -277,7 +278,7 @@ func TestRegisterDevice(t *testing.T) {
 
 func TestReportDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -304,7 +305,7 @@ func TestReportDevice(t *testing.T) {
 
 func TestReportFailureDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -331,7 +332,7 @@ func TestReportFailureDevice(t *testing.T) {
 
 func TestReportUnknownDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -355,7 +356,7 @@ func TestReportUnknownDevice(t *testing.T) {
 
 func TestReportUnknownFailure(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -379,7 +380,7 @@ func TestReportUnknownFailure(t *testing.T) {
 
 func TestReportUnallocatedDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -403,7 +404,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 
 func TestGetDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 	pub := &emptyPublisher{}
 	nb := netbox.New()
 	dservice := NewDevice(testlogger, ds, pub, nb)
@@ -417,16 +418,16 @@ func TestGetDevice(t *testing.T) {
 	var result metal.Device
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, metal.D1.ID, result.ID)
-	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
-	require.Equal(t, metal.Sz1.Name, result.Size.Name)
-	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, metal.Site1.Name, result.Site.Name)
+	require.Equal(t, testdata.D1.ID, result.ID)
+	require.Equal(t, testdata.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
+	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, testdata.Site1.Name, result.Site.Name)
 }
 
 func TestGetDeviceNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -441,7 +442,7 @@ func TestGetDeviceNotFound(t *testing.T) {
 }
 func TestFreeDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	pub.doPublish = func(topic string, data interface{}) error {
@@ -469,8 +470,8 @@ func TestFreeDevice(t *testing.T) {
 
 func TestSearchDevice(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{metal.D1}, nil)
-	metal.InitMockDBData(mock)
+	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{testdata.D1}, nil)
+	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
@@ -487,9 +488,9 @@ func TestSearchDevice(t *testing.T) {
 	require.Nil(t, err)
 	require.Len(t, results, 1)
 	result := results[0]
-	require.Equal(t, metal.D1.ID, result.ID)
-	require.Equal(t, metal.D1.Allocation.Name, result.Allocation.Name)
-	require.Equal(t, metal.Sz1.Name, result.Size.Name)
-	require.Equal(t, metal.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, metal.Site1.Name, result.Site.Name)
+	require.Equal(t, testdata.D1.ID, result.ID)
+	require.Equal(t, testdata.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
+	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
+	require.Equal(t, testdata.Site1.Name, result.Site.Name)
 }

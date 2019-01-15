@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 )
 
 func TestRethinkStore_FindSite(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -30,7 +31,7 @@ func TestRethinkStore_FindSite(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &metal.Site1,
+			want:    &testdata.Site1,
 			wantErr: false,
 		},
 		{
@@ -39,7 +40,7 @@ func TestRethinkStore_FindSite(t *testing.T) {
 			args: args{
 				id: "2",
 			},
-			want:    &metal.Site2,
+			want:    &testdata.Site2,
 			wantErr: false,
 		},
 	}
@@ -61,7 +62,7 @@ func TestRethinkStore_ListSites(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	tests := []struct {
 		name    string
@@ -73,7 +74,7 @@ func TestRethinkStore_ListSites(t *testing.T) {
 		{
 			name:    "TestRethinkStore_ListSites Test 1",
 			rs:      ds,
-			want:    metal.TestSites,
+			want:    testdata.TestSites,
 			wantErr: false,
 		},
 	}
@@ -95,7 +96,7 @@ func TestRethinkStore_CreateSite(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		site *metal.Site
@@ -111,7 +112,7 @@ func TestRethinkStore_CreateSite(t *testing.T) {
 			name: "TestRethinkStore_CreateSite Test 1",
 			rs:   ds,
 			args: args{
-				site: &metal.Site1,
+				site: &testdata.Site1,
 			},
 			wantErr: false,
 		},
@@ -129,7 +130,7 @@ func TestRethinkStore_DeleteSite(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -148,7 +149,7 @@ func TestRethinkStore_DeleteSite(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &metal.Site1,
+			want:    &testdata.Site1,
 			wantErr: false,
 		},
 		{
@@ -157,7 +158,7 @@ func TestRethinkStore_DeleteSite(t *testing.T) {
 			args: args{
 				id: "2",
 			},
-			want:    &metal.Site2,
+			want:    &testdata.Site2,
 			wantErr: false,
 		},
 		{
@@ -188,7 +189,7 @@ func TestRethinkStore_UpdateSite(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		oldF *metal.Site
@@ -205,7 +206,7 @@ func TestRethinkStore_UpdateSite(t *testing.T) {
 			name: "TestRethinkStore_UpdateSite Test 1",
 			rs:   ds,
 			args: args{
-				&metal.Site1, &metal.Site2,
+				&testdata.Site1, &testdata.Site2,
 			},
 			wantErr: false,
 		},
@@ -213,7 +214,7 @@ func TestRethinkStore_UpdateSite(t *testing.T) {
 			name: "TestRethinkStore_UpdateSite Test 2",
 			rs:   ds,
 			args: args{
-				&metal.Site2, &metal.Site1,
+				&testdata.Site2, &testdata.Site1,
 			},
 			wantErr: false,
 		},

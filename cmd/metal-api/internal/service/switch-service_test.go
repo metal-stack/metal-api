@@ -10,6 +10,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
 	nbswitch "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
 
@@ -21,7 +22,7 @@ import (
 
 func TestCreateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	nb := netbox.New()
 	called := false
@@ -58,7 +59,7 @@ func TestCreateSwitch(t *testing.T) {
 
 func TestUpdateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	nb := netbox.New()
 	called := false
@@ -71,9 +72,9 @@ func TestUpdateSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     metal.Switch1.ID,
-		SiteID: metal.Switch1.SiteID,
-		RackID: metal.Switch1.RackID,
+		ID:     testdata.Switch1.ID,
+		SiteID: testdata.Switch1.SiteID,
+		RackID: testdata.Switch1.RackID,
 	})
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
@@ -87,11 +88,11 @@ func TestUpdateSwitch(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.True(t, called)
-	require.Equal(t, metal.Switch1.ID, result.ID)
-	require.Equal(t, metal.Switch1.ID, result.Name)
-	require.Equal(t, metal.Switch1.RackID, result.RackID)
-	require.Equal(t, metal.Switch1.SiteID, result.SiteID)
+	require.Equal(t, testdata.Switch1.ID, result.ID)
+	require.Equal(t, testdata.Switch1.ID, result.Name)
+	require.Equal(t, testdata.Switch1.RackID, result.RackID)
+	require.Equal(t, testdata.Switch1.SiteID, result.SiteID)
 	require.Len(t, result.Connections, 2)
 	con := result.Connections[0]
-	require.Equal(t, metal.Switch1.DeviceConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)
+	require.Equal(t, testdata.Switch1.DeviceConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)
 }

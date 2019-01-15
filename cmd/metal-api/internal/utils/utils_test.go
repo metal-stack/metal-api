@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -16,9 +17,9 @@ import (
 func Test_loggingResponseWriter_Header(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     metal.Switch1.ID,
-		SiteID: metal.Switch1.SiteID,
-		RackID: metal.Switch1.RackID,
+		ID:     testdata.Switch1.ID,
+		SiteID: testdata.Switch1.SiteID,
+		RackID: testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()
@@ -65,9 +66,9 @@ func Test_loggingResponseWriter_Header(t *testing.T) {
 func Test_loggingResponseWriter_Write(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     metal.Switch1.ID,
-		SiteID: metal.Switch1.SiteID,
-		RackID: metal.Switch1.RackID,
+		ID:     testdata.Switch1.ID,
+		SiteID: testdata.Switch1.SiteID,
+		RackID: testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()
@@ -127,9 +128,9 @@ func Test_loggingResponseWriter_Write(t *testing.T) {
 func Test_loggingResponseWriter_WriteHeader(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     metal.Switch1.ID,
-		SiteID: metal.Switch1.SiteID,
-		RackID: metal.Switch1.RackID,
+		ID:     testdata.Switch1.ID,
+		SiteID: testdata.Switch1.SiteID,
+		RackID: testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()
@@ -179,9 +180,9 @@ func Test_loggingResponseWriter_WriteHeader(t *testing.T) {
 func Test_loggingResponseWriter_Content(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     metal.Switch1.ID,
-		SiteID: metal.Switch1.SiteID,
-		RackID: metal.Switch1.RackID,
+		ID:     testdata.Switch1.ID,
+		SiteID: testdata.Switch1.SiteID,
+		RackID: testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()

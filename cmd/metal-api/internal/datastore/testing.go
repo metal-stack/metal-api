@@ -9,7 +9,7 @@ import (
 var testlogger = zap.NewNop()
 var testloggerSugar = zapup.MustRootLogger().Sugar()
 var (
-	RethinkStore1 = RethinkStore{
+	rethinkStore1 = RethinkStore{
 		SugaredLogger: zapup.MustRootLogger().Sugar(),
 		dbhost:        "dbhost",
 		dbname:        "dbname",

@@ -7,6 +7,7 @@ import (
 	"testing/quick"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 )
 
 // Tast that generates many input data
@@ -15,7 +16,7 @@ func TestRethinkStore_FindDevice2(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	f := func(x string) bool {
 		_, err := ds.FindDevice(x)
@@ -33,7 +34,7 @@ func TestRethinkStore_FindDevice(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -52,7 +53,7 @@ func TestRethinkStore_FindDevice(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &metal.D1,
+			want:    &testdata.D1,
 			wantErr: false,
 		},
 		{
@@ -61,7 +62,7 @@ func TestRethinkStore_FindDevice(t *testing.T) {
 			args: args{
 				id: "2",
 			},
-			want:    &metal.D2,
+			want:    &testdata.D2,
 			wantErr: false,
 		},
 		{
@@ -128,7 +129,7 @@ func TestRethinkStore_SearchDevice(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		mac string
@@ -148,7 +149,7 @@ func TestRethinkStore_SearchDevice(t *testing.T) {
 				mac: "11:11:11",
 			},
 			want: []metal.Device{
-				metal.D1,
+				testdata.D1,
 			},
 			wantErr: false,
 		},
@@ -171,7 +172,7 @@ func TestRethinkStore_ListDevices(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	tests := []struct {
 		name    string
@@ -183,7 +184,7 @@ func TestRethinkStore_ListDevices(t *testing.T) {
 		{
 			name:    "TestRethinkStore_ListDevices Test 1",
 			rs:      ds,
-			want:    metal.TestDevices,
+			want:    testdata.TestDevices,
 			wantErr: false,
 		},
 	}
@@ -205,7 +206,7 @@ func TestRethinkStore_CreateDevice(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		d *metal.Device
@@ -221,7 +222,7 @@ func TestRethinkStore_CreateDevice(t *testing.T) {
 			name: "TestRethinkStore_CreateDevice Test 1",
 			rs:   ds,
 			args: args{
-				&metal.D4,
+				&testdata.D4,
 			},
 			wantErr: false,
 		},
@@ -239,7 +240,7 @@ func TestRethinkStore_FindIPMI(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -256,7 +257,7 @@ func TestRethinkStore_FindIPMI(t *testing.T) {
 			name:    "TestRethinkStore_FindIPMI Test 1",
 			rs:      ds,
 			args:    args{"IPMI-1"},
-			want:    &metal.IPMI1,
+			want:    &testdata.IPMI1,
 			wantErr: false,
 		},
 	}
@@ -278,7 +279,7 @@ func TestRethinkStore_UpsertIPMI(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id   string
@@ -296,7 +297,7 @@ func TestRethinkStore_UpsertIPMI(t *testing.T) {
 			rs:   ds,
 			args: args{
 				id:   "IPMI-1",
-				ipmi: &metal.IPMI1,
+				ipmi: &testdata.IPMI1,
 			},
 			wantErr: false,
 		},
@@ -314,7 +315,7 @@ func TestRethinkStore_DeleteDevice(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -333,7 +334,7 @@ func TestRethinkStore_DeleteDevice(t *testing.T) {
 			args: args{
 				id: "1",
 			},
-			want:    &metal.D1,
+			want:    &testdata.D1,
 			wantErr: false,
 		},
 	}
@@ -355,7 +356,7 @@ func TestRethinkStore_UpdateDevice(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		oldD *metal.Device
@@ -372,8 +373,8 @@ func TestRethinkStore_UpdateDevice(t *testing.T) {
 			name: "TestRethinkStore_UpdateDevice Test 1",
 			rs:   ds,
 			args: args{
-				oldD: &metal.D1,
-				newD: &metal.D2,
+				oldD: &testdata.D1,
+				newD: &testdata.D2,
 			},
 			wantErr: false,
 		},
@@ -428,9 +429,9 @@ func TestRethinkStore_FreeDevice(t *testing.T) {
 
 	// Mock the DB
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
-	metal.D2.Allocation = nil
+	testdata.D2.Allocation = nil
 
 	type args struct {
 		id string
@@ -450,12 +451,12 @@ func TestRethinkStore_FreeDevice(t *testing.T) {
 			args: args{
 				id: "2",
 			},
-			want:    &metal.D2,
+			want:    &testdata.D2,
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
-		fmt.Print(metal.D4)
+		fmt.Print(testdata.D4)
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FreeDevice(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -473,7 +474,7 @@ func TestRethinkStore_RegisterDevice(t *testing.T) {
 
 	// mock the DBs
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id       string
@@ -496,13 +497,13 @@ func TestRethinkStore_RegisterDevice(t *testing.T) {
 			rs:   ds,
 			args: args{
 				id:       "5",
-				site:     metal.Site1,
+				site:     testdata.Site1,
 				rackid:   "1",
-				sz:       metal.Sz1,
-				hardware: metal.DeviceHardware1,
-				ipmi:     metal.IPMI1,
+				sz:       testdata.Sz1,
+				hardware: testdata.DeviceHardware1,
+				ipmi:     testdata.IPMI1,
 			},
-			want:    &metal.D5,
+			want:    &testdata.D5,
 			wantErr: false,
 		},
 	}
@@ -548,7 +549,7 @@ func TestRethinkStore_fillDeviceList(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
-	metal.InitMockDBData(mock)
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		data []metal.Device
@@ -566,11 +567,11 @@ func TestRethinkStore_fillDeviceList(t *testing.T) {
 			rs:   ds,
 			args: args{
 				data: []metal.Device{
-					metal.D1, metal.D2,
+					testdata.D1, testdata.D2,
 				},
 			},
 			want: []metal.Device{
-				metal.D1, metal.D2,
+				testdata.D1, testdata.D2,
 			},
 			wantErr: false,
 		},

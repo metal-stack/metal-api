@@ -1,60 +1,61 @@
-package metal
+package testdata
 
 import (
 	"fmt"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // If you want to add some Test Data, add it also to the following places:
-// -- To the Mocks, if needed (datastore.test_data)
+// -- To the Mocks, if needed (datastore.testdata)
 // -- To the corrisponding arrays,( At the Bottom of this File)
 
 // Also run the Tests (cd ./cloud-native/metal/metal-api/ 	& 	go test ./...)
 
 var (
 	// Devices
-	D1 = Device{
-		Base:   Base{ID: "1"},
+	D1 = metal.Device{
+		Base:   metal.Base{ID: "1"},
 		SiteID: "1",
 		Site:   Site1,
 		SizeID: "1",
 		Size:   &Sz1,
-		Allocation: &DeviceAllocation{
+		Allocation: &metal.DeviceAllocation{
 			Name:    "d1",
 			ImageID: "1",
 			Project: "p1",
 		},
 	}
-	D2 = Device{
-		Base:   Base{ID: "2"},
+	D2 = metal.Device{
+		Base:   metal.Base{ID: "2"},
 		SiteID: "1",
 		Site:   Site1,
 		SizeID: "1",
 		Size:   &Sz1,
-		Allocation: &DeviceAllocation{
+		Allocation: &metal.DeviceAllocation{
 			Name:    "d2",
 			ImageID: "1",
 			Project: "p2",
 		},
 	}
-	D3 = Device{
-		Base:   Base{ID: "3"},
+	D3 = metal.Device{
+		Base:   metal.Base{ID: "3"},
 		SiteID: "1",
 		Site:   Site1,
 		SizeID: "1",
 		Size:   &Sz1,
 	}
-	D4 = Device{
-		Base:       Base{ID: "4"},
+	D4 = metal.Device{
+		Base:       metal.Base{ID: "4"},
 		SiteID:     "1",
 		Site:       Site1,
 		SizeID:     "1",
 		Size:       &Sz1,
 		Allocation: nil,
 	}
-	D5 = Device{
-		Base: Base{
+	D5 = metal.Device{
+		Base: metal.Base{
 			Name:        "1-core/100 B",
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "5",
@@ -67,8 +68,8 @@ var (
 		Allocation: nil,
 		Hardware:   DeviceHardware1,
 	}
-	D6 = Device{
-		Base: Base{
+	D6 = metal.Device{
+		Base: metal.Base{
 			Name:        "1-core/100 B",
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "6",
@@ -78,15 +79,15 @@ var (
 		Site:   Site1,
 		SizeID: "1", // No Size
 		Size:   nil,
-		Allocation: &DeviceAllocation{
+		Allocation: &metal.DeviceAllocation{
 			Name:    "6",
 			ImageID: "999",
 			Project: "p2",
 		},
 		Hardware: DeviceHardware1,
 	}
-	D7 = Device{
-		Base: Base{
+	D7 = metal.Device{
+		Base: metal.Base{
 			Name:        "1-core/100 B",
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "6",
@@ -96,15 +97,15 @@ var (
 		Site:   Site1,
 		SizeID: "999", // No Size
 		Size:   nil,
-		Allocation: &DeviceAllocation{
+		Allocation: &metal.DeviceAllocation{
 			Name:    "7",
 			ImageID: "1",
 			Project: "p2",
 		},
 		Hardware: DeviceHardware1,
 	}
-	D8 = Device{
-		Base: Base{
+	D8 = metal.Device{
+		Base: metal.Base{
 			Name:        "1-core/100 B",
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "6",
@@ -114,7 +115,7 @@ var (
 		Site:   Site1,
 		SizeID: "1", // No Size
 		Size:   nil,
-		Allocation: &DeviceAllocation{
+		Allocation: &metal.DeviceAllocation{
 			Name:    "8",
 			ImageID: "999",
 			Project: "p2",
@@ -123,40 +124,40 @@ var (
 	}
 
 	// Sizes
-	Sz1 = Size{
-		Base: Base{
+	Sz1 = metal.Size{
+		Base: metal.Base{
 			ID:          "1",
 			Name:        "sz1",
 			Description: "description 1",
 		},
-		Constraints: []Constraint{Constraint{
+		Constraints: []metal.Constraint{metal.Constraint{
 			MinCores:  1,
 			MaxCores:  1,
 			MinMemory: 100,
 			MaxMemory: 100,
 		}},
 	}
-	Sz2 = Size{
-		Base: Base{
+	Sz2 = metal.Size{
+		Base: metal.Base{
 			ID:          "2",
 			Name:        "sz2",
 			Description: "description 2",
 		},
 	}
-	Sz3 = Size{
-		Base: Base{
+	Sz3 = metal.Size{
+		Base: metal.Base{
 			ID:          "3",
 			Name:        "sz3",
 			Description: "description 3",
 		},
 	}
-	Sz999 = Size{
-		Base: Base{
+	Sz999 = metal.Size{
+		Base: metal.Base{
 			ID:          "999",
 			Name:        "sz1",
 			Description: "description 1",
 		},
-		Constraints: []Constraint{Constraint{
+		Constraints: []metal.Constraint{metal.Constraint{
 			MinCores:  888,
 			MaxCores:  1111,
 			MinMemory: 100,
@@ -165,22 +166,22 @@ var (
 	}
 
 	// Images
-	Img1 = Image{
-		Base: Base{
+	Img1 = metal.Image{
+		Base: metal.Base{
 			ID:          "1",
 			Name:        "Image 1",
 			Description: "description 1",
 		},
 	}
-	Img2 = Image{
-		Base: Base{
+	Img2 = metal.Image{
+		Base: metal.Base{
 			ID:          "2",
 			Name:        "Image 2",
 			Description: "description 2",
 		},
 	}
-	Img3 = Image{
-		Base: Base{
+	Img3 = metal.Image{
+		Base: metal.Base{
 			ID:          "3",
 			Name:        "Image 3",
 			Description: "description 3",
@@ -188,22 +189,22 @@ var (
 	}
 
 	// Sites
-	Site1 = Site{
-		Base: Base{
+	Site1 = metal.Site{
+		Base: metal.Base{
 			ID:          "1",
 			Name:        "site1",
 			Description: "description 1",
 		},
 	}
-	Site2 = Site{
-		Base: Base{
+	Site2 = metal.Site{
+		Base: metal.Base{
 			ID:          "2",
 			Name:        "site2",
 			Description: "description 2",
 		},
 	}
-	Site3 = Site{
-		Base: Base{
+	Site3 = metal.Site{
+		Base: metal.Base{
 			ID:          "3",
 			Name:        "site3",
 			Description: "description 3",
@@ -211,91 +212,91 @@ var (
 	}
 
 	// Switches
-	Switch1 = Switch{
-		Base: Base{
+	Switch1 = metal.Switch{
+		Base: metal.Base{
 			ID: "switch1",
 		},
 		SiteID: "1",
 		RackID: "1",
-		Nics: []Nic{
+		Nics: []metal.Nic{
 			Nic1,
 			Nic2,
 			Nic3,
 		},
-		DeviceConnections: ConnectionMap{
-			"1": Connections{
-				Connection{
-					Nic: Nic{
-						MacAddress: MacAddress("11:11:11:11:11:11"),
+		DeviceConnections: metal.ConnectionMap{
+			"1": metal.Connections{
+				metal.Connection{
+					Nic: metal.Nic{
+						MacAddress: metal.MacAddress("11:11:11:11:11:11"),
 					},
 					DeviceID: "1",
 				},
-				Connection{
-					Nic: Nic{
-						MacAddress: MacAddress("11:11:11:11:11:22"),
+				metal.Connection{
+					Nic: metal.Nic{
+						MacAddress: metal.MacAddress("11:11:11:11:11:22"),
 					},
 					DeviceID: "1",
 				},
 			},
 		},
 	}
-	Switch2 = Switch{
-		Base: Base{
+	Switch2 = metal.Switch{
+		Base: metal.Base{
 			ID: "switch2",
 		},
 		SiteID:            "1",
 		RackID:            "2",
-		DeviceConnections: ConnectionMap{},
+		DeviceConnections: metal.ConnectionMap{},
 	}
-	Switch3 = Switch{
-		Base: Base{
+	Switch3 = metal.Switch{
+		Base: metal.Base{
 			ID: "switch3",
 		},
 		SiteID:            "1",
 		RackID:            "3",
-		DeviceConnections: ConnectionMap{},
+		DeviceConnections: metal.ConnectionMap{},
 	}
 
 	// Nics
-	Nic1 = Nic{
-		MacAddress: MacAddress("11:11:11:11:11:11"),
+	Nic1 = metal.Nic{
+		MacAddress: metal.MacAddress("11:11:11:11:11:11"),
 		Name:       "eth0",
-		Neighbors: []Nic{
-			Nic{
+		Neighbors: []metal.Nic{
+			metal.Nic{
 				MacAddress: "21:11:11:11:11:11",
 			},
-			Nic{
+			metal.Nic{
 				MacAddress: "31:11:11:11:11:11",
 			},
 		},
 	}
-	Nic2 = Nic{
-		MacAddress: MacAddress("21:11:11:11:11:11"),
+	Nic2 = metal.Nic{
+		MacAddress: metal.MacAddress("21:11:11:11:11:11"),
 		Name:       "swp1",
-		Neighbors: []Nic{
-			Nic{
+		Neighbors: []metal.Nic{
+			metal.Nic{
 				MacAddress: "11:11:11:11:11:11",
 			},
-			Nic{
+			metal.Nic{
 				MacAddress: "31:11:11:11:11:11",
 			},
 		},
 	}
-	Nic3 = Nic{
-		MacAddress: MacAddress("31:11:11:11:11:11"),
+	Nic3 = metal.Nic{
+		MacAddress: metal.MacAddress("31:11:11:11:11:11"),
 		Name:       "swp2",
-		Neighbors: []Nic{
-			Nic{
+		Neighbors: []metal.Nic{
+			metal.Nic{
 				MacAddress: "21:11:11:11:11:11",
 			},
-			Nic{
+			metal.Nic{
 				MacAddress: "11:11:11:11:11:11",
 			},
 		},
 	}
 
 	// IPMIs
-	IPMI1 = IPMI{
+	IPMI1 = metal.IPMI{
 		ID:         "IPMI-1",
 		Address:    "192.168.0.1",
 		MacAddress: "11:11:11",
@@ -305,22 +306,22 @@ var (
 	}
 
 	// DeviceHardwares
-	DeviceHardware1 = DeviceHardware{
+	DeviceHardware1 = metal.DeviceHardware{
 		Memory:   100,
 		CPUCores: 1,
 		Nics:     TestNics,
-		Disks: []BlockDevice{
+		Disks: []metal.BlockDevice{
 			{
 				Name: "blockdeviceName",
 				Size: 1000000000000,
 			},
 		},
 	}
-	DeviceHardware2 = DeviceHardware{
+	DeviceHardware2 = metal.DeviceHardware{
 		Memory:   1000,
 		CPUCores: 2,
 		Nics:     TestNics,
-		Disks: []BlockDevice{
+		Disks: []metal.BlockDevice{
 			{
 				Name: "blockdeviceName",
 				Size: 2000000000000,
@@ -329,27 +330,27 @@ var (
 	}
 
 	// All Images
-	TestImages = []Image{
+	TestImages = []metal.Image{
 		Img1, Img2, Img3,
 	}
 
 	// All Sizes
-	TestSizes = []Size{
+	TestSizes = []metal.Size{
 		Sz1, Sz2, Sz3,
 	}
 
 	// All Sites
-	TestSites = []Site{
+	TestSites = []metal.Site{
 		Site1, Site2, Site3,
 	}
 
 	// All Nics
-	TestNics = Nics{
+	TestNics = metal.Nics{
 		Nic1, Nic2, Nic3,
 	}
 
 	// All Switches
-	TestSwitches = []Switch{
+	TestSwitches = []metal.Switch{
 		Switch1, Switch2, Switch3,
 	}
 	TestMacs = []string{
@@ -362,16 +363,16 @@ var (
 	}
 
 	// Create the Connections Array
-	TestConnections = []Connection{
-		Connection{
-			Nic: Nic{
+	TestConnections = []metal.Connection{
+		metal.Connection{
+			Nic: metal.Nic{
 				Name:       "swp1",
 				MacAddress: "11:11:11",
 			},
 			DeviceID: "device-1",
 		},
-		Connection{
-			Nic: Nic{
+		metal.Connection{
+			Nic: metal.Nic{
 				Name:       "swp2",
 				MacAddress: "22:11:11",
 			},
@@ -379,12 +380,12 @@ var (
 		},
 	}
 
-	TestDeviceHardwares = []DeviceHardware{
+	TestDeviceHardwares = []metal.DeviceHardware{
 		DeviceHardware1, DeviceHardware2,
 	}
 
 	// All Devices
-	TestDevices = []Device{
+	TestDevices = []metal.Device{
 		D1, D2, D3, D4, D5,
 	}
 
@@ -511,11 +512,11 @@ func InitMockDBData(mock *r.Mock) {
 	})).Return(EmptyResult, nil)
 
 	// X.Filter (very Test Specific)
-	mock.On(r.DB("mockdb").Table("device").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]Device{
+	mock.On(r.DB("mockdb").Table("device").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]metal.Device{
 		D1,
 	}, nil)
 
-	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]Switch{}, nil)
+	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
 
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("site").Get(r.MockAnything())).Return(EmptyResult, nil)
