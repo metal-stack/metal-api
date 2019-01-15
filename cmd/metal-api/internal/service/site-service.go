@@ -70,7 +70,7 @@ func (fr siteResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Site{}).
 		Returns(http.StatusCreated, "Created", metal.Site{}).
-		Returns(http.StatusConflict, "Conflict", nil))
+		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(fr.updateSite).
 		Doc("updates a Site. if the Site was changed since this one was read, a conflict is returned").
@@ -78,7 +78,7 @@ func (fr siteResource) webService() *restful.WebService {
 		Reads(metal.Site{}).
 		Returns(http.StatusOK, "OK", metal.Site{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusConflict, "Conflict", nil))
+		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
 	return ws
 }

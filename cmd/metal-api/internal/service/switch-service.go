@@ -62,7 +62,7 @@ func (sr switchResource) webService() *restful.WebService {
 		Reads(metal.RegisterSwitch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).
 		Returns(http.StatusCreated, "Created", metal.Switch{}).
-		Returns(http.StatusConflict, "Conflict", nil))
+		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
 	return ws
 }
