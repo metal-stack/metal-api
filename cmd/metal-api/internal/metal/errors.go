@@ -8,7 +8,6 @@ import (
 
 var (
 	errNotFound = fmt.Errorf("NotFound")
-	// FIXME not used actually, only added for parity with notfound.
 	errConflict = fmt.Errorf("Conflict")
 )
 
