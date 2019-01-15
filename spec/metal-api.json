@@ -83,14 +83,14 @@
               "$ref": "#/definitions/metal.Device"
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "404": {
+            "description": "No free device for allocation found"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "schema": {
               "$ref": "#/definitions/metal.ErrorResponse"
             }
-          },
-          "404": {
-            "description": "No free device for allocation found"
           },
           "default": {
             "description": "OK",
@@ -132,6 +132,9 @@
               }
             }
           },
+          "404": {
+            "description": "Not Found"
+          },
           "default": {
             "description": "OK",
             "schema": {
@@ -171,14 +174,14 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request",
+          "404": {
+            "description": "Device could not be found by id"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "schema": {
               "$ref": "#/definitions/metal.ErrorResponse"
             }
-          },
-          "404": {
-            "description": "Device could not be found by id"
           },
           "default": {
             "description": "OK"
@@ -304,8 +307,8 @@
               "$ref": "#/definitions/metal.Device"
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Unprocessable Entity",
             "schema": {
               "$ref": "#/definitions/metal.ErrorResponse"
             }
@@ -346,12 +349,6 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/metal.IPMI"
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
             }
           },
           "404": {
@@ -403,14 +400,14 @@
               "$ref": "#/definitions/metal.DeviceAllocation"
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "schema": {
               "$ref": "#/definitions/metal.ErrorResponse"
             }
-          },
-          "404": {
-            "description": "Not Found"
           },
           "default": {
             "description": "OK",
@@ -450,11 +447,8 @@
               "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
-            }
+          "404": {
+            "description": "Not Found"
           },
           "504": {
             "description": "Timeout"

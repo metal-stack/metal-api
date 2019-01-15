@@ -78,7 +78,8 @@ func (dr deviceResource) webService() *restful.WebService {
 		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Device{}).
-		Returns(http.StatusOK, "OK", []metal.Device{}))
+		Returns(http.StatusOK, "OK", []metal.Device{}).
+		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.POST("/register").To(dr.registerDevice).
 		Doc("register a device").
@@ -95,14 +96,14 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(metal.AllocateDevice{}).
 		Returns(http.StatusOK, "OK", metal.Device{}).
 		Returns(http.StatusNotFound, "No free device for allocation found", nil).
-		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}/free").To(dr.freeDevice).
 		Doc("free a device").
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.Device{}).
-		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/ipmi").To(dr.ipmiData).
 		Doc("returns the IPMI connection data for a device").
@@ -110,8 +111,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.IPMI{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
 		Doc("wait for an allocation of this device").
@@ -119,7 +119,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.DeviceWithPhoneHomeToken{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", nil).
-		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.POST("/{id}/report").To(dr.allocationReport).
 		Doc("send the allocation report of a given device").
@@ -128,7 +128,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(metal.ReportAllocation{}).
 		Returns(http.StatusOK, "OK", metal.DeviceAllocation{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
 		Doc("phone back home from the device").
@@ -136,7 +136,7 @@ func (dr deviceResource) webService() *restful.WebService {
 		Reads(metal.PhoneHomeRequest{}).
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "Device could not be found by id", nil).
-		Returns(http.StatusBadRequest, "Bad Request", metal.ErrorResponse{}))
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
 	return ws
 }
@@ -171,16 +171,16 @@ func (dr deviceResource) phoneHome(request *restful.Request, response *restful.R
 	var data metal.PhoneHomeRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
-		sendError(dr.log, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Cannot read data from request: %v", err))
+		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Cannot read data from request: %v", err))
 		return
 	}
 	c, err := jwt.FromJWT(data.PhoneHomeToken)
 	if err != nil {
-		sendError(dr.log, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token is invalid: %v", err))
+		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token is invalid: %v", err))
 		return
 	}
 	if c.Device == nil || c.Device.ID == "" {
-		sendError(dr.log, response, "phoneHome", http.StatusBadRequest, fmt.Errorf("Token contains malformed data"))
+		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token contains malformed data"))
 		return
 	}
 	oldDevice, err := dr.ds.FindDevice(c.Device.ID)
@@ -219,7 +219,7 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		return
 	}
 	if data.UUID == "" {
-		sendError(dr.log, response, "registerDevice", http.StatusBadRequest, fmt.Errorf("No UUID given"))
+		sendError(dr.log, response, "registerDevice", http.StatusUnprocessableEntity, fmt.Errorf("No UUID given"))
 		return
 	}
 	site, err := dr.ds.FindSite(data.SiteID)
@@ -296,7 +296,7 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 		if err == datastore.ErrNoDeviceAvailable {
 			sendError(dr.log, response, "allocateDevice", http.StatusNotFound, err)
 		} else {
-			sendError(dr.log, response, "allocateDevice", http.StatusBadRequest, err)
+			sendError(dr.log, response, "allocateDevice", http.StatusUnprocessableEntity, err)
 		}
 		return
 	}
@@ -339,7 +339,7 @@ func (dr deviceResource) allocationReport(request *restful.Request, response *re
 		return
 	}
 	if dev.Allocation == nil {
-		sendError(dr.log, response, "allocationReport", http.StatusBadRequest, fmt.Errorf("the device %q is not allocated", id))
+		sendError(dr.log, response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the device %q is not allocated", id))
 		return
 	}
 	old := *dev
