@@ -86,8 +86,11 @@
           "404": {
             "description": "No free device for allocation found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "422": {
+            "description": "Unprocessable Entity",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           },
           "default": {
             "description": "OK",
@@ -129,6 +132,9 @@
               }
             }
           },
+          "404": {
+            "description": "Not Found"
+          },
           "default": {
             "description": "OK",
             "schema": {
@@ -168,14 +174,14 @@
           "200": {
             "description": "OK"
           },
-          "400": {
-            "description": "Bad Request"
-          },
           "404": {
             "description": "Device could not be found by id"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "422": {
+            "description": "Unprocessable Entity",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           },
           "default": {
             "description": "OK"
@@ -301,10 +307,10 @@
               "$ref": "#/definitions/metal.Device"
             }
           },
-          "500": {
-            "description": "Internal Server Error",
+          "422": {
+            "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.Device"
+              "$ref": "#/definitions/metal.ErrorResponse"
             }
           },
           "default": {
@@ -347,12 +353,6 @@
           },
           "404": {
             "description": "Not Found"
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "$ref": "#/definitions/metal.Device"
-            }
           },
           "default": {
             "description": "OK",
@@ -403,8 +403,11 @@
           "404": {
             "description": "Not Found"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "422": {
+            "description": "Unprocessable Entity",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           },
           "default": {
             "description": "OK",
@@ -444,8 +447,8 @@
               "$ref": "#/definitions/metal.DeviceWithPhoneHomeToken"
             }
           },
-          "500": {
-            "description": "Internal Server Error"
+          "404": {
+            "description": "Not Found"
           },
           "504": {
             "description": "Timeout"
@@ -558,7 +561,10 @@
             }
           },
           "409": {
-            "description": "Conflict"
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           }
         }
       },
@@ -595,7 +601,10 @@
             "description": "Not Found"
           },
           "409": {
-            "description": "Conflict"
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           },
           "default": {
             "description": "OK",
@@ -750,7 +759,10 @@
             }
           },
           "409": {
-            "description": "Conflict"
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           }
         }
       },
@@ -787,7 +799,10 @@
             "description": "Not Found"
           },
           "409": {
-            "description": "Conflict"
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           },
           "default": {
             "description": "OK",
@@ -942,7 +957,10 @@
             }
           },
           "409": {
-            "description": "Conflict"
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           }
         }
       },
@@ -979,7 +997,10 @@
             "description": "Not Found"
           },
           "409": {
-            "description": "Conflict"
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           },
           "default": {
             "description": "OK",
@@ -1142,7 +1163,10 @@
             }
           },
           "409": {
-            "description": "Conflict"
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
           },
           "default": {
             "description": "OK",
@@ -1526,6 +1550,28 @@
         },
         "phone_home_token": {
           "type": "string"
+        }
+      }
+    },
+    "metal.ErrorResponse": {
+      "required": [
+        "statuscode",
+        "message",
+        "operation"
+      ],
+      "properties": {
+        "message": {
+          "description": "error message",
+          "type": "string"
+        },
+        "operation": {
+          "description": "name of the operation which caused this error",
+          "type": "string"
+        },
+        "statuscode": {
+          "description": "http status code",
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
