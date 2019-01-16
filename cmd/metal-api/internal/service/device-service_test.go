@@ -121,10 +121,11 @@ func TestRegisterDevice(t *testing.T) {
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
-			expectedIPMIStatus: http.StatusInternalServerError,
+			expectedIPMIStatus: http.StatusUnprocessableEntity,
 			expectedSizeName:   testdata.Sz1.Name,
-			ipmiresult:         []metal.IPMI{},
-			ipmiresulterror:    fmt.Errorf("Test Error"),
+
+			ipmiresult:      []metal.IPMI{},
+			ipmiresulterror: fmt.Errorf("Test Error"),
 		},
 		{
 			name:               "insert existing",
@@ -147,7 +148,7 @@ func TestRegisterDevice(t *testing.T) {
 			siteid:         "1",
 			dbsites:        []metal.Site{testdata.Site1},
 			dbsizes:        []metal.Size{testdata.Sz1},
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name:           "error when impi update fails",
@@ -156,7 +157,7 @@ func TestRegisterDevice(t *testing.T) {
 			dbsites:        []metal.Site{testdata.Site1},
 			dbsizes:        []metal.Size{testdata.Sz1},
 			ipmidberror:    fmt.Errorf("ipmi insert fails"),
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name:           "empty site",
@@ -189,7 +190,7 @@ func TestRegisterDevice(t *testing.T) {
 			numcores:       2,
 			memory:         100,
 			netboxerror:    fmt.Errorf("this should happen"),
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusUnprocessableEntity,
 		},
 	}
 	for _, test := range data {
@@ -377,7 +378,7 @@ func TestReportUnknownFailure(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusInternalServerError, resp.StatusCode, w.Body.String())
+	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 }
 
 func TestReportUnallocatedDevice(t *testing.T) {
@@ -401,7 +402,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
-	require.Equal(t, http.StatusInternalServerError, resp.StatusCode, w.Body.String())
+	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 }
 
 func TestGetDevice(t *testing.T) {

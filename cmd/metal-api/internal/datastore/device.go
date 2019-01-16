@@ -274,7 +274,7 @@ func (rs *RethinkStore) RegisterDevice(
 				RackID:   rackid,
 				Hardware: hardware,
 			}
-			_, err = rs.CreateDevice(device)
+			device, err = rs.CreateDevice(device)
 			if err != nil {
 				return nil, err
 			}
