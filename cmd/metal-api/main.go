@@ -191,7 +191,7 @@ func initDataStore() {
 	err := ds.Connect()
 
 	if err != nil {
-		logger.Errorf("cannot connect to db in root command metal-api/internal/main.initDataStore(): %v", err)
+		logger.Error("cannot connect to db in root command metal-api/internal/main.initDatastore()", "error", err)
 		panic(err)
 	}
 
