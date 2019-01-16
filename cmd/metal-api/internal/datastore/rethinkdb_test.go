@@ -248,6 +248,11 @@ func TestRethinkStore_initializeTable(t *testing.T) {
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
+	mock.On(r.DB("mockdb").TableCreate(r.MockAnything()))
+	mock.On(r.DB("mockdb").TableCreate(r.MockAnything(), r.TableCreateOpts{
+		Shards: 1, Replicas: 1,
+	}))
+
 	type args struct {
 		table string
 		opts  r.TableCreateOpts
@@ -293,6 +298,13 @@ func TestRethinkStore_initializeTables(t *testing.T) {
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
+	mock.On(r.DB("mockdb").TableCreate(r.MockAnything()))
+	mock.On(r.DB("mockdb").TableCreate(r.MockAnything(), r.TableCreateOpts{
+		Shards: 1, Replicas: 1,
+	}))
+
+	mock.On(r.DB("mockdb").Table("device").IndexCreate("project")).Return(r.WriteResponse{}, nil)
+
 	type args struct {
 		opts r.TableCreateOpts
 	}
@@ -302,7 +314,7 @@ func TestRethinkStore_initializeTables(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test cases:
 		{
 			name: "TestRethinkStore_initializeTables Test 1",
 			rs:   ds,

@@ -8,6 +8,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // Tast that generates many input data
@@ -130,6 +131,11 @@ func TestRethinkStore_SearchDevice(t *testing.T) {
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
+
+	// X.Filter (very Test Specific)
+	mock.On(r.DB("mockdb").Table("device").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]metal.Device{
+		testdata.D1,
+	}, nil)
 
 	type args struct {
 		mac string
