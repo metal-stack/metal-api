@@ -6,6 +6,43 @@ import (
 	"time"
 )
 
+var (
+	testNics = Nics{
+		Nic{
+			MacAddress: "11:11:11:11:11:11",
+		},
+		Nic{
+			MacAddress: "21:11:11:11:11:11",
+		},
+	}
+
+	// Switches
+	switch1 = Switch{
+		Base: Base{
+			ID: "switch1",
+		},
+		SiteID: "1",
+		RackID: "1",
+		Nics:   testNics,
+		DeviceConnections: ConnectionMap{
+			"1": Connections{
+				Connection{
+					Nic: Nic{
+						MacAddress: MacAddress("11:11:11:11:11:11"),
+					},
+					DeviceID: "1",
+				},
+				Connection{
+					Nic: Nic{
+						MacAddress: MacAddress("11:11:11:11:11:22"),
+					},
+					DeviceID: "1",
+				},
+			},
+		},
+	}
+)
+
 // Gerrit and me implemented that monster in a one shot which worked.
 
 func TestSwitch_ConnectDevice2(t *testing.T) {
@@ -133,7 +170,13 @@ func TestNewSwitch(t *testing.T) {
 				id:     "1",
 				rackid: "1",
 				nics:   testNics,
-				site:   &site1,
+				site: &Site{
+					Base: Base{
+						ID:          "1",
+						Name:        "site1",
+						Description: "description 1",
+					},
+				},
 			},
 
 			want: &Switch{
@@ -146,7 +189,13 @@ func TestNewSwitch(t *testing.T) {
 				Connections:       make([]Connection, 0),
 				DeviceConnections: make(ConnectionMap),
 				Nics:              testNics,
-				Site:              site1,
+				Site: Site{
+					Base: Base{
+						ID:          "1",
+						Name:        "site1",
+						Description: "description 1",
+					},
+				},
 			},
 		},
 	}
@@ -160,7 +209,24 @@ func TestNewSwitch(t *testing.T) {
 	}
 }
 
-func testConnections_ByNic(t *testing.T) {
+func TestConnections_ByNic(t *testing.T) {
+
+	testConnections := []Connection{
+		Connection{
+			Nic: Nic{
+				Name:       "swp1",
+				MacAddress: "11:11:11",
+			},
+			DeviceID: "device-1",
+		},
+		Connection{
+			Nic: Nic{
+				Name:       "swp2",
+				MacAddress: "22:11:11",
+			},
+			DeviceID: "device-2",
+		},
+	}
 
 	// Creates the Connections Map
 	connectionsMap := make(map[MacAddress]Connections)
@@ -233,9 +299,27 @@ func TestFillAllConnections(t *testing.T) {
 
 	// Creates the Switches for the test data
 	switches := make([]Switch, 3)
-	switches[0] = *NewSwitch("device-1", "rack-1", testNics, &site1)
-	switches[1] = *NewSwitch("device-2", "rack-1", testNics, &site1)
-	switches[2] = *NewSwitch("device-3", "rack-2", testNics, &site2)
+	switches[0] = *NewSwitch("device-1", "rack-1", testNics, &Site{
+		Base: Base{
+			ID:          "1",
+			Name:        "site1",
+			Description: "description 1",
+		},
+	})
+	switches[1] = *NewSwitch("device-2", "rack-1", testNics, &Site{
+		Base: Base{
+			ID:          "1",
+			Name:        "site1",
+			Description: "description 1",
+		},
+	})
+	switches[2] = *NewSwitch("device-3", "rack-2", testNics, &Site{
+		Base: Base{
+			ID:          "2",
+			Name:        "site2",
+			Description: "description 2",
+		},
+	})
 
 	tests := []struct {
 		name string
@@ -270,7 +354,36 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 			name: "Test 1",
 			s:    &switch1,
 			args: args{
-				device: &d5,
+				device: &Device{
+					Base: Base{
+						Name:        "1-core/100 B",
+						Description: "a device with 1 core(s) and 100 B of RAM",
+						ID:          "5",
+					},
+					RackID: "1",
+					SiteID: "1",
+					Site: Site{
+						Base: Base{
+							ID:          "1",
+							Name:        "site1",
+							Description: "description 1",
+						},
+					},
+					SizeID:     "1",
+					Size:       &sz1,
+					Allocation: nil,
+					Hardware: DeviceHardware{
+						Memory:   100,
+						CPUCores: 1,
+						Nics:     testNics,
+						Disks: []BlockDevice{
+							{
+								Name: "blockdeviceName",
+								Size: 1000000000000,
+							},
+						},
+					},
+				},
 			},
 		},
 	}

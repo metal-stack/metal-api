@@ -6,6 +6,31 @@ import (
 )
 
 func TestSites_ByID(t *testing.T) {
+
+	testSites := []Site{
+		Site{
+			Base: Base{
+				ID:          "1",
+				Name:        "site1",
+				Description: "description 1",
+			},
+		},
+		Site{
+			Base: Base{
+				ID:          "2",
+				Name:        "site2",
+				Description: "description 2",
+			},
+		},
+		Site{
+			Base: Base{
+				ID:          "3",
+				Name:        "site3",
+				Description: "description 3",
+			},
+		},
+	}
+
 	tests := []struct {
 		name string
 		sz   Sites

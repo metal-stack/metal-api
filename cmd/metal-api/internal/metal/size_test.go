@@ -51,9 +51,54 @@ var (
 			},
 		},
 	}
+	// Sizes
+	sz1 = Size{
+		Base: Base{
+			ID:          "1",
+			Name:        "sz1",
+			Description: "description 1",
+		},
+		Constraints: []Constraint{Constraint{
+			MinCores:  1,
+			MaxCores:  1,
+			MinMemory: 100,
+			MaxMemory: 100,
+		}},
+	}
+	sz2 = Size{
+		Base: Base{
+			ID:          "2",
+			Name:        "sz2",
+			Description: "description 2",
+		},
+	}
+	sz3 = Size{
+		Base: Base{
+			ID:          "3",
+			Name:        "sz3",
+			Description: "description 3",
+		},
+	}
+	sz999 = Size{
+		Base: Base{
+			ID:          "999",
+			Name:        "sz1",
+			Description: "description 1",
+		},
+		Constraints: []Constraint{Constraint{
+			MinCores:  888,
+			MaxCores:  1111,
+			MinMemory: 100,
+			MaxMemory: 100,
+		}},
+	}
+	// All Sizes
+	testSizes = []Size{
+		sz1, sz2, sz3,
+	}
 )
 
-func testSizes_FromHardware(t *testing.T) {
+func TestSizes_FromHardware(t *testing.T) {
 	type args struct {
 		hardware DeviceHardware
 	}

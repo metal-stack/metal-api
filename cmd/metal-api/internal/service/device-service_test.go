@@ -221,6 +221,8 @@ func TestRegisterDevice(t *testing.T) {
 			}
 			mock.On(r.DB("mockdb").Table("ipmi").Get(test.uuid)).Return(test.ipmiresult, test.ipmiresulterror)
 			testdata.InitMockDBData(mock)
+			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
+
 			pub := &emptyPublisher{}
 			nb := netbox.New()
 			called := false

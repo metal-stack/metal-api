@@ -21,7 +21,55 @@ func TestDevice_HasMAC(t *testing.T) {
 		// Test Data Array (only 1 data):
 		{
 			name: "TestDevice_HasMAC Test 1",
-			d:    &d5,
+			d: &Device{
+				Base: Base{
+					Name:        "1-core/100 B",
+					Description: "a device with 1 core(s) and 100 B of RAM",
+					ID:          "5",
+				},
+				RackID: "1",
+				SiteID: "1",
+				Site: Site{
+					Base: Base{
+						ID:          "1",
+						Name:        "site1",
+						Description: "description 1",
+					},
+				},
+				SizeID: "1",
+				Size: &Size{
+					Base: Base{
+						ID:          "1",
+						Name:        "sz1",
+						Description: "description 1",
+					},
+					Constraints: []Constraint{Constraint{
+						MinCores:  1,
+						MaxCores:  1,
+						MinMemory: 100,
+						MaxMemory: 100,
+					}},
+				},
+				Allocation: nil,
+				Hardware: DeviceHardware{
+					Memory:   100,
+					CPUCores: 1,
+					Nics: Nics{
+						Nic{
+							MacAddress: "11:11:11:11:11:11",
+						},
+						Nic{
+							MacAddress: "21:11:11:11:11:11",
+						},
+					},
+					Disks: []BlockDevice{
+						{
+							Name: "blockdeviceName",
+							Size: 1000000000000,
+						},
+					},
+				},
+			},
 			args: args{
 				mac: "11:11:11:11:11:11",
 			},
@@ -29,7 +77,36 @@ func TestDevice_HasMAC(t *testing.T) {
 		},
 		{
 			name: "TestDevice_HasMAC Test 1",
-			d:    &d1,
+			d: &Device{
+				Base:   Base{ID: "1"},
+				SiteID: "1",
+				Site: Site{
+					Base: Base{
+						ID:          "1",
+						Name:        "site1",
+						Description: "description 1",
+					},
+				},
+				SizeID: "1",
+				Size: &Size{
+					Base: Base{
+						ID:          "1",
+						Name:        "sz1",
+						Description: "description 1",
+					},
+					Constraints: []Constraint{Constraint{
+						MinCores:  1,
+						MaxCores:  1,
+						MinMemory: 100,
+						MaxMemory: 100,
+					}},
+				},
+				Allocation: &DeviceAllocation{
+					Name:    "d1",
+					ImageID: "1",
+					Project: "p1",
+				},
+			},
 			args: args{
 				mac: "11:11:11:11:11:11",
 			},
