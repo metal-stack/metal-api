@@ -104,11 +104,12 @@ func (rs *RethinkStore) Close() error {
 
 // Connect connects to the database. If there is an error, it will run until there is
 // a connection.
-func (rs *RethinkStore) Connect() {
+func (rs *RethinkStore) Connect() error {
 	rs.database, rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
-	rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+	err := rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+	return err
 }
 
 func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, error) {

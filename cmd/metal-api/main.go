@@ -187,7 +187,14 @@ func initDataStore() {
 	} else {
 		logger.Error("database not supported", "db", dbAdapter)
 	}
-	ds.Connect()
+
+	err := ds.Connect()
+
+	if err != nil {
+		logger.Errorf("cannot connect to db in root command metal-api/internal/main.initDataStore(): %v", err)
+		panic(err)
+	}
+
 }
 
 func initRestServices() *restfulspec.Config {
