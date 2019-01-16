@@ -19,7 +19,7 @@ func TestGetSites(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	siteservice := NewSite(testlogger, ds)
+	siteservice := NewSite(testdata.Testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 	req := httptest.NewRequest("GET", "/v1/site", nil)
 	w := httptest.NewRecorder()
@@ -43,7 +43,7 @@ func TestGetSite(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	siteservice := NewSite(testlogger, ds)
+	siteservice := NewSite(testdata.Testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 	req := httptest.NewRequest("GET", "/v1/site/1", nil)
 	w := httptest.NewRecorder()
@@ -62,7 +62,7 @@ func TestGetSiteNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	siteservice := NewSite(testlogger, ds)
+	siteservice := NewSite(testdata.Testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 	req := httptest.NewRequest("GET", "/v1/site/999", nil)
 	w := httptest.NewRecorder()
@@ -76,7 +76,7 @@ func TestDeleteSite(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	siteservice := NewSite(testlogger, ds)
+	siteservice := NewSite(testdata.Testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 	req := httptest.NewRequest("DELETE", "/v1/site/1", nil)
 	w := httptest.NewRecorder()
@@ -95,7 +95,7 @@ func TestCreateSite(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	siteservice := NewSite(testlogger, ds)
+	siteservice := NewSite(testdata.Testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 
 	js, _ := json.Marshal(testdata.Site1)
@@ -119,7 +119,7 @@ func TestUpdateSite(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	siteservice := NewSite(testlogger, ds)
+	siteservice := NewSite(testdata.Testlogger, ds)
 	container := restful.NewContainer().Add(siteservice)
 
 	js, _ := json.Marshal(testdata.Site1)

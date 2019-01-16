@@ -92,7 +92,7 @@ func Test_loggingResponseWriter_Write(t *testing.T) {
 		want    int
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "Test 1",
 			fields: fields{
@@ -152,7 +152,7 @@ func Test_loggingResponseWriter_WriteHeader(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "Test 1",
 			fields: fields{
@@ -201,7 +201,7 @@ func Test_loggingResponseWriter_Content(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "Test 1",
 			fields: fields{
@@ -231,6 +231,6 @@ func TestRestfulLogger(t *testing.T) {
 	z := zap.NewNop()
 	X := RestfulLogger(z, false)
 
-	// Only Pointer Comparison.
+	// Only Pointer Comparison. test the returned function?
 	require.Equal(t, reflect.ValueOf(X).Pointer(), reflect.ValueOf(RestfulLogger(z, false)).Pointer())
 }

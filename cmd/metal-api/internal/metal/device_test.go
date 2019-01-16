@@ -8,7 +8,6 @@ func TestDevice_HasMAC(t *testing.T) {
 	type args struct {
 		mac string
 	}
-	//tests := getAllTestStructsForTestDevice_HasMAC()
 
 	tests := []struct {
 		name string
@@ -18,7 +17,6 @@ func TestDevice_HasMAC(t *testing.T) {
 		}
 		want bool
 	}{
-		// Test Data Array (only 1 data):
 		{
 			name: "TestDevice_HasMAC Test 1",
 			d: &Device{
@@ -76,7 +74,7 @@ func TestDevice_HasMAC(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "TestDevice_HasMAC Test 1",
+			name: "TestDevice_HasMAC Test 2",
 			d: &Device{
 				Base:   Base{ID: "1"},
 				SiteID: "1",

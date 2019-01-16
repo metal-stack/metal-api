@@ -43,7 +43,7 @@ func TestImages_ByID(t *testing.T) {
 	}{
 		// Test Data Array (only 1 data):
 		{
-			name: "Test 1",
+			name: "TestImages_ByID Test 1",
 			ii:   testImages,
 			want: imageMap,
 		},

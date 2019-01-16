@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
+	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -21,6 +23,10 @@ import (
 // go test -coverprofile=cover.out ./...
 // go tool cover -func=cover.out					// Console Output
 // (go tool cover -html=cover.out -o cover.html) 	// Html output
+
+var Testlogger = zap.NewNop()
+
+var TestloggerSugar = zapup.MustRootLogger().Sugar()
 
 var (
 	// Devices

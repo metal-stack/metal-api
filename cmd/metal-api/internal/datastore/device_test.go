@@ -132,7 +132,6 @@ func TestRethinkStore_SearchDevice(t *testing.T) {
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	// X.Filter (very Test Specific)
 	mock.On(r.DB("mockdb").Table("device").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]metal.Device{
 		testdata.D1,
 	}, nil)

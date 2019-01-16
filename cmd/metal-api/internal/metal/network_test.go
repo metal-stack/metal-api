@@ -35,7 +35,7 @@ func TestNics_ByMac(t *testing.T) {
 	}{
 		// Test Data Array (only 1 data):
 		{
-			name: "Test 1",
+			name: "TestNics_ByMac Test 1",
 			nics: nicArray,
 			want: map1,
 		},

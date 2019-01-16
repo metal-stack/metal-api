@@ -21,9 +21,9 @@ func TestNotFound(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// Test Data Array (only 1 data):
+		// Test Data
 		{
-			name:    "Test 1",
+			name:    "TestNotFound 1",
 			args:    theargs,
 			wantErr: true,
 		},

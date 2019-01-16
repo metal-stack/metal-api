@@ -2,20 +2,9 @@ package datastore
 
 import (
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
-	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
-)
 
-var testlogger = zap.NewNop()
-var testloggerSugar = zapup.MustRootLogger().Sugar()
-var (
-	rethinkStore1 = RethinkStore{
-		SugaredLogger: zapup.MustRootLogger().Sugar(),
-		dbhost:        "dbhost",
-		dbname:        "dbname",
-		dbuser:        "dbuser",
-		dbpass:        "password",
-	}
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 )
 
 /*
@@ -31,7 +20,7 @@ Return Values:
 */
 func InitMockDB() (*RethinkStore, *r.Mock) {
 	rs := New(
-		testlogger,
+		testdata.Testlogger,
 		"db-addr",
 		"mockdb",
 		"db-user",
@@ -40,3 +29,13 @@ func InitMockDB() (*RethinkStore, *r.Mock) {
 	mock := rs.Mock()
 	return rs, mock
 }
+
+var (
+	rethinkStore1 = RethinkStore{
+		SugaredLogger: zapup.MustRootLogger().Sugar(),
+		dbhost:        "dbhost",
+		dbname:        "dbname",
+		dbuser:        "dbuser",
+		dbpass:        "password",
+	}
+)

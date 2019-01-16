@@ -165,7 +165,7 @@ func TestNewSwitch(t *testing.T) {
 	}{
 		// Test Data array:
 		{
-			name: "Test 1",
+			name: "TestNewSwitch Test 1",
 			args: args{
 				id:     "1",
 				rackid: "1",
@@ -265,7 +265,7 @@ func TestSwitch_FillSwitchConnections(t *testing.T) {
 	}{
 		// Test Data Array:
 		{
-			name: "Test TestSwitch_FillSwitchConnections 1",
+			name: "TestSwitch_FillSwitchConnections Test 1",
 			s:    &switch1,
 		},
 	}
@@ -327,7 +327,7 @@ func TestFillAllConnections(t *testing.T) {
 	}{
 		// Test Data Array (Only 1 Test):
 		{
-			name: "Test 1",
+			name: "TestFillAllConnections Test 1",
 			args: args{
 				sw: switches,
 			},
@@ -349,9 +349,9 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 		s    *Switch
 		args args
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
-			name: "Test 1",
+			name: "TestSwitch_ConnectDevice Test 1",
 			s:    &switch1,
 			args: args{
 				device: &Device{

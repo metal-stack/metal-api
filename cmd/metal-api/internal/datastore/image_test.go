@@ -71,7 +71,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 		want    []metal.Image
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name:    "TestRethinkStore_ListImages Test 1",
 			rs:      ds,
@@ -109,7 +109,7 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 		want    *metal.Image
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "TestRethinkStore_CreateImage Test 1",
 			rs:   ds,
@@ -152,7 +152,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 	}{
 		// Test Data Array / Test Cases:
 		{
-			name: "TestRethinkStore_DeleteSite Test 1",
+			name: "TestRethinkStore_DeleteImage Test 1",
 			rs:   ds,
 			args: args{
 				id: "1",
@@ -161,7 +161,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "TestRethinkStore_DeleteSite Test 2",
+			name: "TestRethinkStore_DeleteImage Test 2",
 			rs:   ds,
 			args: args{
 				id: "2",
@@ -170,7 +170,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "TestRethinkStore_DeleteSite Test 3",
+			name: "TestRethinkStore_DeleteImage Test 3",
 			rs:   ds,
 			args: args{
 				id: "404",

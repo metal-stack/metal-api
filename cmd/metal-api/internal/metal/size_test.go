@@ -219,7 +219,7 @@ func TestSizes_ByID(t *testing.T) {
 	}{
 		// Test Data Array (only 1 data):
 		{
-			name: "Test 1",
+			name: "TestSizes_ByID Test 1",
 			sz:   testSizes,
 			want: sizeM,
 		},

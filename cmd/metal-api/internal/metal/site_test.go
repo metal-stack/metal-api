@@ -37,7 +37,7 @@ func TestSites_ByID(t *testing.T) {
 		want SiteMap
 	}{
 		{
-			name: "testSites_ByID Test 1",
+			name: "TestSites_ByID Test 1",
 			sz:   testSites,
 			want: map[string]Site{testSites[0].ID: testSites[0], testSites[1].ID: testSites[1], testSites[2].ID: testSites[2]},
 		},

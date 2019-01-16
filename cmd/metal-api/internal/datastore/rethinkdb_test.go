@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 		args args
 		want *RethinkStore
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "TestNew Test 1",
 			args: args{
@@ -57,7 +57,7 @@ func TestRethinkStore_db(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Term
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "TestRethinkStore_db Test 1",
 			rs:   ds,
@@ -84,7 +84,7 @@ func TestRethinkStore_Mock(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Mock
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "TestRethinkStore_Mock Test 1",
 			rs:   ds,
@@ -111,7 +111,7 @@ func TestRethinkStore_Close(t *testing.T) {
 		rs      *RethinkStore
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name:    "TestRethinkStore_Close Test 1",
 			rs:      ds,
@@ -161,7 +161,7 @@ func Test_connect(t *testing.T) {
 		want1   *r.Session
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -198,7 +198,7 @@ func Test_mustConnect(t *testing.T) {
 		want  *r.Term
 		want1 *r.Session
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -227,7 +227,7 @@ func Test_retryConnect(t *testing.T) {
 		want  *r.Term
 		want1 *r.Session
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -263,7 +263,7 @@ func TestRethinkStore_initializeTable(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
 		{
 			name: "TestRethinkStore_initializeTable Test 1",
 			rs:   ds,

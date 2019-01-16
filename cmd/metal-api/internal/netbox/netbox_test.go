@@ -120,7 +120,8 @@ func TestNew(t *testing.T) {
 		name string
 		want *APIProxy
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
+		// To be done
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -136,7 +137,8 @@ func Test_initNetboxProxy(t *testing.T) {
 		name string
 		want *client.NetboxAPIProxy
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
+		// To be done
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -156,7 +158,8 @@ func Test_transformNicList(t *testing.T) {
 		args args
 		want []*models.Nic
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
+		// To be done
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -178,7 +181,8 @@ func TestAPIProxy_authenticate(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
+		// To be done
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -203,7 +207,8 @@ func TestAPIProxy_Register(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
+		// To be done
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -230,7 +235,8 @@ func TestAPIProxy_Allocate(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
+		// To be done
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -256,7 +262,8 @@ func TestAPIProxy_Release(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Test-Data List / Test Cases:
+		// To be done
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -281,9 +288,9 @@ func TestAPIProxy_RegisterSwitch(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases. "wantErr=false"!
+		// Test-Data List / Test Cases: "wantErr=false" is missing
 		{
-			name: "Test 2",
+			name: "TestAPIProxy_RegisterSwitch Test 1",
 			nb:   New(),
 			args: args{
 				siteid: "1",

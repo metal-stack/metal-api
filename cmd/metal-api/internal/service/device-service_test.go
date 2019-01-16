@@ -42,7 +42,7 @@ func TestGetDevices(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/device", nil)
 	w := httptest.NewRecorder()
@@ -198,7 +198,7 @@ func TestRegisterDevice(t *testing.T) {
 			ds, mock := datastore.InitMockDB()
 			mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
 				Conflict: "replace",
-			})).Return(emptyResult, test.ipmidberror)
+			})).Return(testdata.EmptyResult, test.ipmidberror)
 
 			rr := metal.RegisterDevice{
 				UUID:   test.uuid,
@@ -214,11 +214,11 @@ func TestRegisterDevice(t *testing.T) {
 
 			if len(test.dbdevices) > 0 {
 				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
-				mock.On(r.DB("mockdb").Table("device").Get(test.dbdevices[0].ID).Replace(r.MockAnything())).Return(emptyResult, nil)
+				mock.On(r.DB("mockdb").Table("device").Get(test.dbdevices[0].ID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			} else {
 				mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything(), r.InsertOpts{
 					Conflict: "replace",
-				})).Return(emptyResult, nil)
+				})).Return(testdata.EmptyResult, nil)
 			}
 			mock.On(r.DB("mockdb").Table("ipmi").Get(test.uuid)).Return(test.ipmiresult, test.ipmiresulterror)
 			testdata.InitMockDBData(mock)
@@ -234,7 +234,7 @@ func TestRegisterDevice(t *testing.T) {
 			js, _ := json.Marshal(rr)
 			body := bytes.NewBuffer(js)
 
-			dservice := NewDevice(testlogger, ds, pub, nb)
+			dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 			container := restful.NewContainer().Add(dservice)
 			req := httptest.NewRequest("POST", "/v1/device/register", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -285,7 +285,7 @@ func TestReportDevice(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -312,7 +312,7 @@ func TestReportFailureDevice(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -339,7 +339,7 @@ func TestReportUnknownDevice(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -363,7 +363,7 @@ func TestReportUnknownFailure(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -387,7 +387,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -410,7 +410,7 @@ func TestGetDevice(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/device/1", nil)
 	w := httptest.NewRecorder()
@@ -434,7 +434,7 @@ func TestGetDeviceNotFound(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/device/999", nil)
 	w := httptest.NewRecorder()
@@ -460,7 +460,7 @@ func TestFreeDevice(t *testing.T) {
 		called = true
 		return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
 	}
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("DELETE", "/v1/device/1/free", nil)
 	w := httptest.NewRecorder()
@@ -478,7 +478,7 @@ func TestSearchDevice(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testlogger, ds, pub, nb)
+	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/device/find?mac=1", nil)
 	w := httptest.NewRecorder()

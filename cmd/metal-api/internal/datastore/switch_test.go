@@ -12,11 +12,18 @@ import (
 
 func TestRethinkStore_FindSwitch(t *testing.T) {
 
-	// mock the DB
-	//ds, mock := InitMockDB()
-	//testdata.InitMockDBData(mock)
+	sw := testdata.Switch1
+	cons := make(metal.Connections, 0)
+	for _, cc := range sw.DeviceConnections {
+		for _, c := range cc {
+			cons = append(cons, c)
+		}
+	}
+	sw.Connections = cons
 
-	//mock.On(r.DB("mockdb").Table("switch").Get("2")).Return(testdata.Switch2, nil)
+	// mock the DB
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
 
 	type args struct {
 		id string
@@ -29,17 +36,16 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 		wantErr bool
 	}{
 		// Test Data Array / Test Cases:
-		/*
-			{
-				name: "TestRethinkStore_FindSwitch Test 1",
-				rs:   ds,
-				args: args{
-					id: "2",
-				},
-				want:    &testdata.Switch2,
-				wantErr: false,
+
+		{
+			name: "TestRethinkStore_FindSwitch Test 1",
+			rs:   ds,
+			args: args{
+				id: "switch404",
 			},
-		*/
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -317,7 +323,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// Test Data Array / Test Cases:
+		// Test-Data List / Test Cases:
 		{
 			name: "TestRethinkStore_UpdateSwitchConnections Test 1",
 			rs:   ds,
