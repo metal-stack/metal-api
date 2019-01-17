@@ -32,20 +32,34 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 	}
 }
 
-func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
-
-	tables := [...]string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
-
-	for _, table := range tables {
-		e := rs.db().TableCreate(table, opts).Exec(rs.session)
-		if e != nil {
-			return fmt.Errorf("cannot create table %s with opts %v: %v", table, opts, e)
+func multi(session r.QueryExecutor, tt ...r.Term) error {
+	for _, t := range tt {
+		if err := t.Exec(session); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	_, e := rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
+func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 
-	return fmt.Errorf("cannot create Index in deviceTable with opts %v: %v", opts, e)
+	tables := []string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+	db := rs.db()
+
+	return multi(rs.session,
+		// create our tables
+		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
+			return db.TableCreate(r, opts)
+		}),
+		// drop any tables which are not needed (could happen by race conditions on startup of different replicas)
+		db.TableList().Difference(r.Expr(tables)).ForEach(func(r r.Term) r.Term {
+			return db.TableDrop(r)
+		}),
+		// create indices
+		db.Table("device").IndexList().Contains("project").Do(func(i r.Term) r.Term {
+			return r.Branch(i, nil, db.Table("device").IndexCreate("project"))
+		}),
+	)
 }
 
 func (rs *RethinkStore) sizeTable() *r.Term {
@@ -125,8 +139,14 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, err
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot connect to DB: %v", err)
 	}
-	// wenn DB schon existiert, fehler ignorieren ...
-	r.DBCreate(dbname).Exec(session)
+
+	err = r.DBList().Contains(dbname).Do(func(row r.Term) r.Term {
+		return r.Branch(row, nil, r.DBCreate(dbname))
+	}).Exec(session)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot create database: %v", err)
+	}
+
 	db := r.DB(dbname)
 	return &db, session, nil
 }
