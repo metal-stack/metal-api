@@ -51,10 +51,6 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
 			return db.TableCreate(r, opts)
 		}),
-		// drop any tables which are not needed (could happen by race conditions on startup of different replicas)
-		db.TableList().Difference(r.Expr(tables)).ForEach(func(r r.Term) r.Term {
-			return db.TableDrop(r)
-		}),
 		// create indices
 		db.Table("device").IndexList().Contains("project").Do(func(i r.Term) r.Term {
 			return r.Branch(i, nil, db.Table("device").IndexCreate("project"))
