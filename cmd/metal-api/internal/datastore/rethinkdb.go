@@ -32,25 +32,34 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 	}
 }
 
-// Extracted from initializeTables.
-// Initializes 1 Table
-func (rs *RethinkStore) initializeTable(table string, opts r.TableCreateOpts) error {
-	return rs.db().TableCreate(table, opts).Exec(rs.session)
+func multi(session r.QueryExecutor, tt ...r.Term) error {
+	for _, t := range tt {
+		if err := t.Exec(session); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 
-	tables := [...]string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+	tables := []string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+	db := rs.db()
 
-	for _, table := range tables {
-		e := rs.db().TableCreate(table, opts).Exec(rs.session)
-		if e != nil {
-			return e
-		}
-	}
-
-	_, e := rs.deviceTable().IndexCreate("project").RunWrite(rs.session)
-	return e
+	return multi(rs.session,
+		// create our tables
+		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
+			return db.TableCreate(r, opts)
+		}),
+		// drop any tables which are not needed (could happen by race conditions on startup of different replicas)
+		db.TableList().Difference(r.Expr(tables)).ForEach(func(r r.Term) r.Term {
+			return db.TableDrop(r)
+		}),
+		// create indices
+		db.Table("device").IndexList().Contains("project").Do(func(i r.Term) r.Term {
+			return r.Branch(i, nil, db.Table("device").IndexCreate("project"))
+		}),
+	)
 }
 
 func (rs *RethinkStore) sizeTable() *r.Term {
@@ -109,11 +118,12 @@ func (rs *RethinkStore) Close() error {
 
 // Connect connects to the database. If there is an error, it will run until there is
 // a connection.
-func (rs *RethinkStore) Connect() {
+func (rs *RethinkStore) Connect() error {
 	rs.database, rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
-	rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+	err := rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+	return err
 }
 
 func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, error) {
@@ -129,8 +139,14 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, err
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot connect to DB: %v", err)
 	}
-	// wenn DB schon existiert, fehler ignorieren ...
-	r.DBCreate(dbname).Exec(session)
+
+	err = r.DBList().Contains(dbname).Do(func(row r.Term) r.Term {
+		return r.Branch(row, nil, r.DBCreate(dbname))
+	}).Exec(session)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot create database: %v", err)
+	}
+
 	db := r.DB(dbname)
 	return &db, session, nil
 }
