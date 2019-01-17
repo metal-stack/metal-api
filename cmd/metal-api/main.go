@@ -65,8 +65,17 @@ var dumpSwagger = &cobra.Command{
 	},
 }
 
+var initDatabase = &cobra.Command{
+	Use:     "initdb",
+	Short:   "initializes the database with all tables and indices",
+	Version: version.V.String(),
+	Run: func(cmd *cobra.Command, args []string) {
+		initializeDatabase()
+	},
+}
+
 func main() {
-	rootCmd.AddCommand(dumpSwagger)
+	rootCmd.AddCommand(dumpSwagger, initDatabase)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -224,6 +233,11 @@ func dumpSwaggerJSON() {
 		panic(err)
 	}
 	fmt.Printf("%s\n", js)
+}
+
+func initializeDatabase() {
+	initDataStore()
+	fmt.Printf("Database initialized\n")
 }
 
 func run() {
