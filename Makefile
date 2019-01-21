@@ -26,10 +26,21 @@ createtestdevices:
 .PHONY: localbuild
 localbuild: bin/$(BINARY) Dockerfile.dev
 	docker build -t registry.fi-ts.io/metal/metal-api -f Dockerfile.dev .
+	cd ../metal-lab/provision/api
+	docker-compose up -d
 
-.PHONY: restart
-restart: localbuild
-	docker-compose restart metal-api
+# the watch target needs https://github.com/cespare/reflex
+.PHONY: watch
+watch:
+	reflex -d fancy -r '^.*go$$' -- $(MAKE) localbuild
+
+# localdev should be started in a fresh shell
+.PHONY: localdev
+localdev:
+	cd ../metal-lab/provision/api && docker-compose pull && cd -
+	tmux new-session -d 'cd ../metal-lab/provision/api && docker-compose up -d && docker-compose logs -f'
+	tmux split-window -v '$(MAKE) watch'
+	tmux attach-session -d
 
 .PHONY: generate-client
 generate-client:
