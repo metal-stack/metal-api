@@ -1,0 +1,9 @@
+@baseurl = {{scheme}}://{{host}}/v1
+
+### get all images
+# @name get all images
+GET {{baseurl}}/image
+
+### get one image
+# @name get one image
+GET {{baseurl}}/image/1
