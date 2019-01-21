@@ -8,6 +8,10 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+var (
+	tables = []string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+)
+
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
 	*zap.SugaredLogger
@@ -41,9 +45,36 @@ func multi(session r.QueryExecutor, tt ...r.Term) error {
 	return nil
 }
 
-func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
+// Health checks if the connection to the database is ok.
+func (rs *RethinkStore) Health() error {
+	// check if there are more tables in the database
+	diff, err := rs.db().TableList().Difference(r.Expr(tables)).Count().Run(rs.session)
+	if err != nil {
+		return err
+	}
+	num := 0
+	if err = diff.One(&num); err != nil {
+		return err
+	}
+	if num != 0 {
+		return fmt.Errorf("tables in database differs from spec")
+	}
+	// now check if there are missing tables
+	diff, err = r.Expr(tables).Difference(rs.db().TableList()).Count().Run(rs.session)
+	if err != nil {
+		return err
+	}
+	num = 0
+	if err = diff.One(&num); err != nil {
+		return err
+	}
+	if num != 0 {
+		return fmt.Errorf("tables in database differs from spec")
+	}
+	return nil
+}
 
-	tables := []string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	db := rs.db()
 
 	return multi(rs.session,

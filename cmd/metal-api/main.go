@@ -213,7 +213,7 @@ func initRestServices() *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSize(lg, ds))
 	restful.DefaultContainer.Add(service.NewDevice(lg, ds, producer, nbproxy))
 	restful.DefaultContainer.Add(service.NewSwitch(lg, ds, nbproxy))
-	restful.DefaultContainer.Add(rest.NewHealth(lg))
+	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(lg, debug))
 
