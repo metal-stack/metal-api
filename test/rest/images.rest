@@ -1,9 +1,10 @@
-@baseurl = {{scheme}}://{{host}}/v1
+@baseurl = {{scheme}}://{{host}}/v1/image
 
 ### get all images
-# @name get all images
-GET {{baseurl}}/image
+# @name allImages
+GET {{baseurl}}
 
 ### get one image
-# @name get one image
-GET {{baseurl}}/image/1
+@imageid = {{allImages.response.body.$[0].id}}
+# @name getFirstImage
+GET {{baseurl}}/{{imageid}}

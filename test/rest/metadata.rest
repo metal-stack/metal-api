@@ -1,9 +1,9 @@
 @baseurl = {{scheme}}://{{host}}/v1
 
 ### check health
-# @name check health
+# @name checkHealth
 GET {{baseurl}}/health
 
 ### get version
-# @name get version
+# @name getVersion
 GET {{baseurl}}/version

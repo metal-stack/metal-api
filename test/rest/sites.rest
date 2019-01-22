@@ -1,0 +1,9 @@
+@baseurl = {{scheme}}://{{host}}/v1/site
+
+### get all sites
+# @name getAll
+GET {{baseurl}}
+
+### get vagrant-lab
+# @name getVagrantLab
+GET {{baseurl}}/vagrant-lab
