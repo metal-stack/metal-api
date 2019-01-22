@@ -1,4 +1,4 @@
-@baseurl = {{scheme}}://{{host}}/v1/size
+@baseurl = {{scheme}}://{{host}}/v1/switch
 
 ### get all switches
 # @name getAll
