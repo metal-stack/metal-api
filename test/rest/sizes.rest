@@ -1,0 +1,10 @@
+@baseurl = {{scheme}}://{{host}}/v1/size
+
+### get all switches
+# @name getAll
+GET {{baseurl}}
+
+### get first size
+@sizeid = {{getAll.response.body.$[0].id}}
+# @name getFirstSize
+GET {{baseurl}}/{{sizeid}}

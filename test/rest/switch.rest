@@ -1,0 +1,22 @@
+@baseurl = {{scheme}}://{{host}}/v1/switch
+
+### get all switches
+# @name getAll
+GET {{baseurl}}
+
+### register a switch
+# @name register
+POST {{baseurl}}/register
+Content-Type: application/json
+
+{
+  "id": "switch1",
+  "nics": [
+    {
+      "mac": "11:11:11:11:11:11",
+      "name": "eth1"
+    }
+  ],
+  "site_id": "vagrant-lab",
+  "rack_id": "Vagrant Rack 1"
+}

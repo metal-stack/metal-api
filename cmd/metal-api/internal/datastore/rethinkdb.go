@@ -8,6 +8,10 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+var (
+	tables = []string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+)
+
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
 	*zap.SugaredLogger
@@ -41,19 +45,27 @@ func multi(session r.QueryExecutor, tt ...r.Term) error {
 	return nil
 }
 
-func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
+// Health checks if the connection to the database is ok.
+func (rs *RethinkStore) Health() error {
+	return multi(rs.session,
+		r.Branch(
+			rs.db().TableList().Difference(r.Expr(tables)).Count().Eq(0),
+			r.Expr(true),
+			r.Error("too many tables in DB")),
+		r.Branch(
+			r.Expr(tables).Difference(rs.db().TableList()).Count().Eq(0),
+			r.Expr(true),
+			r.Error("too less tables in DB")),
+	)
+}
 
-	tables := []string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	db := rs.db()
 
 	return multi(rs.session,
 		// create our tables
 		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
 			return db.TableCreate(r, opts)
-		}),
-		// drop any tables which are not needed (could happen by race conditions on startup of different replicas)
-		db.TableList().Difference(r.Expr(tables)).ForEach(func(r r.Term) r.Term {
-			return db.TableDrop(r)
 		}),
 		// create indices
 		db.Table("device").IndexList().Contains("project").Do(func(i r.Term) r.Term {

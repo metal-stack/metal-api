@@ -65,8 +65,17 @@ var dumpSwagger = &cobra.Command{
 	},
 }
 
+var initDatabase = &cobra.Command{
+	Use:     "initdb",
+	Short:   "initializes the database with all tables and indices",
+	Version: version.V.String(),
+	Run: func(cmd *cobra.Command, args []string) {
+		initializeDatabase()
+	},
+}
+
 func main() {
-	rootCmd.AddCommand(dumpSwagger)
+	rootCmd.AddCommand(dumpSwagger, initDatabase)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -204,7 +213,7 @@ func initRestServices() *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSize(lg, ds))
 	restful.DefaultContainer.Add(service.NewDevice(lg, ds, producer, nbproxy))
 	restful.DefaultContainer.Add(service.NewSwitch(lg, ds, nbproxy))
-	restful.DefaultContainer.Add(rest.NewHealth(lg))
+	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(lg, debug))
 
@@ -224,6 +233,11 @@ func dumpSwaggerJSON() {
 		panic(err)
 	}
 	fmt.Printf("%s\n", js)
+}
+
+func initializeDatabase() {
+	initDataStore()
+	fmt.Printf("Database initialized\n")
 }
 
 func run() {
