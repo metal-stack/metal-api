@@ -29,6 +29,7 @@ type DeviceAllocation struct {
 	Cidr            string    `json:"cidr" description:"the cidr address of the allocated device" rethinkdb:"cidr"`
 	Hostname        string    `json:"hostname" description:"the hostname which will be used when creating the device" rethinkdb:"hostname"`
 	SSHPubKeys      []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the device with" rethinkdb:"sshPubKeys"`
+	UserData        string    `json:"user_data,omitempty" description:"cloud-init.io compatible userdata" optional:"true" rethinkdb:"userdata"`
 	ConsolePassword string    `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
 }
 

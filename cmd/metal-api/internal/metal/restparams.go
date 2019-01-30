@@ -11,6 +11,7 @@ type AllocateDevice struct {
 	SizeID      string   `json:"sizeid" description:"the size id to assign this device to"`
 	ImageID     string   `json:"imageid" description:"the image id to assign this device to"`
 	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the device with"`
+	UserData    string   `json:"user_data,omitempty" description:"cloud-init.io compatible userdata" optional:"true" rethinkdb:"userdata"`
 }
 
 // RegisterDevice must be sent by a device, when it boots with our image and

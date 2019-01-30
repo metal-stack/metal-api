@@ -1298,6 +1298,10 @@
         "tenant": {
           "description": "the name of the owning tenant",
           "type": "string"
+        },
+        "user_data": {
+          "description": "cloud-init.io compatible userdata",
+          "type": "string"
         }
       }
     },
@@ -1502,6 +1506,10 @@
         },
         "tenant": {
           "description": "the tenant that this device is assigned to",
+          "type": "string"
+        },
+        "user_data": {
+          "description": "cloud-init.io compatible userdata",
           "type": "string"
         }
       }
