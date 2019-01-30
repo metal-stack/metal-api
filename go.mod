@@ -8,7 +8,7 @@ require (
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
-	github.com/emicklei/go-restful v2.8.0+incompatible
+	github.com/emicklei/go-restful v2.8.1+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
 	github.com/go-openapi/analysis v0.18.0 // indirect
 	github.com/go-openapi/errors v0.18.0
@@ -24,15 +24,15 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.3.0 // indirect
-	github.com/spf13/afero v1.2.0 // indirect
+	github.com/spf13/afero v1.2.1 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.3.0
 	go.uber.org/zap v1.9.1
-	golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc // indirect
-	golang.org/x/net v0.0.0-20190110200230-915654e7eabc
+	golang.org/x/crypto v0.0.0-20190129210102-ccddf3741a0c // indirect
+	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
-	golang.org/x/sys v0.0.0-20190114130336-2be517255631 // indirect
+	golang.org/x/sys v0.0.0-20190129075346-302c3dd5f1cc // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1
 )
 
