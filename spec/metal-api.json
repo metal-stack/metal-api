@@ -1300,7 +1300,7 @@
           "type": "string"
         },
         "user_data": {
-          "description": "cloud-init.io compatible userdata",
+          "description": "cloud-init.io compatible userdata must be base64 encoded.",
           "type": "string"
         }
       }
@@ -1509,7 +1509,7 @@
           "type": "string"
         },
         "user_data": {
-          "description": "cloud-init.io compatible userdata",
+          "description": "cloud-init.io compatible userdata, stored base64 encoded",
           "type": "string"
         }
       }
