@@ -4,7 +4,7 @@
 
 ### Reasoning
 
-In order to save time implementing software for managing IP addresses ([IPAM](https://en.wikipedia.org/wiki/IP_address_management)) and organizing our datacenter infrastructure ([DCIM](https://en.wikipedia.org/wiki/Data_center_management#Data_Center_Infrastructure_Management)), we decided to take advantage of third-party software solutions.
+In order to save time implementing software for managing IP addresses ([IPAM](https://en.wikipedia.org/wiki/IP_address_management)) and organising our datacenter infrastructure ([DCIM](https://en.wikipedia.org/wiki/Data_center_management#Data_Center_Infrastructure_Management)), we decided to take advantage of third-party software solutions.
 
 We found that DCIM and IPAM were often combined into the same piece of software. We looked at the following offers on the market:
 
@@ -28,7 +28,7 @@ The main issues we had on our journey with Netbox turned out to be:
 
 In order to tackle the main issue regarding the Swagger Client, we decided to introduce another microservice. The [netbox-api-proxy](https://git.f-i-ts.de/cloud-native/metal/netbox-api-proxy).
 
-## On How Netbox is Being Utilized in Metal
+## On How Netbox is Being Utilised in Metal
 
 The Netbox is a shadow inventory of our datacenter infrastructure and manages the IP addresses that are assigned to metal devices. We made the following decisions of what Netbox actually is being used for:
 
