@@ -234,6 +234,7 @@ definitions:
     required:
     - "name"
     - "tenant"
+    - "vrf"
     - "project"
     properties:
       name:
@@ -242,6 +243,10 @@ definitions:
         minLength: 1
       tenant:
         description: "The name of the tenant to assign this device to"
+        type: "string"
+        minLength: 1
+      vrf:
+        description: "The name of the vrf to assign this device to"
         type: "string"
         minLength: 1
       project:
@@ -262,7 +267,7 @@ definitions:
     - "cidr"
     properties:
       cidr:
-        description: "The allocated cidr"
+        description: "The allocated cidr of the allocated device"
         type: "string"
   Nic:
     type: "object"

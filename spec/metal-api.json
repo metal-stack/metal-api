@@ -1449,6 +1449,7 @@
         "tenant",
         "project",
         "cidr",
+        "vrf",
         "hostname",
         "ssh_pub_keys"
       ],
@@ -1503,6 +1504,11 @@
         "tenant": {
           "description": "the tenant that this device is assigned to",
           "type": "string"
+        },
+        "vrf": {
+          "description": "the vrf of the allocated device",
+          "type": "integer",
+          "format": "integer"
         }
       }
     },
@@ -1661,6 +1667,10 @@
           "items": {
             "$ref": "#/definitions/metal.Nic"
           }
+        },
+        "vrf": {
+          "description": "the vrf this network interface is part of",
+          "type": "string"
         }
       }
     },
