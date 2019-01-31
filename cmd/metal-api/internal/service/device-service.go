@@ -290,6 +290,7 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname,
 		allocate.ProjectID, site, size,
 		image, allocate.SSHPubKeys,
+		allocate.UserData,
 		allocate.Tenant,
 		dr.netbox)
 	if err != nil {

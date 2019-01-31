@@ -228,6 +228,7 @@ func (rs *RethinkStore) AllocateDevice(
 	size *metal.Size,
 	img *metal.Image,
 	sshPubKeys []string,
+	userData string,
 	tenant string,
 	cidrAllocator CidrAllocator,
 ) (*metal.Device, error) {
@@ -278,6 +279,7 @@ func (rs *RethinkStore) AllocateDevice(
 		Image:       img,
 		ImageID:     img.ID,
 		SSHPubKeys:  sshPubKeys,
+		UserData:    userData,
 		Cidr:        cidr,
 		Vrf:         vrf.ID,
 	}

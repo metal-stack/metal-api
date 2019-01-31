@@ -30,6 +30,7 @@ type DeviceAllocation struct {
 	Vrf             uint      `json:"vrf" description:"the vrf of the allocated device" rethinkdb:"vrf"`
 	Hostname        string    `json:"hostname" description:"the hostname which will be used when creating the device" rethinkdb:"hostname"`
 	SSHPubKeys      []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the device with" rethinkdb:"sshPubKeys"`
+	UserData        string    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true" rethinkdb:"userdata"`
 	ConsolePassword string    `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
 }
 

@@ -11,7 +11,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// Tast that generates many input data
+// Test that generates many input data
 // Reference: https://golang.org/pkg/testing/quick/
 func TestRethinkStore_FindDevice2(t *testing.T) {
 
@@ -404,6 +404,7 @@ func TestRethinkStore_AllocateDevice(t *testing.T) {
 		size          *metal.Size
 		img           *metal.Image
 		sshPubKeys    []string
+		userData      string
 		tenant        string
 		cidrAllocator CidrAllocator
 	}
@@ -418,7 +419,7 @@ func TestRethinkStore_AllocateDevice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.AllocateDevice(tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.site, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.tenant, tt.args.cidrAllocator)
+			got, err := tt.rs.AllocateDevice(tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.site, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.AllocateDevice() error = %v, wantErr %v", err, tt.wantErr)
 				return
