@@ -21,8 +21,8 @@ type Allocator func(Allocation) error
 
 // A CidrAllocator must return a new CIDR if the allocate method is invoked.
 // On the other hand it should release the cidr which is connected to the
-// device given with 'uuid' when the Release function is calle.d.
+// device given with 'uuid' when the Release function is called.
 type CidrAllocator interface {
-	Allocate(uuid, tenant, project, name, description, os string) (string, error)
+	Allocate(uuid string, tenant string, vrf uint, project, name, description, os string) (string, error)
 	Release(uuid string) error
 }

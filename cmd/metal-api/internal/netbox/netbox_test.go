@@ -84,8 +84,10 @@ func TestAllocate(t *testing.T) {
 				require.Equal(t, td.description, params.Request.Description)
 				require.Equal(t, td.os, params.Request.Os)
 				cidr := "a cidr"
+				vrfrd := "00:123456789012"
 				return &nbdevice.NetboxAPIProxyAPIDeviceAllocateOK{Payload: &models.DeviceAllocationResponse{
-					Cidr: &cidr,
+					Cidr:  &cidr,
+					VrfRd: &vrfrd,
 				}}, nil
 			}
 			proxy.Allocate(td.uuid, td.tenant, td.project, td.name, td.description, td.os)

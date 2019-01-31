@@ -85,12 +85,13 @@ func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.N
 
 // Allocate uses the given devices for the given tenant. On success it returns
 // the CIDR which must be used in the new machine.
-func (nb *APIProxy) Allocate(uuid, tenant, project, name, description, os string) (string, error) {
+func (nb *APIProxy) Allocate(uuid string, tenant string, vrf uint, project, name, description, os string) (string, string, error) {
 	parms := nbdevice.NewNetboxAPIProxyAPIDeviceAllocateParams()
 	parms.UUID = uuid
 	parms.Request = &models.DeviceAllocationRequest{
 		Name:        &name,
 		Tenant:      &tenant,
+		Vrf:         fmt.Sprintf("%d", vrf),
 		Project:     &project,
 		Description: description,
 		Os:          os,
@@ -98,9 +99,9 @@ func (nb *APIProxy) Allocate(uuid, tenant, project, name, description, os string
 
 	rsp, err := nb.DoAllocate(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
 	if err != nil {
-		return "", fmt.Errorf("error calling netbox: %v", err)
+		return "", "", fmt.Errorf("error calling netbox: %v", err)
 	}
-	return *rsp.Payload.Cidr, nil
+	return *rsp.Payload.Cidr, *rsp.Payload.VrfRd, nil
 }
 
 // Release releases the device with the given uuid in the netbox.
