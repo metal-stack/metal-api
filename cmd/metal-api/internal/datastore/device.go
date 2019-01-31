@@ -1,7 +1,9 @@
 package datastore
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"strconv"
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -159,6 +161,60 @@ func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) err
 	return nil
 }
 
+func generateVrfID(i string) (uint, error) {
+	sha := sha256.Sum256([]byte(i))
+	// cut four bytes of hash
+	hexTrunc := fmt.Sprintf("%x", sha)[:4]
+	hash, err := strconv.ParseUint(hexTrunc, 16, 16)
+	if err != nil {
+		return 0, err
+	}
+	return uint(hash), err
+}
+
+func (rs *RethinkStore) findVrf(f map[string]interface{}) (*metal.Vrf, error) {
+	q := *rs.vrfTable()
+	q = q.Filter(f)
+	res, err := q.Run(rs.session)
+	defer res.Close()
+	if res.IsNil() {
+		return nil, nil
+	}
+	var vrf *metal.Vrf
+	err = res.One(vrf)
+	if err != nil {
+		return nil, err
+	}
+	return vrf, nil
+}
+
+func (rs *RethinkStore) reserveNewVrf(tenant string) (*metal.Vrf, error) {
+	var hashInput = tenant
+	for {
+		id, err := generateVrfID(hashInput)
+		if err != nil {
+			return nil, err
+		}
+		vrf, err := rs.findVrf(map[string]interface{}{"id": id})
+		if err != nil {
+			return nil, err
+		}
+		if vrf != nil {
+			hashInput += "salt"
+			continue
+		}
+		vrf = &metal.Vrf{
+			ID:     id,
+			Tenant: tenant,
+		}
+		_, err = rs.vrfTable().Insert(vrf).RunWrite(rs.session)
+		if err != nil {
+			return nil, err
+		}
+		return vrf, nil
+	}
+}
+
 // AllocateDevice allocates a device in the database. It searches the 'waitTable'
 // for a device which matches the criteria for site and size. If a device is
 // found the system will allocate a CIDR, create an allocation and update the
@@ -194,8 +250,20 @@ func (rs *RethinkStore) AllocateDevice(
 	}
 
 	old := res[0]
-	//uuid, tenant, project, name, description, os
-	cidr, err := cidrAllocator.Allocate(res[0].ID, tenant, projectid, name, description, img.Name)
+	var vrf *metal.Vrf
+	vrf, err = rs.findVrf(map[string]interface{}{"tenant": tenant})
+	if err != nil {
+		return nil, fmt.Errorf("cannot find vrf for tenant: %v", err)
+	}
+
+	if vrf == nil {
+		vrf, err = rs.reserveNewVrf(tenant)
+		if err != nil {
+			return nil, fmt.Errorf("cannot reserve new vrf for tenant: %v", err)
+		}
+	}
+
+	cidr, err := cidrAllocator.Allocate(res[0].ID, tenant, vrf.ID, projectid, name, description, img.Name)
 	if err != nil {
 		return nil, fmt.Errorf("cannot allocate at netbox: %v", err)
 	}
@@ -213,6 +281,7 @@ func (rs *RethinkStore) AllocateDevice(
 		SSHPubKeys:  sshPubKeys,
 		UserData:    userData,
 		Cidr:        cidr,
+		Vrf:         vrf.ID,
 	}
 	res[0].Allocation = alloc
 	res[0].Changed = time.Now()

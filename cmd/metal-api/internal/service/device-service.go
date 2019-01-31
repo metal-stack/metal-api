@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -286,16 +285,6 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 	site, err := dr.ds.FindSite(allocate.SiteID)
 	if checkError(dr.log, response, "allocateDevice", err) {
 		return
-	}
-
-	if allocate.UserData != "" {
-		_, err := base64.StdEncoding.DecodeString(allocate.UserData)
-		if err != nil {
-			if checkError(dr.log, response, "allocateDevice", fmt.Errorf("userdata must be base64 encoded")) {
-				dr.log.Error("allocate", zap.String("userdata", "not base64 encoded"))
-				return
-			}
-		}
 	}
 
 	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname,

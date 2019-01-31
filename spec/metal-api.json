@@ -1453,6 +1453,7 @@
         "tenant",
         "project",
         "cidr",
+        "vrf",
         "hostname",
         "ssh_pub_keys"
       ],
@@ -1509,8 +1510,13 @@
           "type": "string"
         },
         "user_data": {
-          "description": "cloud-init.io compatible userdata, stored base64 encoded",
+          "description": "userdata to execute post installation tasks",
           "type": "string"
+        },
+        "vrf": {
+          "description": "the vrf of the allocated device",
+          "type": "integer",
+          "format": "integer"
         }
       }
     },
@@ -1669,6 +1675,10 @@
           "items": {
             "$ref": "#/definitions/metal.Nic"
           }
+        },
+        "vrf": {
+          "description": "the vrf this network interface is part of",
+          "type": "string"
         }
       }
     },

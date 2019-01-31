@@ -39,6 +39,11 @@ type DeviceAllocationRequest struct {
 	// Required: true
 	// Min Length: 1
 	Tenant *string `json:"tenant"`
+
+	// The name of the vrf to assign this device to
+	// Required: true
+	// Min Length: 1
+	Vrf *string `json:"vrf"`
 }
 
 // Validate validates this device allocation request
@@ -62,6 +67,10 @@ func (m *DeviceAllocationRequest) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateTenant(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateVrf(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -130,6 +139,19 @@ func (m *DeviceAllocationRequest) validateTenant(formats strfmt.Registry) error 
 	}
 
 	if err := validate.MinLength("tenant", "body", string(*m.Tenant), 1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DeviceAllocationRequest) validateVrf(formats strfmt.Registry) error {
+
+	if err := validate.Required("vrf", "body", m.Vrf); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("vrf", "body", string(*m.Vrf), 1); err != nil {
 		return err
 	}
 

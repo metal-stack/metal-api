@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	tables = []string{"image", "size", "site", "device", "switch", "wait", "ipmi"}
+	tables = []string{"image", "size", "site", "device", "switch", "wait", "ipmi", "vrf"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -102,7 +102,10 @@ func (rs *RethinkStore) ipmiTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ipmi")
 	return &res
 }
-
+func (rs *RethinkStore) vrfTable() *r.Term {
+	res := r.DB(rs.dbname).Table("vrf")
+	return &res
+}
 func (rs *RethinkStore) db() *r.Term {
 	res := r.DB(rs.dbname)
 	return &res

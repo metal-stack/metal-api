@@ -17,7 +17,7 @@ import (
 // swagger:model DeviceAllocationResponse
 type DeviceAllocationResponse struct {
 
-	// The allocated cidr
+	// The allocated cidr of the allocated device
 	// Required: true
 	Cidr *string `json:"cidr"`
 }
