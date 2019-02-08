@@ -1,7 +1,15 @@
 image: registry.cloud.fits/fits/buildtools:1
 
 stages:
+    - build
     - push
+
+nopush:
+    stage: build
+    except:
+      - master
+      - prod
+    script: docker-make --Lint --summary -n
 
 push:
     stage: push
