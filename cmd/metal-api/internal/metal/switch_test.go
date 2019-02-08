@@ -21,9 +21,9 @@ var (
 		Base: Base{
 			ID: "switch1",
 		},
-		SiteID: "1",
-		RackID: "1",
-		Nics:   testNics,
+		PartitionID: "1",
+		RackID:      "1",
+		Nics:        testNics,
 		DeviceConnections: ConnectionMap{
 			"1": Connections{
 				Connection{
@@ -50,11 +50,11 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 		ID                string
 		Nics              []Nic
 		DeviceConnections ConnectionMap
-		SiteID            string
+		PartitionID       string
 		RackID            string
 		Created           time.Time
 		Changed           time.Time
-		Site              Site
+		Partition         Partition
 	}
 	tests := []struct {
 		name   string
@@ -80,8 +80,8 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 						MacAddress: "22:11:11",
 					},
 				},
-				SiteID: "nbg1",
-				Site: Site{
+				PartitionID: "nbg1",
+				Partition: Partition{
 					Base: Base{
 						ID: "nbg1",
 					},
@@ -141,7 +141,7 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSwitch(tt.fields.ID, tt.fields.RackID, tt.fields.Nics, &tt.fields.Site)
+			s := NewSwitch(tt.fields.ID, tt.fields.RackID, tt.fields.Nics, &tt.fields.Partition)
 			s.ConnectDevice(tt.device)
 			if !reflect.DeepEqual(s.DeviceConnections, tt.fields.DeviceConnections) {
 				t.Errorf("expected:%v, got:%v", s.DeviceConnections, tt.fields.DeviceConnections)
@@ -152,10 +152,10 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 
 func TestNewSwitch(t *testing.T) {
 	type args struct {
-		id     string
-		rackid string
-		nics   Nics
-		site   *Site
+		id        string
+		rackid    string
+		nics      Nics
+		partition *Partition
 	}
 
 	tests := []struct {
@@ -170,10 +170,10 @@ func TestNewSwitch(t *testing.T) {
 				id:     "1",
 				rackid: "1",
 				nics:   testNics,
-				site: &Site{
+				partition: &Partition{
 					Base: Base{
 						ID:          "1",
-						Name:        "site1",
+						Name:        "partition1",
 						Description: "description 1",
 					},
 				},
@@ -184,15 +184,15 @@ func TestNewSwitch(t *testing.T) {
 					ID:   "1",
 					Name: "1",
 				},
-				SiteID:            "1",
+				PartitionID:       "1",
 				RackID:            "1",
 				Connections:       make([]Connection, 0),
 				DeviceConnections: make(ConnectionMap),
 				Nics:              testNics,
-				Site: Site{
+				Partition: Partition{
 					Base: Base{
 						ID:          "1",
-						Name:        "site1",
+						Name:        "partition1",
 						Description: "description 1",
 					},
 				},
@@ -202,7 +202,7 @@ func TestNewSwitch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewSwitch(tt.args.id, tt.args.rackid, tt.args.nics, tt.args.site); !reflect.DeepEqual(got, tt.want) {
+			if got := NewSwitch(tt.args.id, tt.args.rackid, tt.args.nics, tt.args.partition); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewSwitch() = %v, want %v", got, tt.want)
 			}
 		})
@@ -299,24 +299,24 @@ func TestFillAllConnections(t *testing.T) {
 
 	// Creates the Switches for the test data
 	switches := make([]Switch, 3)
-	switches[0] = *NewSwitch("device-1", "rack-1", testNics, &Site{
+	switches[0] = *NewSwitch("device-1", "rack-1", testNics, &Partition{
 		Base: Base{
 			ID:          "1",
-			Name:        "site1",
+			Name:        "partition1",
 			Description: "description 1",
 		},
 	})
-	switches[1] = *NewSwitch("device-2", "rack-1", testNics, &Site{
+	switches[1] = *NewSwitch("device-2", "rack-1", testNics, &Partition{
 		Base: Base{
 			ID:          "1",
-			Name:        "site1",
+			Name:        "partition1",
 			Description: "description 1",
 		},
 	})
-	switches[2] = *NewSwitch("device-3", "rack-2", testNics, &Site{
+	switches[2] = *NewSwitch("device-3", "rack-2", testNics, &Partition{
 		Base: Base{
 			ID:          "2",
-			Name:        "site2",
+			Name:        "partition2",
 			Description: "description 2",
 		},
 	})
@@ -360,12 +360,12 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 						Description: "a device with 1 core(s) and 100 B of RAM",
 						ID:          "5",
 					},
-					RackID: "1",
-					SiteID: "1",
-					Site: Site{
+					RackID:      "1",
+					PartitionID: "1",
+					Partition: Partition{
 						Base: Base{
 							ID:          "1",
-							Name:        "site1",
+							Name:        "partition1",
 							Description: "description 1",
 						},
 					},

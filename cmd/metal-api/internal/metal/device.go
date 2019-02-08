@@ -7,13 +7,13 @@ import "time"
 // be filled. Any unallocated (free) device won't have such values.
 type Device struct {
 	Base
-	Site       Site              `json:"site" modelDescription:"A device representing a bare metal machine." description:"the site assigned to this device" readOnly:"true" rethinkdb:"-"`
-	SiteID     string            `json:"-" rethinkdb:"siteid"`
-	RackID     string            `json:"rackid" description:"the rack assigned to this device" readOnly:"true" rethinkdb:"rackid"`
-	Size       *Size             `json:"size" description:"the size of this device" readOnly:"true" rethinkdb:"-"`
-	SizeID     string            `json:"-" rethinkdb:"sizeid"`
-	Hardware   DeviceHardware    `json:"hardware" description:"the hardware of this device" rethinkdb:"hardware"`
-	Allocation *DeviceAllocation `json:"allocation" description:"the allocation data of an allocated device" rethinkdb:"allocation"`
+	Partition   Partition         `json:"partition" modelDescription:"A device representing a bare metal machine." description:"the partition assigned to this device" readOnly:"true" rethinkdb:"-"`
+	PartitionID string            `json:"-" rethinkdb:"partitionid"`
+	RackID      string            `json:"rackid" description:"the rack assigned to this device" readOnly:"true" rethinkdb:"rackid"`
+	Size        *Size             `json:"size" description:"the size of this device" readOnly:"true" rethinkdb:"-"`
+	SizeID      string            `json:"-" rethinkdb:"sizeid"`
+	Hardware    DeviceHardware    `json:"hardware" description:"the hardware of this device" rethinkdb:"hardware"`
+	Allocation  *DeviceAllocation `json:"allocation" description:"the allocation data of an allocated device" rethinkdb:"allocation"`
 }
 
 // A DeviceAllocation stores the data which are only present for allocated devices.

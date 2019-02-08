@@ -6,7 +6,7 @@ POST {{baseurl}}/register
 Content-Type: application/json
 
 {
-  "siteid": "vagrant-lab",
+  "partitionid": "vagrant-lab",
   "rackid": "Vagrant Rack 1",
   "hardware": {
     "cpu_cores": 1,
@@ -60,7 +60,7 @@ Content-Type: application/json
 
 {
   "description": "My first metal host",
-  "siteid": "vagrant-lab",
+  "partitionid": "vagrant-lab",
   "hostname": "metal-test-1",
   "imageid": "1",
   "name": "Metal Host 1",

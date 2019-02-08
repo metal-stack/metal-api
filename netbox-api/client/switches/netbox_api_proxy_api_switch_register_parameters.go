@@ -70,7 +70,7 @@ type NetboxAPIProxyAPISwitchRegisterParams struct {
 	*/
 	Request *models.SwitchRegistrationRequest
 	/*UUID
-	  The product serial of the device (unique identifier of this device)
+	  The product serial of the machine (unique identifier of this machine)
 
 	*/
 	UUID string

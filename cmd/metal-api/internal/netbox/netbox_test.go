@@ -7,7 +7,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client"
-	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
+	nbmachine "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/machines"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -16,19 +16,19 @@ import (
 
 func TestRegister(t *testing.T) {
 	testdata := []struct {
-		name   string
-		siteid string
-		rackid string
-		size   string
-		uuid   string
-		hw     []metal.Nic
+		name        string
+		partitionid string
+		rackid      string
+		size        string
+		uuid        string
+		hw          []metal.Nic
 	}{
 		{
-			name:   "first register",
-			siteid: "a site",
-			rackid: "a rack",
-			size:   "asize",
-			uuid:   "a uuid",
+			name:        "first register",
+			partitionid: "a partition",
+			rackid:      "a rack",
+			size:        "asize",
+			uuid:        "a uuid",
 			hw: []metal.Nic{
 				metal.Nic{
 					Name:       "nicname",
@@ -39,18 +39,18 @@ func TestRegister(t *testing.T) {
 	proxy := New()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			proxy.DoRegister = func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
+			proxy.DoRegister = func(params *nbmachine.NetboxAPIProxyAPIMachineRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineRegisterOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
-				require.Equal(t, td.siteid, *params.Request.Site)
+				require.Equal(t, td.partitionid, *params.Request.Partition)
 				require.Equal(t, td.rackid, *params.Request.Rack)
 				require.Equal(t, td.size, *params.Request.Size)
 				for i, n := range td.hw {
 					require.Equal(t, n.Name, *params.Request.Nics[i].Name)
 					require.Equal(t, string(n.MacAddress), *params.Request.Nics[i].Mac)
 				}
-				return &nbdevice.NetboxAPIProxyAPIDeviceRegisterOK{}, nil
+				return &nbmachine.NetboxAPIProxyAPIMachineRegisterOK{}, nil
 			}
-			proxy.Register(td.siteid, td.rackid, td.size, td.uuid, td.hw)
+			proxy.Register(td.partitionid, td.rackid, td.size, td.uuid, td.hw)
 		})
 	}
 }
@@ -76,7 +76,7 @@ func TestAllocate(t *testing.T) {
 	proxy := New()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			proxy.DoAllocate = func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error) {
+			proxy.DoAllocate = func(params *nbmachine.NetboxAPIProxyAPIMachineAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineAllocateOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
 				require.Equal(t, td.tenant, *(params.Request.Tenant))
 				require.Equal(t, td.name, *(params.Request.Name))
@@ -84,7 +84,7 @@ func TestAllocate(t *testing.T) {
 				require.Equal(t, td.description, params.Request.Description)
 				require.Equal(t, td.os, params.Request.Os)
 				cidr := "a cidr"
-				return &nbdevice.NetboxAPIProxyAPIDeviceAllocateOK{Payload: &models.DeviceAllocationResponse{
+				return &nbmachine.NetboxAPIProxyAPIMachineAllocateOK{Payload: &models.MachineAllocationResponse{
 					Cidr: &cidr,
 				}}, nil
 			}
@@ -106,9 +106,9 @@ func TestRelease(t *testing.T) {
 	proxy := New()
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
-			proxy.DoRelease = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
+			proxy.DoRelease = func(params *nbmachine.NetboxAPIProxyAPIMachineReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineReleaseOK, error) {
 				require.Equal(t, td.uuid, params.UUID)
-				return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
+				return &nbmachine.NetboxAPIProxyAPIMachineReleaseOK{}, nil
 			}
 			proxy.Release(td.uuid)
 		})
@@ -195,11 +195,11 @@ func TestAPIProxy_authenticate(t *testing.T) {
 
 func TestAPIProxy_Register(t *testing.T) {
 	type args struct {
-		siteid string
-		rackid string
-		size   string
-		uuid   string
-		hwnics []metal.Nic
+		partitionid string
+		rackid      string
+		size        string
+		uuid        string
+		hwnics      []metal.Nic
 	}
 	tests := []struct {
 		name    string
@@ -212,7 +212,7 @@ func TestAPIProxy_Register(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.nb.Register(tt.args.siteid, tt.args.rackid, tt.args.size, tt.args.uuid, tt.args.hwnics); (err != nil) != tt.wantErr {
+			if err := tt.nb.Register(tt.args.partitionid, tt.args.rackid, tt.args.size, tt.args.uuid, tt.args.hwnics); (err != nil) != tt.wantErr {
 				t.Errorf("APIProxy.Register() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -276,11 +276,11 @@ func TestAPIProxy_Release(t *testing.T) {
 
 func TestAPIProxy_RegisterSwitch(t *testing.T) {
 	type args struct {
-		siteid string
-		rackid string
-		uuid   string
-		name   string
-		hwnics []metal.Nic
+		partitionid string
+		rackid      string
+		uuid        string
+		name        string
+		hwnics      []metal.Nic
 	}
 	tests := []struct {
 		name    string
@@ -293,18 +293,18 @@ func TestAPIProxy_RegisterSwitch(t *testing.T) {
 			name: "TestAPIProxy_RegisterSwitch Test 1",
 			nb:   New(),
 			args: args{
-				siteid: "1",
-				rackid: "1",
-				uuid:   "1",
-				name:   "1",
-				hwnics: testdata.TestNics,
+				partitionid: "1",
+				rackid:      "1",
+				uuid:        "1",
+				name:        "1",
+				hwnics:      testdata.TestNics,
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.nb.RegisterSwitch(tt.args.siteid, tt.args.rackid, tt.args.uuid, tt.args.name, tt.args.hwnics); (err != nil) != tt.wantErr {
+			if err := tt.nb.RegisterSwitch(tt.args.partitionid, tt.args.rackid, tt.args.uuid, tt.args.name, tt.args.hwnics); (err != nil) != tt.wantErr {
 				t.Errorf("APIProxy.RegisterSwitch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

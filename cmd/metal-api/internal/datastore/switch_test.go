@@ -100,7 +100,7 @@ func TestRethinkStore_findSwitchByRack(t *testing.T) {
 			}
 			// Because deepequal of two same objects here returns false, here are some attribute validations:
 			require.Equal(t, got[0].ID, tt.want[0].ID)
-			require.Equal(t, got[0].SiteID, tt.want[0].SiteID)
+			require.Equal(t, got[0].PartitionID, tt.want[0].PartitionID)
 			require.Equal(t, got[0].RackID, tt.want[0].RackID)
 		})
 	}
@@ -154,7 +154,7 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 			}
 			// Because deepequal of two same objects here returns false, here are some attribute validations:
 			require.Equal(t, got[0].ID, tt.want[0].ID)
-			require.Equal(t, got[0].SiteID, tt.want[0].SiteID)
+			require.Equal(t, got[0].PartitionID, tt.want[0].PartitionID)
 			require.Equal(t, got[0].RackID, tt.want[0].RackID)
 		})
 	}
@@ -258,7 +258,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 			// Because deepequal of two same objects here returns false, here are some attribute validations:
 			if tt.want != nil {
 				require.Equal(t, got.ID, tt.want.ID)
-				require.Equal(t, got.SiteID, tt.want.SiteID)
+				require.Equal(t, got.PartitionID, tt.want.PartitionID)
 				require.Equal(t, got.RackID, tt.want.RackID)
 			}
 		})

@@ -208,7 +208,7 @@ func initDataStore() {
 
 func initRestServices() *restfulspec.Config {
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewSite(lg, ds))
+	restful.DefaultContainer.Add(service.NewPartition(lg, ds))
 	restful.DefaultContainer.Add(service.NewImage(lg, ds))
 	restful.DefaultContainer.Add(service.NewSize(lg, ds))
 	restful.DefaultContainer.Add(service.NewDevice(lg, ds, producer, nbproxy))

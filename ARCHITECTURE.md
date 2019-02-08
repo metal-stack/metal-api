@@ -1,6 +1,6 @@
 # Architectural Decisions
 
-## Netbox 
+## Netbox
 
 ### Reasoning
 
@@ -33,7 +33,7 @@ In order to tackle the main issue regarding the Swagger Client, we decided to in
 The Netbox is a shadow inventory of our datacenter infrastructure and manages the IP addresses that are assigned to metal devices. We made the following decisions of what Netbox actually is being used for:
 
 - IPAM -> Managing IP addresses (that will be assigned to the devices)
-- Receive information from the `metal-api` on devices and persist them (including serial, site and rack location, network interfaces, owners...)
+- Receive information from the `metal-api` on devices and persist them (including serial, partition and rack location, network interfaces, owners...)
 - Browsing the inventory with the Netbox web UI to get an overview over the datacenter
 
 If the Netbox is not present, device registration, allocation and release does not function.

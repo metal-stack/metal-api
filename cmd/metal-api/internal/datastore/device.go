@@ -35,12 +35,12 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 		}
 		d.Size = s
 	}
-	if d.SiteID != "" {
-		st, err := rs.FindSite(d.SiteID)
+	if d.PartitionID != "" {
+		st, err := rs.FindPartition(d.PartitionID)
 		if err != nil {
 			return nil, err
 		}
-		d.Site = *st
+		d.Partition = *st
 	}
 	if d.Allocation != nil {
 		if d.Allocation.ImageID != "" {
@@ -94,7 +94,7 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) (*metal.Device, error) {
 		return nil, fmt.Errorf("a device cannot be created when it is allocated: %q: %+v", d.ID, *d.Allocation)
 	}
 	d.SizeID = d.Size.ID
-	d.SiteID = d.Site.ID
+	d.PartitionID = d.Partition.ID
 	res, err := rs.deviceTable().Insert(d, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
@@ -216,7 +216,7 @@ func (rs *RethinkStore) reserveNewVrf(tenant string) (*metal.Vrf, error) {
 }
 
 // AllocateDevice allocates a device in the database. It searches the 'waitTable'
-// for a device which matches the criteria for site and size. If a device is
+// for a device which matches the criteria for partition and size. If a device is
 // found the system will allocate a CIDR, create an allocation and update the
 // device in the database.
 func (rs *RethinkStore) AllocateDevice(
@@ -224,8 +224,7 @@ func (rs *RethinkStore) AllocateDevice(
 	description string,
 	hostname string,
 	projectid string,
-	site *metal.Site,
-	size *metal.Size,
+	part *metal.Partition, size *metal.Size,
 	img *metal.Image,
 	sshPubKeys []string,
 	userData string,
@@ -233,9 +232,9 @@ func (rs *RethinkStore) AllocateDevice(
 	cidrAllocator CidrAllocator,
 ) (*metal.Device, error) {
 	available, err := rs.waitTable().Filter(map[string]interface{}{
-		"allocation": nil,
-		"siteid":     site.ID,
-		"sizeid":     size.ID,
+		"allocation":  nil,
+		"partitionid": part.ID,
+		"sizeid":      size.ID,
 	}).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find free device: %v", err)
@@ -322,8 +321,7 @@ func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
 // Maby it would be good to give a Device As Parameter, insted of all Atributes of a Device.
 func (rs *RethinkStore) RegisterDevice(
 	id string,
-	site metal.Site,
-	rackid string,
+	part metal.Partition, rackid string,
 	sz metal.Size,
 	hardware metal.DeviceHardware,
 	ipmi metal.IPMI) (*metal.Device, error) {
@@ -339,11 +337,11 @@ func (rs *RethinkStore) RegisterDevice(
 					Name:        name,
 					Description: descr,
 				},
-				Size:     &sz,
-				Site:     site,
-				SiteID:   site.ID,
-				RackID:   rackid,
-				Hardware: hardware,
+				Size:        &sz,
+				Partition:   part,
+				PartitionID: part.ID,
+				RackID:      rackid,
+				Hardware:    hardware,
 			}
 			device, err = rs.CreateDevice(device)
 			if err != nil {
@@ -355,8 +353,8 @@ func (rs *RethinkStore) RegisterDevice(
 	} else {
 		old := *device
 		device.Hardware = hardware
-		device.Site = site
-		device.SiteID = site.ID
+		device.Partition = part
+		device.PartitionID = part.ID
 		device.Size = &sz
 		device.RackID = rackid
 		device.Name = name
@@ -458,11 +456,11 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 	}
 	imgmap := metal.Images(allimg).ByID()
 
-	all, err := rs.ListSites()
+	all, err := rs.ListPartitions()
 	if err != nil {
 		return nil, err
 	}
-	sitemap := metal.Sites(all).ByID()
+	partmap := metal.Partitions(all).ByID()
 
 	res := make([]metal.Device, len(data), len(data))
 	for i, d := range data {
@@ -475,7 +473,7 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 				res[i].Allocation.Image = &img
 			}
 		}
-		res[i].Site = sitemap[d.SiteID]
+		res[i].Partition = partmap[d.PartitionID]
 	}
 	return res, nil
 }

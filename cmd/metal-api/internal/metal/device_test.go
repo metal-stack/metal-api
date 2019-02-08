@@ -25,12 +25,12 @@ func TestDevice_HasMAC(t *testing.T) {
 					Description: "a device with 1 core(s) and 100 B of RAM",
 					ID:          "5",
 				},
-				RackID: "1",
-				SiteID: "1",
-				Site: Site{
+				RackID:      "1",
+				PartitionID: "1",
+				Partition: Partition{
 					Base: Base{
 						ID:          "1",
-						Name:        "site1",
+						Name:        "partition1",
 						Description: "description 1",
 					},
 				},
@@ -76,12 +76,12 @@ func TestDevice_HasMAC(t *testing.T) {
 		{
 			name: "TestDevice_HasMAC Test 2",
 			d: &Device{
-				Base:   Base{ID: "1"},
-				SiteID: "1",
-				Site: Site{
+				Base:        Base{ID: "1"},
+				PartitionID: "1",
+				Partition: Partition{
 					Base: Base{
 						ID:          "1",
-						Name:        "site1",
+						Name:        "partition1",
 						Description: "description 1",
 					},
 				},

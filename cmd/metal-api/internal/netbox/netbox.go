@@ -5,7 +5,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client"
-	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
+	nbmachine "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/machines"
 	nbswitch "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 	"github.com/go-openapi/runtime"
@@ -19,9 +19,9 @@ import (
 type APIProxy struct {
 	*client.NetboxAPIProxy
 	apitoken         string
-	DoRegister       func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error)
-	DoAllocate       func(params *nbdevice.NetboxAPIProxyAPIDeviceAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceAllocateOK, error)
-	DoRelease        func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error)
+	DoRegister       func(params *nbmachine.NetboxAPIProxyAPIMachineRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineRegisterOK, error)
+	DoAllocate       func(params *nbmachine.NetboxAPIProxyAPIMachineAllocateParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineAllocateOK, error)
+	DoRelease        func(params *nbmachine.NetboxAPIProxyAPIMachineReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineReleaseOK, error)
 	DoRegisterSwitch func(params *nbswitch.NetboxAPIProxyAPISwitchRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbswitch.NetboxAPIProxyAPISwitchRegisterOK, error)
 }
 
@@ -32,9 +32,9 @@ func New() *APIProxy {
 	return &APIProxy{
 		NetboxAPIProxy:   proxy,
 		apitoken:         apitoken,
-		DoRegister:       proxy.Devices.NetboxAPIProxyAPIDeviceRegister,
-		DoAllocate:       proxy.Devices.NetboxAPIProxyAPIDeviceAllocate,
-		DoRelease:        proxy.Devices.NetboxAPIProxyAPIDeviceRelease,
+		DoRegister:       proxy.Machines.NetboxAPIProxyAPIMachineRegister,
+		DoAllocate:       proxy.Machines.NetboxAPIProxyAPIMachineAllocate,
+		DoRelease:        proxy.Machines.NetboxAPIProxyAPIMachineRelease,
 		DoRegisterSwitch: proxy.Switches.NetboxAPIProxyAPISwitchRegister,
 	}
 }
@@ -65,15 +65,15 @@ func (nb *APIProxy) authenticate(rq runtime.ClientRequest, rg strfmt.Registry) e
 }
 
 // Register registers the given device in netbox.
-func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.Nic) error {
-	parms := nbdevice.NewNetboxAPIProxyAPIDeviceRegisterParams()
+func (nb *APIProxy) Register(partid, rackid, size, uuid string, hwnics []metal.Nic) error {
+	parms := nbmachine.NewNetboxAPIProxyAPIMachineRegisterParams()
 	parms.UUID = uuid
 	nics := transformNicList(hwnics)
-	parms.Request = &models.DeviceRegistrationRequest{
-		Rack: &rackid,
-		Site: &siteid,
-		Size: &size,
-		Nics: nics,
+	parms.Request = &models.MachineRegistrationRequest{
+		Rack:      &rackid,
+		Partition: &partid,
+		Size:      &size,
+		Nics:      nics,
 	}
 
 	_, err := nb.DoRegister(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
@@ -86,10 +86,10 @@ func (nb *APIProxy) Register(siteid, rackid, size, uuid string, hwnics []metal.N
 // Allocate uses the given devices for the given tenant. On success it returns
 // the CIDR which must be used in the new machine.
 func (nb *APIProxy) Allocate(uuid string, tenant string, vrf uint, project, name, description, os string) (string, error) {
-	parms := nbdevice.NewNetboxAPIProxyAPIDeviceAllocateParams()
+	parms := nbmachine.NewNetboxAPIProxyAPIMachineAllocateParams()
 	parms.UUID = uuid
 	vrfid := fmt.Sprintf("%d", vrf)
-	parms.Request = &models.DeviceAllocationRequest{
+	parms.Request = &models.MachineAllocationRequest{
 		Name:        &name,
 		Tenant:      &tenant,
 		Vrf:         &vrfid,
@@ -107,7 +107,7 @@ func (nb *APIProxy) Allocate(uuid string, tenant string, vrf uint, project, name
 
 // Release releases the device with the given uuid in the netbox.
 func (nb *APIProxy) Release(uuid string) error {
-	parms := nbdevice.NewNetboxAPIProxyAPIDeviceReleaseParams()
+	parms := nbmachine.NewNetboxAPIProxyAPIMachineReleaseParams()
 	parms.UUID = uuid
 
 	_, err := nb.DoRelease(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))
@@ -118,15 +118,15 @@ func (nb *APIProxy) Release(uuid string) error {
 }
 
 // RegisterSwitch registers the switch on the netbox side.
-func (nb *APIProxy) RegisterSwitch(siteid, rackid, uuid, name string, hwnics []metal.Nic) error {
+func (nb *APIProxy) RegisterSwitch(partid, rackid, uuid, name string, hwnics []metal.Nic) error {
 	parms := nbswitch.NewNetboxAPIProxyAPISwitchRegisterParams()
 	parms.UUID = uuid
 	nics := transformNicList(hwnics)
 	parms.Request = &models.SwitchRegistrationRequest{
-		Name: &name,
-		Rack: &rackid,
-		Site: &siteid,
-		Nics: nics,
+		Name:      &name,
+		Rack:      &rackid,
+		Partition: &partid,
+		Nics:      nics,
 	}
 
 	_, err := nb.DoRegisterSwitch(parms, runtime.ClientAuthInfoWriterFunc(nb.authenticate))

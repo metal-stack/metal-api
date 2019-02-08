@@ -57,7 +57,7 @@ func TestGetDevices(t *testing.T) {
 	require.Equal(t, testdata.D1.ID, result[0].ID)
 	require.Equal(t, testdata.D1.Allocation.Name, result[0].Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, result[0].Size.Name)
-	require.Equal(t, testdata.Site1.Name, result[0].Site.Name)
+	require.Equal(t, testdata.Partition1.Name, result[0].Partition.Name)
 	require.Equal(t, testdata.D2.ID, result[1].ID)
 }
 
@@ -70,10 +70,10 @@ func TestRegisterDevice(t *testing.T) {
 	data := []struct {
 		name               string
 		uuid               string
-		siteid             string
+		partitionid        string
 		numcores           int
 		memory             int
-		dbsites            []metal.Site
+		dbpartitions       []metal.Partition
 		dbsizes            []metal.Size
 		dbdevices          []metal.Device
 		netboxerror        error
@@ -87,8 +87,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "insert new",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
@@ -101,8 +101,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "no ipmi data",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
@@ -115,8 +115,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "ipmi fetch error",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
@@ -130,8 +130,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "insert existing",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			dbdevices:          []metal.Device{testdata.D1},
 			numcores:           1,
@@ -145,33 +145,33 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:           "empty uuid",
 			uuid:           "",
-			siteid:         "1",
-			dbsites:        []metal.Site{testdata.Site1},
+			partitionid:    "1",
+			dbpartitions:   []metal.Partition{testdata.Partition1},
 			dbsizes:        []metal.Size{testdata.Sz1},
 			expectedStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name:           "error when impi update fails",
 			uuid:           "1",
-			siteid:         "1",
-			dbsites:        []metal.Site{testdata.Site1},
+			partitionid:    "1",
+			dbpartitions:   []metal.Partition{testdata.Partition1},
 			dbsizes:        []metal.Size{testdata.Sz1},
 			ipmidberror:    fmt.Errorf("ipmi insert fails"),
 			expectedStatus: http.StatusUnprocessableEntity,
 		},
 		{
-			name:           "empty site",
+			name:           "empty partition",
 			uuid:           "1",
-			siteid:         "",
-			dbsites:        nil,
+			partitionid:    "",
+			dbpartitions:   nil,
 			dbsizes:        []metal.Size{testdata.Sz1},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:               "unknown size because wrong cpu",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           2,
 			memory:             100,
@@ -184,8 +184,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:           "fail on netbox error",
 			uuid:           "1",
-			siteid:         "1",
-			dbsites:        []metal.Site{testdata.Site1},
+			partitionid:    "1",
+			dbpartitions:   []metal.Partition{testdata.Partition1},
 			dbsizes:        []metal.Size{testdata.Sz1},
 			numcores:       2,
 			memory:         100,
@@ -201,16 +201,16 @@ func TestRegisterDevice(t *testing.T) {
 			})).Return(testdata.EmptyResult, test.ipmidberror)
 
 			rr := metal.RegisterDevice{
-				UUID:   test.uuid,
-				SiteID: test.siteid,
-				RackID: "1",
-				IPMI:   ipmi,
+				UUID:        test.uuid,
+				PartitionID: test.partitionid,
+				RackID:      "1",
+				IPMI:        ipmi,
 				Hardware: metal.DeviceHardware{
 					CPUCores: test.numcores,
 					Memory:   uint64(test.memory),
 				},
 			}
-			mock.On(r.DB("mockdb").Table("site").Get(test.siteid)).Return(test.dbsites, nil)
+			mock.On(r.DB("mockdb").Table("partition").Get(test.partitionid)).Return(test.dbpartitions, nil)
 
 			if len(test.dbdevices) > 0 {
 				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
@@ -257,7 +257,7 @@ func TestRegisterDevice(t *testing.T) {
 			}
 			require.Equal(t, expectedid, result.ID)
 			require.Equal(t, test.expectedSizeName, result.Size.Name)
-			require.Equal(t, testdata.Site1.Name, result.Site.Name)
+			require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
 			// no read ipmi data
 			req = httptest.NewRequest("GET", fmt.Sprintf("/v1/device/%s/ipmi", test.uuid), nil)
 			req.Header.Add("Content-Type", "application/json")
@@ -425,7 +425,7 @@ func TestGetDevice(t *testing.T) {
 	require.Equal(t, testdata.D1.Allocation.Name, result.Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, testdata.Site1.Name, result.Site.Name)
+	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
 }
 
 func TestGetDeviceNotFound(t *testing.T) {
@@ -495,5 +495,5 @@ func TestSearchDevice(t *testing.T) {
 	require.Equal(t, testdata.D1.Allocation.Name, result.Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, testdata.Site1.Name, result.Site.Name)
+	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
 }

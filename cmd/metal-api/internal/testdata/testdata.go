@@ -31,11 +31,11 @@ var TestloggerSugar = zapup.MustRootLogger().Sugar()
 var (
 	// Devices
 	D1 = metal.Device{
-		Base:   metal.Base{ID: "1"},
-		SiteID: "1",
-		Site:   Site1,
-		SizeID: "1",
-		Size:   &Sz1,
+		Base:        metal.Base{ID: "1"},
+		PartitionID: "1",
+		Partition:   Partition1,
+		SizeID:      "1",
+		Size:        &Sz1,
 		Allocation: &metal.DeviceAllocation{
 			Name:    "d1",
 			ImageID: "1",
@@ -43,11 +43,11 @@ var (
 		},
 	}
 	D2 = metal.Device{
-		Base:   metal.Base{ID: "2"},
-		SiteID: "1",
-		Site:   Site1,
-		SizeID: "1",
-		Size:   &Sz1,
+		Base:        metal.Base{ID: "2"},
+		PartitionID: "1",
+		Partition:   Partition1,
+		SizeID:      "1",
+		Size:        &Sz1,
 		Allocation: &metal.DeviceAllocation{
 			Name:    "d2",
 			ImageID: "1",
@@ -55,19 +55,19 @@ var (
 		},
 	}
 	D3 = metal.Device{
-		Base:   metal.Base{ID: "3"},
-		SiteID: "1",
-		Site:   Site1,
-		SizeID: "1",
-		Size:   &Sz1,
+		Base:        metal.Base{ID: "3"},
+		PartitionID: "1",
+		Partition:   Partition1,
+		SizeID:      "1",
+		Size:        &Sz1,
 	}
 	D4 = metal.Device{
-		Base:       metal.Base{ID: "4"},
-		SiteID:     "1",
-		Site:       Site1,
-		SizeID:     "1",
-		Size:       &Sz1,
-		Allocation: nil,
+		Base:        metal.Base{ID: "4"},
+		PartitionID: "1",
+		Partition:   Partition1,
+		SizeID:      "1",
+		Size:        &Sz1,
+		Allocation:  nil,
 	}
 	D5 = metal.Device{
 		Base: metal.Base{
@@ -75,13 +75,13 @@ var (
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "5",
 		},
-		RackID:     "1",
-		SiteID:     "1",
-		Site:       Site1,
-		SizeID:     "1",
-		Size:       &Sz1,
-		Allocation: nil,
-		Hardware:   DeviceHardware1,
+		RackID:      "1",
+		PartitionID: "1",
+		Partition:   Partition1,
+		SizeID:      "1",
+		Size:        &Sz1,
+		Allocation:  nil,
+		Hardware:    DeviceHardware1,
 	}
 	D6 = metal.Device{
 		Base: metal.Base{
@@ -89,11 +89,11 @@ var (
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "6",
 		},
-		RackID: "1",
-		SiteID: "999",
-		Site:   Site1,
-		SizeID: "1", // No Size
-		Size:   nil,
+		RackID:      "1",
+		PartitionID: "999",
+		Partition:   Partition1,
+		SizeID:      "1", // No Size
+		Size:        nil,
 		Allocation: &metal.DeviceAllocation{
 			Name:    "6",
 			ImageID: "999",
@@ -107,11 +107,11 @@ var (
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "6",
 		},
-		RackID: "1",
-		SiteID: "1",
-		Site:   Site1,
-		SizeID: "999", // No Size
-		Size:   nil,
+		RackID:      "1",
+		PartitionID: "1",
+		Partition:   Partition1,
+		SizeID:      "999", // No Size
+		Size:        nil,
 		Allocation: &metal.DeviceAllocation{
 			Name:    "7",
 			ImageID: "1",
@@ -125,11 +125,11 @@ var (
 			Description: "a device with 1 core(s) and 100 B of RAM",
 			ID:          "6",
 		},
-		RackID: "1",
-		SiteID: "1",
-		Site:   Site1,
-		SizeID: "1", // No Size
-		Size:   nil,
+		RackID:      "1",
+		PartitionID: "1",
+		Partition:   Partition1,
+		SizeID:      "1", // No Size
+		Size:        nil,
 		Allocation: &metal.DeviceAllocation{
 			Name:    "8",
 			ImageID: "999",
@@ -203,25 +203,25 @@ var (
 		},
 	}
 
-	// Sites
-	Site1 = metal.Site{
+	// partitions
+	Partition1 = metal.Partition{
 		Base: metal.Base{
 			ID:          "1",
-			Name:        "site1",
+			Name:        "partition1",
 			Description: "description 1",
 		},
 	}
-	Site2 = metal.Site{
+	Partition2 = metal.Partition{
 		Base: metal.Base{
 			ID:          "2",
-			Name:        "site2",
+			Name:        "partition2",
 			Description: "description 2",
 		},
 	}
-	Site3 = metal.Site{
+	Partition3 = metal.Partition{
 		Base: metal.Base{
 			ID:          "3",
-			Name:        "site3",
+			Name:        "partition3",
 			Description: "description 3",
 		},
 	}
@@ -231,8 +231,8 @@ var (
 		Base: metal.Base{
 			ID: "switch1",
 		},
-		SiteID: "1",
-		RackID: "1",
+		PartitionID: "1",
+		RackID:      "1",
 		Nics: []metal.Nic{
 			Nic1,
 			Nic2,
@@ -259,7 +259,7 @@ var (
 		Base: metal.Base{
 			ID: "switch2",
 		},
-		SiteID:            "1",
+		PartitionID:       "1",
 		RackID:            "2",
 		DeviceConnections: metal.ConnectionMap{},
 	}
@@ -267,7 +267,7 @@ var (
 		Base: metal.Base{
 			ID: "switch3",
 		},
-		SiteID:            "1",
+		PartitionID:       "1",
 		RackID:            "3",
 		DeviceConnections: metal.ConnectionMap{},
 	}
@@ -354,9 +354,9 @@ var (
 		Sz1, Sz2, Sz3,
 	}
 
-	// All Sites
-	TestSites = []metal.Site{
-		Site1, Site2, Site3,
+	// All partitions
+	TestPartitions = []metal.Partition{
+		Partition1, Partition2, Partition3,
 	}
 
 	// All Nics
@@ -429,11 +429,11 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("size").Get("3")).Return(Sz3, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("size").Get("999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("1")).Return(Site1, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("2")).Return(Site2, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("3")).Return(Site3, nil)
-	mock.On(r.DB("mockdb").Table("site").Get("404")).Return(nil, fmt.Errorf("Test Error"))
-	mock.On(r.DB("mockdb").Table("site").Get("999")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get("1")).Return(Partition1, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get("2")).Return(Partition2, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get("3")).Return(Partition3, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get("404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("partition").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(Img1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(Img2, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("3")).Return(Img3, nil)
@@ -457,7 +457,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ipmi").Get("IPMI-1")).Return(IPMI1, nil)
 	// Default: Return Empy result
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Get(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("device").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything())).Return(EmptyResult, nil)
@@ -465,7 +465,7 @@ func InitMockDBData(mock *r.Mock) {
 
 	// X.GetTable
 	mock.On(r.DB("mockdb").Table("size")).Return(TestSizes, nil)
-	mock.On(r.DB("mockdb").Table("site")).Return(TestSites, nil)
+	mock.On(r.DB("mockdb").Table("partition")).Return(TestPartitions, nil)
 	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
 	mock.On(r.DB("mockdb").Table("device")).Return(TestDevices, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
@@ -473,7 +473,7 @@ func InitMockDBData(mock *r.Mock) {
 	// X.Delete
 	mock.On(r.DB("mockdb").Table("device").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
@@ -481,7 +481,7 @@ func InitMockDBData(mock *r.Mock) {
 	// X.Get.Replace
 	mock.On(r.DB("mockdb").Table("device").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
@@ -489,7 +489,7 @@ func InitMockDBData(mock *r.Mock) {
 	// X.insert
 	mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Insert(r.MockAnything())).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Insert(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("partition").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(EmptyResult, nil)
@@ -500,7 +500,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("site").Insert(r.MockAnything(), r.InsertOpts{
+	mock.On(r.DB("mockdb").Table("partition").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything(), r.InsertOpts{

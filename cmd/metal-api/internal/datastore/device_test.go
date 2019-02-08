@@ -400,7 +400,7 @@ func TestRethinkStore_AllocateDevice(t *testing.T) {
 		description   string
 		hostname      string
 		projectid     string
-		site          *metal.Site
+		partition     *metal.Partition
 		size          *metal.Size
 		img           *metal.Image
 		sshPubKeys    []string
@@ -419,7 +419,7 @@ func TestRethinkStore_AllocateDevice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.AllocateDevice(tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.site, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
+			got, err := tt.rs.AllocateDevice(tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.partition, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.AllocateDevice() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -483,12 +483,12 @@ func TestRethinkStore_RegisterDevice(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	type args struct {
-		id       string
-		site     metal.Site
-		rackid   string
-		sz       metal.Size
-		hardware metal.DeviceHardware
-		ipmi     metal.IPMI
+		id        string
+		partition metal.Partition
+		rackid    string
+		sz        metal.Size
+		hardware  metal.DeviceHardware
+		ipmi      metal.IPMI
 	}
 	tests := []struct {
 		name    string
@@ -502,12 +502,12 @@ func TestRethinkStore_RegisterDevice(t *testing.T) {
 			name: "TestRethinkStore_RegisterDevice Test 1",
 			rs:   ds,
 			args: args{
-				id:       "5",
-				site:     testdata.Site1,
-				rackid:   "1",
-				sz:       testdata.Sz1,
-				hardware: testdata.DeviceHardware1,
-				ipmi:     testdata.IPMI1,
+				id:        "5",
+				partition: testdata.Partition1,
+				rackid:    "1",
+				sz:        testdata.Sz1,
+				hardware:  testdata.DeviceHardware1,
+				ipmi:      testdata.IPMI1,
 			},
 			want:    &testdata.D5,
 			wantErr: false,
@@ -515,7 +515,7 @@ func TestRethinkStore_RegisterDevice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.RegisterDevice(tt.args.id, tt.args.site, tt.args.rackid, tt.args.sz, tt.args.hardware, tt.args.ipmi)
+			got, err := tt.rs.RegisterDevice(tt.args.id, tt.args.partition, tt.args.rackid, tt.args.sz, tt.args.hardware, tt.args.ipmi)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.RegisterDevice() error = %v, wantErr %v", err, tt.wantErr)
 				return

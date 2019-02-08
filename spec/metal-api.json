@@ -695,7 +695,7 @@
         }
       }
     },
-    "/v1/site": {
+    "/v1/partition": {
       "get": {
         "consumes": [
           "application/json"
@@ -704,17 +704,17 @@
           "application/json"
         ],
         "tags": [
-          "Site"
+          "Partition"
         ],
-        "summary": "get all Sites",
-        "operationId": "listSites",
+        "summary": "get all Partitions",
+        "operationId": "listPartitions",
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Site"
+                "$ref": "#/definitions/metal.Partition"
               }
             }
           },
@@ -723,7 +723,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Site"
+                "$ref": "#/definitions/metal.Partition"
               }
             }
           }
@@ -737,17 +737,17 @@
           "application/json"
         ],
         "tags": [
-          "Site"
+          "Partition"
         ],
-        "summary": "create a Site. if the given ID already exists a conflict is returned",
-        "operationId": "createSite",
+        "summary": "create a Partition. if the given ID already exists a conflict is returned",
+        "operationId": "createPartition",
         "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           }
         ],
@@ -755,7 +755,7 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           },
           "409": {
@@ -774,17 +774,17 @@
           "application/json"
         ],
         "tags": [
-          "Site"
+          "Partition"
         ],
-        "summary": "updates a Site. if the Site was changed since this one was read, a conflict is returned",
-        "operationId": "updateSite",
+        "summary": "updates a Partition. if the Partition was changed since this one was read, a conflict is returned",
+        "operationId": "updatePartition",
         "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           }
         ],
@@ -792,7 +792,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           },
           "404": {
@@ -807,13 +807,13 @@
           "default": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           }
         }
       }
     },
-    "/v1/site/{id}": {
+    "/v1/partition/{id}": {
       "get": {
         "consumes": [
           "application/json"
@@ -822,14 +822,14 @@
           "application/json"
         ],
         "tags": [
-          "Site"
+          "Partition"
         ],
-        "summary": "get Site by id",
-        "operationId": "findSite",
+        "summary": "get Partition by id",
+        "operationId": "findPartition",
         "parameters": [
           {
             "type": "string",
-            "description": "identifier of the Site",
+            "description": "identifier of the Partition",
             "name": "id",
             "in": "path",
             "required": true
@@ -839,7 +839,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           },
           "404": {
@@ -848,7 +848,7 @@
           "default": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           }
         }
@@ -861,14 +861,14 @@
           "application/json"
         ],
         "tags": [
-          "Site"
+          "Partition"
         ],
-        "summary": "deletes a Site and returns the deleted entity",
-        "operationId": "deleteSite",
+        "summary": "deletes a Partition and returns the deleted entity",
+        "operationId": "deletePartition",
         "parameters": [
           {
             "type": "string",
-            "description": "identifier of the Site",
+            "description": "identifier of the Partition",
             "name": "id",
             "in": "path",
             "required": true
@@ -878,7 +878,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           },
           "404": {
@@ -887,7 +887,7 @@
           "default": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Site"
+              "$ref": "#/definitions/metal.Partition"
             }
           }
         }
@@ -1254,7 +1254,7 @@
         "tenant",
         "hostname",
         "projectid",
-        "siteid",
+        "partitionid",
         "sizeid",
         "imageid",
         "ssh_pub_keys"
@@ -1276,12 +1276,12 @@
           "description": "the new name for the allocated device",
           "type": "string"
         },
-        "projectid": {
-          "description": "the project id to assign this device to",
+        "partitionid": {
+          "description": "the partition id to assign this device to",
           "type": "string"
         },
-        "siteid": {
-          "description": "the site id to assign this device to",
+        "projectid": {
+          "description": "the project id to assign this device to",
           "type": "string"
         },
         "sizeid": {
@@ -1389,7 +1389,7 @@
       "description": "A device representing a bare metal machine.",
       "required": [
         "id",
-        "site",
+        "partition",
         "rackid",
         "size",
         "hardware",
@@ -1429,14 +1429,14 @@
           "description": "the readable name",
           "type": "string"
         },
+        "partition": {
+          "description": "the partition assigned to this device",
+          "$ref": "#/definitions/metal.Partition",
+          "readOnly": true
+        },
         "rackid": {
           "description": "the rack assigned to this device",
           "type": "string",
-          "readOnly": true
-        },
-        "site": {
-          "description": "the site assigned to this device",
-          "$ref": "#/definitions/metal.Site",
           "readOnly": true
         },
         "size": {
@@ -1682,99 +1682,7 @@
         }
       }
     },
-    "metal.PhoneHomeRequest": {
-      "required": [
-        "phone_home_token"
-      ],
-      "properties": {
-        "phone_home_token": {
-          "description": "the jwt that was issued for the device",
-          "type": "string"
-        }
-      }
-    },
-    "metal.RegisterDevice": {
-      "required": [
-        "uuid",
-        "siteid",
-        "rackid",
-        "hardware",
-        "ipmi"
-      ],
-      "properties": {
-        "hardware": {
-          "description": "the hardware of this device",
-          "$ref": "#/definitions/metal.DeviceHardware"
-        },
-        "ipmi": {
-          "description": "the ipmi access infos",
-          "$ref": "#/definitions/metal.IPMI"
-        },
-        "rackid": {
-          "description": "the rack id where this device is connected to",
-          "type": "string"
-        },
-        "siteid": {
-          "description": "the site id to register this device with",
-          "type": "string"
-        },
-        "uuid": {
-          "description": "the product uuid of the device to register",
-          "type": "string"
-        }
-      }
-    },
-    "metal.RegisterSwitch": {
-      "required": [
-        "id",
-        "nics",
-        "site_id",
-        "rack_id"
-      ],
-      "properties": {
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "nics": {
-          "description": "the list of network interfaces on the switch",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Nic"
-          }
-        },
-        "rack_id": {
-          "description": "the id of the rack in which this switch is located",
-          "type": "string"
-        },
-        "site_id": {
-          "description": "the id of the site in which this switch is located",
-          "type": "string"
-        }
-      }
-    },
-    "metal.ReportAllocation": {
-      "required": [
-        "success",
-        "console_password"
-      ],
-      "properties": {
-        "console_password": {
-          "description": "the console password which was generated while provisioning",
-          "type": "string"
-        },
-        "errormessage": {
-          "description": "contains an errormessage when there was no success",
-          "type": "string"
-        },
-        "success": {
-          "description": "signals if the allocation was successful",
-          "type": "boolean"
-        }
-      }
-    },
-    "metal.Site": {
+    "metal.Partition": {
       "required": [
         "id",
         "bootconfig"
@@ -1807,6 +1715,98 @@
         "name": {
           "description": "the readable name",
           "type": "string"
+        }
+      }
+    },
+    "metal.PhoneHomeRequest": {
+      "required": [
+        "phone_home_token"
+      ],
+      "properties": {
+        "phone_home_token": {
+          "description": "the jwt that was issued for the device",
+          "type": "string"
+        }
+      }
+    },
+    "metal.RegisterDevice": {
+      "required": [
+        "uuid",
+        "partitionid",
+        "rackid",
+        "hardware",
+        "ipmi"
+      ],
+      "properties": {
+        "hardware": {
+          "description": "the hardware of this device",
+          "$ref": "#/definitions/metal.DeviceHardware"
+        },
+        "ipmi": {
+          "description": "the ipmi access infos",
+          "$ref": "#/definitions/metal.IPMI"
+        },
+        "partitionid": {
+          "description": "the partition id to register this device with",
+          "type": "string"
+        },
+        "rackid": {
+          "description": "the rack id where this device is connected to",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "the product uuid of the device to register",
+          "type": "string"
+        }
+      }
+    },
+    "metal.RegisterSwitch": {
+      "required": [
+        "id",
+        "nics",
+        "partition_id",
+        "rack_id"
+      ],
+      "properties": {
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "nics": {
+          "description": "the list of network interfaces on the switch",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Nic"
+          }
+        },
+        "partition_id": {
+          "description": "the id of the partition in which this switch is located",
+          "type": "string"
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        }
+      }
+    },
+    "metal.ReportAllocation": {
+      "required": [
+        "success",
+        "console_password"
+      ],
+      "properties": {
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
+          "type": "string"
+        },
+        "errormessage": {
+          "description": "contains an errormessage when there was no success",
+          "type": "string"
+        },
+        "success": {
+          "description": "signals if the allocation was successful",
+          "type": "boolean"
         }
       }
     },
@@ -1857,9 +1857,9 @@
         "id",
         "nics",
         "connections",
-        "site_id",
+        "partition_id",
         "rack_id",
-        "site"
+        "partition"
       ],
       "properties": {
         "changed": {
@@ -1901,16 +1901,16 @@
             "$ref": "#/definitions/metal.Nic"
           }
         },
-        "rack_id": {
-          "description": "the id of the rack in which this switch is located",
+        "partition": {
+          "description": "the partition in which this switch is located",
+          "$ref": "#/definitions/metal.Partition"
+        },
+        "partition_id": {
+          "description": "the id of the partition in which this switch is located",
           "type": "string"
         },
-        "site": {
-          "description": "the site in which this switch is located",
-          "$ref": "#/definitions/metal.Site"
-        },
-        "site_id": {
-          "description": "the id of the site in which this switch is located",
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
           "type": "string"
         }
       }

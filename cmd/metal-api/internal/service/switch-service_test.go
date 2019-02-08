@@ -34,9 +34,9 @@ func TestCreateSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     "switch999",
-		SiteID: "1",
-		RackID: "1",
+		ID:          "switch999",
+		PartitionID: "1",
+		RackID:      "1",
 	})
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
@@ -53,7 +53,7 @@ func TestCreateSwitch(t *testing.T) {
 	require.Equal(t, "switch999", result.ID)
 	require.Equal(t, "switch999", result.Name)
 	require.Equal(t, "1", result.RackID)
-	require.Equal(t, "1", result.SiteID)
+	require.Equal(t, "1", result.PartitionID)
 	require.Len(t, result.Connections, 0)
 }
 
@@ -72,9 +72,9 @@ func TestUpdateSwitch(t *testing.T) {
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     testdata.Switch1.ID,
-		SiteID: testdata.Switch1.SiteID,
-		RackID: testdata.Switch1.RackID,
+		ID:          testdata.Switch1.ID,
+		PartitionID: testdata.Switch1.PartitionID,
+		RackID:      testdata.Switch1.RackID,
 	})
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
@@ -91,7 +91,7 @@ func TestUpdateSwitch(t *testing.T) {
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.ID, result.Name)
 	require.Equal(t, testdata.Switch1.RackID, result.RackID)
-	require.Equal(t, testdata.Switch1.SiteID, result.SiteID)
+	require.Equal(t, testdata.Switch1.PartitionID, result.PartitionID)
 	require.Len(t, result.Connections, 2)
 	con := result.Connections[0]
 	require.Equal(t, testdata.Switch1.DeviceConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)

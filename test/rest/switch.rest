@@ -17,6 +17,6 @@ Content-Type: application/json
       "name": "eth1"
     }
   ],
-  "site_id": "vagrant-lab",
+  "partition_id": "vagrant-lab",
   "rack_id": "Vagrant Rack 1"
 }

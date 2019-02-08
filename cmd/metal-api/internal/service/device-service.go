@@ -222,7 +222,7 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		sendError(dr.log, response, "registerDevice", http.StatusUnprocessableEntity, fmt.Errorf("No UUID given"))
 		return
 	}
-	site, err := dr.ds.FindSite(data.SiteID)
+	part, err := dr.ds.FindPartition(data.PartitionID)
 	if checkError(dr.log, response, "registerDevice", err) {
 		return
 	}
@@ -233,12 +233,12 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 		dr.Error("no size found for hardware", "hardware", data.Hardware, "error", err)
 	}
 
-	err = dr.netbox.Register(site.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
+	err = dr.netbox.Register(part.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
 	if checkError(dr.log, response, "registerDevice", err) {
 		return
 	}
 
-	device, err := dr.ds.RegisterDevice(data.UUID, *site, data.RackID, *size, data.Hardware, data.IPMI)
+	device, err := dr.ds.RegisterDevice(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI)
 
 	if checkError(dr.log, response, "registerDevice", err) {
 		return
@@ -282,13 +282,13 @@ func (dr deviceResource) allocateDevice(request *restful.Request, response *rest
 	if checkError(dr.log, response, "allocateDevice", err) {
 		return
 	}
-	site, err := dr.ds.FindSite(allocate.SiteID)
+	part, err := dr.ds.FindPartition(allocate.PartitionID)
 	if checkError(dr.log, response, "allocateDevice", err) {
 		return
 	}
 
 	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname,
-		allocate.ProjectID, site, size,
+		allocate.ProjectID, part, size,
 		image, allocate.SSHPubKeys,
 		allocate.UserData,
 		allocate.Tenant,

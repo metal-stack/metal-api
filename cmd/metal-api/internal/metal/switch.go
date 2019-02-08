@@ -8,9 +8,9 @@ type Switch struct {
 	Nics              Nics          `json:"nics" modelDescription:"A switch that can register at the api." description:"the list of network interfaces on the switch" rethinkdb:"network_interfaces"`
 	Connections       Connections   `json:"connections" description:"a connection between a switch port and a device" rethinkdb:"-"`
 	DeviceConnections ConnectionMap `json:"-" description:"a connection between a switch port and a device" rethinkdb:"deviceconnections"`
-	SiteID            string        `json:"site_id" description:"the id of the site in which this switch is located" rethinkdb:"siteid"`
+	PartitionID       string        `json:"partition_id" description:"the id of the partition in which this switch is located" rethinkdb:"partitionid"`
 	RackID            string        `json:"rack_id" description:"the id of the rack in which this switch is located" rethinkdb:"rackid"`
-	Site              Site          `json:"site" description:"the site in which this switch is located" rethinkdb:"-"`
+	Partition         Partition     `json:"partition" description:"the partition in which this switch is located" rethinkdb:"-"`
 }
 
 // Connection between switch port and device.
@@ -26,7 +26,7 @@ type Connections []Connection
 type ConnectionMap map[string]Connections
 
 // NewSwitch creates a new switch with the given data fields.
-func NewSwitch(id, rackid string, nics Nics, site *Site) *Switch {
+func NewSwitch(id, rackid string, nics Nics, part *Partition) *Switch {
 	if nics == nil {
 		nics = make([]Nic, 0)
 	}
@@ -35,12 +35,12 @@ func NewSwitch(id, rackid string, nics Nics, site *Site) *Switch {
 			ID:   id,
 			Name: id,
 		},
-		SiteID:            site.ID,
+		PartitionID:       part.ID,
 		RackID:            rackid,
 		Connections:       make([]Connection, 0),
 		DeviceConnections: make(ConnectionMap),
 		Nics:              nics,
-		Site:              *site,
+		Partition:         *part,
 	}
 }
 

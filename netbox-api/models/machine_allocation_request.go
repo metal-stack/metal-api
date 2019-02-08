@@ -13,41 +13,41 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// DeviceAllocationRequest device allocation request
-// swagger:model DeviceAllocationRequest
-type DeviceAllocationRequest struct {
+// MachineAllocationRequest machine allocation request
+// swagger:model MachineAllocationRequest
+type MachineAllocationRequest struct {
 
-	// Additional description for this device in the netbox
+	// Additional description for this machine in the netbox
 	// Min Length: 1
 	Description string `json:"description,omitempty"`
 
-	// The desired name for this device in the netbox
+	// The desired name for this machine in the netbox
 	// Required: true
 	// Min Length: 1
 	Name *string `json:"name"`
 
-	// The operating system name that will be installed on this device
+	// The operating system name that will be installed on this machine
 	// Min Length: 1
 	Os string `json:"os,omitempty"`
 
-	// The name of the project to assign this device to
+	// The name of the project to assign this machine to
 	// Required: true
 	// Min Length: 1
 	Project *string `json:"project"`
 
-	// The name of the tenant to assign this device to
+	// The name of the tenant to assign this machine to
 	// Required: true
 	// Min Length: 1
 	Tenant *string `json:"tenant"`
 
-	// The name of the vrf to assign this device to
+	// The name of the vrf to assign this machine to
 	// Required: true
 	// Min Length: 1
 	Vrf *string `json:"vrf"`
 }
 
-// Validate validates this device allocation request
-func (m *DeviceAllocationRequest) Validate(formats strfmt.Registry) error {
+// Validate validates this machine allocation request
+func (m *MachineAllocationRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateDescription(formats); err != nil {
@@ -80,7 +80,7 @@ func (m *DeviceAllocationRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *DeviceAllocationRequest) validateDescription(formats strfmt.Registry) error {
+func (m *MachineAllocationRequest) validateDescription(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Description) { // not required
 		return nil
@@ -93,7 +93,7 @@ func (m *DeviceAllocationRequest) validateDescription(formats strfmt.Registry) e
 	return nil
 }
 
-func (m *DeviceAllocationRequest) validateName(formats strfmt.Registry) error {
+func (m *MachineAllocationRequest) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -106,7 +106,7 @@ func (m *DeviceAllocationRequest) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *DeviceAllocationRequest) validateOs(formats strfmt.Registry) error {
+func (m *MachineAllocationRequest) validateOs(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Os) { // not required
 		return nil
@@ -119,7 +119,7 @@ func (m *DeviceAllocationRequest) validateOs(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *DeviceAllocationRequest) validateProject(formats strfmt.Registry) error {
+func (m *MachineAllocationRequest) validateProject(formats strfmt.Registry) error {
 
 	if err := validate.Required("project", "body", m.Project); err != nil {
 		return err
@@ -132,7 +132,7 @@ func (m *DeviceAllocationRequest) validateProject(formats strfmt.Registry) error
 	return nil
 }
 
-func (m *DeviceAllocationRequest) validateTenant(formats strfmt.Registry) error {
+func (m *MachineAllocationRequest) validateTenant(formats strfmt.Registry) error {
 
 	if err := validate.Required("tenant", "body", m.Tenant); err != nil {
 		return err
@@ -145,7 +145,7 @@ func (m *DeviceAllocationRequest) validateTenant(formats strfmt.Registry) error 
 	return nil
 }
 
-func (m *DeviceAllocationRequest) validateVrf(formats strfmt.Registry) error {
+func (m *MachineAllocationRequest) validateVrf(formats strfmt.Registry) error {
 
 	if err := validate.Required("vrf", "body", m.Vrf); err != nil {
 		return err
@@ -159,7 +159,7 @@ func (m *DeviceAllocationRequest) validateVrf(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *DeviceAllocationRequest) MarshalBinary() ([]byte, error) {
+func (m *MachineAllocationRequest) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -167,8 +167,8 @@ func (m *DeviceAllocationRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *DeviceAllocationRequest) UnmarshalBinary(b []byte) error {
-	var res DeviceAllocationRequest
+func (m *MachineAllocationRequest) UnmarshalBinary(b []byte) error {
+	var res MachineAllocationRequest
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
