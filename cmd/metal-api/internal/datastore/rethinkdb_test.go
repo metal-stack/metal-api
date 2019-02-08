@@ -329,13 +329,13 @@ func TestRethinkStore_partitionTable(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_deviceTable(t *testing.T) {
+func TestRethinkStore_machineTable(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	theWantedTerm := r.DB("mockdb").Table("device")
+	theWantedTerm := r.DB("mockdb").Table("machine")
 
 	tests := []struct {
 		name string
@@ -344,15 +344,15 @@ func TestRethinkStore_deviceTable(t *testing.T) {
 	}{
 		// test cases:
 		{
-			name: "TestRethinkStore_deviceTable Test 1",
+			name: "Test 1",
 			rs:   ds,
 			want: &theWantedTerm,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.deviceTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.deviceTable() = %v, want %v", got, tt.want)
+			if got := tt.rs.machineTable(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.machineTable() = %v, want %v", got, tt.want)
 			}
 		})
 	}

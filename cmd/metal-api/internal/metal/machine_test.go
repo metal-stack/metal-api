@@ -4,25 +4,25 @@ import (
 	"testing"
 )
 
-func TestDevice_HasMAC(t *testing.T) {
+func TestMachine_HasMAC(t *testing.T) {
 	type args struct {
 		mac string
 	}
 
 	tests := []struct {
 		name string
-		d    *Device
+		d    *Machine
 		args struct {
 			mac string
 		}
 		want bool
 	}{
 		{
-			name: "TestDevice_HasMAC Test 1",
-			d: &Device{
+			name: "Test 1",
+			d: &Machine{
 				Base: Base{
 					Name:        "1-core/100 B",
-					Description: "a device with 1 core(s) and 100 B of RAM",
+					Description: "a machine with 1 core(s) and 100 B of RAM",
 					ID:          "5",
 				},
 				RackID:      "1",
@@ -49,7 +49,7 @@ func TestDevice_HasMAC(t *testing.T) {
 					}},
 				},
 				Allocation: nil,
-				Hardware: DeviceHardware{
+				Hardware: MachineHardware{
 					Memory:   100,
 					CPUCores: 1,
 					Nics: Nics{
@@ -74,8 +74,8 @@ func TestDevice_HasMAC(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "TestDevice_HasMAC Test 2",
-			d: &Device{
+			name: "Test 2",
+			d: &Machine{
 				Base:        Base{ID: "1"},
 				PartitionID: "1",
 				Partition: Partition{
@@ -99,7 +99,7 @@ func TestDevice_HasMAC(t *testing.T) {
 						MaxMemory: 100,
 					}},
 				},
-				Allocation: &DeviceAllocation{
+				Allocation: &MachineAllocation{
 					Name:    "d1",
 					ImageID: "1",
 					Project: "p1",
@@ -115,7 +115,7 @@ func TestDevice_HasMAC(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.d.HasMAC(tt.args.mac); got != tt.want {
-				t.Errorf("Device.HasMAC() = %v, want %v", got, tt.want)
+				t.Errorf("Machine.HasMAC() = %v, want %v", got, tt.want)
 			}
 		})
 	}

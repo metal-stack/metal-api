@@ -6,7 +6,7 @@
 	},
 	"item": [
 		{
-			"name": "Register Device",
+			"name": "Register Machine",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -20,13 +20,13 @@
 					"raw": "{\n  \"partitionid\": \"vagrant-lab\",\n  \"rackid\": \"Vagrant Rack 1\",\n  \"hardware\": {\n    \"cpu_cores\": 1,\n    \"disks\": [\n      {\n        \"name\": \"sda\",\n        \"size\": 12\n      }\n    ],\n    \"memory\": 1024,\n    \"nics\": [\n      {\n        \"features\": [\n        ],\n        \"mac\": \"aa:aa:aa:aa:aa:aa\",\n        \"name\": \"eth0\",\n        \"vendor\": \"Dell\",\n        \"neighbors\": [\n        \t{\n        \t\t\"mac\":\"11:11:11:11:11:11\",\n        \t\t\"name\":\"switch\"\n        \t}\n        ]\n      },\n      {\n        \"features\": [\n        ],\n        \"mac\": \"00:00:00:00:00:00\",\n        \"name\": \"lo\",\n        \"vendor\": \"Dell\"\n      }\n    ]\n  },\n  \"uuid\": \"ae671b8b-a158-52c2-8c22-985ca0503873\"\n}"
 				},
 				"url": {
-					"raw": "{{base}}/v1/device/register",
+					"raw": "{{base}}/v1/machine/register",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
 						"v1",
-						"device",
+						"machine",
 						"register"
 					]
 				}
@@ -34,7 +34,7 @@
 			"response": []
 		},
 		{
-			"name": "Allocate Device",
+			"name": "Allocate Machine",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -48,13 +48,13 @@
 					"raw": "{\n  \"description\": \"My first metal host\",\n  \"partitionid\": \"vagrant-lab\",\n  \"hostname\": \"metal-test-1\",\n  \"imageid\": \"1\",\n  \"name\": \"Metal Host 1\",\n  \"projectid\": \"test\",\n  \"tenant\": \"dkb\",\n  \"sizeid\": \"t1-small-x86\",\n  \"ssh_pub_keys\": [\"keiner\"]\n}"
 				},
 				"url": {
-					"raw": "{{base}}/v1/device/allocate",
+					"raw": "{{base}}/v1/machine/allocate",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
 						"v1",
-						"device",
+						"machine",
 						"allocate"
 					]
 				}
@@ -71,13 +71,13 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/v1/device/ae671b8b-a158-52c2-8c22-985ca0503873/wait",
+					"raw": "{{base}}/v1/machine/ae671b8b-a158-52c2-8c22-985ca0503873/wait",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
 						"v1",
-						"device",
+						"machine",
 						"ae671b8b-a158-52c2-8c22-985ca0503873",
 						"wait"
 					]
@@ -86,7 +86,7 @@
 			"response": []
 		},
 		{
-			"name": "Free Device",
+			"name": "Free Machine",
 			"request": {
 				"method": "DELETE",
 				"header": [],
@@ -95,13 +95,13 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{base}}/v1/device/ae671b8b-a158-52c2-8c22-985ca0503873/free",
+					"raw": "{{base}}/v1/machine/ae671b8b-a158-52c2-8c22-985ca0503873/free",
 					"host": [
 						"{{base}}"
 					],
 					"path": [
 						"v1",
-						"device",
+						"machine",
 						"ae671b8b-a158-52c2-8c22-985ca0503873",
 						"free"
 					]

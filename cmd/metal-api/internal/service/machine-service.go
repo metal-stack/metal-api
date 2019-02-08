@@ -20,19 +20,19 @@ const (
 	waitForServerTimeout = 30 * time.Second
 )
 
-type deviceResource struct {
+type machineResource struct {
 	webResource
 	bus.Publisher
 	netbox *netbox.APIProxy
 }
 
-// NewDevice returns a webservice for device specific endpoints.
-func NewDevice(
+// NewMachine returns a webservice for machine specific endpoints.
+func NewMachine(
 	log *zap.Logger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	netbox *netbox.APIProxy) *restful.WebService {
-	dr := deviceResource{
+	dr := machineResource{
 		webResource: webResource{
 			log:           log,
 			SugaredLogger: log.Sugar(),
@@ -45,103 +45,103 @@ func NewDevice(
 }
 
 // webService creates the webservice endpoint
-func (dr deviceResource) webService() *restful.WebService {
+func (dr machineResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/device").
+		Path("/v1/machine").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	tags := []string{"device"}
+	tags := []string{"machine"}
 
 	ws.Route(ws.GET("/{id}").
-		To(dr.restEntityGet(dr.ds.FindDevice)).
-		Operation("findDevice").
-		Doc("get device by id").
-		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		To(dr.restEntityGet(dr.ds.FindMachine)).
+		Operation("findMachine").
+		Doc("get machine by id").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(metal.Device{}).
-		Returns(http.StatusOK, "OK", metal.Device{}).
+		Writes(metal.Machine{}).
+		Returns(http.StatusOK, "OK", metal.Machine{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/").
-		To(dr.restListGet(dr.ds.ListDevices)).
-		Operation("listDevices").
-		Doc("get all known devices").
+		To(dr.restListGet(dr.ds.ListMachines)).
+		Operation("listMachines").
+		Doc("get all known machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]metal.Device{}).
-		Returns(http.StatusOK, "OK", []metal.Device{}).
+		Writes([]metal.Machine{}).
+		Returns(http.StatusOK, "OK", []metal.Machine{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.GET("/find").To(dr.searchDevice).
-		Doc("search devices").
-		Param(ws.QueryParameter("mac", "one of the MAC address of the device").DataType("string")).
+	ws.Route(ws.GET("/find").To(dr.searchMachine).
+		Doc("search machines").
+		Param(ws.QueryParameter("mac", "one of the MAC address of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]metal.Device{}).
-		Returns(http.StatusOK, "OK", []metal.Device{}).
+		Writes([]metal.Machine{}).
+		Returns(http.StatusOK, "OK", []metal.Machine{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
-	ws.Route(ws.POST("/register").To(dr.registerDevice).
-		Doc("register a device").
+	ws.Route(ws.POST("/register").To(dr.registerMachine).
+		Doc("register a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.RegisterDevice{}).
-		Writes(metal.Device{}).
-		Returns(http.StatusOK, "OK", metal.Device{}).
-		Returns(http.StatusCreated, "Created", metal.Device{}).
+		Reads(metal.RegisterMachine{}).
+		Writes(metal.Machine{}).
+		Returns(http.StatusOK, "OK", metal.Machine{}).
+		Returns(http.StatusCreated, "Created", metal.Machine{}).
 		Returns(http.StatusNotFound, "one of the given key values was not found", nil))
 
-	ws.Route(ws.POST("/allocate").To(dr.allocateDevice).
-		Doc("allocate a device").
+	ws.Route(ws.POST("/allocate").To(dr.allocateMachine).
+		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.AllocateDevice{}).
-		Returns(http.StatusOK, "OK", metal.Device{}).
-		Returns(http.StatusNotFound, "No free device for allocation found", nil).
+		Reads(metal.AllocateMachine{}).
+		Returns(http.StatusOK, "OK", metal.Machine{}).
+		Returns(http.StatusNotFound, "No free machine for allocation found", nil).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
-	ws.Route(ws.DELETE("/{id}/free").To(dr.freeDevice).
-		Doc("free a device").
-		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+	ws.Route(ws.DELETE("/{id}/free").To(dr.freeMachine).
+		Doc("free a machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.Device{}).
+		Returns(http.StatusOK, "OK", metal.Machine{}).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/ipmi").To(dr.ipmiData).
-		Doc("returns the IPMI connection data for a device").
+		Doc("returns the IPMI connection data for a machine").
 		Operation("ipmiData").
-		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.IPMI{}).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
-		Doc("wait for an allocation of this device").
-		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Doc("wait for an allocation of this machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.DeviceWithPhoneHomeToken{}).
+		Returns(http.StatusOK, "OK", metal.MachineWithPhoneHomeToken{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", nil).
 		Returns(http.StatusNotFound, "Not Found", nil))
 
 	ws.Route(ws.POST("/{id}/report").To(dr.allocationReport).
-		Doc("send the allocation report of a given device").
-		Param(ws.PathParameter("id", "identifier of the device").DataType("string")).
+		Doc("send the allocation report of a given machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.ReportAllocation{}).
-		Returns(http.StatusOK, "OK", metal.DeviceAllocation{}).
+		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
-		Doc("phone back home from the device").
+		Doc("phone back home from the machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.PhoneHomeRequest{}).
 		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusNotFound, "Device could not be found by id", nil).
+		Returns(http.StatusNotFound, "Machine could not be found by id", nil).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
 	return ws
 }
 
-func (dr deviceResource) waitForAllocation(request *restful.Request, response *restful.Response) {
+func (dr machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	ctx := request.Request.Context()
 	err := dr.ds.Wait(id, func(alloc datastore.Allocation) error {
@@ -150,13 +150,13 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
 			return fmt.Errorf("server timeout")
 		case a := <-alloc:
-			dr.Info("return allocated device", "device", a)
+			dr.Info("return allocated machine", "machine", a)
 			ka := jwt.NewPhoneHomeClaims(&a)
 			token, err := ka.JWT()
 			if err != nil {
 				return fmt.Errorf("could not create jwt: %v", err)
 			}
-			response.WriteEntity(metal.DeviceWithPhoneHomeToken{Device: &a, PhoneHomeToken: token})
+			response.WriteEntity(metal.MachineWithPhoneHomeToken{Machine: &a, PhoneHomeToken: token})
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
 		}
@@ -167,7 +167,7 @@ func (dr deviceResource) waitForAllocation(request *restful.Request, response *r
 	}
 }
 
-func (dr deviceResource) phoneHome(request *restful.Request, response *restful.Response) {
+func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
 	var data metal.PhoneHomeRequest
 	err := request.ReadEntity(&data)
 	if err != nil {
@@ -179,51 +179,51 @@ func (dr deviceResource) phoneHome(request *restful.Request, response *restful.R
 		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token is invalid: %v", err))
 		return
 	}
-	if c.Device == nil || c.Device.ID == "" {
+	if c.Machine == nil || c.Machine.ID == "" {
 		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token contains malformed data"))
 		return
 	}
-	oldDevice, err := dr.ds.FindDevice(c.Device.ID)
+	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
 	if err != nil {
 		sendError(dr.log, response, "phoneHome", http.StatusNotFound, err)
 		return
 	}
-	if oldDevice.Allocation == nil {
-		dr.Error("unallocated devices sends phoneHome", "device", *oldDevice)
-		sendError(dr.log, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this device is not allocated"))
+	if oldMachine.Allocation == nil {
+		dr.Error("unallocated machines sends phoneHome", "machine", *oldMachine)
+		sendError(dr.log, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this machine is not allocated"))
 	}
-	newDevice := *oldDevice
-	newDevice.Allocation.LastPing = time.Now()
-	err = dr.ds.UpdateDevice(oldDevice, &newDevice)
+	newMachine := *oldMachine
+	newMachine.Allocation.LastPing = time.Now()
+	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
 	if checkError(dr.log, response, "phoneHome", err) {
 		return
 	}
 	response.WriteEntity(nil)
 }
 
-func (dr deviceResource) searchDevice(request *restful.Request, response *restful.Response) {
+func (dr machineResource) searchMachine(request *restful.Request, response *restful.Response) {
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
 
-	result, err := dr.ds.SearchDevice(mac)
-	if checkError(dr.log, response, "searchDevice", err) {
+	result, err := dr.ds.SearchMachine(mac)
+	if checkError(dr.log, response, "searchMachine", err) {
 		return
 	}
 
 	response.WriteEntity(result)
 }
 
-func (dr deviceResource) registerDevice(request *restful.Request, response *restful.Response) {
-	var data metal.RegisterDevice
+func (dr machineResource) registerMachine(request *restful.Request, response *restful.Response) {
+	var data metal.RegisterMachine
 	err := request.ReadEntity(&data)
-	if checkError(dr.log, response, "registerDevice", err) {
+	if checkError(dr.log, response, "registerMachine", err) {
 		return
 	}
 	if data.UUID == "" {
-		sendError(dr.log, response, "registerDevice", http.StatusUnprocessableEntity, fmt.Errorf("No UUID given"))
+		sendError(dr.log, response, "registerMachine", http.StatusUnprocessableEntity, fmt.Errorf("No UUID given"))
 		return
 	}
 	part, err := dr.ds.FindPartition(data.PartitionID)
-	if checkError(dr.log, response, "registerDevice", err) {
+	if checkError(dr.log, response, "registerMachine", err) {
 		return
 	}
 
@@ -234,25 +234,25 @@ func (dr deviceResource) registerDevice(request *restful.Request, response *rest
 	}
 
 	err = dr.netbox.Register(part.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
-	if checkError(dr.log, response, "registerDevice", err) {
+	if checkError(dr.log, response, "registerMachine", err) {
 		return
 	}
 
-	device, err := dr.ds.RegisterDevice(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI)
+	m, err := dr.ds.RegisterMachine(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI)
 
-	if checkError(dr.log, response, "registerDevice", err) {
+	if checkError(dr.log, response, "registerMachine", err) {
 		return
 	}
 
-	err = dr.ds.UpdateSwitchConnections(device)
-	if checkError(dr.log, response, "registerDevice", err) {
+	err = dr.ds.UpdateSwitchConnections(m)
+	if checkError(dr.log, response, "registerMachine", err) {
 		return
 	}
 
-	response.WriteEntity(device)
+	response.WriteEntity(m)
 }
 
-func (dr deviceResource) ipmiData(request *restful.Request, response *restful.Response) {
+func (dr machineResource) ipmiData(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	ipmi, err := dr.ds.FindIPMI(id)
 
@@ -262,66 +262,66 @@ func (dr deviceResource) ipmiData(request *restful.Request, response *restful.Re
 	response.WriteEntity(ipmi)
 }
 
-func (dr deviceResource) allocateDevice(request *restful.Request, response *restful.Response) {
-	var allocate metal.AllocateDevice
+func (dr machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+	var allocate metal.AllocateMachine
 	err := request.ReadEntity(&allocate)
-	if checkError(dr.log, response, "allocateDevice", err) {
+	if checkError(dr.log, response, "allocateMachine", err) {
 		return
 	}
 	if allocate.Tenant == "" {
-		if checkError(dr.log, response, "allocateDevice", fmt.Errorf("no tenant given")) {
+		if checkError(dr.log, response, "allocateMachine", fmt.Errorf("no tenant given")) {
 			dr.log.Error("allocate", zap.String("tenant", "missing"))
 			return
 		}
 	}
 	image, err := dr.ds.FindImage(allocate.ImageID)
-	if checkError(dr.log, response, "allocateDevice", err) {
+	if checkError(dr.log, response, "allocateMachine", err) {
 		return
 	}
 	size, err := dr.ds.FindSize(allocate.SizeID)
-	if checkError(dr.log, response, "allocateDevice", err) {
+	if checkError(dr.log, response, "allocateMachine", err) {
 		return
 	}
 	part, err := dr.ds.FindPartition(allocate.PartitionID)
-	if checkError(dr.log, response, "allocateDevice", err) {
+	if checkError(dr.log, response, "allocateMachine", err) {
 		return
 	}
 
-	d, err := dr.ds.AllocateDevice(allocate.Name, allocate.Description, allocate.Hostname,
+	d, err := dr.ds.AllocateMachine(allocate.Name, allocate.Description, allocate.Hostname,
 		allocate.ProjectID, part, size,
 		image, allocate.SSHPubKeys,
 		allocate.UserData,
 		allocate.Tenant,
 		dr.netbox)
 	if err != nil {
-		if err == datastore.ErrNoDeviceAvailable {
-			sendError(dr.log, response, "allocateDevice", http.StatusNotFound, err)
+		if err == datastore.ErrNoMachineAvailable {
+			sendError(dr.log, response, "allocateMachine", http.StatusNotFound, err)
 		} else {
-			sendError(dr.log, response, "allocateDevice", http.StatusUnprocessableEntity, err)
+			sendError(dr.log, response, "allocateMachine", http.StatusUnprocessableEntity, err)
 		}
 		return
 	}
 	response.WriteEntity(d)
 }
 
-func (dr deviceResource) freeDevice(request *restful.Request, response *restful.Response) {
+func (dr machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	device, err := dr.ds.FreeDevice(id)
-	if checkError(dr.log, response, "freeDevice", err) {
+	m, err := dr.ds.FreeMachine(id)
+	if checkError(dr.log, response, "freeMachine", err) {
 		return
 	}
 	err = dr.netbox.Release(id)
-	if checkError(dr.log, response, "freeDevice", err) {
+	if checkError(dr.log, response, "freeMachine", err) {
 		return
 	}
 
-	evt := metal.DeviceEvent{Type: metal.DELETE, Old: device}
-	dr.Publish("device", evt)
+	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
+	dr.Publish("machine", evt)
 	dr.Info("publish delete event", "event", evt)
-	response.WriteEntity(device)
+	response.WriteEntity(m)
 }
 
-func (dr deviceResource) allocationReport(request *restful.Request, response *restful.Response) {
+func (dr machineResource) allocationReport(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	var report metal.ReportAllocation
 	err := request.ReadEntity(&report)
@@ -329,22 +329,22 @@ func (dr deviceResource) allocationReport(request *restful.Request, response *re
 		return
 	}
 
-	dev, err := dr.ds.FindDevice(id)
+	m, err := dr.ds.FindMachine(id)
 
 	if checkError(dr.log, response, "allocationReport", err) {
 		return
 	}
 	if !report.Success {
 		dr.Errorw("failed allocation", "id", id, "error-message", report.ErrorMessage)
-		response.WriteEntity(dev.Allocation)
+		response.WriteEntity(m.Allocation)
 		return
 	}
-	if dev.Allocation == nil {
-		sendError(dr.log, response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the device %q is not allocated", id))
+	if m.Allocation == nil {
+		sendError(dr.log, response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q is not allocated", id))
 		return
 	}
-	old := *dev
-	dev.Allocation.ConsolePassword = report.ConsolePassword
-	dr.ds.UpdateDevice(&old, dev)
-	response.WriteEntity(dev.Allocation)
+	old := *m
+	m.Allocation.ConsolePassword = report.ConsolePassword
+	dr.ds.UpdateMachine(&old, m)
+	response.WriteEntity(m.Allocation)
 }

@@ -19,10 +19,6 @@ createmasterdata:
 	@cat masterdata/sizes.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/size
 	@cat masterdata/partitions.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/partition
 
-.PHONY: createtestdevices
-createtestdevices:
-	@cat masterdata/testdevices.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPOST -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/device/register
-
 .PHONY: localbuild
 localbuild: bin/$(BINARY) Dockerfile.dev
 	docker build -t registry.fi-ts.io/metal/metal-api -f Dockerfile.dev .

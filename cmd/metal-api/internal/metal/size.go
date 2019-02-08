@@ -48,7 +48,7 @@ func (sz Sizes) ByID() SizeMap {
 
 // FromHardware searches a Size for given hardware specs. It will search
 // for a size where at least one constraint matches the given hardware.
-func (sz Sizes) FromHardware(hardware DeviceHardware) (*Size, error) {
+func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
 	var found []Size
 	for _, s := range sz {
 		for _, c := range s.Constraints {

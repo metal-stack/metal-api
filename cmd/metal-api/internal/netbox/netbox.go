@@ -64,7 +64,7 @@ func (nb *APIProxy) authenticate(rq runtime.ClientRequest, rg strfmt.Registry) e
 	return nil
 }
 
-// Register registers the given device in netbox.
+// Register registers the given machine in netbox.
 func (nb *APIProxy) Register(partid, rackid, size, uuid string, hwnics []metal.Nic) error {
 	parms := nbmachine.NewNetboxAPIProxyAPIMachineRegisterParams()
 	parms.UUID = uuid
@@ -83,7 +83,7 @@ func (nb *APIProxy) Register(partid, rackid, size, uuid string, hwnics []metal.N
 	return nil
 }
 
-// Allocate uses the given devices for the given tenant. On success it returns
+// Allocate uses the given machines for the given tenant. On success it returns
 // the CIDR which must be used in the new machine.
 func (nb *APIProxy) Allocate(uuid string, tenant string, vrf uint, project, name, description, os string) (string, error) {
 	parms := nbmachine.NewNetboxAPIProxyAPIMachineAllocateParams()
@@ -105,7 +105,7 @@ func (nb *APIProxy) Allocate(uuid string, tenant string, vrf uint, project, name
 	return *rsp.Payload.Cidr, nil
 }
 
-// Release releases the device with the given uuid in the netbox.
+// Release releases the machine with the given uuid in the netbox.
 func (nb *APIProxy) Release(uuid string) error {
 	parms := nbmachine.NewNetboxAPIProxyAPIMachineReleaseParams()
 	parms.UUID = uuid

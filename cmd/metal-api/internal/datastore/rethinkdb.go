@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	tables = []string{"image", "size", "partition", "device", "switch", "wait", "ipmi", "vrf"}
+	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "ipmi", "vrf"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -68,8 +68,8 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 			return db.TableCreate(r, opts)
 		}),
 		// create indices
-		db.Table("device").IndexList().Contains("project").Do(func(i r.Term) r.Term {
-			return r.Branch(i, nil, db.Table("device").IndexCreate("project"))
+		db.Table("machine").IndexList().Contains("project").Do(func(i r.Term) r.Term {
+			return r.Branch(i, nil, db.Table("mahine").IndexCreate("project"))
 		}),
 	)
 }
@@ -86,8 +86,8 @@ func (rs *RethinkStore) partitionTable() *r.Term {
 	res := r.DB(rs.dbname).Table("partition")
 	return &res
 }
-func (rs *RethinkStore) deviceTable() *r.Term {
-	res := r.DB(rs.dbname).Table("device")
+func (rs *RethinkStore) machineTable() *r.Term {
+	res := r.DB(rs.dbname).Table("machine")
 	return &res
 }
 func (rs *RethinkStore) switchTable() *r.Term {

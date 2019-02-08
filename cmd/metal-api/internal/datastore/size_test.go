@@ -228,7 +228,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	type args struct {
-		hw metal.DeviceHardware
+		hw metal.MachineHardware
 	}
 	tests := []struct {
 		name    string
@@ -242,7 +242,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 			name: "TestRethinkStore_FromHardware Test 1",
 			rs:   ds,
 			args: args{
-				hw: testdata.DeviceHardware1,
+				hw: testdata.MachineHardware1,
 			},
 			want:    &testdata.Sz1,
 			wantErr: false,

@@ -94,5 +94,5 @@ func TestUpdateSwitch(t *testing.T) {
 	require.Equal(t, testdata.Switch1.PartitionID, result.PartitionID)
 	require.Len(t, result.Connections, 2)
 	con := result.Connections[0]
-	require.Equal(t, testdata.Switch1.DeviceConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)
+	require.Equal(t, testdata.Switch1.MachineConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)
 }

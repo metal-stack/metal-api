@@ -14,7 +14,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 
 	sw := testdata.Switch1
 	cons := make(metal.Connections, 0)
-	for _, cc := range sw.DeviceConnections {
+	for _, cc := range sw.MachineConnections {
 		for _, c := range cc {
 			cons = append(cons, c)
 		}
@@ -315,7 +315,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	type args struct {
-		dev *metal.Device
+		dev *metal.Machine
 	}
 	tests := []struct {
 		name    string
@@ -328,7 +328,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 			name: "TestRethinkStore_UpdateSwitchConnections Test 1",
 			rs:   ds,
 			args: args{
-				&testdata.D1,
+				&testdata.M1,
 			},
 			wantErr: false,
 		},
@@ -336,7 +336,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 			name: "TestRethinkStore_UpdateSwitchConnections Test 2",
 			rs:   ds,
 			args: args{
-				&testdata.D2,
+				&testdata.M2,
 			},
 			wantErr: false,
 		},

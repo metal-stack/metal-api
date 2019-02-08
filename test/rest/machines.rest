@@ -1,6 +1,6 @@
-@baseurl = {{scheme}}://{{host}}/v1/device
+@baseurl = {{scheme}}://{{host}}/v1/machine
 
-### register a device
+### register a machine
 # @name register
 POST {{baseurl}}/register
 Content-Type: application/json
@@ -43,17 +43,17 @@ Content-Type: application/json
   "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873"
 }
 
-### wait for a device
+### wait for a machine
 # @name wait
 GET {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/wait
 
 
-### free a device
+### free a machine
 # @name free
 DELETE {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
 
 
-### allocate a device
+### allocate a machine
 # @name allocate
 POST {{baseurl}}/allocate
 Content-Type: application/json
