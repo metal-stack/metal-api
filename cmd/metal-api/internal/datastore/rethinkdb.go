@@ -69,7 +69,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		}),
 		// create indices
 		db.Table("machine").IndexList().Contains("project").Do(func(i r.Term) r.Term {
-			return r.Branch(i, nil, db.Table("mahine").IndexCreate("project"))
+			return r.Branch(i, nil, db.Table("machine").IndexCreate("project"))
 		}),
 	)
 }
