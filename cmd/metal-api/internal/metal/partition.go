@@ -1,7 +1,7 @@
 package metal
 
-// A Site represents a location.
-type Site struct {
+// A Partition represents a location.
+type Partition struct {
 	Base
 	BootConfiguration BootConfiguration `json:"bootconfig"`
 }
@@ -13,15 +13,15 @@ type BootConfiguration struct {
 	CommandLine string `json:"commandline" description:"the cmdline to the kernel for the boot image" rethinkdb:"commandline"`
 }
 
-// Sites is a list of sites.
-type Sites []Site
+// Partitions is a list of partitions.
+type Partitions []Partition
 
-// SiteMap is an indexed map of sites
-type SiteMap map[string]Site
+// PartitionMap is an indexed map of partitions
+type PartitionMap map[string]Partition
 
-// ByID creates an indexed map of sites whre the id is the index.
-func (sz Sites) ByID() SiteMap {
-	res := make(SiteMap)
+// ByID creates an indexed map of partitions whre the id is the index.
+func (sz Partitions) ByID() PartitionMap {
+	res := make(PartitionMap)
 	for i, s := range sz {
 		res[s.ID] = sz[i]
 	}

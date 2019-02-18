@@ -14,14 +14,14 @@ const (
 	UPDATE EventType = "update"
 	DELETE EventType = "delete"
 
-	TopicDevice NSQTopic = "device"
+	TopicMachine NSQTopic = "machine"
 )
 
 var (
 	// Topics is a list of topics of which the metal-api is a producer.
 	// metal-api will make sure these topics exist when it is started.
 	Topics = []NSQTopic{
-		TopicDevice,
+		TopicMachine,
 	}
 )
 

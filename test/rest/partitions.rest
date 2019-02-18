@@ -1,6 +1,6 @@
-@baseurl = {{scheme}}://{{host}}/v1/site
+@baseurl = {{scheme}}://{{host}}/v1/partition
 
-### get all sites
+### get all partitions
 # @name getAll
 GET {{baseurl}}
 

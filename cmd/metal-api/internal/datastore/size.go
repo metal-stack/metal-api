@@ -77,7 +77,7 @@ func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) err
 }
 
 // FromHardware tries to find a size which matches the given hardware specs.
-func (rs *RethinkStore) FromHardware(hw metal.DeviceHardware) (*metal.Size, error) {
+func (rs *RethinkStore) FromHardware(hw metal.MachineHardware) (*metal.Size, error) {
 	sz, err := rs.ListSizes()
 	if err != nil {
 		return nil, err

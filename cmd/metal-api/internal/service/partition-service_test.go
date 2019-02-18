@@ -15,13 +15,13 @@ import (
 	restful "github.com/emicklei/go-restful"
 )
 
-func TestGetImages(t *testing.T) {
+func TestGetPartitions(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
-	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/v1/image", nil)
+	service := NewPartition(testdata.Testlogger, ds)
+	container := restful.NewContainer().Add(service)
+	req := httptest.NewRequest("GET", "/v1/partition", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -31,21 +31,21 @@ func TestGetImages(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Len(t, result, 3)
-	require.Equal(t, testdata.Img1.ID, result[0].ID)
-	require.Equal(t, testdata.Img1.Name, result[0].Name)
-	require.Equal(t, testdata.Img2.ID, result[1].ID)
-	require.Equal(t, testdata.Img2.Name, result[1].Name)
-	require.Equal(t, testdata.Img3.ID, result[2].ID)
-	require.Equal(t, testdata.Img3.Name, result[2].Name)
+	require.Equal(t, testdata.Partition1.ID, result[0].ID)
+	require.Equal(t, testdata.Partition1.Name, result[0].Name)
+	require.Equal(t, testdata.Partition2.ID, result[1].ID)
+	require.Equal(t, testdata.Partition2.Name, result[1].Name)
+	require.Equal(t, testdata.Partition3.ID, result[2].ID)
+	require.Equal(t, testdata.Partition3.Name, result[2].Name)
 }
 
-func TestGetImage(t *testing.T) {
+func TestGetPartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
-	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/v1/image/1", nil)
+	service := NewPartition(testdata.Testlogger, ds)
+	container := restful.NewContainer().Add(service)
+	req := httptest.NewRequest("GET", "/v1/partition/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -54,17 +54,17 @@ func TestGetImage(t *testing.T) {
 	var result metal.Partition
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Partition1.ID, result.ID)
+	require.Equal(t, testdata.Partition1.Name, result.Name)
 }
 
-func TestGetImageNotFound(t *testing.T) {
+func TestGetPartitionNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
-	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/v1/image/999", nil)
+	service := NewPartition(testdata.Testlogger, ds)
+	container := restful.NewContainer().Add(service)
+	req := httptest.NewRequest("GET", "/v1/partition/999", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -72,13 +72,13 @@ func TestGetImageNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 
-func TestDeleteImage(t *testing.T) {
+func TestDeletePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
-	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("DELETE", "/v1/image/1", nil)
+	service := NewPartition(testdata.Testlogger, ds)
+	container := restful.NewContainer().Add(service)
+	req := httptest.NewRequest("DELETE", "/v1/partition/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -87,20 +87,20 @@ func TestDeleteImage(t *testing.T) {
 	var result metal.Partition
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Partition1.ID, result.ID)
+	require.Equal(t, testdata.Partition1.Name, result.Name)
 }
 
-func TestCreateImage(t *testing.T) {
+func TestCreatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
-	container := restful.NewContainer().Add(imageservice)
+	service := NewPartition(testdata.Testlogger, ds)
+	container := restful.NewContainer().Add(service)
 
-	js, _ := json.Marshal(testdata.Img1)
+	js, _ := json.Marshal(testdata.Partition1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("PUT", "/v1/image", body)
+	req := httptest.NewRequest("PUT", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -110,20 +110,21 @@ func TestCreateImage(t *testing.T) {
 	var result metal.Partition
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Partition1.ID, result.ID)
+	require.Equal(t, testdata.Partition1.Name, result.Name)
+	require.Equal(t, testdata.Partition1.Description, result.Description)
 }
 
-func TestUpdateImage(t *testing.T) {
+func TestUpdatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
-	container := restful.NewContainer().Add(imageservice)
+	service := NewPartition(testdata.Testlogger, ds)
+	container := restful.NewContainer().Add(service)
 
-	js, _ := json.Marshal(testdata.Img1)
+	js, _ := json.Marshal(testdata.Partition1)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/image", body)
+	req := httptest.NewRequest("POST", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -133,6 +134,7 @@ func TestUpdateImage(t *testing.T) {
 	var result metal.Partition
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Partition1.ID, result.ID)
+	require.Equal(t, testdata.Partition1.Name, result.Name)
+	require.Equal(t, testdata.Partition1.Description, result.Description)
 }

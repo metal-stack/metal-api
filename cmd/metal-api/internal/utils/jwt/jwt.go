@@ -12,14 +12,14 @@ var phoneHomeHmacSecret = []byte("someSortOfSecret0812")
 
 // PhoneHomeClaims contains the structue of the JWT payload
 type PhoneHomeClaims struct {
-	Device *metal.Device `json:"device"`
+	Machine *metal.Machine `json:"machine"`
 	jwt.StandardClaims
 }
 
-// New creates PhoneHomeClaims with a device
-func NewPhoneHomeClaims(d *metal.Device) *PhoneHomeClaims {
+// New creates PhoneHomeClaims with a machine
+func NewPhoneHomeClaims(d *metal.Machine) *PhoneHomeClaims {
 	c := &PhoneHomeClaims{}
-	c.Device = d
+	c.Machine = d
 	c.StandardClaims = jwt.StandardClaims{}
 	return c
 }

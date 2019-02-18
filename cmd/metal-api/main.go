@@ -173,8 +173,8 @@ func initEventBus() {
 			continue
 		}
 		logger.Infow("nsq connected", "nsqd", nsqd)
-		if err := p.CreateTopic(string(metal.TopicDevice)); err != nil {
-			logger.Errorw("cannot create TopicDevice", "error", err)
+		if err := p.CreateTopic(string(metal.TopicMachine)); err != nil {
+			logger.Errorw("cannot create Topic", "topic", metal.TopicMachine, "error", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -208,10 +208,10 @@ func initDataStore() {
 
 func initRestServices() *restfulspec.Config {
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewSite(lg, ds))
+	restful.DefaultContainer.Add(service.NewPartition(lg, ds))
 	restful.DefaultContainer.Add(service.NewImage(lg, ds))
 	restful.DefaultContainer.Add(service.NewSize(lg, ds))
-	restful.DefaultContainer.Add(service.NewDevice(lg, ds, producer, nbproxy))
+	restful.DefaultContainer.Add(service.NewMachine(lg, ds, producer, nbproxy))
 	restful.DefaultContainer.Add(service.NewSwitch(lg, ds, nbproxy))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
@@ -288,8 +288,8 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "size",
 			Description: "Managing size entities"}},
 		spec.Tag{TagProps: spec.TagProps{
-			Name:        "device",
-			Description: "Managing devices"}},
+			Name:        "machine",
+			Description: "Managing machines"}},
 		spec.Tag{TagProps: spec.TagProps{
 			Name:        "switch",
 			Description: "Managing switches"}},

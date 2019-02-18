@@ -100,17 +100,17 @@ func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.S
 	return nil
 }
 
-// UpdateSwitchConnections fills the output fiedl of the device with a list
+// UpdateSwitchConnections fills the output fiedl of the machine with a list
 // of connections. As the connections are stored in a map which is not visible via
 // json, this map is transformed to a collection for the clients.
-func (rs *RethinkStore) UpdateSwitchConnections(dev *metal.Device) error {
-	switches, err := rs.findSwitchByRack(dev.RackID)
+func (rs *RethinkStore) UpdateSwitchConnections(m *metal.Machine) error {
+	switches, err := rs.findSwitchByRack(m.RackID)
 	if err != nil {
 		return err
 	}
 	for _, sw := range switches {
 		oldSwitch := sw
-		sw.ConnectDevice(dev)
+		sw.ConnectMachine(m)
 		err := rs.UpdateSwitch(&oldSwitch, &sw)
 		if err != nil {
 			return err

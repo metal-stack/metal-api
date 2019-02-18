@@ -21,22 +21,22 @@ var (
 		Base: Base{
 			ID: "switch1",
 		},
-		SiteID: "1",
-		RackID: "1",
-		Nics:   testNics,
-		DeviceConnections: ConnectionMap{
+		PartitionID: "1",
+		RackID:      "1",
+		Nics:        testNics,
+		MachineConnections: ConnectionMap{
 			"1": Connections{
 				Connection{
 					Nic: Nic{
 						MacAddress: MacAddress("11:11:11:11:11:11"),
 					},
-					DeviceID: "1",
+					MachineID: "1",
 				},
 				Connection{
 					Nic: Nic{
 						MacAddress: MacAddress("11:11:11:11:11:22"),
 					},
-					DeviceID: "1",
+					MachineID: "1",
 				},
 			},
 		},
@@ -45,21 +45,21 @@ var (
 
 // Gerrit and me implemented that monster in a one shot which worked.
 
-func TestSwitch_ConnectDevice2(t *testing.T) {
+func TestSwitch_ConnectMachine2(t *testing.T) {
 	type fields struct {
-		ID                string
-		Nics              []Nic
-		DeviceConnections ConnectionMap
-		SiteID            string
-		RackID            string
-		Created           time.Time
-		Changed           time.Time
-		Site              Site
+		ID                 string
+		Nics               []Nic
+		MachineConnections ConnectionMap
+		PartitionID        string
+		RackID             string
+		Created            time.Time
+		Changed            time.Time
+		Partition          Partition
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		device *Device
+		name    string
+		fields  fields
+		machine *Machine
 	}{
 		// Test Data Array (Only 1 Value):
 		{
@@ -80,37 +80,37 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 						MacAddress: "22:11:11",
 					},
 				},
-				SiteID: "nbg1",
-				Site: Site{
+				PartitionID: "nbg1",
+				Partition: Partition{
 					Base: Base{
 						ID: "nbg1",
 					},
 				},
 				RackID: "rack1",
-				DeviceConnections: ConnectionMap{
-					"device-1": []Connection{
+				MachineConnections: ConnectionMap{
+					"machine-1": []Connection{
 						Connection{
 							Nic: Nic{
 								Name:       "swp1",
 								MacAddress: "11:11:11",
 							},
-							DeviceID: "device-1",
+							MachineID: "machine-1",
 						},
 						Connection{
 							Nic: Nic{
 								Name:       "swp2",
 								MacAddress: "22:11:11",
 							},
-							DeviceID: "device-1",
+							MachineID: "machine-1",
 						},
 					},
 				},
 			},
-			device: &Device{
+			machine: &Machine{
 				Base: Base{
-					ID: "device-1",
+					ID: "machine-1",
 				},
-				Hardware: DeviceHardware{
+				Hardware: MachineHardware{
 					Nics: []Nic{
 						Nic{
 							Name: "eth0",
@@ -141,10 +141,10 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSwitch(tt.fields.ID, tt.fields.RackID, tt.fields.Nics, &tt.fields.Site)
-			s.ConnectDevice(tt.device)
-			if !reflect.DeepEqual(s.DeviceConnections, tt.fields.DeviceConnections) {
-				t.Errorf("expected:%v, got:%v", s.DeviceConnections, tt.fields.DeviceConnections)
+			s := NewSwitch(tt.fields.ID, tt.fields.RackID, tt.fields.Nics, &tt.fields.Partition)
+			s.ConnectMachine(tt.machine)
+			if !reflect.DeepEqual(s.MachineConnections, tt.fields.MachineConnections) {
+				t.Errorf("expected:%v, got:%v", s.MachineConnections, tt.fields.MachineConnections)
 			}
 		})
 	}
@@ -152,10 +152,10 @@ func TestSwitch_ConnectDevice2(t *testing.T) {
 
 func TestNewSwitch(t *testing.T) {
 	type args struct {
-		id     string
-		rackid string
-		nics   Nics
-		site   *Site
+		id        string
+		rackid    string
+		nics      Nics
+		partition *Partition
 	}
 
 	tests := []struct {
@@ -170,10 +170,10 @@ func TestNewSwitch(t *testing.T) {
 				id:     "1",
 				rackid: "1",
 				nics:   testNics,
-				site: &Site{
+				partition: &Partition{
 					Base: Base{
 						ID:          "1",
-						Name:        "site1",
+						Name:        "partition1",
 						Description: "description 1",
 					},
 				},
@@ -184,15 +184,15 @@ func TestNewSwitch(t *testing.T) {
 					ID:   "1",
 					Name: "1",
 				},
-				SiteID:            "1",
-				RackID:            "1",
-				Connections:       make([]Connection, 0),
-				DeviceConnections: make(ConnectionMap),
-				Nics:              testNics,
-				Site: Site{
+				PartitionID:        "1",
+				RackID:             "1",
+				Connections:        make([]Connection, 0),
+				MachineConnections: make(ConnectionMap),
+				Nics:               testNics,
+				Partition: Partition{
 					Base: Base{
 						ID:          "1",
-						Name:        "site1",
+						Name:        "partition1",
 						Description: "description 1",
 					},
 				},
@@ -202,7 +202,7 @@ func TestNewSwitch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewSwitch(tt.args.id, tt.args.rackid, tt.args.nics, tt.args.site); !reflect.DeepEqual(got, tt.want) {
+			if got := NewSwitch(tt.args.id, tt.args.rackid, tt.args.nics, tt.args.partition); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewSwitch() = %v, want %v", got, tt.want)
 			}
 		})
@@ -217,14 +217,14 @@ func TestConnections_ByNic(t *testing.T) {
 				Name:       "swp1",
 				MacAddress: "11:11:11",
 			},
-			DeviceID: "device-1",
+			MachineID: "machine-1",
 		},
 		Connection{
 			Nic: Nic{
 				Name:       "swp2",
 				MacAddress: "22:11:11",
 			},
-			DeviceID: "device-2",
+			MachineID: "machine-2",
 		},
 	}
 
@@ -299,24 +299,24 @@ func TestFillAllConnections(t *testing.T) {
 
 	// Creates the Switches for the test data
 	switches := make([]Switch, 3)
-	switches[0] = *NewSwitch("device-1", "rack-1", testNics, &Site{
+	switches[0] = *NewSwitch("machine-1", "rack-1", testNics, &Partition{
 		Base: Base{
 			ID:          "1",
-			Name:        "site1",
+			Name:        "partition1",
 			Description: "description 1",
 		},
 	})
-	switches[1] = *NewSwitch("device-2", "rack-1", testNics, &Site{
+	switches[1] = *NewSwitch("machine-2", "rack-1", testNics, &Partition{
 		Base: Base{
 			ID:          "1",
-			Name:        "site1",
+			Name:        "partition1",
 			Description: "description 1",
 		},
 	})
-	switches[2] = *NewSwitch("device-3", "rack-2", testNics, &Site{
+	switches[2] = *NewSwitch("machine-3", "rack-2", testNics, &Partition{
 		Base: Base{
 			ID:          "2",
-			Name:        "site2",
+			Name:        "partition2",
 			Description: "description 2",
 		},
 	})
@@ -340,9 +340,9 @@ func TestFillAllConnections(t *testing.T) {
 	}
 }
 
-func TestSwitch_ConnectDevice(t *testing.T) {
+func TestSwitch_ConnectMachine(t *testing.T) {
 	type args struct {
-		device *Device
+		*Machine
 	}
 	tests := []struct {
 		name string
@@ -351,28 +351,28 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 	}{
 		// Test-Data List / Test Cases:
 		{
-			name: "TestSwitch_ConnectDevice Test 1",
+			name: "Test 1",
 			s:    &switch1,
 			args: args{
-				device: &Device{
+				Machine: &Machine{
 					Base: Base{
 						Name:        "1-core/100 B",
-						Description: "a device with 1 core(s) and 100 B of RAM",
+						Description: "a machine with 1 core(s) and 100 B of RAM",
 						ID:          "5",
 					},
-					RackID: "1",
-					SiteID: "1",
-					Site: Site{
+					RackID:      "1",
+					PartitionID: "1",
+					Partition: Partition{
 						Base: Base{
 							ID:          "1",
-							Name:        "site1",
+							Name:        "partition1",
 							Description: "description 1",
 						},
 					},
 					SizeID:     "1",
 					Size:       &sz1,
 					Allocation: nil,
-					Hardware: DeviceHardware{
+					Hardware: MachineHardware{
 						Memory:   100,
 						CPUCores: 1,
 						Nics:     testNics,
@@ -389,7 +389,7 @@ func TestSwitch_ConnectDevice(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.s.ConnectDevice(tt.args.device)
+			tt.s.ConnectMachine(tt.args.Machine)
 		})
 	}
 }

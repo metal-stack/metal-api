@@ -17,7 +17,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 
-	nbdevice "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/devices"
+	nbmachine "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/machines"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -36,32 +36,32 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 	return nil
 }
 
-func TestGetDevices(t *testing.T) {
+func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/v1/device", nil)
+	req := httptest.NewRequest("GET", "/v1/machine", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []metal.Device
+	var result []metal.Machine
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Len(t, result, len(testdata.TestDevices))
-	require.Equal(t, testdata.D1.ID, result[0].ID)
-	require.Equal(t, testdata.D1.Allocation.Name, result[0].Allocation.Name)
+	require.Len(t, result, len(testdata.TestMachines))
+	require.Equal(t, testdata.M1.ID, result[0].ID)
+	require.Equal(t, testdata.M1.Allocation.Name, result[0].Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, result[0].Size.Name)
-	require.Equal(t, testdata.Site1.Name, result[0].Site.Name)
-	require.Equal(t, testdata.D2.ID, result[1].ID)
+	require.Equal(t, testdata.Partition1.Name, result[0].Partition.Name)
+	require.Equal(t, testdata.M2.ID, result[1].ID)
 }
 
-func TestRegisterDevice(t *testing.T) {
+func TestRegisterMachine(t *testing.T) {
 	ipmi := metal.IPMI{
 		Address:    "address",
 		Interface:  "interface",
@@ -70,12 +70,12 @@ func TestRegisterDevice(t *testing.T) {
 	data := []struct {
 		name               string
 		uuid               string
-		siteid             string
+		partitionid        string
 		numcores           int
 		memory             int
-		dbsites            []metal.Site
+		dbpartitions       []metal.Partition
 		dbsizes            []metal.Size
-		dbdevices          []metal.Device
+		dbmachines         []metal.Machine
 		netboxerror        error
 		ipmidberror        error
 		ipmiresult         []metal.IPMI
@@ -87,8 +87,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "insert new",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
@@ -101,8 +101,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "no ipmi data",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
@@ -115,8 +115,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "ipmi fetch error",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           1,
 			memory:             100,
@@ -130,10 +130,10 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:               "insert existing",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
-			dbdevices:          []metal.Device{testdata.D1},
+			dbmachines:         []metal.Machine{testdata.M1},
 			numcores:           1,
 			memory:             100,
 			expectedStatus:     http.StatusOK,
@@ -145,33 +145,33 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:           "empty uuid",
 			uuid:           "",
-			siteid:         "1",
-			dbsites:        []metal.Site{testdata.Site1},
+			partitionid:    "1",
+			dbpartitions:   []metal.Partition{testdata.Partition1},
 			dbsizes:        []metal.Size{testdata.Sz1},
 			expectedStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name:           "error when impi update fails",
 			uuid:           "1",
-			siteid:         "1",
-			dbsites:        []metal.Site{testdata.Site1},
+			partitionid:    "1",
+			dbpartitions:   []metal.Partition{testdata.Partition1},
 			dbsizes:        []metal.Size{testdata.Sz1},
 			ipmidberror:    fmt.Errorf("ipmi insert fails"),
 			expectedStatus: http.StatusUnprocessableEntity,
 		},
 		{
-			name:           "empty site",
+			name:           "empty partition",
 			uuid:           "1",
-			siteid:         "",
-			dbsites:        nil,
+			partitionid:    "",
+			dbpartitions:   nil,
 			dbsizes:        []metal.Size{testdata.Sz1},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:               "unknown size because wrong cpu",
 			uuid:               "1",
-			siteid:             "1",
-			dbsites:            []metal.Site{testdata.Site1},
+			partitionid:        "1",
+			dbpartitions:       []metal.Partition{testdata.Partition1},
 			dbsizes:            []metal.Size{testdata.Sz1},
 			numcores:           2,
 			memory:             100,
@@ -184,8 +184,8 @@ func TestRegisterDevice(t *testing.T) {
 		{
 			name:           "fail on netbox error",
 			uuid:           "1",
-			siteid:         "1",
-			dbsites:        []metal.Site{testdata.Site1},
+			partitionid:    "1",
+			dbpartitions:   []metal.Partition{testdata.Partition1},
 			dbsizes:        []metal.Size{testdata.Sz1},
 			numcores:       2,
 			memory:         100,
@@ -200,23 +200,23 @@ func TestRegisterDevice(t *testing.T) {
 				Conflict: "replace",
 			})).Return(testdata.EmptyResult, test.ipmidberror)
 
-			rr := metal.RegisterDevice{
-				UUID:   test.uuid,
-				SiteID: test.siteid,
-				RackID: "1",
-				IPMI:   ipmi,
-				Hardware: metal.DeviceHardware{
+			rr := metal.RegisterMachine{
+				UUID:        test.uuid,
+				PartitionID: test.partitionid,
+				RackID:      "1",
+				IPMI:        ipmi,
+				Hardware: metal.MachineHardware{
 					CPUCores: test.numcores,
 					Memory:   uint64(test.memory),
 				},
 			}
-			mock.On(r.DB("mockdb").Table("site").Get(test.siteid)).Return(test.dbsites, nil)
+			mock.On(r.DB("mockdb").Table("partition").Get(test.partitionid)).Return(test.dbpartitions, nil)
 
-			if len(test.dbdevices) > 0 {
-				mock.On(r.DB("mockdb").Table("size").Get(test.dbdevices[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
-				mock.On(r.DB("mockdb").Table("device").Get(test.dbdevices[0].ID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+			if len(test.dbmachines) > 0 {
+				mock.On(r.DB("mockdb").Table("size").Get(test.dbmachines[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
+				mock.On(r.DB("mockdb").Table("machine").Get(test.dbmachines[0].ID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			} else {
-				mock.On(r.DB("mockdb").Table("device").Insert(r.MockAnything(), r.InsertOpts{
+				mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{
 					Conflict: "replace",
 				})).Return(testdata.EmptyResult, nil)
 			}
@@ -227,16 +227,16 @@ func TestRegisterDevice(t *testing.T) {
 			pub := &emptyPublisher{}
 			nb := netbox.New()
 			called := false
-			nb.DoRegister = func(params *nbdevice.NetboxAPIProxyAPIDeviceRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceRegisterOK, error) {
+			nb.DoRegister = func(params *nbmachine.NetboxAPIProxyAPIMachineRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineRegisterOK, error) {
 				called = true
-				return &nbdevice.NetboxAPIProxyAPIDeviceRegisterOK{}, test.netboxerror
+				return &nbmachine.NetboxAPIProxyAPIMachineRegisterOK{}, test.netboxerror
 			}
 			js, _ := json.Marshal(rr)
 			body := bytes.NewBuffer(js)
 
-			dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+			dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 			container := restful.NewContainer().Add(dservice)
-			req := httptest.NewRequest("POST", "/v1/device/register", body)
+			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -246,20 +246,20 @@ func TestRegisterDevice(t *testing.T) {
 			if resp.StatusCode >= 300 {
 				return
 			}
-			var result metal.Device
+			var result metal.Machine
 
 			err := json.NewDecoder(resp.Body).Decode(&result)
 			require.Nil(t, err)
 			require.True(t, called, "netbox register was not called")
-			expectedid := testdata.D1.ID
-			if len(test.dbdevices) > 0 {
-				expectedid = test.dbdevices[0].ID
+			expectedid := testdata.M1.ID
+			if len(test.dbmachines) > 0 {
+				expectedid = test.dbmachines[0].ID
 			}
 			require.Equal(t, expectedid, result.ID)
 			require.Equal(t, test.expectedSizeName, result.Size.Name)
-			require.Equal(t, testdata.Site1.Name, result.Site.Name)
+			require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
 			// no read ipmi data
-			req = httptest.NewRequest("GET", fmt.Sprintf("/v1/device/%s/ipmi", test.uuid), nil)
+			req = httptest.NewRequest("GET", fmt.Sprintf("/v1/machine/%s/ipmi", test.uuid), nil)
 			req.Header.Add("Content-Type", "application/json")
 			w = httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -279,13 +279,13 @@ func TestRegisterDevice(t *testing.T) {
 	}
 }
 
-func TestReportDevice(t *testing.T) {
+func TestReportMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -293,26 +293,26 @@ func TestReportDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/1/report", body)
+	req := httptest.NewRequest("POST", "/v1/machine/1/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.DeviceAllocation
+	var result metal.MachineAllocation
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 	require.Equal(t, result.ConsolePassword, rep.ConsolePassword)
 }
 
-func TestReportFailureDevice(t *testing.T) {
+func TestReportFailureMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -321,25 +321,25 @@ func TestReportFailureDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/1/report", body)
+	req := httptest.NewRequest("POST", "/v1/machine/1/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.DeviceAllocation
+	var result metal.MachineAllocation
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
 }
 
-func TestReportUnknownDevice(t *testing.T) {
+func TestReportUnknownMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -348,7 +348,7 @@ func TestReportUnknownDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/999/report", body)
+	req := httptest.NewRequest("POST", "/v1/machine/999/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -363,7 +363,7 @@ func TestReportUnknownFailure(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -372,7 +372,7 @@ func TestReportUnknownFailure(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/404/report", body)
+	req := httptest.NewRequest("POST", "/v1/machine/404/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -381,13 +381,13 @@ func TestReportUnknownFailure(t *testing.T) {
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 }
 
-func TestReportUnallocatedDevice(t *testing.T) {
+func TestReportUnallocatedMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -396,7 +396,7 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	}
 	js, _ := json.Marshal(rep)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/device/3/report", body)
+	req := httptest.NewRequest("POST", "/v1/machine/3/report", body)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -405,64 +405,64 @@ func TestReportUnallocatedDevice(t *testing.T) {
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 }
 
-func TestGetDevice(t *testing.T) {
+func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/v1/device/1", nil)
+	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.Device
+	var result metal.Machine
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.Equal(t, testdata.D1.ID, result.ID)
-	require.Equal(t, testdata.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, testdata.M1.ID, result.ID)
+	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, testdata.Site1.Name, result.Site.Name)
+	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
 }
 
-func TestGetDeviceNotFound(t *testing.T) {
+func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/v1/device/999", nil)
+	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
-func TestFreeDevice(t *testing.T) {
+func TestFreeMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	pub.doPublish = func(topic string, data interface{}) error {
-		require.Equal(t, "device", topic)
-		dv := data.(metal.DeviceEvent)
+		require.Equal(t, "machine", topic)
+		dv := data.(metal.MachineEvent)
 		require.Equal(t, "1", dv.Old.ID)
 		return nil
 	}
 	nb := netbox.New()
 	called := false
-	nb.DoRelease = func(params *nbdevice.NetboxAPIProxyAPIDeviceReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbdevice.NetboxAPIProxyAPIDeviceReleaseOK, error) {
+	nb.DoRelease = func(params *nbmachine.NetboxAPIProxyAPIMachineReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineReleaseOK, error) {
 		called = true
-		return &nbdevice.NetboxAPIProxyAPIDeviceReleaseOK{}, nil
+		return &nbmachine.NetboxAPIProxyAPIMachineReleaseOK{}, nil
 	}
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("DELETE", "/v1/device/1/free", nil)
+	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -471,29 +471,29 @@ func TestFreeDevice(t *testing.T) {
 	require.True(t, called, "netbox.DoRelease was not called")
 }
 
-func TestSearchDevice(t *testing.T) {
+func TestSearchMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("device").Filter(r.MockAnything())).Return([]interface{}{testdata.D1}, nil)
+	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewDevice(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
-	req := httptest.NewRequest("GET", "/v1/device/find?mac=1", nil)
+	req := httptest.NewRequest("GET", "/v1/machine/find?mac=1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var results []metal.Device
+	var results []metal.Machine
 	err := json.NewDecoder(resp.Body).Decode(&results)
 	require.Nil(t, err)
 	require.Len(t, results, 1)
 	result := results[0]
-	require.Equal(t, testdata.D1.ID, result.ID)
-	require.Equal(t, testdata.D1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, testdata.M1.ID, result.ID)
+	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
-	require.Equal(t, testdata.Site1.Name, result.Site.Name)
+	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
 }

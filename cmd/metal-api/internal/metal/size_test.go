@@ -100,7 +100,7 @@ var (
 
 func TestSizes_FromHardware(t *testing.T) {
 	type args struct {
-		hardware DeviceHardware
+		hardware MachineHardware
 	}
 	tests := []struct {
 		name    string
@@ -117,7 +117,7 @@ func TestSizes_FromHardware(t *testing.T) {
 				tinySize,
 			},
 			args: args{
-				hardware: DeviceHardware{
+				hardware: MachineHardware{
 					CPUCores: 1,
 					Memory:   1069838336,
 				},
@@ -129,7 +129,7 @@ func TestSizes_FromHardware(t *testing.T) {
 			name: "match",
 			sz:   Sizes{tinySize},
 			args: args{
-				hardware: DeviceHardware{
+				hardware: MachineHardware{
 					CPUCores: 1,
 					Memory:   1024,
 				},
@@ -141,7 +141,7 @@ func TestSizes_FromHardware(t *testing.T) {
 			name: "one constraint matches",
 			sz:   Sizes{microAndTinySize},
 			args: args{
-				hardware: DeviceHardware{
+				hardware: MachineHardware{
 					CPUCores: 1,
 					Memory:   1024,
 				},
@@ -153,7 +153,7 @@ func TestSizes_FromHardware(t *testing.T) {
 			name: "too many matches",
 			sz:   Sizes{microSize, tinySize},
 			args: args{
-				hardware: DeviceHardware{
+				hardware: MachineHardware{
 					CPUCores: 1,
 					Memory:   1024,
 				},
@@ -165,7 +165,7 @@ func TestSizes_FromHardware(t *testing.T) {
 			name: "no match",
 			sz:   Sizes{microSize},
 			args: args{
-				hardware: DeviceHardware{
+				hardware: MachineHardware{
 					CPUCores: 1,
 					Memory:   2500,
 				},
@@ -180,7 +180,7 @@ func TestSizes_FromHardware(t *testing.T) {
 				sz999,
 			},
 			args: args{
-				hardware: DeviceHardware{
+				hardware: MachineHardware{
 					CPUCores: 999,
 					Memory:   100,
 				},

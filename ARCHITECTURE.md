@@ -1,6 +1,6 @@
 # Architectural Decisions
 
-## Netbox 
+## Netbox
 
 ### Reasoning
 
@@ -15,7 +15,7 @@ We found that DCIM and IPAM were often combined into the same piece of software.
 
 After looking at the solutions, it became pretty clear that only Netbox would satisfy the expectations we had. Main advantages over the other products were:
 
-- Versatile data model that can actually map our Metal Cloud datacenter (especially VRFs and Blade Chassis, i.e. Blade Servers can be children of a chassis and are located in device bays)
+- Versatile data model that can actually map our Metal Cloud datacenter (especially VRFs and Blade Chassis, i.e. Blade Servers can be children of a chassis and are located in machine bays)
 - Complete REST API with Swagger + authentication
 - Vibrant community, many Github stars
 - The UI in comparison to other products was pleasing to the eye
@@ -30,15 +30,15 @@ In order to tackle the main issue regarding the Swagger Client, we decided to in
 
 ## On How Netbox is Being Utilised in Metal
 
-The Netbox is a shadow inventory of our datacenter infrastructure and manages the IP addresses that are assigned to metal devices. We made the following decisions of what Netbox actually is being used for:
+The Netbox is a shadow inventory of our datacenter infrastructure and manages the IP addresses that are assigned to metal machines. We made the following decisions of what Netbox actually is being used for:
 
-- IPAM -> Managing IP addresses (that will be assigned to the devices)
-- Receive information from the `metal-api` on devices and persist them (including serial, site and rack location, network interfaces, owners...)
+- IPAM -> Managing IP addresses (that will be assigned to the machines)
+- Receive information from the `metal-api` on machines and persist them (including serial, partition and rack location, network interfaces, owners...)
 - Browsing the inventory with the Netbox web UI to get an overview over the datacenter
 
-If the Netbox is not present, device registration, allocation and release does not function.
+If the Netbox is not present, machine registration, allocation and release does not function.
 
 It is not used for:
 
-- Querying things (like requesting all devices to find out who the owners are), the `metal-api` does not rely on data stored in the Netbox for queries
+- Querying things (like requesting all machines to find out who the owners are), the `metal-api` does not rely on data stored in the Netbox for queries
 - Persisting the entire data relevant to the clients of the `metal-api` (e.g. SSH keys, OOB management credentials, ... are not stored in the Netbox). Some data is not really considered in the Netbox data model and we neither want to adopt their model nor do we want the Netbox to adopt our model.

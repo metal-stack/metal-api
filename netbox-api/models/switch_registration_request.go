@@ -19,24 +19,24 @@ import (
 // swagger:model SwitchRegistrationRequest
 type SwitchRegistrationRequest struct {
 
-	// The desired name for this device in the netbox
+	// The desired name for this machine in the netbox
 	// Required: true
 	// Min Length: 1
 	Name *string `json:"name"`
 
-	// The network interfaces of this device
+	// The network interfaces of this machine
 	// Required: true
 	Nics []*Nic `json:"nics"`
+
+	// The id of the partition
+	// Required: true
+	// Min Length: 1
+	Partition *string `json:"partition"`
 
 	// The name of the rack
 	// Required: true
 	// Min Length: 1
 	Rack *string `json:"rack"`
-
-	// The id of the site
-	// Required: true
-	// Min Length: 1
-	Site *string `json:"site"`
 }
 
 // Validate validates this switch registration request
@@ -51,11 +51,11 @@ func (m *SwitchRegistrationRequest) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateRack(formats); err != nil {
+	if err := m.validatePartition(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateSite(formats); err != nil {
+	if err := m.validateRack(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -103,6 +103,19 @@ func (m *SwitchRegistrationRequest) validateNics(formats strfmt.Registry) error 
 	return nil
 }
 
+func (m *SwitchRegistrationRequest) validatePartition(formats strfmt.Registry) error {
+
+	if err := validate.Required("partition", "body", m.Partition); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("partition", "body", string(*m.Partition), 1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *SwitchRegistrationRequest) validateRack(formats strfmt.Registry) error {
 
 	if err := validate.Required("rack", "body", m.Rack); err != nil {
@@ -110,19 +123,6 @@ func (m *SwitchRegistrationRequest) validateRack(formats strfmt.Registry) error 
 	}
 
 	if err := validate.MinLength("rack", "body", string(*m.Rack), 1); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *SwitchRegistrationRequest) validateSite(formats strfmt.Registry) error {
-
-	if err := validate.Required("site", "body", m.Site); err != nil {
-		return err
-	}
-
-	if err := validate.MinLength("site", "body", string(*m.Site), 1); err != nil {
 		return err
 	}
 

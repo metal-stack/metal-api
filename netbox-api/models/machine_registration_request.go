@@ -16,43 +16,43 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// DeviceRegistrationRequest device registration request
-// swagger:model DeviceRegistrationRequest
-type DeviceRegistrationRequest struct {
+// MachineRegistrationRequest machine registration request
+// swagger:model MachineRegistrationRequest
+type MachineRegistrationRequest struct {
 
-	// The network interfaces of this device
+	// The network interfaces of this machine
 	// Required: true
 	Nics []*Nic `json:"nics"`
+
+	// The id of the partition
+	// Required: true
+	// Min Length: 1
+	Partition *string `json:"partition"`
 
 	// The name of the rack
 	// Required: true
 	// Min Length: 1
 	Rack *string `json:"rack"`
 
-	// The id of the site
-	// Required: true
-	// Min Length: 1
-	Site *string `json:"site"`
-
-	// The size of the device
+	// The size of the machine
 	// Required: true
 	// Enum: [unknown t1-small-x86]
 	Size *string `json:"size"`
 }
 
-// Validate validates this device registration request
-func (m *DeviceRegistrationRequest) Validate(formats strfmt.Registry) error {
+// Validate validates this machine registration request
+func (m *MachineRegistrationRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateNics(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateRack(formats); err != nil {
+	if err := m.validatePartition(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateSite(formats); err != nil {
+	if err := m.validateRack(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -66,7 +66,7 @@ func (m *DeviceRegistrationRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *DeviceRegistrationRequest) validateNics(formats strfmt.Registry) error {
+func (m *MachineRegistrationRequest) validateNics(formats strfmt.Registry) error {
 
 	if err := validate.Required("nics", "body", m.Nics); err != nil {
 		return err
@@ -91,7 +91,20 @@ func (m *DeviceRegistrationRequest) validateNics(formats strfmt.Registry) error 
 	return nil
 }
 
-func (m *DeviceRegistrationRequest) validateRack(formats strfmt.Registry) error {
+func (m *MachineRegistrationRequest) validatePartition(formats strfmt.Registry) error {
+
+	if err := validate.Required("partition", "body", m.Partition); err != nil {
+		return err
+	}
+
+	if err := validate.MinLength("partition", "body", string(*m.Partition), 1); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MachineRegistrationRequest) validateRack(formats strfmt.Registry) error {
 
 	if err := validate.Required("rack", "body", m.Rack); err != nil {
 		return err
@@ -104,20 +117,7 @@ func (m *DeviceRegistrationRequest) validateRack(formats strfmt.Registry) error 
 	return nil
 }
 
-func (m *DeviceRegistrationRequest) validateSite(formats strfmt.Registry) error {
-
-	if err := validate.Required("site", "body", m.Site); err != nil {
-		return err
-	}
-
-	if err := validate.MinLength("site", "body", string(*m.Site), 1); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var deviceRegistrationRequestTypeSizePropEnum []interface{}
+var machineRegistrationRequestTypeSizePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -125,28 +125,28 @@ func init() {
 		panic(err)
 	}
 	for _, v := range res {
-		deviceRegistrationRequestTypeSizePropEnum = append(deviceRegistrationRequestTypeSizePropEnum, v)
+		machineRegistrationRequestTypeSizePropEnum = append(machineRegistrationRequestTypeSizePropEnum, v)
 	}
 }
 
 const (
 
-	// DeviceRegistrationRequestSizeUnknown captures enum value "unknown"
-	DeviceRegistrationRequestSizeUnknown string = "unknown"
+	// MachineRegistrationRequestSizeUnknown captures enum value "unknown"
+	MachineRegistrationRequestSizeUnknown string = "unknown"
 
-	// DeviceRegistrationRequestSizeT1SmallX86 captures enum value "t1-small-x86"
-	DeviceRegistrationRequestSizeT1SmallX86 string = "t1-small-x86"
+	// MachineRegistrationRequestSizeT1SmallX86 captures enum value "t1-small-x86"
+	MachineRegistrationRequestSizeT1SmallX86 string = "t1-small-x86"
 )
 
 // prop value enum
-func (m *DeviceRegistrationRequest) validateSizeEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, deviceRegistrationRequestTypeSizePropEnum); err != nil {
+func (m *MachineRegistrationRequest) validateSizeEnum(path, location string, value string) error {
+	if err := validate.Enum(path, location, value, machineRegistrationRequestTypeSizePropEnum); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *DeviceRegistrationRequest) validateSize(formats strfmt.Registry) error {
+func (m *MachineRegistrationRequest) validateSize(formats strfmt.Registry) error {
 
 	if err := validate.Required("size", "body", m.Size); err != nil {
 		return err
@@ -161,7 +161,7 @@ func (m *DeviceRegistrationRequest) validateSize(formats strfmt.Registry) error 
 }
 
 // MarshalBinary interface implementation
-func (m *DeviceRegistrationRequest) MarshalBinary() ([]byte, error) {
+func (m *MachineRegistrationRequest) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -169,8 +169,8 @@ func (m *DeviceRegistrationRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *DeviceRegistrationRequest) UnmarshalBinary(b []byte) error {
-	var res DeviceRegistrationRequest
+func (m *MachineRegistrationRequest) UnmarshalBinary(b []byte) error {
+	var res MachineRegistrationRequest
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

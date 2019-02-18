@@ -14,7 +14,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 
 	sw := testdata.Switch1
 	cons := make(metal.Connections, 0)
-	for _, cc := range sw.DeviceConnections {
+	for _, cc := range sw.MachineConnections {
 		for _, c := range cc {
 			cons = append(cons, c)
 		}
@@ -100,7 +100,7 @@ func TestRethinkStore_findSwitchByRack(t *testing.T) {
 			}
 			// Because deepequal of two same objects here returns false, here are some attribute validations:
 			require.Equal(t, got[0].ID, tt.want[0].ID)
-			require.Equal(t, got[0].SiteID, tt.want[0].SiteID)
+			require.Equal(t, got[0].PartitionID, tt.want[0].PartitionID)
 			require.Equal(t, got[0].RackID, tt.want[0].RackID)
 		})
 	}
@@ -154,7 +154,7 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 			}
 			// Because deepequal of two same objects here returns false, here are some attribute validations:
 			require.Equal(t, got[0].ID, tt.want[0].ID)
-			require.Equal(t, got[0].SiteID, tt.want[0].SiteID)
+			require.Equal(t, got[0].PartitionID, tt.want[0].PartitionID)
 			require.Equal(t, got[0].RackID, tt.want[0].RackID)
 		})
 	}
@@ -258,7 +258,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 			// Because deepequal of two same objects here returns false, here are some attribute validations:
 			if tt.want != nil {
 				require.Equal(t, got.ID, tt.want.ID)
-				require.Equal(t, got.SiteID, tt.want.SiteID)
+				require.Equal(t, got.PartitionID, tt.want.PartitionID)
 				require.Equal(t, got.RackID, tt.want.RackID)
 			}
 		})
@@ -315,7 +315,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	type args struct {
-		dev *metal.Device
+		dev *metal.Machine
 	}
 	tests := []struct {
 		name    string
@@ -328,7 +328,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 			name: "TestRethinkStore_UpdateSwitchConnections Test 1",
 			rs:   ds,
 			args: args{
-				&testdata.D1,
+				&testdata.M1,
 			},
 			wantErr: false,
 		},
@@ -336,7 +336,7 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 			name: "TestRethinkStore_UpdateSwitchConnections Test 2",
 			rs:   ds,
 			args: args{
-				&testdata.D2,
+				&testdata.M2,
 			},
 			wantErr: false,
 		},

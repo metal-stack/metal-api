@@ -11,19 +11,19 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// FindDevice returns the device with the given ID. If there is no
-// such device a metal.NotFound will be returned.
-func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
-	res, err := rs.deviceTable().Get(id).Run(rs.session)
+// FindMachine returns the machine with the given ID. If there is no
+// such machine a metal.NotFound will be returned.
+func (rs *RethinkStore) FindMachine(id string) (*metal.Machine, error) {
+	res, err := rs.machineTable().Get(id).Run(rs.session)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get device from database: %v", err)
+		return nil, fmt.Errorf("cannot get machine from database: %v", err)
 	}
 	defer res.Close()
 	if res.IsNil() {
-		return nil, metal.NotFound("no device with %q found", id)
+		return nil, metal.NotFound("no machine with %q found", id)
 	}
 
-	var d metal.Device
+	var d metal.Machine
 	err = res.One(&d)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err) // Not Reachable?
@@ -35,18 +35,18 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 		}
 		d.Size = s
 	}
-	if d.SiteID != "" {
-		st, err := rs.FindSite(d.SiteID)
+	if d.PartitionID != "" {
+		st, err := rs.FindPartition(d.PartitionID)
 		if err != nil {
 			return nil, err
 		}
-		d.Site = *st
+		d.Partition = *st
 	}
 	if d.Allocation != nil {
 		if d.Allocation.ImageID != "" {
 			f, err := rs.FindImage(d.Allocation.ImageID)
 			if err != nil {
-				return nil, fmt.Errorf("illegal imageid-id %q in device %q", d.Allocation.ImageID, id)
+				return nil, fmt.Errorf("illegal imageid-id %q in machine %q", d.Allocation.ImageID, id)
 			}
 			d.Allocation.Image = f
 		}
@@ -54,11 +54,11 @@ func (rs *RethinkStore) FindDevice(id string) (*metal.Device, error) {
 	return &d, nil
 }
 
-// SearchDevice will search devices, optionally by mac. If no mac is
-// given all devices will be returned. If no devices are found you
+// SearchMachine will search machines, optionally by mac. If no mac is
+// given all machines will be returned. If no machines are found you
 // will get an empty list.
-func (rs *RethinkStore) SearchDevice(mac string) ([]metal.Device, error) {
-	q := *rs.deviceTable()
+func (rs *RethinkStore) SearchMachine(mac string) ([]metal.Machine, error) {
+	q := *rs.machineTable()
 	if mac != "" {
 		q = q.Filter(func(d r.Term) r.Term {
 			return d.Field("macAddresses").Contains(mac)
@@ -66,40 +66,40 @@ func (rs *RethinkStore) SearchDevice(mac string) ([]metal.Device, error) {
 	}
 	res, err := q.Run(rs.session)
 	if err != nil {
-		return nil, fmt.Errorf("cannot search devices from database: %v", err)
+		return nil, fmt.Errorf("cannot search machines from database: %v", err)
 	}
 	defer res.Close()
-	data := make([]metal.Device, 0)
+	data := make([]metal.Machine, 0)
 	err = res.All(&data)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
-	return rs.fillDeviceList(data...)
+	return rs.fillMachineList(data...)
 }
 
-// ListDevices returns all devices currently stored in the database.
-func (rs *RethinkStore) ListDevices() ([]metal.Device, error) {
-	return rs.SearchDevice("")
+// ListMachines returns all machines currently stored in the database.
+func (rs *RethinkStore) ListMachines() ([]metal.Machine, error) {
+	return rs.SearchMachine("")
 }
 
-// CreateDevice creates a new device in the database as "unallocated new devices".
-// If the given device has an allocation, the function returns an error because
-// allocated devices cannot be created. If there is already a device with the
-// given ID in the database it will be replaced the the given device.
-func (rs *RethinkStore) CreateDevice(d *metal.Device) (*metal.Device, error) {
+// CreateMachine creates a new machine in the database as "unallocated new machines".
+// If the given machine has an allocation, the function returns an error because
+// allocated machines cannot be created. If there is already a machine with the
+// given ID in the database it will be replaced the the given machine.
+func (rs *RethinkStore) CreateMachine(d *metal.Machine) (*metal.Machine, error) {
 	d.Changed = time.Now()
 	d.Created = d.Changed
 
 	if d.Allocation != nil {
-		return nil, fmt.Errorf("a device cannot be created when it is allocated: %q: %+v", d.ID, *d.Allocation)
+		return nil, fmt.Errorf("a machine cannot be created when it is allocated: %q: %+v", d.ID, *d.Allocation)
 	}
 	d.SizeID = d.Size.ID
-	d.SiteID = d.Site.ID
-	res, err := rs.deviceTable().Insert(d, r.InsertOpts{
+	d.PartitionID = d.Partition.ID
+	res, err := rs.machineTable().Insert(d, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create device in database: %v", err)
+		return nil, fmt.Errorf("cannot create machine in database: %v", err)
 	}
 	if d.ID == "" {
 		d.ID = res.GeneratedKeys[0]
@@ -107,14 +107,14 @@ func (rs *RethinkStore) CreateDevice(d *metal.Device) (*metal.Device, error) {
 	return d, nil
 }
 
-// FindIPMI returns the IPMI data for the given device id.
+// FindIPMI returns the IPMI data for the given machine id.
 func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
 	res, err := rs.ipmiTable().Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot query ipmi data: %v", err)
 	}
 	if res.IsNil() {
-		return nil, metal.NotFound("no impi for device %q found", id)
+		return nil, metal.NotFound("no impi for machine %q found", id)
 	}
 	var ipmi metal.IPMI
 	err = res.One(&ipmi)
@@ -124,7 +124,7 @@ func (rs *RethinkStore) FindIPMI(id string) (*metal.IPMI, error) {
 	return &ipmi, nil
 }
 
-// UpsertIPMI inserts or updates the IPMI data for a given device id.
+// UpsertIPMI inserts or updates the IPMI data for a given machine id.
 func (rs *RethinkStore) UpsertIPMI(id string, ipmi *metal.IPMI) error {
 	ipmi.ID = id
 	_, err := rs.ipmiTable().Insert(ipmi, r.InsertOpts{
@@ -136,27 +136,27 @@ func (rs *RethinkStore) UpsertIPMI(id string, ipmi *metal.IPMI) error {
 	return nil
 }
 
-// DeleteDevice removes a device from the database.
-func (rs *RethinkStore) DeleteDevice(id string) (*metal.Device, error) {
-	d, err := rs.FindDevice(id)
+// DeleteMachine removes a machine from the database.
+func (rs *RethinkStore) DeleteMachine(id string) (*metal.Machine, error) {
+	d, err := rs.FindMachine(id)
 	if err != nil {
 		return nil, err
 	}
-	_, err = rs.deviceTable().Get(id).Delete().RunWrite(rs.session)
+	_, err = rs.machineTable().Get(id).Delete().RunWrite(rs.session)
 	if err != nil {
-		return nil, fmt.Errorf("cannot delete device from database: %v", err)
+		return nil, fmt.Errorf("cannot delete machine from database: %v", err)
 	}
 	return d, nil
 }
 
-// UpdateDevice replaces a device in the database if the 'changed' field of
+// UpdateMachine replaces a machine in the database if the 'changed' field of
 // the old value equals the 'changed' field of the recored in the database.
-func (rs *RethinkStore) UpdateDevice(oldD *metal.Device, newD *metal.Device) error {
-	_, err := rs.deviceTable().Get(oldD.ID).Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(oldD.Changed)), newD, r.Error("the device was changed from another, please retry"))
+func (rs *RethinkStore) UpdateMachine(oldD *metal.Machine, newD *metal.Machine) error {
+	_, err := rs.machineTable().Get(oldD.ID).Replace(func(row r.Term) r.Term {
+		return r.Branch(row.Field("changed").Eq(r.Expr(oldD.Changed)), newD, r.Error("the machine was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot update device: %v", err)
+		return fmt.Errorf("cannot update machine: %v", err)
 	}
 	return nil
 }
@@ -215,38 +215,37 @@ func (rs *RethinkStore) reserveNewVrf(tenant string) (*metal.Vrf, error) {
 	}
 }
 
-// AllocateDevice allocates a device in the database. It searches the 'waitTable'
-// for a device which matches the criteria for site and size. If a device is
+// AllocateMachine allocates a machine in the database. It searches the 'waitTable'
+// for a machine which matches the criteria for partition and size. If a machine is
 // found the system will allocate a CIDR, create an allocation and update the
-// device in the database.
-func (rs *RethinkStore) AllocateDevice(
+// machine in the database.
+func (rs *RethinkStore) AllocateMachine(
 	name string,
 	description string,
 	hostname string,
 	projectid string,
-	site *metal.Site,
-	size *metal.Size,
+	part *metal.Partition, size *metal.Size,
 	img *metal.Image,
 	sshPubKeys []string,
 	userData string,
 	tenant string,
 	cidrAllocator CidrAllocator,
-) (*metal.Device, error) {
+) (*metal.Machine, error) {
 	available, err := rs.waitTable().Filter(map[string]interface{}{
-		"allocation": nil,
-		"siteid":     site.ID,
-		"sizeid":     size.ID,
+		"allocation":  nil,
+		"partitionid": part.ID,
+		"sizeid":      size.ID,
 	}).Run(rs.session)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find free device: %v", err)
+		return nil, fmt.Errorf("cannot find free machine: %v", err)
 	}
-	var res []metal.Device
+	var res []metal.Machine
 	err = available.All(&res)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch results: %v", err)
 	}
 	if len(res) < 1 {
-		return nil, ErrNoDeviceAvailable
+		return nil, ErrNoMachineAvailable
 	}
 
 	old := res[0]
@@ -268,8 +267,8 @@ func (rs *RethinkStore) AllocateDevice(
 		return nil, fmt.Errorf("cannot allocate at netbox: %v", err)
 	}
 
-	rs.fillDeviceList(res[0:1]...)
-	alloc := &metal.DeviceAllocation{
+	rs.fillMachineList(res[0:1]...)
+	alloc := &metal.MachineAllocation{
 		Created:     time.Now(),
 		Name:        name,
 		Hostname:    hostname,
@@ -285,67 +284,66 @@ func (rs *RethinkStore) AllocateDevice(
 	}
 	res[0].Allocation = alloc
 	res[0].Changed = time.Now()
-	err = rs.UpdateDevice(&old, &res[0])
+	err = rs.UpdateMachine(&old, &res[0])
 	if err != nil {
 		cidrAllocator.Release(res[0].ID)
-		return nil, fmt.Errorf("error when allocating device %q, %v", res[0].ID, err)
+		return nil, fmt.Errorf("error when allocating machine %q, %v", res[0].ID, err)
 	}
 	_, err = rs.waitTable().Get(res[0].ID).Update(res[0]).RunWrite(rs.session)
 	if err != nil {
 		cidrAllocator.Release(res[0].ID)
-		rs.UpdateDevice(&res[0], &old)
-		return nil, fmt.Errorf("cannot allocate device in DB: %v", err)
+		rs.UpdateMachine(&res[0], &old)
+		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
 	}
 	return &res[0], nil
 }
 
-// FreeDevice removes an allocation from a given device.
-func (rs *RethinkStore) FreeDevice(id string) (*metal.Device, error) {
-	device, err := rs.FindDevice(id)
+// FreeMachine removes an allocation from a given machine.
+func (rs *RethinkStore) FreeMachine(id string) (*metal.Machine, error) {
+	machine, err := rs.FindMachine(id)
 	if err != nil {
 		return nil, err
 	}
-	if device.Allocation == nil {
-		return nil, fmt.Errorf("device is not allocated")
+	if machine.Allocation == nil {
+		return nil, fmt.Errorf("machine is not allocated")
 	}
-	old := *device
-	device.Allocation = nil
-	err = rs.UpdateDevice(&old, device)
+	old := *machine
+	machine.Allocation = nil
+	err = rs.UpdateMachine(&old, machine)
 	if err != nil {
-		return nil, fmt.Errorf("cannot clear device data: %v", err)
+		return nil, fmt.Errorf("cannot clear machine data: %v", err)
 	}
-	return device, nil
+	return machine, nil
 }
 
-// RegisterDevice creates or updates a device in the database. It also creates
-// an IPMI data record for this device.
-// Maby it would be good to give a Device As Parameter, insted of all Atributes of a Device.
-func (rs *RethinkStore) RegisterDevice(
+// RegisterMachine creates or updates a machine in the database. It also creates
+// an IPMI data record for this machine.
+// Maby it would be good to give a machine As Parameter, insted of all Attributes of a machine.
+func (rs *RethinkStore) RegisterMachine(
 	id string,
-	site metal.Site,
-	rackid string,
+	part metal.Partition, rackid string,
 	sz metal.Size,
-	hardware metal.DeviceHardware,
-	ipmi metal.IPMI) (*metal.Device, error) {
+	hardware metal.MachineHardware,
+	ipmi metal.IPMI) (*metal.Machine, error) {
 
-	device, err := rs.FindDevice(id)
+	machine, err := rs.FindMachine(id)
 	name := fmt.Sprintf("%d-core/%s", hardware.CPUCores, humanize.Bytes(hardware.Memory))
-	descr := fmt.Sprintf("a device with %d core(s) and %s of RAM", hardware.CPUCores, humanize.Bytes(hardware.Memory))
+	descr := fmt.Sprintf("a machine with %d core(s) and %s of RAM", hardware.CPUCores, humanize.Bytes(hardware.Memory))
 	if err != nil {
 		if metal.IsNotFound(err) {
-			device = &metal.Device{
+			machine = &metal.Machine{
 				Base: metal.Base{
 					ID:          id,
 					Name:        name,
 					Description: descr,
 				},
-				Size:     &sz,
-				Site:     site,
-				SiteID:   site.ID,
-				RackID:   rackid,
-				Hardware: hardware,
+				Size:        &sz,
+				Partition:   part,
+				PartitionID: part.ID,
+				RackID:      rackid,
+				Hardware:    hardware,
 			}
-			device, err = rs.CreateDevice(device)
+			machine, err = rs.CreateMachine(machine)
 			if err != nil {
 				return nil, err
 			}
@@ -353,15 +351,15 @@ func (rs *RethinkStore) RegisterDevice(
 			return nil, err
 		}
 	} else {
-		old := *device
-		device.Hardware = hardware
-		device.Site = site
-		device.SiteID = site.ID
-		device.Size = &sz
-		device.RackID = rackid
-		device.Name = name
-		device.Description = descr
-		err = rs.UpdateDevice(&old, device)
+		old := *machine
+		machine.Hardware = hardware
+		machine.Partition = part
+		machine.PartitionID = part.ID
+		machine.Size = &sz
+		machine.RackID = rackid
+		machine.Name = name
+		machine.Description = descr
+		err = rs.UpdateMachine(&old, machine)
 		if err != nil {
 			return nil, err
 		}
@@ -371,40 +369,40 @@ func (rs *RethinkStore) RegisterDevice(
 		return nil, err
 	}
 
-	return device, nil
+	return machine, nil
 }
 
-// Wait inserts the device with the given ID in the waittable, so
-// this device is ready for allocation. After this, this function waits
+// Wait inserts the machine with the given ID in the waittable, so
+// this machine is ready for allocation. After this, this function waits
 // for an update of this record in the waittable, which is a signal that
-// this device is allocated. This allocation will be signaled via the
+// this machine is allocated. This allocation will be signaled via the
 // given allocator in a separate goroutine. The allocator is a function
 // which will receive a channel and the caller has to select on this
 // channel to get a result. Using a channel allows the caller of this
 // function to implement timeouts to not wait forever.
-// The user of this function will block until this device is allocated.
+// The user of this function will block until this machine is allocated.
 func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
-	dev, err := rs.FindDevice(id)
+	m, err := rs.FindMachine(id)
 	if err != nil {
 		return err
 	}
-	a := make(chan metal.Device)
+	a := make(chan metal.Machine)
 
-	// the device IS already allocated, so notify this allocation back.
-	if dev.Allocation != nil {
+	// the machine IS already allocated, so notify this allocation back.
+	if m.Allocation != nil {
 		go func() {
-			a <- *dev
+			a <- *m
 		}()
 		alloc(a)
 		return nil
 	}
 
 	// does not prohibit concurrent wait calls for the same UUID
-	_, err = rs.waitTable().Insert(dev, r.InsertOpts{
+	_, err = rs.waitTable().Insert(m, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot insert device into wait table: %v", err)
+		return fmt.Errorf("cannot insert machine into wait table: %v", err)
 	}
 	defer func() {
 		rs.waitTable().Get(id).Delete().RunWrite(rs.session)
@@ -414,13 +412,13 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 		ch, err := rs.waitTable().Get(id).Changes().Run(rs.session)
 		if err != nil {
 			rs.Error("cannot wait for allocation", "error", err)
-			// simply return so this device will not be allocated
+			// simply return so this machine will not be allocated
 			// the normal timeout-behaviour of the allocator will
 			// occur without an allocation
 			return
 		}
 		type responseType struct {
-			NewVal metal.Device `rethinkdb:"new_val"`
+			NewVal metal.Machine `rethinkdb:"new_val"`
 		}
 		var response responseType
 		for ch.Next(&response) {
@@ -428,9 +426,9 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 				// the entry was deleted, no wait any more
 				break
 			}
-			res, err := rs.fillDeviceList(response.NewVal)
+			res, err := rs.fillMachineList(response.NewVal)
 			if err != nil {
-				rs.Error("device could not be populated", "error", err, "id", response.NewVal.ID)
+				rs.Error("machine could not be populated", "error", err, "id", response.NewVal.ID)
 				break
 			}
 			a <- res[0]
@@ -443,9 +441,9 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	return nil
 }
 
-// fillDeviceList fills the output fields of a device which are not directly
+// fillMachineList fills the output fields of a machine which are not directly
 // stored in the database.
-func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, error) {
+func (rs *RethinkStore) fillMachineList(data ...metal.Machine) ([]metal.Machine, error) {
 	allsz, err := rs.ListSizes()
 	if err != nil {
 		return nil, err
@@ -458,13 +456,13 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 	}
 	imgmap := metal.Images(allimg).ByID()
 
-	all, err := rs.ListSites()
+	all, err := rs.ListPartitions()
 	if err != nil {
 		return nil, err
 	}
-	sitemap := metal.Sites(all).ByID()
+	partmap := metal.Partitions(all).ByID()
 
-	res := make([]metal.Device, len(data), len(data))
+	res := make([]metal.Machine, len(data), len(data))
 	for i, d := range data {
 		res[i] = d
 		size := szmap[d.SizeID]
@@ -475,7 +473,7 @@ func (rs *RethinkStore) fillDeviceList(data ...metal.Device) ([]metal.Device, er
 				res[i].Allocation.Image = &img
 			}
 		}
-		res[i].Site = sitemap[d.SiteID]
+		res[i].Partition = partmap[d.PartitionID]
 	}
 	return res, nil
 }

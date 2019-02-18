@@ -11,8 +11,8 @@ info:
     url: "http://mit.org"
 basePath: "/api/v1"
 tags:
-- name: "devices"
-  description: "Endpoints for managing devices in the netbox"
+- name: "machines"
+  description: "Endpoints for managing machines in the netbox"
 - name: "switches"
   description: "Endpoints for managing switches in the netbox"
 schemes:
@@ -26,26 +26,26 @@ securityDefinitions:
 security:
 - Bearer: []
 paths:
-  /devices/{uuid}/register:
+  /machines/{uuid}/register:
     post:
       tags:
-      - "devices"
-      summary: "Register a new device"
-      description: "Register a new device to the netbox"
-      operationId: "netbox_api_proxy.api.device_register"
+      - "machines"
+      summary: "Register a new machine"
+      description: "Register a new machine to the netbox"
+      operationId: "netbox_api_proxy.api.machine_register"
       consumes:
       - "application/json"
       produces:
       - "application/json"
       - "application/problem+json"
       parameters:
-      - $ref: "#/parameters/DeviceUUID"
+      - $ref: "#/parameters/MachineUUID"
       - name: "request"
         in: "body"
-        description: "The device registration body"
+        description: "The machine registration body"
         required: true
         schema:
-          $ref: "#/definitions/DeviceRegistrationRequest"
+          $ref: "#/definitions/MachineRegistrationRequest"
       responses:
         200:
           description: "OK"
@@ -69,31 +69,31 @@ paths:
           description: "Internal server error"
           schema:
             $ref: "#/definitions/Problem"
-  /devices/{uuid}/allocate:
+  /machines/{uuid}/allocate:
     post:
       tags:
-      - "devices"
-      summary: "Allocate a device"
-      description: "Allocated a registered device for a tenant"
-      operationId: "netbox_api_proxy.api.device_allocate"
+      - "machines"
+      summary: "Allocate a machine"
+      description: "Allocated a registered machine for a tenant"
+      operationId: "netbox_api_proxy.api.machine_allocate"
       consumes:
       - "application/json"
       produces:
       - "application/json"
       - "application/problem+json"
       parameters:
-      - $ref: "#/parameters/DeviceUUID"
+      - $ref: "#/parameters/MachineUUID"
       - name: "request"
         in: "body"
-        description: "The device allocation body"
+        description: "The machine allocation body"
         required: true
         schema:
-          $ref: "#/definitions/DeviceAllocationRequest"
+          $ref: "#/definitions/MachineAllocationRequest"
       responses:
         200:
           description: "OK"
           schema:
-            $ref: "#/definitions/DeviceAllocationResponse"
+            $ref: "#/definitions/MachineAllocationResponse"
         400:
           description: "Bad request"
           schema:
@@ -114,20 +114,20 @@ paths:
           description: "Internal server error"
           schema:
             $ref: "#/definitions/Problem"
-  /devices/{uuid}/release:
+  /machines/{uuid}/release:
     post:
       tags:
-      - "devices"
-      summary: "Releases a device"
-      description: "Releases an allocated device"
-      operationId: "netbox_api_proxy.api.device_release"
+      - "machines"
+      summary: "Releases a machine"
+      description: "Releases an allocated machine"
+      operationId: "netbox_api_proxy.api.machine_release"
       consumes:
       - "application/json"
       produces:
       - "application/json"
       - "application/problem+json"
       parameters:
-      - $ref: "#/parameters/DeviceUUID"
+      - $ref: "#/parameters/MachineUUID"
       responses:
         200:
           description: "OK"
@@ -164,7 +164,7 @@ paths:
       - "application/json"
       - "application/problem+json"
       parameters:
-      - $ref: "#/parameters/DeviceUUID"
+      - $ref: "#/parameters/MachineUUID"
       - name: "request"
         in: "body"
         description: "The switch registration body"
@@ -195,29 +195,29 @@ paths:
           schema:
             $ref: "#/definitions/Problem"
 parameters:
-  DeviceUUID:
+  MachineUUID:
     in: "path"
     name: "uuid"
-    description: "The product serial of the device (unique identifier of this device)"
+    description: "The product serial of the machine (unique identifier of this machine)"
     type: "string"
     required: true
 definitions:
-  DeviceRegistrationRequest:
+  MachineRegistrationRequest:
     type: "object"
     required:
     - "size"
-    - "site"
+    - "partition"
     - "rack"
     - "nics"
     properties:
       size:
-        description: "The size of the device"
+        description: "The size of the machine"
         type: "string"
         enum:
         - "unknown"
         - "t1-small-x86"
-      site:
-        description: "The id of the site"
+      partition:
+        description: "The id of the partition"
         type: "string"
         minLength: 1
       rack:
@@ -225,11 +225,11 @@ definitions:
         type: "string"
         minLength: 1
       nics:
-        description: "The network interfaces of this device"
+        description: "The network interfaces of this machine"
         type: "array"
         items:
           $ref: "#/definitions/Nic"
-  DeviceAllocationRequest:
+  MachineAllocationRequest:
     type: "object"
     required:
     - "name"
@@ -238,36 +238,36 @@ definitions:
     - "project"
     properties:
       name:
-        description: "The desired name for this device in the netbox"
+        description: "The desired name for this machine in the netbox"
         type: "string"
         minLength: 1
       tenant:
-        description: "The name of the tenant to assign this device to"
+        description: "The name of the tenant to assign this machine to"
         type: "string"
         minLength: 1
       vrf:
-        description: "The name of the vrf to assign this device to"
+        description: "The name of the vrf to assign this machine to"
         type: "string"
         minLength: 1
       project:
-        description: "The name of the project to assign this device to"
+        description: "The name of the project to assign this machine to"
         type: "string"
         minLength: 1
       os:
-        description: "The operating system name that will be installed on this device"
+        description: "The operating system name that will be installed on this machine"
         type: "string"
         minLength: 1
       description:
-        description: "Additional description for this device in the netbox"
+        description: "Additional description for this machine in the netbox"
         type: "string"
         minLength: 1
-  DeviceAllocationResponse:
+  MachineAllocationResponse:
     type: "object"
     required:
     - "cidr"
     properties:
       cidr:
-        description: "The allocated cidr of the allocated device"
+        description: "The allocated cidr of the allocated machine"
         type: "string"
   Nic:
     type: "object"
@@ -287,16 +287,16 @@ definitions:
     type: "object"
     required:
     - "name"
-    - "site"
+    - "partition"
     - "rack"
     - "nics"
     properties:
       name:
-        description: "The desired name for this device in the netbox"
+        description: "The desired name for this machine in the netbox"
         type: "string"
         minLength: 1
-      site:
-        description: "The id of the site"
+      partition:
+        description: "The id of the partition"
         type: "string"
         minLength: 1
       rack:
@@ -304,7 +304,7 @@ definitions:
         type: "string"
         minLength: 1
       nics:
-        description: "The network interfaces of this device"
+        description: "The network interfaces of this machine"
         type: "array"
         items:
           $ref: "#/definitions/Nic"

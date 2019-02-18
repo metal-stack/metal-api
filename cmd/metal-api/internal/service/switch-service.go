@@ -73,13 +73,13 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
-	site, err := sr.ds.FindSite(newSwitch.SiteID)
+	part, err := sr.ds.FindPartition(newSwitch.PartitionID)
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
 
 	oldSwitch, err := sr.ds.FindSwitch(newSwitch.ID)
-	sw := metal.NewSwitch(newSwitch.ID, newSwitch.RackID, newSwitch.Nics, site)
+	sw := metal.NewSwitch(newSwitch.ID, newSwitch.RackID, newSwitch.Nics, part)
 	if err != nil {
 		if metal.IsNotFound(err) {
 			sw.Created = time.Now()
@@ -88,7 +88,7 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 			if checkError(sr.log, response, "registerSwitch", err) {
 				return
 			}
-			err = sr.netbox.RegisterSwitch(newSwitch.SiteID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
+			err = sr.netbox.RegisterSwitch(newSwitch.PartitionID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
 			if checkError(sr.log, response, "registerSwitch", err) {
 				return
 			}
@@ -106,7 +106,7 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}
-	err = sr.netbox.RegisterSwitch(newSwitch.SiteID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
+	err = sr.netbox.RegisterSwitch(newSwitch.PartitionID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
 	if checkError(sr.log, response, "registerSwitch", err) {
 		return
 	}

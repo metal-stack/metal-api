@@ -17,9 +17,9 @@ import (
 func Test_loggingResponseWriter_Header(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     testdata.Switch1.ID,
-		SiteID: testdata.Switch1.SiteID,
-		RackID: testdata.Switch1.RackID,
+		ID:          testdata.Switch1.ID,
+		PartitionID: testdata.Switch1.PartitionID,
+		RackID:      testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()
@@ -66,9 +66,9 @@ func Test_loggingResponseWriter_Header(t *testing.T) {
 func Test_loggingResponseWriter_Write(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     testdata.Switch1.ID,
-		SiteID: testdata.Switch1.SiteID,
-		RackID: testdata.Switch1.RackID,
+		ID:          testdata.Switch1.ID,
+		PartitionID: testdata.Switch1.PartitionID,
+		RackID:      testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()
@@ -128,9 +128,9 @@ func Test_loggingResponseWriter_Write(t *testing.T) {
 func Test_loggingResponseWriter_WriteHeader(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     testdata.Switch1.ID,
-		SiteID: testdata.Switch1.SiteID,
-		RackID: testdata.Switch1.RackID,
+		ID:          testdata.Switch1.ID,
+		PartitionID: testdata.Switch1.PartitionID,
+		RackID:      testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()
@@ -180,9 +180,9 @@ func Test_loggingResponseWriter_WriteHeader(t *testing.T) {
 func Test_loggingResponseWriter_Content(t *testing.T) {
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
-		ID:     testdata.Switch1.ID,
-		SiteID: testdata.Switch1.SiteID,
-		RackID: testdata.Switch1.RackID,
+		ID:          testdata.Switch1.ID,
+		PartitionID: testdata.Switch1.PartitionID,
+		RackID:      testdata.Switch1.RackID,
 	})
 
 	recorder1 := httptest.NewRecorder()

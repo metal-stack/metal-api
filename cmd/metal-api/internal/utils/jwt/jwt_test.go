@@ -7,7 +7,7 @@ import (
 )
 
 func TestSerialization(t *testing.T) {
-	e := NewPhoneHomeClaims(&metal.Device{Base: metal.Base{ID: "1"}})
+	e := NewPhoneHomeClaims(&metal.Machine{Base: metal.Base{ID: "1"}})
 	jwt, err := e.JWT()
 	if err != nil {
 		t.Fatalf("coult not sign %v", err)
@@ -18,7 +18,7 @@ func TestSerialization(t *testing.T) {
 		t.Fatalf("coult not parse %v", err)
 	}
 
-	if e.Device.ID != a.Device.ID {
-		t.Fatalf("got device id %v, expected %v", a.Device.ID, e.Device.ID)
+	if e.Machine.ID != a.Machine.ID {
+		t.Fatalf("got machine id %v, expected %v", a.Machine.ID, e.Machine.ID)
 	}
 }
