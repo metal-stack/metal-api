@@ -208,11 +208,11 @@ func initDataStore() {
 
 func initRestServices() *restfulspec.Config {
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewPartition(lg, ds))
-	restful.DefaultContainer.Add(service.NewImage(lg, ds))
-	restful.DefaultContainer.Add(service.NewSize(lg, ds))
-	restful.DefaultContainer.Add(service.NewMachine(lg, ds, producer, nbproxy))
-	restful.DefaultContainer.Add(service.NewSwitch(lg, ds, nbproxy))
+	restful.DefaultContainer.Add(service.NewPartition(ds))
+	restful.DefaultContainer.Add(service.NewImage(ds))
+	restful.DefaultContainer.Add(service.NewSize(ds))
+	restful.DefaultContainer.Add(service.NewMachine(ds, producer, nbproxy))
+	restful.DefaultContainer.Add(service.NewSwitch(ds, nbproxy))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(lg, debug))

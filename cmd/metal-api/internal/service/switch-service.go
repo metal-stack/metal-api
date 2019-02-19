@@ -4,11 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -19,12 +18,10 @@ type switchResource struct {
 }
 
 // NewSwitch returns a webservice for switch specific endpoints.
-func NewSwitch(log *zap.Logger, ds *datastore.RethinkStore, netbox *netbox.APIProxy) *restful.WebService {
+func NewSwitch(ds *datastore.RethinkStore, netbox *netbox.APIProxy) *restful.WebService {
 	sr := switchResource{
 		webResource: webResource{
-			SugaredLogger: log.Sugar(),
-			log:           log,
-			ds:            ds,
+			ds: ds,
 		},
 		netbox: netbox,
 	}
@@ -70,11 +67,11 @@ func (sr switchResource) webService() *restful.WebService {
 func (sr switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
 	var newSwitch metal.RegisterSwitch
 	err := request.ReadEntity(&newSwitch)
-	if checkError(sr.log, response, "registerSwitch", err) {
+	if checkError(request, response, "registerSwitch", err) {
 		return
 	}
 	part, err := sr.ds.FindPartition(newSwitch.PartitionID)
-	if checkError(sr.log, response, "registerSwitch", err) {
+	if checkError(request, response, "registerSwitch", err) {
 		return
 	}
 
@@ -85,17 +82,17 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 			sw.Created = time.Now()
 			sw.Changed = sw.Created
 			sw, err = sr.ds.CreateSwitch(sw)
-			if checkError(sr.log, response, "registerSwitch", err) {
+			if checkError(request, response, "registerSwitch", err) {
 				return
 			}
 			err = sr.netbox.RegisterSwitch(newSwitch.PartitionID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
-			if checkError(sr.log, response, "registerSwitch", err) {
+			if checkError(request, response, "registerSwitch", err) {
 				return
 			}
 			response.WriteHeaderAndEntity(http.StatusCreated, sw)
 			return
 		}
-		sendError(sr.log, response, "registerSwitch", http.StatusInternalServerError, err)
+		sendError(utils.Logger(request), response, "registerSwitch", http.StatusInternalServerError, err)
 		return
 	}
 	// Make sure we do not delete current connections
@@ -103,11 +100,11 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 
 	err = sr.ds.UpdateSwitch(oldSwitch, sw)
 
-	if checkError(sr.log, response, "registerSwitch", err) {
+	if checkError(request, response, "registerSwitch", err) {
 		return
 	}
 	err = sr.netbox.RegisterSwitch(newSwitch.PartitionID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
-	if checkError(sr.log, response, "registerSwitch", err) {
+	if checkError(request, response, "registerSwitch", err) {
 		return
 	}
 

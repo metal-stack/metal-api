@@ -19,7 +19,7 @@ func TestGetPartitions(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(testdata.Testlogger, ds)
+	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition", nil)
 	w := httptest.NewRecorder()
@@ -43,7 +43,7 @@ func TestGetPartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(testdata.Testlogger, ds)
+	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition/1", nil)
 	w := httptest.NewRecorder()
@@ -62,7 +62,7 @@ func TestGetPartitionNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(testdata.Testlogger, ds)
+	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition/999", nil)
 	w := httptest.NewRecorder()
@@ -76,7 +76,7 @@ func TestDeletePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(testdata.Testlogger, ds)
+	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("DELETE", "/v1/partition/1", nil)
 	w := httptest.NewRecorder()
@@ -95,7 +95,7 @@ func TestCreatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(testdata.Testlogger, ds)
+	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 
 	js, _ := json.Marshal(testdata.Partition1)
@@ -119,7 +119,7 @@ func TestUpdatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(testdata.Testlogger, ds)
+	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 
 	js, _ := json.Marshal(testdata.Partition1)

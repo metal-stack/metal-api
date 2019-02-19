@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	restful "github.com/emicklei/go-restful"
@@ -17,12 +15,10 @@ type sizeResource struct {
 }
 
 // NewSize returns a webservice for size specific endpoints.
-func NewSize(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
+func NewSize(ds *datastore.RethinkStore) *restful.WebService {
 	sr := sizeResource{
 		webResource: webResource{
-			SugaredLogger: log.Sugar(),
-			log:           log,
-			ds:            ds,
+			ds: ds,
 		},
 	}
 	return sr.webService()
@@ -86,13 +82,13 @@ func (sr sizeResource) webService() *restful.WebService {
 func (sr sizeResource) createSize(request *restful.Request, response *restful.Response) {
 	var s metal.Size
 	err := request.ReadEntity(&s)
-	if checkError(sr.log, response, "createSize", err) {
+	if checkError(request, response, "createSize", err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	returnSize, err := sr.ds.CreateSize(&s)
-	if checkError(sr.log, response, "createSize", err) {
+	if checkError(request, response, "createSize", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusCreated, returnSize)
@@ -101,18 +97,18 @@ func (sr sizeResource) createSize(request *restful.Request, response *restful.Re
 func (sr sizeResource) updateSize(request *restful.Request, response *restful.Response) {
 	var newSize metal.Size
 	err := request.ReadEntity(&newSize)
-	if checkError(sr.log, response, "updateSize", err) {
+	if checkError(request, response, "updateSize", err) {
 		return
 	}
 
 	oldSize, err := sr.ds.FindSize(newSize.ID)
-	if checkError(sr.log, response, "updateSize", err) {
+	if checkError(request, response, "updateSize", err) {
 		return
 	}
 
 	err = sr.ds.UpdateSize(oldSize, &newSize)
 
-	if checkError(sr.log, response, "updateSize", err) {
+	if checkError(request, response, "updateSize", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSize)

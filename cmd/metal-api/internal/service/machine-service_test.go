@@ -42,7 +42,7 @@ func TestGetMachines(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
 	w := httptest.NewRecorder()
@@ -234,7 +234,7 @@ func TestRegisterMachine(t *testing.T) {
 			js, _ := json.Marshal(rr)
 			body := bytes.NewBuffer(js)
 
-			dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+			dservice := NewMachine(ds, pub, nb)
 			container := restful.NewContainer().Add(dservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -285,7 +285,7 @@ func TestReportMachine(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -312,7 +312,7 @@ func TestReportFailureMachine(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -339,7 +339,7 @@ func TestReportUnknownMachine(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -363,7 +363,7 @@ func TestReportUnknownFailure(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -387,7 +387,7 @@ func TestReportUnallocatedMachine(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -410,7 +410,7 @@ func TestGetMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
 	w := httptest.NewRecorder()
@@ -434,7 +434,7 @@ func TestGetMachineNotFound(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
 	w := httptest.NewRecorder()
@@ -460,7 +460,7 @@ func TestFreeMachine(t *testing.T) {
 		called = true
 		return &nbmachine.NetboxAPIProxyAPIMachineReleaseOK{}, nil
 	}
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
 	w := httptest.NewRecorder()
@@ -478,7 +478,7 @@ func TestSearchMachine(t *testing.T) {
 
 	pub := &emptyPublisher{}
 	nb := netbox.New()
-	dservice := NewMachine(testdata.Testlogger, ds, pub, nb)
+	dservice := NewMachine(ds, pub, nb)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine/find?mac=1", nil)
 	w := httptest.NewRecorder()

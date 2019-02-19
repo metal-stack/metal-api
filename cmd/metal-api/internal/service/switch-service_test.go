@@ -30,7 +30,7 @@ func TestCreateSwitch(t *testing.T) {
 		called = true
 		return &nbswitch.NetboxAPIProxyAPISwitchRegisterOK{}, nil
 	}
-	switchservice := NewSwitch(testdata.Testlogger, ds, nb)
+	switchservice := NewSwitch(ds, nb)
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
@@ -68,7 +68,7 @@ func TestUpdateSwitch(t *testing.T) {
 		return &nbswitch.NetboxAPIProxyAPISwitchRegisterOK{}, nil
 	}
 
-	switchservice := NewSwitch(testdata.Testlogger, ds, nb)
+	switchservice := NewSwitch(ds, nb)
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{

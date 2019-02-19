@@ -9,6 +9,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"github.com/go-stack/stack"
 
 	restful "github.com/emicklei/go-restful"
@@ -16,9 +17,7 @@ import (
 )
 
 type webResource struct {
-	*zap.SugaredLogger
-	log *zap.Logger
-	ds  *datastore.RethinkStore
+	ds *datastore.RethinkStore
 }
 
 func sendError(log *zap.Logger, rsp *restful.Response, opname string, status int, err error) {
@@ -38,7 +37,8 @@ func sendError(log *zap.Logger, rsp *restful.Response, opname string, status int
 	rsp.WriteErrorString(status, string(response))
 }
 
-func checkError(log *zap.Logger, rsp *restful.Response, opname string, err error) bool {
+func checkError(rq *restful.Request, rsp *restful.Response, opname string, err error) bool {
+	log := utils.Logger(rq)
 	if err != nil {
 		if metal.IsNotFound(err) {
 			sendError(log, rsp, opname, http.StatusNotFound, err)
@@ -60,13 +60,13 @@ func checkError(log *zap.Logger, rsp *restful.Response, opname string, err error
 
 type entityGetter func(id string) (interface{}, error)
 
-func (wr *webResource) handleReflectResponse(opname string, response *restful.Response, res []reflect.Value) {
+func (wr *webResource) handleReflectResponse(opname string, req *restful.Request, response *restful.Response, res []reflect.Value) {
 	data := res[0].Interface()
 	var err error
 	if !res[1].IsNil() {
 		err = res[1].Elem().Interface().(error)
 	}
-	if checkError(wr.log, response, opname, err) {
+	if checkError(req, response, opname, err) {
 		return
 	}
 	response.WriteEntity(data)
@@ -78,7 +78,7 @@ func (wr *webResource) restEntityGet(h interface{}) restful.RouteFunction {
 		id := request.PathParameter("id")
 		par := reflect.ValueOf(id)
 		res := f.Call([]reflect.Value{par})
-		wr.handleReflectResponse(opname, response, res)
+		wr.handleReflectResponse(opname, request, response, res)
 	}
 }
 
@@ -87,6 +87,6 @@ func (wr *webResource) restListGet(h interface{}) restful.RouteFunction {
 	opname := runtime.FuncForPC(f.Pointer()).Name()
 	return func(request *restful.Request, response *restful.Response) {
 		res := f.Call(nil)
-		wr.handleReflectResponse(opname, response, res)
+		wr.handleReflectResponse(opname, request, response, res)
 	}
 }

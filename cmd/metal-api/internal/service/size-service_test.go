@@ -19,7 +19,7 @@ func TestGetSizes(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(testdata.Testlogger, ds)
+	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size", nil)
 	w := httptest.NewRecorder()
@@ -46,7 +46,7 @@ func TestGetSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(testdata.Testlogger, ds)
+	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
@@ -66,7 +66,7 @@ func TestGetSizeNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(testdata.Testlogger, ds)
+	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/999", nil)
 	w := httptest.NewRecorder()
@@ -80,7 +80,7 @@ func TestDeleteSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(testdata.Testlogger, ds)
+	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("DELETE", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
@@ -100,7 +100,7 @@ func TestCreateSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(testdata.Testlogger, ds)
+	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 
 	js, _ := json.Marshal(testdata.Sz1)
@@ -124,7 +124,7 @@ func TestUpdateSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(testdata.Testlogger, ds)
+	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 
 	js, _ := json.Marshal(testdata.Sz1)

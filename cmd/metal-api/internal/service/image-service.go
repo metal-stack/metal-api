@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	restful "github.com/emicklei/go-restful"
@@ -17,12 +15,10 @@ type imageResource struct {
 }
 
 // NewImage returns a webservice for image specific endpoints.
-func NewImage(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
+func NewImage(ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
 		webResource: webResource{
-			SugaredLogger: log.Sugar(),
-			log:           log,
-			ds:            ds,
+			ds: ds,
 		},
 	}
 	return ir.webService()
@@ -86,13 +82,13 @@ func (ir imageResource) webService() *restful.WebService {
 func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
 	var s metal.Image
 	err := request.ReadEntity(&s)
-	if checkError(ir.log, response, "createImage", err) {
+	if checkError(request, response, "createImage", err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	img, err := ir.ds.CreateImage(&s)
-	if checkError(ir.log, response, "createImage", err) {
+	if checkError(request, response, "createImage", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusCreated, img)
@@ -101,18 +97,18 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
 	var newImage metal.Image
 	err := request.ReadEntity(&newImage)
-	if checkError(ir.log, response, "updateImage", err) {
+	if checkError(request, response, "updateImage", err) {
 		return
 	}
 
 	oldImage, err := ir.ds.FindImage(newImage.ID)
-	if checkError(ir.log, response, "updateImage", err) {
+	if checkError(request, response, "updateImage", err) {
 		return
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)
 
-	if checkError(ir.log, response, "updateImage", err) {
+	if checkError(request, response, "updateImage", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newImage)

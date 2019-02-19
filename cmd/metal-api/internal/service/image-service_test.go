@@ -19,7 +19,7 @@ func TestGetImages(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
+	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image", nil)
 	w := httptest.NewRecorder()
@@ -43,7 +43,7 @@ func TestGetImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
+	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image/1", nil)
 	w := httptest.NewRecorder()
@@ -62,7 +62,7 @@ func TestGetImageNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
+	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image/999", nil)
 	w := httptest.NewRecorder()
@@ -76,7 +76,7 @@ func TestDeleteImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
+	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("DELETE", "/v1/image/1", nil)
 	w := httptest.NewRecorder()
@@ -95,7 +95,7 @@ func TestCreateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
+	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 
 	js, _ := json.Marshal(testdata.Img1)
@@ -118,7 +118,7 @@ func TestUpdateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(testdata.Testlogger, ds)
+	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 
 	js, _ := json.Marshal(testdata.Img1)

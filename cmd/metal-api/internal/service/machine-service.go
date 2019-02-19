@@ -9,6 +9,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils/jwt"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
@@ -28,15 +29,12 @@ type machineResource struct {
 
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
-	log *zap.Logger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	netbox *netbox.APIProxy) *restful.WebService {
 	dr := machineResource{
 		webResource: webResource{
-			log:           log,
-			SugaredLogger: log.Sugar(),
-			ds:            ds,
+			ds: ds,
 		},
 		Publisher: pub,
 		netbox:    netbox,
@@ -144,13 +142,14 @@ func (dr machineResource) webService() *restful.WebService {
 func (dr machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	ctx := request.Request.Context()
+	lg := utils.Logger(request).Sugar()
 	err := dr.ds.Wait(id, func(alloc datastore.Allocation) error {
 		select {
 		case <-time.After(waitForServerTimeout):
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
 			return fmt.Errorf("server timeout")
 		case a := <-alloc:
-			dr.Info("return allocated machine", "machine", a)
+			lg.Infow("return allocated machine", "machine", a)
 			ka := jwt.NewPhoneHomeClaims(&a)
 			token, err := ka.JWT()
 			if err != nil {
@@ -170,32 +169,33 @@ func (dr machineResource) waitForAllocation(request *restful.Request, response *
 func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
 	var data metal.PhoneHomeRequest
 	err := request.ReadEntity(&data)
+	log := utils.Logger(request)
 	if err != nil {
-		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Cannot read data from request: %v", err))
+		sendError(log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Cannot read data from request: %v", err))
 		return
 	}
 	c, err := jwt.FromJWT(data.PhoneHomeToken)
 	if err != nil {
-		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token is invalid: %v", err))
+		sendError(log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token is invalid: %v", err))
 		return
 	}
 	if c.Machine == nil || c.Machine.ID == "" {
-		sendError(dr.log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token contains malformed data"))
+		sendError(log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token contains malformed data"))
 		return
 	}
 	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
 	if err != nil {
-		sendError(dr.log, response, "phoneHome", http.StatusNotFound, err)
+		sendError(log, response, "phoneHome", http.StatusNotFound, err)
 		return
 	}
 	if oldMachine.Allocation == nil {
-		dr.Error("unallocated machines sends phoneHome", "machine", *oldMachine)
-		sendError(dr.log, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this machine is not allocated"))
+		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
+		sendError(log, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this machine is not allocated"))
 	}
 	newMachine := *oldMachine
 	newMachine.Allocation.LastPing = time.Now()
 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
-	if checkError(dr.log, response, "phoneHome", err) {
+	if checkError(request, response, "phoneHome", err) {
 		return
 	}
 	response.WriteEntity(nil)
@@ -205,7 +205,7 @@ func (dr machineResource) searchMachine(request *restful.Request, response *rest
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
 
 	result, err := dr.ds.SearchMachine(mac)
-	if checkError(dr.log, response, "searchMachine", err) {
+	if checkError(request, response, "searchMachine", err) {
 		return
 	}
 
@@ -215,37 +215,38 @@ func (dr machineResource) searchMachine(request *restful.Request, response *rest
 func (dr machineResource) registerMachine(request *restful.Request, response *restful.Response) {
 	var data metal.RegisterMachine
 	err := request.ReadEntity(&data)
-	if checkError(dr.log, response, "registerMachine", err) {
+	log := utils.Logger(request).Sugar()
+	if checkError(request, response, "registerMachine", err) {
 		return
 	}
 	if data.UUID == "" {
-		sendError(dr.log, response, "registerMachine", http.StatusUnprocessableEntity, fmt.Errorf("No UUID given"))
+		sendError(utils.Logger(request), response, "registerMachine", http.StatusUnprocessableEntity, fmt.Errorf("No UUID given"))
 		return
 	}
 	part, err := dr.ds.FindPartition(data.PartitionID)
-	if checkError(dr.log, response, "registerMachine", err) {
+	if checkError(request, response, "registerMachine", err) {
 		return
 	}
 
 	size, err := dr.ds.FromHardware(data.Hardware)
 	if err != nil {
 		size = metal.UnknownSize
-		dr.Error("no size found for hardware", "hardware", data.Hardware, "error", err)
+		log.Errorw("no size found for hardware", "hardware", data.Hardware, "error", err)
 	}
 
 	err = dr.netbox.Register(part.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
-	if checkError(dr.log, response, "registerMachine", err) {
+	if checkError(request, response, "registerMachine", err) {
 		return
 	}
 
 	m, err := dr.ds.RegisterMachine(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI)
 
-	if checkError(dr.log, response, "registerMachine", err) {
+	if checkError(request, response, "registerMachine", err) {
 		return
 	}
 
 	err = dr.ds.UpdateSwitchConnections(m)
-	if checkError(dr.log, response, "registerMachine", err) {
+	if checkError(request, response, "registerMachine", err) {
 		return
 	}
 
@@ -256,7 +257,7 @@ func (dr machineResource) ipmiData(request *restful.Request, response *restful.R
 	id := request.PathParameter("id")
 	ipmi, err := dr.ds.FindIPMI(id)
 
-	if checkError(dr.log, response, "ipmiData", err) {
+	if checkError(request, response, "ipmiData", err) {
 		return
 	}
 	response.WriteEntity(ipmi)
@@ -265,25 +266,27 @@ func (dr machineResource) ipmiData(request *restful.Request, response *restful.R
 func (dr machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
 	var allocate metal.AllocateMachine
 	err := request.ReadEntity(&allocate)
-	if checkError(dr.log, response, "allocateMachine", err) {
+	log := utils.Logger(request)
+	slog := log.Sugar()
+	if checkError(request, response, "allocateMachine", err) {
 		return
 	}
 	if allocate.Tenant == "" {
-		if checkError(dr.log, response, "allocateMachine", fmt.Errorf("no tenant given")) {
-			dr.log.Error("allocate", zap.String("tenant", "missing"))
+		if checkError(request, response, "allocateMachine", fmt.Errorf("no tenant given")) {
+			slog.Errorw("allocate", zap.String("tenant", "missing"))
 			return
 		}
 	}
 	image, err := dr.ds.FindImage(allocate.ImageID)
-	if checkError(dr.log, response, "allocateMachine", err) {
+	if checkError(request, response, "allocateMachine", err) {
 		return
 	}
 	size, err := dr.ds.FindSize(allocate.SizeID)
-	if checkError(dr.log, response, "allocateMachine", err) {
+	if checkError(request, response, "allocateMachine", err) {
 		return
 	}
 	part, err := dr.ds.FindPartition(allocate.PartitionID)
-	if checkError(dr.log, response, "allocateMachine", err) {
+	if checkError(request, response, "allocateMachine", err) {
 		return
 	}
 
@@ -295,9 +298,9 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 		dr.netbox)
 	if err != nil {
 		if err == datastore.ErrNoMachineAvailable {
-			sendError(dr.log, response, "allocateMachine", http.StatusNotFound, err)
+			sendError(log, response, "allocateMachine", http.StatusNotFound, err)
 		} else {
-			sendError(dr.log, response, "allocateMachine", http.StatusUnprocessableEntity, err)
+			sendError(log, response, "allocateMachine", http.StatusUnprocessableEntity, err)
 		}
 		return
 	}
@@ -307,17 +310,17 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 func (dr machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := dr.ds.FreeMachine(id)
-	if checkError(dr.log, response, "freeMachine", err) {
+	if checkError(request, response, "freeMachine", err) {
 		return
 	}
 	err = dr.netbox.Release(id)
-	if checkError(dr.log, response, "freeMachine", err) {
+	if checkError(request, response, "freeMachine", err) {
 		return
 	}
 
 	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
 	dr.Publish("machine", evt)
-	dr.Info("publish delete event", "event", evt)
+	utils.Logger(request).Sugar().Infow("publish delete event", "event", evt)
 	response.WriteEntity(m)
 }
 
@@ -325,22 +328,22 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 	id := request.PathParameter("id")
 	var report metal.ReportAllocation
 	err := request.ReadEntity(&report)
-	if checkError(dr.log, response, "allocationReport", err) {
+	if checkError(request, response, "allocationReport", err) {
 		return
 	}
 
 	m, err := dr.ds.FindMachine(id)
 
-	if checkError(dr.log, response, "allocationReport", err) {
+	if checkError(request, response, "allocationReport", err) {
 		return
 	}
 	if !report.Success {
-		dr.Errorw("failed allocation", "id", id, "error-message", report.ErrorMessage)
+		utils.Logger(request).Sugar().Errorw("failed allocation", "id", id, "error-message", report.ErrorMessage)
 		response.WriteEntity(m.Allocation)
 		return
 	}
 	if m.Allocation == nil {
-		sendError(dr.log, response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q is not allocated", id))
+		sendError(utils.Logger(request), response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q is not allocated", id))
 		return
 	}
 	old := *m

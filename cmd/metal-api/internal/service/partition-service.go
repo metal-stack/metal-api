@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	restful "github.com/emicklei/go-restful"
@@ -17,12 +15,10 @@ type partitionResource struct {
 }
 
 // NewPartition returns a webservice for partition specific endpoints.
-func NewPartition(log *zap.Logger, ds *datastore.RethinkStore) *restful.WebService {
+func NewPartition(ds *datastore.RethinkStore) *restful.WebService {
 	fr := partitionResource{
 		webResource: webResource{
-			SugaredLogger: log.Sugar(),
-			log:           log,
-			ds:            ds,
+			ds: ds,
 		},
 	}
 	return fr.webService()
@@ -86,13 +82,13 @@ func (fr partitionResource) webService() *restful.WebService {
 func (fr partitionResource) createPartition(request *restful.Request, response *restful.Response) {
 	var s metal.Partition
 	err := request.ReadEntity(&s)
-	if checkError(fr.log, response, "createPartition", err) {
+	if checkError(request, response, "createPartition", err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	returnedPartition, err := fr.ds.CreatePartition(&s)
-	if checkError(fr.log, response, "createPartition", err) {
+	if checkError(request, response, "createPartition", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusCreated, returnedPartition)
@@ -101,18 +97,18 @@ func (fr partitionResource) createPartition(request *restful.Request, response *
 func (fr partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
 	var newPartition metal.Partition
 	err := request.ReadEntity(&newPartition)
-	if checkError(fr.log, response, "updatePartition", err) {
+	if checkError(request, response, "updatePartition", err) {
 		return
 	}
 
 	oldPartition, err := fr.ds.FindPartition(newPartition.ID)
-	if checkError(fr.log, response, "updatePartition", err) {
+	if checkError(request, response, "updatePartition", err) {
 		return
 	}
 
 	err = fr.ds.UpdatePartition(oldPartition, &newPartition)
 
-	if checkError(fr.log, response, "updatePartition", err) {
+	if checkError(request, response, "updatePartition", err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newPartition)
