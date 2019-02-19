@@ -40,7 +40,9 @@ func (w *loggingResponseWriter) Content() string {
 
 type key int
 
-var logkey key
+var (
+	logkey = key(0)
+)
 
 // Logger returns the request logger from the request.
 func Logger(rq *restful.Request) *zap.Logger {
