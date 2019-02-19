@@ -404,6 +404,7 @@ func TestRethinkStore_AllocateMachine(t *testing.T) {
 		size          *metal.Size
 		img           *metal.Image
 		sshPubKeys    []string
+		tags          []string
 		userData      string
 		tenant        string
 		cidrAllocator CidrAllocator
@@ -419,7 +420,7 @@ func TestRethinkStore_AllocateMachine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.AllocateMachine(tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.partition, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
+			got, err := tt.rs.AllocateMachine(tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.partition, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.tags, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.AllocateMachine() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -489,6 +490,7 @@ func TestRethinkStore_RegisterMachine(t *testing.T) {
 		sz        metal.Size
 		hardware  metal.MachineHardware
 		ipmi      metal.IPMI
+		tags      []string
 	}
 	tests := []struct {
 		name    string
@@ -515,7 +517,7 @@ func TestRethinkStore_RegisterMachine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.RegisterMachine(tt.args.id, tt.args.partition, tt.args.rackid, tt.args.sz, tt.args.hardware, tt.args.ipmi)
+			got, err := tt.rs.RegisterMachine(tt.args.id, tt.args.partition, tt.args.rackid, tt.args.sz, tt.args.hardware, tt.args.ipmi, tt.args.tags)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.RegisterMachine() error = %v, wantErr %v", err, tt.wantErr)
 				return

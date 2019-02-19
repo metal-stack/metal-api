@@ -14,6 +14,7 @@ type Machine struct {
 	SizeID      string             `json:"-" rethinkdb:"sizeid"`
 	Hardware    MachineHardware    `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
 	Allocation  *MachineAllocation `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
+	Tags        []string           `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
 }
 
 // A MachineAllocation stores the data which are only present for allocated machines.

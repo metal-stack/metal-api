@@ -227,6 +227,7 @@ func (rs *RethinkStore) AllocateMachine(
 	part *metal.Partition, size *metal.Size,
 	img *metal.Image,
 	sshPubKeys []string,
+	tags []string,
 	userData string,
 	tenant string,
 	cidrAllocator CidrAllocator,
@@ -284,6 +285,7 @@ func (rs *RethinkStore) AllocateMachine(
 	}
 	res[0].Allocation = alloc
 	res[0].Changed = time.Now()
+	res[0].Tags = tags
 	err = rs.UpdateMachine(&old, &res[0])
 	if err != nil {
 		cidrAllocator.Release(res[0].ID)
@@ -324,7 +326,8 @@ func (rs *RethinkStore) RegisterMachine(
 	part metal.Partition, rackid string,
 	sz metal.Size,
 	hardware metal.MachineHardware,
-	ipmi metal.IPMI) (*metal.Machine, error) {
+	ipmi metal.IPMI,
+	tags []string) (*metal.Machine, error) {
 
 	machine, err := rs.FindMachine(id)
 	name := fmt.Sprintf("%d-core/%s", hardware.CPUCores, humanize.Bytes(hardware.Memory))
@@ -342,6 +345,7 @@ func (rs *RethinkStore) RegisterMachine(
 				PartitionID: part.ID,
 				RackID:      rackid,
 				Hardware:    hardware,
+				Tags:        tags,
 			}
 			machine, err = rs.CreateMachine(machine)
 			if err != nil {
@@ -359,6 +363,7 @@ func (rs *RethinkStore) RegisterMachine(
 		machine.RackID = rackid
 		machine.Name = name
 		machine.Description = descr
+		machine.Tags = tags
 		err = rs.UpdateMachine(&old, machine)
 		if err != nil {
 			return nil, err
