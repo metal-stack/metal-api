@@ -239,7 +239,7 @@ func (dr machineResource) registerMachine(request *restful.Request, response *re
 		return
 	}
 
-	m, err := dr.ds.RegisterMachine(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI)
+	m, err := dr.ds.RegisterMachine(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI, data.Tags)
 
 	if checkError(request, response, "registerMachine", err) {
 		return
@@ -292,7 +292,7 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 
 	d, err := dr.ds.AllocateMachine(allocate.Name, allocate.Description, allocate.Hostname,
 		allocate.ProjectID, part, size,
-		image, allocate.SSHPubKeys,
+		image, allocate.SSHPubKeys, allocate.Tags,
 		allocate.UserData,
 		allocate.Tenant,
 		dr.netbox)

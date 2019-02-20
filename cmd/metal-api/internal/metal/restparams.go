@@ -12,6 +12,7 @@ type AllocateMachine struct {
 	ImageID     string   `json:"imageid" description:"the image id to assign this machine to"`
 	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
 	UserData    string   `json:"user_data,omitempty" description:"cloud-init.io compatible userdata must be base64 encoded." optional:"true" rethinkdb:"userdata"`
+	Tags        []string `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
 }
 
 // RegisterMachine must be sent by a machine, when it boots with our image and
@@ -22,6 +23,7 @@ type RegisterMachine struct {
 	RackID      string          `json:"rackid" description:"the rack id where this machine is connected to"`
 	Hardware    MachineHardware `json:"hardware" description:"the hardware of this machine"`
 	IPMI        IPMI            `json:"ipmi" description:"the ipmi access infos"`
+	Tags        []string        `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
 }
 
 // PhoneHomeRequest is sent by a regular phone home of a machine.

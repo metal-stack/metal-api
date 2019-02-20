@@ -1257,7 +1257,8 @@
         "partitionid",
         "sizeid",
         "imageid",
-        "ssh_pub_keys"
+        "ssh_pub_keys",
+        "tags"
       ],
       "properties": {
         "description": {
@@ -1290,6 +1291,13 @@
         },
         "ssh_pub_keys": {
           "description": "the public ssh keys to access the machine with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "description": "tags for this machine",
           "type": "array",
           "items": {
             "type": "string"
@@ -1480,7 +1488,8 @@
         "rackid",
         "size",
         "hardware",
-        "allocation"
+        "allocation",
+        "tags"
       ],
       "properties": {
         "allocation": {
@@ -1530,6 +1539,13 @@
           "description": "the size of this machine",
           "$ref": "#/definitions/metal.Size",
           "readOnly": true
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -1735,7 +1751,8 @@
         "partitionid",
         "rackid",
         "hardware",
-        "ipmi"
+        "ipmi",
+        "tags"
       ],
       "properties": {
         "hardware": {
@@ -1753,6 +1770,13 @@
         "rackid": {
           "description": "the rack id where this machine is connected to",
           "type": "string"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "uuid": {
           "description": "the product uuid of the machine to register",
