@@ -285,7 +285,17 @@ func (rs *RethinkStore) AllocateMachine(
 	}
 	res[0].Allocation = alloc
 	res[0].Changed = time.Now()
-	res[0].Tags = tags
+
+	tagSet := make(map[string]bool)
+	tagList := append(res[0].Tags, tags...)
+	for _, t := range tagList {
+		tagSet[t] = true
+	}
+	newTags := []string{}
+	for k := range tagSet {
+		newTags = append(newTags, k)
+	}
+	res[0].Tags = newTags
 	err = rs.UpdateMachine(&old, &res[0])
 	if err != nil {
 		cidrAllocator.Release(res[0].ID)

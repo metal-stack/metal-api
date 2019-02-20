@@ -1297,7 +1297,7 @@
           }
         },
         "tags": {
-          "description": "tags on this machine",
+          "description": "tags for this machine",
           "type": "array",
           "items": {
             "type": "string"
@@ -1541,7 +1541,7 @@
           "readOnly": true
         },
         "tags": {
-          "description": "tags on this machine",
+          "description": "tags for this machine",
           "type": "array",
           "items": {
             "type": "string"
@@ -1772,7 +1772,7 @@
           "type": "string"
         },
         "tags": {
-          "description": "tags on this machine",
+          "description": "tags for this machine",
           "type": "array",
           "items": {
             "type": "string"
