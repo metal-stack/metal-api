@@ -25,10 +25,10 @@ localbuild: bin/$(BINARY) Dockerfile.dev
 	cd ../metal-lab/provision/api
 	docker-compose up -d
 
-# the watch target needs https://github.com/cespare/reflex
+# the watch target needs https://github.com/cortesi/modd
 .PHONY: watch
 watch:
-	reflex -d fancy -r '^.*go$$' -- $(MAKE) localbuild
+	modd -n -f ./modd.conf
 
 # localdev should be started in a fresh shell
 .PHONY: localdev
