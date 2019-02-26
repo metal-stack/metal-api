@@ -285,6 +285,8 @@ func (rs *RethinkStore) AllocateMachine(
 	}
 	res[0].Allocation = alloc
 	res[0].Changed = time.Now()
+	res[0].Partition = *part
+	res[0].PartitionID = part.ID
 
 	tagSet := make(map[string]bool)
 	tagList := append(res[0].Tags, tags...)
