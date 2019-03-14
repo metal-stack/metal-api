@@ -77,6 +77,7 @@ const (
 	MachineOnCmd    MachineCommand = "ON"
 	MachineOffCmd   MachineCommand = "OFF"
 	MachineResetCmd MachineCommand = "RESET"
+	MachineBiosCmd  MachineCommand = "BIOS"
 )
 
 // A MachineExecCommand can be sent via a MachineEvent to execute

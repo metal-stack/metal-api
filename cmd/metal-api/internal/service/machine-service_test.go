@@ -520,6 +520,11 @@ func TestOnMachine(t *testing.T) {
 			endpoint: "reset",
 			param:    "bluba",
 		},
+		{
+			cmd:      metal.MachineBiosCmd,
+			endpoint: "bios",
+			param:    "blubabla",
+		},
 	}
 
 	for _, d := range data {

@@ -90,3 +90,10 @@ POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/reset
 Content-Type: application/json
 
 []
+
+### bootbios a machine
+# @name reset
+POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/bootbios
+Content-Type: application/json
+
+[]
