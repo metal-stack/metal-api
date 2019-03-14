@@ -145,12 +145,18 @@ var (
 			Name:        "sz1",
 			Description: "description 1",
 		},
-		Constraints: []metal.Constraint{metal.Constraint{
-			MinCores:  1,
-			MaxCores:  1,
-			MinMemory: 100,
-			MaxMemory: 100,
-		}},
+		Constraints: []metal.Constraint{
+			metal.Constraint{
+				Type: metal.CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			metal.Constraint{
+				Type: metal.MemoryConstraint,
+				Min:  100,
+				Max:  100,
+			},
+		},
 	}
 	Sz2 = metal.Size{
 		Base: metal.Base{
@@ -172,12 +178,18 @@ var (
 			Name:        "sz1",
 			Description: "description 1",
 		},
-		Constraints: []metal.Constraint{metal.Constraint{
-			MinCores:  888,
-			MaxCores:  1111,
-			MinMemory: 100,
-			MaxMemory: 100,
-		}},
+		Constraints: []metal.Constraint{
+			metal.Constraint{
+				Type: metal.CoreConstraint,
+				Min:  888,
+				Max:  1111,
+			},
+			metal.Constraint{
+				Type: metal.MemoryConstraint,
+				Min:  100,
+				Max:  100,
+			},
+		},
 	}
 
 	// Images
