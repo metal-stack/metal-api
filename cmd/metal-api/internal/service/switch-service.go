@@ -37,6 +37,16 @@ func (sr switchResource) webService() *restful.WebService {
 
 	tags := []string{"switch"}
 
+	ws.Route(ws.GET("/{id}").
+		To(sr.restEntityGet(sr.ds.FindSwitch)).
+		Operation("findSwitch").
+		Doc("get switch by id").
+		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(metal.Switch{}).
+		Returns(http.StatusOK, "OK", metal.Switch{}).
+		Returns(http.StatusNotFound, "Not Found", nil))
+
 	ws.Route(ws.GET("/").To(sr.restListGet(sr.ds.ListSwitches)).
 		Operation("listSwitches").
 		Doc("get all switches").

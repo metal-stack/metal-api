@@ -71,9 +71,10 @@ func (d *Machine) HasMAC(mac string) bool {
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
 type MachineEvent struct {
-	Type EventType `json:"type,omitempty"`
-	Old  *Machine  `json:"old,omitempty"`
-	New  *Machine  `json:"new,omitempty"`
+	Type      EventType `json:"type,omitempty"`
+	Old       *Machine  `json:"old,omitempty"`
+	New       *Machine  `json:"new,omitempty"`
+	SwitchIDs []string  `json:"switchIds",omitempty`
 }
 
 // MachineWithPhoneHomeToken enriches a machine with a token. This is only

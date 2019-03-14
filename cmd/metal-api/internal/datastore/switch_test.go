@@ -350,6 +350,20 @@ func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
 	}
 }
 
+func TestRethinkStore_SetVrfAtSwitch(t *testing.T) {
+	// mock the DB
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	vrf := "123"
+	m := testdata.M1
+	switches, err := ds.SetVrfAtSwitch(&m, vrf)
+	require.NoError(t, err, "no error was expected: got %v", err)
+	for _, s := range switches {
+		require.Equal(t, vrf, s.Nics[0].Vrf)
+	}
+}
+
 func TestRethinkStore_findSwithcByMac(t *testing.T) {
 
 	// mock the DB

@@ -100,7 +100,7 @@ func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.S
 	return nil
 }
 
-// UpdateSwitchConnections fills the output fiedl of the machine with a list
+// UpdateSwitchConnections fills the output field of the machine with a list
 // of connections. As the connections are stored in a map which is not visible via
 // json, this map is transformed to a collection for the clients.
 func (rs *RethinkStore) UpdateSwitchConnections(m *metal.Machine) error {
@@ -117,6 +117,64 @@ func (rs *RethinkStore) UpdateSwitchConnections(m *metal.Machine) error {
 		}
 	}
 	return nil
+}
+
+// SetVrfAtSwitch finds the connected switches and puts the switch ports into the given vrf
+func (rs *RethinkStore) SetVrfAtSwitch(m *metal.Machine, vrf string) ([]metal.Switch, error) {
+	switches, err := rs.findSwitchByMachine(m)
+	if err != nil {
+		return nil, err
+	}
+	newSwitches := make([]metal.Switch, 0)
+	for _, sw := range switches {
+		oldSwitch := sw
+		rs.setVrf(&sw, m.ID, vrf)
+		err := rs.UpdateSwitch(&oldSwitch, &sw)
+		if err != nil {
+			return nil, err
+		}
+		newSwitches = append(newSwitches, sw)
+	}
+	return newSwitches, nil
+}
+
+func (rs *RethinkStore) findSwitchByMachine(m *metal.Machine) ([]metal.Switch, error) {
+	res := []metal.Switch{}
+	switches, err := rs.findSwitchByRack(m.RackID)
+	if err != nil {
+		return nil, err
+	}
+	for _, sw := range switches {
+		if _, has := sw.MachineConnections[m.ID]; has {
+			res = append(res, sw)
+		}
+	}
+	return res, nil
+}
+
+func (rs *RethinkStore) setVrf(s *metal.Switch, mid, vrf string) {
+	// gather nics within MachineConnections
+	changed := metal.Nics{}
+	for _, c := range s.MachineConnections[mid] {
+		c.Nic.Vrf = vrf
+		changed = append(changed, c.Nic)
+	}
+
+	if len(changed) == 0 {
+		return
+	}
+
+	// update sw.Nics
+	currentByMac := s.Nics.ByMac()
+	changedByMac := changed.ByMac()
+	s.Nics = metal.Nics{}
+	for mac, old := range currentByMac {
+		e := old
+		if new, has := changedByMac[mac]; has {
+			e = new
+		}
+		s.Nics = append(s.Nics, *e)
+	}
 }
 
 func (rs *RethinkStore) findSwithcByMac(macs []metal.Nic) ([]metal.Switch, error) {

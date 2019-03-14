@@ -1178,6 +1178,45 @@
       }
     },
     "/v1/switch/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "switch"
+        ],
+        "summary": "get switch by id",
+        "operationId": "findSwitch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the switch",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Switch"
+            }
+          }
+        }
+      },
       "delete": {
         "consumes": [
           "application/json"

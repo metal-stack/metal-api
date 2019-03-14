@@ -142,27 +142,30 @@ func (dr machineResource) webService() *restful.WebService {
 func (dr machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	ctx := request.Request.Context()
-	lg := utils.Logger(request).Sugar()
+	log := utils.Logger(request)
 	err := dr.ds.Wait(id, func(alloc datastore.Allocation) error {
 		select {
 		case <-time.After(waitForServerTimeout):
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
 			return fmt.Errorf("server timeout")
 		case a := <-alloc:
-			lg.Infow("return allocated machine", "machine", a)
+			log.Sugar().Infow("return allocated machine", "machine", a)
 			ka := jwt.NewPhoneHomeClaims(&a)
 			token, err := ka.JWT()
 			if err != nil {
 				return fmt.Errorf("could not create jwt: %v", err)
 			}
-			response.WriteEntity(metal.MachineWithPhoneHomeToken{Machine: &a, PhoneHomeToken: token})
+			err = response.WriteEntity(metal.MachineWithPhoneHomeToken{Machine: &a, PhoneHomeToken: token})
+			if err != nil {
+				return fmt.Errorf("could not write entity: %v", err)
+			}
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
 		}
 		return nil
 	})
 	if err != nil {
-		response.WriteError(http.StatusInternalServerError, err)
+		sendError(log, response, "waitForAllocation", http.StatusInternalServerError, err)
 	}
 }
 
@@ -313,13 +316,23 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 	if checkError(request, response, "freeMachine", err) {
 		return
 	}
+
+	sw, err := dr.ds.SetVrfAtSwitch(m, "")
+	if checkError(request, response, "freeMachine", err) {
+		return
+	}
+
 	err = dr.netbox.Release(id)
 	if checkError(request, response, "freeMachine", err) {
 		return
 	}
 
-	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	dr.Publish("machine", evt)
+	sids := []string{}
+	for _, s := range sw {
+		sids = append(sids, s.ID)
+	}
+	evt := metal.MachineEvent{Type: metal.DELETE, Old: m, SwitchIDs: sids}
+	dr.Publish(string(metal.TopicMachine), evt)
 	utils.Logger(request).Sugar().Infow("publish delete event", "event", evt)
 	response.WriteEntity(m)
 }
@@ -333,7 +346,6 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 	}
 
 	m, err := dr.ds.FindMachine(id)
-
 	if checkError(request, response, "allocationReport", err) {
 		return
 	}
@@ -348,6 +360,26 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 	}
 	old := *m
 	m.Allocation.ConsolePassword = report.ConsolePassword
-	dr.ds.UpdateMachine(&old, m)
+	err = dr.ds.UpdateMachine(&old, m)
+	if err != nil {
+		sendError(utils.Logger(request), response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q could not be updated", id))
+		return
+	}
+
+	vrf := fmt.Sprintf("vrf%d", m.Allocation.Vrf)
+	sw, err := dr.ds.SetVrfAtSwitch(m, vrf)
+	if err != nil {
+		sendError(utils.Logger(request), response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, m.Allocation.Vrf))
+		return
+	}
+
+	// Push out events to signal switch configuration change
+	sids := []string{}
+	for _, s := range sw {
+		sids = append(sids, s.ID)
+	}
+	evt := metal.MachineEvent{Type: metal.UPDATE, New: m, SwitchIDs: sids}
+	dr.Publish(string(metal.TopicMachine), evt)
+	utils.Logger(request).Sugar().Infow("publish machine update event", "event", evt)
 	response.WriteEntity(m.Allocation)
 }
