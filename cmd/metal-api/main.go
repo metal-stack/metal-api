@@ -294,4 +294,5 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "switch",
 			Description: "Managing switches"}},
 	}
+	swo.Schemes = []string{"http", "https"}
 }

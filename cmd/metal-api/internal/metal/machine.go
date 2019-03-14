@@ -97,6 +97,7 @@ type MachineEvent struct {
 	Old  *Machine            `json:"old,omitempty"`
 	New  *Machine            `json:"new,omitempty"`
 	Cmd  *MachineExecCommand `json:"cmd,omitempty"`
+	SwitchIDs []string  `json:"switchIds",omitempty`
 }
 
 // MachineWithPhoneHomeToken enriches a machine with a token. This is only
