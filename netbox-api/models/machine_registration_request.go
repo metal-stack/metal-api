@@ -6,7 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
 	"strconv"
 
 	strfmt "github.com/go-openapi/strfmt"
@@ -36,7 +35,7 @@ type MachineRegistrationRequest struct {
 
 	// The size of the machine
 	// Required: true
-	// Enum: [unknown t1-small-x86]
+	// Min Length: 1
 	Size *string `json:"size"`
 }
 
@@ -117,43 +116,13 @@ func (m *MachineRegistrationRequest) validateRack(formats strfmt.Registry) error
 	return nil
 }
 
-var machineRegistrationRequestTypeSizePropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["unknown","t1-small-x86"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		machineRegistrationRequestTypeSizePropEnum = append(machineRegistrationRequestTypeSizePropEnum, v)
-	}
-}
-
-const (
-
-	// MachineRegistrationRequestSizeUnknown captures enum value "unknown"
-	MachineRegistrationRequestSizeUnknown string = "unknown"
-
-	// MachineRegistrationRequestSizeT1SmallX86 captures enum value "t1-small-x86"
-	MachineRegistrationRequestSizeT1SmallX86 string = "t1-small-x86"
-)
-
-// prop value enum
-func (m *MachineRegistrationRequest) validateSizeEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, machineRegistrationRequestTypeSizePropEnum); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (m *MachineRegistrationRequest) validateSize(formats strfmt.Registry) error {
 
 	if err := validate.Required("size", "body", m.Size); err != nil {
 		return err
 	}
 
-	// value enum
-	if err := m.validateSizeEnum("size", "body", *m.Size); err != nil {
+	if err := validate.MinLength("size", "body", string(*m.Size), 1); err != nil {
 		return err
 	}
 

@@ -497,3 +497,61 @@ func TestSearchMachine(t *testing.T) {
 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
 	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
 }
+
+func TestOnMachine(t *testing.T) {
+
+	data := []struct {
+		cmd      metal.MachineCommand
+		endpoint string
+		param    string
+	}{
+		{
+			cmd:      metal.MachineOnCmd,
+			endpoint: "on",
+			param:    "blub",
+		},
+		{
+			cmd:      metal.MachineOffCmd,
+			endpoint: "off",
+			param:    "blubber",
+		},
+		{
+			cmd:      metal.MachineResetCmd,
+			endpoint: "reset",
+			param:    "bluba",
+		},
+		{
+			cmd:      metal.MachineBiosCmd,
+			endpoint: "bios",
+			param:    "blubabla",
+		},
+	}
+
+	for _, d := range data {
+		t.Run("cmd_"+d.endpoint, func(t *testing.T) {
+			ds, mock := datastore.InitMockDB()
+			testdata.InitMockDBData(mock)
+			pub := &emptyPublisher{}
+			pub.doPublish = func(topic string, data interface{}) error {
+				require.Equal(t, "machine", topic)
+				dv := data.(metal.MachineEvent)
+				require.Equal(t, d.cmd, dv.Cmd.Command)
+				require.Equal(t, d.param, dv.Cmd.Params[0])
+				require.Equal(t, "1", dv.Cmd.Target.ID)
+				return nil
+			}
+			js, _ := json.Marshal([]string{d.param})
+			body := bytes.NewBuffer(js)
+			nb := netbox.New()
+			dservice := NewMachine(ds, pub, nb)
+			container := restful.NewContainer().Add(dservice)
+			req := httptest.NewRequest("POST", "/v1/machine/1/"+d.endpoint, body)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
+
+			resp := w.Result()
+			require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+		})
+	}
+}

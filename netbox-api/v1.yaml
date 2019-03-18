@@ -213,9 +213,7 @@ definitions:
       size:
         description: "The size of the machine"
         type: "string"
-        enum:
-        - "unknown"
-        - "t1-small-x86"
+        minLength: 1
       partition:
         description: "The id of the partition"
         type: "string"
