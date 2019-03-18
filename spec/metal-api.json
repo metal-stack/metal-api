@@ -1,8 +1,4 @@
 {
-  "schemes": [
-    "http",
-    "https"
-  ],
   "swagger": "2.0",
   "info": {
     "description": "Resource for managing pure metal",
