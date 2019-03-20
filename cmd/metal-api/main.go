@@ -163,6 +163,7 @@ func initNetboxProxy() {
 }
 
 func initEventBus() {
+Outer:
 	for {
 		nsqd := viper.GetString("nsqd-addr")
 		httpnsqd := viper.GetString("nsqd-http-addr")
@@ -177,7 +178,7 @@ func initEventBus() {
 			if err := p.CreateTopic(string(t)); err != nil {
 				logger.Errorw("cannot create Topic", "topic", t, "error", err)
 				time.Sleep(3 * time.Second)
-				continue
+				continue Outer
 			}
 		}
 		producer = p
