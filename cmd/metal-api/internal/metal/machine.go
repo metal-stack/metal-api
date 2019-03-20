@@ -93,11 +93,10 @@ type MachineExecCommand struct {
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
 type MachineEvent struct {
-	Type      EventType           `json:"type,omitempty"`
-	Old       *Machine            `json:"old,omitempty"`
-	New       *Machine            `json:"new,omitempty"`
-	Cmd       *MachineExecCommand `json:"cmd,omitempty"`
-	SwitchIDs []string            `json:"switchIds",omitempty`
+	Type EventType           `json:"type,omitempty"`
+	Old  *Machine            `json:"old,omitempty"`
+	New  *Machine            `json:"new,omitempty"`
+	Cmd  *MachineExecCommand `json:"cmd,omitempty"`
 }
 
 // MachineWithPhoneHomeToken enriches a machine with a token. This is only

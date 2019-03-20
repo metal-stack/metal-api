@@ -25,6 +25,13 @@ type Connections []Connection
 // ConnectionMap is an indexed map of connection-lists
 type ConnectionMap map[string]Connections
 
+// SwitchEvent is propagated when a switch needs to update its configuration.
+type SwitchEvent struct {
+	Type     EventType `json:"type"`
+	Machine  Machine   `json:"machine"`
+	Switches []Switch  `json:"switches"`
+}
+
 // NewSwitch creates a new switch with the given data fields.
 func NewSwitch(id, rackid string, nics Nics, part *Partition) *Switch {
 	if nics == nil {

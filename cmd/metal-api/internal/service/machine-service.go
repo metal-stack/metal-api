@@ -363,13 +363,14 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 		return
 	}
 
-	sids := []string{}
-	for _, s := range sw {
-		sids = append(sids, s.ID)
-	}
-	evt := metal.MachineEvent{Type: metal.DELETE, Old: m, SwitchIDs: sids}
+	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
 	dr.Publish(string(metal.TopicMachine), evt)
 	utils.Logger(request).Sugar().Infow("publish delete event", "event", evt)
+
+	se := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
+	dr.Publish(string(metal.TopicSwitch), se)
+	utils.Logger(request).Sugar().Infow("publish switch update event", "event", se)
+
 	response.WriteEntity(m)
 }
 
@@ -448,12 +449,8 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 	}
 
 	// Push out events to signal switch configuration change
-	sids := []string{}
-	for _, s := range sw {
-		sids = append(sids, s.ID)
-	}
-	evt := metal.MachineEvent{Type: metal.UPDATE, New: m, SwitchIDs: sids}
-	dr.Publish(string(metal.TopicMachine), evt)
-	utils.Logger(request).Sugar().Infow("publish machine update event", "event", evt)
+	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
+	dr.Publish(string(metal.TopicSwitch), evt)
+	utils.Logger(request).Sugar().Infow("publish switch update event", "event", evt)
 	response.WriteEntity(m.Allocation)
 }
