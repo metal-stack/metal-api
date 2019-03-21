@@ -448,10 +448,15 @@ func TestFreeMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
+	events := []string{"machine", "switch"}
+	eventidx := 0
 	pub.doPublish = func(topic string, data interface{}) error {
-		require.Equal(t, "machine", topic)
-		dv := data.(metal.MachineEvent)
-		require.Equal(t, "1", dv.Old.ID)
+		require.Equal(t, events[eventidx], topic)
+		eventidx++
+		if eventidx == 0 {
+			dv := data.(metal.MachineEvent)
+			require.Equal(t, "1", dv.Old.ID)
+		}
 		return nil
 	}
 	nb := netbox.New()
