@@ -58,11 +58,15 @@ func (sz Sizes) ByID() SizeMap {
 func (c *Constraint) Matches(hw MachineHardware) bool {
 	switch c.Type {
 	case CoreConstraint:
-		return uint64(hw.CPUCores) >= c.Min && uint64(hw.CPUCores) <= c.Max
+		val := (uint64(hw.CPUCores) >= c.Min) && (uint64(hw.CPUCores) <= c.Max)
+		return val
 	case MemoryConstraint:
-		return hw.Memory >= c.Min && hw.Memory <= c.Max
+		val := (hw.Memory >= c.Min) && (hw.Memory <= c.Max)
+		return val
 	case StorageConstraint:
-		return hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
+		cap := hw.DiskCapacity()
+		val := (cap >= c.Min) && (cap <= c.Max)
+		return val
 	}
 	return false
 }
@@ -74,7 +78,8 @@ func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
 nextsize:
 	for _, s := range sz {
 		for _, c := range s.Constraints {
-			if !c.Matches(hardware) {
+			m := c.Matches(hardware)
+			if !m {
 				continue nextsize
 			}
 		}

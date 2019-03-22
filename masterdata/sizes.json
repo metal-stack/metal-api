@@ -1,7 +1,7 @@
 [
     {
-        "id":          "v1-small-x86",
-        "name":        "v1-small-x86",
+        "id":          "v4-small-x86",
+        "name":        "v4-small-x86",
         "description": "The Tiny But Mighty!",
         "constraints": [
             {
@@ -64,6 +64,51 @@
                 "max":60
             }
         ]
-    }
-
+    },
+    {
+        "id": "v1-small-x86",
+        "name": "v1-small-x86",
+        "description": "The Tiny Virtual",
+        "constraints": [
+         {
+          "type": "cores",
+          "min": 1,
+          "max": 4
+         },
+         {
+          "type": "memory",
+          "min": 500000000,
+          "max": 2000000000
+         },
+         {
+          "type": "storage",
+          "min": 1000000000,
+          "max": 4000000000
+         }
+        ]
+       },
+       {
+        "id": "s1-xlarge-x86",
+        "name": "s1-xlarge-x86",
+        "description": "S3 Storage box",
+        "created": "0001-01-01T00:00:00Z",
+        "changed": "0001-01-01T00:00:00Z",
+        "constraints": [
+         {
+          "type": "cores",
+          "min": 8,
+          "max": 8
+         },
+         {
+          "type": "memory",
+          "min": 80000000000,
+          "max": 100000000000
+         },
+         {
+          "type": "storage",
+          "min": 10000000000000,
+          "max": 50000000000000
+         }
+        ]
+       }
 ]
