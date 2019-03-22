@@ -66,12 +66,46 @@ Content-Type: application/json
   "description": "My first metal host",
   "partitionid": "vagrant-lab",
   "hostname": "metal-test-1",
-  "imageid": "ubuntu-18.10",
+  "imageid": "1",
   "name": "Metal Host 1",
   "projectid": "test",
   "tenant": "dkb",
-  "sizeid": "t1-small-x86",
+  "sizeid": "v1-small-x86",
   "ssh_pub_keys": ["keiner"]
+}
+
+### allocate a specific machine
+# @name allocate
+POST {{baseurl}}/allocate
+Content-Type: application/json
+
+{
+  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873",
+  "description": "My first metal host",
+  "hostname": "metal-test-1",
+  "imageid": "1",
+  "name": "Metal Host 1",
+  "projectid": "test",
+  "tenant": "dkb",
+  "ssh_pub_keys": ["keiner"]
+}
+
+### set machine to reserved
+POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/state
+Content-Type: application/json
+
+{
+    "value": "RESERVED",
+    "description": "Because i'm GOD"
+}
+
+### set machine to available
+POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/state
+Content-Type: application/json
+
+{
+    "value": "",
+    "description": ""
 }
 
 ### poweron a machine

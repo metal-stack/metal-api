@@ -2,6 +2,7 @@ package metal
 
 // AllocateMachine must be sent by a client who wants to allocate a new machine.
 type AllocateMachine struct {
+	UUID        string   `json:"uuid,omitempty" description:"if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition"`
 	Name        string   `json:"name" description:"the new name for the allocated machine" optional:"true"`
 	Tenant      string   `json:"tenant" description:"the name of the owning tenant"`
 	Hostname    string   `json:"hostname" description:"the hostname for the allocated machine"`

@@ -220,6 +220,7 @@ func (rs *RethinkStore) reserveNewVrf(tenant string) (*metal.Vrf, error) {
 // found the system will allocate a CIDR, create an allocation and update the
 // machine in the database.
 func (rs *RethinkStore) AllocateMachine(
+	uuid string,
 	name string,
 	description string,
 	hostname string,
@@ -232,11 +233,23 @@ func (rs *RethinkStore) AllocateMachine(
 	tenant string,
 	cidrAllocator CidrAllocator,
 ) (*metal.Machine, error) {
-	available, err := rs.waitTable().Filter(map[string]interface{}{
-		"allocation":  nil,
-		"partitionid": part.ID,
-		"sizeid":      size.ID,
-	}).Run(rs.session)
+	query := rs.waitTable().Filter(map[string]interface{}{
+		"allocation": nil,
+		"id":         uuid,
+	}).Filter(func(row r.Term) r.Term {
+		return row.Field("state").Field("value").Ne(string(metal.AvailableState))
+	})
+	if uuid == "" {
+		query = rs.waitTable().Filter(map[string]interface{}{
+			"allocation":  nil,
+			"partitionid": part.ID,
+			"sizeid":      size.ID,
+			"state": map[string]interface{}{
+				"value": "",
+			},
+		})
+	}
+	available, err := query.Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find free machine: %v", err)
 	}
@@ -285,8 +298,6 @@ func (rs *RethinkStore) AllocateMachine(
 	}
 	res[0].Allocation = alloc
 	res[0].Changed = time.Now()
-	res[0].Partition = *part
-	res[0].PartitionID = part.ID
 
 	tagSet := make(map[string]bool)
 	tagList := append(res[0].Tags, tags...)

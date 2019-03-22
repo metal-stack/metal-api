@@ -2,14 +2,15 @@ package datastore
 
 import (
 	"fmt"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/stretchr/testify/require"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 	"reflect"
 	"testing"
 	"testing/quick"
 	"time"
+
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/stretchr/testify/require"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // Test that generates many input data
@@ -397,6 +398,7 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 func TestRethinkStore_AllocateMachine(t *testing.T) {
 
 	type args struct {
+		uuid          string
 		name          string
 		description   string
 		hostname      string
@@ -421,7 +423,7 @@ func TestRethinkStore_AllocateMachine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.AllocateMachine(tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.partition, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.tags, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
+			got, err := tt.rs.AllocateMachine(tt.args.uuid, tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.partition, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.tags, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.AllocateMachine() error = %v, wantErr %v", err, tt.wantErr)
 				return

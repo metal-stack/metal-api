@@ -7,6 +7,28 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
+// A MState is an enum which indicates the state of a machine
+type MState string
+
+// The enums for the machine states.
+const (
+	AvailableState MState = ""
+	ReservedState  MState = "RESERVED"
+)
+
+var (
+	// AllStates contains all possible values of a machine state
+	AllStates = []MState{AvailableState, ReservedState}
+)
+
+// A MachineState describes the state of a machine. If the Value is AvailableState,
+// the machine will be available for allocation. In all other cases the allocation
+// must explicitly point to this machine.
+type MachineState struct {
+	Value       MState `json:"value" rethinkdb:"value" description:"the state of this machine. empty means available for all"`
+	Description string `json:"description" rethinkdb:"description" description:"a description why this machine is in the given state"`
+}
+
 // A Machine is a piece of metal which is under the control of our system. It registers itself
 // and can be allocated or freed. If the machine is allocated, the substructure Allocation will
 // be filled. Any unallocated (free) machine won't have such values.
@@ -20,6 +42,7 @@ type Machine struct {
 	Hardware    MachineHardware    `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
 	Allocation  *MachineAllocation `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
 	Tags        []string           `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
+	State       MachineState       `json:"state" rethinkdb:"state" description:"the state of this machine"`
 }
 
 // A MachineAllocation stores the data which are only present for allocated machines.
