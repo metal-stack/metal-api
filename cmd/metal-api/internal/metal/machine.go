@@ -88,12 +88,34 @@ func (d *Machine) HasMAC(mac string) bool {
 	return false
 }
 
+// A MachineCommand is an alias of a string
+type MachineCommand string
+
+// our supported machines commands.
+const (
+	MachineOnCmd    MachineCommand = "ON"
+	MachineOffCmd   MachineCommand = "OFF"
+	MachineResetCmd MachineCommand = "RESET"
+	MachineBiosCmd  MachineCommand = "BIOS"
+)
+
+// A MachineExecCommand can be sent via a MachineEvent to execute
+// the command against the specific machine. The specified command
+// should be executed against the given target machine. The parameters
+// is an optional array of strings which are implementation specific
+// and dependent of the command.
+type MachineExecCommand struct {
+	Target  *Machine       `json:"target,omitempty"`
+	Command MachineCommand `json:"cmd,omitempty"`
+	Params  []string       `json:"params,omitempty"`
+}
+
 // MachineEvent is propagated when a machine is create/updated/deleted.
 type MachineEvent struct {
-	Type      EventType `json:"type,omitempty"`
-	Old       *Machine  `json:"old,omitempty"`
-	New       *Machine  `json:"new,omitempty"`
-	SwitchIDs []string  `json:"switchIds",omitempty`
+	Type EventType           `json:"type,omitempty"`
+	Old  *Machine            `json:"old,omitempty"`
+	New  *Machine            `json:"new,omitempty"`
+	Cmd  *MachineExecCommand `json:"cmd,omitempty"`
 }
 
 // MachineWithPhoneHomeToken enriches a machine with a token. This is only

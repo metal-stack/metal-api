@@ -128,6 +128,42 @@ func (dr machineResource) webService() *restful.WebService {
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/on").To(dr.machineOn).
+		Doc("sends a power-on to the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads([]string{}).
+		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/off").To(dr.machineOff).
+		Doc("sends a power-off to the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads([]string{}).
+		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/reset").To(dr.machineReset).
+		Doc("sends a reset to the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads([]string{}).
+		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/bios").To(dr.machineBios).
+		Doc("sends a bios to the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads([]string{}).
+		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+
 	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
 		Doc("phone back home from the machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -327,13 +363,52 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 		return
 	}
 
-	sids := []string{}
-	for _, s := range sw {
-		sids = append(sids, s.ID)
-	}
-	evt := metal.MachineEvent{Type: metal.DELETE, Old: m, SwitchIDs: sids}
+	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
 	dr.Publish(string(metal.TopicMachine), evt)
 	utils.Logger(request).Sugar().Infow("publish delete event", "event", evt)
+
+	se := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
+	dr.Publish(string(metal.TopicSwitch), se)
+	utils.Logger(request).Sugar().Infow("publish switch update event", "event", se)
+
+	response.WriteEntity(m)
+}
+
+func (dr machineResource) machineOn(request *restful.Request, response *restful.Response) {
+	dr.machineCmd("machineOn", metal.MachineOnCmd, request, response)
+}
+
+func (dr machineResource) machineOff(request *restful.Request, response *restful.Response) {
+	dr.machineCmd("machineOff", metal.MachineOffCmd, request, response)
+}
+
+func (dr machineResource) machineReset(request *restful.Request, response *restful.Response) {
+	dr.machineCmd("machineReset", metal.MachineResetCmd, request, response)
+}
+
+func (dr machineResource) machineBios(request *restful.Request, response *restful.Response) {
+	dr.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
+}
+
+func (dr machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	var params []string
+	if err := request.ReadEntity(&params); checkError(request, response, op, err) {
+		return
+	}
+	m, err := dr.ds.FindMachine(id)
+	if checkError(request, response, op, err) {
+		return
+	}
+	evt := metal.MachineEvent{Type: metal.COMMAND, Cmd: &metal.MachineExecCommand{
+		Command: cmd,
+		Params:  params,
+		Target:  m,
+	}}
+	if checkError(request, response, op, dr.Publish("machine", evt)) {
+		return
+	}
+	utils.Logger(request).Sugar().Infow("publish event", "event", evt, "command", *evt.Cmd)
 	response.WriteEntity(m)
 }
 
@@ -374,12 +449,8 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 	}
 
 	// Push out events to signal switch configuration change
-	sids := []string{}
-	for _, s := range sw {
-		sids = append(sids, s.ID)
-	}
-	evt := metal.MachineEvent{Type: metal.UPDATE, New: m, SwitchIDs: sids}
-	dr.Publish(string(metal.TopicMachine), evt)
-	utils.Logger(request).Sugar().Infow("publish machine update event", "event", evt)
+	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
+	dr.Publish(string(metal.TopicSwitch), evt)
+	utils.Logger(request).Sugar().Infow("publish switch update event", "event", evt)
 	response.WriteEntity(m.Allocation)
 }

@@ -1,0 +1,473 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "netbox.fullname" . }}
+  name: {{ template "netbox.fullname" . }}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: {{ template "netbox.fullname" . }}
+    spec:
+      containers:
+      - name: netbox-nginx
+        image: {{ .Values.images.netbox_nginx.image }}:{{ .Values.images.netbox_nginx.tag }}
+        ports:
+        - containerPort: 80
+        command: ["nginx"]
+        args: ["-c", "/etc/netbox-nginx/nginx.conf", "-g", "daemon off;"]
+        volumeMounts:
+        - name: netbox-static-files
+          mountPath: /opt/netbox/netbox/static
+          readOnly: true
+        - name: netbox-nginx-config
+          mountPath: /etc/netbox-nginx
+      - name: netbox
+        image: {{ .Values.images.netbox.image }}:{{ .Values.images.netbox.tag }}
+        ports:
+        - containerPort: 8001
+        env:
+        - name: ALLOWED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              key: ALLOWED_HOSTS
+              name: netbox-netbox-env
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              key: DB_HOST
+              name: netbox-netbox-env
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              key: DB_NAME
+              name: netbox-netbox-env
+        - name: DB_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: DB_PASSWORD
+              name: netbox-netbox-env
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              key: DB_USER
+              name: netbox-netbox-env
+        - name: EMAIL_FROM
+          valueFrom:
+            configMapKeyRef:
+              key: EMAIL_FROM
+              name: netbox-netbox-env
+        - name: EMAIL_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: EMAIL_PASSWORD
+              name: netbox-netbox-env
+        - name: EMAIL_PORT
+          valueFrom:
+            configMapKeyRef:
+              key: EMAIL_PORT
+              name: netbox-netbox-env
+        - name: EMAIL_SERVER
+          valueFrom:
+            configMapKeyRef:
+              key: EMAIL_SERVER
+              name: netbox-netbox-env
+        - name: EMAIL_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              key: EMAIL_TIMEOUT
+              name: netbox-netbox-env
+        - name: EMAIL_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              key: EMAIL_USERNAME
+              name: netbox-netbox-env
+        - name: NETBOX_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: NETBOX_PASSWORD
+              name: netbox-netbox-env
+        - name: NETBOX_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              key: NETBOX_USERNAME
+              name: netbox-netbox-env
+        - name: SECRET_KEY
+          valueFrom:
+            configMapKeyRef:
+              key: SECRET_KEY
+              name: netbox-netbox-env
+        - name: SUPERUSER_API_TOKEN
+          valueFrom:
+            configMapKeyRef:
+              key: SUPERUSER_API_TOKEN
+              name: netbox-netbox-env
+        - name: SUPERUSER_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              key: SUPERUSER_EMAIL
+              name: netbox-netbox-env
+        - name: SUPERUSER_NAME
+          valueFrom:
+            configMapKeyRef:
+              key: SUPERUSER_NAME
+              name: netbox-netbox-env
+        - name: SUPERUSER_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: SUPERUSER_PASSWORD
+              name: netbox-netbox-env
+        - name: WEBHOOKS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              key: WEBHOOKS_ENABLED
+              name: netbox-netbox-env
+        - name: LOGIN_REQUIRED
+          valueFrom:
+            configMapKeyRef:
+              key: LOGIN_REQUIRED
+              name: netbox-netbox-env
+        - name: BASE_PATH
+          valueFrom:
+            configMapKeyRef:
+              key: BASE_PATH
+              name: netbox-netbox-env
+        - name: MAX_PAGE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              key: MAX_PAGE_SIZE
+              name: netbox-netbox-env
+        volumeMounts:
+        - name: netbox-nginx-config
+          mountPath: /etc/netbox-nginx/
+        - name: netbox-static-files
+          mountPath: /opt/netbox/netbox/static
+        - name: netbox-startup-scripts
+          mountPath: /opt/netbox/startup_scripts/
+        - name: netbox-initializers
+          mountPath: /opt/netbox/initializers/
+        - name: netbox-configuration
+          mountPath: /opt/netbox/config
+      restartPolicy: Always
+      volumes:
+      - name: netbox-nginx-config
+        configMap:
+          name: nginx-conf
+      - name: netbox-static-files
+        persistentVolumeClaim:
+          claimName: netbox-static-files
+      - name: netbox-startup-scripts
+        emptyDir: {}
+      - name: netbox-initializers
+        configMap:
+          name: netbox-netbox-initializers
+          items:
+          - key: custom_fields.yml
+            path: custom_fields.yml
+          - key: devices.yml
+            path: devices.yml
+          - key: groups.yml
+            path: groups.yml
+          - key: ipam.yml
+            path: ipam.yml
+          - key: manufacturer.yml
+            path: manufacturer.yml
+          - key: racks.yml
+            path: racks.yml
+          - key: secrets.yml
+            path: secrets.yml
+          - key: sites.yml
+            path: sites.yml
+          - key: tenants.yml
+            path: tenants.yml
+          - key: users.yml
+            path: users.yml
+      - name: netbox-configuration
+        emptyDir: {}
+      initContainers:
+      - name: netbox-init-config
+        image: {{ .Values.images.netbox_init_config.image }}:{{ .Values.images.netbox_init_config.tag }}
+        imagePullPolicy: Always
+        command: ["/k8s_init.sh"]
+        args: ["."]
+        volumeMounts:
+        - name: netbox-startup-scripts
+          mountPath: /netbox/startup_scripts/
+        - name: netbox-initializers
+          mountPath: /netbox/initializers/
+        - name: netbox-configuration
+          mountPath: /netbox/config
+{{- if not (and (eq .Values.postgres.backup.s3.access_key "") (eq .Values.postgres.backup.s3.secret_key "")) }}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: postgresql-backup
+spec:
+  schedule: "*/10 * * * *"
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: postgresql-backup
+            image: registry.fi-ts.io/metal/postgresql-backup:latest
+            command:
+              - /backup.sh
+            env:
+            - name: PGHOST
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_HOST
+                  name: netbox-netbox-env
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_NAME
+                  name: netbox-netbox-env
+            - name: PGPASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PASSWORD
+                  name: netbox-netbox-env
+            - name: PGUSER
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_USER
+                  name: netbox-netbox-env
+            - name: MC_FOLDER
+              value: {{ .Values.stage }}
+            - name: MC_ACCESS_KEY
+              value: {{ .Values.postgres.backup.s3.access_key }}
+            - name: MC_SECRET_KEY
+              value: {{ .Values.postgres.backup.s3.secret_key }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "netbox.fullname" . }}
+  name: {{ template "netbox.fullname" . }}
+spec:
+  ports:
+  - name: "{{ .Values.ports.netbox }}"
+    port: {{ .Values.ports.netbox }}
+    targetPort: 8001
+  - name: "{{ .Values.ports.netbox_nginx }}"
+    port: {{ .Values.ports.netbox_nginx }}
+    targetPort: 80
+  selector:
+    app: {{ template "netbox.fullname" . }}
+status:
+  loadBalancer: {}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: netbox-static-files
+  labels:
+    pvcname: netbox-static-files
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbox-netbox-initializers
+data:
+  custom_fields.yml: |
+    {{ .Values.netbox.initializers.custom_fields }}
+  devices.yml: |
+    {{ .Values.netbox.initializers.devices }}
+  groups.yml: |
+    {{ .Values.netbox.initializers.groups }}
+  ipam.yml: |
+    {{ .Values.netbox.initializers.ipam }}
+  manufacturer.yml: |
+    {{ .Values.netbox.initializers.manufacturer }}
+  racks.yml: |
+    {{ .Values.netbox.initializers.racks }}
+  secrets.yml: |
+    {{ .Values.netbox.initializers.secrets }}
+  sites.yml: |
+    {{ .Values.netbox.initializers.sites }}
+  tenants.yml: |
+    {{ .Values.netbox.initializers.tenants }}
+  users.yml: |
+    {{ .Values.netbox.initializers.users }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netbox-netbox-env
+data:
+  ALLOWED_HOSTS: "*"
+  DB_HOST: {{ template "netbox-postgres.fullname" . }}
+  DB_NAME: netbox
+  DB_PASSWORD: metal
+  DB_USER: netbox
+  EMAIL_FROM: netbox@bar.com
+  EMAIL_PASSWORD: bar
+  EMAIL_PORT: "25"
+  EMAIL_SERVER: localhost
+  EMAIL_TIMEOUT: "10"
+  EMAIL_USERNAME: foo
+  NETBOX_PASSWORD: guest
+  NETBOX_USERNAME: guest
+  SECRET_KEY: zfg6S2vDRC2U4VrAvpnTcvbMVC8z5w
+  SUPERUSER_API_TOKEN: de599cb74da0e4d16c6ca45cb80d5c9c072c1614
+  SUPERUSER_EMAIL: admin@example.com
+  SUPERUSER_NAME: admin
+  SUPERUSER_PASSWORD: metal
+  WEBHOOKS_ENABLED: "false"
+  LOGIN_REQUIRED: "true"
+  BASE_PATH: ""
+  MAX_PAGE_SIZE: "0"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  nginx.conf: |
+    worker_processes 1;
+    events {
+      worker_connections  1024;
+    }
+    http {
+      include       /etc/nginx/mime.types;
+      default_type  application/octet-stream;
+      sendfile        on;
+      tcp_nopush     on;
+      keepalive_timeout  65;
+      gzip  on;
+      server_tokens off;
+      server {
+          listen 80;
+          server_name localhost;
+          access_log off;
+          location /static/ {
+            alias /opt/netbox/netbox/static/;
+          }
+          location / {
+            proxy_pass http://localhost:8001/;
+            proxy_set_header X-Forwarded-Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            add_header P3P 'CP="ALL DSP COR PSAa PSDa OUR NOR ONL UNI COM NAV"';
+          }
+      }
+    }
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "netbox-postgres.fullname" . }}
+  name: {{ template "netbox-postgres.fullname" . }}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: {{ template "netbox-postgres.fullname" . }}
+    spec:
+      containers:
+      - image: postgres:11-alpine
+        name: postgres
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              key: POSTGRES_DB
+              name: postgres-env
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              key: POSTGRES_USER
+              name: postgres-env
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: POSTGRES_PASSWORD
+              name: postgres-env
+        - name: PGDATA
+          valueFrom:
+            configMapKeyRef:
+              key: POSTGRES_DATA
+              name: postgres-env
+        volumeMounts:
+        - name: {{ template "netbox-postgres-data-volume.fullname" . }}
+          mountPath: /var/lib/postgresql/data/
+      restartPolicy: Always
+      volumes:
+      - name: {{ template "netbox-postgres-data-volume.fullname" . }}
+        persistentVolumeClaim:
+          claimName: {{ template "netbox-postgres-data-volume.fullname" . }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    service: {{ template "netbox-postgres-data-volume.fullname" . }}
+  name: {{ template "netbox-postgres-data-volume.fullname" . }}
+spec:
+  storageClassName: {{ .Values.storage_class }}
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "netbox-postgres.fullname" . }}
+  name: {{ template "netbox-postgres.fullname" . }}
+spec:
+  ports:
+  - name: "{{ .Values.ports.netbox_postgres }}"
+    port: {{ .Values.ports.netbox_postgres }}
+    targetPort: 5432
+  selector:
+    app: {{ template "netbox-postgres.fullname" . }}
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-env
+data:
+  POSTGRES_DB: netbox
+  POSTGRES_USER: netbox
+  POSTGRES_PASSWORD: metal
+  POSTGRES_DATA: "/var/lib/postgresql/data/pgdata"

@@ -2,13 +2,14 @@ package datastore
 
 import (
 	"fmt"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/stretchr/testify/require"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 	"reflect"
 	"testing"
 	"testing/quick"
-
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	"time"
 )
 
 // Test that generates many input data
@@ -531,6 +532,10 @@ func TestRethinkStore_RegisterMachine(t *testing.T) {
 
 func TestRethinkStore_Wait(t *testing.T) {
 
+	// Mock the DB:
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
 	type args struct {
 		id    string
 		alloc Allocator
@@ -542,7 +547,25 @@ func TestRethinkStore_Wait(t *testing.T) {
 		wantErr bool
 	}{
 		// Tests
-
+		{
+			name: "Test 1",
+			rs:   ds,
+			args: args{
+				id: "3",
+				alloc: func(alloc Allocation) error {
+					select {
+					case <-time.After(time.Second):
+						require.Fail(t, "Timeout not expected")
+						return nil
+					case a := <-alloc:
+						require.NotNil(t, a)
+						require.Equal(t, "3", a.ID)
+						return nil
+					}
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

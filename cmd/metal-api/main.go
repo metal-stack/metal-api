@@ -163,6 +163,7 @@ func initNetboxProxy() {
 }
 
 func initEventBus() {
+Outer:
 	for {
 		nsqd := viper.GetString("nsqd-addr")
 		httpnsqd := viper.GetString("nsqd-http-addr")
@@ -173,10 +174,12 @@ func initEventBus() {
 			continue
 		}
 		logger.Infow("nsq connected", "nsqd", nsqd)
-		if err := p.CreateTopic(string(metal.TopicMachine)); err != nil {
-			logger.Errorw("cannot create Topic", "topic", metal.TopicMachine, "error", err)
-			time.Sleep(3 * time.Second)
-			continue
+		for _, t := range metal.Topics {
+			if err := p.CreateTopic(string(t)); err != nil {
+				logger.Errorw("cannot create Topic", "topic", t, "error", err)
+				time.Sleep(3 * time.Second)
+				continue Outer
+			}
 		}
 		producer = p
 		break
@@ -259,7 +262,7 @@ func run() {
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	logger.Info("start metal api", "version", version.V.String())
+	logger.Infow("start metal api", "version", version.V.String(), "address", addr)
 	http.ListenAndServe(addr, nil)
 }
 
@@ -294,5 +297,6 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "switch",
 			Description: "Managing switches"}},
 	}
-	swo.Schemes = []string{"http", "https"}
+	// Maybe this leads to an issue, investigating...:
+	// swo.Schemes = []string{"http", "https"}
 }

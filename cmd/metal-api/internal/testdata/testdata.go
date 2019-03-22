@@ -2,7 +2,6 @@ package testdata
 
 import (
 	"fmt"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
@@ -467,7 +466,11 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Get("switch404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("switch").Get("switch999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get("IPMI-1")).Return(IPMI1, nil)
-	// Default: Return Empy result
+	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
+		map[string]interface{}{"new_val": M3},
+	}, nil)
+
+	// Default: Return Empty result
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything())).Return(EmptyResult, nil)
@@ -489,6 +492,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("wait").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 
 	// X.Get.Replace
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
@@ -505,6 +509,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything())).Return(EmptyResult, nil)
 
 	mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
@@ -522,6 +527,9 @@ func InitMockDBData(mock *r.Mock) {
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 

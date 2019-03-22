@@ -10,11 +10,13 @@ type NSQTopic string
 
 // Some enums.
 const (
-	CREATE EventType = "create"
-	UPDATE EventType = "update"
-	DELETE EventType = "delete"
+	CREATE  EventType = "create"
+	UPDATE  EventType = "update"
+	DELETE  EventType = "delete"
+	COMMAND EventType = "command"
 
 	TopicMachine NSQTopic = "machine"
+	TopicSwitch  NSQTopic = "switch"
 )
 
 var (
@@ -22,6 +24,7 @@ var (
 	// metal-api will make sure these topics exist when it is started.
 	Topics = []NSQTopic{
 		TopicMachine,
+		TopicSwitch,
 	}
 )
 
