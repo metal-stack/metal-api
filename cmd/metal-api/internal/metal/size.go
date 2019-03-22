@@ -2,8 +2,6 @@ package metal
 
 import (
 	"fmt"
-
-	humanize "github.com/dustin/go-humanize"
 )
 
 var (
@@ -22,13 +20,22 @@ type Size struct {
 	Constraints []Constraint `json:"constraints" modelDescription:"A Size describes our supported t-shirt sizes." description:"a list of constraints that defines this size" rethinkdb:"constraints"`
 }
 
+// ConstraintType ...
+type ConstraintType string
+
+// come constraint types
+const (
+	CoreConstraint    ConstraintType = "cores"
+	MemoryConstraint  ConstraintType = "memory"
+	StorageConstraint ConstraintType = "storage"
+)
+
 // A Constraint describes the hardware constraints for a given size. At the moment we only
 // consider the cpu cores and the memory.
 type Constraint struct {
-	MinCores  int    `json:"mincores" rethinkdb:"mincores" description:"the minimal number of cores"`
-	MaxCores  int    `json:"maxcores" rethinkdb:"maxcores" description:"the maximal number of cores"`
-	MinMemory uint64 `json:"minmemory" rethinkdb:"minmemory" description:"the minimal amount of memory"`
-	MaxMemory uint64 `json:"maxmemory" rethinkdb:"maxmemory" description:"the maximal amount of memory"`
+	Type ConstraintType `json:"type" rethinkdb:"type" description:"the type of constraint"`
+	Min  uint64         `json:"min" rethinkdb:"min" description:"the minimal value"`
+	Max  uint64         `json:"max" rethinkdb:"max" description:"the maximal value"`
 }
 
 // Sizes is a list of sizes.
@@ -46,28 +53,39 @@ func (sz Sizes) ByID() SizeMap {
 	return res
 }
 
+// Matches returns true if the given machine hardware is inside the min/max values of the
+// constraint.
+func (c *Constraint) Matches(hw MachineHardware) bool {
+	switch c.Type {
+	case CoreConstraint:
+		return uint64(hw.CPUCores) >= c.Min && uint64(hw.CPUCores) <= c.Max
+	case MemoryConstraint:
+		return hw.Memory >= c.Min && hw.Memory <= c.Max
+	case StorageConstraint:
+		return hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
+	}
+	return false
+}
+
 // FromHardware searches a Size for given hardware specs. It will search
-// for a size where at least one constraint matches the given hardware.
+// for a size where the constraints matches the given hardware.
 func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
 	var found []Size
+nextsize:
 	for _, s := range sz {
 		for _, c := range s.Constraints {
-			if hardware.CPUCores < c.MinCores || hardware.CPUCores > c.MaxCores {
-				continue
+			if !c.Matches(hardware) {
+				continue nextsize
 			}
-			if hardware.Memory < c.MinMemory || hardware.Memory > c.MaxMemory {
-				continue
-			}
-			found = append(found, s)
-			break
 		}
+		found = append(found, s)
 	}
 
 	if len(found) == 0 {
-		return nil, fmt.Errorf("no size found for %d cores and %s bytes", hardware.CPUCores, humanize.Bytes(hardware.Memory))
+		return nil, fmt.Errorf("no size found for hardware (%s)", hardware.ReadableSpec())
 	}
 	if len(found) > 1 {
-		return nil, fmt.Errorf("%d sizes found for %d cores and %s bytes", len(found), hardware.CPUCores, humanize.Bytes(hardware.Memory))
+		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
 	}
 	return &found[0], nil
 }

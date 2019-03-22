@@ -1638,29 +1638,22 @@
     },
     "metal.Constraint": {
       "required": [
-        "mincores",
-        "maxcores",
-        "minmemory",
-        "maxmemory"
+        "type",
+        "min",
+        "max"
       ],
       "properties": {
-        "maxcores": {
-          "description": "the maximal number of cores",
-          "type": "integer",
-          "format": "int32"
-        },
-        "maxmemory": {
-          "description": "the maximal amount of memory",
+        "max": {
+          "description": "the maximal value",
           "type": "integer"
         },
-        "mincores": {
-          "description": "the minimal number of cores",
-          "type": "integer",
-          "format": "int32"
-        },
-        "minmemory": {
-          "description": "the minimal amount of memory",
+        "min": {
+          "description": "the minimal value",
           "type": "integer"
+        },
+        "type": {
+          "description": "the type of constraint",
+          "type": "string"
         }
       }
     },

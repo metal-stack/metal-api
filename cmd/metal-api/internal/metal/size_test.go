@@ -12,10 +12,41 @@ var (
 		},
 		Constraints: []Constraint{
 			Constraint{
-				MinCores:  1,
-				MaxCores:  1,
-				MinMemory: 1024,
-				MaxMemory: 1024,
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			Constraint{
+				Type: MemoryConstraint,
+				Min:  1024,
+				Max:  1024,
+			},
+			Constraint{
+				Type: StorageConstraint,
+				Min:  0,
+				Max:  1024,
+			},
+		},
+	}
+	microOverlappingSize = Size{
+		Base: Base{
+			Name: "micro",
+		},
+		Constraints: []Constraint{
+			Constraint{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			Constraint{
+				Type: MemoryConstraint,
+				Min:  1024,
+				Max:  1024,
+			},
+			Constraint{
+				Type: StorageConstraint,
+				Min:  0,
+				Max:  2048,
 			},
 		},
 	}
@@ -25,29 +56,19 @@ var (
 		},
 		Constraints: []Constraint{
 			Constraint{
-				MinCores:  1,
-				MaxCores:  1,
-				MinMemory: 1024,
-				MaxMemory: 1077838336,
-			},
-		},
-	}
-	microAndTinySize = Size{
-		Base: Base{
-			Name: "microAndTiny",
-		},
-		Constraints: []Constraint{
-			Constraint{
-				MinCores:  1,
-				MaxCores:  1,
-				MinMemory: 1024,
-				MaxMemory: 1077838336,
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
 			},
 			Constraint{
-				MinCores:  1,
-				MaxCores:  1,
-				MinMemory: 1024,
-				MaxMemory: 1024,
+				Type: MemoryConstraint,
+				Min:  1024,
+				Max:  1077838336,
+			},
+			Constraint{
+				Type: StorageConstraint,
+				Min:  1024,
+				Max:  2048,
 			},
 		},
 	}
@@ -58,12 +79,18 @@ var (
 			Name:        "sz1",
 			Description: "description 1",
 		},
-		Constraints: []Constraint{Constraint{
-			MinCores:  1,
-			MaxCores:  1,
-			MinMemory: 100,
-			MaxMemory: 100,
-		}},
+		Constraints: []Constraint{
+			Constraint{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			Constraint{
+				Type: MemoryConstraint,
+				Min:  100,
+				Max:  100,
+			},
+		},
 	}
 	sz2 = Size{
 		Base: Base{
@@ -85,12 +112,18 @@ var (
 			Name:        "sz1",
 			Description: "description 1",
 		},
-		Constraints: []Constraint{Constraint{
-			MinCores:  888,
-			MaxCores:  1111,
-			MinMemory: 100,
-			MaxMemory: 100,
-		}},
+		Constraints: []Constraint{
+			Constraint{
+				Type: CoreConstraint,
+				Min:  888,
+				Max:  1111,
+			},
+			Constraint{
+				Type: MemoryConstraint,
+				Min:  100,
+				Max:  100,
+			},
+		},
 	}
 	// All Sizes
 	testSizes = []Size{
@@ -120,6 +153,11 @@ func TestSizes_FromHardware(t *testing.T) {
 				hardware: MachineHardware{
 					CPUCores: 1,
 					Memory:   1069838336,
+					Disks: []BlockDevice{
+						BlockDevice{
+							Size: 1025,
+						},
+					},
 				},
 			},
 			want:    &tinySize,
@@ -132,26 +170,19 @@ func TestSizes_FromHardware(t *testing.T) {
 				hardware: MachineHardware{
 					CPUCores: 1,
 					Memory:   1024,
+					Disks: []BlockDevice{
+						BlockDevice{
+							Size: 1025,
+						},
+					},
 				},
 			},
 			want:    &tinySize,
 			wantErr: false,
 		},
 		{
-			name: "one constraint matches",
-			sz:   Sizes{microAndTinySize},
-			args: args{
-				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   1024,
-				},
-			},
-			want:    &microAndTinySize,
-			wantErr: false,
-		},
-		{
 			name: "too many matches",
-			sz:   Sizes{microSize, tinySize},
+			sz:   Sizes{microSize, microOverlappingSize},
 			args: args{
 				hardware: MachineHardware{
 					CPUCores: 1,

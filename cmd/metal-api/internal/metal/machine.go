@@ -1,6 +1,11 @@
 package metal
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"github.com/dustin/go-humanize"
+)
 
 // A Machine is a piece of metal which is under the control of our system. It registers itself
 // and can be allocated or freed. If the machine is allocated, the substructure Allocation will
@@ -41,6 +46,20 @@ type MachineHardware struct {
 	CPUCores int           `json:"cpu_cores" description:"the number of cpu cores" rethinkdb:"cpu_cores"`
 	Nics     Nics          `json:"nics" description:"the list of network interfaces of this machine" rethinkdb:"network_interfaces"`
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this machine" rethinkdb:"block_devices"`
+}
+
+// DiskCapacity calculates the capacity of all disks.
+func (hw *MachineHardware) DiskCapacity() uint64 {
+	var cap uint64
+	for _, d := range hw.Disks {
+		cap += d.Size
+	}
+	return cap
+}
+
+// ReadableSpec returns a human readable string for the hardware.
+func (hw *MachineHardware) ReadableSpec() string {
+	return fmt.Sprintf("Cores:%d, Memory:%s, Storage: %s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()))
 }
 
 // BlockDevice information.

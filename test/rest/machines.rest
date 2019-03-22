@@ -14,6 +14,10 @@ Content-Type: application/json
       {
         "name": "sda",
         "size": 12
+      },
+      {
+        "name": "sdb",
+        "size": 13
       }
     ],
     "memory": 1024,

@@ -41,12 +41,18 @@ func TestMachine_HasMAC(t *testing.T) {
 						Name:        "sz1",
 						Description: "description 1",
 					},
-					Constraints: []Constraint{Constraint{
-						MinCores:  1,
-						MaxCores:  1,
-						MinMemory: 100,
-						MaxMemory: 100,
-					}},
+					Constraints: []Constraint{
+						Constraint{
+							Type: CoreConstraint,
+							Min:  1,
+							Max:  1,
+						},
+						Constraint{
+							Type: MemoryConstraint,
+							Min:  100,
+							Max:  100,
+						},
+					},
 				},
 				Allocation: nil,
 				Hardware: MachineHardware{
@@ -92,12 +98,16 @@ func TestMachine_HasMAC(t *testing.T) {
 						Name:        "sz1",
 						Description: "description 1",
 					},
-					Constraints: []Constraint{Constraint{
-						MinCores:  1,
-						MaxCores:  1,
-						MinMemory: 100,
-						MaxMemory: 100,
-					}},
+					Constraints: []Constraint{
+						Constraint{
+							Type: CoreConstraint,
+							Min:  1,
+							Max:  1},
+						Constraint{
+							Type: MemoryConstraint,
+							Min:  100,
+							Max:  100},
+					},
 				},
 				Allocation: &MachineAllocation{
 					Name:    "d1",

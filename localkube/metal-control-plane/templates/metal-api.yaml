@@ -43,7 +43,7 @@ spec:
         - name: METAL_API_NSQD_HTTP_ADDR
           value: {{ template "nsqd.fullname" . }}:4151
         - name: METAL_API_NETBOX_API_TOKEN
-          value: 9282895864c78f3dba1608e9c4cb37e55b2f9e97
+          value: de599cb74da0e4d16c6ca45cb80d5c9c072c1614
         image: {{ .Values.images.metal_api.image }}:{{ .Values.images.metal_api.tag }}
         name: metal-api
         imagePullPolicy: IfNotPresent
