@@ -1,0 +1,76 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: rethinkdb-rethinkdb
+  name: rethinkdb-rethinkdb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: rethinkdb-rethinkdb
+    spec:
+      containers:
+      - image: rethinkdb:latest
+        name: rethinkdb
+        ports:
+        - containerPort: 8080
+        - containerPort: 28015
+        resources: {}
+        volumeMounts:
+        - mountPath: /data
+          name: rethinkdb-rethinkdb
+      restartPolicy: Always
+      volumes:
+      - name: rethinkdb-rethinkdb
+        persistentVolumeClaim:
+          claimName: rethinkdb-rethinkdb
+      restartPolicy: Always
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    app: rethinkdb-rethinkdb
+  name: rethinkdb-rethinkdb
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    service: rethinkdb-rethinkdb-proxy
+  name: rethinkdb-rethinkdb-proxy
+spec:
+  type: NodePort
+  ports:
+  - name: "10080"
+    port: 10080
+    targetPort: 8080
+    nodePort: 30080
+  - name: "28015"
+    port: 28015
+    targetPort: 28015
+  selector:
+    service: rethinkdb-rethinkdb
+status:
+  loadBalancer: {}
+
+ 

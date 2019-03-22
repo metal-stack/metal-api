@@ -1,0 +1,66 @@
+---
+dev_setup: true
+
+images:
+  metal_api:
+    image: registry.fi-ts.io/metal/metal-api
+    tag: latest
+  nsq:
+    image: nsqio/nsq
+    tag: v1.1.0
+  rethinkdb:
+    image: rethinkdb
+    tag: latest
+  netbox:
+    image: ninech/netbox
+    tag: v2.4.8
+  netbox_nginx:
+    image: nginx
+    tag: 1.15-alpine
+  netbox_api_proxy:
+    image: registry.fi-ts.io/metal/netbox-api-proxy
+    tag: 0.4.1
+  netbox_postgres:
+    image: postgres
+    tag: 11-alpine
+  netbox_init_config:
+    image: registry.fi-ts.io/metal/netbox-init-config
+    tag: latest
+  swagger_ui:
+    image: swaggerapi/swagger-ui
+    tag: latest
+
+ports:
+  metal_api: 8080
+  rethinkdb: 28015
+  rethinkdb_ui: 10080
+  swagger_ui: 9090
+  netbox: 8001
+  netbox_nginx: 8000
+  netbox_postgres: 5432
+  netbox_api_proxy: 8002
+
+metal_api:
+  replicas: 1
+  partitions: []
+  sizes: []
+  images: []
+
+netbox:
+  initializers:
+    custom_fields: ""
+    devices: ""
+    groups: ""
+    ipam: ""
+    manufacturer: ""
+    racks: ""
+    secrets: ""
+    sites: ""
+    tenants: ""
+    users: ""
+
+postgres:
+  backup:
+    s3:
+      access_key: ""
+      secret_key: ""

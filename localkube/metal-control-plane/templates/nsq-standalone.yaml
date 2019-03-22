@@ -1,0 +1,150 @@
+{{- if .Values.dev_setup }}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "nsqd.fullname" . }}
+  name: {{ template "nsqd.fullname" . }}
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: {{ template "nsqd.fullname" . }}
+    spec:
+      containers:
+      - args:
+        - /nsqd
+        - -log-level
+        - error
+        - --lookupd-tcp-address={{ template "nsq-lookupd.fullname" . }}:4160
+        - -broadcast-address=metal-api # FIXME: Only works for vagrant-lab
+        image: {{ .Values.images.nsq.image }}:{{ .Values.images.nsq.tag }}
+        name: nsqd
+        ports:
+        - containerPort: 4150
+        - containerPort: 4151
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "nsqd.fullname" . }}
+  name: {{ template "nsqd.fullname" . }}
+spec:
+  ports:
+  - name: "4150"
+    port: 4150
+    targetPort: 4150
+  - name: "4151"
+    port: 4151
+    targetPort: 4151
+  selector:
+    app: {{ template "nsqd.fullname" . }}
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "nsq-lookupd.fullname" . }}
+  name: {{ template "nsq-lookupd.fullname" . }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: {{ template "nsq-lookupd.fullname" . }}
+    spec:
+      containers:
+      - args:
+        - /nsqlookupd
+        - -log-level
+        - error
+        image: {{ .Values.images.nsq.image }}:{{ .Values.images.nsq.tag }}
+        name: nsq-lookupd
+        ports:
+        - containerPort: 4160
+        - containerPort: 4161
+        resources: {}
+        volumeMounts:
+        - mountPath: /data
+          name: {{ template "nsq-data-volume.fullname" . }}
+      restartPolicy: Always
+      volumes:
+      - name: {{ template "nsq-data-volume.fullname" . }}
+        persistentVolumeClaim:
+          claimName: {{ template "nsq-data-volume.fullname" . }}
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    app: {{ template "nsq-data-volume.fullname" . }}
+  name: {{ template "nsq-data-volume.fullname" . }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "nsq-lookupd.fullname" . }}
+  name: {{ template "nsq-lookupd.fullname" . }}
+spec:
+  ports:
+  - name: "4160"
+    port: 4160
+    targetPort: 4160
+  - name: "4161"
+    port: 4161
+    targetPort: 4161
+  selector:
+    app: {{ template "nsq-lookupd.fullname" . }}
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "nsq-admin.fullname" . }}
+  name: {{ template "nsq-admin.fullname" . }}
+spec:
+  ports:
+  - name: "4171"
+    port: 4171
+    targetPort: 4171
+  selector:
+    app: {{ template "nsq-admin.fullname" . }}
+status:
+  loadBalancer: {}
+{{- end }}

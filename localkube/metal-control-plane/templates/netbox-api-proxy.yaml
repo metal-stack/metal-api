@@ -1,0 +1,52 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "netbox-api-proxy.fullname" . }}
+  name: {{ template "netbox-api-proxy.fullname" . }}
+spec:
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: {{ template "netbox-api-proxy.fullname" . }}
+    spec:
+      containers:
+      - env:
+        - name: NETBOX_API_PROXY_BIND_ADDRESS
+          value: 0.0.0.0
+        - name: NETBOX_API_PROXY_HOST
+          value: http://{{ template "netbox.fullname" . }}:{{ .Values.ports.netbox }}
+        - name: NETBOX_API_PROXY_LOG_LEVEL
+          value: DEBUG
+        image: {{ .Values.images.netbox_api_proxy.image }}:{{ .Values.images.netbox_api_proxy.tag }}
+        name: netbox-api-proxy
+        ports:
+          - containerPort: 8000
+        tty: true
+        resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: null
+  creationTimestamp: null
+  labels:
+    app: {{ template "netbox-api-proxy.fullname" . }}
+  name: {{ template "netbox-api-proxy.fullname" . }}
+spec:
+  ports:
+  - name: "{{ .Values.ports.netbox_api_proxy }}"
+    port: {{ .Values.ports.netbox_api_proxy }}
+    targetPort: 8000
+  selector:
+    app: {{ template "netbox-api-proxy.fullname" . }}
+status:
+  loadBalancer: {}

@@ -38,6 +38,26 @@ localdev:
 	tmux split-window -v '$(MAKE) watch'
 	tmux attach-session -d
 
+# local-api-proxy is needed for my rest-plugin to have fixed host:port
+.PHONY: local-api-proxy
+local-api-proxy:
+	kubectl port-forward pod/$(shell kubectl get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name}) 8080:8080
+
+# commands for localkube development. first do a check to make sure we are
+# on minikube and do not overwrite other environments by accident.
+localkube-install:
+	kubectl config view | grep minikube && \
+	helm install -n rethink localkube/rethinkdb && \
+	helm install -n metal localkube/metal-control-plane
+
+localkube-upgrade-rethink:
+	kubectl config view | grep minikube && \
+	helm upgrade --force rethink localkube/rethinkdb
+
+localkube-upgrade-metal:
+	kubectl config view | grep minikube && \
+	helm upgrade --force metal localkube/metal-control-plane
+
 .PHONY: generate-client
 generate-client:
 	rm -rf netbox-api/*

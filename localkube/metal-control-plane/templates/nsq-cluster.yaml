@@ -1,0 +1,234 @@
+{{- if not .Values.dev_setup }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headlessnsqlookupd
+  labels:
+    app: headlessnsqlookupd
+spec:
+  ports:
+  - port: 4160
+    targetPort: 4160
+    name: tcp
+  - port: 4161
+    targetPort: 4161
+    name: http
+  clusterIP: None
+  selector:
+    app: nsq
+    component: nsqlookupd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "nsq-lookupd.fullname" . }}
+  labels:
+    app: nsqlookupd
+spec:
+  ports:
+  - port: 4160
+    targetPort: 4160
+    name: tcp
+  - port: 4161
+    targetPort: 4161
+    name: http
+  selector:
+    app: nsq
+    component: nsqlookupd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "nsqd.fullname" . }}
+  labels:
+    app: nsqd
+spec:
+  ports:
+  - port: 4150
+    targetPort: 4150
+    name: tcp
+  - port: 4151
+    targetPort: 4151
+    name: http
+  selector:
+    app: nsq
+    component: nsqd
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nsqadmin
+  labels:
+    app: nsqadmin
+spec:
+  ports:
+  - port: 4170
+    targetPort: 4170
+    name: tcp
+  - port: 4171
+    targetPort: 4171
+    name: http
+  selector:
+    app: nsq
+    component: nsqadmin
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: nsqlookupd
+spec:
+  serviceName: "headlessnsqlookupd"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nsq
+      component: nsqlookupd
+  template:
+    metadata:
+      labels:
+        app: nsq
+        component: nsqlookupd
+    spec:
+      containers:
+      - name: nsqlookupd
+        image: nsqio/nsq:v1.1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4160
+          name: tcp
+        - containerPort: 4161
+          name: http
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        command: ["sh", "-c"]
+        args:
+          - /nsqlookupd
+            -log-level error
+            -broadcast-address $MY_POD_IP
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+      # No pre-stop hook is required, a SIGTERM plus some time is all that's
+      # needed for graceful shutdown of a node.
+      terminationGracePeriodSeconds: 5
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: nsqd
+spec:
+  serviceName: "nsqd"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nsq
+      component: nsqd
+  template:
+    metadata:
+      labels:
+        app: nsq
+        component: nsqd
+    spec:
+      containers:
+      - name: nsqd
+        image: nsqio/nsq:v1.1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4150
+          name: tcp
+        - containerPort: 4151
+          name: http
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        volumeMounts:
+        - name: datadir
+          mountPath: /data
+        command: ["sh", "-c"]
+        args:
+          - /nsqd
+            -log-level error
+            -broadcast-address {{ .Values.master_ip }}
+            -data-path /data
+            -lookupd-tcp-address nsqlookupd-0.headlessnsqlookupd.{{ .Release.Namespace }}.svc.cluster.local:4160
+            -lookupd-tcp-address nsqlookupd-1.headlessnsqlookupd.{{ .Release.Namespace }}.svc.cluster.local:4160
+            -lookupd-tcp-address nsqlookupd-2.headlessnsqlookupd.{{ .Release.Namespace }}.svc.cluster.local:4160
+      # No pre-stop hook is required, a SIGTERM plus some time is all that's
+      # needed for graceful shutdown of a node.
+      terminationGracePeriodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "rook-ceph-block"
+      resources:
+        requests:
+          storage: 100Mi
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nsqadmin
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nsq
+        component: nsqadmin
+    spec:
+      containers:
+      - name: nsqadmin
+        image: nsqio/nsq:v1.1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4170
+          name: tcp
+        - containerPort: 4171
+          name: http
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        command: ["sh", "-c"]
+        args:
+          - /nsqadmin
+             -log-level error
+             -lookupd-http-address nsqlookupd-0.headlessnsqlookupd.{{ .Release.Namespace }}.svc.cluster.local:4161
+             -lookupd-http-address nsqlookupd-1.headlessnsqlookupd.{{ .Release.Namespace }}.svc.cluster.local:4161
+             -lookupd-http-address nsqlookupd-2.headlessnsqlookupd.{{ .Release.Namespace }}.svc.cluster.local:4161
+      # No pre-stop hook is required, a SIGTERM plus some time is all that's
+      # needed for graceful shutdown of a node.
+      terminationGracePeriodSeconds: 5
+{{- end }}
