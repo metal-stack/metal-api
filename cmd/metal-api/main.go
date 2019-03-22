@@ -262,7 +262,7 @@ func run() {
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	logger.Info("start metal api", "version", version.V.String())
+	logger.Infow("start metal api", "version", version.V.String(), "address", addr)
 	http.ListenAndServe(addr, nil)
 }
 
