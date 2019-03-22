@@ -1,8 +1,8 @@
-
+# PLEASE MAKE SURE TO HAVE THE kubectl CONFIG POINT TO MINIKUBE WHEN LOCAL DEVELOPMENT
 BINARY := metal-api
 MAINMODULE := git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api
 COMMONDIR := $(or ${COMMONDIR},../common)
-API_BASE_URL := $(or ${API_BASE_URL},http://localhost:8080)
+API_BASE_URL := $(or ${API_BASE_URL}, $(shell minikube service -n default --url metal-api))
 
 include $(COMMONDIR)/Makefile.inc
 
@@ -21,9 +21,9 @@ createmasterdata:
 
 .PHONY: localbuild
 localbuild: bin/$(BINARY) Dockerfile.dev
+	@eval $(shell minikube docker-env)
 	docker build -t registry.fi-ts.io/metal/metal-api -f Dockerfile.dev .
-	cd ../metal-lab/provision/api
-	docker-compose up -d
+	kubectl delete pod $(shell kubectl get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name})
 
 # the watch target needs https://github.com/cortesi/modd
 .PHONY: watch
