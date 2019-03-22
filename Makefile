@@ -3,6 +3,7 @@ BINARY := metal-api
 MAINMODULE := git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api
 COMMONDIR := $(or ${COMMONDIR},../common)
 API_BASE_URL := $(or ${API_BASE_URL}, $(shell minikube service -n default --url metal-api))
+KCTL := kubectl
 
 include $(COMMONDIR)/Makefile.inc
 
@@ -23,7 +24,7 @@ createmasterdata:
 localbuild: bin/$(BINARY) Dockerfile.dev
 	@eval $(shell minikube docker-env)
 	docker build -t registry.fi-ts.io/metal/metal-api -f Dockerfile.dev .
-	kubectl delete pod $(shell kubectl get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name})
+	${KCTL} delete pod $(shell ${KCTL} get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name})
 
 # the watch target needs https://github.com/cortesi/modd
 .PHONY: watch
@@ -41,21 +42,23 @@ localdev:
 # local-api-proxy is needed for my rest-plugin to have fixed host:port
 .PHONY: local-api-proxy
 local-api-proxy:
-	kubectl port-forward pod/$(shell kubectl get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name}) 8080:8080
+	tmux new-session -d '${KCTL} port-forward pod/$(shell ${KCTL} get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name}) 8080:8080'
+	tmux split-window -v '${KCTL} port-forward pod/$(shell ${KCTL} get pods -l app=metal-swagger-ui --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name}) 9090:8080'
+	tmux attach-session -d
 
 # commands for localkube development. first do a check to make sure we are
 # on minikube and do not overwrite other environments by accident.
 localkube-install:
-	kubectl config view | grep minikube && \
+	${KCTL} config view | grep minikube && \
 	helm install -n rethink localkube/rethinkdb && \
 	helm install -n metal localkube/metal-control-plane
 
 localkube-upgrade-rethink:
-	kubectl config view | grep minikube && \
+	${KCTL} config view | grep minikube && \
 	helm upgrade --force rethink localkube/rethinkdb
 
 localkube-upgrade-metal:
-	kubectl config view | grep minikube && \
+	${KCTL} config view | grep minikube && \
 	helm upgrade --force metal localkube/metal-control-plane
 
 .PHONY: generate-client
