@@ -42,8 +42,8 @@ localdev:
 # local-api-proxy is needed for my rest-plugin to have fixed host:port
 .PHONY: local-api-proxy
 local-api-proxy:
-	tmux new-session -d '${KCTL} port-forward pod/$(shell ${KCTL} get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name}) 8080:8080'
-	tmux split-window -v '${KCTL} port-forward pod/$(shell ${KCTL} get pods -l app=metal-swagger-ui --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name}) 9090:8080'
+	tmux new-session -d '${KCTL} port-forward service/metal-api 8080:8080'
+	tmux split-window -v '${KCTL} port-forward service/metal-swagger-ui 9090:9090'
 	tmux attach-session -d
 
 # commands for localkube development. first do a check to make sure we are
