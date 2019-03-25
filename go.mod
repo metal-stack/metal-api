@@ -1,38 +1,46 @@
 module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
-	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190117085616-23e5085dca4f
 	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
-	github.com/emicklei/go-restful v2.8.1+incompatible
-	github.com/emicklei/go-restful-openapi v1.0.0
+	github.com/emicklei/go-restful v2.9.1+incompatible
+	github.com/emicklei/go-restful-openapi v0.13.1
 	github.com/go-openapi/analysis v0.18.0 // indirect
 	github.com/go-openapi/errors v0.18.0
-	github.com/go-openapi/jsonpointer v0.18.0 // indirect
-	github.com/go-openapi/jsonreference v0.18.0 // indirect
+	github.com/go-openapi/jsonpointer v0.19.0 // indirect
+	github.com/go-openapi/jsonreference v0.19.0 // indirect
 	github.com/go-openapi/loads v0.18.0 // indirect
 	github.com/go-openapi/runtime v0.18.0
-	github.com/go-openapi/spec v0.18.0
+	github.com/go-openapi/spec v0.19.0
 	github.com/go-openapi/strfmt v0.18.0
-	github.com/go-openapi/swag v0.18.0
+	github.com/go-openapi/swag v0.19.0
 	github.com/go-openapi/validate v0.18.0
 	github.com/go-stack/stack v1.8.0
+	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/json-iterator/go v1.1.5 // indirect
+	github.com/mailru/easyjson v0.0.0-20190312143242-1de009706dbe // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/nsqio/go-nsq v1.0.7 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.3.0 // indirect
 	github.com/spf13/afero v1.2.1 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.3.0
+	go.uber.org/atomic v1.3.2 // indirect
+	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1
-	golang.org/x/crypto v0.0.0-20190129210102-ccddf3741a0c // indirect
-	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
+	golang.org/x/crypto v0.0.0-20190320223903-b7391e95e576 // indirect
+	golang.org/x/net v0.0.0-20190324223953-e3b2ff56ed87
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
-	golang.org/x/sys v0.0.0-20190129075346-302c3dd5f1cc // indirect
+	golang.org/x/sys v0.0.0-20190322080309-f49334f85ddc // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1
 )
 
