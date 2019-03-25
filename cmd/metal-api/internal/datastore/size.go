@@ -77,14 +77,14 @@ func (rs *RethinkStore) UpdateSize(oldSize *metal.Size, newSize *metal.Size) err
 }
 
 // FromHardware tries to find a size which matches the given hardware specs.
-func (rs *RethinkStore) FromHardware(hw metal.MachineHardware) (*metal.Size, error) {
+func (rs *RethinkStore) FromHardware(hw metal.MachineHardware) (*metal.Size, []*metal.SizeMatchingLog, error) {
 	sz, err := rs.ListSizes()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(sz) < 1 {
 		// this should not happen, so we do not return a notfound
-		return nil, fmt.Errorf("no sizes found in database")
+		return nil, nil, fmt.Errorf("no sizes found in database")
 	}
 	var sizes []metal.Size
 	for _, s := range sz {

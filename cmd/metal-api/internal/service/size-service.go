@@ -76,6 +76,13 @@ func (sr sizeResource) webService() *restful.WebService {
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
 
+	ws.Route(ws.POST("/fromHardware").To(sr.fromHardware).
+		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(metal.MachineHardware{}).
+		Returns(http.StatusOK, "OK", metal.SizeMatchingLog{}).
+		Returns(http.StatusNotFound, "NotFound", []metal.SizeMatchingLog{}))
+
 	return ws
 }
 
@@ -112,4 +119,17 @@ func (sr sizeResource) updateSize(request *restful.Request, response *restful.Re
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSize)
+}
+
+func (sr sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
+	var hw metal.MachineHardware
+	if err := request.ReadEntity(&hw); checkError(request, response, "fromHardware", err) {
+		return
+	}
+	sz, lg, err := sr.ds.FromHardware(hw)
+	if err != nil {
+		response.WriteHeaderAndEntity(http.StatusNotFound, lg)
+		return
+	}
+	response.WriteEntity(sz)
 }

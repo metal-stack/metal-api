@@ -55,37 +55,61 @@ func (sz Sizes) ByID() SizeMap {
 
 // Matches returns true if the given machine hardware is inside the min/max values of the
 // constraint.
-func (c *Constraint) Matches(hw MachineHardware) bool {
+func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
+	logentryFmt := fmt.Sprintf("[%s] %%d >= %d && %%d <= %d: %%v", c.Type, c.Min, c.Max)
+	cml := ConstraintMatchingLog{Constraint: *c, Log: fmt.Sprintf("no constraint matching %q", c.Type)}
+	res := false
 	switch c.Type {
 	case CoreConstraint:
-		return uint64(hw.CPUCores) >= c.Min && uint64(hw.CPUCores) <= c.Max
+		res = uint64(hw.CPUCores) >= c.Min && uint64(hw.CPUCores) <= c.Max
+		cml.Log = fmt.Sprintf(logentryFmt, hw.CPUCores, hw.CPUCores, res)
 	case MemoryConstraint:
-		return hw.Memory >= c.Min && hw.Memory <= c.Max
+		res = hw.Memory >= c.Min && hw.Memory <= c.Max
+		cml.Log = fmt.Sprintf(logentryFmt, hw.Memory, hw.Memory, res)
 	case StorageConstraint:
-		return hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
+		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
+		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity(), res)
 	}
-	return false
+	return cml, res
 }
 
 // FromHardware searches a Size for given hardware specs. It will search
 // for a size where the constraints matches the given hardware.
-func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
+func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, []*SizeMatchingLog, error) {
 	var found []Size
+	matchlog := make([]*SizeMatchingLog, 0)
 nextsize:
 	for _, s := range sz {
+		ml := &SizeMatchingLog{Name: s.ID, Match: false}
+		matchlog = append(matchlog, ml)
 		for _, c := range s.Constraints {
-			if !c.Matches(hardware) {
+			lg, match := c.Matches(hardware)
+			ml.Constraints = append(ml.Constraints, lg)
+			if !match {
 				continue nextsize
 			}
 		}
+		ml.Match = true
 		found = append(found, s)
 	}
 
 	if len(found) == 0 {
-		return nil, fmt.Errorf("no size found for hardware (%s)", hardware.ReadableSpec())
+		return nil, matchlog, fmt.Errorf("no size found for hardware (%s)", hardware.ReadableSpec())
 	}
 	if len(found) > 1 {
-		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
+		return nil, matchlog, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
 	}
-	return &found[0], nil
+	return &found[0], matchlog, nil
+}
+
+type ConstraintMatchingLog struct {
+	Constraint Constraint `json:"constraint,omitempty"`
+	Log        string     `json:"log,omitempty"`
+}
+
+type SizeMatchingLog struct {
+	Name        string                  `json:"name"`
+	Log         string                  `json:"log,omitempty"`
+	Match       bool                    `json:"match"`
+	Constraints []ConstraintMatchingLog `json:"constraints,omitempty"`
 }

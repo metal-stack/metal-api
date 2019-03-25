@@ -267,7 +267,7 @@ func (dr machineResource) registerMachine(request *restful.Request, response *re
 		return
 	}
 
-	size, err := dr.ds.FromHardware(data.Hardware)
+	size, _, err := dr.ds.FromHardware(data.Hardware)
 	if err != nil {
 		size = metal.UnknownSize
 		log.Errorw("no size found for hardware", "hardware", data.Hardware, "error", err)
