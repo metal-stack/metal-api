@@ -67,3 +67,6 @@ generate-client:
 	cp ../netbox-api-proxy/netbox_api_proxy/api_schemas/v1.yaml netbox-api/v1.yaml
 	GO111MODULE=off swagger generate client -f netbox-api/v1.yaml -t netbox-api
 
+.PHONY: redoc
+redoc:
+	docker run -it --rm -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/redoc.html /work/spec/metal-api.json
