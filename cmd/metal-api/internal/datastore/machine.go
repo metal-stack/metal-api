@@ -403,15 +403,14 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	if err != nil {
 		return err
 	}
-	a := make(chan metal.Machine)
+	a := make(chan MachineAllocation)
 
 	// the machine IS already allocated, so notify this allocation back.
 	if m.Allocation != nil {
 		go func() {
-			a <- *m
+			a <- MachineAllocation{Machine: m}
 		}()
-		alloc(a)
-		return nil
+		return alloc(a)
 	}
 
 	// does not prohibit concurrent wait calls for the same UUID
@@ -440,24 +439,24 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 		}
 		var response responseType
 		for ch.Next(&response) {
-			rs.Info("machine changed", "response", response)
+			rs.Infow("machine changed", "response", response)
 			if response.NewVal.ID == "" {
 				// the entry was deleted, no wait any more
+				a <- MachineAllocation{Err: fmt.Errorf("machine %s not available any more", id)}
 				break
 			}
 			res, err := rs.fillMachineList(response.NewVal)
 			if err != nil {
-				rs.Error("machine could not be populated", "error", err, "id", response.NewVal.ID)
+				rs.Errorw("machine could not be populated", "error", err, "id", response.NewVal.ID)
 				break
 			}
-			a <- res[0]
+			a <- MachineAllocation{Machine: &res[0]}
 			break
 		}
-		rs.Info("stop waiting for changes", "id", id)
+		rs.Infow("stop waiting for changes", "id", id)
 		close(a)
 	}()
-	alloc(a)
-	return nil
+	return alloc(a)
 }
 
 // fillMachineList fills the output fields of a machine which are not directly

@@ -2,14 +2,15 @@ package datastore
 
 import (
 	"fmt"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/stretchr/testify/require"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 	"reflect"
 	"testing"
 	"testing/quick"
 	"time"
+
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/stretchr/testify/require"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // Test that generates many input data
@@ -558,8 +559,7 @@ func TestRethinkStore_Wait(t *testing.T) {
 						require.Fail(t, "Timeout not expected")
 						return nil
 					case a := <-alloc:
-						require.NotNil(t, a)
-						require.Equal(t, "3", a.ID)
+						require.Equal(t, "3", a.Machine.ID)
 						return nil
 					}
 				},

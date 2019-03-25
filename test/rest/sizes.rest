@@ -25,7 +25,7 @@ Content-Type: application/json
         "size": 13
       }
     ],
-    "memory": 10240,
+    "memory": 1024,
     "nics": [
       {
         "features": [

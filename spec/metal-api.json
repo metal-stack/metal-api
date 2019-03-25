@@ -1092,7 +1092,7 @@
         "tags": [
           "size"
         ],
-        "summary": "Searches all sizes for one to match the given hardwarespecs.",
+        "summary": "Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match",
         "operationId": "fromHardware",
         "parameters": [
           {
