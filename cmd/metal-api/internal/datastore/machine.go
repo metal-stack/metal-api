@@ -436,9 +436,11 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 		}
 		type responseType struct {
 			NewVal metal.Machine `rethinkdb:"new_val"`
+			OldVal metal.Machine `rethinkdb:"old_val"`
 		}
 		var response responseType
 		for ch.Next(&response) {
+			rs.Info("machine changed", "response", response)
 			if response.NewVal.ID == "" {
 				// the entry was deleted, no wait any more
 				break
