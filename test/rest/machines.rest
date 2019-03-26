@@ -13,14 +13,48 @@ Content-Type: application/json
     "disks": [
       {
         "name": "sda",
-        "size": 12
-      },
-      {
-        "name": "sdb",
-        "size": 13
+        "size": 2147483648
       }
     ],
-    "memory": 1024,
+    "memory": 536870912,
+    "nics": [
+      {
+        "features": [
+        ],
+        "mac": "aa:aa:aa:aa:aa:aa",
+        "name": "eth0",
+        "vendor": "Dell",
+        "neighbors": [
+        	{
+        		"mac":"11:11:11:11:11:11",
+        		"name":"switch"
+        	}
+        ]
+      },
+      {
+        "features": [
+        ],
+        "mac": "00:00:00:00:00:00",
+        "name": "lo",
+        "vendor": "Dell"
+      }
+    ]
+  },
+  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873"
+}
+
+### register a big machine
+# @name register
+POST {{baseurl}}/register
+Content-Type: application/json
+
+{
+  "partitionid": "vagrant-lab",
+  "rackid": "Vagrant Rack 1",
+  "hardware": {
+    "cpu_cores": 8,
+    "disks": [{"name":"nvme0n1","size":800166076416},{"name":"nvme1n1","size":800166076416},{"name":"sda","size":1000204886016},{"name":"sdaa","size":1000204886016},{"name":"sdab","size":1000204886016},{"name":"sdac","size":1000204886016},{"name":"sdad","size":1000204886016},{"name":"sdae","size":1000204886016},{"name":"sdaf","size":1000204886016},{"name":"sdag","size":1000204886016},{"name":"sdah","size":1000204886016},{"name":"sdai","size":1000204886016},{"name":"sdaj","size":1000204886016},{"name":"sdak","size":1000204886016},{"name":"sdal","size":1000204886016},{"name":"sdam","size":1000204886016},{"name":"sdan","size":1000204886016},{"name":"sdao","size":1000204886016},{"name":"sdap","size":1000204886016},{"name":"sdaq","size":1000204886016},{"name":"sdar","size":1000204886016},{"name":"sdb","size":1000204886016},{"name":"sdc","size":1000204886016},{"name":"sdd","size":1000204886016},{"name":"sde","size":1000204886016},{"name":"sdf","size":1000204886016},{"name":"sdg","size":1000204886016},{"name":"sdh","size":1000204886016},{"name":"sdi","size":1000204886016},{"name":"sdj","size":1000204886016},{"name":"sdk","size":1000204886016},{"name":"sdl","size":1000204886016},{"name":"sdm","size":1000204886016},{"name":"sdn","size":1000204886016},{"name":"sdo","size":1000204886016},{"name":"sdp","size":1000204886016},{"name":"sdq","size":1000204886016},{"name":"sdr","size":1000204886016},{"name":"sds","size":1000204886016},{"name":"sdt","size":1000204886016},{"name":"sdu","size":1000204886016},{"name":"sdv","size":1000204886016},{"name":"sdw","size":1000204886016},{"name":"sdx","size":1000204886016},{"name":"sdy","size":1000204886016},{"name":"sdz","size":1000204886016}],
+    "memory": 101646020608,
     "nics": [
       {
         "features": [
@@ -72,6 +106,42 @@ Content-Type: application/json
   "tenant": "dkb",
   "sizeid": "v1-small-x86",
   "ssh_pub_keys": ["keiner"]
+}
+
+### set machine to reserved
+POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/state
+Content-Type: application/json
+
+{
+    "value": "RESERVED",
+    "description": "Because i'm GOD"
+}
+
+### allocate a reserved machine
+# @name allocate
+POST {{baseurl}}/allocate
+Content-Type: application/json
+
+{
+  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873",
+  "description": "My first metal host",
+  "partitionid": "vagrant-lab",
+  "hostname": "metal-test-1",
+  "imageid": "1",
+  "name": "Metal Host 1",
+  "projectid": "test",
+  "tenant": "dkb",
+  "sizeid": "v1-small-x86",
+  "ssh_pub_keys": ["keiner"]
+}
+
+### set machine to available
+POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/state
+Content-Type: application/json
+
+{
+    "value": "",
+    "description": ""
 }
 
 ### poweron a machine

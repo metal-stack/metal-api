@@ -96,6 +96,15 @@ func (dr machineResource) webService() *restful.WebService {
 		Returns(http.StatusNotFound, "No free machine for allocation found", nil).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/state").To(dr.setMachineState).
+		Doc("set the state of a machine").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(metal.MachineState{}).
+		Writes(metal.Machine{}).
+		Returns(http.StatusOK, "OK", metal.Machine{}).
+		Returns(http.StatusNotFound, "one of the given key values was not found", nil).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+
 	ws.Route(ws.DELETE("/{id}/free").To(dr.freeMachine).
 		Doc("free a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
@@ -255,6 +264,47 @@ func (dr machineResource) searchMachine(request *restful.Request, response *rest
 	response.WriteEntity(result)
 }
 
+func (dr machineResource) setMachineState(request *restful.Request, response *restful.Response) {
+	log := utils.Logger(request).Sugar()
+	var data metal.MachineState
+	err := request.ReadEntity(&data)
+	if checkError(request, response, "setMachineState", err) {
+		return
+	}
+	if data.Value != metal.AvailableState && data.Description == "" {
+		// we want a "WHY" if this machine should not be available
+		log.Errorw("empty description in state", "state", data)
+		sendError(log.Desugar(), response, "setMachineState", http.StatusUnprocessableEntity, fmt.Errorf("you must supply a description"))
+	}
+	found := false
+	for _, s := range metal.AllStates {
+		if data.Value == s {
+			found = true
+			break
+		}
+	}
+	if !found {
+		log.Errorw("illegal state sent", "state", data, "allowed", metal.AllStates)
+		sendError(log.Desugar(), response, "setMachineState", http.StatusUnprocessableEntity, fmt.Errorf("the state is illegal"))
+	}
+	id := request.PathParameter("id")
+	m, err := dr.ds.FindMachine(id)
+	if checkError(request, response, "setMachineState", err) {
+		return
+	}
+	if m.State.Value == data.Value && m.State.Description == data.Description {
+		response.WriteEntity(m)
+		return
+	}
+	newmachine := *m
+	newmachine.State = data
+	err = dr.ds.UpdateMachine(m, &newmachine)
+	if checkError(request, response, "setMachineState", err) {
+		return
+	}
+	response.WriteEntity(newmachine)
+}
+
 func (dr machineResource) registerMachine(request *restful.Request, response *restful.Response) {
 	var data metal.RegisterMachine
 	err := request.ReadEntity(&data)
@@ -324,16 +374,20 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 	if checkError(request, response, "allocateMachine", err) {
 		return
 	}
-	size, err := dr.ds.FindSize(allocate.SizeID)
-	if checkError(request, response, "allocateMachine", err) {
-		return
-	}
-	part, err := dr.ds.FindPartition(allocate.PartitionID)
-	if checkError(request, response, "allocateMachine", err) {
-		return
+	var size *metal.Size
+	var part *metal.Partition
+	if allocate.UUID == "" {
+		size, err = dr.ds.FindSize(allocate.SizeID)
+		if checkError(request, response, "allocateMachine", err) {
+			return
+		}
+		part, err = dr.ds.FindPartition(allocate.PartitionID)
+		if checkError(request, response, "allocateMachine", err) {
+			return
+		}
 	}
 
-	d, err := dr.ds.AllocateMachine(allocate.Name, allocate.Description, allocate.Hostname,
+	d, err := dr.ds.AllocateMachine(allocate.UUID, allocate.Name, allocate.Description, allocate.Hostname,
 		allocate.ProjectID, part, size,
 		image, allocate.SSHPubKeys, allocate.Tags,
 		allocate.UserData,

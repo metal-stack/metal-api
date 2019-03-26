@@ -357,6 +357,34 @@ func TestReportUnknownMachine(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 
+func TestSetMachineState(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewMachine(ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	rep := metal.MachineState{
+		Value:       metal.ReservedState,
+		Description: "blubber",
+	}
+	js, _ := json.Marshal(rep)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/1/state", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result metal.Machine
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	require.Nil(t, err)
+	require.Equal(t, metal.ReservedState, result.State.Value)
+	require.Equal(t, "blubber", result.State.Description)
+
+}
 func TestReportUnknownFailure(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
