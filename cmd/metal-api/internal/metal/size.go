@@ -70,6 +70,7 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
 		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity(), res)
 	}
+	cml.Match = res
 	return cml, res
 }
 
@@ -102,11 +103,15 @@ nextsize:
 	return &found[0], matchlog, nil
 }
 
+// A ConstraintMatchingLog is used do return a log message to the caller
+// beside the contraint itself.
 type ConstraintMatchingLog struct {
 	Constraint Constraint `json:"constraint,omitempty"`
+	Match      bool       `json:"match"`
 	Log        string     `json:"log,omitempty"`
 }
 
+// A SizeMatchingLog returns information about a list of constraints.
 type SizeMatchingLog struct {
 	Name        string                  `json:"name"`
 	Log         string                  `json:"log,omitempty"`

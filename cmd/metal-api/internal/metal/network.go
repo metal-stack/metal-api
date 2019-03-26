@@ -12,6 +12,7 @@ type Nic struct {
 	Neighbors  Nics       `json:"neighbors" description:"the neighbors visible to this network interface" rethinkdb:"neighbors"`
 }
 
+// A Vrf ...
 type Vrf struct {
 	ID     uint
 	Tenant string
