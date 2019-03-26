@@ -70,6 +70,7 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
 		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity(), res)
 	}
+	cml.Match = res
 	return cml, res
 }
 
@@ -106,6 +107,7 @@ nextsize:
 // beside the contraint itself.
 type ConstraintMatchingLog struct {
 	Constraint Constraint `json:"constraint,omitempty"`
+	Match      bool       `json:"match"`
 	Log        string     `json:"log,omitempty"`
 }
 
