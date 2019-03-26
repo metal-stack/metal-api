@@ -769,6 +769,55 @@
         }
       }
     },
+    "/v1/machine/{id}/state": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "set the state of a machine",
+        "operationId": "setMachineState",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.MachineState"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.Machine"
+            }
+          },
+          "404": {
+            "description": "one of the given key values was not found"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/{id}/wait": {
       "get": {
         "consumes": [
@@ -1416,6 +1465,10 @@
         "user_data": {
           "description": "cloud-init.io compatible userdata must be base64 encoded.",
           "type": "string"
+        },
+        "uuid": {
+          "description": "if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition",
+          "type": "string"
         }
       }
     },
@@ -1604,7 +1657,8 @@
         "size",
         "hardware",
         "allocation",
-        "tags"
+        "tags",
+        "state"
       ],
       "properties": {
         "allocation": {
@@ -1654,6 +1708,10 @@
           "description": "the size of this machine",
           "$ref": "#/definitions/metal.Size",
           "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/metal.MachineState"
         },
         "tags": {
           "description": "tags for this machine",
@@ -1768,6 +1826,22 @@
           "items": {
             "$ref": "#/definitions/metal.Nic"
           }
+        }
+      }
+    },
+    "metal.MachineState": {
+      "required": [
+        "value",
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description why this machine is in the given state",
+          "type": "string"
+        },
+        "value": {
+          "description": "the state of this machine. empty means available for all",
+          "type": "string"
         }
       }
     },

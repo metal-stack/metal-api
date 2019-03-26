@@ -98,6 +98,7 @@ func (dr machineResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/{id}/state").To(dr.setMachineState).
 		Doc("set the state of a machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.MachineState{}).
 		Writes(metal.Machine{}).
