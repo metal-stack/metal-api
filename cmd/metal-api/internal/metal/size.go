@@ -56,19 +56,19 @@ func (sz Sizes) ByID() SizeMap {
 // Matches returns true if the given machine hardware is inside the min/max values of the
 // constraint.
 func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
-	logentryFmt := fmt.Sprintf("[%s] %%d >= %d && %%d <= %d: %%v", c.Type, c.Min, c.Max)
+	logentryFmt := fmt.Sprintf("%%d >= %d && %%d <= %d", c.Min, c.Max)
 	cml := ConstraintMatchingLog{Constraint: *c, Log: fmt.Sprintf("no constraint matching %q", c.Type)}
 	res := false
 	switch c.Type {
 	case CoreConstraint:
 		res = uint64(hw.CPUCores) >= c.Min && uint64(hw.CPUCores) <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.CPUCores, hw.CPUCores, res)
+		cml.Log = fmt.Sprintf(logentryFmt, hw.CPUCores, hw.CPUCores)
 	case MemoryConstraint:
 		res = hw.Memory >= c.Min && hw.Memory <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.Memory, hw.Memory, res)
+		cml.Log = fmt.Sprintf(logentryFmt, hw.Memory, hw.Memory)
 	case StorageConstraint:
 		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity(), res)
+		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity())
 	}
 	cml.Match = res
 	return cml, res
