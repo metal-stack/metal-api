@@ -194,13 +194,17 @@ func (dr machineResource) waitForAllocation(request *restful.Request, response *
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
 			return fmt.Errorf("server timeout")
 		case a := <-alloc:
+			if a.Err != nil {
+				log.Sugar().Errorw("allocation returned an error", "error", a.Err)
+				return a.Err
+			}
 			log.Sugar().Infow("return allocated machine", "machine", a)
-			ka := jwt.NewPhoneHomeClaims(&a)
+			ka := jwt.NewPhoneHomeClaims(a.Machine)
 			token, err := ka.JWT()
 			if err != nil {
 				return fmt.Errorf("could not create jwt: %v", err)
 			}
-			err = response.WriteEntity(metal.MachineWithPhoneHomeToken{Machine: &a, PhoneHomeToken: token})
+			err = response.WriteEntity(metal.MachineWithPhoneHomeToken{Machine: a.Machine, PhoneHomeToken: token})
 			if err != nil {
 				return fmt.Errorf("could not write entity: %v", err)
 			}
@@ -317,7 +321,7 @@ func (dr machineResource) registerMachine(request *restful.Request, response *re
 		return
 	}
 
-	size, err := dr.ds.FromHardware(data.Hardware)
+	size, _, err := dr.ds.FromHardware(data.Hardware)
 	if err != nil {
 		size = metal.UnknownSize
 		log.Errorw("no size found for hardware", "hardware", data.Hardware, "error", err)

@@ -1081,6 +1081,48 @@
         }
       }
     },
+    "/v1/size/fromHardware": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "size"
+        ],
+        "summary": "Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match",
+        "operationId": "fromHardware",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.MachineHardware"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.SizeMatchingLog"
+            }
+          },
+          "404": {
+            "description": "NotFound",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/metal.SizeMatchingLog"
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/size/{id}": {
       "get": {
         "consumes": [
@@ -1446,6 +1488,16 @@
         },
         "type": {
           "description": "the type of constraint",
+          "type": "string"
+        }
+      }
+    },
+    "metal.ConstraintMatchingLog": {
+      "properties": {
+        "constraint": {
+          "$ref": "#/definitions/metal.Constraint"
+        },
+        "log": {
           "type": "string"
         }
       }
@@ -1928,6 +1980,29 @@
         },
         "name": {
           "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "metal.SizeMatchingLog": {
+      "required": [
+        "name",
+        "match"
+      ],
+      "properties": {
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.ConstraintMatchingLog"
+          }
+        },
+        "log": {
+          "type": "string"
+        },
+        "match": {
+          "type": "boolean"
+        },
+        "name": {
           "type": "string"
         }
       }

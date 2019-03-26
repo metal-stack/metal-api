@@ -560,8 +560,7 @@ func TestRethinkStore_Wait(t *testing.T) {
 						require.Fail(t, "Timeout not expected")
 						return nil
 					case a := <-alloc:
-						require.NotNil(t, a)
-						require.Equal(t, "3", a.ID)
+						require.Equal(t, "3", a.Machine.ID)
 						return nil
 					}
 				},

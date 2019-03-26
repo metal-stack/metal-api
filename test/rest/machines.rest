@@ -108,22 +108,6 @@ Content-Type: application/json
   "ssh_pub_keys": ["keiner"]
 }
 
-### allocate a specific machine
-# @name allocate
-POST {{baseurl}}/allocate
-Content-Type: application/json
-
-{
-  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873",
-  "description": "My first metal host",
-  "hostname": "metal-test-1",
-  "imageid": "1",
-  "name": "Metal Host 1",
-  "projectid": "test",
-  "tenant": "dkb",
-  "ssh_pub_keys": ["keiner"]
-}
-
 ### set machine to reserved
 POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/state
 Content-Type: application/json
@@ -131,6 +115,24 @@ Content-Type: application/json
 {
     "value": "RESERVED",
     "description": "Because i'm GOD"
+}
+
+### allocate a reserved machine
+# @name allocate
+POST {{baseurl}}/allocate
+Content-Type: application/json
+
+{
+  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873",
+  "description": "My first metal host",
+  "partitionid": "vagrant-lab",
+  "hostname": "metal-test-1",
+  "imageid": "1",
+  "name": "Metal Host 1",
+  "projectid": "test",
+  "tenant": "dkb",
+  "sizeid": "v1-small-x86",
+  "ssh_pub_keys": ["keiner"]
 }
 
 ### set machine to available
@@ -169,3 +171,50 @@ POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/bootbios
 Content-Type: application/json
 
 []
+
+### register a 2nd test machine
+
+POST {{baseurl}}/register
+Content-Type: application/json
+
+{
+  "partitionid": "vagrant-lab",
+  "rackid": "Vagrant Rack 1",
+  "hardware": {
+    "cpu_cores": 1,
+    "disks": [
+      {
+        "name": "sda",
+        "size": 12
+      },
+      {
+        "name": "sdb",
+        "size": 13
+      }
+    ],
+    "memory": 1024,
+    "nics": [
+      {
+        "features": [
+        ],
+        "mac": "aa:aa:aa:aa:aa:ab",
+        "name": "eth0",
+        "vendor": "Dell",
+        "neighbors": [
+        	{
+        		"mac":"11:11:11:11:11:11",
+        		"name":"switch"
+        	}
+        ]
+      },
+      {
+        "features": [
+        ],
+        "mac": "00:00:00:00:00:00",
+        "name": "lo",
+        "vendor": "Dell"
+      }
+    ]
+  },
+  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503874"
+}
