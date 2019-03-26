@@ -79,6 +79,7 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, []*SizeMatchingLog, error) {
 	var found []Size
 	matchlog := make([]*SizeMatchingLog, 0)
+	var matchedlog *SizeMatchingLog
 nextsize:
 	for _, s := range sz {
 		ml := &SizeMatchingLog{Name: s.ID, Match: false}
@@ -91,6 +92,7 @@ nextsize:
 			}
 		}
 		ml.Match = true
+		matchedlog = ml
 		found = append(found, s)
 	}
 
@@ -100,7 +102,7 @@ nextsize:
 	if len(found) > 1 {
 		return nil, matchlog, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
 	}
-	return &found[0], matchlog, nil
+	return &found[0], []*SizeMatchingLog{matchedlog}, nil
 }
 
 // A ConstraintMatchingLog is used do return a log message to the caller
