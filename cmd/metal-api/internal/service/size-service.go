@@ -126,10 +126,10 @@ func (sr sizeResource) fromHardware(request *restful.Request, response *restful.
 	if err := request.ReadEntity(&hw); checkError(request, response, "fromHardware", err) {
 		return
 	}
-	sz, lg, err := sr.ds.FromHardware(hw)
+	_, lg, err := sr.ds.FromHardware(hw)
 	if err != nil {
 		response.WriteHeaderAndEntity(http.StatusNotFound, lg)
 		return
 	}
-	response.WriteEntity(sz)
+	response.WriteEntity(lg[0])
 }
