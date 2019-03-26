@@ -1493,12 +1493,18 @@
       }
     },
     "metal.ConstraintMatchingLog": {
+      "required": [
+        "match"
+      ],
       "properties": {
         "constraint": {
           "$ref": "#/definitions/metal.Constraint"
         },
         "log": {
           "type": "string"
+        },
+        "match": {
+          "type": "boolean"
         }
       }
     },
