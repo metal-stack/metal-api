@@ -66,6 +66,16 @@ func TestRegisterMachine(t *testing.T) {
 		Address:    "address",
 		Interface:  "interface",
 		MacAddress: "mac",
+		Fru: metal.Fru{
+			ChassisPartNumber:   "chassisPartNumber",
+			ChassisPartSerial:   "chassisPartSerial",
+			BoardMfg:            "boardMfg",
+			BoardMfgSerial:      "boardMfgSerial",
+			BoardPartNumber:     "boardPartNumber",
+			ProductManufacturer: "productManufacturer",
+			ProductPartNumber:   "productPartNumber",
+			ProductSerial:       "productSerial",
+		},
 	}
 	data := []struct {
 		name               string
@@ -275,6 +285,7 @@ func TestRegisterMachine(t *testing.T) {
 			require.Equal(t, ipmi.Address, ipmiresult.Address)
 			require.Equal(t, ipmi.Interface, ipmiresult.Interface)
 			require.Equal(t, ipmi.MacAddress, ipmiresult.MacAddress)
+			require.Equal(t, ipmi.Fru, ipmiresult.Fru)
 		})
 	}
 }
