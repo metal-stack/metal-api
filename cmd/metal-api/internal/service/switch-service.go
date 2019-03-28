@@ -106,7 +106,7 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 		return
 	}
 	// Make sure we do not delete current connections
-	sw.MachineConnections = oldSwitch.MachineConnections
+	sw.FromSwitch(oldSwitch)
 	sw.Nics = oldSwitch.Nics
 	sw.Changed = time.Now()
 
@@ -115,6 +115,7 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 	if checkError(request, response, "registerSwitch", err) {
 		return
 	}
+
 	err = sr.netbox.RegisterSwitch(newSwitch.PartitionID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
 	if checkError(request, response, "registerSwitch", err) {
 		return
