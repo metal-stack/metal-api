@@ -1626,7 +1626,8 @@
         "mac",
         "user",
         "password",
-        "interface"
+        "interface",
+        "fru"
       ],
       "properties": {
         "address": {
