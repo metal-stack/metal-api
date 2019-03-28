@@ -1583,18 +1583,58 @@
         }
       }
     },
+    "metal.Fru": {
+      "properties": {
+        "board_mfg": {
+          "description": "the board mfg",
+          "type": "string"
+        },
+        "board_mfg_serial": {
+          "description": "the board mfg serial",
+          "type": "string"
+        },
+        "board_part_number": {
+          "description": "the board part number",
+          "type": "string"
+        },
+        "chassis_part_number": {
+          "description": "the chassis part number",
+          "type": "string"
+        },
+        "chassis_part_serial": {
+          "description": "the chassis part serial",
+          "type": "string"
+        },
+        "product_manufacturer": {
+          "description": "the product manufacturer",
+          "type": "string"
+        },
+        "product_part_number": {
+          "description": "the product part number",
+          "type": "string"
+        },
+        "product_serial": {
+          "description": "the product serial",
+          "type": "string"
+        }
+      }
+    },
     "metal.IPMI": {
-      "description": "The IPMI connection data",
+      "description": "The IPMI connection data\nThe Field Replaceable Unit data",
       "required": [
         "address",
         "mac",
         "user",
         "password",
-        "interface"
+        "interface",
+        "fru"
       ],
       "properties": {
         "address": {
           "type": "string"
+        },
+        "fru": {
+          "$ref": "#/definitions/metal.Fru"
         },
         "interface": {
           "type": "string"

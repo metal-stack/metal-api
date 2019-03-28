@@ -329,6 +329,16 @@ var (
 		User:       "User",
 		Password:   "Password",
 		Interface:  "Interface",
+		Fru:        metal.Fru{
+			ChassisPartNumber: "CSE-217BHQ+-R2K22BP2",
+			ChassisPartSerial: "C217BAH31AG0535",
+			BoardMfg: "Supermicro",
+			BoardMfgSerial: "HM188S012423",
+			BoardPartNumber: "X11DPT-B",
+			ProductManufacturer: "Supermicro",
+			ProductPartNumber: "SYS-2029BT-HNTR",
+			ProductSerial: "A328789X9108135",
+		},
 	}
 
 	// MachineHardwares
