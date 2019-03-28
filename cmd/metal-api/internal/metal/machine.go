@@ -91,6 +91,18 @@ type BlockDevice struct {
 	Size uint64 `json:"size" description:"the size of this block device" rethinkdb:"size"`
 }
 
+// Fru (Field Replaceable Unit) data
+type Fru struct {
+	ChassisPartNumber   string `json:"chassis_part_number,omitempty" description:"the chassis part number" rethinkdb:"chassis_part_number"`
+	ChassisPartSerial   string `json:"chassis_part_serial,omitempty" description:"the chassis part serial" rethinkdb:"chassis_part_serial"`
+	BoardMfg            string `json:"board_mfg,omitempty" description:"the board mfg" rethinkdb:"board_mfg"`
+	BoardMfgSerial      string `json:"board_mfg_serial,omitempty" description:"the board mfg serial" rethinkdb:"board_mfg_serial"`
+	BoardPartNumber     string `json:"board_part_number,omitempty" description:"the board part number" rethinkdb:"board_part_number"`
+	ProductManufacturer string `json:"product_manufacturer,omitempty" description:"the product manufacturer" rethinkdb:"product_manufacturer"`
+	ProductPartNumber   string `json:"product_part_number,omitempty" description:"the product part number" rethinkdb:"product_part_number"`
+	ProductSerial       string `json:"product_serial,omitempty" description:"the product serial" rethinkdb:"product_serial"`
+}
+
 // IPMI connection data
 type IPMI struct {
 	ID         string `json:"-" rethinkdb:"id"`
@@ -99,6 +111,7 @@ type IPMI struct {
 	User       string `json:"user" rethinkdb:"user"`
 	Password   string `json:"password" rethinkdb:"password"`
 	Interface  string `json:"interface" rethinkdb:"interface"`
+	Fru        Fru    `json:"fru" rethinkdb:"fru" modelDescription:"The Field Replaceable Unit data"`
 }
 
 // HasMAC returns true if this machine has the given MAC.

@@ -343,7 +343,7 @@ func (rs *RethinkStore) FreeMachine(id string) (*metal.Machine, error) {
 
 // RegisterMachine creates or updates a machine in the database. It also creates
 // an IPMI data record for this machine.
-// Maby it would be good to give a machine As Parameter, insted of all Attributes of a machine.
+// Maybe it would be good to specify a machine as parameter, instead of all attributes of a machine.
 func (rs *RethinkStore) RegisterMachine(
 	id string,
 	part metal.Partition, rackid string,
