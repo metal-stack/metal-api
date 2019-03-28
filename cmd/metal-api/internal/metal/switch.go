@@ -1,5 +1,7 @@
 package metal
 
+import "time"
+
 // Switch have to register at the api. As metal-core is a stateless application running on a switch,
 // the api needs persist all the information such that the core can create or restore a its entire
 // switch configuration.
@@ -39,8 +41,10 @@ func NewSwitch(id, rackid string, nics Nics, part *Partition) *Switch {
 	}
 	return &Switch{
 		Base: Base{
-			ID:   id,
-			Name: id,
+			ID:      id,
+			Name:    id,
+			Created: time.Now(),
+			Changed: time.Now(),
 		},
 		PartitionID:        part.ID,
 		RackID:             rackid,

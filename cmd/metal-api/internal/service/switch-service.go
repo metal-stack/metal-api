@@ -106,8 +106,9 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 		return
 	}
 	// Make sure we do not delete current connections
-	sw.Connections = oldSwitch.Connections
+	sw.MachineConnections = oldSwitch.MachineConnections
 	sw.Nics = oldSwitch.Nics
+	sw.Changed = time.Now()
 
 	err = sr.ds.UpdateSwitch(oldSwitch, sw)
 
