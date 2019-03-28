@@ -1,5 +1,6 @@
 bin
 vendor
 .idea
-.vscode
+.vscode/settings.json
 generate
+cmd/metal-api/debug

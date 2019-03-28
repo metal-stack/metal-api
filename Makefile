@@ -21,7 +21,10 @@ createmasterdata:
 	@cat masterdata/partitions.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/partition
 
 .PHONY: localbuild
-localbuild: bin/$(BINARY) Dockerfile.dev
+localbuild: bin/$(BINARY)
+
+.PHONY: localbuild-push
+localbuild-push: localbuild Dockerfile.dev
 	@eval $(shell minikube docker-env)
 	docker build -t registry.fi-ts.io/metal/metal-api -f Dockerfile.dev .
 	${KCTL} delete pod $(shell ${KCTL} get pods -l app=metal-api --field-selector=status.phase=Running --output=jsonpath={.items..metadata.name})
@@ -39,12 +42,11 @@ localdev:
 	tmux split-window -v '$(MAKE) watch'
 	tmux attach-session -d
 
-# local-api-proxy is needed for my rest-plugin to have fixed host:port
-.PHONY: local-api-proxy
-local-api-proxy:
-	tmux new-session -d '${KCTL} port-forward service/metal-api 8080:8080'
-	tmux split-window -v '${KCTL} port-forward service/metal-swagger-ui 9090:9090'
-	tmux attach-session -d
+# this must be run as root, kubefwd neets root priv's. inside my vsc-docker-image
+# the UID bit is set on the kubefwd binary
+.PHONY: local-forward
+local-forward:
+	kubefwd svc -c $HOME/.kube/minikube
 
 # commands for localkube development. first do a check to make sure we are
 # on minikube and do not overwrite other environments by accident.

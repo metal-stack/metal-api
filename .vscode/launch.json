@@ -1,0 +1,28 @@
+{
+    // this only works if the environment is running. i do this by starting
+    // "kubefwd svc" in a terminal.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "metal-api",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/metal-api/main.go",
+            "env": {
+                "DEBUG":"1",
+                "METAL_API_BIND_ADDR": "0.0.0.0",
+                "METAL_API_PORT": "8088",
+                "ZAP_ENCODING": "logfmt",
+                "METAL_API_DB_ADDR": "rethinkdb-rethinkdb-proxy:28015",
+                "METAL_API_DB_PASSWORD":"",
+                "METAL_API_LOG_LEVEL":"debug",
+                "METAL_API_NETBOX_ADDR":"metal-netbox-api-proxy:8002",
+                "METAL_API_NSQD_ADDR":"metal-nsqd:4150",
+                "METAL_API_NSQD_HTTP_ADDR":"metal-nsqd:4151",
+                "METAL_API_NETBOX_API_TOKEN":"de599cb74da0e4d16c6ca45cb80d5c9c072c1614"
+            },
+            "args": []
+        }
+    ]
+}
