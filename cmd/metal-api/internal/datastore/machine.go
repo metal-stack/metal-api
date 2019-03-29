@@ -188,8 +188,8 @@ func (rs *RethinkStore) findVrf(f map[string]interface{}) (*metal.Vrf, error) {
 	return vrf, nil
 }
 
-func (rs *RethinkStore) reserveNewVrf(tenant string) (*metal.Vrf, error) {
-	var hashInput = tenant
+func (rs *RethinkStore) reserveNewVrf(tenant, projectid string) (*metal.Vrf, error) {
+	var hashInput = tenant + projectid
 	for {
 		id, err := generateVrfID(hashInput)
 		if err != nil {
@@ -264,15 +264,15 @@ func (rs *RethinkStore) AllocateMachine(
 
 	old := res[0]
 	var vrf *metal.Vrf
-	vrf, err = rs.findVrf(map[string]interface{}{"tenant": tenant})
+	vrf, err = rs.findVrf(map[string]interface{}{"tenant": tenant, "projectid": projectid})
 	if err != nil {
-		return nil, fmt.Errorf("cannot find vrf for tenant: %v", err)
+		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
 	}
 
 	if vrf == nil {
-		vrf, err = rs.reserveNewVrf(tenant)
+		vrf, err = rs.reserveNewVrf(tenant, projectid)
 		if err != nil {
-			return nil, fmt.Errorf("cannot reserve new vrf for tenant: %v", err)
+			return nil, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
 		}
 	}
 

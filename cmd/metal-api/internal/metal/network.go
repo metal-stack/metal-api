@@ -14,8 +14,9 @@ type Nic struct {
 
 // A Vrf ...
 type Vrf struct {
-	ID     uint
-	Tenant string
+	ID        uint   `json:"id"  description:"the unique id of this vrf generated from the tenant and projectid" rethinkdb:"id"`
+	Tenant    string `json:"tenant"  description:"the tenant that this vrf belongs to" rethinkdb:"tenant"`
+	ProjectID string `json:"projectid"  description:"the project that this vrf belongs to" rethinkdb:"projectid"`
 }
 
 // Nics is a list of nics.
