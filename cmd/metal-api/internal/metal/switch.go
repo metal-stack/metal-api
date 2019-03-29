@@ -39,8 +39,10 @@ func NewSwitch(id, rackid string, nics Nics, part *Partition) *Switch {
 	}
 	return &Switch{
 		Base: Base{
-			ID:   id,
-			Name: id,
+			ID:      id,
+			Name:    id,
+			Created: getNow(),
+			Changed: getNow(),
 		},
 		PartitionID:        part.ID,
 		RackID:             rackid,
@@ -98,6 +100,12 @@ func (s *Switch) FillSwitchConnections() {
 		}
 	}
 	s.Connections = cons
+}
+
+// FromSwitch stores the machine connections from another switch in the new instance.
+func (s *Switch) FromSwitch(other *Switch) {
+	s.MachineConnections = other.MachineConnections
+	s.FillSwitchConnections()
 }
 
 // FillAllConnections fills all Connections of all given switches.

@@ -26,6 +26,8 @@ var (
 		TopicMachine,
 		TopicSwitch,
 	}
+
+	getNow = time.Now
 )
 
 // Base implements common fields for most basic entity types (not all).

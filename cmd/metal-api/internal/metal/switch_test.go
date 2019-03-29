@@ -151,6 +151,9 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 }
 
 func TestNewSwitch(t *testing.T) {
+	getNow = func() time.Time {
+		return time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+	}
 	type args struct {
 		id        string
 		rackid    string
@@ -181,8 +184,10 @@ func TestNewSwitch(t *testing.T) {
 
 			want: &Switch{
 				Base: Base{
-					ID:   "1",
-					Name: "1",
+					ID:      "1",
+					Name:    "1",
+					Created: getNow(),
+					Changed: getNow(),
 				},
 				PartitionID:        "1",
 				RackID:             "1",
