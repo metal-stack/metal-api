@@ -407,28 +407,43 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 
 func (dr machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	m, err := dr.ds.FreeMachine(id)
+	m, err := dr.ds.FindMachine(id)
 	if checkError(request, response, "freeMachine", err) {
 		return
 	}
+	if m.Allocation != nil {
+		// if the machine is allocated, we free it in our database
+		m, err = dr.ds.FreeMachine(id)
+		if checkError(request, response, "freeMachine", err) {
+			return
+		}
+
+		err = dr.netbox.Release(id)
+		if checkError(request, response, "freeMachine", err) {
+			return
+		}
+	}
+	// do the next steps in any case, so a client can call this function multiple times to
+	// fire of the needed events
 
 	sw, err := dr.ds.SetVrfAtSwitch(m, "")
 	if checkError(request, response, "freeMachine", err) {
 		return
 	}
 
-	err = dr.netbox.Release(id)
+	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
+	err = dr.Publish(string(metal.TopicMachine), evt)
+	utils.Logger(request).Sugar().Infow("publish delete event", "event", evt, "error", err)
 	if checkError(request, response, "freeMachine", err) {
 		return
 	}
 
-	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	dr.Publish(string(metal.TopicMachine), evt)
-	utils.Logger(request).Sugar().Infow("publish delete event", "event", evt)
-
 	se := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	dr.Publish(string(metal.TopicSwitch), se)
-	utils.Logger(request).Sugar().Infow("publish switch update event", "event", se)
+	err = dr.Publish(string(metal.TopicSwitch), se)
+	utils.Logger(request).Sugar().Infow("publish switch update event", "event", se, "error", err)
+	if checkError(request, response, "freeMachine", err) {
+		return
+	}
 
 	response.WriteEntity(m)
 }
