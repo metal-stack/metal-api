@@ -61,8 +61,12 @@ func RestfulLogger(logger *zap.Logger, debug bool) restful.FilterFunction {
 		// search a better way for a unique callid
 		// perhaps a reverseproxy in front generates a unique header for som sort
 		// of opentracing support?
-		ts := time.Now().UnixNano()
-		rqid := zap.Int64("rqid", ts)
+		requestID := req.HeaderParameter("X-Request-Id")
+		rqid := zap.String("rqid", requestID)
+		if requestID == "" {
+			ts := time.Now().UnixNano()
+			rqid = zap.Int64("rqid", ts)
+		}
 		sg := logger.With(rqid)
 
 		fields := []zap.Field{
