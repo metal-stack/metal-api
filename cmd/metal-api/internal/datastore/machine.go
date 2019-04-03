@@ -204,8 +204,9 @@ func (rs *RethinkStore) reserveNewVrf(tenant, projectid string) (*metal.Vrf, err
 			continue
 		}
 		vrf = &metal.Vrf{
-			ID:     id,
-			Tenant: tenant,
+			ID:        id,
+			Tenant:    tenant,
+			ProjectID: projectid,
 		}
 		_, err = rs.vrfTable().Insert(vrf).RunWrite(rs.session)
 		if err != nil {
