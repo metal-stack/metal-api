@@ -1972,7 +1972,17 @@
         },
         "state": {
           "description": "the state of the machine",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "Alive",
+            "Preparing",
+            "Registering",
+            "Waiting",
+            "Installing",
+            "InstallationFinished",
+            "Provisioned",
+            "Dead"
+          ]
         }
       }
     },

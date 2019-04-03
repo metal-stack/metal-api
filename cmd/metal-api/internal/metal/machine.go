@@ -112,9 +112,10 @@ type MachineProvisioningStateHistoryEntry struct {
 
 // MachineProvisioningState stores the provisioning state of the machine
 type MachineProvisioningState struct {
-	Changed time.Time                       `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
-	ID      string                          `json:"-" description:"references the machine" rethinkdb:"id"`
-	State   ProvisioningState               `json:"state" description:"the state of the machine" rethinkdb:"state"`
+	Changed time.Time `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
+	ID      string    `json:"-" description:"references the machine" rethinkdb:"id"`
+	// State enums have to be enumerated here as defined above!!
+	State   ProvisioningState               `enum:"Alive|Preparing|Registering|Waiting|Installing|InstallationFinished|Provisioned|Dead" json:"state" description:"the state of the machine" rethinkdb:"state"`
 	Message string                          `json:"message" description:"the state of the machine" rethinkdb:"message"`
 	History MachineProvisioningStateHistory `json:"-" description:"the history of the last states" rethinkdb:"history"`
 }
