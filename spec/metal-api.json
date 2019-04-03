@@ -668,6 +668,91 @@
         }
       }
     },
+    "/v1/machine/{id}/provisioningState": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "get the current machine state",
+        "operationId": "getMachineProvisioningState",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.MachineProvisioningState"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "sends the current machine state",
+        "operationId": "setMachineProvisioningState",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.MachineProvisioningState"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/{id}/report": {
       "post": {
         "consumes": [
@@ -1866,6 +1951,28 @@
           "items": {
             "$ref": "#/definitions/metal.Nic"
           }
+        }
+      }
+    },
+    "metal.MachineProvisioningState": {
+      "required": [
+        "state",
+        "message"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "message": {
+          "description": "the state of the machine",
+          "type": "string"
+        },
+        "state": {
+          "description": "the state of the machine",
+          "type": "string"
         }
       }
     },

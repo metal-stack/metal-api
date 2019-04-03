@@ -71,6 +71,54 @@ type MachineHardware struct {
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this machine" rethinkdb:"block_devices"`
 }
 
+// ProvisioningState indicates the state of the machine during the provisioning sequence
+type ProvisioningState string
+
+var (
+	// AllProvisioningStates are all provisioning states that exist
+	AllProvisioningStates = map[ProvisioningState]bool{
+		ProvisioningStateAlive:                true,
+		ProvisioningStatePreparing:            true,
+		ProvisioningStateRegistering:          true,
+		ProvisioningStateWaiting:              true,
+		ProvisioningStateInstalling:           true,
+		ProvisioningStateInstallationFinished: true,
+		ProvisioningStateProvisioned:          true,
+		ProvisioningStateDead:                 true,
+	}
+)
+
+// The enums for the machine provisioning states.
+const (
+	ProvisioningStateAlive                ProvisioningState = "Alive"
+	ProvisioningStatePreparing            ProvisioningState = "Preparing"
+	ProvisioningStateRegistering          ProvisioningState = "Registering"
+	ProvisioningStateWaiting              ProvisioningState = "Waiting"
+	ProvisioningStateInstalling           ProvisioningState = "Installing"
+	ProvisioningStateInstallationFinished ProvisioningState = "InstallationFinished"
+	ProvisioningStateProvisioned          ProvisioningState = "Provisioned"
+	ProvisioningStateDead                 ProvisioningState = "Dead"
+)
+
+const MachineProvisioningStateHistoryLength = 10
+
+type MachineProvisioningStateHistory []MachineProvisioningStateHistoryEntry
+
+type MachineProvisioningStateHistoryEntry struct {
+	Changed time.Time         `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
+	State   ProvisioningState `json:"state" description:"the state of the machine" rethinkdb:"state"`
+	Message string            `json:"message" description:"the state of the machine" rethinkdb:"message"`
+}
+
+// MachineProvisioningState stores the provisioning state of the machine
+type MachineProvisioningState struct {
+	Changed time.Time                       `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
+	ID      string                          `json:"-" description:"references the machine" rethinkdb:"id"`
+	State   ProvisioningState               `json:"state" description:"the state of the machine" rethinkdb:"state"`
+	Message string                          `json:"message" description:"the state of the machine" rethinkdb:"message"`
+	History MachineProvisioningStateHistory `json:"-" description:"the history of the last states" rethinkdb:"history"`
+}
+
 // DiskCapacity calculates the capacity of all disks.
 func (hw *MachineHardware) DiskCapacity() uint64 {
 	var cap uint64

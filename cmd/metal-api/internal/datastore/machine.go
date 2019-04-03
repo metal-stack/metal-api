@@ -471,6 +471,60 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	return alloc(a)
 }
 
+// FindProvisioningState finds a provisioning state to a given machine id.
+func (rs *RethinkStore) FindProvisioningState(id string) (*metal.MachineProvisioningState, error) {
+	res, err := rs.provisioningStateTable().Get(id).Run(rs.session)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get provisioning states from database: %v", err)
+	}
+	defer res.Close()
+
+	var state metal.MachineProvisioningState
+	err = res.One(&state)
+	if err != nil {
+		return nil, err
+	}
+	return &state, nil
+}
+
+// SetProvisioningState sets the provisioning state of a machine.
+func (rs *RethinkStore) SetProvisioningState(state *metal.MachineProvisioningState) error {
+	if state.State == metal.ProvisioningStateAlive || state.State == metal.ProvisioningStateDead {
+		// TODO: Handle alive and dead states properly...
+		rs.SugaredLogger.Infow("received machine provisioning state", "state", state.State, "id", state.ID)
+	}
+
+	oldState, err := rs.FindProvisioningState(state.ID)
+	if err != nil {
+		_, err := rs.provisioningStateTable().Insert(state, r.InsertOpts{}).RunWrite(rs.session)
+		if err != nil {
+			return fmt.Errorf("cannot insert machine provisioning state into machine_provisioning_state table: %v", err)
+		}
+		return nil
+	}
+
+	state.History = append(state.History, metal.MachineProvisioningStateHistoryEntry{
+		State:   oldState.State,
+		Changed: oldState.Changed,
+		Message: oldState.Message,
+	})
+	for i, historyEntry := range oldState.History {
+		if i >= metal.MachineProvisioningStateHistoryLength-1 {
+			break
+		}
+		state.History = append(state.History, historyEntry)
+	}
+
+	_, err = rs.provisioningStateTable().Insert(state, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot upsert machine provisioning state into machine_provisioning_state table: %v", err)
+	}
+
+	return nil
+}
+
 // fillMachineList fills the output fields of a machine which are not directly
 // stored in the database.
 func (rs *RethinkStore) fillMachineList(data ...metal.Machine) ([]metal.Machine, error) {
