@@ -1,7 +1,7 @@
 module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
-	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190326053246-4d8c0d35421b
+	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190403085516-bd25597bc645
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
