@@ -272,7 +272,7 @@ func (dr machineResource) phoneHome(request *restful.Request, response *restful.
 	newMachine := *oldMachine
 	lastPingTime := time.Now()
 	newMachine.Allocation.LastPing = &lastPingTime
-	newMachine.Liveliness = metal.MachineLivelinessUnknown // after phoning home, we lose the capbility of determining whether the machine is alive or not
+	newMachine.Liveliness = metal.MachineLivelinessUnknown // after phoning home, we lose the capability of determining whether the machine is alive or not
 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
 	if checkError(request, response, "phoneHome", err) {
 		return
@@ -533,11 +533,16 @@ func (dr machineResource) checkMachineLiveliness(request *restful.Request, respo
 		if checkError(request, response, "checkMachineLiveliness", err) {
 			return
 		}
-		if evaluatedMachine.Liveliness == metal.MachineLivelinessAlive {
+		err = dr.ds.UpdateMachine(&m, evaluatedMachine)
+		if checkError(request, response, "checkMachineLiveliness", err) {
+			return
+		}
+		switch evaluatedMachine.Liveliness {
+		case metal.MachineLivelinessAlive:
 			alive++
-		} else if evaluatedMachine.Liveliness == metal.MachineLivelinessDead {
+		case metal.MachineLivelinessDead:
 			dead++
-		} else {
+		default:
 			unknown++
 		}
 	}
