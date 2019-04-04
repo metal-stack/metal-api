@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	problemJsonMime = "application/problem+json"
+	problemJSONMime = "application/problem+json"
 )
 
 // An APIProxy can be used to call netbox api functions. It wraps the token
@@ -49,7 +49,7 @@ func initNetboxProxy() *client.NetboxAPIProxy {
 	cfg := client.DefaultTransportConfig().WithHost(netboxAddr)
 	transport := httptransport.New(cfg.Host, cfg.BasePath, cfg.Schemes)
 	// our nb-proxy returns this mimetype when a problem/error is returned
-	transport.Consumers[problemJsonMime] = runtime.JSONConsumer()
+	transport.Consumers[problemJSONMime] = runtime.JSONConsumer()
 	return client.New(transport, strfmt.Default)
 }
 
