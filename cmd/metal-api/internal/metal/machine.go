@@ -81,7 +81,7 @@ const (
 	MachineLivelinessAlive   MachineLiveliness = "Alive"
 	MachineLivelinessDead    MachineLiveliness = "Dead"
 	MachineLivelinessUnknown MachineLiveliness = "Unknown"
-	MachineDeadAfter         time.Duration     = (20 * time.Second)
+	MachineDeadAfter         time.Duration     = (5 * time.Minute)
 )
 
 // MachineLivelinessReport contains information on overall machine liveliness

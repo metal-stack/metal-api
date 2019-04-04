@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
@@ -329,15 +330,15 @@ var (
 		User:       "User",
 		Password:   "Password",
 		Interface:  "Interface",
-		Fru:        metal.Fru{
-			ChassisPartNumber: "CSE-217BHQ+-R2K22BP2",
-			ChassisPartSerial: "C217BAH31AG0535",
-			BoardMfg: "Supermicro",
-			BoardMfgSerial: "HM188S012423",
-			BoardPartNumber: "X11DPT-B",
+		Fru: metal.Fru{
+			ChassisPartNumber:   "CSE-217BHQ+-R2K22BP2",
+			ChassisPartSerial:   "C217BAH31AG0535",
+			BoardMfg:            "Supermicro",
+			BoardMfgSerial:      "HM188S012423",
+			BoardPartNumber:     "X11DPT-B",
 			ProductManufacturer: "Supermicro",
-			ProductPartNumber: "SYS-2029BT-HNTR",
-			ProductSerial: "A328789X9108135",
+			ProductPartNumber:   "SYS-2029BT-HNTR",
+			ProductSerial:       "A328789X9108135",
 		},
 	}
 
@@ -369,6 +370,9 @@ var (
 	TestImages = []metal.Image{
 		Img1, Img2, Img3,
 	}
+
+	// All Events
+	TestEvents = []metal.ProvisioningEventContainer{}
 
 	// All Sizes
 	TestSizes = []metal.Size{
@@ -487,6 +491,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("event").Get(r.MockAnything())).Return(EmptyResult, nil)
 
 	// X.GetTable
 	mock.On(r.DB("mockdb").Table("size")).Return(TestSizes, nil)
@@ -494,6 +499,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
+	mock.On(r.DB("mockdb").Table("event")).Return(TestEvents, nil)
 
 	// X.Delete
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
