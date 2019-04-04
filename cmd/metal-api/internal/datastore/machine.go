@@ -535,16 +535,19 @@ func (rs *RethinkStore) AddProvisioningEvent(machineID string, event *metal.Prov
 }
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine
-func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) (*metal.Machine, error) {
+func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) *metal.Machine {
 	if m.Allocation != nil && m.Allocation.LastPing != nil {
 		// the machine has phoned home... we cannot tell the current liveliness state
 		m.Liveliness = metal.MachineLivelinessUnknown
-		return &m, nil
+		return &m
 	}
 
 	provisioningEvents, err := rs.FindProvisioningEventContainer(m.ID)
 	if err != nil {
-		return nil, err
+		// we have no provisioning events... we cannot tell
+		m.Liveliness = metal.MachineLivelinessUnknown
+
+		return &m
 	}
 
 	if provisioningEvents.LastEventTime != nil {
@@ -553,13 +556,13 @@ func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) (*metal.Machi
 		} else {
 			m.Liveliness = metal.MachineLivelinessAlive
 		}
-		return &m, nil
+		return &m
 	}
 
 	// we have no provisioning events... we cannot tell
 	m.Liveliness = metal.MachineLivelinessUnknown
 
-	return &m, nil
+	return &m
 }
 
 // fillMachineList fills the output fields of a machine which are not directly

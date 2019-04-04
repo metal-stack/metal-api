@@ -531,10 +531,7 @@ func (dr machineResource) checkMachineLiveliness(request *restful.Request, respo
 	alive := 0
 	dead := 0
 	for _, m := range machines {
-		evaluatedMachine, err := dr.ds.EvaluateMachineLiveliness(m)
-		if checkError(request, response, "checkMachineLiveliness", err) {
-			return
-		}
+		evaluatedMachine := dr.ds.EvaluateMachineLiveliness(m)
 		err = dr.ds.UpdateMachine(&m, evaluatedMachine)
 		if checkError(request, response, "checkMachineLiveliness", err) {
 			return
