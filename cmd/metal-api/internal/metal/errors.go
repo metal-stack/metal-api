@@ -42,10 +42,3 @@ func Internal(err error, format string, args ...interface{}) error {
 func IsInternal(e error) bool {
 	return errors.Cause(e) == errInternal
 }
-
-// ErrorResponse is returned in case of functional errors.
-type ErrorResponse struct {
-	StatusCode int    `json:"statuscode" description:"http status code"`
-	Message    string `json:"message" description:"error message"`
-	Operation  string `json:"operation" description:"name of the operation which caused this error"`
-}
