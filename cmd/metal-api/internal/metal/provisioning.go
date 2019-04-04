@@ -92,7 +92,7 @@ func (m *ProvisioningEventContainer) CalculateIncompleteCycles() string {
 	}
 	result := strconv.Itoa(incompleteCycles)
 	if !atLeastOneTimeCompleted {
-		result = "more than " + result
+		result = "at least " + result
 	}
 	return result
 }
