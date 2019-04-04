@@ -180,12 +180,12 @@ func (rs *RethinkStore) findVrf(f map[string]interface{}) (*metal.Vrf, error) {
 	if res.IsNil() {
 		return nil, nil
 	}
-	var vrf *metal.Vrf
-	err = res.One(vrf)
+	var vrf metal.Vrf
+	err = res.One(&vrf)
 	if err != nil {
 		return nil, err
 	}
-	return vrf, nil
+	return &vrf, nil
 }
 
 func (rs *RethinkStore) reserveNewVrf(tenant, projectid string) (*metal.Vrf, error) {

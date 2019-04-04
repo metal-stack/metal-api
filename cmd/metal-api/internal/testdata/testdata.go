@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
@@ -329,15 +330,15 @@ var (
 		User:       "User",
 		Password:   "Password",
 		Interface:  "Interface",
-		Fru:        metal.Fru{
-			ChassisPartNumber: "CSE-217BHQ+-R2K22BP2",
-			ChassisPartSerial: "C217BAH31AG0535",
-			BoardMfg: "Supermicro",
-			BoardMfgSerial: "HM188S012423",
-			BoardPartNumber: "X11DPT-B",
+		Fru: metal.Fru{
+			ChassisPartNumber:   "CSE-217BHQ+-R2K22BP2",
+			ChassisPartSerial:   "C217BAH31AG0535",
+			BoardMfg:            "Supermicro",
+			BoardMfgSerial:      "HM188S012423",
+			BoardPartNumber:     "X11DPT-B",
 			ProductManufacturer: "Supermicro",
-			ProductPartNumber: "SYS-2029BT-HNTR",
-			ProductSerial: "A328789X9108135",
+			ProductPartNumber:   "SYS-2029BT-HNTR",
+			ProductSerial:       "A328789X9108135",
 		},
 	}
 
@@ -425,6 +426,16 @@ var (
 		M1, M2, M3, M4, M5,
 	}
 
+	// All Vrfs
+	Vrf1 = metal.Vrf{
+		ID:        1,
+		ProjectID: "p",
+		Tenant:    "t",
+	}
+	TestVrfs = []metal.Vrf{
+		Vrf1,
+	}
+
 	EmptyResult = map[string]interface{}{}
 )
 
@@ -494,6 +505,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
+	mock.On(r.DB("mockdb").Table("vrf")).Return(TestVrfs, nil)
 
 	// X.Delete
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
