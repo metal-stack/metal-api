@@ -6,6 +6,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -41,7 +42,7 @@ func (fr partitionResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Partition{}).
 		Returns(http.StatusOK, "OK", metal.Partition{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
 		To(fr.restListGet(fr.ds.ListPartitions)).
@@ -59,22 +60,22 @@ func (fr partitionResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Partition{}).
 		Returns(http.StatusOK, "OK", metal.Partition{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").To(fr.createPartition).
 		Doc("create a Partition. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Partition{}).
 		Returns(http.StatusCreated, "Created", metal.Partition{}).
-		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(fr.updatePartition).
 		Doc("updates a Partition. if the Partition was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Partition{}).
 		Returns(http.StatusOK, "OK", metal.Partition{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	return ws
 }
