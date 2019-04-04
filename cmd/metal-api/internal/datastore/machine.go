@@ -515,7 +515,7 @@ func (rs *RethinkStore) AddProvisioningEvent(machineID string, event *metal.Prov
 	eventContainer.LastEventTime = &event.Time
 
 	if event.Event == metal.ProvisioningEventAlive {
-		rs.SugaredLogger.Infow("received provisioning alive event", "id", eventContainer.ID)
+		rs.SugaredLogger.Debugw("received provisioning alive event", "id", eventContainer.ID)
 	} else {
 		eventContainer.Events = append([]metal.ProvisioningEvent{*event}, eventContainer.Events...)
 		if len(eventContainer.Events) > metal.ProvisioningEventsHistoryLength-1 {
