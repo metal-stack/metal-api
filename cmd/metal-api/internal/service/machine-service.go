@@ -146,7 +146,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.ProvisioningEventContainer{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
+		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/event").To(dr.addProvisioningEvent).
 		Doc("adds a machine provisioning event").
@@ -155,14 +155,14 @@ func (dr machineResource) webService() *restful.WebService {
 		Reads(metal.ProvisioningEvent{}).
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
+		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/liveliness").To(dr.checkMachineLiveliness).
 		Doc("checks machine liveliness").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}). // swagger client does not work if we do not have a body... emits error 406
 		Returns(http.StatusOK, "OK", metal.MachineLivelinessReport{}).
-		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
+		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/on").To(dr.machineOn).
 		Doc("sends a power-on to the machine").

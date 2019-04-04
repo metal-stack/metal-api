@@ -374,7 +374,7 @@
           "default": {
             "description": "Unexpected Error",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -595,7 +595,7 @@
           "default": {
             "description": "Unexpected Error",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -639,7 +639,7 @@
           "default": {
             "description": "Unexpected Error",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
