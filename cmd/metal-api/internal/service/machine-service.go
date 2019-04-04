@@ -493,7 +493,7 @@ func (dr machineResource) getProvisioningEventContainer(request *restful.Request
 
 func (dr machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	_, err := dr.ds.FindMachine(id)
+	m, err := dr.ds.FindMachine(id)
 	if checkError(request, response, "provisioningEvent", err) {
 		return
 	}
@@ -513,6 +513,13 @@ func (dr machineResource) addProvisioningEvent(request *restful.Request, respons
 	event.Time = time.Now()
 	err = dr.ds.AddProvisioningEvent(id, &event)
 	if checkError(request, response, "provisioningEvent", err) {
+		return
+	}
+
+	newMachine := *m
+	evaluatedMachine := dr.ds.EvaluateMachineLiveliness(newMachine)
+	err = dr.ds.UpdateMachine(m, evaluatedMachine)
+	if checkError(request, response, "checkMachineLiveliness", err) {
 		return
 	}
 
