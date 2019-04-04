@@ -518,8 +518,8 @@ func (rs *RethinkStore) AddProvisioningEvent(machineID string, event *metal.Prov
 		rs.SugaredLogger.Debugw("received provisioning alive event", "id", eventContainer.ID)
 	} else {
 		eventContainer.Events = append([]metal.ProvisioningEvent{*event}, eventContainer.Events...)
-		if len(eventContainer.Events) > metal.ProvisioningEventsHistoryLength-1 {
-			eventContainer.Events = eventContainer.Events[:metal.ProvisioningEventsHistoryLength-1]
+		if len(eventContainer.Events) >= metal.ProvisioningEventsHistoryLength {
+			eventContainer.Events = eventContainer.Events[:metal.ProvisioningEventsHistoryLength]
 		}
 		eventContainer.IncompleteProvisioningCycles = eventContainer.CalculateIncompleteCycles()
 	}

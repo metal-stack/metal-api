@@ -31,7 +31,7 @@ var (
 		ProvisioningEventInstallationFinished: true,
 	}
 	// ProvisioningEventsHistoryLength The length of how many provisioning events are persisted in the database
-	ProvisioningEventsHistoryLength = 3 * len(AllProvisioningEventTypes)
+	ProvisioningEventsHistoryLength = 3 * (len(AllProvisioningEventTypes) - 1) // alive can be neglected
 	// ExpectedProvisioningEventSequence is the expected sequence in which
 	ExpectedProvisioningEventSequence = provisioningEventSequence{
 		ProvisioningEventPreparing,
