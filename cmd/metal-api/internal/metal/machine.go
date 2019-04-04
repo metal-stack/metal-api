@@ -140,7 +140,7 @@ func (e *MachineProvisioningEvent) hasExpectedSuccessor(successor ProvisioningEv
 // CalculateIncompleteCycles calculates the number of events that occurred out of order. Can be used to determine if a machine is in an error loop.
 func (m *MachineProvisioningEventContainer) CalculateIncompleteCycles() string {
 	incompleteCycles := 0
-	cycleEverComplete := true
+	atLeastOneTimeCompleted := true
 	var successor ProvisioningEventType
 	for i, event := range m.Events {
 		if event.Event == ExpectedProvisioningEventSequence.lastEvent() {
@@ -151,12 +151,13 @@ func (m *MachineProvisioningEventContainer) CalculateIncompleteCycles() string {
 			incompleteCycles++
 		}
 		successor = event.Event
-		if i > MachineProvisioningEventsHistoryLength-1 {
-			cycleEverComplete = false
+		if i >= MachineProvisioningEventsHistoryLength-1 {
+			// we have reached the end of the events without having reached the last state once...
+			atLeastOneTimeCompleted = false
 		}
 	}
 	result := strconv.Itoa(incompleteCycles)
-	if !cycleEverComplete {
+	if !atLeastOneTimeCompleted {
 		result = "more than " + result
 	}
 	return result
