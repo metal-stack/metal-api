@@ -95,6 +95,7 @@ func (rs *RethinkStore) CreateMachine(d *metal.Machine) (*metal.Machine, error) 
 	}
 	d.SizeID = d.Size.ID
 	d.PartitionID = d.Partition.ID
+	d.Liveliness = metal.MachineLivelinessAlive
 	res, err := rs.machineTable().Insert(d, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
@@ -471,15 +472,30 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	return alloc(a)
 }
 
-// FindMachineProvisioningEventContainer finds a provisioning event container to a given machine id.
-func (rs *RethinkStore) FindMachineProvisioningEventContainer(id string) (*metal.MachineProvisioningEventContainer, error) {
+// ListProvisioningEventContainers returns all machine provisioning event containers.
+func (rs *RethinkStore) ListProvisioningEventContainers() (metal.ProvisioningEventContainers, error) {
+	res, err := rs.eventTable().Run(rs.session)
+	if err != nil {
+		return nil, fmt.Errorf("cannot search provisioning event containers from database: %v", err)
+	}
+	defer res.Close()
+	data := make(metal.ProvisioningEventContainers, 0)
+	err = res.All(&data)
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch results: %v", err)
+	}
+	return data, nil
+}
+
+// FindProvisioningEventContainer finds a provisioning event container to a given machine id.
+func (rs *RethinkStore) FindProvisioningEventContainer(id string) (*metal.ProvisioningEventContainer, error) {
 	res, err := rs.eventTable().Get(id).Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get provisioning event container from database: %v", err)
 	}
 	defer res.Close()
 
-	var eventContainer metal.MachineProvisioningEventContainer
+	var eventContainer metal.ProvisioningEventContainer
 	err = res.One(&eventContainer)
 	if err != nil {
 		return nil, err
@@ -487,23 +503,23 @@ func (rs *RethinkStore) FindMachineProvisioningEventContainer(id string) (*metal
 	return &eventContainer, nil
 }
 
-// AddMachineProvisioningEvent adds the provisioning event to a machine's event container.
-func (rs *RethinkStore) AddMachineProvisioningEvent(machineID string, event *metal.MachineProvisioningEvent) error {
-	eventContainer, err := rs.FindMachineProvisioningEventContainer(machineID)
+// AddProvisioningEvent adds the provisioning event to a machine's event container.
+func (rs *RethinkStore) AddProvisioningEvent(machineID string, event *metal.ProvisioningEvent) error {
+	eventContainer, err := rs.FindProvisioningEventContainer(machineID)
 	if err != nil {
-		eventContainer = &metal.MachineProvisioningEventContainer{
+		eventContainer = &metal.ProvisioningEventContainer{
 			ID: machineID,
 		}
 	}
 
-	eventContainer.LastEventTime = time.Now()
+	eventContainer.LastEventTime = &event.Time
 
 	if event.Event == metal.ProvisioningEventAlive {
 		rs.SugaredLogger.Infow("received provisioning alive event", "id", eventContainer.ID)
 	} else {
-		eventContainer.Events = append([]metal.MachineProvisioningEvent{*event}, eventContainer.Events...)
-		if len(eventContainer.Events) > metal.MachineProvisioningEventsHistoryLength-1 {
-			eventContainer.Events = eventContainer.Events[:metal.MachineProvisioningEventsHistoryLength-1]
+		eventContainer.Events = append([]metal.ProvisioningEvent{*event}, eventContainer.Events...)
+		if len(eventContainer.Events) > metal.ProvisioningEventsHistoryLength-1 {
+			eventContainer.Events = eventContainer.Events[:metal.ProvisioningEventsHistoryLength-1]
 		}
 		eventContainer.IncompleteProvisioningCycles = eventContainer.CalculateIncompleteCycles()
 	}
@@ -512,10 +528,41 @@ func (rs *RethinkStore) AddMachineProvisioningEvent(machineID string, event *met
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot upsert machine provisioning event container into event table: %v", err)
+		return fmt.Errorf("cannot upsert provisioning event container into event table: %v", err)
 	}
 
 	return nil
+}
+
+// EvaluateMachineLiveliness evaluates the liveliness of a given machine
+func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) (*metal.Machine, error) {
+	old := m
+	defer rs.UpdateMachine(&old, &m)
+
+	if m.Allocation != nil && m.Allocation.LastPing != nil {
+		// the machine has phoned home... we cannot tell the current liveliness state
+		m.Liveliness = metal.MachineLivelinessUnknown
+		return &m, nil
+	}
+
+	provisioningEvents, err := rs.FindProvisioningEventContainer(m.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if provisioningEvents.LastEventTime != nil {
+		if time.Now().Add(-metal.MachineDeadAfter).Sub(*provisioningEvents.LastEventTime) > 0 {
+			m.Liveliness = metal.MachineLivelinessDead
+		} else {
+			m.Liveliness = metal.MachineLivelinessAlive
+		}
+		return &m, nil
+	}
+
+	// we have no provisioning events... we cannot tell
+	m.Liveliness = metal.MachineLivelinessUnknown
+
+	return &m, nil
 }
 
 // fillMachineList fills the output fields of a machine which are not directly
@@ -539,6 +586,12 @@ func (rs *RethinkStore) fillMachineList(data ...metal.Machine) ([]metal.Machine,
 	}
 	partmap := metal.Partitions(all).ByID()
 
+	allevents, err := rs.ListProvisioningEventContainers()
+	if err != nil {
+		return nil, err
+	}
+	eventmap := allevents.ByID()
+
 	res := make([]metal.Machine, len(data), len(data))
 	for i, d := range data {
 		res[i] = d
@@ -551,6 +604,7 @@ func (rs *RethinkStore) fillMachineList(data ...metal.Machine) ([]metal.Machine,
 			}
 		}
 		res[i].Partition = partmap[d.PartitionID]
+		res[i].ProvisioningEvents = eventmap[d.ID]
 	}
 	return res, nil
 }

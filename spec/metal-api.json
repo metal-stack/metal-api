@@ -323,6 +323,48 @@
         }
       }
     },
+    "/v1/machine/liveliness": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "checks machine liveliness",
+        "operationId": "checkMachineLiveliness",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.MachineLivelinessReport"
+            }
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/phoneHome": {
       "post": {
         "consumes": [
@@ -503,7 +545,7 @@
           "machine"
         ],
         "summary": "get the current machine provisioning event container",
-        "operationId": "getMachineProvisioningEventContainer",
+        "operationId": "getProvisioningEventContainer",
         "parameters": [
           {
             "type": "string",
@@ -517,7 +559,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.MachineProvisioningEventContainer"
+              "$ref": "#/definitions/metal.ProvisioningEventContainer"
             }
           },
           "404": {
@@ -542,7 +584,7 @@
           "machine"
         ],
         "summary": "adds a machine provisioning event",
-        "operationId": "addMachineProvisioningEvent",
+        "operationId": "addProvisioningEvent",
         "parameters": [
           {
             "type": "string",
@@ -556,7 +598,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.MachineProvisioningEvent"
+              "$ref": "#/definitions/metal.ProvisioningEvent"
             }
           }
         ],
@@ -1783,7 +1825,9 @@
         "hardware",
         "allocation",
         "tags",
-        "state"
+        "state",
+        "liveliness",
+        "provisioning_events"
       ],
       "properties": {
         "allocation": {
@@ -1815,6 +1859,10 @@
           "type": "string",
           "uniqueItems": true
         },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
         "name": {
           "description": "the readable name",
           "type": "string"
@@ -1823,6 +1871,10 @@
           "description": "the partition assigned to this machine",
           "$ref": "#/definitions/metal.Partition",
           "readOnly": true
+        },
+        "provisioning_events": {
+          "description": "events of this machine during provisioning",
+          "$ref": "#/definitions/metal.ProvisioningEventContainer"
         },
         "rackid": {
           "description": "the rack assigned to this machine",
@@ -1954,63 +2006,27 @@
         }
       }
     },
-    "metal.MachineProvisioningEvent": {
+    "metal.MachineLivelinessReport": {
       "required": [
-        "event"
+        "alive_count",
+        "dead_count",
+        "unknown_count"
       ],
       "properties": {
-        "event": {
-          "description": "the event emitted by the machine",
-          "type": "string",
-          "enum": [
-            "Alive",
-            "Preparing",
-            "Registering",
-            "Waiting",
-            "Installing",
-            "InstallationFinished",
-            "Provisioned"
-          ]
+        "alive_count": {
+          "description": "the number of machines alive",
+          "type": "integer",
+          "format": "int32"
         },
-        "message": {
-          "description": "an additional message to add to the event",
-          "type": "string"
+        "dead_count": {
+          "description": "the number of dead machines",
+          "type": "integer",
+          "format": "int32"
         },
-        "time": {
-          "description": "the time that this event was received",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        }
-      }
-    },
-    "metal.MachineProvisioningEventContainer": {
-      "required": [
-        "id",
-        "events",
-        "last_event_time",
-        "incomplete_provisioning_cycles"
-      ],
-      "properties": {
-        "events": {
-          "description": "the history of machine provisioning events",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.MachineProvisioningEvent"
-          }
-        },
-        "id": {
-          "description": "references the machine",
-          "type": "string"
-        },
-        "incomplete_provisioning_cycles": {
-          "description": "the amount of incomplete provisioning cycles in the event container",
-          "type": "string"
-        },
-        "last_event_time": {
-          "description": "the time where the last event was received",
-          "type": "string",
-          "format": "date-time"
+        "unknown_count": {
+          "description": "the number of machines with unknown liveliness",
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -2116,6 +2132,66 @@
         "phone_home_token": {
           "description": "the jwt that was issued for the machine",
           "type": "string"
+        }
+      }
+    },
+    "metal.ProvisioningEvent": {
+      "required": [
+        "event"
+      ],
+      "properties": {
+        "event": {
+          "description": "the event emitted by the machine",
+          "type": "string",
+          "enum": [
+            "Alive",
+            "Preparing",
+            "Registering",
+            "Waiting",
+            "Installing",
+            "InstallationFinished",
+            "Provisioned"
+          ]
+        },
+        "message": {
+          "description": "an additional message to add to the event",
+          "type": "string"
+        },
+        "time": {
+          "description": "the time that this event was received",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        }
+      }
+    },
+    "metal.ProvisioningEventContainer": {
+      "required": [
+        "id",
+        "events",
+        "last_event_time",
+        "incomplete_provisioning_cycles"
+      ],
+      "properties": {
+        "events": {
+          "description": "the history of machine provisioning events",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.ProvisioningEvent"
+          }
+        },
+        "id": {
+          "description": "references the machine",
+          "type": "string"
+        },
+        "incomplete_provisioning_cycles": {
+          "description": "the amount of incomplete provisioning cycles in the event container",
+          "type": "string"
+        },
+        "last_event_time": {
+          "description": "the time where the last event was received",
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

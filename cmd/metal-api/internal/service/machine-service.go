@@ -138,21 +138,28 @@ func (dr machineResource) webService() *restful.WebService {
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/event").To(dr.getMachineProvisioningEventContainer).
+	ws.Route(ws.GET("/{id}/event").To(dr.getProvisioningEventContainer).
 		Doc("get the current machine provisioning event container").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.MachineProvisioningEventContainer{}).
+		Returns(http.StatusOK, "OK", metal.ProvisioningEventContainer{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/event").To(dr.addMachineProvisioningEvent).
+	ws.Route(ws.POST("/{id}/event").To(dr.addProvisioningEvent).
 		Doc("adds a machine provisioning event").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.MachineProvisioningEvent{}).
+		Reads(metal.ProvisioningEvent{}).
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "Not Found", nil).
+		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
+
+	ws.Route(ws.POST("/liveliness").To(dr.checkMachineLiveliness).
+		Doc("checks machine liveliness").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads([]string{}). // swagger client does not work if we do not have a body... emits error 406
+		Returns(http.StatusOK, "OK", metal.MachineLivelinessReport{}).
 		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/on").To(dr.machineOn).
@@ -263,7 +270,9 @@ func (dr machineResource) phoneHome(request *restful.Request, response *restful.
 		sendError(log, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this machine is not allocated"))
 	}
 	newMachine := *oldMachine
-	newMachine.Allocation.LastPing = time.Now()
+	lastPingTime := time.Now()
+	newMachine.Allocation.LastPing = &lastPingTime
+	newMachine.Liveliness = metal.MachineLivelinessUnknown // after phoning home, we lose the capbility of determining whether the machine is alive or not
 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
 	if checkError(request, response, "phoneHome", err) {
 		return
@@ -465,47 +474,80 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 	response.WriteEntity(m)
 }
 
-func (dr machineResource) getMachineProvisioningEventContainer(request *restful.Request, response *restful.Response) {
+func (dr machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	_, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "machineProvisioningEvent", err) {
+	if checkError(request, response, "provisioningEvent", err) {
 		return
 	}
 
-	eventContainer, err := dr.ds.FindMachineProvisioningEventContainer(id)
-	if checkError(request, response, "machineProvisioningEvent", err) {
+	eventContainer, err := dr.ds.FindProvisioningEventContainer(id)
+	if checkError(request, response, "provisioningEvent", err) {
 		return
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, eventContainer)
 }
 
-func (dr machineResource) addMachineProvisioningEvent(request *restful.Request, response *restful.Response) {
+func (dr machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	_, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "machineProvisioningEvent", err) {
+	if checkError(request, response, "provisioningEvent", err) {
 		return
 	}
 
-	var event metal.MachineProvisioningEvent
+	var event metal.ProvisioningEvent
 	err = request.ReadEntity(&event)
-	if checkError(request, response, "machineProvisioningEvent", err) {
+	if checkError(request, response, "provisioningEvent", err) {
 		return
 	}
 	ok := metal.AllProvisioningEventTypes[event.Event]
 	if !ok {
-		if checkError(request, response, "machineProvisioningEvent", fmt.Errorf("unknown provisioning event")) {
+		if checkError(request, response, "provisioningEvent", fmt.Errorf("unknown provisioning event")) {
 			return
 		}
 	}
 
 	event.Time = time.Now()
-	err = dr.ds.AddMachineProvisioningEvent(id, &event)
-	if checkError(request, response, "machineProvisioningEvent", err) {
+	err = dr.ds.AddProvisioningEvent(id, &event)
+	if checkError(request, response, "provisioningEvent", err) {
 		return
 	}
 
 	response.WriteHeader(http.StatusOK)
+}
+
+func (dr machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
+	utils.Logger(request).Sugar().Info("liveliness report was requested")
+
+	machines, err := dr.ds.ListMachines()
+	if checkError(request, response, "checkMachineLiveliness", err) {
+		return
+	}
+
+	unknown := 0
+	alive := 0
+	dead := 0
+	for _, m := range machines {
+		evaluatedMachine, err := dr.ds.EvaluateMachineLiveliness(m)
+		if checkError(request, response, "checkMachineLiveliness", err) {
+			return
+		}
+		if evaluatedMachine.Liveliness == metal.MachineLivelinessAlive {
+			alive++
+		} else if evaluatedMachine.Liveliness == metal.MachineLivelinessDead {
+			dead++
+		} else {
+			unknown++
+		}
+	}
+
+	report := metal.MachineLivelinessReport{
+		AliveCount:   alive,
+		DeadCount:    dead,
+		UnknownCount: unknown,
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, report)
 }
 
 func (dr machineResource) machineOn(request *restful.Request, response *restful.Response) {

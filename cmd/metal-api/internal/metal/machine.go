@@ -2,7 +2,6 @@ package metal
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -35,33 +34,35 @@ type MachineState struct {
 // be filled. Any unallocated (free) machine won't have such values.
 type Machine struct {
 	Base
-	Partition   Partition          `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" rethinkdb:"-"`
-	PartitionID string             `json:"-" rethinkdb:"partitionid"`
-	RackID      string             `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" rethinkdb:"rackid"`
-	Size        *Size              `json:"size" description:"the size of this machine" readOnly:"true" rethinkdb:"-"`
-	SizeID      string             `json:"-" rethinkdb:"sizeid"`
-	Hardware    MachineHardware    `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
-	Allocation  *MachineAllocation `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
-	Tags        []string           `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
-	State       MachineState       `json:"state" rethinkdb:"state" description:"the state of this machine"`
+	Partition          Partition                  `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" rethinkdb:"-"`
+	PartitionID        string                     `json:"-" rethinkdb:"partitionid"`
+	RackID             string                     `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" rethinkdb:"rackid"`
+	Size               *Size                      `json:"size" description:"the size of this machine" readOnly:"true" rethinkdb:"-"`
+	SizeID             string                     `json:"-" rethinkdb:"sizeid"`
+	Hardware           MachineHardware            `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
+	Allocation         *MachineAllocation         `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
+	Tags               []string                   `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
+	State              MachineState               `json:"state" rethinkdb:"state" description:"the state of this machine"`
+	Liveliness         MachineLiveliness          `json:"liveliness" rethinkdb:"liveliness" description:"the liveliness of this machine"`
+	ProvisioningEvents ProvisioningEventContainer `json:"provisioning_events" description:"events of this machine during provisioning" rethinkdb:"-"`
 }
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
-	Created         time.Time `json:"created" description:"the time when the machine was created" rethinkdb:"created"`
-	Name            string    `json:"name" description:"the name of the machine" rethinkdb:"name"`
-	Description     string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
-	LastPing        time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
-	Tenant          string    `json:"tenant" description:"the tenant that this machine is assigned to" rethinkdb:"tenant"`
-	Project         string    `json:"project" description:"the project that this machine is assigned to" rethinkdb:"project"`
-	Image           *Image    `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true" rethinkdb:"-"`
-	ImageID         string    `json:"-" rethinkdb:"imageid"`
-	Cidr            string    `json:"cidr" description:"the cidr address of the allocated machine" rethinkdb:"cidr"`
-	Vrf             uint      `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
-	Hostname        string    `json:"hostname" description:"the hostname which will be used when creating the machine" rethinkdb:"hostname"`
-	SSHPubKeys      []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with" rethinkdb:"sshPubKeys"`
-	UserData        string    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true" rethinkdb:"userdata"`
-	ConsolePassword string    `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
+	Created         time.Time  `json:"created" description:"the time when the machine was created" rethinkdb:"created"`
+	Name            string     `json:"name" description:"the name of the machine" rethinkdb:"name"`
+	Description     string     `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
+	LastPing        *time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
+	Tenant          string     `json:"tenant" description:"the tenant that this machine is assigned to" rethinkdb:"tenant"`
+	Project         string     `json:"project" description:"the project that this machine is assigned to" rethinkdb:"project"`
+	Image           *Image     `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true" rethinkdb:"-"`
+	ImageID         string     `json:"-" rethinkdb:"imageid"`
+	Cidr            string     `json:"cidr" description:"the cidr address of the allocated machine" rethinkdb:"cidr"`
+	Vrf             uint       `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
+	Hostname        string     `json:"hostname" description:"the hostname which will be used when creating the machine" rethinkdb:"hostname"`
+	SSHPubKeys      []string   `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with" rethinkdb:"sshPubKeys"`
+	UserData        string     `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true" rethinkdb:"userdata"`
+	ConsolePassword string     `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
@@ -72,111 +73,22 @@ type MachineHardware struct {
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this machine" rethinkdb:"block_devices"`
 }
 
-// ProvisioningEventType indicates an event emitted by a machine during the provisioning sequence
-type ProvisioningEventType string
-type provisioningEventSequence []ProvisioningEventType
+// MachineLiveliness indicates the liveliness of a machine
+type MachineLiveliness string
 
-var (
-	// AllProvisioningEventTypes are all provisioning events that exist
-	AllProvisioningEventTypes = map[ProvisioningEventType]bool{
-		ProvisioningEventAlive:                true,
-		ProvisioningEventPreparing:            true,
-		ProvisioningEventRegistering:          true,
-		ProvisioningEventWaiting:              true,
-		ProvisioningEventInstalling:           true,
-		ProvisioningEventInstallationFinished: true,
-	}
-	// MachineProvisioningEventsHistoryLength The length of how many provisioning events are persisted in the database
-	MachineProvisioningEventsHistoryLength = 3 * len(AllProvisioningEventTypes)
-	// ExpectedProvisioningEventSequence is the expected sequence in which
-	ExpectedProvisioningEventSequence = provisioningEventSequence{
-		ProvisioningEventPreparing,
-		ProvisioningEventRegistering,
-		ProvisioningEventWaiting,
-		ProvisioningEventInstalling,
-		ProvisioningEventInstallationFinished,
-	}
-)
-
-// The enums for the machine provisioning events.
+// The enums for the machine liveliness states.
 const (
-	ProvisioningEventAlive                ProvisioningEventType = "Alive"
-	ProvisioningEventPreparing            ProvisioningEventType = "Preparing"
-	ProvisioningEventRegistering          ProvisioningEventType = "Registering"
-	ProvisioningEventWaiting              ProvisioningEventType = "Waiting"
-	ProvisioningEventInstalling           ProvisioningEventType = "Installing"
-	ProvisioningEventInstallationFinished ProvisioningEventType = "InstallationFinished"
+	MachineLivelinessAlive   MachineLiveliness = "Alive"
+	MachineLivelinessDead    MachineLiveliness = "Dead"
+	MachineLivelinessUnknown MachineLiveliness = "Unknown"
+	MachineDeadAfter         time.Duration     = (20 * time.Second)
 )
 
-// MachineProvisioningEvents is just a list of MachineProvisioningEvents
-type MachineProvisioningEvents []MachineProvisioningEvent
-
-func (p provisioningEventSequence) lastEvent() ProvisioningEventType {
-	return p[len(p)-1]
-}
-
-func (e *MachineProvisioningEvent) hasExpectedSuccessor(successor ProvisioningEventType) bool {
-	currentEvent := e.Event
-
-	var indexOfCurrent int
-	for i, event := range ExpectedProvisioningEventSequence {
-		if currentEvent == event {
-			indexOfCurrent = i
-			break
-		}
-	}
-
-	var expectedSuccessor ProvisioningEventType
-	expectedSuccessorIndex := indexOfCurrent + 1
-	if expectedSuccessorIndex >= len(ExpectedProvisioningEventSequence)-1 {
-		expectedSuccessor = ExpectedProvisioningEventSequence[0]
-	} else {
-		expectedSuccessor = ExpectedProvisioningEventSequence[expectedSuccessorIndex]
-	}
-
-	return successor == expectedSuccessor
-}
-
-// CalculateIncompleteCycles calculates the number of events that occurred out of order. Can be used to determine if a machine is in an error loop.
-func (m *MachineProvisioningEventContainer) CalculateIncompleteCycles() string {
-	incompleteCycles := 0
-	atLeastOneTimeCompleted := true
-	var successor ProvisioningEventType
-	for i, event := range m.Events {
-		if event.Event == ExpectedProvisioningEventSequence.lastEvent() {
-			// cycle complete at this point, we can leave
-			break
-		}
-		if successor != "" && !event.hasExpectedSuccessor(successor) {
-			incompleteCycles++
-		}
-		successor = event.Event
-		if i >= MachineProvisioningEventsHistoryLength-1 {
-			// we have reached the end of the events without having reached the last state once...
-			atLeastOneTimeCompleted = false
-		}
-	}
-	result := strconv.Itoa(incompleteCycles)
-	if !atLeastOneTimeCompleted {
-		result = "more than " + result
-	}
-	return result
-}
-
-// MachineProvisioningEvent is an event emitted by a machine during the provisioning sequence
-type MachineProvisioningEvent struct {
-	Time time.Time `json:"time" description:"the time that this event was received" optional:"true" readOnly:"true" rethinkdb:"time"`
-	// Event enums have to be enumerated here as defined above in AllProvisioningEventTypes!!
-	Event   ProvisioningEventType `enum:"Alive|Preparing|Registering|Waiting|Installing|InstallationFinished|Provisioned" json:"event" description:"the event emitted by the machine" rethinkdb:"event"`
-	Message string                `json:"message" description:"an additional message to add to the event" optional:"true" rethinkdb:"message"`
-}
-
-// MachineProvisioningEventContainer stores the provisioning events of a machine
-type MachineProvisioningEventContainer struct {
-	ID                           string                    `json:"id" description:"references the machine" rethinkdb:"id"`
-	Events                       MachineProvisioningEvents `json:"events" description:"the history of machine provisioning events" rethinkdb:"events"`
-	LastEventTime                time.Time                 `json:"last_event_time" description:"the time where the last event was received" rethinkdb:"last_event_time"`
-	IncompleteProvisioningCycles string                    `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container" rethinkdb:"incomplete_cycles"`
+// MachineLivelinessReport contains information on overall machine liveliness
+type MachineLivelinessReport struct {
+	AliveCount   int `json:"alive_count" description:"the number of machines alive"`
+	DeadCount    int `json:"dead_count" description:"the number of dead machines"`
+	UnknownCount int `json:"unknown_count" description:"the number of machines with unknown liveliness"`
 }
 
 // DiskCapacity calculates the capacity of all disks.
