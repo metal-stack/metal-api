@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "ipmi", "vrf", "machine_provisioning_state"}
+	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "ipmi", "vrf", "event"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -106,8 +106,8 @@ func (rs *RethinkStore) vrfTable() *r.Term {
 	res := r.DB(rs.dbname).Table("vrf")
 	return &res
 }
-func (rs *RethinkStore) provisioningStateTable() *r.Term {
-	res := r.DB(rs.dbname).Table("machine_provisioning_state")
+func (rs *RethinkStore) eventTable() *r.Term {
+	res := r.DB(rs.dbname).Table("event")
 	return &res
 }
 func (rs *RethinkStore) db() *r.Term {

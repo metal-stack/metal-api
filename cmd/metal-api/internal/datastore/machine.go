@@ -471,55 +471,48 @@ func (rs *RethinkStore) Wait(id string, alloc Allocator) error {
 	return alloc(a)
 }
 
-// FindProvisioningState finds a provisioning state to a given machine id.
-func (rs *RethinkStore) FindProvisioningState(id string) (*metal.MachineProvisioningState, error) {
-	res, err := rs.provisioningStateTable().Get(id).Run(rs.session)
+// FindMachineProvisioningEventContainer finds a provisioning event container to a given machine id.
+func (rs *RethinkStore) FindMachineProvisioningEventContainer(id string) (*metal.MachineProvisioningEventContainer, error) {
+	res, err := rs.eventTable().Get(id).Run(rs.session)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get provisioning states from database: %v", err)
+		return nil, fmt.Errorf("cannot get provisioning event container from database: %v", err)
 	}
 	defer res.Close()
 
-	var state metal.MachineProvisioningState
-	err = res.One(&state)
+	var eventContainer metal.MachineProvisioningEventContainer
+	err = res.One(&eventContainer)
 	if err != nil {
 		return nil, err
 	}
-	return &state, nil
+	return &eventContainer, nil
 }
 
-// SetProvisioningState sets the provisioning state of a machine.
-func (rs *RethinkStore) SetProvisioningState(state *metal.MachineProvisioningState) error {
-	if state.State == metal.ProvisioningStateAlive || state.State == metal.ProvisioningStateDead {
-		// TODO: Handle alive and dead states properly...
-		rs.SugaredLogger.Infow("received machine provisioning state", "state", state.State, "id", state.ID)
-	}
-
-	oldState, err := rs.FindProvisioningState(state.ID)
+// AddMachineProvisioningEvent adds the provisioning event to a machine's event container.
+func (rs *RethinkStore) AddMachineProvisioningEvent(machineID string, event *metal.MachineProvisioningEvent) error {
+	eventContainer, err := rs.FindMachineProvisioningEventContainer(machineID)
 	if err != nil {
-		_, err := rs.provisioningStateTable().Insert(state, r.InsertOpts{}).RunWrite(rs.session)
-		if err != nil {
-			return fmt.Errorf("cannot insert machine provisioning state into machine_provisioning_state table: %v", err)
+		eventContainer = &metal.MachineProvisioningEventContainer{
+			ID: machineID,
 		}
-		return nil
 	}
 
-	state.History = append(state.History, metal.MachineProvisioningStateHistoryEntry{
-		State:   oldState.State,
-		Changed: oldState.Changed,
-		Message: oldState.Message,
-	})
-	for i, historyEntry := range oldState.History {
-		if i >= metal.MachineProvisioningStateHistoryLength-1 {
-			break
+	eventContainer.LastEventTime = time.Now()
+
+	if event.Event == metal.ProvisioningEventAlive {
+		rs.SugaredLogger.Infow("received provisioning alive event", "id", eventContainer.ID)
+	} else {
+		eventContainer.Events = append([]metal.MachineProvisioningEvent{*event}, eventContainer.Events...)
+		if len(eventContainer.Events) > metal.MachineProvisioningEventsHistoryLength-1 {
+			eventContainer.Events = eventContainer.Events[:metal.MachineProvisioningEventsHistoryLength-1]
 		}
-		state.History = append(state.History, historyEntry)
+		eventContainer.IncompleteProvisioningCycles = eventContainer.CalculateIncompleteCycles()
 	}
 
-	_, err = rs.provisioningStateTable().Insert(state, r.InsertOpts{
+	_, err = rs.eventTable().Insert(eventContainer, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot upsert machine provisioning state into machine_provisioning_state table: %v", err)
+		return fmt.Errorf("cannot upsert machine provisioning event container into event table: %v", err)
 	}
 
 	return nil

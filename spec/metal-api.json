@@ -491,6 +491,91 @@
         }
       }
     },
+    "/v1/machine/{id}/event": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "get the current machine provisioning event container",
+        "operationId": "getMachineProvisioningEventContainer",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.MachineProvisioningEventContainer"
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "adds a machine provisioning event",
+        "operationId": "addMachineProvisioningEvent",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/metal.MachineProvisioningEvent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "schema": {
+              "$ref": "#/definitions/metal.ErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/{id}/free": {
       "delete": {
         "consumes": [
@@ -661,91 +746,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/v1/machine/{id}/provisioningState": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "machine"
-        ],
-        "summary": "get the current machine state",
-        "operationId": "getMachineProvisioningState",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the machine",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/metal.MachineProvisioningState"
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "default": {
-            "description": "Unexpected Error",
-            "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
-            }
-          }
-        }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "machine"
-        ],
-        "summary": "sends the current machine state",
-        "operationId": "setMachineProvisioningState",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the machine",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/metal.MachineProvisioningState"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "default": {
-            "description": "Unexpected Error",
             "schema": {
               "$ref": "#/definitions/metal.ErrorResponse"
             }
@@ -1954,24 +1954,13 @@
         }
       }
     },
-    "metal.MachineProvisioningState": {
+    "metal.MachineProvisioningEvent": {
       "required": [
-        "state",
-        "message"
+        "event"
       ],
       "properties": {
-        "changed": {
-          "description": "the last changed timestamp",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "message": {
-          "description": "the state of the machine",
-          "type": "string"
-        },
-        "state": {
-          "description": "the state of the machine",
+        "event": {
+          "description": "the event emitted by the machine",
           "type": "string",
           "enum": [
             "Alive",
@@ -1980,9 +1969,48 @@
             "Waiting",
             "Installing",
             "InstallationFinished",
-            "Provisioned",
-            "Dead"
+            "Provisioned"
           ]
+        },
+        "message": {
+          "description": "an additional message to add to the event",
+          "type": "string"
+        },
+        "time": {
+          "description": "the time that this event was received",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        }
+      }
+    },
+    "metal.MachineProvisioningEventContainer": {
+      "required": [
+        "id",
+        "events",
+        "last_event_time",
+        "incomplete_provisioning_cycles"
+      ],
+      "properties": {
+        "events": {
+          "description": "the history of machine provisioning events",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.MachineProvisioningEvent"
+          }
+        },
+        "id": {
+          "description": "references the machine",
+          "type": "string"
+        },
+        "incomplete_provisioning_cycles": {
+          "description": "the amount of incomplete provisioning cycles in the event container",
+          "type": "string"
+        },
+        "last_event_time": {
+          "description": "the time where the last event was received",
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

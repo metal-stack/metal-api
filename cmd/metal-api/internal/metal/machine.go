@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -71,53 +72,110 @@ type MachineHardware struct {
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this machine" rethinkdb:"block_devices"`
 }
 
-// ProvisioningState indicates the state of the machine during the provisioning sequence
-type ProvisioningState string
+// ProvisioningEventType indicates an event emitted by a machine during the provisioning sequence
+type ProvisioningEventType string
+type provisioningEventSequence []ProvisioningEventType
 
 var (
-	// AllProvisioningStates are all provisioning states that exist
-	AllProvisioningStates = map[ProvisioningState]bool{
-		ProvisioningStateAlive:                true,
-		ProvisioningStatePreparing:            true,
-		ProvisioningStateRegistering:          true,
-		ProvisioningStateWaiting:              true,
-		ProvisioningStateInstalling:           true,
-		ProvisioningStateInstallationFinished: true,
-		ProvisioningStateProvisioned:          true,
-		ProvisioningStateDead:                 true,
+	// AllProvisioningEventTypes are all provisioning events that exist
+	AllProvisioningEventTypes = map[ProvisioningEventType]bool{
+		ProvisioningEventAlive:                true,
+		ProvisioningEventPreparing:            true,
+		ProvisioningEventRegistering:          true,
+		ProvisioningEventWaiting:              true,
+		ProvisioningEventInstalling:           true,
+		ProvisioningEventInstallationFinished: true,
+	}
+	// MachineProvisioningEventsHistoryLength The length of how many provisioning events are persisted in the database
+	MachineProvisioningEventsHistoryLength = 3 * len(AllProvisioningEventTypes)
+	// ExpectedProvisioningEventSequence is the expected sequence in which
+	ExpectedProvisioningEventSequence = provisioningEventSequence{
+		ProvisioningEventPreparing,
+		ProvisioningEventRegistering,
+		ProvisioningEventWaiting,
+		ProvisioningEventInstalling,
+		ProvisioningEventInstallationFinished,
 	}
 )
 
-// The enums for the machine provisioning states.
+// The enums for the machine provisioning events.
 const (
-	ProvisioningStateAlive                ProvisioningState = "Alive"
-	ProvisioningStatePreparing            ProvisioningState = "Preparing"
-	ProvisioningStateRegistering          ProvisioningState = "Registering"
-	ProvisioningStateWaiting              ProvisioningState = "Waiting"
-	ProvisioningStateInstalling           ProvisioningState = "Installing"
-	ProvisioningStateInstallationFinished ProvisioningState = "InstallationFinished"
-	ProvisioningStateProvisioned          ProvisioningState = "Provisioned"
-	ProvisioningStateDead                 ProvisioningState = "Dead"
+	ProvisioningEventAlive                ProvisioningEventType = "Alive"
+	ProvisioningEventPreparing            ProvisioningEventType = "Preparing"
+	ProvisioningEventRegistering          ProvisioningEventType = "Registering"
+	ProvisioningEventWaiting              ProvisioningEventType = "Waiting"
+	ProvisioningEventInstalling           ProvisioningEventType = "Installing"
+	ProvisioningEventInstallationFinished ProvisioningEventType = "InstallationFinished"
 )
 
-const MachineProvisioningStateHistoryLength = 10
+// MachineProvisioningEvents is just a list of MachineProvisioningEvents
+type MachineProvisioningEvents []MachineProvisioningEvent
 
-type MachineProvisioningStateHistory []MachineProvisioningStateHistoryEntry
-
-type MachineProvisioningStateHistoryEntry struct {
-	Changed time.Time         `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
-	State   ProvisioningState `json:"state" description:"the state of the machine" rethinkdb:"state"`
-	Message string            `json:"message" description:"the state of the machine" rethinkdb:"message"`
+func (p provisioningEventSequence) lastEvent() ProvisioningEventType {
+	return p[len(p)-1]
 }
 
-// MachineProvisioningState stores the provisioning state of the machine
-type MachineProvisioningState struct {
-	Changed time.Time `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
-	ID      string    `json:"-" description:"references the machine" rethinkdb:"id"`
-	// State enums have to be enumerated here as defined above!!
-	State   ProvisioningState               `enum:"Alive|Preparing|Registering|Waiting|Installing|InstallationFinished|Provisioned|Dead" json:"state" description:"the state of the machine" rethinkdb:"state"`
-	Message string                          `json:"message" description:"the state of the machine" rethinkdb:"message"`
-	History MachineProvisioningStateHistory `json:"-" description:"the history of the last states" rethinkdb:"history"`
+func (e *MachineProvisioningEvent) hasExpectedSuccessor(successor ProvisioningEventType) bool {
+	currentEvent := e.Event
+
+	var indexOfCurrent int
+	for i, event := range ExpectedProvisioningEventSequence {
+		if currentEvent == event {
+			indexOfCurrent = i
+			break
+		}
+	}
+
+	var expectedSuccessor ProvisioningEventType
+	expectedSuccessorIndex := indexOfCurrent + 1
+	if expectedSuccessorIndex >= len(ExpectedProvisioningEventSequence)-1 {
+		expectedSuccessor = ExpectedProvisioningEventSequence[0]
+	} else {
+		expectedSuccessor = ExpectedProvisioningEventSequence[expectedSuccessorIndex]
+	}
+
+	return successor == expectedSuccessor
+}
+
+// CalculateIncompleteCycles calculates the number of events that occurred out of order. Can be used to determine if a machine is in an error loop.
+func (m *MachineProvisioningEventContainer) CalculateIncompleteCycles() string {
+	incompleteCycles := 0
+	cycleEverComplete := true
+	var successor ProvisioningEventType
+	for i, event := range m.Events {
+		if event.Event == ExpectedProvisioningEventSequence.lastEvent() {
+			// cycle complete at this point, we can leave
+			break
+		}
+		if successor != "" && !event.hasExpectedSuccessor(successor) {
+			incompleteCycles++
+		}
+		successor = event.Event
+		if i > MachineProvisioningEventsHistoryLength-1 {
+			cycleEverComplete = false
+		}
+	}
+	result := strconv.Itoa(incompleteCycles)
+	if !cycleEverComplete {
+		result = "more than " + result
+	}
+	return result
+}
+
+// MachineProvisioningEvent is an event emitted by a machine during the provisioning sequence
+type MachineProvisioningEvent struct {
+	Time time.Time `json:"time" description:"the time that this event was received" optional:"true" readOnly:"true" rethinkdb:"time"`
+	// Event enums have to be enumerated here as defined above in AllProvisioningEventTypes!!
+	Event   ProvisioningEventType `enum:"Alive|Preparing|Registering|Waiting|Installing|InstallationFinished|Provisioned" json:"event" description:"the event emitted by the machine" rethinkdb:"event"`
+	Message string                `json:"message" description:"an additional message to add to the event" optional:"true" rethinkdb:"message"`
+}
+
+// MachineProvisioningEventContainer stores the provisioning events of a machine
+type MachineProvisioningEventContainer struct {
+	ID                           string                    `json:"id" description:"references the machine" rethinkdb:"id"`
+	Events                       MachineProvisioningEvents `json:"events" description:"the history of machine provisioning events" rethinkdb:"events"`
+	LastEventTime                time.Time                 `json:"last_event_time" description:"the time where the last event was received" rethinkdb:"last_event_time"`
+	IncompleteProvisioningCycles string                    `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container" rethinkdb:"incomplete_cycles"`
 }
 
 // DiskCapacity calculates the capacity of all disks.

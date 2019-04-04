@@ -138,19 +138,19 @@ func (dr machineResource) webService() *restful.WebService {
 		Returns(http.StatusNotFound, "Not Found", nil).
 		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/provisioningState").To(dr.getMachineProvisioningState).
-		Doc("get the current machine state").
+	ws.Route(ws.GET("/{id}/event").To(dr.getMachineProvisioningEventContainer).
+		Doc("get the current machine provisioning event container").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.MachineProvisioningState{}).
+		Returns(http.StatusOK, "OK", metal.MachineProvisioningEventContainer{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/provisioningState").To(dr.setMachineProvisioningState).
-		Doc("sends the current machine state").
+	ws.Route(ws.POST("/{id}/event").To(dr.addMachineProvisioningEvent).
+		Doc("adds a machine provisioning event").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.MachineProvisioningState{}).
+		Reads(metal.MachineProvisioningEvent{}).
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "Not Found", nil).
 		DefaultReturns("Unexpected Error", metal.ErrorResponse{}))
@@ -465,44 +465,43 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 	response.WriteEntity(m)
 }
 
-func (dr machineResource) getMachineProvisioningState(request *restful.Request, response *restful.Response) {
+func (dr machineResource) getMachineProvisioningEventContainer(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	_, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "machineProvisioningState", err) {
+	if checkError(request, response, "machineProvisioningEvent", err) {
 		return
 	}
 
-	state, err := dr.ds.FindProvisioningState(id)
-	if checkError(request, response, "machineProvisioningState", err) {
+	eventContainer, err := dr.ds.FindMachineProvisioningEventContainer(id)
+	if checkError(request, response, "machineProvisioningEvent", err) {
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, state)
+	response.WriteHeaderAndEntity(http.StatusOK, eventContainer)
 }
 
-func (dr machineResource) setMachineProvisioningState(request *restful.Request, response *restful.Response) {
+func (dr machineResource) addMachineProvisioningEvent(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	_, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "machineProvisioningState", err) {
+	if checkError(request, response, "machineProvisioningEvent", err) {
 		return
 	}
 
-	var provisioningState metal.MachineProvisioningState
-	err = request.ReadEntity(&provisioningState)
-	if checkError(request, response, "machineProvisioningState", err) {
+	var event metal.MachineProvisioningEvent
+	err = request.ReadEntity(&event)
+	if checkError(request, response, "machineProvisioningEvent", err) {
 		return
 	}
-	ok := metal.AllProvisioningStates[provisioningState.State]
+	ok := metal.AllProvisioningEventTypes[event.Event]
 	if !ok {
-		if checkError(request, response, "machineProvisioningState", fmt.Errorf("unknown provisioning state")) {
+		if checkError(request, response, "machineProvisioningEvent", fmt.Errorf("unknown provisioning event")) {
 			return
 		}
 	}
 
-	provisioningState.ID = id
-	provisioningState.Changed = time.Now()
-	err = dr.ds.SetProvisioningState(&provisioningState)
-	if checkError(request, response, "machineProvisioningState", err) {
+	event.Time = time.Now()
+	err = dr.ds.AddMachineProvisioningEvent(id, &event)
+	if checkError(request, response, "machineProvisioningEvent", err) {
 		return
 	}
 
