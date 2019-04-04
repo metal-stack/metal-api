@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
@@ -60,7 +62,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Machine{}).
 		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
 		To(dr.restListGet(dr.ds.ListMachines)).
@@ -69,7 +71,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Machine{}).
 		Returns(http.StatusOK, "OK", []metal.Machine{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/find").To(dr.searchMachine).
 		Doc("search machines").
@@ -77,7 +79,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]metal.Machine{}).
 		Returns(http.StatusOK, "OK", []metal.Machine{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/register").To(dr.registerMachine).
 		Doc("register a machine").
@@ -86,15 +88,15 @@ func (dr machineResource) webService() *restful.WebService {
 		Writes(metal.Machine{}).
 		Returns(http.StatusOK, "OK", metal.Machine{}).
 		Returns(http.StatusCreated, "Created", metal.Machine{}).
-		Returns(http.StatusNotFound, "one of the given key values was not found", nil))
+		Returns(http.StatusNotFound, "one of the given key values was not found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").To(dr.allocateMachine).
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.AllocateMachine{}).
 		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusNotFound, "No free machine for allocation found", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "No free machine for allocation found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/state").To(dr.setMachineState).
 		Doc("set the state of a machine").
@@ -103,15 +105,15 @@ func (dr machineResource) webService() *restful.WebService {
 		Reads(metal.MachineState{}).
 		Writes(metal.Machine{}).
 		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusNotFound, "one of the given key values was not found", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "one of the given key values was not found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}/free").To(dr.freeMachine).
 		Doc("free a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/ipmi").To(dr.ipmiData).
 		Doc("returns the IPMI connection data for a machine").
@@ -119,7 +121,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.IPMI{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
 		Doc("wait for an allocation of this machine").
@@ -127,7 +129,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.MachineWithPhoneHomeToken{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", nil).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/report").To(dr.allocationReport).
 		Doc("send the allocation report of a given machine").
@@ -135,8 +137,8 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.ReportAllocation{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/event").To(dr.getProvisioningEventContainer).
 		Doc("get the current machine provisioning event container").
@@ -168,8 +170,8 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/off").To(dr.machineOff).
 		Doc("sends a power-off to the machine").
@@ -177,8 +179,8 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/reset").To(dr.machineReset).
 		Doc("sends a reset to the machine").
@@ -186,8 +188,8 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/bios").To(dr.machineBios).
 		Doc("sends a bios to the machine").
@@ -195,16 +197,16 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
 		Doc("phone back home from the machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.PhoneHomeRequest{}).
 		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusNotFound, "Machine could not be found by id", nil).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Machine could not be found by id", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
 
 	return ws
 }
@@ -239,7 +241,7 @@ func (dr machineResource) waitForAllocation(request *restful.Request, response *
 		return nil
 	})
 	if err != nil {
-		sendError(log, response, "waitForAllocation", http.StatusInternalServerError, err)
+		sendError(log, response, "waitForAllocation", httperrors.NewHTTPError(http.StatusInternalServerError, err))
 	}
 }
 
@@ -248,26 +250,26 @@ func (dr machineResource) phoneHome(request *restful.Request, response *restful.
 	err := request.ReadEntity(&data)
 	log := utils.Logger(request)
 	if err != nil {
-		sendError(log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Cannot read data from request: %v", err))
+		sendError(log, response, "phoneHome", httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
 		return
 	}
 	c, err := jwt.FromJWT(data.PhoneHomeToken)
 	if err != nil {
-		sendError(log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token is invalid: %v", err))
+		sendError(log, response, "phoneHome", httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
 		return
 	}
 	if c.Machine == nil || c.Machine.ID == "" {
-		sendError(log, response, "phoneHome", http.StatusUnprocessableEntity, fmt.Errorf("Token contains malformed data"))
+		sendError(log, response, "phoneHome", httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
 		return
 	}
 	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
 	if err != nil {
-		sendError(log, response, "phoneHome", http.StatusNotFound, err)
+		sendError(log, response, "phoneHome", httperrors.NotFound(err))
 		return
 	}
 	if oldMachine.Allocation == nil {
 		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
-		sendError(log, response, "phoneHome", http.StatusInternalServerError, fmt.Errorf("this machine is not allocated"))
+		sendError(log, response, "phoneHome", httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
 	}
 	newMachine := *oldMachine
 	lastPingTime := time.Now()
@@ -301,7 +303,7 @@ func (dr machineResource) setMachineState(request *restful.Request, response *re
 	if data.Value != metal.AvailableState && data.Description == "" {
 		// we want a "WHY" if this machine should not be available
 		log.Errorw("empty description in state", "state", data)
-		sendError(log.Desugar(), response, "setMachineState", http.StatusUnprocessableEntity, fmt.Errorf("you must supply a description"))
+		sendError(log.Desugar(), response, "setMachineState", httperrors.UnprocessableEntity(fmt.Errorf("you must supply a description")))
 	}
 	found := false
 	for _, s := range metal.AllStates {
@@ -312,7 +314,7 @@ func (dr machineResource) setMachineState(request *restful.Request, response *re
 	}
 	if !found {
 		log.Errorw("illegal state sent", "state", data, "allowed", metal.AllStates)
-		sendError(log.Desugar(), response, "setMachineState", http.StatusUnprocessableEntity, fmt.Errorf("the state is illegal"))
+		sendError(log.Desugar(), response, "setMachineState", httperrors.UnprocessableEntity(fmt.Errorf("the state is illegal")))
 	}
 	id := request.PathParameter("id")
 	m, err := dr.ds.FindMachine(id)
@@ -340,7 +342,7 @@ func (dr machineResource) registerMachine(request *restful.Request, response *re
 		return
 	}
 	if data.UUID == "" {
-		sendError(utils.Logger(request), response, "registerMachine", http.StatusUnprocessableEntity, fmt.Errorf("No UUID given"))
+		sendError(utils.Logger(request), response, "registerMachine", httperrors.UnprocessableEntity(fmt.Errorf("No UUID given")))
 		return
 	}
 	part, err := dr.ds.FindPartition(data.PartitionID)
@@ -422,9 +424,9 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 		dr.netbox)
 	if err != nil {
 		if err == datastore.ErrNoMachineAvailable {
-			sendError(log, response, "allocateMachine", http.StatusNotFound, err)
+			sendError(log, response, "allocateMachine", httperrors.NotFound(err))
 		} else {
-			sendError(log, response, "allocateMachine", http.StatusUnprocessableEntity, err)
+			sendError(log, response, "allocateMachine", httperrors.UnprocessableEntity(err))
 		}
 		return
 	}
@@ -611,21 +613,21 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 		return
 	}
 	if m.Allocation == nil {
-		sendError(utils.Logger(request), response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q is not allocated", id))
+		sendError(utils.Logger(request), response, "allocationReport", httperrors.UnprocessableEntity(fmt.Errorf("the machine %q is not allocated", id)))
 		return
 	}
 	old := *m
 	m.Allocation.ConsolePassword = report.ConsolePassword
 	err = dr.ds.UpdateMachine(&old, m)
 	if err != nil {
-		sendError(utils.Logger(request), response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q could not be updated", id))
+		sendError(utils.Logger(request), response, "allocationReport", httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be updated", id)))
 		return
 	}
 
 	vrf := fmt.Sprintf("vrf%d", m.Allocation.Vrf)
 	sw, err := dr.ds.SetVrfAtSwitch(m, vrf)
 	if err != nil {
-		sendError(utils.Logger(request), response, "allocationReport", http.StatusUnprocessableEntity, fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, m.Allocation.Vrf))
+		sendError(utils.Logger(request), response, "allocationReport", httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, m.Allocation.Vrf)))
 		return
 	}
 

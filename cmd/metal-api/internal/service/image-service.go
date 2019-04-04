@@ -6,6 +6,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -41,7 +42,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Image{}).
 		Returns(http.StatusOK, "OK", metal.Image{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
 		To(ir.restListGet(ir.ds.ListImages)).
@@ -59,14 +60,14 @@ func (ir imageResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Image{}).
 		Returns(http.StatusOK, "OK", metal.Image{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").To(ir.createImage).
 		Doc("create an image. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Image{}).
 		Returns(http.StatusCreated, "Created", metal.Image{}).
-		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(ir.updateImage).
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
@@ -74,7 +75,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Reads(metal.Image{}).
 		Returns(http.StatusOK, "OK", metal.Image{}).
 		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	return ws
 }

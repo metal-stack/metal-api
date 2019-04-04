@@ -9,8 +9,13 @@ import (
 	nbswitch "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/models"
 	"github.com/go-openapi/runtime"
+	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/spf13/viper"
+)
+
+const (
+	problemJSONMime = "application/problem+json"
 )
 
 // An APIProxy can be used to call netbox api functions. It wraps the token
@@ -42,7 +47,10 @@ func New() *APIProxy {
 func initNetboxProxy() *client.NetboxAPIProxy {
 	netboxAddr := viper.GetString("netbox-addr")
 	cfg := client.DefaultTransportConfig().WithHost(netboxAddr)
-	return client.NewHTTPClientWithConfig(strfmt.Default, cfg)
+	transport := httptransport.New(cfg.Host, cfg.BasePath, cfg.Schemes)
+	// our nb-proxy returns this mimetype when a problem/error is returned
+	transport.Consumers[problemJSONMime] = runtime.JSONConsumer()
+	return client.New(transport, strfmt.Default)
 }
 
 func transformNicList(hwnics []metal.Nic) []*models.Nic {

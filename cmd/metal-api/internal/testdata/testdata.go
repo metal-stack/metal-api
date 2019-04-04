@@ -429,6 +429,16 @@ var (
 		M1, M2, M3, M4, M5,
 	}
 
+	// All Vrfs
+	Vrf1 = metal.Vrf{
+		ID:        1,
+		ProjectID: "p",
+		Tenant:    "t",
+	}
+	TestVrfs = []metal.Vrf{
+		Vrf1,
+	}
+
 	EmptyResult = map[string]interface{}{}
 )
 
@@ -500,6 +510,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
 	mock.On(r.DB("mockdb").Table("event")).Return(TestEvents, nil)
+	mock.On(r.DB("mockdb").Table("vrf")).Return(TestVrfs, nil)
 
 	// X.Delete
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)

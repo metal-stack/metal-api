@@ -8,6 +8,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -45,7 +46,7 @@ func (sr switchResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Switch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").To(sr.restListGet(sr.ds.ListSwitches)).
 		Operation("listSwitches").
@@ -61,7 +62,7 @@ func (sr switchResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Switch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/register").To(sr.registerSwitch).
 		Doc("register a switch").
@@ -69,7 +70,7 @@ func (sr switchResource) webService() *restful.WebService {
 		Reads(metal.RegisterSwitch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).
 		Returns(http.StatusCreated, "Created", metal.Switch{}).
-		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	return ws
 }
@@ -102,7 +103,7 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 			response.WriteHeaderAndEntity(http.StatusCreated, sw)
 			return
 		}
-		sendError(utils.Logger(request), response, "registerSwitch", http.StatusInternalServerError, err)
+		sendError(utils.Logger(request), response, "registerSwitch", httperrors.InternalServerError(err))
 		return
 	}
 	// Make sure we do not delete current connections

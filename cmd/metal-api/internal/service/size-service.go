@@ -6,6 +6,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -41,7 +42,7 @@ func (sr sizeResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Size{}).
 		Returns(http.StatusOK, "OK", metal.Image{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
 		To(sr.restListGet(sr.ds.ListSizes)).
@@ -59,22 +60,22 @@ func (sr sizeResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(metal.Size{}).
 		Returns(http.StatusOK, "OK", metal.Size{}).
-		Returns(http.StatusNotFound, "Not Found", nil))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").To(sr.createSize).
 		Doc("create a size. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Size{}).
 		Returns(http.StatusCreated, "Created", metal.Size{}).
-		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(sr.updateSize).
 		Doc("updates a size. if the size was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Size{}).
 		Returns(http.StatusOK, "OK", metal.Size{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
-		Returns(http.StatusConflict, "Conflict", metal.ErrorResponse{}))
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/fromHardware").To(sr.fromHardware).
 		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").

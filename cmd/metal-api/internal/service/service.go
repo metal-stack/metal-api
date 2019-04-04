@@ -10,6 +10,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/go-stack/stack"
 
 	restful "github.com/emicklei/go-restful"
@@ -20,39 +21,34 @@ type webResource struct {
 	ds *datastore.RethinkStore
 }
 
-func sendError(log *zap.Logger, rsp *restful.Response, opname string, status int, err error) {
+func sendError(log *zap.Logger, rsp *restful.Response, opname string, errRsp *httperrors.HTTPErrorResponse) {
 	s := stack.Caller(1)
-	log.Error("service error", zap.String("operation", opname), zap.Int("status", status), zap.String("error", err.Error()), zap.Stringer("service-caller", s))
-	er := metal.ErrorResponse{
-		StatusCode: status,
-		Message:    err.Error(),
-		Operation:  opname,
-	}
-	response, merr := json.Marshal(er)
+	log.Error("service error", zap.String("operation", opname), zap.Int("status", errRsp.StatusCode), zap.String("error", errRsp.Message), zap.Stringer("service-caller", s))
+	response, merr := json.Marshal(errRsp)
 	log.Info("response", zap.String("resp", string(response)))
 	if merr != nil {
-		rsp.WriteError(status, fmt.Errorf("unable to format error string: %v", err))
+		rsp.WriteError(http.StatusInternalServerError, fmt.Errorf("unable to format error string: %v", merr))
 		return
 	}
-	rsp.WriteErrorString(status, string(response))
+	rsp.WriteErrorString(errRsp.StatusCode, string(response))
 }
 
 func checkError(rq *restful.Request, rsp *restful.Response, opname string, err error) bool {
 	log := utils.Logger(rq)
 	if err != nil {
 		if metal.IsNotFound(err) {
-			sendError(log, rsp, opname, http.StatusNotFound, err)
+			sendError(log, rsp, opname, httperrors.NotFound(err))
 			return true
 		}
 		if metal.IsConflict(err) {
-			sendError(log, rsp, opname, http.StatusConflict, err)
+			sendError(log, rsp, opname, httperrors.Conflict(err))
 			return true
 		}
 		if metal.IsInternal(err) {
-			sendError(log, rsp, opname, http.StatusInternalServerError, err)
+			sendError(log, rsp, opname, httperrors.InternalServerError(err))
 			return true
 		}
-		sendError(log, rsp, opname, http.StatusUnprocessableEntity, err)
+		sendError(log, rsp, opname, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
 		return true
 	}
 	return false

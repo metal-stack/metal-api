@@ -101,7 +101,7 @@
           "409": {
             "description": "Conflict",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -141,7 +141,7 @@
           "409": {
             "description": "Conflict",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -177,7 +177,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       },
@@ -210,7 +213,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -239,7 +245,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -275,12 +284,15 @@
             }
           },
           "404": {
-            "description": "No free machine for allocation found"
+            "description": "No free machine for allocation found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -318,7 +330,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -393,12 +408,15 @@
             "description": "OK"
           },
           "404": {
-            "description": "Machine could not be found by id"
+            "description": "Machine could not be found by id",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -441,7 +459,10 @@
             }
           },
           "404": {
-            "description": "one of the given key values was not found"
+            "description": "one of the given key values was not found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -476,7 +497,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -522,12 +546,15 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -650,7 +677,7 @@
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -686,7 +713,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -732,12 +762,15 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -784,12 +817,15 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -833,12 +869,15 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -885,12 +924,15 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -934,12 +976,15 @@
             }
           },
           "404": {
-            "description": "one of the given key values was not found"
+            "description": "one of the given key values was not found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "422": {
             "description": "Unprocessable Entity",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -975,7 +1020,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "504": {
             "description": "Timeout"
@@ -1040,7 +1088,7 @@
           "409": {
             "description": "Conflict",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1075,12 +1123,15 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "409": {
             "description": "Conflict",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1116,7 +1167,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       },
@@ -1149,7 +1203,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -1211,7 +1268,7 @@
           "409": {
             "description": "Conflict",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1246,12 +1303,15 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "409": {
             "description": "Conflict",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1329,7 +1389,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       },
@@ -1362,7 +1425,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -1432,7 +1498,7 @@
           "409": {
             "description": "Conflict",
             "schema": {
-              "$ref": "#/definitions/metal.ErrorResponse"
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1468,7 +1534,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       },
@@ -1501,7 +1570,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -1531,6 +1603,23 @@
     }
   },
   "definitions": {
+    "httperrors.HTTPErrorResponse": {
+      "required": [
+        "statuscode",
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "description": "error message",
+          "type": "string"
+        },
+        "statuscode": {
+          "description": "http status code",
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "metal.AllocateMachine": {
       "required": [
         "tenant",
@@ -1685,28 +1774,6 @@
         },
         "match": {
           "type": "boolean"
-        }
-      }
-    },
-    "metal.ErrorResponse": {
-      "required": [
-        "statuscode",
-        "message",
-        "operation"
-      ],
-      "properties": {
-        "message": {
-          "description": "error message",
-          "type": "string"
-        },
-        "operation": {
-          "description": "name of the operation which caused this error",
-          "type": "string"
-        },
-        "statuscode": {
-          "description": "http status code",
-          "type": "integer",
-          "format": "int32"
         }
       }
     },
