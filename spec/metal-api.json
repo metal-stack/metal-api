@@ -590,7 +590,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "default": {
             "description": "Unexpected Error",
@@ -634,7 +637,10 @@
             "description": "OK"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "default": {
             "description": "Unexpected Error",
@@ -1894,7 +1900,7 @@
         "tags",
         "state",
         "liveliness",
-        "provisioning_events"
+        "events"
       ],
       "properties": {
         "allocation": {
@@ -1917,6 +1923,10 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/metal.RecentProvisioningEvents"
+        },
         "hardware": {
           "description": "the hardware of this machine",
           "$ref": "#/definitions/metal.MachineHardware"
@@ -1938,10 +1948,6 @@
           "description": "the partition assigned to this machine",
           "$ref": "#/definitions/metal.Partition",
           "readOnly": true
-        },
-        "provisioning_events": {
-          "description": "events of this machine during provisioning",
-          "$ref": "#/definitions/metal.ProvisioningEventContainer"
         },
         "rackid": {
           "description": "the rack assigned to this machine",
@@ -2259,6 +2265,31 @@
           "description": "the time where the last event was received",
           "type": "string",
           "format": "date-time"
+        }
+      }
+    },
+    "metal.RecentProvisioningEvents": {
+      "required": [
+        "log",
+        "last_event_time",
+        "incomplete_provisioning_cycles"
+      ],
+      "properties": {
+        "incomplete_provisioning_cycles": {
+          "description": "the amount of incomplete provisioning cycles in the event container",
+          "type": "string"
+        },
+        "last_event_time": {
+          "description": "the time where the last event was received",
+          "type": "string",
+          "format": "date-time"
+        },
+        "log": {
+          "description": "the log of recent machine provisioning events",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.ProvisioningEvent"
+          }
         }
       }
     },

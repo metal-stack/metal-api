@@ -518,10 +518,7 @@ func (rs *RethinkStore) AddProvisioningEvent(machineID string, event *metal.Prov
 		rs.SugaredLogger.Debugw("received provisioning alive event", "id", eventContainer.ID)
 	} else {
 		eventContainer.Events = append([]metal.ProvisioningEvent{*event}, eventContainer.Events...)
-		if len(eventContainer.Events) >= metal.ProvisioningEventsHistoryLength {
-			eventContainer.Events = eventContainer.Events[:metal.ProvisioningEventsHistoryLength]
-		}
-		eventContainer.IncompleteProvisioningCycles = eventContainer.CalculateIncompleteCycles()
+		eventContainer.IncompleteProvisioningCycles = eventContainer.CalculateIncompleteCycles(rs.SugaredLogger)
 	}
 
 	_, err = rs.eventTable().Insert(eventContainer, r.InsertOpts{
@@ -551,7 +548,7 @@ func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) *metal.Machin
 	}
 
 	if provisioningEvents.LastEventTime != nil {
-		if time.Now().Add(-metal.MachineDeadAfter).Sub(*provisioningEvents.LastEventTime) > 0 {
+		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
 			m.Liveliness = metal.MachineLivelinessDead
 		} else {
 			m.Liveliness = metal.MachineLivelinessAlive
@@ -604,7 +601,17 @@ func (rs *RethinkStore) fillMachineList(data ...metal.Machine) ([]metal.Machine,
 			}
 		}
 		res[i].Partition = partmap[d.PartitionID]
-		res[i].ProvisioningEvents = eventmap[d.ID]
+
+		eventContainer := eventmap[d.ID]
+		events := eventContainer.Events
+		if len(events) >= metal.RecentProvisioningEventsLimit {
+			events = events[:metal.RecentProvisioningEventsLimit]
+		}
+		res[i].RecentProvisioningEvents = metal.RecentProvisioningEvents{
+			Events:                       events,
+			IncompleteProvisioningCycles: eventContainer.IncompleteProvisioningCycles,
+			LastEventTime:                eventContainer.LastEventTime,
+		}
 	}
 	return res, nil
 }

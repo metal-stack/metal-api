@@ -34,17 +34,17 @@ type MachineState struct {
 // be filled. Any unallocated (free) machine won't have such values.
 type Machine struct {
 	Base
-	Partition          Partition                  `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" rethinkdb:"-"`
-	PartitionID        string                     `json:"-" rethinkdb:"partitionid"`
-	RackID             string                     `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" rethinkdb:"rackid"`
-	Size               *Size                      `json:"size" description:"the size of this machine" readOnly:"true" rethinkdb:"-"`
-	SizeID             string                     `json:"-" rethinkdb:"sizeid"`
-	Hardware           MachineHardware            `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
-	Allocation         *MachineAllocation         `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
-	Tags               []string                   `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
-	State              MachineState               `json:"state" rethinkdb:"state" description:"the state of this machine"`
-	Liveliness         MachineLiveliness          `json:"liveliness" rethinkdb:"liveliness" description:"the liveliness of this machine"`
-	ProvisioningEvents ProvisioningEventContainer `json:"provisioning_events" description:"events of this machine during provisioning" rethinkdb:"-"`
+	Partition                Partition                `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" rethinkdb:"-"`
+	PartitionID              string                   `json:"-" rethinkdb:"partitionid"`
+	RackID                   string                   `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" rethinkdb:"rackid"`
+	Size                     *Size                    `json:"size" description:"the size of this machine" readOnly:"true" rethinkdb:"-"`
+	SizeID                   string                   `json:"-" rethinkdb:"sizeid"`
+	Hardware                 MachineHardware          `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
+	Allocation               *MachineAllocation       `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
+	Tags                     []string                 `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
+	State                    MachineState             `json:"state" rethinkdb:"state" description:"the state of this machine"`
+	Liveliness               MachineLiveliness        `json:"liveliness" rethinkdb:"liveliness" description:"the liveliness of this machine"`
+	RecentProvisioningEvents RecentProvisioningEvents `json:"events" description:"recent events of this machine during provisioning" rethinkdb:"-"`
 }
 
 // A MachineAllocation stores the data which are only present for allocated machines.

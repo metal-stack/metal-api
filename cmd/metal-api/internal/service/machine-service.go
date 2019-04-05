@@ -145,7 +145,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.ProvisioningEventContainer{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/event").To(dr.addProvisioningEvent).
@@ -154,7 +154,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.ProvisioningEvent{}).
 		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/liveliness").To(dr.checkMachineLiveliness).
