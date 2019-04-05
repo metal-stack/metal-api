@@ -2,6 +2,8 @@ package metal
 
 import (
 	"testing"
+
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 )
 
 var (
@@ -156,7 +158,7 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.eventContainer.CalculateIncompleteCycles(); got != tt.want {
+			if got := tt.eventContainer.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar()); got != tt.want {
 				t.Errorf("CalculateIncompleteCycles() = %v, want %v", got, tt.want)
 			}
 		})
