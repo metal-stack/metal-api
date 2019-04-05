@@ -129,7 +129,7 @@ func (m *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredL
 type ProvisioningEvent struct {
 	Time time.Time `json:"time" description:"the time that this event was received" optional:"true" readOnly:"true" rethinkdb:"time"`
 	// Event enums have to be enumerated here as defined above in AllProvisioningEventTypes!!
-	Event   ProvisioningEventType `enum:"Alive|Preparing|Registering|Waiting|Installing|InstallationFinished|Provisioned" json:"event" description:"the event emitted by the machine" rethinkdb:"event"`
+	Event   ProvisioningEventType `enum:"Alive|Planned Reboot|Preparing|Registering|Waiting|Installing|Booting New Kernel" json:"event" description:"the event emitted by the machine" rethinkdb:"event"`
 	Message string                `json:"message" description:"an additional message to add to the event" optional:"true" rethinkdb:"message"`
 }
 
