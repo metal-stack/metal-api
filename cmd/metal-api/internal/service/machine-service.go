@@ -519,7 +519,7 @@ func (dr machineResource) addProvisioningEvent(request *restful.Request, respons
 	newMachine := *m
 	evaluatedMachine := dr.ds.EvaluateMachineLiveliness(newMachine)
 	err = dr.ds.UpdateMachine(m, evaluatedMachine)
-	if checkError(request, response, "checkMachineLiveliness", err) {
+	if checkError(request, response, "provisioningEvent", err) {
 		return
 	}
 
