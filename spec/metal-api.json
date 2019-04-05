@@ -2218,12 +2218,12 @@
           "type": "string",
           "enum": [
             "Alive",
+            "Planned Reboot",
             "Preparing",
             "Registering",
             "Waiting",
             "Installing",
-            "InstallationFinished",
-            "Provisioned"
+            "Booting New Kernel"
           ]
         },
         "message": {
