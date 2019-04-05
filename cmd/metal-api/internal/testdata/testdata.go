@@ -371,6 +371,9 @@ var (
 		Img1, Img2, Img3,
 	}
 
+	// All Events
+	TestEvents = []metal.ProvisioningEventContainer{}
+
 	// All Sizes
 	TestSizes = []metal.Size{
 		Sz1, Sz2, Sz3,
@@ -498,6 +501,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("event").Get(r.MockAnything())).Return(EmptyResult, nil)
 
 	// X.GetTable
 	mock.On(r.DB("mockdb").Table("size")).Return(TestSizes, nil)
@@ -505,6 +509,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
+	mock.On(r.DB("mockdb").Table("event")).Return(TestEvents, nil)
 	mock.On(r.DB("mockdb").Table("vrf")).Return(TestVrfs, nil)
 
 	// X.Delete

@@ -34,33 +34,35 @@ type MachineState struct {
 // be filled. Any unallocated (free) machine won't have such values.
 type Machine struct {
 	Base
-	Partition   Partition          `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" rethinkdb:"-"`
-	PartitionID string             `json:"-" rethinkdb:"partitionid"`
-	RackID      string             `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" rethinkdb:"rackid"`
-	Size        *Size              `json:"size" description:"the size of this machine" readOnly:"true" rethinkdb:"-"`
-	SizeID      string             `json:"-" rethinkdb:"sizeid"`
-	Hardware    MachineHardware    `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
-	Allocation  *MachineAllocation `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
-	Tags        []string           `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
-	State       MachineState       `json:"state" rethinkdb:"state" description:"the state of this machine"`
+	Partition                Partition                `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" rethinkdb:"-"`
+	PartitionID              string                   `json:"-" rethinkdb:"partitionid"`
+	RackID                   string                   `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" rethinkdb:"rackid"`
+	Size                     *Size                    `json:"size" description:"the size of this machine" readOnly:"true" rethinkdb:"-"`
+	SizeID                   string                   `json:"-" rethinkdb:"sizeid"`
+	Hardware                 MachineHardware          `json:"hardware" description:"the hardware of this machine" rethinkdb:"hardware"`
+	Allocation               *MachineAllocation       `json:"allocation" description:"the allocation data of an allocated machine" rethinkdb:"allocation"`
+	Tags                     []string                 `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
+	State                    MachineState             `json:"state" rethinkdb:"state" description:"the state of this machine"`
+	Liveliness               MachineLiveliness        `json:"liveliness" rethinkdb:"liveliness" description:"the liveliness of this machine"`
+	RecentProvisioningEvents RecentProvisioningEvents `json:"events" description:"recent events of this machine during provisioning" rethinkdb:"-"`
 }
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
-	Created         time.Time `json:"created" description:"the time when the machine was created" rethinkdb:"created"`
-	Name            string    `json:"name" description:"the name of the machine" rethinkdb:"name"`
-	Description     string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
-	LastPing        time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
-	Tenant          string    `json:"tenant" description:"the tenant that this machine is assigned to" rethinkdb:"tenant"`
-	Project         string    `json:"project" description:"the project that this machine is assigned to" rethinkdb:"project"`
-	Image           *Image    `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true" rethinkdb:"-"`
-	ImageID         string    `json:"-" rethinkdb:"imageid"`
-	Cidr            string    `json:"cidr" description:"the cidr address of the allocated machine" rethinkdb:"cidr"`
-	Vrf             uint      `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
-	Hostname        string    `json:"hostname" description:"the hostname which will be used when creating the machine" rethinkdb:"hostname"`
-	SSHPubKeys      []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with" rethinkdb:"sshPubKeys"`
-	UserData        string    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true" rethinkdb:"userdata"`
-	ConsolePassword string    `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
+	Created         time.Time  `json:"created" description:"the time when the machine was created" rethinkdb:"created"`
+	Name            string     `json:"name" description:"the name of the machine" rethinkdb:"name"`
+	Description     string     `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
+	LastPing        *time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
+	Tenant          string     `json:"tenant" description:"the tenant that this machine is assigned to" rethinkdb:"tenant"`
+	Project         string     `json:"project" description:"the project that this machine is assigned to" rethinkdb:"project"`
+	Image           *Image     `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true" rethinkdb:"-"`
+	ImageID         string     `json:"-" rethinkdb:"imageid"`
+	Cidr            string     `json:"cidr" description:"the cidr address of the allocated machine" rethinkdb:"cidr"`
+	Vrf             uint       `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
+	Hostname        string     `json:"hostname" description:"the hostname which will be used when creating the machine" rethinkdb:"hostname"`
+	SSHPubKeys      []string   `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with" rethinkdb:"sshPubKeys"`
+	UserData        string     `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true" rethinkdb:"userdata"`
+	ConsolePassword string     `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
@@ -69,6 +71,24 @@ type MachineHardware struct {
 	CPUCores int           `json:"cpu_cores" description:"the number of cpu cores" rethinkdb:"cpu_cores"`
 	Nics     Nics          `json:"nics" description:"the list of network interfaces of this machine" rethinkdb:"network_interfaces"`
 	Disks    []BlockDevice `json:"disks" description:"the list of block devices of this machine" rethinkdb:"block_devices"`
+}
+
+// MachineLiveliness indicates the liveliness of a machine
+type MachineLiveliness string
+
+// The enums for the machine liveliness states.
+const (
+	MachineLivelinessAlive   MachineLiveliness = "Alive"
+	MachineLivelinessDead    MachineLiveliness = "Dead"
+	MachineLivelinessUnknown MachineLiveliness = "Unknown"
+	MachineDeadAfter         time.Duration     = (5 * time.Minute)
+)
+
+// MachineLivelinessReport contains information on overall machine liveliness
+type MachineLivelinessReport struct {
+	AliveCount   int `json:"alive_count" description:"the number of machines alive"`
+	DeadCount    int `json:"dead_count" description:"the number of dead machines"`
+	UnknownCount int `json:"unknown_count" description:"the number of machines with unknown liveliness"`
 }
 
 // DiskCapacity calculates the capacity of all disks.
