@@ -2215,16 +2215,7 @@
       "properties": {
         "event": {
           "description": "the event emitted by the machine",
-          "type": "string",
-          "enum": [
-            "Alive",
-            "Planned Reboot",
-            "Preparing",
-            "Registering",
-            "Waiting",
-            "Installing",
-            "Booting New Kernel"
-          ]
+          "type": "string"
         },
         "message": {
           "description": "an additional message to add to the event",
