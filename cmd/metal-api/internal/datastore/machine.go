@@ -534,8 +534,12 @@ func (rs *RethinkStore) AddProvisioningEvent(machineID string, event *metal.Prov
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine
 func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) *metal.Machine {
 	if m.Allocation != nil && m.Allocation.LastPing != nil {
-		// the machine has phoned home... we cannot tell the current liveliness state
-		m.Liveliness = metal.MachineLivelinessUnknown
+		if time.Since(*m.Allocation.LastPing) > metal.MachineDeadAfter {
+			// the machine is either dead or the customer did turn off the phone home service
+			m.Liveliness = metal.MachineLivelinessUnknown
+		} else {
+			m.Liveliness = metal.MachineLivelinessAlive
+		}
 		return &m
 	}
 
