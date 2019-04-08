@@ -51,6 +51,19 @@ func (rs *RethinkStore) FindMachine(id string) (*metal.Machine, error) {
 			d.Allocation.Image = f
 		}
 	}
+	ec, err := rs.FindProvisioningEventContainer(d.ID)
+	if err != nil {
+		return nil, err
+	}
+	e := ec.Events
+	if len(e) >= metal.RecentProvisioningEventsLimit {
+		e = e[:metal.RecentProvisioningEventsLimit]
+	}
+	d.RecentProvisioningEvents = metal.RecentProvisioningEvents{
+		Events:                       e,
+		IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
+		LastEventTime:                ec.LastEventTime,
+	}
 	return &d, nil
 }
 
