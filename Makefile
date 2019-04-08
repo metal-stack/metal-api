@@ -2,7 +2,6 @@
 BINARY := metal-api
 MAINMODULE := git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api
 COMMONDIR := $(or ${COMMONDIR},../common)
-API_BASE_URL := $(or ${API_BASE_URL}, $(shell minikube service -n default --url metal-api))
 KCTL := kubectl
 
 include $(COMMONDIR)/Makefile.inc
@@ -16,6 +15,7 @@ release:: all;
 
 .PHONY: createmasterdata
 createmasterdata:
+	API_BASE_URL := $(or ${API_BASE_URL}, $(shell minikube service -n default --url metal-api))
 	@cat masterdata/images.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/image
 	@cat masterdata/sizes.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/size
 	@cat masterdata/partitions.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/partition
