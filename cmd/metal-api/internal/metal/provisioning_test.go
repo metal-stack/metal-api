@@ -14,7 +14,6 @@ var (
 		ProvisioningEvent{
 			Event: ProvisioningEventInstalling,
 		},
-
 		ProvisioningEvent{
 			Event: ProvisioningEventWaiting,
 		},
@@ -42,7 +41,7 @@ var (
 			Event: ProvisioningEventPreparing,
 		},
 	}
-	CycleWithReset = ProvisioningEvents{
+	CycleWithPlannedReboot = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventWaiting,
 		},
@@ -62,7 +61,7 @@ var (
 			Event: ProvisioningEventPreparing,
 		},
 	}
-	CycleWithResetAndError = ProvisioningEvents{
+	CycleWithPlannedRebootAndError = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventPreparing,
 		},
@@ -88,10 +87,7 @@ var (
 			Event: ProvisioningEventPreparing,
 		},
 	}
-	CycleWithResetAndImmediateError = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
+	CycleWithPlannedRebootAndImmediateError = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventInstalling,
 		},
@@ -125,6 +121,49 @@ var (
 			Event: ProvisioningEventPreparing,
 		},
 	}
+	CycleWithReset = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventResetFailCount,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventCrashed,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+	}
+	SuccessfulEventCycleWithBadHistory = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventBootingNewKernel,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventInstalling,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+	}
 )
 
 func TestProvisioning_IncompleteCycles(t *testing.T) {
@@ -151,23 +190,23 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 		{
 			name: "TestProvisioning_IncompleteCycles Test 3",
 			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithReset,
+				Events: CycleWithPlannedReboot,
 			},
 			want: "0",
 		},
 		{
 			name: "TestProvisioning_IncompleteCycles Test 4",
 			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithResetAndError,
+				Events: CycleWithPlannedRebootAndError,
 			},
 			want: "1",
 		},
 		{
 			name: "TestProvisioning_IncompleteCycles Test 5",
 			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithResetAndImmediateError,
+				Events: CycleWithPlannedRebootAndImmediateError,
 			},
-			want: "2",
+			want: "1",
 		},
 		{
 			name: "TestProvisioning_IncompleteCycles Test 6",
@@ -175,6 +214,20 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 				Events: CycleWithACrash,
 			},
 			want: "1",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 7",
+			eventContainer: ProvisioningEventContainer{
+				Events: CycleWithReset,
+			},
+			want: "0",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 8",
+			eventContainer: ProvisioningEventContainer{
+				Events: SuccessfulEventCycleWithBadHistory,
+			},
+			want: "0",
 		},
 	}
 	for _, tt := range tests {

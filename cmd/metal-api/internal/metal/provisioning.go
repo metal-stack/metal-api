@@ -14,6 +14,7 @@ type ProvisioningEventType string
 const (
 	ProvisioningEventAlive            ProvisioningEventType = "Alive"
 	ProvisioningEventCrashed          ProvisioningEventType = "Crashed"
+	ProvisioningEventResetFailCount   ProvisioningEventType = "Reset Fail Count"
 	ProvisioningEventPlannedReboot    ProvisioningEventType = "Planned Reboot"
 	ProvisioningEventPreparing        ProvisioningEventType = "Preparing"
 	ProvisioningEventRegistering      ProvisioningEventType = "Registering"
@@ -29,6 +30,7 @@ var (
 	AllProvisioningEventTypes = map[ProvisioningEventType]bool{
 		ProvisioningEventAlive:            true,
 		ProvisioningEventCrashed:          true,
+		ProvisioningEventResetFailCount:   true,
 		ProvisioningEventPlannedReboot:    true,
 		ProvisioningEventPreparing:        true,
 		ProvisioningEventRegistering:      true,
@@ -54,6 +56,12 @@ var (
 		ProvisioningEventInstalling:       provisioningEventSequence{ProvisioningEventBootingNewKernel, ProvisioningEventPlannedReboot},
 		ProvisioningEventBootingNewKernel: provisioningEventSequence{ProvisioningEventPreparing, ProvisioningEventPlannedReboot},
 		ProvisioningEventCrashed:          provisioningEventSequence{ProvisioningEventPreparing},
+		ProvisioningEventResetFailCount:   expectedProvisioningEventSequence,
+	}
+	provisioningEventsThatTerminateCycle = provisioningEventSequence{
+		ProvisioningEventPlannedReboot,
+		ProvisioningEventResetFailCount,
+		*expectedProvisioningEventSequence.lastEvent(),
 	}
 )
 
@@ -104,17 +112,15 @@ func (m *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredL
 	incompleteCycles := 0
 	atLeastOneTimeCompleted := true
 	var successor ProvisioningEventType
-	lastEventInSequence := expectedProvisioningEventSequence.lastEvent()
 	for i, event := range m.Events {
-		if lastEventInSequence != nil && event.Event == *lastEventInSequence {
-			// cycle complete at this point, we can leave
-			break
-		}
-
 		if successor != "" && !event.hasExpectedSuccessor(log, successor) {
 			incompleteCycles++
 		}
 		successor = event.Event
+
+		if provisioningEventsThatTerminateCycle.containsEvent(event.Event) {
+			break
+		}
 
 		if i >= provisioningEventsInspectionLimit-1 {
 			// we have reached the inspection limit without having reached the last event in the sequence once...
