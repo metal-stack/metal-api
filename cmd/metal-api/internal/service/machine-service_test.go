@@ -15,7 +15,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/require"
 
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 
 	nbmachine "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/machines"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -540,6 +540,30 @@ func TestSearchMachine(t *testing.T) {
 	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
 	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
+}
+
+func TestAddProvisioningEvent(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	pub := &emptyPublisher{}
+	nb := netbox.New()
+	dservice := NewMachine(ds, pub, nb)
+	container := restful.NewContainer().Add(dservice)
+	event := &metal.ProvisioningEvent{
+		Event:   metal.ProvisioningEventPreparing,
+		Message: "starting metal-hammer",
+	}
+	js, _ := json.Marshal(event)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/1/event", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	require.Equal(t, int64(-1), resp.ContentLength)
 }
 
 func TestOnMachine(t *testing.T) {

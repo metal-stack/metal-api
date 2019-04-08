@@ -559,6 +559,9 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("event").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
 
 	return
 }
