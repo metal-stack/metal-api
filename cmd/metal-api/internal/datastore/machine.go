@@ -52,18 +52,20 @@ func (rs *RethinkStore) FindMachine(id string) (*metal.Machine, error) {
 		}
 	}
 	ec, err := rs.FindProvisioningEventContainer(d.ID)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		// we can swallow the error here as the event container gets created on the first event,
+		// but a machine should be found even if no event container exists
+		e := ec.Events
+		if len(e) >= metal.RecentProvisioningEventsLimit {
+			e = e[:metal.RecentProvisioningEventsLimit]
+		}
+		d.RecentProvisioningEvents = metal.RecentProvisioningEvents{
+			Events:                       e,
+			IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
+			LastEventTime:                ec.LastEventTime,
+		}
 	}
-	e := ec.Events
-	if len(e) >= metal.RecentProvisioningEventsLimit {
-		e = e[:metal.RecentProvisioningEventsLimit]
-	}
-	d.RecentProvisioningEvents = metal.RecentProvisioningEvents{
-		Events:                       e,
-		IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
-		LastEventTime:                ec.LastEventTime,
-	}
+
 	return &d, nil
 }
 
