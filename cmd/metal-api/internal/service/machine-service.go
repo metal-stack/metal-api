@@ -273,7 +273,7 @@ func (dr machineResource) phoneHome(request *restful.Request, response *restful.
 	}
 	newMachine := *oldMachine
 	lastPingTime := time.Now()
-	newMachine.Allocation.LastPing = &lastPingTime
+	newMachine.Allocation.LastPing = lastPingTime
 	newMachine.Liveliness = metal.MachineLivelinessAlive // phone home token is sent consistently, but if customer turns off the service, it could turn to unknown
 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
 	if checkError(request, response, "phoneHome", err) {
