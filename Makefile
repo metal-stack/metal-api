@@ -72,7 +72,7 @@ generate-client-prepare:
 .PHONY: generate-client
 generate-client: SWAGGERSPEC="netbox-api/v1.yaml"
 generate-client: SWAGGERTARGET="netbox-api"
-generate-client: generate-client-prepare swaggergernerate
+generate-client: generate-client-prepare swaggergenerate
 
 .PHONY: redoc
 redoc:
