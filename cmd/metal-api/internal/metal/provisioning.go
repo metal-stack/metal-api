@@ -13,6 +13,7 @@ type ProvisioningEventType string
 // The enums for the machine provisioning events.
 const (
 	ProvisioningEventAlive            ProvisioningEventType = "Alive"
+	ProvisioningEventCrashed          ProvisioningEventType = "Crashed"
 	ProvisioningEventPlannedReboot    ProvisioningEventType = "Planned Reboot"
 	ProvisioningEventPreparing        ProvisioningEventType = "Preparing"
 	ProvisioningEventRegistering      ProvisioningEventType = "Registering"
@@ -27,6 +28,7 @@ var (
 	// AllProvisioningEventTypes are all provisioning events that exist
 	AllProvisioningEventTypes = map[ProvisioningEventType]bool{
 		ProvisioningEventAlive:            true,
+		ProvisioningEventCrashed:          true,
 		ProvisioningEventPlannedReboot:    true,
 		ProvisioningEventPreparing:        true,
 		ProvisioningEventRegistering:      true,
@@ -51,6 +53,7 @@ var (
 		ProvisioningEventWaiting:          provisioningEventSequence{ProvisioningEventInstalling, ProvisioningEventPlannedReboot},
 		ProvisioningEventInstalling:       provisioningEventSequence{ProvisioningEventBootingNewKernel, ProvisioningEventPlannedReboot},
 		ProvisioningEventBootingNewKernel: provisioningEventSequence{ProvisioningEventPreparing, ProvisioningEventPlannedReboot},
+		ProvisioningEventCrashed:          provisioningEventSequence{ProvisioningEventPreparing},
 	}
 )
 

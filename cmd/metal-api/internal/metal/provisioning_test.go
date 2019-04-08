@@ -111,6 +111,20 @@ var (
 			Event: ProvisioningEventPreparing,
 		},
 	}
+	CycleWithACrash = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventCrashed,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+	}
 )
 
 func TestProvisioning_IncompleteCycles(t *testing.T) {
@@ -154,6 +168,13 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 				Events: CycleWithResetAndImmediateError,
 			},
 			want: "2",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 6",
+			eventContainer: ProvisioningEventContainer{
+				Events: CycleWithACrash,
+			},
+			want: "1",
 		},
 	}
 	for _, tt := range tests {
