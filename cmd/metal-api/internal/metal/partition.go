@@ -3,7 +3,8 @@ package metal
 // A Partition represents a location.
 type Partition struct {
 	Base
-	BootConfiguration BootConfiguration `json:"bootconfig"`
+	BootConfiguration  BootConfiguration `json:"bootconfig"`
+	MgmtServiceAddress string            `json:"mgmtserviceaddress"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline

@@ -2164,7 +2164,8 @@
     "metal.Partition": {
       "required": [
         "id",
-        "bootconfig"
+        "bootconfig",
+        "mgmtserviceaddress"
       ],
       "properties": {
         "bootconfig": {
@@ -2190,6 +2191,9 @@
           "description": "a unique ID",
           "type": "string",
           "uniqueItems": true
+        },
+        "mgmtserviceaddress": {
+          "type": "string"
         },
         "name": {
           "description": "the readable name",
