@@ -465,7 +465,7 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 	// fire of the needed events
 
 	sw, err := dr.ds.SetVrfAtSwitch(m, "")
-	utils.Logger(request).Sugar().Infow("set VRF at switch", "error", err)
+	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
 	if checkError(request, response, op, err) {
 		return
 	}
