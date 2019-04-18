@@ -128,7 +128,7 @@ func (dr machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Returns(http.StatusOK, "OK", metal.MachineWithPhoneHomeToken{}).
-		Returns(http.StatusGatewayTimeout, "Timeout", nil).
+		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/report").To(dr.allocationReport).

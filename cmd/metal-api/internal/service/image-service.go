@@ -74,7 +74,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.Image{}).
 		Returns(http.StatusOK, "OK", metal.Image{}).
-		Returns(http.StatusNotFound, "Not Found", nil).
+		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
 
 	return ws

@@ -136,7 +136,10 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           },
           "409": {
             "description": "Conflict",
@@ -1032,7 +1035,10 @@
             }
           },
           "504": {
-            "description": "Timeout"
+            "description": "Timeout",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
