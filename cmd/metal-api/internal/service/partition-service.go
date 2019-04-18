@@ -1,6 +1,7 @@
 package service
 
 import (
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"net/http"
 	"time"
 
@@ -81,35 +82,37 @@ func (fr partitionResource) webService() *restful.WebService {
 }
 
 func (fr partitionResource) createPartition(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var s metal.Partition
 	err := request.ReadEntity(&s)
-	if checkError(request, response, "createPartition", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	returnedPartition, err := fr.ds.CreatePartition(&s)
-	if checkError(request, response, "createPartition", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusCreated, returnedPartition)
 }
 
 func (fr partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var newPartition metal.Partition
 	err := request.ReadEntity(&newPartition)
-	if checkError(request, response, "updatePartition", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	oldPartition, err := fr.ds.FindPartition(newPartition.ID)
-	if checkError(request, response, "updatePartition", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	err = fr.ds.UpdatePartition(oldPartition, &newPartition)
 
-	if checkError(request, response, "updatePartition", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newPartition)

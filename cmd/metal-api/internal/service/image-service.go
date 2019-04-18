@@ -1,6 +1,7 @@
 package service
 
 import (
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"net/http"
 	"time"
 
@@ -81,35 +82,37 @@ func (ir imageResource) webService() *restful.WebService {
 }
 
 func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var s metal.Image
 	err := request.ReadEntity(&s)
-	if checkError(request, response, "createImage", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	img, err := ir.ds.CreateImage(&s)
-	if checkError(request, response, "createImage", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusCreated, img)
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var newImage metal.Image
 	err := request.ReadEntity(&newImage)
-	if checkError(request, response, "updateImage", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	oldImage, err := ir.ds.FindImage(newImage.ID)
-	if checkError(request, response, "updateImage", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)
 
-	if checkError(request, response, "updateImage", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newImage)

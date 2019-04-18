@@ -76,13 +76,14 @@ func (sr switchResource) webService() *restful.WebService {
 }
 
 func (sr switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var newSwitch metal.RegisterSwitch
 	err := request.ReadEntity(&newSwitch)
-	if checkError(request, response, "registerSwitch", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	part, err := sr.ds.FindPartition(newSwitch.PartitionID)
-	if checkError(request, response, "registerSwitch", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -93,17 +94,17 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 			sw.Created = time.Now()
 			sw.Changed = sw.Created
 			sw, err = sr.ds.CreateSwitch(sw)
-			if checkError(request, response, "registerSwitch", err) {
+			if checkError(request, response, op, err) {
 				return
 			}
 			err = sr.netbox.RegisterSwitch(newSwitch.PartitionID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
-			if checkError(request, response, "registerSwitch", err) {
+			if checkError(request, response, op, err) {
 				return
 			}
 			response.WriteHeaderAndEntity(http.StatusCreated, sw)
 			return
 		}
-		sendError(utils.Logger(request), response, "registerSwitch", httperrors.InternalServerError(err))
+		sendError(utils.Logger(request), response, op, httperrors.InternalServerError(err))
 		return
 	}
 	// Make sure we do not delete current connections
@@ -113,12 +114,12 @@ func (sr switchResource) registerSwitch(request *restful.Request, response *rest
 
 	err = sr.ds.UpdateSwitch(oldSwitch, sw)
 
-	if checkError(request, response, "registerSwitch", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	err = sr.netbox.RegisterSwitch(newSwitch.PartitionID, newSwitch.RackID, newSwitch.ID, newSwitch.ID, newSwitch.Nics)
-	if checkError(request, response, "registerSwitch", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 

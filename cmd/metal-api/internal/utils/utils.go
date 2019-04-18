@@ -5,13 +5,14 @@ import (
 	"context"
 	"net/http"
 	"net/http/httputil"
+	"runtime"
 	"strings"
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
 
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 )
 
 type loggingResponseWriter struct {
@@ -102,4 +103,18 @@ func RestfulLogger(logger *zap.Logger, debug bool) restful.FilterFunction {
 			logger.Error("Rest Call", fields...)
 		}
 	}
+}
+
+// CurrentFuncName returns the name of the caller of this function.
+func CurrentFuncName() string {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		return "unknown"
+	}
+	ffpc := runtime.FuncForPC(pc)
+	if ffpc == nil {
+		return "unknown"
+	}
+	pp := strings.Split(ffpc.Name(), ".")
+	return pp[len(pp)-1]
 }

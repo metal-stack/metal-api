@@ -212,6 +212,7 @@ func (dr machineResource) webService() *restful.WebService {
 }
 
 func (dr machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	id := request.PathParameter("id")
 	ctx := request.Request.Context()
 	log := utils.Logger(request)
@@ -241,52 +242,54 @@ func (dr machineResource) waitForAllocation(request *restful.Request, response *
 		return nil
 	})
 	if err != nil {
-		sendError(log, response, "waitForAllocation", httperrors.NewHTTPError(http.StatusInternalServerError, err))
+		sendError(log, response, op, httperrors.NewHTTPError(http.StatusInternalServerError, err))
 	}
 }
 
 func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var data metal.PhoneHomeRequest
 	err := request.ReadEntity(&data)
 	log := utils.Logger(request)
 	if err != nil {
-		sendError(log, response, "phoneHome", httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
+		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
 		return
 	}
 	c, err := jwt.FromJWT(data.PhoneHomeToken)
 	if err != nil {
-		sendError(log, response, "phoneHome", httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
+		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
 		return
 	}
 	if c.Machine == nil || c.Machine.ID == "" {
-		sendError(log, response, "phoneHome", httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
+		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
 		return
 	}
 	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
 	if err != nil {
-		sendError(log, response, "phoneHome", httperrors.NotFound(err))
+		sendError(log, response, op, httperrors.NotFound(err))
 		return
 	}
 	if oldMachine.Allocation == nil {
 		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
-		sendError(log, response, "phoneHome", httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
+		sendError(log, response, op, httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
 	}
 	newMachine := *oldMachine
 	lastPingTime := time.Now()
 	newMachine.Allocation.LastPing = lastPingTime
 	newMachine.Liveliness = metal.MachineLivelinessAlive // phone home token is sent consistently, but if customer turns off the service, it could turn to unknown
 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
-	if checkError(request, response, "phoneHome", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteEntity(nil)
 }
 
 func (dr machineResource) searchMachine(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
 
 	result, err := dr.ds.SearchMachine(mac)
-	if checkError(request, response, "searchMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -294,16 +297,17 @@ func (dr machineResource) searchMachine(request *restful.Request, response *rest
 }
 
 func (dr machineResource) setMachineState(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	log := utils.Logger(request).Sugar()
 	var data metal.MachineState
 	err := request.ReadEntity(&data)
-	if checkError(request, response, "setMachineState", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	if data.Value != metal.AvailableState && data.Description == "" {
 		// we want a "WHY" if this machine should not be available
 		log.Errorw("empty description in state", "state", data)
-		sendError(log.Desugar(), response, "setMachineState", httperrors.UnprocessableEntity(fmt.Errorf("you must supply a description")))
+		sendError(log.Desugar(), response, op, httperrors.UnprocessableEntity(fmt.Errorf("you must supply a description")))
 	}
 	found := false
 	for _, s := range metal.AllStates {
@@ -314,11 +318,11 @@ func (dr machineResource) setMachineState(request *restful.Request, response *re
 	}
 	if !found {
 		log.Errorw("illegal state sent", "state", data, "allowed", metal.AllStates)
-		sendError(log.Desugar(), response, "setMachineState", httperrors.UnprocessableEntity(fmt.Errorf("the state is illegal")))
+		sendError(log.Desugar(), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the state is illegal")))
 	}
 	id := request.PathParameter("id")
 	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "setMachineState", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	if m.State.Value == data.Value && m.State.Description == data.Description {
@@ -328,25 +332,26 @@ func (dr machineResource) setMachineState(request *restful.Request, response *re
 	newmachine := *m
 	newmachine.State = data
 	err = dr.ds.UpdateMachine(m, &newmachine)
-	if checkError(request, response, "setMachineState", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteEntity(newmachine)
 }
 
 func (dr machineResource) registerMachine(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var data metal.RegisterMachine
 	err := request.ReadEntity(&data)
 	log := utils.Logger(request).Sugar()
-	if checkError(request, response, "registerMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	if data.UUID == "" {
-		sendError(utils.Logger(request), response, "registerMachine", httperrors.UnprocessableEntity(fmt.Errorf("No UUID given")))
+		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("No UUID given")))
 		return
 	}
 	part, err := dr.ds.FindPartition(data.PartitionID)
-	if checkError(request, response, "registerMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -357,18 +362,18 @@ func (dr machineResource) registerMachine(request *restful.Request, response *re
 	}
 
 	err = dr.netbox.Register(part.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
-	if checkError(request, response, "registerMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	m, err := dr.ds.RegisterMachine(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI, data.Tags)
 
-	if checkError(request, response, "registerMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	err = dr.ds.UpdateSwitchConnections(m)
-	if checkError(request, response, "registerMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -376,42 +381,44 @@ func (dr machineResource) registerMachine(request *restful.Request, response *re
 }
 
 func (dr machineResource) ipmiData(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	id := request.PathParameter("id")
 	ipmi, err := dr.ds.FindIPMI(id)
 
-	if checkError(request, response, "ipmiData", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteEntity(ipmi)
 }
 
 func (dr machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var allocate metal.AllocateMachine
 	err := request.ReadEntity(&allocate)
 	log := utils.Logger(request)
 	slog := log.Sugar()
-	if checkError(request, response, "allocateMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	if allocate.Tenant == "" {
-		if checkError(request, response, "allocateMachine", fmt.Errorf("no tenant given")) {
+		if checkError(request, response, op, fmt.Errorf("no tenant given")) {
 			slog.Errorw("allocate", zap.String("tenant", "missing"))
 			return
 		}
 	}
 	image, err := dr.ds.FindImage(allocate.ImageID)
-	if checkError(request, response, "allocateMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	var size *metal.Size
 	var part *metal.Partition
 	if allocate.UUID == "" {
 		size, err = dr.ds.FindSize(allocate.SizeID)
-		if checkError(request, response, "allocateMachine", err) {
+		if checkError(request, response, op, err) {
 			return
 		}
 		part, err = dr.ds.FindPartition(allocate.PartitionID)
-		if checkError(request, response, "allocateMachine", err) {
+		if checkError(request, response, op, err) {
 			return
 		}
 	}
@@ -424,9 +431,9 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 		dr.netbox)
 	if err != nil {
 		if err == datastore.ErrNoMachineAvailable {
-			sendError(log, response, "allocateMachine", httperrors.NotFound(err))
+			sendError(log, response, op, httperrors.NotFound(err))
 		} else {
-			sendError(log, response, "allocateMachine", httperrors.UnprocessableEntity(err))
+			sendError(log, response, op, httperrors.UnprocessableEntity(err))
 		}
 		return
 	}
@@ -434,20 +441,23 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 }
 
 func (dr machineResource) freeMachine(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	id := request.PathParameter("id")
 	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "freeMachine", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
 		m, err = dr.ds.FreeMachine(id)
-		if checkError(request, response, "freeMachine", err) {
+		utils.Logger(request).Sugar().Infow("freed machine", "machineID", id, "error", err)
+		if checkError(request, response, op, err) {
 			return
 		}
 
 		err = dr.netbox.Release(id)
-		if checkError(request, response, "freeMachine", err) {
+		utils.Logger(request).Sugar().Infow("dropped machine from NetBox", "machineID", id, "error", err)
+		if checkError(request, response, op, err) {
 			return
 		}
 	}
@@ -455,21 +465,22 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 	// fire of the needed events
 
 	sw, err := dr.ds.SetVrfAtSwitch(m, "")
-	if checkError(request, response, "freeMachine", err) {
+	utils.Logger(request).Sugar().Infow("set VRF at switch", "error", err)
+	if checkError(request, response, op, err) {
 		return
 	}
 
-	evt := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = dr.Publish(string(metal.TopicMachine), evt)
-	utils.Logger(request).Sugar().Infow("publish delete event", "event", evt, "error", err)
-	if checkError(request, response, "freeMachine", err) {
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
+	err = dr.Publish(string(metal.TopicMachine), deleteEvent)
+	utils.Logger(request).Sugar().Infow("published machine delete event", "machineID", id, "error", err)
+	if checkError(request, response, op, err) {
 		return
 	}
 
-	se := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = dr.Publish(string(metal.TopicSwitch), se)
-	utils.Logger(request).Sugar().Infow("publish switch update event", "event", se, "error", err)
-	if checkError(request, response, "freeMachine", err) {
+	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
+	err = dr.Publish(string(metal.TopicSwitch), switchEvent)
+	utils.Logger(request).Sugar().Infow("published switch update event", "machineID", id, "error", err)
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -477,14 +488,15 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 }
 
 func (dr machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	id := request.PathParameter("id")
 	_, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "provisioningEvent", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	eventContainer, err := dr.ds.FindProvisioningEventContainer(id)
-	if checkError(request, response, "provisioningEvent", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -492,34 +504,35 @@ func (dr machineResource) getProvisioningEventContainer(request *restful.Request
 }
 
 func (dr machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	id := request.PathParameter("id")
 	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "provisioningEvent", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	var event metal.ProvisioningEvent
 	err = request.ReadEntity(&event)
-	if checkError(request, response, "provisioningEvent", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	ok := metal.AllProvisioningEventTypes[event.Event]
 	if !ok {
-		if checkError(request, response, "provisioningEvent", fmt.Errorf("unknown provisioning event")) {
+		if checkError(request, response, op, fmt.Errorf("unknown provisioning event")) {
 			return
 		}
 	}
 
 	event.Time = time.Now()
 	err = dr.ds.AddProvisioningEvent(id, &event)
-	if checkError(request, response, "provisioningEvent", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	newMachine := *m
 	evaluatedMachine := dr.ds.EvaluateMachineLiveliness(newMachine)
 	err = dr.ds.UpdateMachine(m, evaluatedMachine)
-	if checkError(request, response, "provisioningEvent", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -527,10 +540,11 @@ func (dr machineResource) addProvisioningEvent(request *restful.Request, respons
 }
 
 func (dr machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	utils.Logger(request).Sugar().Info("liveliness report was requested")
 
 	machines, err := dr.ds.ListMachines()
-	if checkError(request, response, "checkMachineLiveliness", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
@@ -540,7 +554,7 @@ func (dr machineResource) checkMachineLiveliness(request *restful.Request, respo
 	for _, m := range machines {
 		evaluatedMachine := dr.ds.EvaluateMachineLiveliness(m)
 		err = dr.ds.UpdateMachine(&m, evaluatedMachine)
-		if checkError(request, response, "checkMachineLiveliness", err) {
+		if checkError(request, response, op, err) {
 			return
 		}
 		switch evaluatedMachine.Liveliness {
@@ -592,23 +606,25 @@ func (dr machineResource) machineCmd(op string, cmd metal.MachineCommand, reques
 		Params:  params,
 		Target:  m,
 	}}
-	if checkError(request, response, op, dr.Publish("machine", evt)) {
+	err = dr.Publish(string(metal.TopicMachine), evt)
+	utils.Logger(request).Sugar().Infow("publish event", "event", evt, "command", *evt.Cmd, "error", err)
+	if checkError(request, response, op, err) {
 		return
 	}
-	utils.Logger(request).Sugar().Infow("publish event", "event", evt, "command", *evt.Cmd)
 	response.WriteEntity(m)
 }
 
 func (dr machineResource) allocationReport(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	id := request.PathParameter("id")
 	var report metal.ReportAllocation
 	err := request.ReadEntity(&report)
-	if checkError(request, response, "allocationReport", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, "allocationReport", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	if !report.Success {
@@ -617,27 +633,30 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 		return
 	}
 	if m.Allocation == nil {
-		sendError(utils.Logger(request), response, "allocationReport", httperrors.UnprocessableEntity(fmt.Errorf("the machine %q is not allocated", id)))
+		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q is not allocated", id)))
 		return
 	}
 	old := *m
 	m.Allocation.ConsolePassword = report.ConsolePassword
 	err = dr.ds.UpdateMachine(&old, m)
 	if err != nil {
-		sendError(utils.Logger(request), response, "allocationReport", httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be updated", id)))
+		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be updated", id)))
 		return
 	}
 
 	vrf := fmt.Sprintf("vrf%d", m.Allocation.Vrf)
 	sw, err := dr.ds.SetVrfAtSwitch(m, vrf)
 	if err != nil {
-		sendError(utils.Logger(request), response, "allocationReport", httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, m.Allocation.Vrf)))
+		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, m.Allocation.Vrf)))
 		return
 	}
 
 	// Push out events to signal switch configuration change
 	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	dr.Publish(string(metal.TopicSwitch), evt)
-	utils.Logger(request).Sugar().Infow("publish switch update event", "event", evt)
+	err = dr.Publish(string(metal.TopicSwitch), evt)
+	utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
+	if checkError(request, response, op, err) {
+		return
+	}
 	response.WriteEntity(m.Allocation)
 }

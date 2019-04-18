@@ -1,6 +1,7 @@
 package service
 
 import (
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"net/http"
 	"time"
 
@@ -88,43 +89,46 @@ func (sr sizeResource) webService() *restful.WebService {
 }
 
 func (sr sizeResource) createSize(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var s metal.Size
 	err := request.ReadEntity(&s)
-	if checkError(request, response, "createSize", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	s.Created = time.Now()
 	s.Changed = s.Created
 	returnSize, err := sr.ds.CreateSize(&s)
-	if checkError(request, response, "createSize", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusCreated, returnSize)
 }
 
 func (sr sizeResource) updateSize(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var newSize metal.Size
 	err := request.ReadEntity(&newSize)
-	if checkError(request, response, "updateSize", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	oldSize, err := sr.ds.FindSize(newSize.ID)
-	if checkError(request, response, "updateSize", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 
 	err = sr.ds.UpdateSize(oldSize, &newSize)
 
-	if checkError(request, response, "updateSize", err) {
+	if checkError(request, response, op, err) {
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, newSize)
 }
 
 func (sr sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
+	op := utils.CurrentFuncName()
 	var hw metal.MachineHardware
-	if err := request.ReadEntity(&hw); checkError(request, response, "fromHardware", err) {
+	if err := request.ReadEntity(&hw); checkError(request, response, op, err) {
 		return
 	}
 	_, lg, err := sr.ds.FromHardware(hw)

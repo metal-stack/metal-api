@@ -54,8 +54,6 @@ func checkError(rq *restful.Request, rsp *restful.Response, opname string, err e
 	return false
 }
 
-type entityGetter func(id string) (interface{}, error)
-
 func (wr *webResource) handleReflectResponse(opname string, req *restful.Request, response *restful.Response, res []reflect.Value) {
 	data := res[0].Interface()
 	var err error
@@ -67,6 +65,7 @@ func (wr *webResource) handleReflectResponse(opname string, req *restful.Request
 	}
 	response.WriteEntity(data)
 }
+
 func (wr *webResource) restEntityGet(h interface{}) restful.RouteFunction {
 	f := reflect.ValueOf(h)
 	opname := runtime.FuncForPC(f.Pointer()).Name()
