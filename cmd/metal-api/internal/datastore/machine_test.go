@@ -134,7 +134,11 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	mock.On(r.DB("mockdb").Table("machine").Filter(func(var_1 r.Term) r.Term { return var_1.Field("macAddresses").Contains("11:11:11") })).Return([]metal.Machine{
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(d r.Term) r.Term {
+		return d.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+			return nic.Field("macAddress")
+		}).Contains(r.Expr("11:11:11"))
+	})).Return([]metal.Machine{
 		testdata.M1,
 	}, nil)
 
