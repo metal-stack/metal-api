@@ -81,6 +81,12 @@ Content-Type: application/json
   "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873"
 }
 
+### find all
+GET {{baseurl}}
+
+### find by MAC
+GET {{baseurl}}/find?mac=aa:aa:aa:aa:aa:aa
+
 ### wait for a machine
 # @name wait
 GET {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/wait

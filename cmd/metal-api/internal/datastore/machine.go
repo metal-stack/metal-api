@@ -76,7 +76,9 @@ func (rs *RethinkStore) SearchMachine(mac string) ([]metal.Machine, error) {
 	q := *rs.machineTable()
 	if mac != "" {
 		q = q.Filter(func(d r.Term) r.Term {
-			return d.Field("macAddresses").Contains(mac)
+			return d.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+				return nic.Field("macAddress")
+			}).Contains(r.Expr(mac))
 		})
 	}
 	res, err := q.Run(rs.session)
