@@ -29,8 +29,9 @@ import (
 )
 
 const (
-	cfgFileType = "yaml"
-	moduleName  = "metal-api"
+	cfgFileType             = "yaml"
+	moduleName              = "metal-api"
+	generatedHtmlApiDocPath = "./generate/redoc.html"
 )
 
 var (
@@ -211,7 +212,7 @@ func initDataStore() {
 
 func initRestServices() *restfulspec.Config {
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewApiDoc())
+	restful.DefaultContainer.Add(service.NewApiDoc(generatedHtmlApiDocPath))
 	restful.DefaultContainer.Add(service.NewPartition(ds))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))

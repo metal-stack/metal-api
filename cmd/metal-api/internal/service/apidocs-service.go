@@ -3,37 +3,44 @@ package service
 import (
 	"github.com/emicklei/go-restful"
 	"io"
+	"net/http"
 	"os"
 )
 
-const generatedApiDocPath = "./generate/redoc.html"
-
-// NewApiDoc returns a webservice for apidoc endpoint.
-func NewApiDoc() *restful.WebService {
-
-	return webService()
+type apiDocResource struct {
+	apiDocPath string
 }
 
-func webService() *restful.WebService {
+// NewApiDoc returns a webservice for apidoc endpoint.
+func NewApiDoc(generatedHtmlApiDocPath string) *restful.WebService {
+
+	ar := apiDocResource{
+		apiDocPath: generatedHtmlApiDocPath,
+	}
+
+	return ar.webService()
+}
+
+func (ar *apiDocResource) webService() *restful.WebService {
 
 	ws := new(restful.WebService)
 	ws.Route(ws.GET("/apidocs.html").
 		Produces("text/html").
-		To(apiDoc))
+		To(ar.apiDoc))
 
 	return ws
 }
 
 // returns self contained apidoc html document
-func apiDoc(request *restful.Request, response *restful.Response) {
+func (ar *apiDocResource) apiDoc(request *restful.Request, response *restful.Response) {
 
-	file, err := os.Open(generatedApiDocPath)
+	file, err := os.Open(ar.apiDocPath)
 	if err != nil {
-		_ = response.WriteErrorString(500, "Documentation is not available")
+		_ = response.WriteErrorString(http.StatusNotFound, "Documentation is not available")
 	}
 
 	_, err = io.Copy(response.ResponseWriter, file)
 	if err != nil {
-		_ = response.WriteErrorString(500, "error while writing Documentation response")
+		_ = response.WriteErrorString(http.StatusInternalServerError, "error while writing Documentation response")
 	}
 }
