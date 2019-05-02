@@ -106,7 +106,7 @@ Content-Type: application/json
   "description": "My first metal host",
   "partitionid": "vagrant-lab",
   "hostname": "metal-test-1",
-  "imageid": "1",
+  "imageid": "ubuntu-18.10",
   "name": "Metal Host 1",
   "projectid": "test",
   "tenant": "dkb",

@@ -9,15 +9,15 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/go-openapi/runtime"
+	goipam "github.com/metal-pod/go-ipam"
 	"github.com/stretchr/testify/require"
 
 	"github.com/emicklei/go-restful"
 
-	nbmachine "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/machines"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -41,8 +41,9 @@ func TestGetMachines(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
 	w := httptest.NewRecorder()
@@ -86,7 +87,6 @@ func TestRegisterMachine(t *testing.T) {
 		dbpartitions       []metal.Partition
 		dbsizes            []metal.Size
 		dbmachines         []metal.Machine
-		netboxerror        error
 		ipmidberror        error
 		ipmiresult         []metal.IPMI
 		ipmiresulterror    error
@@ -191,17 +191,6 @@ func TestRegisterMachine(t *testing.T) {
 			expectedIPMIStatus: http.StatusOK,
 			ipmiresulterror:    nil,
 		},
-		{
-			name:           "fail on netbox error",
-			uuid:           "1",
-			partitionid:    "1",
-			dbpartitions:   []metal.Partition{testdata.Partition1},
-			dbsizes:        []metal.Size{testdata.Sz1},
-			numcores:       2,
-			memory:         100,
-			netboxerror:    fmt.Errorf("this should happen"),
-			expectedStatus: http.StatusUnprocessableEntity,
-		},
 	}
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
@@ -235,16 +224,11 @@ func TestRegisterMachine(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
 
 			pub := &emptyPublisher{}
-			nb := netbox.New()
-			called := false
-			nb.DoRegister = func(params *nbmachine.NetboxAPIProxyAPIMachineRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineRegisterOK, error) {
-				called = true
-				return &nbmachine.NetboxAPIProxyAPIMachineRegisterOK{}, test.netboxerror
-			}
 			js, _ := json.Marshal(rr)
 			body := bytes.NewBuffer(js)
-
-			dservice := NewMachine(ds, pub, nb)
+			ip := goipam.New()
+			ipamer := ipam.New(ip)
+			dservice := NewMachine(ds, pub, ipamer)
 			container := restful.NewContainer().Add(dservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -260,7 +244,6 @@ func TestRegisterMachine(t *testing.T) {
 
 			err := json.NewDecoder(resp.Body).Decode(&result)
 			require.Nil(t, err)
-			require.True(t, called, "netbox register was not called")
 			expectedid := testdata.M1.ID
 			if len(test.dbmachines) > 0 {
 				expectedid = test.dbmachines[0].ID
@@ -295,8 +278,9 @@ func TestReportMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -322,8 +306,9 @@ func TestReportFailureMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -349,8 +334,9 @@ func TestReportUnknownMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -373,8 +359,9 @@ func TestSetMachineState(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.MachineState{
 		Value:       metal.ReservedState,
@@ -401,8 +388,9 @@ func TestReportUnknownFailure(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         false,
@@ -425,8 +413,9 @@ func TestReportUnallocatedMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	rep := metal.ReportAllocation{
 		Success:         true,
@@ -448,8 +437,9 @@ func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
 	w := httptest.NewRecorder()
@@ -472,8 +462,9 @@ func TestGetMachineNotFound(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
 	w := httptest.NewRecorder()
@@ -498,13 +489,9 @@ func TestFreeMachine(t *testing.T) {
 		}
 		return nil
 	}
-	nb := netbox.New()
-	called := false
-	nb.DoRelease = func(params *nbmachine.NetboxAPIProxyAPIMachineReleaseParams, authInfo runtime.ClientAuthInfoWriter) (*nbmachine.NetboxAPIProxyAPIMachineReleaseOK, error) {
-		called = true
-		return &nbmachine.NetboxAPIProxyAPIMachineReleaseOK{}, nil
-	}
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
 	w := httptest.NewRecorder()
@@ -512,7 +499,6 @@ func TestFreeMachine(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	require.True(t, called, "netbox.DoRelease was not called")
 }
 
 func TestSearchMachine(t *testing.T) {
@@ -521,8 +507,9 @@ func TestSearchMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	req := httptest.NewRequest("GET", "/v1/machine/find?mac=1", nil)
 	w := httptest.NewRecorder()
@@ -547,8 +534,9 @@ func TestAddProvisioningEvent(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	nb := netbox.New()
-	dservice := NewMachine(ds, pub, nb)
+	ip := goipam.New()
+	ipamer := ipam.New(ip)
+	dservice := NewMachine(ds, pub, ipamer)
 	container := restful.NewContainer().Add(dservice)
 	event := &metal.ProvisioningEvent{
 		Event:   metal.ProvisioningEventPreparing,
@@ -610,8 +598,9 @@ func TestOnMachine(t *testing.T) {
 			}
 			js, _ := json.Marshal([]string{d.param})
 			body := bytes.NewBuffer(js)
-			nb := netbox.New()
-			dservice := NewMachine(ds, pub, nb)
+			ip := goipam.New()
+			ipamer := ipam.New(ip)
+			dservice := NewMachine(ds, pub, ipamer)
 			container := restful.NewContainer().Add(dservice)
 			req := httptest.NewRequest("POST", "/v1/machine/1/"+d.endpoint, body)
 			req.Header.Add("Content-Type", "application/json")

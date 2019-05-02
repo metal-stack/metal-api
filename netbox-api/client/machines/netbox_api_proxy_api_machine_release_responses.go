@@ -32,43 +32,15 @@ func (o *NetboxAPIProxyAPIMachineReleaseReader) ReadResponse(response runtime.Cl
 		}
 		return result, nil
 
-	case 400:
-		result := NewNetboxAPIProxyAPIMachineReleaseBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 401:
-		result := NewNetboxAPIProxyAPIMachineReleaseUnauthorized()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 403:
-		result := NewNetboxAPIProxyAPIMachineReleaseForbidden()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 404:
-		result := NewNetboxAPIProxyAPIMachineReleaseNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 500:
-		result := NewNetboxAPIProxyAPIMachineReleaseInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewNetboxAPIProxyAPIMachineReleaseDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -93,140 +65,33 @@ func (o *NetboxAPIProxyAPIMachineReleaseOK) readResponse(response runtime.Client
 	return nil
 }
 
-// NewNetboxAPIProxyAPIMachineReleaseBadRequest creates a NetboxAPIProxyAPIMachineReleaseBadRequest with default headers values
-func NewNetboxAPIProxyAPIMachineReleaseBadRequest() *NetboxAPIProxyAPIMachineReleaseBadRequest {
-	return &NetboxAPIProxyAPIMachineReleaseBadRequest{}
-}
-
-/*NetboxAPIProxyAPIMachineReleaseBadRequest handles this case with default header values.
-
-Bad request
-*/
-type NetboxAPIProxyAPIMachineReleaseBadRequest struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseBadRequest) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/release][%d] netboxApiProxyApiMachineReleaseBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewNetboxAPIProxyAPIMachineReleaseDefault creates a NetboxAPIProxyAPIMachineReleaseDefault with default headers values
+func NewNetboxAPIProxyAPIMachineReleaseDefault(code int) *NetboxAPIProxyAPIMachineReleaseDefault {
+	return &NetboxAPIProxyAPIMachineReleaseDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewNetboxAPIProxyAPIMachineReleaseUnauthorized creates a NetboxAPIProxyAPIMachineReleaseUnauthorized with default headers values
-func NewNetboxAPIProxyAPIMachineReleaseUnauthorized() *NetboxAPIProxyAPIMachineReleaseUnauthorized {
-	return &NetboxAPIProxyAPIMachineReleaseUnauthorized{}
-}
+/*NetboxAPIProxyAPIMachineReleaseDefault handles this case with default header values.
 
-/*NetboxAPIProxyAPIMachineReleaseUnauthorized handles this case with default header values.
-
-Unauthorized
+Problem
 */
-type NetboxAPIProxyAPIMachineReleaseUnauthorized struct {
+type NetboxAPIProxyAPIMachineReleaseDefault struct {
+	_statusCode int
+
 	Payload *models.Problem
 }
 
-func (o *NetboxAPIProxyAPIMachineReleaseUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/release][%d] netboxApiProxyApiMachineReleaseUnauthorized  %+v", 401, o.Payload)
+// Code gets the status code for the netbox api proxy api machine release default response
+func (o *NetboxAPIProxyAPIMachineReleaseDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *NetboxAPIProxyAPIMachineReleaseUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
+func (o *NetboxAPIProxyAPIMachineReleaseDefault) Error() string {
+	return fmt.Sprintf("[POST /machines/{uuid}/release][%d] netbox_api_proxy.api.machine_release default  %+v", o._statusCode, o.Payload)
 }
 
-// NewNetboxAPIProxyAPIMachineReleaseForbidden creates a NetboxAPIProxyAPIMachineReleaseForbidden with default headers values
-func NewNetboxAPIProxyAPIMachineReleaseForbidden() *NetboxAPIProxyAPIMachineReleaseForbidden {
-	return &NetboxAPIProxyAPIMachineReleaseForbidden{}
-}
-
-/*NetboxAPIProxyAPIMachineReleaseForbidden handles this case with default header values.
-
-Forbidden
-*/
-type NetboxAPIProxyAPIMachineReleaseForbidden struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseForbidden) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/release][%d] netboxApiProxyApiMachineReleaseForbidden  %+v", 403, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPIMachineReleaseNotFound creates a NetboxAPIProxyAPIMachineReleaseNotFound with default headers values
-func NewNetboxAPIProxyAPIMachineReleaseNotFound() *NetboxAPIProxyAPIMachineReleaseNotFound {
-	return &NetboxAPIProxyAPIMachineReleaseNotFound{}
-}
-
-/*NetboxAPIProxyAPIMachineReleaseNotFound handles this case with default header values.
-
-Not found
-*/
-type NetboxAPIProxyAPIMachineReleaseNotFound struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseNotFound) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/release][%d] netboxApiProxyApiMachineReleaseNotFound  %+v", 404, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPIMachineReleaseInternalServerError creates a NetboxAPIProxyAPIMachineReleaseInternalServerError with default headers values
-func NewNetboxAPIProxyAPIMachineReleaseInternalServerError() *NetboxAPIProxyAPIMachineReleaseInternalServerError {
-	return &NetboxAPIProxyAPIMachineReleaseInternalServerError{}
-}
-
-/*NetboxAPIProxyAPIMachineReleaseInternalServerError handles this case with default header values.
-
-Internal server error
-*/
-type NetboxAPIProxyAPIMachineReleaseInternalServerError struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/release][%d] netboxApiProxyApiMachineReleaseInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineReleaseInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *NetboxAPIProxyAPIMachineReleaseDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Problem)
 

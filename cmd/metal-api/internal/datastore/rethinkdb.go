@@ -2,6 +2,9 @@ package datastore
 
 import (
 	"fmt"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"reflect"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -9,7 +12,7 @@ import (
 )
 
 var (
-	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "ipmi", "vrf", "event"}
+	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "ipmi", "vrf", "event", "network", "ip"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -110,6 +113,14 @@ func (rs *RethinkStore) eventTable() *r.Term {
 	res := r.DB(rs.dbname).Table("event")
 	return &res
 }
+func (rs *RethinkStore) networkTable() *r.Term {
+	res := r.DB(rs.dbname).Table("network")
+	return &res
+}
+func (rs *RethinkStore) ipTable() *r.Term {
+	res := r.DB(rs.dbname).Table("ip")
+	return &res
+}
 func (rs *RethinkStore) db() *r.Term {
 	res := r.DB(rs.dbname)
 	return &res
@@ -192,4 +203,95 @@ tryAgain:
 		goto tryAgain
 	}
 	return db, s
+}
+
+func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id string) error {
+	res, err := table.Get(id).Run(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot find %v with id %q in database: %v", getEntityName(entity), id, err)
+	}
+	defer res.Close()
+	if res.IsNil() {
+		return metal.NotFound("no %v with id %q found", getEntityName(entity), id)
+	}
+	err = res.One(entity)
+	if err != nil {
+		return fmt.Errorf("cannot fetch single entity: %v", err)
+	}
+	return nil
+}
+
+func (rs *RethinkStore) listEntities(table *r.Term, entity interface{}) error {
+	res, err := table.Run(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot list %v from database: %v", getEntityName(entity), err)
+	}
+	defer res.Close()
+
+	err = res.All(entity)
+	if err != nil {
+		return fmt.Errorf("cannot fetch all entities: %v", err)
+	}
+	return nil
+}
+
+func (rs *RethinkStore) createEntity(table *r.Term, entity metal.MetalEntity) error {
+	now := time.Now()
+	entity.SetCreated(now)
+	entity.SetChanged(now)
+
+	res, err := table.Insert(entity).RunWrite(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot create %v in database: %v", getEntityName(entity), err)
+	}
+
+	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
+		entity.SetID(res.GeneratedKeys[0])
+	}
+	return nil
+}
+
+func (rs *RethinkStore) searchEntities(table *r.Term, filter interface{}, entity interface{}) error {
+	q := rs.networkTable().Filter(filter)
+
+	res, err := q.Run(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot search %v in database: %v", getEntityName(entity), err)
+	}
+	defer res.Close()
+
+	err = res.All(entity)
+	if err != nil {
+		return fmt.Errorf("cannot fetch all entities: %v", err)
+	}
+	return nil
+}
+
+func (rs *RethinkStore) deleteEntityByID(table *r.Term, id string) error {
+	_, err := table.Get(id).Delete().RunWrite(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot delete entity with id %q from database: %v", id, err)
+	}
+	return nil
+}
+
+func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.MetalEntity, oldEntity metal.MetalEntity) error {
+	newEntity.SetChanged(time.Now())
+	_, err := table.Get(oldEntity.GetID()).Replace(func(row r.Term) r.Term {
+		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error("the entity was changed from another, please retry"))
+	}).RunWrite(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot update network: %v", err)
+	}
+	return nil
+}
+
+func getEntityName(entity interface{}) string {
+	var name string
+	if t := reflect.TypeOf(entity); t.Kind() == reflect.Ptr {
+		name = t.Elem().Name()
+	} else {
+		name = t.Name()
+	}
+	return strings.ToLower(name)
 }

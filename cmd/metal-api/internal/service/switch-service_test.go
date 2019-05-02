@@ -9,12 +9,8 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
-	nbswitch "git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
 
-	"github.com/go-openapi/runtime"
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful"
@@ -24,13 +20,7 @@ func TestCreateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	nb := netbox.New()
-	called := false
-	nb.DoRegisterSwitch = func(params *switches.NetboxAPIProxyAPISwitchRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbswitch.NetboxAPIProxyAPISwitchRegisterOK, error) {
-		called = true
-		return &nbswitch.NetboxAPIProxyAPISwitchRegisterOK{}, nil
-	}
-	switchservice := NewSwitch(ds, nb)
+	switchservice := NewSwitch(ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
@@ -49,7 +39,6 @@ func TestCreateSwitch(t *testing.T) {
 	var result metal.Switch
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.True(t, called)
 	require.Equal(t, "switch999", result.ID)
 	require.Equal(t, "switch999", result.Name)
 	require.Equal(t, "1", result.RackID)
@@ -61,14 +50,7 @@ func TestUpdateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	nb := netbox.New()
-	called := false
-	nb.DoRegisterSwitch = func(params *switches.NetboxAPIProxyAPISwitchRegisterParams, authInfo runtime.ClientAuthInfoWriter) (*nbswitch.NetboxAPIProxyAPISwitchRegisterOK, error) {
-		called = true
-		return &nbswitch.NetboxAPIProxyAPISwitchRegisterOK{}, nil
-	}
-
-	switchservice := NewSwitch(ds, nb)
+	switchservice := NewSwitch(ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	js, _ := json.Marshal(metal.RegisterSwitch{
@@ -87,7 +69,6 @@ func TestUpdateSwitch(t *testing.T) {
 	var result metal.Switch
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.Nil(t, err)
-	require.True(t, called)
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.ID, result.Name)
 	require.Equal(t, testdata.Switch1.RackID, result.RackID)

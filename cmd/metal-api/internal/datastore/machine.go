@@ -179,6 +179,11 @@ func (rs *RethinkStore) UpdateMachine(oldD *metal.Machine, newD *metal.Machine) 
 	return nil
 }
 
+func (rs *RethinkStore) UpdateWaitingMachine(m *metal.Machine) error {
+	_, err := rs.waitTable().Get(m.ID).Update(m).RunWrite(rs.session)
+	return err
+}
+
 func generateVrfID(i string) (uint, error) {
 	sha := sha256.Sum256([]byte(i))
 	// cut four bytes of hash
@@ -190,7 +195,7 @@ func generateVrfID(i string) (uint, error) {
 	return uint(hash), err
 }
 
-func (rs *RethinkStore) findVrf(f map[string]interface{}) (*metal.Vrf, error) {
+func (rs *RethinkStore) FindVrf(f map[string]interface{}) (*metal.Vrf, error) {
 	q := *rs.vrfTable()
 	q = q.Filter(f)
 	res, err := q.Run(rs.session)
@@ -206,14 +211,14 @@ func (rs *RethinkStore) findVrf(f map[string]interface{}) (*metal.Vrf, error) {
 	return &vrf, nil
 }
 
-func (rs *RethinkStore) reserveNewVrf(tenant, projectid string) (*metal.Vrf, error) {
+func (rs *RethinkStore) ReserveNewVrf(tenant, projectid string) (*metal.Vrf, error) {
 	var hashInput = tenant + projectid
 	for {
 		id, err := generateVrfID(hashInput)
 		if err != nil {
 			return nil, err
 		}
-		vrf, err := rs.findVrf(map[string]interface{}{"id": id})
+		vrf, err := rs.FindVrf(map[string]interface{}{"id": id})
 		if err != nil {
 			return nil, err
 		}
@@ -234,40 +239,16 @@ func (rs *RethinkStore) reserveNewVrf(tenant, projectid string) (*metal.Vrf, err
 	}
 }
 
-// AllocateMachine allocates a machine in the database. It searches the 'waitTable'
-// for a machine which matches the criteria for partition and size. If a machine is
-// found the system will allocate a CIDR, create an allocation and update the
-// machine in the database.
-func (rs *RethinkStore) AllocateMachine(
-	uuid string,
-	name string,
-	description string,
-	hostname string,
-	projectid string,
-	part *metal.Partition, size *metal.Size,
-	img *metal.Image,
-	sshPubKeys []string,
-	tags []string,
-	userData string,
-	tenant string,
-	cidrAllocator CidrAllocator,
-) (*metal.Machine, error) {
+// FindAvailableMachine returns an available machine from the wait table.
+func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal.Machine, error) {
 	query := rs.waitTable().Filter(map[string]interface{}{
-		"allocation": nil,
-		"id":         uuid,
-	}).Filter(func(row r.Term) r.Term {
-		return row.Field("state").Field("value").Ne(string(metal.AvailableState))
+		"allocation":  nil,
+		"partitionid": partitionid,
+		"sizeid":      sizeid,
+		"state": map[string]interface{}{
+			"value": "",
+		},
 	})
-	if uuid == "" {
-		query = rs.waitTable().Filter(map[string]interface{}{
-			"allocation":  nil,
-			"partitionid": part.ID,
-			"sizeid":      size.ID,
-			"state": map[string]interface{}{
-				"value": "",
-			},
-		})
-	}
 	available, err := query.Run(rs.session)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find free machine: %v", err)
@@ -281,64 +262,6 @@ func (rs *RethinkStore) AllocateMachine(
 		return nil, ErrNoMachineAvailable
 	}
 
-	old := res[0]
-	var vrf *metal.Vrf
-	vrf, err = rs.findVrf(map[string]interface{}{"tenant": tenant, "projectid": projectid})
-	if err != nil {
-		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
-	}
-
-	if vrf == nil {
-		vrf, err = rs.reserveNewVrf(tenant, projectid)
-		if err != nil {
-			return nil, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
-		}
-	}
-
-	cidr, err := cidrAllocator.Allocate(res[0].ID, tenant, vrf.ID, projectid, name, description, img.Name)
-	if err != nil {
-		return nil, fmt.Errorf("cannot allocate at netbox: %v", err)
-	}
-
-	rs.fillMachineList(res[0:1]...)
-	alloc := &metal.MachineAllocation{
-		Created:     time.Now(),
-		Name:        name,
-		Hostname:    hostname,
-		Tenant:      tenant,
-		Project:     projectid,
-		Description: description,
-		Image:       img,
-		ImageID:     img.ID,
-		SSHPubKeys:  sshPubKeys,
-		UserData:    userData,
-		Cidr:        cidr,
-		Vrf:         vrf.ID,
-	}
-	res[0].Allocation = alloc
-	res[0].Changed = time.Now()
-
-	tagSet := make(map[string]bool)
-	tagList := append(res[0].Tags, tags...)
-	for _, t := range tagList {
-		tagSet[t] = true
-	}
-	newTags := []string{}
-	for k := range tagSet {
-		newTags = append(newTags, k)
-	}
-	res[0].Tags = newTags
-	err = rs.UpdateMachine(&old, &res[0])
-	if err != nil {
-		cidrAllocator.Release(res[0].ID)
-		return nil, fmt.Errorf("error when allocating machine %q, %v", res[0].ID, err)
-	}
-	_, err = rs.waitTable().Get(res[0].ID).Update(res[0]).RunWrite(rs.session)
-	if err != nil {
-		cidrAllocator.Release(res[0].ID)
-		rs.UpdateMachine(&res[0], &old)
-		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
-	}
 	return &res[0], nil
 }
 

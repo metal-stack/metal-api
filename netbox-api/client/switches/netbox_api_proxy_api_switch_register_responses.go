@@ -32,43 +32,15 @@ func (o *NetboxAPIProxyAPISwitchRegisterReader) ReadResponse(response runtime.Cl
 		}
 		return result, nil
 
-	case 400:
-		result := NewNetboxAPIProxyAPISwitchRegisterBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 401:
-		result := NewNetboxAPIProxyAPISwitchRegisterUnauthorized()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 403:
-		result := NewNetboxAPIProxyAPISwitchRegisterForbidden()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 404:
-		result := NewNetboxAPIProxyAPISwitchRegisterNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 500:
-		result := NewNetboxAPIProxyAPISwitchRegisterInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewNetboxAPIProxyAPISwitchRegisterDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -93,140 +65,33 @@ func (o *NetboxAPIProxyAPISwitchRegisterOK) readResponse(response runtime.Client
 	return nil
 }
 
-// NewNetboxAPIProxyAPISwitchRegisterBadRequest creates a NetboxAPIProxyAPISwitchRegisterBadRequest with default headers values
-func NewNetboxAPIProxyAPISwitchRegisterBadRequest() *NetboxAPIProxyAPISwitchRegisterBadRequest {
-	return &NetboxAPIProxyAPISwitchRegisterBadRequest{}
-}
-
-/*NetboxAPIProxyAPISwitchRegisterBadRequest handles this case with default header values.
-
-Bad request
-*/
-type NetboxAPIProxyAPISwitchRegisterBadRequest struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterBadRequest) Error() string {
-	return fmt.Sprintf("[POST /switches/{uuid}/register][%d] netboxApiProxyApiSwitchRegisterBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewNetboxAPIProxyAPISwitchRegisterDefault creates a NetboxAPIProxyAPISwitchRegisterDefault with default headers values
+func NewNetboxAPIProxyAPISwitchRegisterDefault(code int) *NetboxAPIProxyAPISwitchRegisterDefault {
+	return &NetboxAPIProxyAPISwitchRegisterDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewNetboxAPIProxyAPISwitchRegisterUnauthorized creates a NetboxAPIProxyAPISwitchRegisterUnauthorized with default headers values
-func NewNetboxAPIProxyAPISwitchRegisterUnauthorized() *NetboxAPIProxyAPISwitchRegisterUnauthorized {
-	return &NetboxAPIProxyAPISwitchRegisterUnauthorized{}
-}
+/*NetboxAPIProxyAPISwitchRegisterDefault handles this case with default header values.
 
-/*NetboxAPIProxyAPISwitchRegisterUnauthorized handles this case with default header values.
-
-Unauthorized
+Problem
 */
-type NetboxAPIProxyAPISwitchRegisterUnauthorized struct {
+type NetboxAPIProxyAPISwitchRegisterDefault struct {
+	_statusCode int
+
 	Payload *models.Problem
 }
 
-func (o *NetboxAPIProxyAPISwitchRegisterUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /switches/{uuid}/register][%d] netboxApiProxyApiSwitchRegisterUnauthorized  %+v", 401, o.Payload)
+// Code gets the status code for the netbox api proxy api switch register default response
+func (o *NetboxAPIProxyAPISwitchRegisterDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *NetboxAPIProxyAPISwitchRegisterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
+func (o *NetboxAPIProxyAPISwitchRegisterDefault) Error() string {
+	return fmt.Sprintf("[POST /switches/{uuid}/register][%d] netbox_api_proxy.api.switch_register default  %+v", o._statusCode, o.Payload)
 }
 
-// NewNetboxAPIProxyAPISwitchRegisterForbidden creates a NetboxAPIProxyAPISwitchRegisterForbidden with default headers values
-func NewNetboxAPIProxyAPISwitchRegisterForbidden() *NetboxAPIProxyAPISwitchRegisterForbidden {
-	return &NetboxAPIProxyAPISwitchRegisterForbidden{}
-}
-
-/*NetboxAPIProxyAPISwitchRegisterForbidden handles this case with default header values.
-
-Forbidden
-*/
-type NetboxAPIProxyAPISwitchRegisterForbidden struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterForbidden) Error() string {
-	return fmt.Sprintf("[POST /switches/{uuid}/register][%d] netboxApiProxyApiSwitchRegisterForbidden  %+v", 403, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPISwitchRegisterNotFound creates a NetboxAPIProxyAPISwitchRegisterNotFound with default headers values
-func NewNetboxAPIProxyAPISwitchRegisterNotFound() *NetboxAPIProxyAPISwitchRegisterNotFound {
-	return &NetboxAPIProxyAPISwitchRegisterNotFound{}
-}
-
-/*NetboxAPIProxyAPISwitchRegisterNotFound handles this case with default header values.
-
-Not found
-*/
-type NetboxAPIProxyAPISwitchRegisterNotFound struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterNotFound) Error() string {
-	return fmt.Sprintf("[POST /switches/{uuid}/register][%d] netboxApiProxyApiSwitchRegisterNotFound  %+v", 404, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPISwitchRegisterInternalServerError creates a NetboxAPIProxyAPISwitchRegisterInternalServerError with default headers values
-func NewNetboxAPIProxyAPISwitchRegisterInternalServerError() *NetboxAPIProxyAPISwitchRegisterInternalServerError {
-	return &NetboxAPIProxyAPISwitchRegisterInternalServerError{}
-}
-
-/*NetboxAPIProxyAPISwitchRegisterInternalServerError handles this case with default header values.
-
-Internal server error
-*/
-type NetboxAPIProxyAPISwitchRegisterInternalServerError struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /switches/{uuid}/register][%d] netboxApiProxyApiSwitchRegisterInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPISwitchRegisterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *NetboxAPIProxyAPISwitchRegisterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Problem)
 
