@@ -1,5 +1,10 @@
 package metal
 
+import (
+	"fmt"
+	"strings"
+)
+
 // A MacAddress is the type for mac adresses. When using a
 // custom type, we cannot use strings directly.
 type MacAddress string
@@ -15,12 +20,100 @@ type Nic struct {
 // A Vrf ...
 type Vrf struct {
 	ID        uint   `json:"id"  description:"the unique id of this vrf generated from the tenant and projectid" rethinkdb:"id"`
-	Tenant    string `json:"tenant"  description:"the tenant that this vrf belongs to" rethinkdb:"tenant"`
-	ProjectID string `json:"projectid"  description:"the project that this vrf belongs to" rethinkdb:"projectid"`
+	Tenant    string `json:"tenant"  description:"the tenant this vrf belongs to" rethinkdb:"tenant"`
+	ProjectID string `json:"projectid"  description:"the project this vrf belongs to" rethinkdb:"projectid"`
 }
 
 // Nics is a list of nics.
 type Nics []Nic
+
+// Prefix is a ip with mask, either ipv4/ipv6
+type Prefix struct {
+	IP     string `json:"ip" description:"the ip of this prefixes, required." rethinkdb:"ip"`
+	Length string `json:"length" description:"the mask of this prefixes, required." rethinkdb:"length"`
+}
+
+// Prefixes is an array of prefixes
+type Prefixes []Prefix
+
+// NewPrefixFromCIDR returns a new prefix from a given cidr.
+func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
+	parts := strings.Split(cidr, "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("cannot split cidr into pieces: %v", cidr)
+	}
+	ip := strings.TrimSpace(parts[0])
+	length := strings.TrimSpace(parts[1])
+	return &Prefix{
+		IP:     ip,
+		Length: length,
+	}, nil
+}
+
+// String implements the Stringer interface
+func (p *Prefix) String() string {
+	return p.IP + "/" + p.Length
+}
+
+func (p Prefixes) String() []string {
+	var result []string
+	for _, element := range p {
+		result = append(result, element.String())
+	}
+	return result
+}
+
+// Equals returns true when prefixes have the same cidr.
+func (p *Prefix) Equals(other *Prefix) bool {
+	return p.String() == other.String()
+}
+
+// Network is a network in a metal as a service infrastructure, routable between.
+// TODO specify rethinkdb restrictions.
+type Network struct {
+	Base
+	Prefixes    Prefixes `json:"prefixes" description:"the prefixes of this network, required." rethinkdb:"prefixes"`
+	PartitionID string   `json:"partitionid" description:"the partition this network belongs to, TODO: can be empty ?" rethinkdb:"partitionid"`
+	ProjectID   string   `json:"projectid" description:"the project this network belongs to, can be empty if globally available." rethinkdb:"projectid"`
+	TenantID    string   `json:"tenantid" description:"the tenant this network belongs to, can be empty if globally available." rethinkdb:"tenantid"`
+	Nat         bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip." rethinkdb:"nat"`
+	Primary     bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall" rethinkdb:"primary"`
+}
+
+// FindPrefix returns the prefix by cidr if contained in this network, nil otherwise
+func (n *Network) FindPrefix(cidr string) *Prefix {
+	var found *Prefix
+	for _, p := range n.Prefixes {
+		if p.String() == cidr {
+			return &p
+		}
+	}
+	return found
+}
+
+// SubstractPrefixes returns the prefixes of the network minus the prefixes passed in the arguments
+func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
+	var result []Prefix
+	for _, p := range n.Prefixes {
+		contains := false
+		for _, prefixToSubstract := range prefixes {
+			if p.Equals(&prefixToSubstract) {
+				contains = true
+				break
+			}
+		}
+		if contains {
+			continue
+		}
+		result = append(result, p)
+	}
+	return result
+}
+
+const (
+	// ProjectNetworkPrefixLength is the prefix length of child networks.
+	ProjectNetworkPrefixLength = 22
+)
 
 // ByMac creates a indexed map from a nic list.
 func (nics Nics) ByMac() map[MacAddress]*Nic {

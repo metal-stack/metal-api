@@ -13,8 +13,8 @@ import (
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
@@ -24,6 +24,7 @@ import (
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
+	goipam "github.com/metal-pod/go-ipam"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,8 +37,8 @@ const (
 var (
 	cfgFile  string
 	ds       *datastore.RethinkStore
+	ipamer   *ipam.Ipam
 	producer bus.Publisher
-	nbproxy  *netbox.APIProxy
 	logger   = zapup.MustRootLogger().Sugar()
 	debug    = false
 )
@@ -50,7 +51,7 @@ var rootCmd = &cobra.Command{
 		initLogging()
 		initDataStore()
 		initEventBus()
-		initNetboxProxy()
+		initIpam()
 		initSignalHandlers()
 		run()
 	},
@@ -94,6 +95,13 @@ func init() {
 	rootCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
 	rootCmd.Flags().StringP("db-user", "", "", "the database user to use")
 	rootCmd.Flags().StringP("db-password", "", "", "the database password to use")
+
+	rootCmd.Flags().StringP("ipam-db", "", "postgres", "the database adapter to use")
+	rootCmd.Flags().StringP("ipam-db-name", "", "metal-ipam", "the database name to use")
+	rootCmd.Flags().StringP("ipam-db-addr", "", "", "the database address string to use")
+	rootCmd.Flags().StringP("ipam-db-port", "", "5432", "the database port string to use")
+	rootCmd.Flags().StringP("ipam-db-user", "", "", "the database user to use")
+	rootCmd.Flags().StringP("ipam-db-password", "", "", "the database password to use")
 
 	rootCmd.Flags().StringP("nsqd-addr", "", "nsqd:4150", "the address of the nsqd")
 	rootCmd.Flags().StringP("nsqd-http-addr", "", "nsqd:4151", "the address of the nsqd rest endpoint")
@@ -158,10 +166,6 @@ func initSignalHandlers() {
 	}()
 }
 
-func initNetboxProxy() {
-	nbproxy = netbox.New()
-}
-
 func initEventBus() {
 Outer:
 	for {
@@ -209,13 +213,41 @@ func initDataStore() {
 
 }
 
+func initIpam() {
+	dbAdapter := viper.GetString("ipam-db")
+	if dbAdapter == "postgres" {
+	tryAgain:
+		pgStorage, err := goipam.NewPostgresStorage(
+			viper.GetString("ipam-db-addr"),
+			viper.GetString("ipam-db-port"),
+			viper.GetString("ipam-db-user"),
+			viper.GetString("ipam-db-password"),
+			viper.GetString("ipam-db-name"),
+			"disable")
+		if err != nil {
+			logger.Error("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
+			time.Sleep(3 * time.Second)
+			goto tryAgain
+		}
+		ipamInstance := goipam.NewWithStorage(pgStorage)
+		ipamer = ipam.New(ipamInstance)
+	} else if dbAdapter == "memory" {
+		ipamInstance := goipam.New()
+		ipamer = ipam.New(ipamInstance)
+	} else {
+		logger.Error("database not supported", "db", dbAdapter)
+	}
+}
+
 func initRestServices() *restfulspec.Config {
 	lg := logger.Desugar()
 	restful.DefaultContainer.Add(service.NewPartition(ds))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
-	restful.DefaultContainer.Add(service.NewMachine(ds, producer, nbproxy))
-	restful.DefaultContainer.Add(service.NewSwitch(ds, nbproxy))
+	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer))
+	restful.DefaultContainer.Add(service.NewIP(ds, ipamer))
+	restful.DefaultContainer.Add(service.NewMachine(ds, producer, ipamer))
+	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
 	restful.DefaultContainer.Filter(utils.RestfulLogger(lg, debug))
@@ -240,7 +272,7 @@ func dumpSwaggerJSON() {
 
 func initializeDatabase() {
 	initDataStore()
-	fmt.Printf("Database initialized\n")
+	logger.Info("Database initialized")
 }
 
 func run() {
@@ -287,6 +319,12 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		spec.Tag{TagProps: spec.TagProps{
 			Name:        "image",
 			Description: "Managing image entities"}},
+		spec.Tag{TagProps: spec.TagProps{
+			Name:        "network",
+			Description: "Managing network entities"}},
+		spec.Tag{TagProps: spec.TagProps{
+			Name:        "ip",
+			Description: "Managing ip entities"}},
 		spec.Tag{TagProps: spec.TagProps{
 			Name:        "size",
 			Description: "Managing size entities"}},

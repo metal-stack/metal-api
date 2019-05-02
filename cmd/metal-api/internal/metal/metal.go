@@ -38,3 +38,37 @@ type Base struct {
 	Created     time.Time `json:"created" description:"the creation time of this entity" optional:"true" readOnly:"true" rethinkdb:"created"`
 	Changed     time.Time `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
 }
+
+// MetalEntity is an interface that allows metal entities to be created and stored into the database with the generic creation and update functions.
+type MetalEntity interface {
+	// GetID returns the entity's id
+	GetID() string
+	// SetID sets the entity's id
+	SetID(id string)
+	// GetChanged returns the entity's changed time
+	GetChanged() time.Time
+	// SetChanged sets the entity's changed time
+	SetChanged(changed time.Time)
+	// SetCreated sets the entity's creation time
+	SetCreated(created time.Time)
+}
+
+func (b *Base) GetID() string {
+	return b.ID
+}
+
+func (b *Base) SetID(id string) {
+	b.ID = id
+}
+
+func (b *Base) GetChanged() time.Time {
+	return b.Changed
+}
+
+func (b *Base) SetChanged(changed time.Time) {
+	b.Changed = changed
+}
+ 
+func (b *Base) SetCreated(created time.Time) {
+	b.Created = created
+}

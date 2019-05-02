@@ -32,43 +32,15 @@ func (o *NetboxAPIProxyAPIMachineAllocateReader) ReadResponse(response runtime.C
 		}
 		return result, nil
 
-	case 400:
-		result := NewNetboxAPIProxyAPIMachineAllocateBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 401:
-		result := NewNetboxAPIProxyAPIMachineAllocateUnauthorized()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 403:
-		result := NewNetboxAPIProxyAPIMachineAllocateForbidden()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 404:
-		result := NewNetboxAPIProxyAPIMachineAllocateNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 500:
-		result := NewNetboxAPIProxyAPIMachineAllocateInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewNetboxAPIProxyAPIMachineAllocateDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -82,159 +54,44 @@ func NewNetboxAPIProxyAPIMachineAllocateOK() *NetboxAPIProxyAPIMachineAllocateOK
 OK
 */
 type NetboxAPIProxyAPIMachineAllocateOK struct {
-	Payload *models.MachineAllocationResponse
 }
 
 func (o *NetboxAPIProxyAPIMachineAllocateOK) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netboxApiProxyApiMachineAllocateOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netboxApiProxyApiMachineAllocateOK ", 200)
 }
 
 func (o *NetboxAPIProxyAPIMachineAllocateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.MachineAllocationResponse)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
 	return nil
 }
 
-// NewNetboxAPIProxyAPIMachineAllocateBadRequest creates a NetboxAPIProxyAPIMachineAllocateBadRequest with default headers values
-func NewNetboxAPIProxyAPIMachineAllocateBadRequest() *NetboxAPIProxyAPIMachineAllocateBadRequest {
-	return &NetboxAPIProxyAPIMachineAllocateBadRequest{}
-}
-
-/*NetboxAPIProxyAPIMachineAllocateBadRequest handles this case with default header values.
-
-Bad request
-*/
-type NetboxAPIProxyAPIMachineAllocateBadRequest struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateBadRequest) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netboxApiProxyApiMachineAllocateBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewNetboxAPIProxyAPIMachineAllocateDefault creates a NetboxAPIProxyAPIMachineAllocateDefault with default headers values
+func NewNetboxAPIProxyAPIMachineAllocateDefault(code int) *NetboxAPIProxyAPIMachineAllocateDefault {
+	return &NetboxAPIProxyAPIMachineAllocateDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewNetboxAPIProxyAPIMachineAllocateUnauthorized creates a NetboxAPIProxyAPIMachineAllocateUnauthorized with default headers values
-func NewNetboxAPIProxyAPIMachineAllocateUnauthorized() *NetboxAPIProxyAPIMachineAllocateUnauthorized {
-	return &NetboxAPIProxyAPIMachineAllocateUnauthorized{}
-}
+/*NetboxAPIProxyAPIMachineAllocateDefault handles this case with default header values.
 
-/*NetboxAPIProxyAPIMachineAllocateUnauthorized handles this case with default header values.
-
-Unauthorized
+Problem
 */
-type NetboxAPIProxyAPIMachineAllocateUnauthorized struct {
+type NetboxAPIProxyAPIMachineAllocateDefault struct {
+	_statusCode int
+
 	Payload *models.Problem
 }
 
-func (o *NetboxAPIProxyAPIMachineAllocateUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netboxApiProxyApiMachineAllocateUnauthorized  %+v", 401, o.Payload)
+// Code gets the status code for the netbox api proxy api machine allocate default response
+func (o *NetboxAPIProxyAPIMachineAllocateDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *NetboxAPIProxyAPIMachineAllocateUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
+func (o *NetboxAPIProxyAPIMachineAllocateDefault) Error() string {
+	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netbox_api_proxy.api.machine_allocate default  %+v", o._statusCode, o.Payload)
 }
 
-// NewNetboxAPIProxyAPIMachineAllocateForbidden creates a NetboxAPIProxyAPIMachineAllocateForbidden with default headers values
-func NewNetboxAPIProxyAPIMachineAllocateForbidden() *NetboxAPIProxyAPIMachineAllocateForbidden {
-	return &NetboxAPIProxyAPIMachineAllocateForbidden{}
-}
-
-/*NetboxAPIProxyAPIMachineAllocateForbidden handles this case with default header values.
-
-Forbidden
-*/
-type NetboxAPIProxyAPIMachineAllocateForbidden struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateForbidden) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netboxApiProxyApiMachineAllocateForbidden  %+v", 403, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPIMachineAllocateNotFound creates a NetboxAPIProxyAPIMachineAllocateNotFound with default headers values
-func NewNetboxAPIProxyAPIMachineAllocateNotFound() *NetboxAPIProxyAPIMachineAllocateNotFound {
-	return &NetboxAPIProxyAPIMachineAllocateNotFound{}
-}
-
-/*NetboxAPIProxyAPIMachineAllocateNotFound handles this case with default header values.
-
-Not found
-*/
-type NetboxAPIProxyAPIMachineAllocateNotFound struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateNotFound) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netboxApiProxyApiMachineAllocateNotFound  %+v", 404, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPIMachineAllocateInternalServerError creates a NetboxAPIProxyAPIMachineAllocateInternalServerError with default headers values
-func NewNetboxAPIProxyAPIMachineAllocateInternalServerError() *NetboxAPIProxyAPIMachineAllocateInternalServerError {
-	return &NetboxAPIProxyAPIMachineAllocateInternalServerError{}
-}
-
-/*NetboxAPIProxyAPIMachineAllocateInternalServerError handles this case with default header values.
-
-Internal server error
-*/
-type NetboxAPIProxyAPIMachineAllocateInternalServerError struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/allocate][%d] netboxApiProxyApiMachineAllocateInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineAllocateInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *NetboxAPIProxyAPIMachineAllocateDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Problem)
 

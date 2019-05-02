@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"testing/quick"
@@ -399,46 +398,6 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_AllocateMachine(t *testing.T) {
-
-	type args struct {
-		uuid          string
-		name          string
-		description   string
-		hostname      string
-		projectid     string
-		partition     *metal.Partition
-		size          *metal.Size
-		img           *metal.Image
-		sshPubKeys    []string
-		tags          []string
-		userData      string
-		tenant        string
-		cidrAllocator CidrAllocator
-	}
-	tests := []struct {
-		name    string
-		rs      *RethinkStore
-		args    args
-		want    *metal.Machine
-		wantErr bool
-	}{
-		// Tests
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.AllocateMachine(tt.args.uuid, tt.args.name, tt.args.description, tt.args.hostname, tt.args.projectid, tt.args.partition, tt.args.size, tt.args.img, tt.args.sshPubKeys, tt.args.tags, tt.args.userData, tt.args.tenant, tt.args.cidrAllocator)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.AllocateMachine() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.AllocateMachine() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRethinkStore_FreeMachine(t *testing.T) {
 
 	// Mock the DB
@@ -470,7 +429,6 @@ func TestRethinkStore_FreeMachine(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		fmt.Print(testdata.M4)
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FreeMachine(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -626,7 +584,7 @@ func TestRethinkStore_fillMachineList(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_findVrf(t *testing.T) {
+func TestRethinkStore_FindVrf(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
@@ -657,13 +615,13 @@ func TestRethinkStore_findVrf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.findVrf(tt.args.f)
+			got, err := tt.rs.FindVrf(tt.args.f)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.findVrf() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RethinkStore.FindVrf() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.findVrf() = %v, want %v", got, tt.want)
+				t.Errorf("RethinkStore.FindVrf() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -130,3 +130,5 @@ func TestMachine_HasMAC(t *testing.T) {
 		})
 	}
 }
+
+// TODO: Write tests for machine allocation

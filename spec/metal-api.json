@@ -224,6 +224,194 @@
         }
       }
     },
+    "/v1/ip": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "ip"
+        ],
+        "summary": "get all ips",
+        "operationId": "listIPs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.IPListResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "ip"
+        ],
+        "summary": "updates an ip. if the ip was changed since this one was read, a conflict is returned",
+        "operationId": "updateIP",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.IPUpdateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.IPDetailResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/ip/allocate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "ip"
+        ],
+        "summary": "allocate an ip in the given network for a project.",
+        "operationId": "allocateIP",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.IPAllocateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.IPDetailResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/ip/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "ip"
+        ],
+        "summary": "get ip by id",
+        "operationId": "findIP",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the ip",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.IPDetailResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "ip"
+        ],
+        "summary": "deletes an ip and returns the deleted entity",
+        "operationId": "deleteIP",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the ip",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.IPDetailResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine": {
       "get": {
         "consumes": [
@@ -1036,6 +1224,198 @@
           },
           "504": {
             "description": "Timeout",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/network": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "network"
+        ],
+        "summary": "get all networks",
+        "operationId": "listNetworks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.NetworkListResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "network"
+        ],
+        "summary": "create an network. if the given ID already exists a conflict is returned",
+        "operationId": "createNetwork",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkCreateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkDetailResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "network"
+        ],
+        "summary": "updates an network. if the network was changed since this one was read, a conflict is returned",
+        "operationId": "updateNetwork",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkUpdateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkDetailResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/network/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "network"
+        ],
+        "summary": "get network by id",
+        "operationId": "findNetwork",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the network",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkDetailResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "network"
+        ],
+        "summary": "deletes an network and returns the deleted entity",
+        "operationId": "deleteNetwork",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the network",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkDetailResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -2546,12 +2926,353 @@
           "type": "string"
         }
       }
+    },
+    "v1.IPAllocateRequest": {
+      "required": [
+        "projectid",
+        "networkid"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "networkid": {
+          "description": "the network this ip allocate request address belongs to, required.",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project this ip address belongs to, required.",
+          "type": "string"
+        }
+      }
+    },
+    "v1.IPDetailResponse": {
+      "required": [
+        "networkid",
+        "ipaddress",
+        "projectid",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "ipaddress": {
+          "description": "the ip address (ipv4 or ipv6) of this ip, required.",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "networkid": {
+          "description": "the network this ip allocate request address belongs to, required.",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project this ip address belongs to, required.",
+          "type": "string"
+        }
+      }
+    },
+    "v1.IPListResponse": {
+      "required": [
+        "projectid",
+        "networkid",
+        "ipaddress"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "ipaddress": {
+          "description": "the ip address (ipv4 or ipv6) of this ip, required.",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "networkid": {
+          "description": "the network this ip allocate request address belongs to, required.",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project this ip address belongs to, required.",
+          "type": "string"
+        }
+      }
+    },
+    "v1.IPUpdateRequest": {
+      "required": [
+        "ipaddress"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "ipaddress": {
+          "description": "the ip address (ipv4 or ipv6) of this ip, required.",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.NetworkCreateRequest": {
+      "required": [
+        "id",
+        "projectid",
+        "partitionid",
+        "nat",
+        "primary",
+        "prefixes"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "nat": {
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip.",
+          "type": "boolean"
+        },
+        "partitionid": {
+          "description": "the partition this network belongs to, TODO: can be empty ?",
+          "type": "string"
+        },
+        "prefixes": {
+          "description": "the prefixes of this network, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "primary": {
+          "description": "if set to true, this network is attached to a machine/firewall",
+          "type": "boolean"
+        },
+        "projectid": {
+          "description": "the project this network belongs to, can be empty if globally available.",
+          "type": "string"
+        }
+      }
+    },
+    "v1.NetworkDetailResponse": {
+      "required": [
+        "id",
+        "partitionid",
+        "projectid",
+        "nat",
+        "prefixes",
+        "primary",
+        "usage",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "nat": {
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip.",
+          "type": "boolean"
+        },
+        "partitionid": {
+          "description": "the partition this network belongs to, TODO: can be empty ?",
+          "type": "string"
+        },
+        "prefixes": {
+          "description": "the prefixes of this network, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "primary": {
+          "description": "if set to true, this network is attached to a machine/firewall",
+          "type": "boolean"
+        },
+        "projectid": {
+          "description": "the project this network belongs to, can be empty if globally available.",
+          "type": "string"
+        },
+        "usage": {
+          "description": "usage of ips and prefixes if any of this network",
+          "$ref": "#/definitions/v1.NetworkUsage"
+        }
+      }
+    },
+    "v1.NetworkListResponse": {
+      "required": [
+        "id",
+        "partitionid",
+        "projectid",
+        "nat",
+        "primary",
+        "prefixes",
+        "usage"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "nat": {
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip.",
+          "type": "boolean"
+        },
+        "partitionid": {
+          "description": "the partition this network belongs to, TODO: can be empty ?",
+          "type": "string"
+        },
+        "prefixes": {
+          "description": "the prefixes of this network, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "primary": {
+          "description": "if set to true, this network is attached to a machine/firewall",
+          "type": "boolean"
+        },
+        "projectid": {
+          "description": "the project this network belongs to, can be empty if globally available.",
+          "type": "string"
+        },
+        "usage": {
+          "description": "usage of ips and prefixes if any of this network",
+          "$ref": "#/definitions/v1.NetworkUsage"
+        }
+      }
+    },
+    "v1.NetworkUpdateRequest": {
+      "required": [
+        "id",
+        "prefixes"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "prefixes": {
+          "description": "the prefixes of this network, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.NetworkUsage": {
+      "required": [
+        "available_ips",
+        "used_ips",
+        "available_prefixes",
+        "used_prefixes"
+      ],
+      "properties": {
+        "available_ips": {
+          "description": "the total available IPs",
+          "type": "integer"
+        },
+        "available_prefixes": {
+          "description": "the total available Prefixes",
+          "type": "integer"
+        },
+        "used_ips": {
+          "description": "the total available IPs",
+          "type": "integer"
+        },
+        "used_prefixes": {
+          "description": "the total available Prefixes",
+          "type": "integer"
+        }
+      }
     }
   },
   "tags": [
     {
       "description": "Managing image entities",
       "name": "image"
+    },
+    {
+      "description": "Managing network entities",
+      "name": "network"
+    },
+    {
+      "description": "Managing ip entities",
+      "name": "ip"
     },
     {
       "description": "Managing size entities",
