@@ -1,4 +1,5 @@
 FROM alpine:3.8
 LABEL maintainer FI-TS Devops <devops@f-i-ts.de>
 COPY bin/metal-api /metal-api
+COPY generate/redoc.html /generate/redoc.html
 CMD ["/metal-api"]

@@ -10,6 +10,7 @@ include $(COMMONDIR)/Makefile.inc
 all::
 	@bin/metal-api dump-swagger >spec/metal-api.json
 	go mod tidy
+	docker run -it --rm -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/redoc.html /work/spec/metal-api.json
 
 release:: all;
 
