@@ -5,12 +5,12 @@ import (
 )
 
 type IPBase struct {
-	ProjectID string `json:"projectid" description:"the project this ip address belongs to, required."`
-	NetworkID string `json:"networkid" description:"the network this ip allocate request address belongs to, required."`
+	ProjectID string `json:"projectid" description:"the project this ip address belongs to"`
+	NetworkID string `json:"networkid" description:"the network this ip allocate request address belongs to"`
 }
 
 type IPIdentifiable struct {
-	IPAddress string `json:"ipaddress" description:"the ip address (ipv4 or ipv6) of this ip, required."`
+	IPAddress string `json:"ipaddress" description:"the address (ipv4 or ipv6) of this ip" readonly:"true"`
 }
 
 type IPAllocateRequest struct {

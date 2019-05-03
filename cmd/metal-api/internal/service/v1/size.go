@@ -5,9 +5,9 @@ import (
 )
 
 type SizeConstraint struct {
-	Type metal.ConstraintType `json:"type" description:"the type of constraint"`
-	Min  uint64               `json:"min" description:"the minimal value"`
-	Max  uint64               `json:"max" description:"the maximal value"`
+	Type metal.ConstraintType `json:"type" enum:"cores|memory|storage" description:"the type of the constraint"`
+	Min  uint64               `json:"min" description:"the minimum value of the constraint"`
+	Max  uint64               `json:"max" description:"the maximum value of the constraint"`
 }
 
 type SizeCreateRequest struct {
@@ -17,7 +17,7 @@ type SizeCreateRequest struct {
 
 type SizeUpdateRequest struct {
 	Common
-	SizeConstraints *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size"`
+	SizeConstraints *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size" optional:"true"`
 }
 
 type SizeListResponse struct {

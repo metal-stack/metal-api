@@ -119,7 +119,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		return
 	}
 
-	if requestPayload.URL == nil || *requestPayload.URL == "" {
+	if requestPayload.URL == "" {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("url should not be empty")) {
 			return
 		}
@@ -139,7 +139,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 			Name:        name,
 			Description: description,
 		},
-		URL: *requestPayload.URL,
+		URL: requestPayload.URL,
 	}
 
 	err = ir.ds.CreateImage(img)

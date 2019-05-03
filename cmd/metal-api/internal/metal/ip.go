@@ -6,14 +6,14 @@ import (
 
 // IP of a machine/firewall.
 type IP struct {
-	IPAddress        string    `json:"ipaddress" description:"the ip address (ipv4 or ipv6) of this ip, required." rethinkdb:"id"`
-	ParentPrefixCidr string    `json:"prefix" description:"the prefix cidr in which this ip was created." rethinkdb:"prefix"`
-	Name             string    `json:"name" description:"the readable name" optional:"true" rethinkdb:"name"`
-	Description      string    `json:"description,omitempty" description:"a description for this entity" optional:"true" rethinkdb:"description"`
-	Created          time.Time `json:"created" description:"the creation time of this entity" optional:"true" readOnly:"true" rethinkdb:"created"`
-	Changed          time.Time `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
-	NetworkID        string    `json:"networkid" description:"the network this ip address belongs to, required." rethinkdb:"networkid"`
-	ProjectID        string    `json:"projectid" description:"the project this ip address belongs to, required." rethinkdb:"projectid"`
+	IPAddress        string    `modelDescription:"an ip address that can be attached to a machine" rethinkdb:"id"`
+	ParentPrefixCidr string    `rethinkdb:"prefix"`
+	Name             string    `rethinkdb:"name"`
+	Description      string    `rethinkdb:"description"`
+	Created          time.Time `rethinkdb:"created"`
+	Changed          time.Time `rethinkdb:"changed"`
+	NetworkID        string    `rethinkdb:"networkid"`
+	ProjectID        string    `rethinkdb:"projectid"`
 }
 
 func (ip *IP) GetID() string {

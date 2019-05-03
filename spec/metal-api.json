@@ -2140,21 +2140,18 @@
     },
     "metal.BootConfiguration": {
       "required": [
-        "imageurl",
-        "kernelurl",
-        "commandline"
+        "ImageURL",
+        "KernelURL",
+        "CommandLine"
       ],
       "properties": {
-        "commandline": {
-          "description": "the cmdline to the kernel for the boot image",
+        "CommandLine": {
           "type": "string"
         },
-        "imageurl": {
-          "description": "the url to download the initrd for the boot image",
+        "ImageURL": {
           "type": "string"
         },
-        "kernelurl": {
-          "description": "the url to download the kernel for the boot image",
+        "KernelURL": {
           "type": "string"
         }
       }
@@ -2176,21 +2173,18 @@
     },
     "metal.Constraint": {
       "required": [
-        "type",
-        "min",
-        "max"
+        "Type",
+        "Min",
+        "Max"
       ],
       "properties": {
-        "max": {
-          "description": "the maximal value",
+        "Max": {
           "type": "integer"
         },
-        "min": {
-          "description": "the minimal value",
+        "Min": {
           "type": "integer"
         },
-        "type": {
-          "description": "the type of constraint",
+        "Type": {
           "type": "string"
         }
       }
@@ -2279,12 +2273,15 @@
       }
     },
     "metal.Image": {
-      "description": "An image that can be put on a machine.",
+      "description": "an image that can be attached to a machine",
       "required": [
         "id",
-        "url"
+        "URL"
       ],
       "properties": {
+        "URL": {
+          "type": "string"
+        },
         "changed": {
           "description": "the last changed timestamp",
           "type": "string",
@@ -2308,10 +2305,6 @@
         },
         "name": {
           "description": "the readable name",
-          "type": "string"
-        },
-        "url": {
-          "description": "the url to this image",
           "type": "string"
         }
       }
@@ -2590,14 +2583,18 @@
       }
     },
     "metal.Partition": {
+      "description": "a partition has a distinct location in a data center, individual entities belong to a partition",
       "required": [
         "id",
-        "bootconfig",
-        "mgmtserviceaddress"
+        "BootConfiguration",
+        "MgmtServiceAddress"
       ],
       "properties": {
-        "bootconfig": {
+        "BootConfiguration": {
           "$ref": "#/definitions/metal.BootConfiguration"
+        },
+        "MgmtServiceAddress": {
+          "type": "string"
         },
         "changed": {
           "description": "the last changed timestamp",
@@ -2619,9 +2616,6 @@
           "description": "a unique ID",
           "type": "string",
           "uniqueItems": true
-        },
-        "mgmtserviceaddress": {
-          "type": "string"
         },
         "name": {
           "description": "the readable name",
@@ -2806,24 +2800,23 @@
       }
     },
     "metal.Size": {
-      "description": "A Size describes our supported t-shirt sizes.",
+      "description": "a machine matches to a size in order to make them easier to categorize",
       "required": [
         "id",
-        "constraints"
+        "Constraints"
       ],
       "properties": {
+        "Constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.Constraint"
+          }
+        },
         "changed": {
           "description": "the last changed timestamp",
           "type": "string",
           "format": "date-time",
           "readOnly": true
-        },
-        "constraints": {
-          "description": "a list of constraints that defines this size",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Constraint"
-          }
         },
         "created": {
           "description": "the creation time of this entity",
@@ -2980,30 +2973,30 @@
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "networkid": {
-          "description": "the network this ip allocate request address belongs to, required.",
+          "description": "the network this ip allocate request address belongs to",
           "type": "string"
         },
         "projectid": {
-          "description": "the project this ip address belongs to, required.",
+          "description": "the project this ip address belongs to",
           "type": "string"
         }
       }
     },
     "v1.IPDetailResponse": {
       "required": [
-        "ipaddress",
         "projectid",
         "networkid",
+        "ipaddress",
         "created",
         "changed"
       ],
       "properties": {
         "changed": {
-          "description": "the last changed timestamp",
+          "description": "the last changed timestamp of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
@@ -3019,27 +3012,27 @@
           "type": "string"
         },
         "ipaddress": {
-          "description": "the ip address (ipv4 or ipv6) of this ip, required.",
+          "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "networkid": {
-          "description": "the network this ip allocate request address belongs to, required.",
+          "description": "the network this ip allocate request address belongs to",
           "type": "string"
         },
         "projectid": {
-          "description": "the project this ip address belongs to, required.",
+          "description": "the project this ip address belongs to",
           "type": "string"
         }
       }
     },
     "v1.IPListResponse": {
       "required": [
-        "projectid",
         "networkid",
+        "projectid",
         "ipaddress"
       ],
       "properties": {
@@ -3048,19 +3041,19 @@
           "type": "string"
         },
         "ipaddress": {
-          "description": "the ip address (ipv4 or ipv6) of this ip, required.",
+          "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "networkid": {
-          "description": "the network this ip allocate request address belongs to, required.",
+          "description": "the network this ip allocate request address belongs to",
           "type": "string"
         },
         "projectid": {
-          "description": "the project this ip address belongs to, required.",
+          "description": "the project this ip address belongs to",
           "type": "string"
         }
       }
@@ -3075,11 +3068,11 @@
           "type": "string"
         },
         "ipaddress": {
-          "description": "the ip address (ipv4 or ipv6) of this ip, required.",
+          "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
@@ -3094,11 +3087,11 @@
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "url": {
-          "description": "the url to this image",
+          "description": "the url of this image",
           "type": "string"
         }
       }
@@ -3106,13 +3099,12 @@
     "v1.ImageDetailResponse": {
       "required": [
         "id",
-        "url",
         "created",
         "changed"
       ],
       "properties": {
         "changed": {
-          "description": "the last changed timestamp",
+          "description": "the last changed timestamp of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
@@ -3128,23 +3120,22 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "url": {
-          "description": "the url to this image",
+          "description": "the url of this image",
           "type": "string"
         }
       }
     },
     "v1.ImageListResponse": {
       "required": [
-        "id",
-        "url"
+        "id"
       ],
       "properties": {
         "description": {
@@ -3152,23 +3143,22 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "url": {
-          "description": "the url to this image",
+          "description": "the url of this image",
           "type": "string"
         }
       }
     },
     "v1.ImageUpdateRequest": {
       "required": [
-        "id",
-        "url"
+        "id"
       ],
       "properties": {
         "description": {
@@ -3176,23 +3166,21 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "url": {
-          "description": "the url to this image",
+          "description": "the url of this image",
           "type": "string"
         }
       }
     },
     "v1.NetworkCreateRequest": {
       "required": [
-        "partitionid",
-        "projectid",
         "prefixes",
         "nat",
         "primary"
@@ -3203,19 +3191,19 @@
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip.",
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "partitionid": {
-          "description": "the partition this network belongs to, TODO: can be empty ?",
+          "description": "the partition this network belongs to",
           "type": "string"
         },
         "prefixes": {
-          "description": "the prefixes of this network, required.",
+          "description": "the prefixes of this network",
           "type": "array",
           "items": {
             "type": "string"
@@ -3226,26 +3214,24 @@
           "type": "boolean"
         },
         "projectid": {
-          "description": "the project this network belongs to, can be empty if globally available.",
+          "description": "the project this network belongs to, can be empty if globally available",
           "type": "string"
         }
       }
     },
     "v1.NetworkDetailResponse": {
       "required": [
-        "primary",
+        "usage",
+        "id",
         "prefixes",
         "nat",
-        "projectid",
-        "id",
-        "partitionid",
-        "usage",
+        "primary",
         "created",
         "changed"
       ],
       "properties": {
         "changed": {
-          "description": "the last changed timestamp",
+          "description": "the last changed timestamp of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
@@ -3261,23 +3247,23 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip.",
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "partitionid": {
-          "description": "the partition this network belongs to, TODO: can be empty ?",
+          "description": "the partition this network belongs to",
           "type": "string"
         },
         "prefixes": {
-          "description": "the prefixes of this network, required.",
+          "description": "the prefixes of this network",
           "type": "array",
           "items": {
             "type": "string"
@@ -3288,11 +3274,11 @@
           "type": "boolean"
         },
         "projectid": {
-          "description": "the project this network belongs to, can be empty if globally available.",
+          "description": "the project this network belongs to, can be empty if globally available",
           "type": "string"
         },
         "usage": {
-          "description": "usage of ips and prefixes if any of this network",
+          "description": "usage of ips and prefixes in this network",
           "$ref": "#/definitions/v1.NetworkUsage"
         }
       }
@@ -3300,8 +3286,6 @@
     "v1.NetworkListResponse": {
       "required": [
         "id",
-        "projectid",
-        "partitionid",
         "prefixes",
         "nat",
         "primary",
@@ -3313,23 +3297,23 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip.",
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "partitionid": {
-          "description": "the partition this network belongs to, TODO: can be empty ?",
+          "description": "the partition this network belongs to",
           "type": "string"
         },
         "prefixes": {
-          "description": "the prefixes of this network, required.",
+          "description": "the prefixes of this network",
           "type": "array",
           "items": {
             "type": "string"
@@ -3340,19 +3324,18 @@
           "type": "boolean"
         },
         "projectid": {
-          "description": "the project this network belongs to, can be empty if globally available.",
+          "description": "the project this network belongs to, can be empty if globally available",
           "type": "string"
         },
         "usage": {
-          "description": "usage of ips and prefixes if any of this network",
+          "description": "usage of ips and prefixes in this network",
           "$ref": "#/definitions/v1.NetworkUsage"
         }
       }
     },
     "v1.NetworkUpdateRequest": {
       "required": [
-        "id",
-        "prefixes"
+        "id"
       ],
       "properties": {
         "description": {
@@ -3360,15 +3343,15 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "prefixes": {
-          "description": "the prefixes of this network, required.",
+          "description": "the prefixes of this network",
           "type": "array",
           "items": {
             "type": "string"
@@ -3393,21 +3376,16 @@
           "type": "integer"
         },
         "used_ips": {
-          "description": "the total available IPs",
+          "description": "the total used IPs",
           "type": "integer"
         },
         "used_prefixes": {
-          "description": "the total available Prefixes",
+          "description": "the total used Prefixes",
           "type": "integer"
         }
       }
     },
     "v1.PartitionBootConfiguration": {
-      "required": [
-        "imageurl",
-        "kernelurl",
-        "commandline"
-      ],
       "properties": {
         "commandline": {
           "description": "the cmdline to the kernel for the boot image",
@@ -3425,11 +3403,11 @@
     },
     "v1.PartitionCreateRequest": {
       "required": [
-        "mgmtserviceaddress",
         "bootconfig"
       ],
       "properties": {
         "bootconfig": {
+          "description": "the boot configuration of this partition",
           "$ref": "#/definitions/v1.PartitionBootConfiguration"
         },
         "description": {
@@ -3437,28 +3415,29 @@
           "type": "string"
         },
         "mgmtserviceaddress": {
+          "description": "the address to the management service of this partition",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
     },
     "v1.PartitionDetailResponse": {
       "required": [
-        "id",
         "bootconfig",
-        "mgmtserviceaddress",
-        "created",
-        "changed"
+        "id",
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
+          "description": "the boot configuration of this partition",
           "$ref": "#/definitions/v1.PartitionBootConfiguration"
         },
         "changed": {
-          "description": "the last changed timestamp",
+          "description": "the last changed timestamp of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
@@ -3474,14 +3453,15 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "mgmtserviceaddress": {
+          "description": "the address to the management service of this partition",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
@@ -3493,6 +3473,7 @@
       ],
       "properties": {
         "bootconfig": {
+          "description": "the boot configuration of this partition",
           "$ref": "#/definitions/v1.PartitionBootConfiguration"
         },
         "description": {
@@ -3500,23 +3481,22 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
     },
     "v1.PartitionUpdateRequest": {
       "required": [
-        "id",
-        "mgmtserviceaddress",
-        "bootconfig"
+        "id"
       ],
       "properties": {
         "bootconfig": {
+          "description": "the boot configuration of this partition",
           "$ref": "#/definitions/v1.PartitionBootConfiguration"
         },
         "description": {
@@ -3524,14 +3504,15 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "mgmtserviceaddress": {
+          "description": "the address to the management service of this partition",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
@@ -3544,16 +3525,21 @@
       ],
       "properties": {
         "max": {
-          "description": "the maximal value",
+          "description": "the maximum value of the constraint",
           "type": "integer"
         },
         "min": {
-          "description": "the minimal value",
+          "description": "the minimum value of the constraint",
           "type": "integer"
         },
         "type": {
-          "description": "the type of constraint",
-          "type": "string"
+          "description": "the type of the constraint",
+          "type": "string",
+          "enum": [
+            "cores",
+            "memory",
+            "storage"
+          ]
         }
       }
     },
@@ -3574,7 +3560,7 @@
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
@@ -3588,7 +3574,7 @@
       ],
       "properties": {
         "changed": {
-          "description": "the last changed timestamp",
+          "description": "the last changed timestamp of this entity",
           "type": "string",
           "format": "date-time",
           "readOnly": true
@@ -3611,11 +3597,11 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
@@ -3638,19 +3624,18 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }
     },
     "v1.SizeUpdateRequest": {
       "required": [
-        "id",
-        "constraints"
+        "id"
       ],
       "properties": {
         "constraints": {
@@ -3665,11 +3650,11 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
+          "description": "the unique ID of this entity",
           "type": "string"
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         }
       }

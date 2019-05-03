@@ -113,9 +113,7 @@ func TestCreateImage(t *testing.T) {
 			Name:        &testdata.Img1.Name,
 			Description: &testdata.Img1.Description,
 		},
-		ImageBase: v1.ImageBase{
-			URL: &testdata.Img1.URL,
-		},
+		URL: testdata.Img1.URL,
 	}
 	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)

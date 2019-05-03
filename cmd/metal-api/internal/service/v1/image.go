@@ -5,12 +5,12 @@ import (
 )
 
 type ImageBase struct {
-	URL *string `json:"url" description:"the url to this image"`
+	URL *string `json:"url" description:"the url of this image" optional:"true"`
 }
 
 type ImageCreateRequest struct {
 	Describeable
-	ImageBase
+	URL string `json:"url" description:"the url of this image"`
 }
 
 type ImageUpdateRequest struct {

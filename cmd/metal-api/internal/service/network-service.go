@@ -133,14 +133,6 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 	if requestPayload.Description != nil {
 		projectid = *requestPayload.ProjectID
 	}
-	var nat bool
-	if requestPayload.Nat != nil {
-		nat = *requestPayload.Nat
-	}
-	var primary bool
-	if requestPayload.Primary != nil {
-		primary = *requestPayload.Primary
-	}
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401
@@ -181,8 +173,8 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 		Prefixes:    prefixes,
 		PartitionID: partitionID,
 		ProjectID:   projectid,
-		Nat:         nat,
-		Primary:     primary,
+		Nat:         requestPayload.Nat,
+		Primary:     requestPayload.Primary,
 	}
 
 	for _, p := range nw.Prefixes {

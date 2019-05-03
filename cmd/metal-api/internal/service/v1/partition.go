@@ -5,30 +5,30 @@ import (
 )
 
 type PartitionMgmtService struct {
-	MgmtServiceAddress *string `json:"mgmtserviceaddress"`
+	MgmtServiceAddress *string `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 }
 
 type PartitionBootConfiguration struct {
-	ImageURL    *string `json:"imageurl" description:"the url to download the initrd for the boot image"`
-	KernelURL   *string `json:"kernelurl" description:"the url to download the kernel for the boot image"`
-	CommandLine *string `json:"commandline" description:"the cmdline to the kernel for the boot image"`
+	ImageURL    *string `json:"imageurl" description:"the url to download the initrd for the boot image" optional:"true"`
+	KernelURL   *string `json:"kernelurl" description:"the url to download the kernel for the boot image" optional:"true"`
+	CommandLine *string `json:"commandline" description:"the cmdline to the kernel for the boot image" optional:"true"`
 }
 
 type PartitionCreateRequest struct {
 	Describeable
 	PartitionMgmtService
-	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig"`
+	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
 }
 
 type PartitionUpdateRequest struct {
 	Common
 	PartitionMgmtService
-	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig"`
+	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
 }
 
 type PartitionListResponse struct {
 	Common
-	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig"`
+	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
 }
 
 type PartitionDetailResponse struct {

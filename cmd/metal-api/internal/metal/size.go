@@ -17,7 +17,7 @@ var (
 // A Size represents a supported machine size.
 type Size struct {
 	Base
-	Constraints []Constraint `json:"constraints" modelDescription:"A Size describes our supported t-shirt sizes." description:"a list of constraints that defines this size" rethinkdb:"constraints"`
+	Constraints []Constraint `modelDescription:"a machine matches to a size in order to make them easier to categorize" rethinkdb:"constraints"`
 }
 
 // ConstraintType ...
@@ -33,9 +33,9 @@ const (
 // A Constraint describes the hardware constraints for a given size. At the moment we only
 // consider the cpu cores and the memory.
 type Constraint struct {
-	Type ConstraintType `json:"type" rethinkdb:"type" description:"the type of constraint"`
-	Min  uint64         `json:"min" rethinkdb:"min" description:"the minimal value"`
-	Max  uint64         `json:"max" rethinkdb:"max" description:"the maximal value"`
+	Type ConstraintType `rethinkdb:"type"`
+	Min  uint64         `rethinkdb:"min"`
+	Max  uint64         `rethinkdb:"max"`
 }
 
 // Sizes is a list of sizes.
