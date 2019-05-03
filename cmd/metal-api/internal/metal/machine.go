@@ -49,20 +49,27 @@ type Machine struct {
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
-	Created         time.Time `json:"created" description:"the time when the machine was created" rethinkdb:"created"`
-	Name            string    `json:"name" description:"the name of the machine" rethinkdb:"name"`
-	Description     string    `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
-	LastPing        time.Time `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
-	Tenant          string    `json:"tenant" description:"the tenant that this machine is assigned to" rethinkdb:"tenant"`
-	Project         string    `json:"project" description:"the project that this machine is assigned to" rethinkdb:"project"`
-	Image           *Image    `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true" rethinkdb:"-"`
-	ImageID         string    `json:"-" rethinkdb:"imageid"`
-	Cidr            string    `json:"cidr" description:"the cidr address of the allocated machine" rethinkdb:"cidr"`
-	Vrf             uint      `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
-	Hostname        string    `json:"hostname" description:"the hostname which will be used when creating the machine" rethinkdb:"hostname"`
-	SSHPubKeys      []string  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with" rethinkdb:"sshPubKeys"`
-	UserData        string    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true" rethinkdb:"userdata"`
-	ConsolePassword string    `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
+	Created         time.Time        `json:"created" description:"the time when the machine was created" rethinkdb:"created"`
+	Name            string           `json:"name" description:"the name of the machine" rethinkdb:"name"`
+	Description     string           `json:"description,omitempty" description:"a description for this machine" optional:"true" rethinkdb:"description"`
+	LastPing        time.Time        `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true" rethinkdb:"last_ping"`
+	Tenant          string           `json:"tenant" description:"the tenant that this machine is assigned to" rethinkdb:"tenant"`
+	Project         string           `json:"project" description:"the project that this machine is assigned to" rethinkdb:"project"`
+	Image           *Image           `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true" rethinkdb:"-"`
+	ImageID         string           `json:"-" rethinkdb:"imageid"`
+	MachineNetworks []MachineNetwork `json:"networks" description:"the networks of this machine" rethinkdb:"networks"`
+	Hostname        string           `json:"hostname" description:"the hostname which will be used when creating the machine" rethinkdb:"hostname"`
+	SSHPubKeys      []string         `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with" rethinkdb:"sshPubKeys"`
+	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true" rethinkdb:"userdata"`
+	ConsolePassword string           `json:"console_password" description:"the console password which was generated while provisioning" optional:"true" rethinkdb:"console_password"`
+}
+
+// MachineNetwork stores the Network details of the machine
+type MachineNetwork struct {
+	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf" rethinkdb:"ips"`
+	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf" rethinkdb:"ips"`
+	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
+	Primary   bool     `json:"primary" description:"this network is the primary vrf of the allocated machine, aka tenant vrf" rethinkdb:"primary"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.

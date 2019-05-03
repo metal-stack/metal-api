@@ -14,6 +14,10 @@ type AllocateMachine struct {
 	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
 	UserData    string   `json:"user_data,omitempty" description:"cloud-init.io compatible userdata must be base64 encoded." optional:"true" rethinkdb:"userdata"`
 	Tags        []string `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
+	// FIXME must be moved to the new service/v1 Allocation struct
+	NetworkIDs []string `json:"networks" description:"the networks of this firewall, required."`
+	IPs        []string `json:"ips" description:"the additional ips of this firewall, optional."`
+	HA         bool     `json:"ha" description:"if set to true, this firewall is set up in a High Available manner. optional"`
 }
 
 // RegisterMachine must be sent by a machine, when it boots with our image and

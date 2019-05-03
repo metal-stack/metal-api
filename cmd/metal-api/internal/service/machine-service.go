@@ -16,7 +16,6 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
-	"go.uber.org/zap"
 )
 
 const (
@@ -391,106 +390,84 @@ func (dr machineResource) ipmiData(request *restful.Request, response *restful.R
 	response.WriteEntity(ipmi)
 }
 
-func (dr machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *metal.AllocateMachine) (*metal.Machine, error) {
 	// FIXME: This is only temporary and needs to be made a little bit more elegant.
-	op := utils.CurrentFuncName()
-	var allocate metal.AllocateMachine
-	err := request.ReadEntity(&allocate)
-	log := utils.Logger(request)
-	slog := log.Sugar()
-	if checkError(request, response, op, err) {
-		return
-	}
 	if allocate.Tenant == "" {
-		if checkError(request, response, op, fmt.Errorf("no tenant given")) {
-			slog.Errorw("allocate", zap.String("tenant", "missing"))
-			return
-		}
-	}
-	image, err := dr.ds.FindImage(allocate.ImageID)
-	if checkError(request, response, op, err) {
-		return
-	}
-	var size *metal.Size
-	var part *metal.Partition
-	if allocate.UUID == "" {
-		size, err = dr.ds.FindSize(allocate.SizeID)
-		if checkError(request, response, op, err) {
-			return
-		}
-		part, err = dr.ds.FindPartition(allocate.PartitionID)
-		if checkError(request, response, op, err) {
-			return
-		}
+		return nil, fmt.Errorf("no tenant given")
 	}
 
+	image, err := ds.FindImage(allocate.ImageID)
+	if err != nil {
+		return nil, fmt.Errorf("image cannot be found: %v", err)
+	}
+
+	var size *metal.Size
+	var part *metal.Partition
 	var machine *metal.Machine
-	if allocate.UUID != "" {
-		machine, err = dr.ds.FindMachine(allocate.UUID)
-		if checkError(request, response, op, err) {
-			return
+	if allocate.UUID == "" {
+		size, err = ds.FindSize(allocate.SizeID)
+		if err != nil {
+			return nil, fmt.Errorf("size cannot be found: %v", err)
 		}
-		if machine.Allocation != nil {
-			if checkError(request, response, op, fmt.Errorf("machine is already allocated")) {
-				return
-			}
+		part, err = ds.FindPartition(allocate.PartitionID)
+		if err != nil {
+			return nil, fmt.Errorf("partition cannot be found: %v", err)
+		}
+
+		machine, err = ds.FindAvailableMachine(part.ID, size.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		// FIXME next instruction is temp fix for populating the found machine with more data
+		machine, err = ds.FindMachine(machine.ID)
+		if err != nil {
+			return nil, fmt.Errorf("machine cannot be found: %v", err)
 		}
 	} else {
-		machine, err = dr.ds.FindAvailableMachine(part.ID, size.ID)
-		if checkError(request, response, op, err) {
-			return
+		machine, err = ds.FindMachine(allocate.UUID)
+		if err != nil {
+			return nil, fmt.Errorf("machine cannot be found: %v", err)
 		}
-		// next instruction is temp fix for populating the found machine with more data
-		machine, err = dr.ds.FindMachine(machine.ID)
-		if checkError(request, response, op, err) {
-			return
+		if machine.Allocation != nil {
+			return nil, fmt.Errorf("machine is already allocated")
 		}
 	}
 	if machine == nil {
-		if checkError(request, response, op, fmt.Errorf("no machine found")) {
-			return
-		}
+		return nil, fmt.Errorf("machine is nil")
+
 	}
 
 	old := *machine
 
 	var vrf *metal.Vrf
-	vrf, err = dr.ds.FindVrf(map[string]interface{}{"tenant": allocate.Tenant, "projectid": allocate.ProjectID})
+	vrf, err = ds.FindVrf(map[string]interface{}{"tenant": allocate.Tenant, "projectid": allocate.ProjectID})
 	if err != nil {
-		if checkError(request, response, op, fmt.Errorf("cannot find vrf for tenant project: %v", err)) {
-			return
-		}
+		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
 	}
 	if vrf == nil {
-		vrf, err = dr.ds.ReserveNewVrf(allocate.Tenant, allocate.ProjectID)
+		vrf, err = ds.ReserveNewVrf(allocate.Tenant, allocate.ProjectID)
 		if err != nil {
-			if checkError(request, response, op, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)) {
-				return
-			}
+			return nil, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
 		}
 	}
 
-	projectNetwork, err := dr.ds.SearchProjectNetwork(allocate.ProjectID)
-	if checkError(request, response, op, err) {
-		return
+	projectNetwork, err := ds.SearchProjectNetwork(allocate.ProjectID)
+	if err != nil {
+		return nil, err
 	}
-
+	primaryNetwork, err := ds.GetPrimaryNetwork()
+	if err != nil {
+		return nil, fmt.Errorf("could not get primary network: %v", err)
+	}
 	if projectNetwork == nil {
-		primaryNetwork, err := dr.ds.GetPrimaryNetwork()
-		if err != nil {
-			if checkError(request, response, op, fmt.Errorf("could not get primary network: %v", err)) {
-				return
-			}
-		}
 
-		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, metal.ProjectNetworkPrefixLength, dr.ipamer)
-		if checkError(request, response, op, err) {
-			return
+		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, metal.ProjectNetworkPrefixLength, ipamer)
+		if err != nil {
+			return nil, err
 		}
 		if projectPrefix == nil {
-			if checkError(request, response, op, fmt.Errorf("could not allocate child prefix in network: %s", primaryNetwork.ID)) {
-				return
-			}
+			return nil, fmt.Errorf("could not allocate child prefix in network: %s", primaryNetwork.ID)
 		}
 
 		projectNetwork = &metal.Network{
@@ -505,41 +482,83 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 			Primary:     false,
 		}
 
-		err = dr.ds.CreateNetwork(projectNetwork)
-		if checkError(request, response, op, err) {
-			return
+		err = ds.CreateNetwork(projectNetwork)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	ip, err := allocateIP(*projectNetwork, dr.ipamer)
+	// TODO allocateIP should only return a String
+	ip, err := allocateIP(*projectNetwork, ipamer)
 	if err != nil {
-		if checkError(request, response, op, fmt.Errorf("unable to allocate an ip for machine:%s", machine.ID)) {
-			return
-		}
+		return nil, fmt.Errorf("unable to allocate an ip in network:%s %#v", projectNetwork.ID, err)
 	}
 
 	ip.Name = allocate.Name
 	ip.Description = machine.ID
 	ip.ProjectID = allocate.ProjectID
 
-	err = dr.ds.CreateIP(ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	err = ds.CreateIP(ip)
+	if err != nil {
+		return nil, err
+	}
+
+	machineNetworks := []metal.MachineNetwork{
+		metal.MachineNetwork{
+			NetworkID: projectNetwork.ID,
+			IPs:       []string{ip.IPAddress},
+			Vrf:       vrf.ID,
+			Primary:   true,
+		},
+	}
+
+	for _, additionalNetworkID := range allocate.NetworkIDs {
+
+		if additionalNetworkID == primaryNetwork.ID {
+			// We ignore if accidently this allocation contains a network which is ment as tenant super network
+			continue
+		}
+
+		nw, err := ds.FindNetwork(additionalNetworkID)
+		if err != nil {
+			return nil, fmt.Errorf("no network with networkid:%s found %#v", additionalNetworkID, err)
+		}
+		// TODO allocateIP should only return a String
+		ip, err := allocateIP(*nw, ipamer)
+		if err != nil {
+			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", nw.ID, err)
+		}
+
+		ip.Name = allocate.Name
+		ip.Description = machine.ID
+		ip.ProjectID = allocate.ProjectID
+
+		err = ds.CreateIP(ip)
+		if err != nil {
+			return nil, err
+		}
+
+		// FIXME what VRF is required for a firewall
+		machineNetwork := metal.MachineNetwork{
+			NetworkID: nw.ID,
+			IPs:       []string{ip.IPAddress},
+			Primary:   false,
+		}
+		machineNetworks = append(machineNetworks, machineNetwork)
 	}
 
 	alloc := &metal.MachineAllocation{
-		Created:     time.Now(),
-		Name:        allocate.Name,
-		Hostname:    allocate.Hostname,
-		Tenant:      allocate.Tenant,
-		Project:     allocate.ProjectID,
-		Description: allocate.Description,
-		Image:       image,
-		ImageID:     image.ID,
-		SSHPubKeys:  allocate.SSHPubKeys,
-		UserData:    allocate.UserData,
-		Cidr:        ip.IPAddress,
-		Vrf:         vrf.ID,
+		Created:         time.Now(),
+		Name:            allocate.Name,
+		Hostname:        allocate.Hostname,
+		Tenant:          allocate.Tenant,
+		Project:         allocate.ProjectID,
+		Description:     allocate.Description,
+		Image:           image,
+		ImageID:         image.ID,
+		SSHPubKeys:      allocate.SSHPubKeys,
+		UserData:        allocate.UserData,
+		MachineNetworks: machineNetworks,
 	}
 	machine.Allocation = alloc
 	machine.Changed = time.Now()
@@ -554,21 +573,31 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 		newTags = append(newTags, k)
 	}
 	machine.Tags = newTags
-	err = dr.ds.UpdateMachine(&old, machine)
+	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		dr.ds.DeleteIP(ip)
-		if checkError(request, response, op, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)) {
-			return
-		}
+		ds.DeleteIP(ip)
+		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
 	}
 
-	err = dr.ds.UpdateWaitingMachine(machine)
+	err = ds.UpdateWaitingMachine(machine)
 	if err != nil {
-		dr.ds.DeleteIP(ip)
-		dr.ds.UpdateMachine(machine, &old)
-		if checkError(request, response, op, fmt.Errorf("cannot allocate machine in DB: %v", err)) {
-			return
-		}
+		ds.DeleteIP(ip)
+		ds.UpdateMachine(machine, &old)
+		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
+	}
+	return machine, nil
+}
+
+func (dr machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+	var allocate metal.AllocateMachine
+	err := request.ReadEntity(&allocate)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	machine, err := allocateMachine(dr.ds, dr.ipamer, &allocate)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
 	response.WriteEntity(machine)
@@ -779,15 +808,23 @@ func (dr machineResource) allocationReport(request *restful.Request, response *r
 		return
 	}
 
-	vrf := fmt.Sprintf("vrf%d", m.Allocation.Vrf)
-	sw, err := dr.ds.SetVrfAtSwitch(m, vrf)
-	if err != nil {
-		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, m.Allocation.Vrf)))
-		return
+	var sws []metal.Switch
+	for _, mn := range m.Allocation.MachineNetworks {
+		if mn.Primary {
+			vrf := fmt.Sprintf("vrf%d", mn.Vrf)
+			sws, err = dr.ds.SetVrfAtSwitch(m, vrf)
+			if err != nil {
+				sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, mn.Vrf)))
+				return
+			}
+		} else {
+			// FIXME implement other switch port configuration creation for firewall
+			// additional switches must be appended to sws if any.
+		}
 	}
 
 	// Push out events to signal switch configuration change
-	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
+	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
 	err = dr.Publish(string(metal.TopicSwitch), evt)
 	utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
 	if checkError(request, response, op, err) {

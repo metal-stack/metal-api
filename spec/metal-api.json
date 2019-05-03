@@ -15,6 +15,121 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/v1/firewall": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "firewall"
+        ],
+        "summary": "get all known firewalls",
+        "operationId": "listFirewalls",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.FirewallListResponse"
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/firewall/allocate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "firewall"
+        ],
+        "summary": "allocate a firewall",
+        "operationId": "allocateFirewall",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FirewallCreateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FirewallDetailResponse"
+            }
+          },
+          "404": {
+            "description": "No free firewall for allocation found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/firewall/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "firewall"
+        ],
+        "summary": "get firewall by id",
+        "operationId": "findFirewall",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the firewall",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FirewallDetailResponse"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/health": {
       "get": {
         "consumes": [
@@ -2021,12 +2136,19 @@
         "sizeid",
         "imageid",
         "ssh_pub_keys",
-        "tags"
+        "tags",
+        "networks",
+        "ips",
+        "ha"
       ],
       "properties": {
         "description": {
           "description": "the description for the allocated machine",
           "type": "string"
+        },
+        "ha": {
+          "description": "if set to true, this firewall is set up in a High Available manner. optional",
+          "type": "boolean"
         },
         "hostname": {
           "description": "the hostname for the allocated machine",
@@ -2036,9 +2158,23 @@
           "description": "the image id to assign this machine to",
           "type": "string"
         },
+        "ips": {
+          "description": "the additional ips of this firewall, optional.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "name": {
           "description": "the new name for the allocated machine",
           "type": "string"
+        },
+        "networks": {
+          "description": "the networks of this firewall, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "partitionid": {
           "description": "the partition id to assign this machine to",
@@ -2364,16 +2500,11 @@
         "name",
         "tenant",
         "project",
-        "cidr",
-        "vrf",
+        "networks",
         "hostname",
         "ssh_pub_keys"
       ],
       "properties": {
-        "cidr": {
-          "description": "the cidr address of the allocated machine",
-          "type": "string"
-        },
         "console_password": {
           "description": "the console password which was generated while provisioning",
           "type": "string"
@@ -2406,6 +2537,13 @@
           "description": "the name of the machine",
           "type": "string"
         },
+        "networks": {
+          "description": "the networks of this machine",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/metal.MachineNetwork"
+          }
+        },
         "project": {
           "description": "the project that this machine is assigned to",
           "type": "string"
@@ -2424,11 +2562,6 @@
         "user_data": {
           "description": "userdata to execute post installation tasks",
           "type": "string"
-        },
-        "vrf": {
-          "description": "the vrf of the allocated machine",
-          "type": "integer",
-          "format": "integer"
         }
       }
     },
@@ -2486,6 +2619,36 @@
           "description": "the number of machines with unknown liveliness",
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "metal.MachineNetwork": {
+      "required": [
+        "networkid",
+        "ips",
+        "vrf",
+        "primary"
+      ],
+      "properties": {
+        "ips": {
+          "description": "the ip addresses of the allocated machine in this vrf",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "networkid": {
+          "description": "the networkID of the allocated machine in this vrf",
+          "type": "string"
+        },
+        "primary": {
+          "description": "this network is the primary vrf of the allocated machine, aka tenant vrf",
+          "type": "boolean"
+        },
+        "vrf": {
+          "description": "the vrf of the allocated machine",
+          "type": "integer",
+          "format": "integer"
         }
       }
     },
@@ -2927,6 +3090,228 @@
         }
       }
     },
+    "v1.FirewallCreateRequest": {
+      "required": [
+        "hostname",
+        "partitionid",
+        "ssh_pub_keys",
+        "tags",
+        "sizeid",
+        "ha",
+        "tenant",
+        "projectid",
+        "networks",
+        "imageid",
+        "ips"
+      ],
+      "properties": {
+        "description": {
+          "description": "the description for the allocated machine",
+          "type": "string"
+        },
+        "ha": {
+          "description": "if set to true, this firewall is set up in a High Available manner. optional",
+          "type": "boolean"
+        },
+        "hostname": {
+          "description": "the hostname for the allocated machine",
+          "type": "string"
+        },
+        "imageid": {
+          "description": "the image id to assign this machine to",
+          "type": "string"
+        },
+        "ips": {
+          "description": "the additional ips of this firewall, optional.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "the new name for the allocated machine",
+          "type": "string"
+        },
+        "networks": {
+          "description": "the networks of this firewall, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "partitionid": {
+          "description": "the partition id to assign this machine to",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id to assign this machine to",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id to assign this machine to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the name of the owning tenant",
+          "type": "string"
+        },
+        "user_data": {
+          "description": "cloud-init.io compatible userdata must be base64 encoded.",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition",
+          "type": "string"
+        }
+      }
+    },
+    "v1.FirewallDetailResponse": {
+      "required": [
+        "id",
+        "size",
+        "liveliness",
+        "partition",
+        "rackid",
+        "tags",
+        "state",
+        "hardware",
+        "allocation",
+        "events"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/metal.MachineAllocation"
+        },
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/metal.RecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/metal.MachineHardware"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/metal.Partition",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/metal.Size",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/metal.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.FirewallListResponse": {
+      "required": [
+        "id",
+        "partitionid",
+        "projectid",
+        "networks",
+        "ips",
+        "nat"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "ips": {
+          "description": "the additional ips of this firewall, optional.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "nat": {
+          "description": "if set to true, this firewall is set up in a High Available manner. optional",
+          "type": "boolean"
+        },
+        "networks": {
+          "description": "the networks of this firewall, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "partitionid": {
+          "description": "the partition this firewall belongs to.",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project this firewall belongs to, can be empty if globally available.",
+          "type": "string"
+        }
+      }
+    },
     "v1.IPAllocateRequest": {
       "required": [
         "projectid",
@@ -2953,9 +3338,9 @@
     },
     "v1.IPDetailResponse": {
       "required": [
+        "projectid",
         "networkid",
         "ipaddress",
-        "projectid",
         "created",
         "changed"
       ],
@@ -2996,8 +3381,8 @@
     },
     "v1.IPListResponse": {
       "required": [
-        "projectid",
         "networkid",
+        "projectid",
         "ipaddress"
       ],
       "properties": {
@@ -3045,11 +3430,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "projectid",
         "partitionid",
+        "projectid",
+        "prefixes",
         "nat",
-        "primary",
-        "prefixes"
+        "primary"
       ],
       "properties": {
         "description": {
@@ -3091,13 +3476,13 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
+        "projectid",
+        "prefixes",
+        "usage",
         "id",
         "partitionid",
-        "projectid",
         "nat",
-        "prefixes",
         "primary",
-        "usage",
         "created",
         "changed"
       ],
@@ -3160,9 +3545,9 @@
         "id",
         "partitionid",
         "projectid",
+        "prefixes",
         "nat",
         "primary",
-        "prefixes",
         "usage"
       ],
       "properties": {

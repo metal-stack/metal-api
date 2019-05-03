@@ -1,0 +1,38 @@
+@baseurl = {{scheme}}://{{host}}/v1/network
+
+### get all partitions
+# @name getAll
+GET {{baseurl}}
+
+### create tenant network
+# @name createTenantNetwork
+PUT {{baseurl}}/
+Content-Type: application/json
+
+{
+  "description": "Tenant Super Network",
+  "name": "tenants",
+  "nat": true,
+  "partitionid": "vagrant-lab",
+  "prefixes": [
+    "10.0.0.0/16"
+  ],
+  "primary": true
+}
+
+### create internet network
+# @name createInternetNetwork
+PUT {{baseurl}}/
+Content-Type: application/json
+
+{
+  "description": "Internet in Vagrant",
+  "name": "vagrant internet",
+  "nat": false,
+  "partitionid": "vagrant-lab",
+  "prefixes": [
+    "185.24.0.0/16",
+    "185.27.0.0/16"
+  ],
+  "primary": false
+}
