@@ -31,7 +31,7 @@ import (
 const (
 	cfgFileType             = "yaml"
 	moduleName              = "metal-api"
-	generatedHtmlApiDocPath = "./generate/redoc.html"
+	generatedHtmlApiDocPath = "./generate/"
 )
 
 var (
@@ -212,7 +212,6 @@ func initDataStore() {
 
 func initRestServices() *restfulspec.Config {
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewApiDoc(generatedHtmlApiDocPath))
 	restful.DefaultContainer.Add(service.NewPartition(ds))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
@@ -265,6 +264,10 @@ func run() {
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	logger.Infow("start metal api", "version", version.V.String(), "address", addr)
+
+	// expose generated apidoc
+	http.Handle("/apidocs/", http.StripPrefix("/apidocs/", http.FileServer(http.Dir(generatedHtmlApiDocPath))))
+
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		logger.Errorw("failed to start metal api", "error", err)

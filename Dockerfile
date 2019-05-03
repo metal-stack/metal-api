@@ -3,10 +3,10 @@ RUN make test-ci
 
 FROM letsdeal/redoc-cli:latest as docbuilder
 COPY --from=builder /work/spec/metal-api.json /spec/metal-api.json
-RUN redoc-cli bundle -o /generate/redoc.html /spec/metal-api.json
+RUN redoc-cli bundle -o /generate/index.html /spec/metal-api.json
 
 FROM alpine:3.8
 LABEL maintainer FI-TS Devops <devops@f-i-ts.de>
 COPY --from=builder /work/bin/metal-api /metal-api
-COPY --from=docbuilder /generate/redoc.html /generate/redoc.html
+COPY --from=docbuilder /generate/index.html /generate/index.html
 CMD ["/metal-api"]
