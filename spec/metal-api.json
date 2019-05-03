@@ -63,8 +63,14 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Image"
+                "$ref": "#/definitions/v1.ImageListResponse"
               }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -87,7 +93,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Image"
+              "$ref": "#/definitions/v1.ImageCreateRequest"
             }
           }
         ],
@@ -95,11 +101,17 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/metal.Image"
+              "$ref": "#/definitions/v1.ImageDetailResponse"
             }
           },
           "409": {
             "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -124,7 +136,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Image"
+              "$ref": "#/definitions/v1.ImageUpdateRequest"
             }
           }
         ],
@@ -132,17 +144,17 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Image"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+              "$ref": "#/definitions/v1.ImageDetailResponse"
             }
           },
           "409": {
             "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -176,11 +188,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Image"
+              "$ref": "#/definitions/v1.ImageDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -212,11 +224,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Image"
+              "$ref": "#/definitions/v1.ImageDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1442,8 +1454,14 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Partition"
+                "$ref": "#/definitions/v1.PartitionListResponse"
               }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1466,7 +1484,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Partition"
+              "$ref": "#/definitions/v1.PartitionCreateRequest"
             }
           }
         ],
@@ -1474,11 +1492,17 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/metal.Partition"
+              "$ref": "#/definitions/v1.PartitionDetailResponse"
             }
           },
           "409": {
             "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1503,7 +1527,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Partition"
+              "$ref": "#/definitions/v1.PartitionUpdateRequest"
             }
           }
         ],
@@ -1511,17 +1535,17 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Partition"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+              "$ref": "#/definitions/v1.PartitionDetailResponse"
             }
           },
           "409": {
             "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1555,11 +1579,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Partition"
+              "$ref": "#/definitions/v1.PartitionDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1591,11 +1615,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Partition"
+              "$ref": "#/definitions/v1.PartitionDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1622,8 +1646,14 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Size"
+                "$ref": "#/definitions/v1.SizeListResponse"
               }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1646,7 +1676,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Size"
+              "$ref": "#/definitions/v1.SizeCreateRequest"
             }
           }
         ],
@@ -1654,11 +1684,17 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/metal.Size"
+              "$ref": "#/definitions/v1.SizeDetailResponse"
             }
           },
           "409": {
             "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1683,7 +1719,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.Size"
+              "$ref": "#/definitions/v1.SizeUpdateRequest"
             }
           }
         ],
@@ -1691,13 +1727,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Size"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+              "$ref": "#/definitions/v1.SizeDetailResponse"
             }
           },
           "409": {
@@ -1705,11 +1735,17 @@
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
     },
-    "/v1/size/fromHardware": {
+    "/v1/size/from-hardware": {
       "post": {
         "consumes": [
           "application/json"
@@ -1747,6 +1783,12 @@
                 "$ref": "#/definitions/metal.SizeMatchingLog"
               }
             }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         }
       }
@@ -1777,11 +1819,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Image"
+              "$ref": "#/definitions/v1.SizeDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1813,11 +1855,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Size"
+              "$ref": "#/definitions/v1.SizeDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -2953,9 +2995,9 @@
     },
     "v1.IPDetailResponse": {
       "required": [
-        "networkid",
         "ipaddress",
         "projectid",
+        "networkid",
         "created",
         "changed"
       ],
@@ -3042,14 +3084,67 @@
         }
       }
     },
-    "v1.NetworkCreateRequest": {
+    "v1.ImageCreateRequest": {
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "url": {
+          "description": "the url to this image",
+          "type": "string"
+        }
+      }
+    },
+    "v1.ImageDetailResponse": {
       "required": [
         "id",
-        "projectid",
-        "partitionid",
-        "nat",
-        "primary",
-        "prefixes"
+        "url",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "url": {
+          "description": "the url to this image",
+          "type": "string"
+        }
+      }
+    },
+    "v1.ImageListResponse": {
+      "required": [
+        "id",
+        "url"
       ],
       "properties": {
         "description": {
@@ -3058,6 +3153,53 @@
         },
         "id": {
           "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "url": {
+          "description": "the url to this image",
+          "type": "string"
+        }
+      }
+    },
+    "v1.ImageUpdateRequest": {
+      "required": [
+        "id",
+        "url"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        },
+        "url": {
+          "description": "the url to this image",
+          "type": "string"
+        }
+      }
+    },
+    "v1.NetworkCreateRequest": {
+      "required": [
+        "partitionid",
+        "projectid",
+        "prefixes",
+        "nat",
+        "primary"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
           "type": "string"
         },
         "name": {
@@ -3091,12 +3233,12 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
+        "primary",
+        "prefixes",
+        "nat",
+        "projectid",
         "id",
         "partitionid",
-        "projectid",
-        "nat",
-        "prefixes",
-        "primary",
         "usage",
         "created",
         "changed"
@@ -3158,11 +3300,11 @@
     "v1.NetworkListResponse": {
       "required": [
         "id",
-        "partitionid",
         "projectid",
+        "partitionid",
+        "prefixes",
         "nat",
         "primary",
-        "prefixes",
         "usage"
       ],
       "properties": {
@@ -3257,6 +3399,278 @@
         "used_prefixes": {
           "description": "the total available Prefixes",
           "type": "integer"
+        }
+      }
+    },
+    "v1.PartitionBootConfiguration": {
+      "required": [
+        "imageurl",
+        "kernelurl",
+        "commandline"
+      ],
+      "properties": {
+        "commandline": {
+          "description": "the cmdline to the kernel for the boot image",
+          "type": "string"
+        },
+        "imageurl": {
+          "description": "the url to download the initrd for the boot image",
+          "type": "string"
+        },
+        "kernelurl": {
+          "description": "the url to download the kernel for the boot image",
+          "type": "string"
+        }
+      }
+    },
+    "v1.PartitionCreateRequest": {
+      "required": [
+        "mgmtserviceaddress",
+        "bootconfig"
+      ],
+      "properties": {
+        "bootconfig": {
+          "$ref": "#/definitions/v1.PartitionBootConfiguration"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "mgmtserviceaddress": {
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.PartitionDetailResponse": {
+      "required": [
+        "id",
+        "bootconfig",
+        "mgmtserviceaddress",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "bootconfig": {
+          "$ref": "#/definitions/v1.PartitionBootConfiguration"
+        },
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "mgmtserviceaddress": {
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.PartitionListResponse": {
+      "required": [
+        "id",
+        "bootconfig"
+      ],
+      "properties": {
+        "bootconfig": {
+          "$ref": "#/definitions/v1.PartitionBootConfiguration"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.PartitionUpdateRequest": {
+      "required": [
+        "id",
+        "mgmtserviceaddress",
+        "bootconfig"
+      ],
+      "properties": {
+        "bootconfig": {
+          "$ref": "#/definitions/v1.PartitionBootConfiguration"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "mgmtserviceaddress": {
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SizeConstraint": {
+      "required": [
+        "type",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "max": {
+          "description": "the maximal value",
+          "type": "integer"
+        },
+        "min": {
+          "description": "the minimal value",
+          "type": "integer"
+        },
+        "type": {
+          "description": "the type of constraint",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SizeCreateRequest": {
+      "required": [
+        "constraints"
+      ],
+      "properties": {
+        "constraints": {
+          "description": "a list of constraints that defines this size",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SizeConstraint"
+          }
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SizeDetailResponse": {
+      "required": [
+        "id",
+        "constraints",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "constraints": {
+          "description": "a list of constraints that defines this size",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SizeConstraint"
+          }
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SizeListResponse": {
+      "required": [
+        "id",
+        "constraints"
+      ],
+      "properties": {
+        "constraints": {
+          "description": "a list of constraints that defines this size",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SizeConstraint"
+          }
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SizeUpdateRequest": {
+      "required": [
+        "id",
+        "constraints"
+      ],
+      "properties": {
+        "constraints": {
+          "description": "a list of constraints that defines this size",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SizeConstraint"
+          }
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "a unique ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "the readable name",
+          "type": "string"
         }
       }
     }

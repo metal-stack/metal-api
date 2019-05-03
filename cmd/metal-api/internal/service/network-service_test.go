@@ -137,7 +137,7 @@ func TestCreateNetwork(t *testing.T) {
 	networkservice := NewNetwork(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(networkservice)
 	createRequest := &v1.NetworkCreateRequest{
-		Common:           v1.Common{Describeable: v1.Describeable{Name: &testdata.Nw1.Name}},
+		Describeable:     v1.Describeable{Name: &testdata.Nw1.Name},
 		NetworkBase:      v1.NetworkBase{PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID},
 		NetworkImmutable: v1.NetworkImmutable{Prefixes: testdata.Nw1.Prefixes.String()},
 	}

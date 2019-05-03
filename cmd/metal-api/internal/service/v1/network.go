@@ -22,7 +22,7 @@ type NetworkUsage struct {
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total available Prefixes"`
 }
 type NetworkCreateRequest struct {
-	Common
+	Describeable
 	NetworkBase
 	NetworkImmutable
 }
