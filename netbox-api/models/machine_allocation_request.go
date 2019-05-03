@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -20,6 +22,10 @@ type MachineAllocationRequest struct {
 	// Additional description for this machine in the netbox
 	// Min Length: 1
 	Description string `json:"description,omitempty"`
+
+	// The ip addresses attached to this machine (will be attached to lo interface)
+	// Required: true
+	Ips []string `json:"ips"`
 
 	// The desired name for this machine in the netbox
 	// Required: true
@@ -51,6 +57,10 @@ func (m *MachineAllocationRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateDescription(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIps(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -88,6 +98,23 @@ func (m *MachineAllocationRequest) validateDescription(formats strfmt.Registry) 
 
 	if err := validate.MinLength("description", "body", string(m.Description), 1); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *MachineAllocationRequest) validateIps(formats strfmt.Registry) error {
+
+	if err := validate.Required("ips", "body", m.Ips); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(m.Ips); i++ {
+
+		if err := validate.MinLength("ips"+"."+strconv.Itoa(i), "body", string(m.Ips[i]), 1); err != nil {
+			return err
+		}
+
 	}
 
 	return nil

@@ -9,8 +9,8 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/netbox"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils/jwt"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
@@ -26,20 +26,20 @@ const (
 type machineResource struct {
 	webResource
 	bus.Publisher
-	netbox *netbox.APIProxy
+	ipamer ipam.IPAMer
 }
 
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
-	netbox *netbox.APIProxy) *restful.WebService {
+	ipamer ipam.IPAMer) *restful.WebService {
 	dr := machineResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		Publisher: pub,
-		netbox:    netbox,
+		ipamer:    ipamer,
 	}
 	return dr.webService()
 }
@@ -361,10 +361,10 @@ func (dr machineResource) registerMachine(request *restful.Request, response *re
 		log.Errorw("no size found for hardware", "hardware", data.Hardware, "error", err)
 	}
 
-	err = dr.netbox.Register(part.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
-	if checkError(request, response, op, err) {
-		return
-	}
+	// err = dr.dcm.RegisterMachine(part.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
+	// if checkError(request, response, "registerMachine", err) {
+	// 	return
+	// }
 
 	m, err := dr.ds.RegisterMachine(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI, data.Tags)
 
@@ -392,6 +392,7 @@ func (dr machineResource) ipmiData(request *restful.Request, response *restful.R
 }
 
 func (dr machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+	// FIXME: This is only temporary and needs to be made a little bit more elegant.
 	op := utils.CurrentFuncName()
 	var allocate metal.AllocateMachine
 	err := request.ReadEntity(&allocate)
@@ -423,21 +424,154 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 		}
 	}
 
-	d, err := dr.ds.AllocateMachine(allocate.UUID, allocate.Name, allocate.Description, allocate.Hostname,
-		allocate.ProjectID, part, size,
-		image, allocate.SSHPubKeys, allocate.Tags,
-		allocate.UserData,
-		allocate.Tenant,
-		dr.netbox)
-	if err != nil {
-		if err == datastore.ErrNoMachineAvailable {
-			sendError(log, response, op, httperrors.NotFound(err))
-		} else {
-			sendError(log, response, op, httperrors.UnprocessableEntity(err))
+	var machine *metal.Machine
+	if allocate.UUID != "" {
+		machine, err = dr.ds.FindMachine(allocate.UUID)
+		if checkError(request, response, op, err) {
+			return
 		}
+		if machine.Allocation != nil {
+			if checkError(request, response, op, fmt.Errorf("machine is already allocated")) {
+				return
+			}
+		}
+	} else {
+		machine, err = dr.ds.FindAvailableMachine(part.ID, size.ID)
+		if checkError(request, response, op, err) {
+			return
+		}
+		// next instruction is temp fix for populating the found machine with more data
+		machine, err = dr.ds.FindMachine(machine.ID)
+		if checkError(request, response, op, err) {
+			return
+		}
+	}
+	if machine == nil {
+		if checkError(request, response, op, fmt.Errorf("no machine found")) {
+			return
+		}
+	}
+
+	old := *machine
+
+	var vrf *metal.Vrf
+	vrf, err = dr.ds.FindVrf(map[string]interface{}{"tenant": allocate.Tenant, "projectid": allocate.ProjectID})
+	if err != nil {
+		if checkError(request, response, op, fmt.Errorf("cannot find vrf for tenant project: %v", err)) {
+			return
+		}
+	}
+	if vrf == nil {
+		vrf, err = dr.ds.ReserveNewVrf(allocate.Tenant, allocate.ProjectID)
+		if err != nil {
+			if checkError(request, response, op, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)) {
+				return
+			}
+		}
+	}
+
+	projectNetwork, err := dr.ds.SearchProjectNetwork(allocate.ProjectID)
+	if checkError(request, response, op, err) {
 		return
 	}
-	response.WriteEntity(d)
+
+	if projectNetwork == nil {
+		primaryNetwork, err := dr.ds.GetPrimaryNetwork()
+		if err != nil {
+			if checkError(request, response, op, fmt.Errorf("could not get primary network: %v", err)) {
+				return
+			}
+		}
+
+		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, metal.ProjectNetworkPrefixLength, dr.ipamer)
+		if checkError(request, response, op, err) {
+			return
+		}
+		if projectPrefix == nil {
+			if checkError(request, response, op, fmt.Errorf("could not allocate child prefix in network: %s", primaryNetwork.ID)) {
+				return
+			}
+		}
+
+		projectNetwork = &metal.Network{
+			Base: metal.Base{
+				Name:        fmt.Sprintf("Child of %s", primaryNetwork.ID),
+				Description: "Automatically Created Project Network",
+			},
+			Prefixes:    metal.Prefixes{*projectPrefix},
+			PartitionID: part.ID,
+			ProjectID:   allocate.ProjectID,
+			Nat:         false,
+			Primary:     false,
+		}
+
+		err = dr.ds.CreateNetwork(projectNetwork)
+		if checkError(request, response, op, err) {
+			return
+		}
+	}
+
+	ip, err := allocateIP(*projectNetwork, dr.ipamer)
+	if err != nil {
+		if checkError(request, response, op, fmt.Errorf("unable to allocate an ip for machine:%s", machine.ID)) {
+			return
+		}
+	}
+
+	ip.Name = allocate.Name
+	ip.Description = machine.ID
+	ip.ProjectID = allocate.ProjectID
+
+	err = dr.ds.CreateIP(ip)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	alloc := &metal.MachineAllocation{
+		Created:     time.Now(),
+		Name:        allocate.Name,
+		Hostname:    allocate.Hostname,
+		Tenant:      allocate.Tenant,
+		Project:     allocate.ProjectID,
+		Description: allocate.Description,
+		Image:       image,
+		ImageID:     image.ID,
+		SSHPubKeys:  allocate.SSHPubKeys,
+		UserData:    allocate.UserData,
+		Cidr:        ip.IPAddress,
+		Vrf:         vrf.ID,
+	}
+	machine.Allocation = alloc
+	machine.Changed = time.Now()
+
+	tagSet := make(map[string]bool)
+	tagList := append(machine.Tags, allocate.Tags...)
+	for _, t := range tagList {
+		tagSet[t] = true
+	}
+	newTags := []string{}
+	for k := range tagSet {
+		newTags = append(newTags, k)
+	}
+	machine.Tags = newTags
+	err = dr.ds.UpdateMachine(&old, machine)
+	if err != nil {
+		dr.ds.DeleteIP(ip)
+		if checkError(request, response, op, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)) {
+			return
+		}
+	}
+
+	err = dr.ds.UpdateWaitingMachine(machine)
+	if err != nil {
+		dr.ds.DeleteIP(ip)
+		dr.ds.UpdateMachine(machine, &old)
+		if checkError(request, response, op, fmt.Errorf("cannot allocate machine in DB: %v", err)) {
+			return
+		}
+	}
+
+	response.WriteEntity(machine)
 }
 
 func (dr machineResource) freeMachine(request *restful.Request, response *restful.Response) {
@@ -455,14 +589,15 @@ func (dr machineResource) freeMachine(request *restful.Request, response *restfu
 			return
 		}
 
-		err = dr.netbox.Release(id)
-		utils.Logger(request).Sugar().Infow("dropped machine from NetBox", "machineID", id, "error", err)
-		if checkError(request, response, op, err) {
-			return
-		}
+		// err = dr.dcm.ReleaseMachine(id)
+		// if checkError(request, response, "freeMachine", err) {
+		// 	return
+		// }
 	}
 	// do the next steps in any case, so a client can call this function multiple times to
 	// fire of the needed events
+
+	// FIXME: Release automatically allocated machine IP, clean up child prefix if last IP
 
 	sw, err := dr.ds.SetVrfAtSwitch(m, "")
 	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)

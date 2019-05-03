@@ -12,7 +12,7 @@ InitMockDB ...
 
 Description:
 This Function initializes the Mocked rethink DB.
-It is recommented to execute metal.InitMockDBData() to fill it with moks
+It is recommended to execute metal.InitMockDBData() to fill it with mocks
 
 Return Values:
 - RethinkStore 	// The Database

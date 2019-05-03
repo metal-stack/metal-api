@@ -15,6 +15,10 @@ tags:
   description: "Endpoints for managing machines in the netbox"
 - name: "switches"
   description: "Endpoints for managing switches in the netbox"
+- name: "networks"
+  description: "Endpoints for managing networks in the netbox"
+- name: "ips"
+  description: "Endpoints for managing ips in the netbox"
 schemes:
 - "http"
 securityDefinitions:
@@ -49,24 +53,8 @@ paths:
       responses:
         200:
           description: "OK"
-        400:
-          description: "Bad request"
-          schema:
-            $ref: "#/definitions/Problem"
-        401:
-          description: "Unauthorized"
-          schema:
-            $ref: "#/definitions/Problem"
-        403:
-          description: "Forbidden"
-          schema:
-            $ref: "#/definitions/Problem"
-        404:
-          description: "Not found"
-          schema:
-            $ref: "#/definitions/Problem"
-        500:
-          description: "Internal server error"
+        default:
+          description: "Problem"
           schema:
             $ref: "#/definitions/Problem"
   /machines/{uuid}/allocate:
@@ -92,26 +80,8 @@ paths:
       responses:
         200:
           description: "OK"
-          schema:
-            $ref: "#/definitions/MachineAllocationResponse"
-        400:
-          description: "Bad request"
-          schema:
-            $ref: "#/definitions/Problem"
-        401:
-          description: "Unauthorized"
-          schema:
-            $ref: "#/definitions/Problem"
-        403:
-          description: "Forbidden"
-          schema:
-            $ref: "#/definitions/Problem"
-        404:
-          description: "Not found"
-          schema:
-            $ref: "#/definitions/Problem"
-        500:
-          description: "Internal server error"
+        default:
+          description: "Problem"
           schema:
             $ref: "#/definitions/Problem"
   /machines/{uuid}/release:
@@ -131,24 +101,8 @@ paths:
       responses:
         200:
           description: "OK"
-        400:
-          description: "Bad request"
-          schema:
-            $ref: "#/definitions/Problem"
-        401:
-          description: "Unauthorized"
-          schema:
-            $ref: "#/definitions/Problem"
-        403:
-          description: "Forbidden"
-          schema:
-            $ref: "#/definitions/Problem"
-        404:
-          description: "Not found"
-          schema:
-            $ref: "#/definitions/Problem"
-        500:
-          description: "Internal server error"
+        default:
+          description: "Problem"
           schema:
             $ref: "#/definitions/Problem"
   /switches/{uuid}/register:
@@ -174,6 +128,134 @@ paths:
       responses:
         200:
           description: "OK"
+        default:
+          description: "Problem"
+          schema:
+            $ref: "#/definitions/Problem"
+  /networks:
+    post:
+      tags:
+        - "networks"
+      summary: "Create a new network"
+      operationId: "netbox_api_proxy.api.create_network"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      - "application/problem+json"
+      parameters:
+      - name: "request"
+        in: "body"
+        description: "The network creation body"
+        required: true
+        schema:
+          $ref: "#/definitions/NetworkCreateRequest"
+      responses:
+        200:
+          description: "OK"
+        default:
+          description: "Problem"
+          schema:
+            $ref: "#/definitions/Problem"
+    delete:
+      tags:
+        - "networks"
+      summary: "Delete a network"
+      operationId: "netbox_api_proxy.api.delete_network"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      - "application/problem+json"
+      parameters:
+      - name: "request"
+        in: "body"
+        description: "The ip deletion body"
+        required: true
+        schema:
+          $ref: "#/definitions/CIDR"
+      responses:
+        200:
+          description: "OK"
+        default:
+          description: "Problem"
+          schema:
+            $ref: "#/definitions/Problem"
+  /networks/allocate:
+    post:
+      tags:
+        - "networks"
+      summary: "Create a child prefix from a parent prefix"
+      operationId: "netbox_api_proxy.api.allocate_network"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      - "application/problem+json"
+      parameters:
+      - name: "request"
+        in: "body"
+        description: "The network allocation body"
+        required: true
+        schema:
+          $ref: "#/definitions/NetworkAllocateRequest"
+      responses:
+        200:
+          description: "OK"
+          schema:
+            $ref: "#/definitions/CIDR"
+        default:
+          description: "Problem"
+          schema:
+            $ref: "#/definitions/Problem"
+  /ips:
+    delete:
+      tags:
+        - "ips"
+      summary: "Delete an ip address"
+      operationId: "netbox_api_proxy.api.delete_ip"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      - "application/problem+json"
+      parameters:
+      - name: "request"
+        in: "body"
+        description: "The ip deletion body"
+        required: true
+        schema:
+          $ref: "#/definitions/CIDR"
+      responses:
+        200:
+          description: "OK"
+        default:
+          description: "Problem"
+          schema:
+            $ref: "#/definitions/Problem"
+  /ips/allocate:
+    post:
+      tags:
+        - "ips"
+      summary: "Create an ip address from a prefix"
+      operationId: "netbox_api_proxy.api.allocate_ip"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      - "application/problem+json"
+      parameters:
+      - name: "request"
+        in: "body"
+        description: "The ip allocation body"
+        required: true
+        schema:
+          $ref: "#/definitions/IpAllocateRequest"
+      responses:
+        200:
+          description: "OK"
+          schema:
+            $ref: "#/definitions/CIDR"
         400:
           description: "Bad request"
           schema:
@@ -234,6 +316,7 @@ definitions:
     - "tenant"
     - "vrf"
     - "project"
+    - "ips"
     properties:
       name:
         description: "The desired name for this machine in the netbox"
@@ -259,14 +342,12 @@ definitions:
         description: "Additional description for this machine in the netbox"
         type: "string"
         minLength: 1
-  MachineAllocationResponse:
-    type: "object"
-    required:
-    - "cidr"
-    properties:
-      cidr:
-        description: "The allocated cidr of the allocated machine"
-        type: "string"
+      ips:
+        description: "The ip addresses attached to this machine (will be attached to lo interface)"
+        type: "array"
+        items:
+          type: "string"
+          minLength: 1
   Nic:
     type: "object"
     required:
@@ -306,6 +387,86 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/Nic"
+  NetworkCreateRequest:
+    type: "object"
+    required:
+    - "prefixes"
+    properties:
+      prefixes:
+        description: "The prefixes to create in the netbox"
+        type: "array"
+        items:
+          type: "string"
+          minLength: 1
+      description:
+        description: "The description of this prefix"
+        type: "string"
+      partition:
+        description: "The id of the partition"
+        type: "string"
+      tenant:
+        description: "The name of the tenant to assign this prefix to"
+        type: "string"
+      project:
+        description: "The name of the project to assign this prefix to"
+        type: "string"
+  NetworkAllocateRequest:
+    type: "object"
+    required:
+    - "prefix"
+    properties:
+      prefix:
+        description: "The prefix to split out a child from"
+        type: "string"
+        minLength: 1
+      prefix_length:
+        description: "The length of the child prefix to split out"
+        type: "number"
+        minimum: 0
+        maximum: 32
+      description:
+        description: "The description of this prefix"
+        type: "string"
+      partition:
+        description: "The id of the partition"
+        type: "string"
+      tenant:
+        description: "The name of the tenant to assign this prefix to"
+        type: "string"
+      project:
+        description: "The name of the project to assign this prefix to"
+        type: "string"
+  CIDR:
+    type: "object"
+    required:
+    - "cidr"
+    properties:
+      cidr:
+        description: "The cidr"
+        type: "string"
+  IpAllocateRequest:
+    type: "object"
+    required:
+    - "prefixes"
+    properties:
+      prefixes:
+        description: "The prefixes to create in the netbox"
+        type: "array"
+        items:
+          type: "string"
+          minLength: 1
+      description:
+        description: "The description of this ip"
+        type: "string"
+      partition:
+        description: "The id of the partition"
+        type: "string"
+      tenant:
+        description: "The name of the tenant to assign this ip to"
+        type: "string"
+      project:
+        description: "The name of the project to assign this ip to"
+        type: "string"
   Problem:
     type: "object"
     properties:

@@ -13,17 +13,17 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// MachineAllocationResponse machine allocation response
-// swagger:model MachineAllocationResponse
-type MachineAllocationResponse struct {
+// CIDR c ID r
+// swagger:model CIDR
+type CIDR struct {
 
-	// The allocated cidr of the allocated machine
+	// The cidr
 	// Required: true
 	Cidr *string `json:"cidr"`
 }
 
-// Validate validates this machine allocation response
-func (m *MachineAllocationResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this c ID r
+func (m *CIDR) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCidr(formats); err != nil {
@@ -36,7 +36,7 @@ func (m *MachineAllocationResponse) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *MachineAllocationResponse) validateCidr(formats strfmt.Registry) error {
+func (m *CIDR) validateCidr(formats strfmt.Registry) error {
 
 	if err := validate.Required("cidr", "body", m.Cidr); err != nil {
 		return err
@@ -46,7 +46,7 @@ func (m *MachineAllocationResponse) validateCidr(formats strfmt.Registry) error 
 }
 
 // MarshalBinary interface implementation
-func (m *MachineAllocationResponse) MarshalBinary() ([]byte, error) {
+func (m *CIDR) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -54,8 +54,8 @@ func (m *MachineAllocationResponse) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *MachineAllocationResponse) UnmarshalBinary(b []byte) error {
-	var res MachineAllocationResponse
+func (m *CIDR) UnmarshalBinary(b []byte) error {
+	var res CIDR
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

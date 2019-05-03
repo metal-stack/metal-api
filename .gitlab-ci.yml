@@ -11,9 +11,9 @@ nopush:
       - prod
     script: docker-make --Lint --summary -n
 
-push:
-    stage: push
-    script: docker-make --Lint --summary
-    only:
-      - master
-      - prod
+# push:
+#     stage: push
+#     script: docker-make --Lint --summary
+#     only:
+#       - master
+#       - prod

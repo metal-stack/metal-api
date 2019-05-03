@@ -32,43 +32,15 @@ func (o *NetboxAPIProxyAPIMachineRegisterReader) ReadResponse(response runtime.C
 		}
 		return result, nil
 
-	case 400:
-		result := NewNetboxAPIProxyAPIMachineRegisterBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 401:
-		result := NewNetboxAPIProxyAPIMachineRegisterUnauthorized()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 403:
-		result := NewNetboxAPIProxyAPIMachineRegisterForbidden()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 404:
-		result := NewNetboxAPIProxyAPIMachineRegisterNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
-	case 500:
-		result := NewNetboxAPIProxyAPIMachineRegisterInternalServerError()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewNetboxAPIProxyAPIMachineRegisterDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -93,140 +65,33 @@ func (o *NetboxAPIProxyAPIMachineRegisterOK) readResponse(response runtime.Clien
 	return nil
 }
 
-// NewNetboxAPIProxyAPIMachineRegisterBadRequest creates a NetboxAPIProxyAPIMachineRegisterBadRequest with default headers values
-func NewNetboxAPIProxyAPIMachineRegisterBadRequest() *NetboxAPIProxyAPIMachineRegisterBadRequest {
-	return &NetboxAPIProxyAPIMachineRegisterBadRequest{}
-}
-
-/*NetboxAPIProxyAPIMachineRegisterBadRequest handles this case with default header values.
-
-Bad request
-*/
-type NetboxAPIProxyAPIMachineRegisterBadRequest struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterBadRequest) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/register][%d] netboxApiProxyApiMachineRegisterBadRequest  %+v", 400, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
+// NewNetboxAPIProxyAPIMachineRegisterDefault creates a NetboxAPIProxyAPIMachineRegisterDefault with default headers values
+func NewNetboxAPIProxyAPIMachineRegisterDefault(code int) *NetboxAPIProxyAPIMachineRegisterDefault {
+	return &NetboxAPIProxyAPIMachineRegisterDefault{
+		_statusCode: code,
 	}
-
-	return nil
 }
 
-// NewNetboxAPIProxyAPIMachineRegisterUnauthorized creates a NetboxAPIProxyAPIMachineRegisterUnauthorized with default headers values
-func NewNetboxAPIProxyAPIMachineRegisterUnauthorized() *NetboxAPIProxyAPIMachineRegisterUnauthorized {
-	return &NetboxAPIProxyAPIMachineRegisterUnauthorized{}
-}
+/*NetboxAPIProxyAPIMachineRegisterDefault handles this case with default header values.
 
-/*NetboxAPIProxyAPIMachineRegisterUnauthorized handles this case with default header values.
-
-Unauthorized
+Problem
 */
-type NetboxAPIProxyAPIMachineRegisterUnauthorized struct {
+type NetboxAPIProxyAPIMachineRegisterDefault struct {
+	_statusCode int
+
 	Payload *models.Problem
 }
 
-func (o *NetboxAPIProxyAPIMachineRegisterUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/register][%d] netboxApiProxyApiMachineRegisterUnauthorized  %+v", 401, o.Payload)
+// Code gets the status code for the netbox api proxy api machine register default response
+func (o *NetboxAPIProxyAPIMachineRegisterDefault) Code() int {
+	return o._statusCode
 }
 
-func (o *NetboxAPIProxyAPIMachineRegisterUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
+func (o *NetboxAPIProxyAPIMachineRegisterDefault) Error() string {
+	return fmt.Sprintf("[POST /machines/{uuid}/register][%d] netbox_api_proxy.api.machine_register default  %+v", o._statusCode, o.Payload)
 }
 
-// NewNetboxAPIProxyAPIMachineRegisterForbidden creates a NetboxAPIProxyAPIMachineRegisterForbidden with default headers values
-func NewNetboxAPIProxyAPIMachineRegisterForbidden() *NetboxAPIProxyAPIMachineRegisterForbidden {
-	return &NetboxAPIProxyAPIMachineRegisterForbidden{}
-}
-
-/*NetboxAPIProxyAPIMachineRegisterForbidden handles this case with default header values.
-
-Forbidden
-*/
-type NetboxAPIProxyAPIMachineRegisterForbidden struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterForbidden) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/register][%d] netboxApiProxyApiMachineRegisterForbidden  %+v", 403, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPIMachineRegisterNotFound creates a NetboxAPIProxyAPIMachineRegisterNotFound with default headers values
-func NewNetboxAPIProxyAPIMachineRegisterNotFound() *NetboxAPIProxyAPIMachineRegisterNotFound {
-	return &NetboxAPIProxyAPIMachineRegisterNotFound{}
-}
-
-/*NetboxAPIProxyAPIMachineRegisterNotFound handles this case with default header values.
-
-Not found
-*/
-type NetboxAPIProxyAPIMachineRegisterNotFound struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterNotFound) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/register][%d] netboxApiProxyApiMachineRegisterNotFound  %+v", 404, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Problem)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewNetboxAPIProxyAPIMachineRegisterInternalServerError creates a NetboxAPIProxyAPIMachineRegisterInternalServerError with default headers values
-func NewNetboxAPIProxyAPIMachineRegisterInternalServerError() *NetboxAPIProxyAPIMachineRegisterInternalServerError {
-	return &NetboxAPIProxyAPIMachineRegisterInternalServerError{}
-}
-
-/*NetboxAPIProxyAPIMachineRegisterInternalServerError handles this case with default header values.
-
-Internal server error
-*/
-type NetboxAPIProxyAPIMachineRegisterInternalServerError struct {
-	Payload *models.Problem
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /machines/{uuid}/register][%d] netboxApiProxyApiMachineRegisterInternalServerError  %+v", 500, o.Payload)
-}
-
-func (o *NetboxAPIProxyAPIMachineRegisterInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *NetboxAPIProxyAPIMachineRegisterDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Problem)
 

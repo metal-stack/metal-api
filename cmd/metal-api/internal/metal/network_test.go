@@ -48,3 +48,73 @@ func TestNics_ByMac(t *testing.T) {
 		})
 	}
 }
+
+func TestPrefix_Equals(t *testing.T) {
+	type fields struct {
+		IP     string
+		Length string
+	}
+	type args struct {
+		other *Prefix
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name: "test prefix equals",
+			fields: fields{
+				IP:     "10.0.0.0",
+				Length: "18",
+			},
+			args: args{
+				other: &Prefix{
+					IP:     "10.0.0.0",
+					Length: "18",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "test prefix not equals 1",
+			fields: fields{
+				IP:     "10.0.0.0",
+				Length: "18",
+			},
+			args: args{
+				other: &Prefix{
+					IP:     "10.0.0.0",
+					Length: "20",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "test prefix not equals 2",
+			fields: fields{
+				IP:     "10.0.0.1",
+				Length: "18",
+			},
+			args: args{
+				other: &Prefix{
+					IP:     "10.0.0.0",
+					Length: "18",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Prefix{
+				IP:     tt.fields.IP,
+				Length: tt.fields.Length,
+			}
+			if got := p.Equals(tt.args.other); got != tt.want {
+				t.Errorf("Prefix.Equals() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

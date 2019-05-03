@@ -215,6 +215,73 @@ var (
 		},
 	}
 
+	// Networks
+	prefix1    = metal.Prefix{IP: "185.1.2.0", Length: "26"}
+	prefix2    = metal.Prefix{IP: "100.64.2.0", Length: "16"}
+	prefix3    = metal.Prefix{IP: "192.0.0.0", Length: "16"}
+	prefixIPAM = metal.Prefix{IP: "10.0.0.0", Length: "16"}
+
+	prefixes1    = []metal.Prefix{prefix1, prefix2}
+	prefixes2    = []metal.Prefix{prefix2}
+	prefixes3    = []metal.Prefix{prefix3}
+	prefixesIPAM = []metal.Prefix{prefixIPAM}
+
+	Nw1 = metal.Network{
+		Base: metal.Base{
+			ID:          "1",
+			Name:        "Network 1",
+			Description: "description 1",
+		},
+		Prefixes: prefixes1,
+	}
+	Nw2 = metal.Network{
+		Base: metal.Base{
+			ID:          "2",
+			Name:        "Network 2",
+			Description: "description 2",
+		},
+		Prefixes: prefixes2,
+	}
+	Nw3 = metal.Network{
+		Base: metal.Base{
+			ID:          "3",
+			Name:        "Network 3",
+			Description: "description 3",
+		},
+		Prefixes: prefixes3,
+		Primary:  true,
+	}
+
+	NwIPAM = metal.Network{
+		Base: metal.Base{
+			ID:          "4",
+			Name:        "IPAM Network",
+			Description: "description IPAM",
+		},
+		Prefixes: prefixesIPAM,
+	}
+
+	// IPs
+	IP1 = metal.IP{
+		IPAddress:   "1.2.3.4",
+		Name:        "Image 1",
+		Description: "description 1",
+	}
+	IP2 = metal.IP{
+		IPAddress:   "2.3.4.5",
+		Name:        "Image 2",
+		Description: "description 2",
+	}
+	IP3 = metal.IP{
+		IPAddress:   "3.4.5.6",
+		Name:        "Image 3",
+		Description: "description 3",
+	}
+	IPAMIP = metal.IP{
+		Name:        "IPAM IP",
+		Description: "description IPAM",
+	}
+
 	// partitions
 	Partition1 = metal.Partition{
 		Base: metal.Base{
@@ -370,6 +437,14 @@ var (
 	TestImages = []metal.Image{
 		Img1, Img2, Img3,
 	}
+	// All Networks
+	TestNetworks = []metal.Network{
+		Nw1, Nw2, Nw3, NwIPAM,
+	}
+	// All IPs
+	TestIPs = []metal.IP{
+		IP1, IP2, IP3,
+	}
 
 	// All Events
 	TestEvents = []metal.ProvisioningEventContainer{}
@@ -474,6 +549,17 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image").Get("3")).Return(Img3, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("image").Get("999")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("network").Get("1")).Return(Nw1, nil)
+	mock.On(r.DB("mockdb").Table("network").Get("2")).Return(Nw2, nil)
+	mock.On(r.DB("mockdb").Table("network").Get("3")).Return(Nw3, nil)
+	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(func(var_1 r.Term) r.Term { return var_1.Field("primary").Eq(true) })).Return(Nw3, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get("3.4.5.6")).Return(IP3, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get("8.8.8.8")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("ip").Get("9.9.9.9")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("1")).Return(M1, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("2")).Return(M2, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("3")).Return(M3, nil)
@@ -499,6 +585,8 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("event").Get(r.MockAnything())).Return(EmptyResult, nil)
@@ -507,6 +595,8 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("size")).Return(TestSizes, nil)
 	mock.On(r.DB("mockdb").Table("partition")).Return(TestPartitions, nil)
 	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
+	mock.On(r.DB("mockdb").Table("network")).Return(TestNetworks, nil)
+	mock.On(r.DB("mockdb").Table("ip")).Return(TestIPs, nil)
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
 	mock.On(r.DB("mockdb").Table("event")).Return(TestEvents, nil)
@@ -515,6 +605,8 @@ func InitMockDBData(mock *r.Mock) {
 	// X.Delete
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
@@ -524,6 +616,8 @@ func InitMockDBData(mock *r.Mock) {
 	// X.Get.Replace
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
@@ -532,6 +626,8 @@ func InitMockDBData(mock *r.Mock) {
 	// X.insert
 	mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Insert(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("network").Insert(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ip").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything())).Return(EmptyResult, nil)
@@ -542,6 +638,12 @@ func InitMockDBData(mock *r.Mock) {
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("image").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ip").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Insert(r.MockAnything(), r.InsertOpts{

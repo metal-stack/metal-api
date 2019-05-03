@@ -11,7 +11,9 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/ips"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/machines"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/networks"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/netbox-api/client/switches"
 )
 
@@ -58,7 +60,11 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *NetboxAPIP
 	cli := new(NetboxAPIProxy)
 	cli.Transport = transport
 
+	cli.Ips = ips.New(transport, formats)
+
 	cli.Machines = machines.New(transport, formats)
+
+	cli.Networks = networks.New(transport, formats)
 
 	cli.Switches = switches.New(transport, formats)
 
@@ -106,7 +112,11 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // NetboxAPIProxy is a client for netbox API proxy
 type NetboxAPIProxy struct {
+	Ips *ips.Client
+
 	Machines *machines.Client
+
+	Networks *networks.Client
 
 	Switches *switches.Client
 
@@ -117,7 +127,11 @@ type NetboxAPIProxy struct {
 func (c *NetboxAPIProxy) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 
+	c.Ips.SetTransport(transport)
+
 	c.Machines.SetTransport(transport)
+
+	c.Networks.SetTransport(transport)
 
 	c.Switches.SetTransport(transport)
 
