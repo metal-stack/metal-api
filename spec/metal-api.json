@@ -15,19 +15,6 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/apidocs.html": {
-      "get": {
-        "produces": [
-          "text/html"
-        ],
-        "operationId": "apiDoc",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/v1/health": {
       "get": {
         "consumes": [
