@@ -5,14 +5,14 @@ import (
 )
 
 type NetworkBase struct {
-	PartitionID string `json:"partitionid" description:"the partition this network belongs to, TODO: can be empty ?"`
-	ProjectID   string `json:"projectid" description:"the project this network belongs to, can be empty if globally available."`
+	PartitionID *string `json:"partitionid" description:"the partition this network belongs to, TODO: can be empty ?"`
+	ProjectID   *string `json:"projectid" description:"the project this network belongs to, can be empty if globally available."`
 }
 
 type NetworkImmutable struct {
 	Prefixes []string `json:"prefixes" description:"the prefixes of this network, required."`
-	Nat      bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip."`
-	Primary  bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
+	Nat      *bool    `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip."`
+	Primary  *bool    `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
 }
 
 type NetworkUsage struct {
@@ -65,18 +65,18 @@ func NewNetworkListResponse(network *metal.Network, usage NetworkUsage) *Network
 				ID: network.ID,
 			},
 			Describeable: Describeable{
-				Name:        network.Name,
-				Description: network.Description,
+				Name:        &network.Name,
+				Description: &network.Description,
 			},
 		},
 		NetworkBase: NetworkBase{
-			PartitionID: network.PartitionID,
-			ProjectID:   network.ProjectID,
+			PartitionID: &network.PartitionID,
+			ProjectID:   &network.ProjectID,
 		},
 		NetworkImmutable: NetworkImmutable{
 			Prefixes: prefixes,
-			Nat:      network.Nat,
-			Primary:  network.Primary,
+			Nat:      &network.Nat,
+			Primary:  &network.Primary,
 		},
 		Usage: usage,
 	}

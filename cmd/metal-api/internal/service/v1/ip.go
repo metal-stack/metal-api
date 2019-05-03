@@ -47,8 +47,8 @@ func NewIPDetailResponse(ip *metal.IP) *IPDetailResponse {
 func NewIPListResponse(ip *metal.IP) *IPListResponse {
 	return &IPListResponse{
 		Describeable: Describeable{
-			Name:        ip.Name,
-			Description: ip.Description,
+			Name:        &ip.Name,
+			Description: &ip.Description,
 		},
 		IPBase: IPBase{
 			NetworkID: ip.NetworkID,

@@ -199,6 +199,7 @@ var (
 			Name:        "Image 1",
 			Description: "description 1",
 		},
+		URL: "http://somewhere/image1.zip",
 	}
 	Img2 = metal.Image{
 		Base: metal.Base{
@@ -206,6 +207,7 @@ var (
 			Name:        "Image 2",
 			Description: "description 2",
 		},
+		URL: "http://somewhere/image2.zip",
 	}
 	Img3 = metal.Image{
 		Base: metal.Base{

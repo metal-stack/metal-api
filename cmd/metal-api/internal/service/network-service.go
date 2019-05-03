@@ -106,9 +106,9 @@ func (nr networkResource) listNetworks(request *restful.Request, response *restf
 	}
 
 	var result []*v1.NetworkListResponse
-	for _, nw := range nws {
-		usage := nr.getNetworkUsage(&nw)
-		result = append(result, v1.NewNetworkListResponse(&nw, usage))
+	for i := range nws {
+		usage := nr.getNetworkUsage(&nws[i])
+		result = append(result, v1.NewNetworkListResponse(&nws[i], usage))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -120,9 +120,30 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	// Simple validation, prefixes must be given
+
+	var name string
+	if requestPayload.Name != nil {
+		name = *requestPayload.Name
+	}
+	var description string
+	if requestPayload.Description != nil {
+		description = *requestPayload.Description
+	}
+	var projectid string
+	if requestPayload.Description != nil {
+		projectid = *requestPayload.ProjectID
+	}
+	var nat bool
+	if requestPayload.Nat != nil {
+		nat = *requestPayload.Nat
+	}
+	var primary bool
+	if requestPayload.Primary != nil {
+		primary = *requestPayload.Primary
+	}
+
 	if len(requestPayload.Prefixes) == 0 {
-		// TODO: Should return a bad request 404
+		// TODO: Should return a bad request 401
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no prefixes given")) {
 			return
 		}
@@ -131,7 +152,7 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 	// all Prefixes must be valid
 	for _, p := range requestPayload.Prefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
-		// TODO: Should return a bad request 404
+		// TODO: Should return a bad request 401
 		if err != nil {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
 				return
@@ -140,26 +161,29 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 		prefixes = append(prefixes, *prefix)
 	}
 
-	if requestPayload.PartitionID != "" {
-		_, err := nr.ds.FindPartition(requestPayload.PartitionID)
+	var partitionID string
+	if requestPayload.PartitionID != nil {
+		partition, err := nr.ds.FindPartition(*requestPayload.PartitionID)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
+		partitionID = partition.ID
 	}
+
+	// TODO: Check if project exists if we get a project entity
+	// FIXME: Check if prefixes overlap with existing super network prefixes (see go-ipam Prefix Overlapping)
 
 	nw := &metal.Network{
 		Base: metal.Base{
-			Name:        requestPayload.Name,
-			Description: requestPayload.Description,
+			Name:        name,
+			Description: description,
 		},
 		Prefixes:    prefixes,
-		PartitionID: requestPayload.PartitionID,
-		ProjectID:   requestPayload.ProjectID,
-		Nat:         requestPayload.Nat,
-		Primary:     requestPayload.Primary,
+		PartitionID: partitionID,
+		ProjectID:   projectid,
+		Nat:         nat,
+		Primary:     primary,
 	}
-	// TODO: Check if project exists if we get a project entity
-	// TODO: Check if prefixes overlap with existing super network prefixes (see go-ipam Prefix Overlapping)
 
 	for _, p := range nw.Prefixes {
 		err := nr.ipamer.CreatePrefix(p)
@@ -194,11 +218,11 @@ func (nr networkResource) updateNetwork(request *restful.Request, response *rest
 
 	newNetwork := *oldNetwork
 
-	if requestPayload.Name != "" {
-		newNetwork.Name = requestPayload.Name
+	if requestPayload.Name != nil {
+		newNetwork.Name = *requestPayload.Name
 	}
-	if requestPayload.Description != "" {
-		newNetwork.Description = requestPayload.Description
+	if requestPayload.Description != nil {
+		newNetwork.Description = *requestPayload.Description
 	}
 
 	var prefixesToBeRemoved metal.Prefixes
@@ -270,7 +294,7 @@ func (nr networkResource) deleteNetwork(request *restful.Request, response *rest
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	fmt.Printf("all ips: %#v", allIPs)
+
 	err = checkAnyIPOfPrefixesInUse(allIPs, nw.Prefixes)
 	if err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to delete network: %v", err)) {
@@ -335,18 +359,3 @@ func checkAnyIPOfPrefixesInUse(ips []metal.IP, prefixes metal.Prefixes) error {
 	}
 	return nil
 }
-
-// // difference returns the elements in `a` that aren't in `b`.
-// func difference(a, b []string) []string {
-// 	mb := make(map[string]bool)
-// 	for _, x := range b {
-// 		mb[x] = true
-// 	}
-// 	var ab []string
-// 	for _, x := range a {
-// 		if _, ok := mb[x]; !ok {
-// 			ab = append(ab, x)
-// 		}
-// 	}
-// 	return ab
-// }

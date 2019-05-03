@@ -9,8 +9,8 @@ type Identifiable struct {
 }
 
 type Describeable struct {
-	Name        string `json:"name,omitempty" description:"the readable name" optional:"true"`
-	Description string `json:"description,omitempty" description:"a description for this entity" optional:"true"`
+	Name        *string `json:"name,omitempty" description:"the readable name" optional:"true"`
+	Description *string `json:"description,omitempty" description:"a description for this entity" optional:"true"`
 }
 
 type Common struct {

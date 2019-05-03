@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/stretchr/testify/require"
 
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetImages(t *testing.T) {
@@ -27,16 +28,17 @@ func TestGetImages(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []metal.Partition
+	var result []v1.ImageListResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Len(t, result, 3)
 	require.Equal(t, testdata.Img1.ID, result[0].ID)
-	require.Equal(t, testdata.Img1.Name, result[0].Name)
+	require.Equal(t, testdata.Img1.Name, *result[0].Name)
 	require.Equal(t, testdata.Img2.ID, result[1].ID)
-	require.Equal(t, testdata.Img2.Name, result[1].Name)
+	require.Equal(t, testdata.Img2.Name, *result[1].Name)
 	require.Equal(t, testdata.Img3.ID, result[2].ID)
-	require.Equal(t, testdata.Img3.Name, result[2].Name)
+	require.Equal(t, testdata.Img3.Name, *result[2].Name)
 }
 
 func TestGetImage(t *testing.T) {
@@ -51,11 +53,12 @@ func TestGetImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.Partition
+	var result v1.ImageDetailResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img1.Name, *result.Name)
 }
 
 func TestGetImageNotFound(t *testing.T) {
@@ -70,6 +73,12 @@ func TestGetImageNotFound(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
+	var result httperrors.HTTPErrorResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Contains(t, result.Message, "999")
+	require.Equal(t, 404, result.StatusCode)
 }
 
 func TestDeleteImage(t *testing.T) {
@@ -84,11 +93,12 @@ func TestDeleteImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.Partition
+	var result v1.ImageDetailResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img1.Name, *result.Name)
 }
 
 func TestCreateImage(t *testing.T) {
@@ -98,7 +108,16 @@ func TestCreateImage(t *testing.T) {
 	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 
-	js, _ := json.Marshal(testdata.Img1)
+	createRequest := v1.ImageCreateRequest{
+		Describeable: v1.Describeable{
+			Name:        &testdata.Img1.Name,
+			Description: &testdata.Img1.Description,
+		},
+		ImageBase: v1.ImageBase{
+			URL: &testdata.Img1.URL,
+		},
+	}
+	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -107,11 +126,13 @@ func TestCreateImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
-	var result metal.Partition
+	var result v1.ImageDetailResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
-	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img1.Name, *result.Name)
+	require.Equal(t, testdata.Img1.Description, *result.Description)
+	require.Equal(t, testdata.Img1.URL, *result.URL)
 }
 
 func TestUpdateImage(t *testing.T) {
@@ -121,7 +142,21 @@ func TestUpdateImage(t *testing.T) {
 	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 
-	js, _ := json.Marshal(testdata.Img1)
+	updateRequest := v1.ImageUpdateRequest{
+		Common: v1.Common{
+			Describeable: v1.Describeable{
+				Name:        &testdata.Img2.Name,
+				Description: &testdata.Img2.Description,
+			},
+			Identifiable: v1.Identifiable{
+				ID: testdata.Img1.ID,
+			},
+		},
+		ImageBase: v1.ImageBase{
+			URL: &testdata.Img2.URL,
+		},
+	}
+	js, _ := json.Marshal(updateRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/image", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -130,9 +165,12 @@ func TestUpdateImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.Partition
+	var result v1.ImageDetailResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, result.Name)
+	require.Equal(t, testdata.Img2.Name, *result.Name)
+	require.Equal(t, testdata.Img2.Description, *result.Description)
+	require.Equal(t, testdata.Img2.URL, *result.URL)
 }

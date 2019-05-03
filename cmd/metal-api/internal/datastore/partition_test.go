@@ -119,7 +119,7 @@ func TestRethinkStore_CreatePartition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := tt.rs.CreatePartition(tt.args.part); (err != nil) != tt.wantErr {
+			if err := tt.rs.CreatePartition(tt.args.part); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreatePartition() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -133,13 +133,12 @@ func TestRethinkStore_DeletePartition(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	type args struct {
-		id string
+		p *metal.Partition
 	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    *metal.Partition
 		wantErr bool
 	}{
 		// Test Data Array / Test Cases:
@@ -147,39 +146,25 @@ func TestRethinkStore_DeletePartition(t *testing.T) {
 			name: "Test 1",
 			rs:   ds,
 			args: args{
-				id: "1",
+				p: &testdata.Partition1,
 			},
-			want:    &testdata.Partition1,
 			wantErr: false,
 		},
 		{
 			name: "Test 2",
 			rs:   ds,
 			args: args{
-				id: "2",
+				p: &testdata.Partition2,
 			},
-			want:    &testdata.Partition2,
 			wantErr: false,
-		},
-		{
-			name: "Test 3",
-			rs:   ds,
-			args: args{
-				id: "404",
-			},
-			want:    nil,
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.DeletePartition(tt.args.id)
+			err := tt.rs.DeletePartition(tt.args.p)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeletePartition() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.DeletePartition() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -86,8 +86,40 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 }
 
 func TestRethinkStore_CreateSize(t *testing.T) {
-
 	// mock the DB
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	type args struct {
+		size *metal.Size
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "TestRethinkStore_CreateSize Test 1",
+			rs:   ds,
+			args: args{
+				size: &testdata.Sz1,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.rs.CreateSize(tt.args.size); (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.CreateSize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_DeleteSize(t *testing.T) {
+
+	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
@@ -102,84 +134,34 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 	}{
 		// Test Data Array / Test Cases:
 		{
-			name: "TestRethinkStore_CreateSize Test 1",
+			name: "TestRethinkStore_DeleteSize Test 1",
 			rs:   ds,
 			args: args{
 				size: &testdata.Sz1,
 			},
 			wantErr: false,
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if _, err := tt.rs.CreateSize(tt.args.size); (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.CreateSize() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_DeleteSize(t *testing.T) {
-
-	// mock the DBs
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	type args struct {
-		id string
-	}
-	tests := []struct {
-		name    string
-		rs      *RethinkStore
-		args    args
-		want    *metal.Size
-		wantErr bool
-	}{
-		// Test Data Array / Test Cases:
-		{
-			name: "TestRethinkStore_DeleteSize Test 1",
-			rs:   ds,
-			args: args{
-				id: "1",
-			},
-			want:    &testdata.Sz1,
-			wantErr: false,
-		},
 		{
 			name: "TestRethinkStore_DeleteSize Test 2",
 			rs:   ds,
 			args: args{
-				id: "2",
+				size: &testdata.Sz2,
 			},
-			want:    &testdata.Sz2,
 			wantErr: false,
-		},
-		{
-			name: "TestRethinkStore_DeleteSize Test 3",
-			rs:   ds,
-			args: args{
-				id: "404",
-			},
-			want:    nil,
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.DeleteSize(tt.args.id)
+			err := tt.rs.DeleteSize(tt.args.size)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteSize() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.DeleteSize() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
 func TestRethinkStore_UpdateSize(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -234,7 +216,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    *metal.Size
+		want    string
 		wantErr bool
 	}{
 		// Test Data Array / Test Cases:
@@ -244,7 +226,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 			args: args{
 				hw: testdata.MachineHardware1,
 			},
-			want:    &testdata.Sz1,
+			want:    testdata.Sz1.ID,
 			wantErr: false,
 		},
 	}
@@ -255,8 +237,8 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 				t.Errorf("RethinkStore.FromHardware() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FromHardware() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got.ID, tt.want) {
+				t.Errorf("RethinkStore.FromHardware() = %v, want %v", got.ID, tt.want)
 			}
 		})
 	}
