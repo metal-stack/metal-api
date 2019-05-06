@@ -9,10 +9,15 @@ type FirewallBase struct {
 	ProjectID   string `json:"projectid" description:"the project this firewall belongs to, can be empty if globally available."`
 }
 
+type FirewallNetwork struct {
+	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
+	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
+	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
+	Primary   bool     `json:"primary" description:"this network is the primary vrf of the allocated machine, aka tenant vrf"`
+}
+
 type FirewallImmutable struct {
-	NetworkIDs []string `json:"networks" description:"the networks of this firewall, required."`
-	IPs        []string `json:"ips" description:"the additional ips of this firewall, optional."`
-	HA         bool     `json:"nat" description:"if set to true, this firewall is set up in a High Available manner. optional"`
+	Networks []FirewallNetwork `json:"networks" description:"the networks of this firewall, required."`
 }
 
 type FirewallCreateRequest struct {

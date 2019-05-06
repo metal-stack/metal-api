@@ -3136,17 +3136,17 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "hostname",
-        "networks",
-        "ha",
-        "sizeid",
-        "tags",
-        "ips",
-        "partitionid",
         "tenant",
+        "sizeid",
+        "ssh_pub_keys",
+        "tags",
+        "ha",
+        "hostname",
+        "partitionid",
+        "networks",
+        "ips",
         "projectid",
-        "imageid",
-        "ssh_pub_keys"
+        "imageid"
       ],
       "properties": {
         "description": {
@@ -3225,16 +3225,16 @@
     },
     "v1.FirewallDetailResponse": {
       "required": [
+        "events",
         "partition",
+        "allocation",
+        "hardware",
         "tags",
         "state",
-        "hardware",
         "id",
-        "liveliness",
-        "events",
-        "rackid",
         "size",
-        "allocation"
+        "rackid",
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -3311,9 +3311,7 @@
         "id",
         "partitionid",
         "projectid",
-        "networks",
-        "ips",
-        "nat"
+        "networks"
       ],
       "properties": {
         "description": {
@@ -3325,26 +3323,15 @@
           "type": "string",
           "uniqueItems": true
         },
-        "ips": {
-          "description": "the additional ips of this firewall, optional.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "nat": {
-          "description": "if set to true, this firewall is set up in a High Available manner. optional",
-          "type": "boolean"
         },
         "networks": {
           "description": "the networks of this firewall, required.",
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/v1.FirewallNetwork"
           }
         },
         "partitionid": {
@@ -3354,6 +3341,36 @@
         "projectid": {
           "description": "the project this firewall belongs to, can be empty if globally available.",
           "type": "string"
+        }
+      }
+    },
+    "v1.FirewallNetwork": {
+      "required": [
+        "networkid",
+        "ips",
+        "vrf",
+        "primary"
+      ],
+      "properties": {
+        "ips": {
+          "description": "the ip addresses of the allocated machine in this vrf",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "networkid": {
+          "description": "the networkID of the allocated machine in this vrf",
+          "type": "string"
+        },
+        "primary": {
+          "description": "this network is the primary vrf of the allocated machine, aka tenant vrf",
+          "type": "boolean"
+        },
+        "vrf": {
+          "description": "the vrf of the allocated machine",
+          "type": "integer",
+          "format": "integer"
         }
       }
     },
@@ -3632,9 +3649,9 @@
     },
     "v1.NetworkCreateRequest": {
       "required": [
+        "primary",
         "prefixes",
-        "nat",
-        "primary"
+        "nat"
       ],
       "properties": {
         "description": {
@@ -3672,13 +3689,13 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
-        "prefixes",
         "nat",
         "primary",
-        "usage",
+        "prefixes",
         "id",
-        "created",
-        "changed"
+        "usage",
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -4063,8 +4080,8 @@
     },
     "v1.SizeDetailResponse": {
       "required": [
-        "id",
         "constraints",
+        "id",
         "created",
         "changed"
       ],
