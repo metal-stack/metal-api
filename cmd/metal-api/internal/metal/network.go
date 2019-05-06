@@ -72,7 +72,7 @@ func (p *Prefix) Equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes    Prefixes `modelDescription:"a network which contains prefixes from which IP addresses can be allocated" rethinkdb:"prefixes"`
+	Prefixes    Prefixes `rethinkdb:"prefixes"`
 	PartitionID string   `rethinkdb:"partitionid"`
 	ProjectID   string   `rethinkdb:"projectid"`
 	TenantID    string   `rethinkdb:"tenantid"`

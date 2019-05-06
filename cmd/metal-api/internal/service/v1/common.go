@@ -5,7 +5,7 @@ import (
 )
 
 type Identifiable struct {
-	ID string `json:"id" description:"the unique ID of this entity" required:"True"`
+	ID string `json:"id" description:"the unique ID of this entity" unique:"true" required:"true"`
 }
 
 type Describeable struct {

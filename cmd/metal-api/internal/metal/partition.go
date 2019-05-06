@@ -3,7 +3,7 @@ package metal
 // A Partition represents a location.
 type Partition struct {
 	Base
-	BootConfiguration  BootConfiguration `modelDescription:"a partition has a distinct location in a data center, individual entities belong to a partition" rethinkdb:"bootconfig"`
+	BootConfiguration  BootConfiguration `rethinkdb:"bootconfig"`
 	MgmtServiceAddress string            `rethinkdb:"mgmtserviceaddr"`
 }
 

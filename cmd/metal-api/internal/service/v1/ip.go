@@ -10,7 +10,7 @@ type IPBase struct {
 }
 
 type IPIdentifiable struct {
-	IPAddress string `json:"ipaddress" description:"the address (ipv4 or ipv6) of this ip" readonly:"true"`
+	IPAddress string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" unique:"true" readonly:"true"`
 }
 
 type IPAllocateRequest struct {

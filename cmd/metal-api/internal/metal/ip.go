@@ -6,7 +6,7 @@ import (
 
 // IP of a machine/firewall.
 type IP struct {
-	IPAddress        string    `modelDescription:"an ip address that can be attached to a machine" rethinkdb:"id"`
+	IPAddress        string    `rethinkdb:"id"`
 	ParentPrefixCidr string    `rethinkdb:"prefix"`
 	Name             string    `rethinkdb:"name"`
 	Description      string    `rethinkdb:"description"`

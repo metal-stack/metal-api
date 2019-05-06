@@ -5,7 +5,7 @@ import (
 )
 
 type ImageBase struct {
-	URL *string `json:"url" description:"the url of this image" optional:"true"`
+	URL *string `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
 }
 
 type ImageCreateRequest struct {

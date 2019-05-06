@@ -10,7 +10,7 @@ type NetworkBase struct {
 }
 
 type NetworkImmutable struct {
-	Prefixes []string `json:"prefixes" description:"the prefixes of this network"`
+	Prefixes []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	Nat      bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	Primary  bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
 }

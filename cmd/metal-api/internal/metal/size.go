@@ -17,7 +17,7 @@ var (
 // A Size represents a supported machine size.
 type Size struct {
 	Base
-	Constraints []Constraint `modelDescription:"a machine matches to a size in order to make them easier to categorize" rethinkdb:"constraints"`
+	Constraints []Constraint `rethinkdb:"constraints"`
 }
 
 // ConstraintType ...

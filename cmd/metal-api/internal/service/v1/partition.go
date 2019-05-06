@@ -9,7 +9,7 @@ type PartitionMgmtService struct {
 }
 
 type PartitionBootConfiguration struct {
-	ImageURL    *string `json:"imageurl" description:"the url to download the initrd for the boot image" optional:"true"`
+	ImageURL    *string `json:"imageurl" modelDescription:"a partition has a distinct location in a data center, individual entities belong to a partition" description:"the url to download the initrd for the boot image" optional:"true"`
 	KernelURL   *string `json:"kernelurl" description:"the url to download the kernel for the boot image" optional:"true"`
 	CommandLine *string `json:"commandline" description:"the cmdline to the kernel for the boot image" optional:"true"`
 }

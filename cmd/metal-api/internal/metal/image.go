@@ -3,7 +3,7 @@ package metal
 // An Image describes an image which could be used for provisioning.
 type Image struct {
 	Base
-	URL string `modelDescription:"an image that can be attached to a machine" rethinkdb:"url"`
+	URL string `rethinkdb:"url"`
 }
 
 // Images is a collection of images.
