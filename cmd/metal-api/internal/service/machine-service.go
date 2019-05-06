@@ -401,20 +401,25 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 		return nil, fmt.Errorf("image cannot be found: %v", err)
 	}
 
+	// FIXME implement
+	if len(allocate.NetworkIDs) > 0 && image.IsFirewall {
+
+	}
+
 	var size *metal.Size
-	var part *metal.Partition
+	var partition *metal.Partition
 	var machine *metal.Machine
 	if allocate.UUID == "" {
 		size, err = ds.FindSize(allocate.SizeID)
 		if err != nil {
 			return nil, fmt.Errorf("size cannot be found: %v", err)
 		}
-		part, err = ds.FindPartition(allocate.PartitionID)
+		partition, err = ds.FindPartition(allocate.PartitionID)
 		if err != nil {
 			return nil, fmt.Errorf("partition cannot be found: %v", err)
 		}
 
-		machine, err = ds.FindAvailableMachine(part.ID, size.ID)
+		machine, err = ds.FindAvailableMachine(partition.ID, size.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -462,7 +467,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 	}
 	if projectNetwork == nil {
 
-		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, metal.ProjectNetworkPrefixLength, ipamer)
+		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, partition.ProjectNetworkPrefixLength, ipamer)
 		if err != nil {
 			return nil, err
 		}
@@ -476,7 +481,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 				Description: "Automatically Created Project Network",
 			},
 			Prefixes:    metal.Prefixes{*projectPrefix},
-			PartitionID: part.ID,
+			PartitionID: partition.ID,
 			ProjectID:   allocate.ProjectID,
 			Nat:         false,
 			Primary:     false,
@@ -514,8 +519,11 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 
 	for _, additionalNetworkID := range allocate.NetworkIDs {
 
+		// FIXME if additionalNetwork is a tenant network continue
+		// Only possible if we have the parentNetwork in a Network.
+
 		if additionalNetworkID == primaryNetwork.ID {
-			// We ignore if accidently this allocation contains a network which is ment as tenant super network
+			// We ignore if by accident this allocation contains a network which is a tenant super network
 			continue
 		}
 

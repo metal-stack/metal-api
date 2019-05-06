@@ -110,11 +110,6 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	return result
 }
 
-const (
-	// ProjectNetworkPrefixLength is the prefix length of child networks.
-	ProjectNetworkPrefixLength = 22
-)
-
 // ByMac creates a indexed map from a nic list.
 func (nics Nics) ByMac() map[MacAddress]*Nic {
 	res := make(map[MacAddress]*Nic)
