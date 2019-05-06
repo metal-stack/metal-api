@@ -2273,7 +2273,6 @@
       }
     },
     "metal.Image": {
-      "description": "an image that can be attached to a machine",
       "required": [
         "id",
         "URL"
@@ -2583,7 +2582,6 @@
       }
     },
     "metal.Partition": {
-      "description": "a partition has a distinct location in a data center, individual entities belong to a partition",
       "required": [
         "id",
         "BootConfiguration",
@@ -2800,7 +2798,6 @@
       }
     },
     "metal.Size": {
-      "description": "a machine matches to a size in order to make them easier to categorize",
       "required": [
         "id",
         "Constraints"
@@ -3013,7 +3010,8 @@
         },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3031,8 +3029,8 @@
     },
     "v1.IPListResponse": {
       "required": [
-        "networkid",
         "projectid",
+        "networkid",
         "ipaddress"
       ],
       "properties": {
@@ -3042,7 +3040,8 @@
         },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3069,7 +3068,8 @@
         },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3121,7 +3121,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3144,7 +3145,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3167,7 +3169,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3221,9 +3224,9 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
-        "usage",
         "id",
         "prefixes",
+        "usage",
         "nat",
         "primary",
         "created",
@@ -3248,7 +3251,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3298,7 +3302,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3344,7 +3349,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3386,6 +3392,7 @@
       }
     },
     "v1.PartitionBootConfiguration": {
+      "description": "a partition has a distinct location in a data center, individual entities belong to a partition",
       "properties": {
         "commandline": {
           "description": "the cmdline to the kernel for the boot image",
@@ -3454,7 +3461,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
@@ -3482,7 +3490,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3505,7 +3514,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
@@ -3518,6 +3528,7 @@
       }
     },
     "v1.SizeConstraint": {
+      "description": "a machine matches to a size in order to make them easier to categorize",
       "required": [
         "type",
         "min",
@@ -3569,8 +3580,8 @@
       "required": [
         "id",
         "constraints",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3598,7 +3609,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3625,7 +3637,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3651,7 +3664,8 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string"
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
