@@ -9,10 +9,10 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 
 	goipam "github.com/metal-pod/go-ipam"
 	"github.com/stretchr/testify/require"
@@ -32,16 +32,17 @@ func TestGetIPs(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []metal.IP
+	var result []v1.IPListResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Len(t, result, 3)
 	require.Equal(t, testdata.IP1.IPAddress, result[0].IPAddress)
-	require.Equal(t, testdata.IP1.Name, result[0].Name)
+	require.Equal(t, testdata.IP1.Name, *result[0].Name)
 	require.Equal(t, testdata.IP2.IPAddress, result[1].IPAddress)
-	require.Equal(t, testdata.IP2.Name, result[1].Name)
+	require.Equal(t, testdata.IP2.Name, *result[1].Name)
 	require.Equal(t, testdata.IP3.IPAddress, result[2].IPAddress)
-	require.Equal(t, testdata.IP3.Name, result[2].Name)
+	require.Equal(t, testdata.IP3.Name, *result[2].Name)
 }
 
 func TestGetIP(t *testing.T) {
@@ -56,11 +57,12 @@ func TestGetIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.IP
+	var result v1.IPDetailResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
-	require.Equal(t, testdata.IP1.Name, result.Name)
+	require.Equal(t, testdata.IP1.Name, *result.Name)
 }
 
 func TestGetIPNotFound(t *testing.T) {
@@ -75,6 +77,12 @@ func TestGetIPNotFound(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
+	var result httperrors.HTTPErrorResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Contains(t, result.Message, "9.9.9.9")
+	require.Equal(t, 404, result.StatusCode)
 }
 
 func TestDeleteIP(t *testing.T) {
@@ -92,11 +100,12 @@ func TestDeleteIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.IP
+	var result v1.IPDetailResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Equal(t, testdata.IPAMIP.IPAddress, result.IPAddress)
-	require.Equal(t, testdata.IPAMIP.Name, result.Name)
+	require.Equal(t, testdata.IPAMIP.Name, *result.Name)
 }
 
 func TestAllocateIP(t *testing.T) {
@@ -108,11 +117,11 @@ func TestAllocateIP(t *testing.T) {
 	ipservice := NewIP(ds, ipamer)
 	container := restful.NewContainer().Add(ipservice)
 
+	name := "testip1"
 	allocateRequest := v1.IPAllocateRequest{
-		Describeable: v1.Describeable{Name: "testip1"},
+		Describeable: v1.Describeable{Name: &name},
 		IPBase:       v1.IPBase{ProjectID: "123", NetworkID: testdata.NwIPAM.ID},
 	}
-
 	js, _ := json.Marshal(allocateRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/ip/allocate", body)
@@ -122,11 +131,12 @@ func TestAllocateIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
-	var result metal.IP
+	var result v1.IPDetailResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Equal(t, "10.0.0.1", result.IPAddress)
-	require.Equal(t, allocateRequest.Name, result.Name)
+	require.Equal(t, name, *result.Name)
 	require.Equal(t, allocateRequest.ProjectID, result.ProjectID)
 }
 
@@ -137,7 +147,16 @@ func TestUpdateIP(t *testing.T) {
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
 
-	js, _ := json.Marshal(testdata.IP1)
+	updateRequest := v1.IPUpdateRequest{
+		Describeable: v1.Describeable{
+			Name:        &testdata.IP2.Name,
+			Description: &testdata.IP2.Description,
+		},
+		IPIdentifiable: v1.IPIdentifiable{
+			IPAddress: testdata.IP1.IPAddress,
+		},
+	}
+	js, _ := json.Marshal(updateRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/ip", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -146,9 +165,10 @@ func TestUpdateIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result metal.IP
+	var result v1.IPDetailResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
+
 	require.Nil(t, err)
 	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
-	require.Equal(t, testdata.IP1.Name, result.Name)
+	require.Equal(t, testdata.IP2.Name, *result.Name)
 }

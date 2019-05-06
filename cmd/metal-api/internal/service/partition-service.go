@@ -1,12 +1,13 @@
 package service
 
 import (
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"net/http"
-	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -18,15 +19,15 @@ type partitionResource struct {
 
 // NewPartition returns a webservice for partition specific endpoints.
 func NewPartition(ds *datastore.RethinkStore) *restful.WebService {
-	fr := partitionResource{
+	r := partitionResource{
 		webResource: webResource{
 			ds: ds,
 		},
 	}
-	return fr.webService()
+	return r.webService()
 }
 
-func (fr partitionResource) webService() *restful.WebService {
+func (r partitionResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path("/v1/partition").
@@ -36,84 +37,186 @@ func (fr partitionResource) webService() *restful.WebService {
 	tags := []string{"Partition"}
 
 	ws.Route(ws.GET("/{id}").
-		To(fr.restEntityGet(fr.ds.FindPartition)).
+		To(r.findPartition).
 		Operation("findPartition").
 		Doc("get Partition by id").
 		Param(ws.PathParameter("id", "identifier of the Partition").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(metal.Partition{}).
-		Returns(http.StatusOK, "OK", metal.Partition{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
+		Writes(v1.PartitionDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.PartitionDetailResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(fr.restListGet(fr.ds.ListPartitions)).
+		To(r.listPartitions).
 		Operation("listPartitions").
 		Doc("get all Partitions").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]metal.Partition{}).
-		Returns(http.StatusOK, "OK", []metal.Partition{}))
+		Writes([]v1.PartitionListResponse{}).
+		Returns(http.StatusOK, "OK", []v1.PartitionListResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(fr.restEntityGet(fr.ds.DeletePartition)).
+		To(r.deletePartition).
 		Operation("deletePartition").
 		Doc("deletes a Partition and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the Partition").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(metal.Partition{}).
-		Returns(http.StatusOK, "OK", metal.Partition{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
+		Writes(v1.PartitionDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.PartitionDetailResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.PUT("/").To(fr.createPartition).
+	ws.Route(ws.PUT("/").
+		To(r.createPartition).
 		Doc("create a Partition. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.Partition{}).
-		Returns(http.StatusCreated, "Created", metal.Partition{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
+		Reads(v1.PartitionCreateRequest{}).
+		Returns(http.StatusCreated, "Created", v1.PartitionDetailResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/").To(fr.updatePartition).
+	ws.Route(ws.POST("/").
+		To(r.updatePartition).
 		Doc("updates a Partition. if the Partition was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.Partition{}).
-		Returns(http.StatusOK, "OK", metal.Partition{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}))
+		Reads(v1.PartitionUpdateRequest{}).
+		Returns(http.StatusOK, "OK", v1.PartitionDetailResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
 }
 
-func (fr partitionResource) createPartition(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	var s metal.Partition
-	err := request.ReadEntity(&s)
-	if checkError(request, response, op, err) {
+func (r partitionResource) findPartition(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	img, err := r.ds.FindPartition(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	s.Created = time.Now()
-	s.Changed = s.Created
-	returnedPartition, err := fr.ds.CreatePartition(&s)
-	if checkError(request, response, op, err) {
-		return
-	}
-	response.WriteHeaderAndEntity(http.StatusCreated, returnedPartition)
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionDetailResponse(img))
 }
 
-func (fr partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	var newPartition metal.Partition
-	err := request.ReadEntity(&newPartition)
-	if checkError(request, response, op, err) {
+func (r partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
+	ps, err := r.ds.ListPartitions()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	oldPartition, err := fr.ds.FindPartition(newPartition.ID)
-	if checkError(request, response, op, err) {
+	var result []*v1.PartitionListResponse
+	for i := range ps {
+		result = append(result, v1.NewPartitionListResponse(&ps[i]))
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (r partitionResource) createPartition(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.PartitionCreateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = fr.ds.UpdatePartition(oldPartition, &newPartition)
+	var name string
+	if requestPayload.Name != nil {
+		name = *requestPayload.Name
+	}
+	var description string
+	if requestPayload.Description != nil {
+		description = *requestPayload.Description
+	}
+	var mgmtServiceAddress string
+	if requestPayload.MgmtServiceAddress != nil {
+		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
+	}
+	var imageURL string
+	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
+		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
+	}
+	var kernelURL string
+	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
+		kernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
+	}
+	var commandLine string
+	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
+		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
+	}
 
-	if checkError(request, response, op, err) {
+	p := &metal.Partition{
+		Base: metal.Base{
+			Name:        name,
+			Description: description,
+		},
+		MgmtServiceAddress: mgmtServiceAddress,
+		BootConfiguration: metal.BootConfiguration{
+			ImageURL:    imageURL,
+			KernelURL:   kernelURL,
+			CommandLine: commandLine,
+		},
+	}
+
+	err = r.ds.CreatePartition(p)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	response.WriteHeaderAndEntity(http.StatusOK, newPartition)
+
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionDetailResponse(p))
+}
+
+func (r partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	p, err := r.ds.FindPartition(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = r.ds.DeletePartition(p)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionDetailResponse(p))
+}
+
+func (r partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.PartitionUpdateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldPartition, err := r.ds.FindPartition(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	newPartition := *oldPartition
+
+	if requestPayload.Name != nil {
+		newPartition.Name = *requestPayload.Name
+	}
+	if requestPayload.Description != nil {
+		newPartition.Description = *requestPayload.Description
+	}
+	if requestPayload.MgmtServiceAddress != nil {
+		newPartition.MgmtServiceAddress = *requestPayload.MgmtServiceAddress
+	}
+	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
+		newPartition.BootConfiguration.ImageURL = *requestPayload.PartitionBootConfiguration.ImageURL
+	}
+	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
+		newPartition.BootConfiguration.KernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
+	}
+	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
+		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
+	}
+
+	err = r.ds.UpdatePartition(oldPartition, &newPartition)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionDetailResponse(&newPartition))
 }

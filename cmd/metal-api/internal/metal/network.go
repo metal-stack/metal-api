@@ -29,8 +29,8 @@ type Nics []Nic
 
 // Prefix is a ip with mask, either ipv4/ipv6
 type Prefix struct {
-	IP     string `json:"ip" description:"the ip of this prefixes, required." rethinkdb:"ip"`
-	Length string `json:"length" description:"the mask of this prefixes, required." rethinkdb:"length"`
+	IP     string `rethinkdb:"ip"`
+	Length string `rethinkdb:"length"`
 }
 
 // Prefixes is an array of prefixes
@@ -72,12 +72,12 @@ func (p *Prefix) Equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes    Prefixes `json:"prefixes" description:"the prefixes of this network, required." rethinkdb:"prefixes"`
-	PartitionID string   `json:"partitionid" description:"the partition this network belongs to, TODO: can be empty ?" rethinkdb:"partitionid"`
-	ProjectID   string   `json:"projectid" description:"the project this network belongs to, can be empty if globally available." rethinkdb:"projectid"`
-	TenantID    string   `json:"tenantid" description:"the tenant this network belongs to, can be empty if globally available." rethinkdb:"tenantid"`
-	Nat         bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip." rethinkdb:"nat"`
-	Primary     bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall" rethinkdb:"primary"`
+	Prefixes    Prefixes `rethinkdb:"prefixes"`
+	PartitionID string   `rethinkdb:"partitionid"`
+	ProjectID   string   `rethinkdb:"projectid"`
+	TenantID    string   `rethinkdb:"tenantid"`
+	Nat         bool     `rethinkdb:"nat"`
+	Primary     bool     `rethinkdb:"primary"`
 }
 
 // FindPrefix returns the prefix by cidr if contained in this network, nil otherwise
