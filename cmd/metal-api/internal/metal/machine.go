@@ -66,7 +66,7 @@ type MachineAllocation struct {
 
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
-	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf" rethinkdb:"ips"`
+	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf" rethinkdb:"networkid"`
 	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf" rethinkdb:"ips"`
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
 	Primary   bool     `json:"primary" description:"this network is the primary vrf of the allocated machine, aka tenant vrf" rethinkdb:"primary"`

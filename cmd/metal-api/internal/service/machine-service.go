@@ -402,22 +402,25 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 	}
 
 	if len(allocate.NetworkIDs) > 0 && !image.HasFeature(metal.ImageFeatureFirewall) {
-		return nil, fmt.Errorf("given image is not usable for a firewall but this machine has additional networks set")
+		return nil, fmt.Errorf("given image is not usable for a firewall but this machine has additional networks set, features:%v", image.Features)
+	}
+	if len(allocate.NetworkIDs) == 0 && !image.HasFeature(metal.ImageFeatureMachine) {
+		return nil, fmt.Errorf("given image is not usable for a machine, features:%v", image.Features)
 	}
 
+	var machine *metal.Machine
 	var size *metal.Size
 	var partition *metal.Partition
-	var machine *metal.Machine
-	if allocate.UUID == "" {
-		size, err = ds.FindSize(allocate.SizeID)
-		if err != nil {
-			return nil, fmt.Errorf("size cannot be found: %v", err)
-		}
-		partition, err = ds.FindPartition(allocate.PartitionID)
-		if err != nil {
-			return nil, fmt.Errorf("partition cannot be found: %v", err)
-		}
+	size, err = ds.FindSize(allocate.SizeID)
+	if err != nil {
+		return nil, fmt.Errorf("size cannot be found: %v", err)
+	}
+	partition, err = ds.FindPartition(allocate.PartitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition cannot be found: %v", err)
+	}
 
+	if allocate.UUID == "" {
 		machine, err = ds.FindAvailableMachine(partition.ID, size.ID)
 		if err != nil {
 			return nil, err
@@ -435,6 +438,9 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 		}
 		if machine.Allocation != nil {
 			return nil, fmt.Errorf("machine is already allocated")
+		}
+		if machine.PartitionID != partition.ID {
+			return nil, fmt.Errorf("machine is not in the given partition %s", partition.ID)
 		}
 	}
 	if machine == nil {
@@ -460,7 +466,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 	if err != nil {
 		return nil, err
 	}
-	primaryNetwork, err := ds.GetPrimaryNetwork()
+	primaryNetwork, err := ds.GetPrimaryNetwork(partition.ID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get primary network: %v", err)
 	}
@@ -482,7 +488,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 			Prefixes:        metal.Prefixes{*projectPrefix},
 			PartitionID:     partition.ID,
 			ProjectID:       allocate.ProjectID,
-			Nat:             false,
+			Nat:             primaryNetwork.Nat,
 			Primary:         false,
 			ParentNetworkID: primaryNetwork.ID,
 		}
@@ -571,7 +577,6 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 		MachineNetworks: machineNetworks,
 	}
 	machine.Allocation = alloc
-	machine.Changed = time.Now()
 
 	tagSet := make(map[string]bool)
 	tagList := append(machine.Tags, allocate.Tags...)

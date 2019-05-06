@@ -7,22 +7,27 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// GetPrimaryNetwork returns the network which is marked default
-func (rs *RethinkStore) GetPrimaryNetwork() (*metal.Network, error) {
-	var nws []metal.Network
-	searchFilter := func(row r.Term) r.Term {
-		return row.Field("primary").Eq(true)
+// GetPrimaryNetwork returns the network which is marked default in this partition
+func (rs *RethinkStore) GetPrimaryNetwork(partitionID string) (*metal.Network, error) {
+	_, err := rs.FindPartition(partitionID)
+	if err != nil {
+		return nil, err
 	}
 
-	err := rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	var nws []metal.Network
+	searchFilter := func(row r.Term) r.Term {
+		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
+	}
+
+	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
 	if err != nil {
 		return nil, err
 	}
 	if len(nws) == 0 {
-		return nil, fmt.Errorf("no primary network in the database")
+		return nil, fmt.Errorf("no primary network in the database in partition:%s found", partitionID)
 	}
 	if len(nws) > 1 {
-		return nil, fmt.Errorf("more than one primary network in the database, which should not be the case")
+		return nil, fmt.Errorf("more than one primary network in partition %s in the database, which should not be the case", partitionID)
 	}
 
 	return &nws[0], nil

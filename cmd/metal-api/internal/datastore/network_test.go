@@ -15,20 +15,22 @@ func TestRethinkStore_GetPrimaryNetwork(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
-		name    string
-		rs      *RethinkStore
-		want    *metal.Network
-		wantErr bool
+		name        string
+		rs          *RethinkStore
+		want        *metal.Network
+		wantErr     bool
+		partitionID string
 	}{
 		{
-			name: "TestRethinkStore_GetPrimaryNetwork Test 2",
-			rs:   ds,
-			want: &testdata.Nw3,
+			name:        "TestRethinkStore_GetPrimaryNetwork Test 2",
+			rs:          ds,
+			want:        &testdata.Nw3,
+			partitionID: testdata.Nw3.PartitionID,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := tt.rs.GetPrimaryNetwork()
+			got, _ := tt.rs.GetPrimaryNetwork(tt.partitionID)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.GetPrimaryNetwork() = %v, want %v", got, tt.want)
 			}

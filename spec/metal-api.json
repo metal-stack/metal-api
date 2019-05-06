@@ -3136,17 +3136,17 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "partitionid",
         "hostname",
-        "imageid",
         "networks",
         "ha",
-        "projectid",
         "sizeid",
-        "ssh_pub_keys",
         "tags",
+        "ips",
+        "partitionid",
         "tenant",
-        "ips"
+        "projectid",
+        "imageid",
+        "ssh_pub_keys"
       ],
       "properties": {
         "description": {
@@ -3225,16 +3225,16 @@
     },
     "v1.FirewallDetailResponse": {
       "required": [
-        "allocation",
-        "state",
-        "events",
         "partition",
-        "rackid",
         "tags",
-        "liveliness",
+        "state",
         "hardware",
+        "id",
+        "liveliness",
+        "events",
+        "rackid",
         "size",
-        "id"
+        "allocation"
       ],
       "properties": {
         "allocation": {
@@ -3311,9 +3311,9 @@
         "id",
         "partitionid",
         "projectid",
+        "networks",
         "ips",
-        "nat",
-        "networks"
+        "nat"
       ],
       "properties": {
         "description": {
@@ -3359,8 +3359,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "projectid",
-        "networkid"
+        "networkid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -3673,10 +3673,10 @@
     "v1.NetworkDetailResponse": {
       "required": [
         "prefixes",
-        "primary",
-        "id",
         "nat",
+        "primary",
         "usage",
+        "id",
         "created",
         "changed"
       ],
@@ -3961,9 +3961,20 @@
           "type": "string",
           "uniqueItems": true
         },
+        "mgmtserviceaddress": {
+          "description": "the address to the management service of this partition",
+          "type": "string"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "projectnetworkprefixlength": {
+          "description": "the length of project networks for this partition, default 22",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 30,
+          "minimum": 16
         }
       }
     },
@@ -4052,8 +4063,8 @@
     },
     "v1.SizeDetailResponse": {
       "required": [
-        "constraints",
         "id",
+        "constraints",
         "created",
         "changed"
       ],

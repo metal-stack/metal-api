@@ -29,22 +29,18 @@ type PartitionUpdateRequest struct {
 
 type PartitionListResponse struct {
 	Common
+	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
 }
 
 type PartitionDetailResponse struct {
 	PartitionListResponse
-	PartitionBase
 	Timestamps
 }
 
 func NewPartitionDetailResponse(p *metal.Partition) *PartitionDetailResponse {
 	return &PartitionDetailResponse{
 		PartitionListResponse: *NewPartitionListResponse(p),
-		PartitionBase: PartitionBase{
-			MgmtServiceAddress:         &p.MgmtServiceAddress,
-			ProjectNetworkPrefixLength: &p.ProjectNetworkPrefixLength,
-		},
 		Timestamps: Timestamps{
 			Created: p.Created,
 			Changed: p.Changed,
@@ -62,6 +58,10 @@ func NewPartitionListResponse(p *metal.Partition) *PartitionListResponse {
 				Name:        &p.Name,
 				Description: &p.Description,
 			},
+		},
+		PartitionBase: PartitionBase{
+			MgmtServiceAddress:         &p.MgmtServiceAddress,
+			ProjectNetworkPrefixLength: &p.ProjectNetworkPrefixLength,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,

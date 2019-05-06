@@ -250,8 +250,9 @@ var (
 			Name:        "Network 3",
 			Description: "description 3",
 		},
-		Prefixes: prefixes3,
-		Primary:  true,
+		Prefixes:    prefixes3,
+		PartitionID: Partition1.ID,
+		Primary:     true,
 	}
 
 	NwIPAM = metal.Network{
@@ -556,7 +557,9 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get("3")).Return(Nw3, nil)
 	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("network").Filter(func(var_1 r.Term) r.Term { return var_1.Field("primary").Eq(true) })).Return(Nw3, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(func(var_1 r.Term) r.Term {
+		return var_1.Field("primary").Eq(true).And(var_1.Field("partitionid").Eq(Partition1.ID))
+	})).Return(Nw3, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("3.4.5.6")).Return(IP3, nil)
