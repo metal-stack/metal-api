@@ -1,11 +1,13 @@
 package service
 
 import (
+	"fmt"
+	"net/http"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
-	"net/http"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
@@ -126,6 +128,12 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 		return
 	}
 
+	if requestPayload.ID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+			return
+		}
+	}
+
 	var name string
 	if requestPayload.Name != nil {
 		name = *requestPayload.Name
@@ -146,6 +154,7 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 
 	s := &metal.Size{
 		Base: metal.Base{
+			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},

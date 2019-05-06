@@ -5,8 +5,11 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+
+	"fmt"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
@@ -118,6 +121,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		return
 	}
 
+	if requestPayload.ID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+			return
+		}
+	}
+
 	var name string
 	if requestPayload.Name != nil {
 		name = *requestPayload.Name
@@ -130,6 +139,18 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.MgmtServiceAddress != nil {
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
+	var projectNetworkPrefixLength int
+	if requestPayload.ProjectNetworkPrefixLength != nil {
+		projectNetworkPrefixLength = *requestPayload.ProjectNetworkPrefixLength
+		if projectNetworkPrefixLength < 16 || projectNetworkPrefixLength > 30 {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectNetworkPrefixLength is out of range")) {
+				return
+			}
+		}
+	} else {
+		projectNetworkPrefixLength = 22
+	}
+
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
@@ -145,10 +166,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 
 	p := &metal.Partition{
 		Base: metal.Base{
+			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		MgmtServiceAddress: mgmtServiceAddress,
+		MgmtServiceAddress:         mgmtServiceAddress,
+		ProjectNetworkPrefixLength: projectNetworkPrefixLength,
 		BootConfiguration: metal.BootConfiguration{
 			ImageURL:    imageURL,
 			KernelURL:   kernelURL,

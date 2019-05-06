@@ -2411,9 +2411,16 @@
     "metal.Image": {
       "required": [
         "id",
-        "URL"
+        "URL",
+        "Features"
       ],
       "properties": {
+        "Features": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
         "URL": {
           "type": "string"
         },
@@ -2748,7 +2755,8 @@
       "required": [
         "id",
         "BootConfiguration",
-        "MgmtServiceAddress"
+        "MgmtServiceAddress",
+        "ProjectNetworkPrefixLength"
       ],
       "properties": {
         "BootConfiguration": {
@@ -2756,6 +2764,10 @@
         },
         "MgmtServiceAddress": {
           "type": "string"
+        },
+        "ProjectNetworkPrefixLength": {
+          "type": "integer",
+          "format": "int32"
         },
         "changed": {
           "description": "the last changed timestamp",
@@ -3124,16 +3136,16 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "hostname",
         "partitionid",
+        "hostname",
+        "imageid",
+        "networks",
+        "ha",
+        "projectid",
+        "sizeid",
         "ssh_pub_keys",
         "tags",
-        "sizeid",
-        "ha",
         "tenant",
-        "projectid",
-        "networks",
-        "imageid",
         "ips"
       ],
       "properties": {
@@ -3213,16 +3225,16 @@
     },
     "v1.FirewallDetailResponse": {
       "required": [
-        "id",
-        "size",
-        "liveliness",
+        "allocation",
+        "state",
+        "events",
         "partition",
         "rackid",
         "tags",
-        "state",
+        "liveliness",
         "hardware",
-        "allocation",
-        "events"
+        "size",
+        "id"
       ],
       "properties": {
         "allocation": {
@@ -3299,9 +3311,9 @@
         "id",
         "partitionid",
         "projectid",
-        "networks",
         "ips",
-        "nat"
+        "nat",
+        "networks"
       ],
       "properties": {
         "description": {
@@ -3309,8 +3321,9 @@
           "type": "string"
         },
         "id": {
-          "description": "a unique ID",
-          "type": "string"
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
         },
         "ips": {
           "description": "the additional ips of this firewall, optional.",
@@ -3320,7 +3333,7 @@
           }
         },
         "name": {
-          "description": "the readable name",
+          "description": "a readable name for this entity",
           "type": "string"
         },
         "nat": {
@@ -3414,8 +3427,8 @@
     },
     "v1.IPListResponse": {
       "required": [
-        "networkid",
         "projectid",
+        "networkid",
         "ipaddress"
       ],
       "properties": {
@@ -3464,12 +3477,29 @@
     },
     "v1.ImageCreateRequest": {
       "required": [
+        "id",
         "url"
       ],
       "properties": {
         "description": {
           "description": "a description for this entity",
           "type": "string"
+        },
+        "features": {
+          "description": "features of this image",
+          "type": "array",
+          "enum": [
+            "machine",
+            "firewall"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3504,6 +3534,17 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "features": {
+          "description": "features of this image",
+          "type": "array",
+          "enum": [
+            "machine",
+            "firewall"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string",
@@ -3528,6 +3569,17 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "features": {
+          "description": "features of this image",
+          "type": "array",
+          "enum": [
+            "machine",
+            "firewall"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string",
@@ -3551,6 +3603,17 @@
         "description": {
           "description": "a description for this entity",
           "type": "string"
+        },
+        "features": {
+          "description": "features of this image",
+          "type": "array",
+          "enum": [
+            "machine",
+            "firewall"
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "id": {
           "description": "the unique ID of this entity",
@@ -3609,14 +3672,11 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
-        "projectid",
         "prefixes",
-        "usage",
-        "id",
-        "prefixes",
-        "usage",
-        "nat",
         "primary",
+        "id",
+        "nat",
+        "usage",
         "created",
         "changed"
       ],
@@ -3798,6 +3858,7 @@
     },
     "v1.PartitionCreateRequest": {
       "required": [
+        "id",
         "bootconfig"
       ],
       "properties": {
@@ -3809,6 +3870,11 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -3816,15 +3882,22 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "projectnetworkprefixlength": {
+          "description": "the length of project networks for this partition, default 22",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 30,
+          "minimum": 16
         }
       }
     },
     "v1.PartitionDetailResponse": {
       "required": [
-        "bootconfig",
         "id",
-        "changed",
-        "created"
+        "bootconfig",
+        "created",
+        "changed"
       ],
       "properties": {
         "bootconfig": {
@@ -3859,6 +3932,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "projectnetworkprefixlength": {
+          "description": "the length of project networks for this partition, default 22",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 30,
+          "minimum": 16
         }
       }
     },
@@ -3944,6 +4024,7 @@
     },
     "v1.SizeCreateRequest": {
       "required": [
+        "id",
         "constraints"
       ],
       "properties": {
@@ -3958,6 +4039,11 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -3966,10 +4052,10 @@
     },
     "v1.SizeDetailResponse": {
       "required": [
-        "id",
         "constraints",
-        "changed",
-        "created"
+        "id",
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {

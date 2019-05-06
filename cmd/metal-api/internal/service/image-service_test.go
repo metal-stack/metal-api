@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
@@ -109,9 +109,14 @@ func TestCreateImage(t *testing.T) {
 	container := restful.NewContainer().Add(imageservice)
 
 	createRequest := v1.ImageCreateRequest{
-		Describeable: v1.Describeable{
-			Name:        &testdata.Img1.Name,
-			Description: &testdata.Img1.Description,
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Img1.ID,
+			},
+			Describeable: v1.Describeable{
+				Name:        &testdata.Img1.Name,
+				Description: &testdata.Img1.Description,
+			},
 		},
 		URL: testdata.Img1.URL,
 	}

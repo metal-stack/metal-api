@@ -5,12 +5,14 @@ import (
 )
 
 type ImageBase struct {
-	URL *string `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
+	URL      *string  `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
+	Features []string `json:"features" description:"features of this image" enum:"machine|firewall" optional:"true"`
 }
 
 type ImageCreateRequest struct {
-	Describeable
-	URL string `json:"url" description:"the url of this image"`
+	Common
+	URL      string   `json:"url" description:"the url of this image"`
+	Features []string `json:"features" description:"features of this image" enum:"machine|firewall" optional:"true"`
 }
 
 type ImageUpdateRequest struct {
@@ -39,6 +41,12 @@ func NewImageDetailResponse(img *metal.Image) *ImageDetailResponse {
 }
 
 func NewImageListResponse(img *metal.Image) *ImageListResponse {
+	var features []string
+	for k, v := range img.Features {
+		if v == true {
+			features = append(features, string(k))
+		}
+	}
 	return &ImageListResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -50,7 +58,8 @@ func NewImageListResponse(img *metal.Image) *ImageListResponse {
 			},
 		},
 		ImageBase: ImageBase{
-			URL: &img.URL,
+			URL:      &img.URL,
+			Features: features,
 		},
 	}
 }

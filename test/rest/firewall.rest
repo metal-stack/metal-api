@@ -58,15 +58,14 @@ Content-Type: application/json
   "description": "My first metal host",
   "partitionid": "vagrant-lab",
   "hostname": "metal-test-1",
-  "imageid": "ubuntu-18.10",
+  "imageid": "ubuntu-18.10-firewall",
   "name": "Metal Host 1",
   "projectid": "test",
   "tenant": "dkb",
   "sizeid": "v1-small-x86",
   "ssh_pub_keys": ["keiner"],
   "networks": [
-    "0a8200f8-c35d-44e4-bb3d-a7d2d59d4f83",
-    "54312863-54e3-40da-be15-c3d7d7006cc8"
+    "d1eb4e60-b2b2-40e4-b646-327e48f4d313"
   ],
   "ha": false,
   "ips": []

@@ -11,7 +11,7 @@ type SizeConstraint struct {
 }
 
 type SizeCreateRequest struct {
-	Describeable
+	Common
 	SizeConstraints []SizeConstraint `json:"constraints" description:"a list of constraints that defines this size"`
 }
 

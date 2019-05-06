@@ -1,10 +1,22 @@
 package metal
 
+import (
+	"fmt"
+)
+
 // An Image describes an image which could be used for provisioning.
 type Image struct {
 	Base
-	URL string `rethinkdb:"url"`
+	URL      string                    `rethinkdb:"url"`
+	Features map[ImageFeatureType]bool `rethinkdb:"features"`
 }
+
+type ImageFeatureType string
+
+const (
+	ImageFeatureFirewall ImageFeatureType = "firewall"
+	ImageFeatureMachine  ImageFeatureType = "machine"
+)
 
 // Images is a collection of images.
 type Images []Image
@@ -19,4 +31,22 @@ func (ii Images) ByID() ImageMap {
 		res[f.ID] = ii[i]
 	}
 	return res
+}
+
+// HasFeature returns true if this image has given feature enabled, otherwise false.
+func (i *Image) HasFeature(feature ImageFeatureType) bool {
+	return i.Features[feature]
+
+}
+
+// ImageFeatureTypeFrom a given name to a ImageFeatureType or error.
+func ImageFeatureTypeFrom(name string) (ImageFeatureType, error) {
+	switch name {
+	case string(ImageFeatureFirewall):
+		return ImageFeatureFirewall, nil
+	case string(ImageFeatureMachine):
+		return ImageFeatureMachine, nil
+	default:
+		return "", fmt.Errorf("unknown ImageFeatureType:%s", name)
+	}
 }

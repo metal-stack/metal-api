@@ -72,12 +72,13 @@ func (p *Prefix) Equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes    Prefixes `rethinkdb:"prefixes"`
-	PartitionID string   `rethinkdb:"partitionid"`
-	ProjectID   string   `rethinkdb:"projectid"`
-	TenantID    string   `rethinkdb:"tenantid"`
-	Nat         bool     `rethinkdb:"nat"`
-	Primary     bool     `rethinkdb:"primary"`
+	Prefixes        Prefixes `rethinkdb:"prefixes"`
+	PartitionID     string   `rethinkdb:"partitionid"`
+	ProjectID       string   `rethinkdb:"projectid"`
+	TenantID        string   `rethinkdb:"tenantid"`
+	Nat             bool     `rethinkdb:"nat"`
+	Primary         bool     `rethinkdb:"primary"`
+	ParentNetworkID string   `rethinkdb:"parentnetworkid"`
 }
 
 // FindPrefix returns the prefix by cidr if contained in this network, nil otherwise

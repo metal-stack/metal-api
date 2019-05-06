@@ -401,9 +401,8 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 		return nil, fmt.Errorf("image cannot be found: %v", err)
 	}
 
-	// FIXME implement
-	if len(allocate.NetworkIDs) > 0 && image.IsFirewall {
-
+	if len(allocate.NetworkIDs) > 0 && !image.HasFeature(metal.ImageFeatureFirewall) {
+		return nil, fmt.Errorf("given image is not usable for a firewall but this machine has additional networks set")
 	}
 
 	var size *metal.Size
@@ -480,11 +479,12 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 				Name:        fmt.Sprintf("Child of %s", primaryNetwork.ID),
 				Description: "Automatically Created Project Network",
 			},
-			Prefixes:    metal.Prefixes{*projectPrefix},
-			PartitionID: partition.ID,
-			ProjectID:   allocate.ProjectID,
-			Nat:         false,
-			Primary:     false,
+			Prefixes:        metal.Prefixes{*projectPrefix},
+			PartitionID:     partition.ID,
+			ProjectID:       allocate.ProjectID,
+			Nat:             false,
+			Primary:         false,
+			ParentNetworkID: primaryNetwork.ID,
 		}
 
 		err = ds.CreateNetwork(projectNetwork)
@@ -519,9 +519,6 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 
 	for _, additionalNetworkID := range allocate.NetworkIDs {
 
-		// FIXME if additionalNetwork is a tenant network continue
-		// Only possible if we have the parentNetwork in a Network.
-
 		if additionalNetworkID == primaryNetwork.ID {
 			// We ignore if by accident this allocation contains a network which is a tenant super network
 			continue
@@ -531,6 +528,11 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 		if err != nil {
 			return nil, fmt.Errorf("no network with networkid:%s found %#v", additionalNetworkID, err)
 		}
+		// additionalNetwork is a tenant network continue
+		if nw.ParentNetworkID == primaryNetwork.ID {
+			return nil, fmt.Errorf("additional network:%s cannot be a child of the primary network:%s", additionalNetworkID, primaryNetwork.ID)
+		}
+
 		// TODO allocateIP should only return a String
 		ip, err := allocateIP(*nw, ipamer)
 		if err != nil {

@@ -6,7 +6,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
@@ -119,6 +119,12 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		return
 	}
 
+	if requestPayload.ID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+			return
+		}
+	}
+
 	if requestPayload.URL == "" {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("url should not be empty")) {
 			return
@@ -134,12 +140,23 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		description = *requestPayload.Description
 	}
 
+	features := make(map[metal.ImageFeatureType]bool)
+	for _, f := range requestPayload.Features {
+		ft, err := metal.ImageFeatureTypeFrom(f)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		features[ft] = true
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
+			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		URL: requestPayload.URL,
+		URL:      requestPayload.URL,
+		Features: features,
 	}
 
 	err = ir.ds.CreateImage(img)
@@ -188,6 +205,17 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	}
 	if requestPayload.URL != nil {
 		newImage.URL = *requestPayload.URL
+	}
+	features := make(map[metal.ImageFeatureType]bool)
+	for _, f := range requestPayload.Features {
+		ft, err := metal.ImageFeatureTypeFrom(f)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		features[ft] = true
+	}
+	if len(features) > 0 {
+		newImage.Features = features
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)

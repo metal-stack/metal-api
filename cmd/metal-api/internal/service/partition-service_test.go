@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
@@ -114,9 +114,14 @@ func TestCreatePartition(t *testing.T) {
 	container := restful.NewContainer().Add(service)
 
 	createRequest := v1.PartitionCreateRequest{
-		Describeable: v1.Describeable{
-			Name:        &testdata.Partition1.Name,
-			Description: &testdata.Partition1.Description,
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Partition1.ID,
+			},
+			Describeable: v1.Describeable{
+				Name:        &testdata.Partition1.Name,
+				Description: &testdata.Partition1.Description,
+			},
 		},
 	}
 	js, _ := json.Marshal(createRequest)
@@ -155,9 +160,7 @@ func TestUpdatePartition(t *testing.T) {
 				ID: testdata.Partition1.ID,
 			},
 		},
-		PartitionMgmtService: v1.PartitionMgmtService{
-			MgmtServiceAddress: &mgmtService,
-		},
+		MgmtServiceAddress: &mgmtService,
 		PartitionBootConfiguration: &v1.PartitionBootConfiguration{
 			ImageURL: &imageURL,
 		},

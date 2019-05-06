@@ -130,7 +130,7 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 		description = *requestPayload.Description
 	}
 	var projectid string
-	if requestPayload.Description != nil {
+	if requestPayload.ProjectID != nil {
 		projectid = *requestPayload.ProjectID
 	}
 

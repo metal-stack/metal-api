@@ -9,7 +9,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/stretchr/testify/require"
@@ -116,9 +116,14 @@ func TestCreateSize(t *testing.T) {
 	container := restful.NewContainer().Add(sizeservice)
 
 	createRequest := v1.SizeCreateRequest{
-		Describeable: v1.Describeable{
-			Name:        &testdata.Sz1.Name,
-			Description: &testdata.Sz1.Description,
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Sz1.ID,
+			},
+			Describeable: v1.Describeable{
+				Name:        &testdata.Sz1.Name,
+				Description: &testdata.Sz1.Description,
+			},
 		},
 	}
 	js, _ := json.Marshal(createRequest)

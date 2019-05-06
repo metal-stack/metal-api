@@ -4,8 +4,9 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 )
 
-type PartitionMgmtService struct {
-	MgmtServiceAddress *string `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
+type PartitionBase struct {
+	MgmtServiceAddress         *string `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
+	ProjectNetworkPrefixLength *int    `json:"projectnetworkprefixlength" description:"the length of project networks for this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
 }
 
 type PartitionBootConfiguration struct {
@@ -15,14 +16,14 @@ type PartitionBootConfiguration struct {
 }
 
 type PartitionCreateRequest struct {
-	Describeable
-	PartitionMgmtService
+	Common
+	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
 }
 
 type PartitionUpdateRequest struct {
 	Common
-	PartitionMgmtService
+	MgmtServiceAddress         *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
 }
 
@@ -33,15 +34,16 @@ type PartitionListResponse struct {
 
 type PartitionDetailResponse struct {
 	PartitionListResponse
-	PartitionMgmtService
+	PartitionBase
 	Timestamps
 }
 
 func NewPartitionDetailResponse(p *metal.Partition) *PartitionDetailResponse {
 	return &PartitionDetailResponse{
 		PartitionListResponse: *NewPartitionListResponse(p),
-		PartitionMgmtService: PartitionMgmtService{
-			MgmtServiceAddress: &p.MgmtServiceAddress,
+		PartitionBase: PartitionBase{
+			MgmtServiceAddress:         &p.MgmtServiceAddress,
+			ProjectNetworkPrefixLength: &p.ProjectNetworkPrefixLength,
 		},
 		Timestamps: Timestamps{
 			Created: p.Created,
