@@ -139,6 +139,7 @@ func TestCreateSize(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
+	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
 }
