@@ -5,12 +5,12 @@ import (
 )
 
 type IPBase struct {
-	ProjectID string `json:"projectid" description:"the project this ip address belongs to, required."`
-	NetworkID string `json:"networkid" description:"the network this ip allocate request address belongs to, required."`
+	ProjectID string `json:"projectid" description:"the project this ip address belongs to"`
+	NetworkID string `json:"networkid" description:"the network this ip allocate request address belongs to"`
 }
 
 type IPIdentifiable struct {
-	IPAddress string `json:"ipaddress" description:"the ip address (ipv4 or ipv6) of this ip, required."`
+	IPAddress string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" unique:"true" readonly:"true"`
 }
 
 type IPAllocateRequest struct {
@@ -47,8 +47,8 @@ func NewIPDetailResponse(ip *metal.IP) *IPDetailResponse {
 func NewIPListResponse(ip *metal.IP) *IPListResponse {
 	return &IPListResponse{
 		Describeable: Describeable{
-			Name:        ip.Name,
-			Description: ip.Description,
+			Name:        &ip.Name,
+			Description: &ip.Description,
 		},
 		IPBase: IPBase{
 			NetworkID: ip.NetworkID,

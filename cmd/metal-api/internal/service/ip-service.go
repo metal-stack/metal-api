@@ -108,8 +108,8 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 	}
 
 	var result []*v1.IPListResponse
-	for _, ip := range ips {
-		result = append(result, v1.NewIPListResponse(&ip))
+	for i := range ips {
+		result = append(result, v1.NewIPListResponse(&ips[i]))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -143,6 +143,21 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	if requestPayload.NetworkID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("networkid should not be empty")) {
+			return
+		}
+	}
+
+	var name string
+	if requestPayload.Name != nil {
+		name = *requestPayload.Name
+	}
+	var description string
+	if requestPayload.Description != nil {
+		description = *requestPayload.Description
+	}
+
 	nw, err := ir.ds.FindNetwork(requestPayload.NetworkID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -156,8 +171,8 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	}
 	utils.Logger(request).Sugar().Debugw("found an ip to allocate", "ip", ip.IPAddress, "network", nw.ID)
 
-	ip.Name = requestPayload.Name
-	ip.Description = requestPayload.Description
+	ip.Name = name
+	ip.Description = description
 	ip.ProjectID = requestPayload.ProjectID
 	ip.NetworkID = nw.ID
 
@@ -183,11 +198,11 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 
 	newIP := *oldIP
 
-	if requestPayload.Name != "" {
-		newIP.Name = requestPayload.Name
+	if requestPayload.Name != nil {
+		newIP.Name = *requestPayload.Name
 	}
-	if requestPayload.Description != "" {
-		newIP.Description = requestPayload.Description
+	if requestPayload.Description != nil {
+		newIP.Description = *requestPayload.Description
 	}
 
 	err = ir.ds.UpdateIP(oldIP, &newIP)

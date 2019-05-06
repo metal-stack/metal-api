@@ -122,13 +122,10 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.CreateImage(tt.args.i)
+			err := tt.rs.CreateImage(tt.args.i)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.CreateImage() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -141,13 +138,12 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	type args struct {
-		id string
+		img *metal.Image
 	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    *metal.Image
 		wantErr bool
 	}{
 		// Test Data Array / Test Cases:
@@ -155,39 +151,25 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 			name: "TestRethinkStore_DeleteImage Test 1",
 			rs:   ds,
 			args: args{
-				id: "1",
+				img: &testdata.Img1,
 			},
-			want:    &testdata.Img1,
 			wantErr: false,
 		},
 		{
 			name: "TestRethinkStore_DeleteImage Test 2",
 			rs:   ds,
 			args: args{
-				id: "2",
+				img: &testdata.Img2,
 			},
-			want:    &testdata.Img2,
 			wantErr: false,
-		},
-		{
-			name: "TestRethinkStore_DeleteImage Test 3",
-			rs:   ds,
-			args: args{
-				id: "404",
-			},
-			want:    nil,
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.DeleteImage(tt.args.id)
+			err := tt.rs.DeleteImage(tt.args.img)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.DeleteImage() = %v, want %v", got, tt.want)
 			}
 		})
 	}
