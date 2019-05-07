@@ -1,7 +1,7 @@
 [
     {
-        "id":          "vagrant-lab",
-        "name":        "Vagrant Lab",
+        "id": "vagrant-lab",
+        "name": "Vagrant Lab",
         "description": "The vagrant lab",
         "bootconfig": {
             "kernelurl": "https://blobstore.fi-ts.io/metal/images/metal-hammer/metal-hammer-kernel",

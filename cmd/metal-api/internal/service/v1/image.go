@@ -31,6 +31,9 @@ type ImageDetailResponse struct {
 }
 
 func NewImageDetailResponse(img *metal.Image) *ImageDetailResponse {
+	if img == nil {
+		return nil
+	}
 	return &ImageDetailResponse{
 		ImageListResponse: *NewImageListResponse(img),
 		Timestamps: Timestamps{
@@ -41,7 +44,10 @@ func NewImageDetailResponse(img *metal.Image) *ImageDetailResponse {
 }
 
 func NewImageListResponse(img *metal.Image) *ImageListResponse {
-	var features []string
+	if img == nil {
+		return nil
+	}
+	features := []string{}
 	for k, v := range img.Features {
 		if v == true {
 			features = append(features, string(k))

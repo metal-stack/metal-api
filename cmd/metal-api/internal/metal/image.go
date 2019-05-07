@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"strings"
 )
 
 // An Image describes an image which could be used for provisioning.
@@ -12,6 +13,15 @@ type Image struct {
 }
 
 type ImageFeatureType string
+
+// ImageFeatureString returns the features of an image as a string.
+func (i *Image) ImageFeatureString() string {
+	features := make([]string, 0, len(i.Features))
+	for k := range i.Features {
+		features = append(features, string(k))
+	}
+	return strings.Join(features, ", ")
+}
 
 const (
 	ImageFeatureFirewall ImageFeatureType = "firewall"

@@ -108,11 +108,12 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	allocateRequest := requestPayload.AllocateMachine
+	// FIXME:
+	// allocateRequest := requestPayload.AllocateMachine
 
-	fw, err := allocateMachine(r.ds, r.ipamer, &allocateRequest)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewFirewallDetailResponse(fw))
+	// fw, err := allocateMachine(r.ds, r.ipamer, &allocateRequest)
+	// if checkError(request, response, utils.CurrentFuncName(), err) {
+	// 	return
+	// }
+	// response.WriteHeaderAndEntity(http.StatusOK, v1.NewFirewallDetailResponse(fw))
 }

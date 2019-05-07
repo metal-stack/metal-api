@@ -224,3 +224,17 @@ Content-Type: application/json
   },
   "uuid": "ae671b8b-a158-52c2-8c22-985ca0503874"
 }
+
+### create machine via event
+# @name event
+POST {{baseurl}}/ae671b8b-a158-52c2-8c22-000000000001/event
+Content-Type: application/json
+
+{
+  "event": "PXE Booting",
+  "message": "Machine sent extended DHCP request"
+}
+
+### list machine events
+# @name event
+GET {{baseurl}}/ae671b8b-a158-52c2-8c22-000000000001/event

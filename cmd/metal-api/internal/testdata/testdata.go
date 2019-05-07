@@ -33,9 +33,7 @@ var (
 	M1 = metal.Machine{
 		Base:        metal.Base{ID: "1"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation: &metal.MachineAllocation{
 			Name:    "d1",
 			ImageID: "1",
@@ -45,9 +43,7 @@ var (
 	M2 = metal.Machine{
 		Base:        metal.Base{ID: "2"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation: &metal.MachineAllocation{
 			Name:    "d2",
 			ImageID: "1",
@@ -57,16 +53,12 @@ var (
 	M3 = metal.Machine{
 		Base:        metal.Base{ID: "3"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 	}
 	M4 = metal.Machine{
 		Base:        metal.Base{ID: "4"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation:  nil,
 	}
 	M5 = metal.Machine{
@@ -77,9 +69,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation:  nil,
 		Hardware:    MachineHardware1,
 	}
@@ -91,9 +81,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "999",
-		Partition:   Partition1,
 		SizeID:      "1", // No Size
-		Size:        nil,
 		Allocation: &metal.MachineAllocation{
 			Name:    "6",
 			ImageID: "999",
@@ -109,9 +97,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "999", // No Size
-		Size:        nil,
 		Allocation: &metal.MachineAllocation{
 			Name:    "7",
 			ImageID: "1",
@@ -127,9 +113,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1", // No Size
-		Size:        nil,
 		Allocation: &metal.MachineAllocation{
 			Name:    "8",
 			ImageID: "999",

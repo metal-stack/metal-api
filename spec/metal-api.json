@@ -558,12 +558,12 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Machine"
+                "$ref": "#/definitions/v1.MachineListResponse"
               }
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -590,7 +590,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.AllocateMachine"
+              "$ref": "#/definitions/v1.MachineAllocateRequest"
             }
           }
         ],
@@ -598,17 +598,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Machine"
+              "$ref": "#/definitions/v1.MachineAllocateRequest"
             }
           },
-          "404": {
-            "description": "No free machine for allocation found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -643,12 +637,12 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Machine"
+                "$ref": "#/definitions/v1.MachineListResponse"
               }
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -667,7 +661,7 @@
         "tags": [
           "machine"
         ],
-        "summary": "checks machine liveliness",
+        "summary": "external trigger for evaluating machine liveliness",
         "operationId": "checkMachineLiveliness",
         "parameters": [
           {
@@ -686,53 +680,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.MachineLivelinessReport"
+              "$ref": "#/definitions/v1.MachineLivelinessReport"
             }
           },
           "default": {
-            "description": "Unexpected Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/v1/machine/phoneHome": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "machine"
-        ],
-        "summary": "phone back home from the machine",
-        "operationId": "phoneHome",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/metal.PhoneHomeRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "404": {
-            "description": "Machine could not be found by id",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -759,7 +711,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.RegisterMachine"
+              "$ref": "#/definitions/v1.MachineRegisterRequest"
             }
           }
         ],
@@ -767,17 +719,17 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Machine"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/metal.Machine"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
-          "404": {
-            "description": "one of the given key values was not found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -811,66 +763,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Machine"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/v1/machine/{id}/bios": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "machine"
-        ],
-        "summary": "sends a bios to the machine",
-        "operationId": "machineBios",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the machine",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/metal.MachineAllocation"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -904,17 +801,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.ProvisioningEventContainer"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
             }
           },
           "default": {
-            "description": "Unexpected Error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -946,7 +837,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.ProvisioningEvent"
+              "$ref": "#/definitions/v1.MachineProvisioningEvent"
             }
           }
         ],
@@ -954,14 +845,54 @@
           "200": {
             "description": "OK"
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
+          }
+        }
+      }
+    },
+    "/v1/machine/{id}/finalize-allocation": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "finalize the allocation of the machine by reconfiguring the switch, sent on successful image installation",
+        "operationId": "finalizeAllocation",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineFinalizeAllocationRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineDetailResponse"
+            }
           },
           "default": {
-            "description": "Unexpected Error",
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -995,11 +926,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Machine"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1033,11 +964,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.IPMI"
+              "$ref": "#/definitions/v1.MachineIPMIResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1045,7 +976,56 @@
         }
       }
     },
-    "/v1/machine/{id}/off": {
+    "/v1/machine/{id}/power/bios": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "boots machine into BIOS on next reboot",
+        "operationId": "machineBios",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/metal.MachineAllocation"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/machine/{id}/power/off": {
       "post": {
         "consumes": [
           "application/json"
@@ -1085,14 +1065,8 @@
               "$ref": "#/definitions/metal.MachineAllocation"
             }
           },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1100,7 +1074,7 @@
         }
       }
     },
-    "/v1/machine/{id}/on": {
+    "/v1/machine/{id}/power/on": {
       "post": {
         "consumes": [
           "application/json"
@@ -1140,14 +1114,8 @@
               "$ref": "#/definitions/metal.MachineAllocation"
             }
           },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1155,59 +1123,7 @@
         }
       }
     },
-    "/v1/machine/{id}/report": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "machine"
-        ],
-        "summary": "send the allocation report of a given machine",
-        "operationId": "allocationReport",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the machine",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/metal.ReportAllocation"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/metal.MachineAllocation"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/v1/machine/{id}/reset": {
+    "/v1/machine/{id}/power/reset": {
       "post": {
         "consumes": [
           "application/json"
@@ -1247,14 +1163,8 @@
               "$ref": "#/definitions/metal.MachineAllocation"
             }
           },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1288,7 +1198,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.MachineState"
+              "$ref": "#/definitions/v1.MachineState"
             }
           }
         ],
@@ -1296,17 +1206,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Machine"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
-          "404": {
-            "description": "one of the given key values was not found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1340,17 +1244,17 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.MachineWithPhoneHomeToken"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+              "$ref": "#/definitions/v1.MachineWaitResponse"
             }
           },
           "504": {
             "description": "Timeout",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -2169,107 +2073,16 @@
         }
       }
     },
-    "metal.AllocateMachine": {
-      "required": [
-        "tenant",
-        "hostname",
-        "projectid",
-        "partitionid",
-        "sizeid",
-        "imageid",
-        "ssh_pub_keys",
-        "tags",
-        "networks",
-        "ips",
-        "ha"
-      ],
-      "properties": {
-        "description": {
-          "description": "the description for the allocated machine",
-          "type": "string"
-        },
-        "ha": {
-          "description": "if set to true, this firewall is set up in a High Available manner. optional",
-          "type": "boolean"
-        },
-        "hostname": {
-          "description": "the hostname for the allocated machine",
-          "type": "string"
-        },
-        "imageid": {
-          "description": "the image id to assign this machine to",
-          "type": "string"
-        },
-        "ips": {
-          "description": "the additional ips of this firewall, optional.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "name": {
-          "description": "the new name for the allocated machine",
-          "type": "string"
-        },
-        "networks": {
-          "description": "the networks of this firewall, required.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "partitionid": {
-          "description": "the partition id to assign this machine to",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project id to assign this machine to",
-          "type": "string"
-        },
-        "sizeid": {
-          "description": "the size id to assign this machine to",
-          "type": "string"
-        },
-        "ssh_pub_keys": {
-          "description": "the public ssh keys to access the machine with",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tenant": {
-          "description": "the name of the owning tenant",
-          "type": "string"
-        },
-        "user_data": {
-          "description": "cloud-init.io compatible userdata must be base64 encoded.",
-          "type": "string"
-        },
-        "uuid": {
-          "description": "if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition",
-          "type": "string"
-        }
-      }
-    },
     "metal.BlockDevice": {
       "required": [
-        "name",
-        "size"
+        "Name",
+        "Size"
       ],
       "properties": {
-        "name": {
-          "description": "the name of this block device",
+        "Name": {
           "type": "string"
         },
-        "size": {
-          "description": "the size of this block device",
+        "Size": {
           "type": "integer"
         }
       }
@@ -2342,296 +2155,165 @@
       }
     },
     "metal.Fru": {
+      "required": [
+        "ChassisPartNumber",
+        "ChassisPartSerial",
+        "BoardMfg",
+        "BoardMfgSerial",
+        "BoardPartNumber",
+        "ProductManufacturer",
+        "ProductPartNumber",
+        "ProductSerial"
+      ],
       "properties": {
-        "board_mfg": {
-          "description": "the board mfg",
+        "BoardMfg": {
           "type": "string"
         },
-        "board_mfg_serial": {
-          "description": "the board mfg serial",
+        "BoardMfgSerial": {
           "type": "string"
         },
-        "board_part_number": {
-          "description": "the board part number",
+        "BoardPartNumber": {
           "type": "string"
         },
-        "chassis_part_number": {
-          "description": "the chassis part number",
+        "ChassisPartNumber": {
           "type": "string"
         },
-        "chassis_part_serial": {
-          "description": "the chassis part serial",
+        "ChassisPartSerial": {
           "type": "string"
         },
-        "product_manufacturer": {
-          "description": "the product manufacturer",
+        "ProductManufacturer": {
           "type": "string"
         },
-        "product_part_number": {
-          "description": "the product part number",
+        "ProductPartNumber": {
           "type": "string"
         },
-        "product_serial": {
-          "description": "the product serial",
+        "ProductSerial": {
           "type": "string"
         }
       }
     },
     "metal.IPMI": {
-      "description": "The IPMI connection data\nThe Field Replaceable Unit data",
       "required": [
-        "address",
-        "mac",
-        "user",
-        "password",
-        "interface",
-        "fru"
+        "ID",
+        "Address",
+        "MacAddress",
+        "User",
+        "Password",
+        "Interface",
+        "Fru"
       ],
       "properties": {
-        "address": {
+        "Address": {
           "type": "string"
         },
-        "fru": {
+        "Fru": {
           "$ref": "#/definitions/metal.Fru"
         },
-        "interface": {
+        "ID": {
           "type": "string"
         },
-        "mac": {
+        "Interface": {
           "type": "string"
         },
-        "password": {
+        "MacAddress": {
           "type": "string"
         },
-        "user": {
-          "type": "string"
-        }
-      }
-    },
-    "metal.Image": {
-      "required": [
-        "id",
-        "URL",
-        "Features"
-      ],
-      "properties": {
-        "Features": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "boolean"
-          }
-        },
-        "URL": {
+        "Password": {
           "type": "string"
         },
-        "changed": {
-          "description": "the last changed timestamp",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
+        "User": {
           "type": "string"
-        },
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "the readable name",
-          "type": "string"
-        }
-      }
-    },
-    "metal.Machine": {
-      "description": "A machine representing a bare metal machine.",
-      "required": [
-        "id",
-        "partition",
-        "rackid",
-        "size",
-        "hardware",
-        "allocation",
-        "tags",
-        "state",
-        "liveliness",
-        "events"
-      ],
-      "properties": {
-        "allocation": {
-          "description": "the allocation data of an allocated machine",
-          "$ref": "#/definitions/metal.MachineAllocation"
-        },
-        "changed": {
-          "description": "the last changed timestamp",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "events": {
-          "description": "recent events of this machine during provisioning",
-          "$ref": "#/definitions/metal.RecentProvisioningEvents"
-        },
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/metal.MachineHardware"
-        },
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
-        "name": {
-          "description": "the readable name",
-          "type": "string"
-        },
-        "partition": {
-          "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/metal.Partition",
-          "readOnly": true
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "type": "string",
-          "readOnly": true
-        },
-        "size": {
-          "description": "the size of this machine",
-          "$ref": "#/definitions/metal.Size",
-          "readOnly": true
-        },
-        "state": {
-          "description": "the state of this machine",
-          "$ref": "#/definitions/metal.MachineState"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       }
     },
     "metal.MachineAllocation": {
       "required": [
-        "created",
-        "name",
-        "tenant",
-        "project",
-        "networks",
-        "hostname",
-        "ssh_pub_keys"
+        "Created",
+        "Name",
+        "Description",
+        "LastPing",
+        "Tenant",
+        "Project",
+        "ImageID",
+        "MachineNetworks",
+        "Hostname",
+        "SSHPubKeys",
+        "UserData",
+        "ConsolePassword",
+        "PhoneHomeToken"
       ],
       "properties": {
-        "console_password": {
-          "description": "the console password which was generated while provisioning",
+        "ConsolePassword": {
           "type": "string"
         },
-        "created": {
-          "description": "the time when the machine was created",
+        "Created": {
           "type": "string",
           "format": "date-time"
         },
-        "description": {
-          "description": "a description for this machine",
+        "Description": {
           "type": "string"
         },
-        "hostname": {
-          "description": "the hostname which will be used when creating the machine",
+        "Hostname": {
           "type": "string"
         },
-        "image": {
-          "description": "the image assigned to this machine",
-          "$ref": "#/definitions/metal.Image",
-          "readOnly": true
+        "ImageID": {
+          "type": "string"
         },
-        "last_ping": {
-          "description": "the timestamp of the last phone home call/ping from the machine",
+        "LastPing": {
           "type": "string",
-          "format": "date-time",
-          "readOnly": true
+          "format": "date-time"
         },
-        "name": {
-          "description": "the name of the machine",
-          "type": "string"
-        },
-        "networks": {
-          "description": "the networks of this machine",
+        "MachineNetworks": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/metal.MachineNetwork"
           }
         },
-        "project": {
-          "description": "the project that this machine is assigned to",
+        "Name": {
           "type": "string"
         },
-        "ssh_pub_keys": {
-          "description": "the public ssh keys to access the machine with",
+        "PhoneHomeToken": {
+          "type": "string"
+        },
+        "Project": {
+          "type": "string"
+        },
+        "SSHPubKeys": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "tenant": {
-          "description": "the tenant that this machine is assigned to",
+        "Tenant": {
           "type": "string"
         },
-        "user_data": {
-          "description": "userdata to execute post installation tasks",
+        "UserData": {
           "type": "string"
         }
       }
     },
     "metal.MachineHardware": {
       "required": [
-        "memory",
-        "cpu_cores",
-        "nics",
-        "disks"
+        "Memory",
+        "CPUCores",
+        "Nics",
+        "Disks"
       ],
       "properties": {
-        "cpu_cores": {
-          "description": "the number of cpu cores",
+        "CPUCores": {
           "type": "integer",
           "format": "int32"
         },
-        "disks": {
-          "description": "the list of block devices of this machine",
+        "Disks": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/metal.BlockDevice"
           }
         },
-        "memory": {
-          "description": "the total memory of the machine",
+        "Memory": {
           "type": "integer"
         },
-        "nics": {
-          "description": "the list of network interfaces of this machine",
+        "Nics": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/metal.Nic"
@@ -2639,55 +2321,27 @@
         }
       }
     },
-    "metal.MachineLivelinessReport": {
-      "required": [
-        "alive_count",
-        "dead_count",
-        "unknown_count"
-      ],
-      "properties": {
-        "alive_count": {
-          "description": "the number of machines alive",
-          "type": "integer",
-          "format": "int32"
-        },
-        "dead_count": {
-          "description": "the number of dead machines",
-          "type": "integer",
-          "format": "int32"
-        },
-        "unknown_count": {
-          "description": "the number of machines with unknown liveliness",
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
     "metal.MachineNetwork": {
       "required": [
-        "networkid",
-        "ips",
-        "vrf",
-        "primary"
+        "NetworkID",
+        "IPs",
+        "Vrf",
+        "Primary"
       ],
       "properties": {
-        "ips": {
-          "description": "the ip addresses of the allocated machine in this vrf",
+        "IPs": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "networkid": {
-          "description": "the networkID of the allocated machine in this vrf",
+        "NetworkID": {
           "type": "string"
         },
-        "primary": {
-          "description": "this network is the primary vrf of the allocated machine, aka tenant vrf",
+        "Primary": {
           "type": "boolean"
         },
-        "vrf": {
-          "description": "the vrf of the allocated machine",
+        "Vrf": {
           "type": "integer",
           "format": "integer"
         }
@@ -2695,30 +2349,14 @@
     },
     "metal.MachineState": {
       "required": [
-        "value",
-        "description"
+        "Value",
+        "Description"
       ],
       "properties": {
-        "description": {
-          "description": "a description why this machine is in the given state",
+        "Description": {
           "type": "string"
         },
-        "value": {
-          "description": "the state of this machine. empty means available for all",
-          "type": "string"
-        }
-      }
-    },
-    "metal.MachineWithPhoneHomeToken": {
-      "required": [
-        "machine",
-        "phone_home_token"
-      ],
-      "properties": {
-        "machine": {
-          "$ref": "#/definitions/metal.Machine"
-        },
-        "phone_home_token": {
+        "Value": {
           "type": "string"
         }
       }
@@ -2796,132 +2434,6 @@
         }
       }
     },
-    "metal.PhoneHomeRequest": {
-      "required": [
-        "phone_home_token"
-      ],
-      "properties": {
-        "phone_home_token": {
-          "description": "the jwt that was issued for the machine",
-          "type": "string"
-        }
-      }
-    },
-    "metal.ProvisioningEvent": {
-      "required": [
-        "event"
-      ],
-      "properties": {
-        "event": {
-          "description": "the event emitted by the machine",
-          "type": "string"
-        },
-        "message": {
-          "description": "an additional message to add to the event",
-          "type": "string"
-        },
-        "time": {
-          "description": "the time that this event was received",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        }
-      }
-    },
-    "metal.ProvisioningEventContainer": {
-      "required": [
-        "id",
-        "events",
-        "last_event_time",
-        "incomplete_provisioning_cycles"
-      ],
-      "properties": {
-        "events": {
-          "description": "the history of machine provisioning events",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.ProvisioningEvent"
-          }
-        },
-        "id": {
-          "description": "references the machine",
-          "type": "string"
-        },
-        "incomplete_provisioning_cycles": {
-          "description": "the amount of incomplete provisioning cycles in the event container",
-          "type": "string"
-        },
-        "last_event_time": {
-          "description": "the time where the last event was received",
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "metal.RecentProvisioningEvents": {
-      "required": [
-        "log",
-        "last_event_time",
-        "incomplete_provisioning_cycles"
-      ],
-      "properties": {
-        "incomplete_provisioning_cycles": {
-          "description": "the amount of incomplete provisioning cycles in the event container",
-          "type": "string"
-        },
-        "last_event_time": {
-          "description": "the time where the last event was received",
-          "type": "string",
-          "format": "date-time"
-        },
-        "log": {
-          "description": "the log of recent machine provisioning events",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.ProvisioningEvent"
-          }
-        }
-      }
-    },
-    "metal.RegisterMachine": {
-      "required": [
-        "uuid",
-        "partitionid",
-        "rackid",
-        "hardware",
-        "ipmi",
-        "tags"
-      ],
-      "properties": {
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/metal.MachineHardware"
-        },
-        "ipmi": {
-          "description": "the ipmi access infos",
-          "$ref": "#/definitions/metal.IPMI"
-        },
-        "partitionid": {
-          "description": "the partition id to register this machine with",
-          "type": "string"
-        },
-        "rackid": {
-          "description": "the rack id where this machine is connected to",
-          "type": "string"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "uuid": {
-          "description": "the product uuid of the machine to register",
-          "type": "string"
-        }
-      }
-    },
     "metal.RegisterSwitch": {
       "required": [
         "id",
@@ -2948,65 +2460,6 @@
         },
         "rack_id": {
           "description": "the id of the rack in which this switch is located",
-          "type": "string"
-        }
-      }
-    },
-    "metal.ReportAllocation": {
-      "required": [
-        "success",
-        "console_password"
-      ],
-      "properties": {
-        "console_password": {
-          "description": "the console password which was generated while provisioning",
-          "type": "string"
-        },
-        "errormessage": {
-          "description": "contains an errormessage when there was no success",
-          "type": "string"
-        },
-        "success": {
-          "description": "signals if the allocation was successful",
-          "type": "boolean"
-        }
-      }
-    },
-    "metal.Size": {
-      "required": [
-        "id",
-        "Constraints"
-      ],
-      "properties": {
-        "Constraints": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Constraint"
-          }
-        },
-        "changed": {
-          "description": "the last changed timestamp",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "the readable name",
           "type": "string"
         }
       }
@@ -3134,112 +2587,50 @@
         }
       }
     },
-    "v1.FirewallCreateRequest": {
-      "required": [
-        "tenant",
-        "sizeid",
-        "ssh_pub_keys",
-        "tags",
-        "ha",
-        "hostname",
-        "partitionid",
-        "networks",
-        "ips",
-        "projectid",
-        "imageid"
-      ],
-      "properties": {
-        "description": {
-          "description": "the description for the allocated machine",
-          "type": "string"
-        },
-        "ha": {
-          "description": "if set to true, this firewall is set up in a High Available manner. optional",
-          "type": "boolean"
-        },
-        "hostname": {
-          "description": "the hostname for the allocated machine",
-          "type": "string"
-        },
-        "imageid": {
-          "description": "the image id to assign this machine to",
-          "type": "string"
-        },
-        "ips": {
-          "description": "the additional ips of this firewall, optional.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "name": {
-          "description": "the new name for the allocated machine",
-          "type": "string"
-        },
-        "networks": {
-          "description": "the networks of this firewall, required.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "partitionid": {
-          "description": "the partition id to assign this machine to",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project id to assign this machine to",
-          "type": "string"
-        },
-        "sizeid": {
-          "description": "the size id to assign this machine to",
-          "type": "string"
-        },
-        "ssh_pub_keys": {
-          "description": "the public ssh keys to access the machine with",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "tenant": {
-          "description": "the name of the owning tenant",
-          "type": "string"
-        },
-        "user_data": {
-          "description": "cloud-init.io compatible userdata must be base64 encoded.",
-          "type": "string"
-        },
-        "uuid": {
-          "description": "if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition",
-          "type": "string"
-        }
-      }
-    },
+    "v1.FirewallCreateRequest": {},
     "v1.FirewallDetailResponse": {
       "required": [
-        "events",
-        "partition",
-        "allocation",
-        "hardware",
-        "tags",
-        "state",
         "id",
-        "size",
-        "rackid",
-        "liveliness"
+        "SizeID",
+        "Liveliness",
+        "Tags",
+        "Allocation",
+        "IPMI",
+        "RackID",
+        "PartitionID",
+        "Hardware",
+        "State"
       ],
       "properties": {
-        "allocation": {
-          "description": "the allocation data of an allocated machine",
+        "Allocation": {
           "$ref": "#/definitions/metal.MachineAllocation"
+        },
+        "Hardware": {
+          "$ref": "#/definitions/metal.MachineHardware"
+        },
+        "IPMI": {
+          "$ref": "#/definitions/metal.IPMI"
+        },
+        "Liveliness": {
+          "type": "string"
+        },
+        "PartitionID": {
+          "type": "string"
+        },
+        "RackID": {
+          "type": "string"
+        },
+        "SizeID": {
+          "type": "string"
+        },
+        "State": {
+          "$ref": "#/definitions/metal.MachineState"
+        },
+        "Tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "changed": {
           "description": "the last changed timestamp",
@@ -3257,52 +2648,14 @@
           "description": "a description for this entity",
           "type": "string"
         },
-        "events": {
-          "description": "recent events of this machine during provisioning",
-          "$ref": "#/definitions/metal.RecentProvisioningEvents"
-        },
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/metal.MachineHardware"
-        },
         "id": {
           "description": "a unique ID",
           "type": "string",
           "uniqueItems": true
         },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
         "name": {
           "description": "the readable name",
           "type": "string"
-        },
-        "partition": {
-          "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/metal.Partition",
-          "readOnly": true
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "type": "string",
-          "readOnly": true
-        },
-        "size": {
-          "description": "the size of this machine",
-          "$ref": "#/definitions/metal.Size",
-          "readOnly": true
-        },
-        "state": {
-          "description": "the state of this machine",
-          "$ref": "#/definitions/metal.MachineState"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       }
     },
@@ -3376,8 +2729,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "networkid",
-        "projectid"
+        "projectid",
+        "networkid"
       ],
       "properties": {
         "description": {
@@ -3400,8 +2753,8 @@
     },
     "v1.IPDetailResponse": {
       "required": [
-        "projectid",
         "networkid",
+        "projectid",
         "ipaddress",
         "created",
         "changed"
@@ -3647,11 +3000,747 @@
         }
       }
     },
+    "v1.MachineAllocateRequest": {
+      "required": [
+        "tenant",
+        "hostname",
+        "projectid",
+        "partitionid",
+        "sizeid",
+        "imageid",
+        "ssh_pub_keys",
+        "tags",
+        "networks",
+        "ips"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "ha": {
+          "description": "if set to true, this firewall is set up in a High Available manner",
+          "type": "boolean"
+        },
+        "hostname": {
+          "description": "the hostname for the allocated machine",
+          "type": "string"
+        },
+        "imageid": {
+          "description": "the image id to assign this machine to",
+          "type": "string"
+        },
+        "ips": {
+          "description": "the additional ips of this firewall, optional.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "networks": {
+          "description": "the networks of this firewall, required.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "partitionid": {
+          "description": "the partition id to assign this machine to",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id to assign this machine to",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size id to assign this machine to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the name of the owning tenant",
+          "type": "string"
+        },
+        "user_data": {
+          "description": "cloud-init.io compatible userdata must be base64 encoded.",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineAllocation": {
+      "required": [
+        "created",
+        "name",
+        "tenant",
+        "project",
+        "networks",
+        "hostname",
+        "ssh_pub_keys"
+      ],
+      "properties": {
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
+          "type": "string"
+        },
+        "created": {
+          "description": "the time when the machine was created",
+          "type": "string",
+          "format": "date-time"
+        },
+        "description": {
+          "description": "a description for this machine",
+          "type": "string"
+        },
+        "hostname": {
+          "description": "the hostname which will be used when creating the machine",
+          "type": "string"
+        },
+        "image": {
+          "description": "the image assigned to this machine",
+          "$ref": "#/definitions/v1.ImageListResponse",
+          "readOnly": true
+        },
+        "last_ping": {
+          "description": "the timestamp of the last phone home call/ping from the machine",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "name": {
+          "description": "the name of the machine",
+          "type": "string"
+        },
+        "networks": {
+          "description": "the networks of this machine",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineNetwork"
+          }
+        },
+        "project": {
+          "description": "the project that this machine is assigned to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the tenant that this machine is assigned to",
+          "type": "string"
+        },
+        "user_data": {
+          "description": "userdata to execute post installation tasks",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineBlockDevice": {
+      "required": [
+        "name",
+        "size"
+      ],
+      "properties": {
+        "name": {
+          "description": "the name of this block device",
+          "type": "string"
+        },
+        "size": {
+          "description": "the size of this block device",
+          "type": "integer"
+        }
+      }
+    },
+    "v1.MachineDetailResponse": {
+      "required": [
+        "partition",
+        "state",
+        "rackid",
+        "allocation",
+        "events",
+        "size",
+        "liveliness",
+        "id",
+        "hardware",
+        "tags",
+        "changed",
+        "created"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/v1.PartitionListResponse",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/v1.SizeListResponse",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/v1.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.MachineFinalizeAllocationRequest": {
+      "required": [
+        "console_password"
+      ],
+      "properties": {
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineFru": {
+      "description": "The Field Replaceable Unit data",
+      "properties": {
+        "board_mfg": {
+          "description": "the board mfg",
+          "type": "string"
+        },
+        "board_mfg_serial": {
+          "description": "the board mfg serial",
+          "type": "string"
+        },
+        "board_part_number": {
+          "description": "the board part number",
+          "type": "string"
+        },
+        "chassis_part_number": {
+          "description": "the chassis part number",
+          "type": "string"
+        },
+        "chassis_part_serial": {
+          "description": "the chassis part serial",
+          "type": "string"
+        },
+        "product_manufacturer": {
+          "description": "the product manufacturer",
+          "type": "string"
+        },
+        "product_part_number": {
+          "description": "the product part number",
+          "type": "string"
+        },
+        "product_serial": {
+          "description": "the product serial",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineHardware": {
+      "required": [
+        "memory",
+        "cpu_cores",
+        "nics",
+        "disks"
+      ],
+      "properties": {
+        "cpu_cores": {
+          "description": "the number of cpu cores",
+          "type": "integer",
+          "format": "int32"
+        },
+        "disks": {
+          "description": "the list of block devices of this machine",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineBlockDevice"
+          }
+        },
+        "memory": {
+          "description": "the total memory of the machine",
+          "type": "integer"
+        },
+        "nics": {
+          "description": "the list of network interfaces of this machine",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineNic"
+          }
+        }
+      }
+    },
+    "v1.MachineIPMI": {
+      "description": "The IPMI connection data",
+      "required": [
+        "address",
+        "mac",
+        "user",
+        "password",
+        "interface",
+        "fru"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "fru": {
+          "$ref": "#/definitions/v1.MachineFru"
+        },
+        "interface": {
+          "type": "string"
+        },
+        "mac": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineIPMIResponse": {
+      "required": [
+        "address",
+        "mac",
+        "user",
+        "password",
+        "interface",
+        "fru"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "fru": {
+          "$ref": "#/definitions/v1.MachineFru"
+        },
+        "interface": {
+          "type": "string"
+        },
+        "mac": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineListResponse": {
+      "required": [
+        "id",
+        "partition",
+        "rackid",
+        "hardware",
+        "liveliness",
+        "events",
+        "size",
+        "allocation",
+        "state",
+        "tags"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/v1.PartitionListResponse",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/v1.SizeListResponse",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/v1.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.MachineLivelinessReport": {
+      "required": [
+        "alive_count",
+        "dead_count",
+        "unknown_count"
+      ],
+      "properties": {
+        "alive_count": {
+          "description": "the number of machines alive",
+          "type": "integer",
+          "format": "int32"
+        },
+        "dead_count": {
+          "description": "the number of dead machines",
+          "type": "integer",
+          "format": "int32"
+        },
+        "unknown_count": {
+          "description": "the number of machines with unknown liveliness",
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v1.MachineNetwork": {
+      "required": [
+        "networkid",
+        "ips",
+        "vrf"
+      ],
+      "properties": {
+        "ips": {
+          "description": "the ip addresses of the allocated machine in this vrf",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "networkid": {
+          "description": "the networkID of the allocated machine in this vrf",
+          "type": "string"
+        },
+        "vrf": {
+          "description": "the vrf of the allocated machine",
+          "type": "integer",
+          "format": "integer"
+        }
+      }
+    },
+    "v1.MachineNic": {
+      "required": [
+        "mac",
+        "name",
+        "neighbors"
+      ],
+      "properties": {
+        "mac": {
+          "description": "the mac address of this network interface",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of this network interface",
+          "type": "string"
+        },
+        "neighbors": {
+          "description": "the neighbors visible to this network interface",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineNic"
+          }
+        }
+      }
+    },
+    "v1.MachineProvisioningEvent": {
+      "required": [
+        "event"
+      ],
+      "properties": {
+        "event": {
+          "description": "the event emitted by the machine",
+          "type": "string"
+        },
+        "message": {
+          "description": "an additional message to add to the event",
+          "type": "string"
+        },
+        "time": {
+          "description": "the time that this event was received",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        }
+      }
+    },
+    "v1.MachineRecentProvisioningEvents": {
+      "required": [
+        "log",
+        "last_event_time",
+        "incomplete_provisioning_cycles"
+      ],
+      "properties": {
+        "incomplete_provisioning_cycles": {
+          "description": "the amount of incomplete provisioning cycles in the event container",
+          "type": "string"
+        },
+        "last_event_time": {
+          "description": "the time where the last event was received",
+          "type": "string",
+          "format": "date-time"
+        },
+        "log": {
+          "description": "the log of recent machine provisioning events",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineProvisioningEvent"
+          }
+        }
+      }
+    },
+    "v1.MachineRegisterRequest": {
+      "required": [
+        "uuid",
+        "partitionid",
+        "rackid",
+        "hardware",
+        "ipmi",
+        "tags"
+      ],
+      "properties": {
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "ipmi": {
+          "description": "the ipmi access infos",
+          "$ref": "#/definitions/v1.MachineIPMI"
+        },
+        "partitionid": {
+          "description": "the partition id to register this machine with",
+          "type": "string"
+        },
+        "rackid": {
+          "description": "the rack id where this machine is connected to",
+          "type": "string"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "uuid": {
+          "description": "the product uuid of the machine to register",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineState": {
+      "required": [
+        "value",
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description why this machine is in the given state",
+          "type": "string"
+        },
+        "value": {
+          "description": "the state of this machine. empty means available for all",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineWaitResponse": {
+      "required": [
+        "created",
+        "rackid",
+        "id",
+        "tags",
+        "partition",
+        "size",
+        "allocation",
+        "events",
+        "liveliness",
+        "hardware",
+        "state",
+        "changed",
+        "phone_home_token"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/v1.PartitionListResponse",
+          "readOnly": true
+        },
+        "phone_home_token": {
+          "type": "string"
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/v1.SizeListResponse",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/v1.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "v1.NetworkCreateRequest": {
       "required": [
+        "nat",
         "primary",
-        "prefixes",
-        "nat"
+        "prefixes"
       ],
       "properties": {
         "description": {
@@ -3689,13 +3778,13 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
+        "prefixes",
+        "usage",
+        "id",
         "nat",
         "primary",
-        "prefixes",
-        "id",
-        "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -4080,8 +4169,8 @@
     },
     "v1.SizeDetailResponse": {
       "required": [
-        "constraints",
         "id",
+        "constraints",
         "created",
         "changed"
       ],

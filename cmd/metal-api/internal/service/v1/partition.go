@@ -39,6 +39,9 @@ type PartitionDetailResponse struct {
 }
 
 func NewPartitionDetailResponse(p *metal.Partition) *PartitionDetailResponse {
+	if p == nil {
+		return nil
+	}
 	return &PartitionDetailResponse{
 		PartitionListResponse: *NewPartitionListResponse(p),
 		Timestamps: Timestamps{
@@ -49,6 +52,9 @@ func NewPartitionDetailResponse(p *metal.Partition) *PartitionDetailResponse {
 }
 
 func NewPartitionListResponse(p *metal.Partition) *PartitionListResponse {
+	if p == nil {
+		return nil
+	}
 	return &PartitionListResponse{
 		Common: Common{
 			Identifiable: Identifiable{

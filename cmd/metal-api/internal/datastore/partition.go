@@ -12,7 +12,7 @@ func (rs *RethinkStore) FindPartition(id string) (*metal.Partition, error) {
 }
 
 // ListPartitions returns all partition.
-func (rs *RethinkStore) ListPartitions() ([]metal.Partition, error) {
+func (rs *RethinkStore) ListPartitions() (metal.Partitions, error) {
 	ps := make([]metal.Partition, 0)
 	err := rs.listEntities(rs.partitionTable(), &ps)
 	return ps, err

@@ -31,6 +31,9 @@ type SizeDetailResponse struct {
 }
 
 func NewSizeDetailResponse(s *metal.Size) *SizeDetailResponse {
+	if s == nil {
+		return nil
+	}
 	return &SizeDetailResponse{
 		SizeListResponse: *NewSizeListResponse(s),
 		Timestamps: Timestamps{
@@ -41,6 +44,10 @@ func NewSizeDetailResponse(s *metal.Size) *SizeDetailResponse {
 }
 
 func NewSizeListResponse(s *metal.Size) *SizeListResponse {
+	if s == nil {
+		return nil
+	}
+
 	var constraints []SizeConstraint
 	for _, c := range s.Constraints {
 		constraint := SizeConstraint{

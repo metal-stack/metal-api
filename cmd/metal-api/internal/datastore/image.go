@@ -12,7 +12,7 @@ func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 }
 
 // ListImages returns all images.
-func (rs *RethinkStore) ListImages() ([]metal.Image, error) {
+func (rs *RethinkStore) ListImages() (metal.Images, error) {
 	imgs := make([]metal.Image, 0)
 	err := rs.listEntities(rs.imageTable(), &imgs)
 	return imgs, err

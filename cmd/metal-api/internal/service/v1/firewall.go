@@ -21,7 +21,7 @@ type FirewallImmutable struct {
 }
 
 type FirewallCreateRequest struct {
-	metal.AllocateMachine // FIXME decouple from database
+	// metal.AllocateMachine // FIXME decouple from database
 	//	FirewallImmutable
 }
 
