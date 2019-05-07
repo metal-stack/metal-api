@@ -2668,9 +2668,15 @@
         "networkid",
         "ips",
         "vrf",
-        "primary"
+        "primary",
+        "asn"
       ],
       "properties": {
+        "asn": {
+          "description": "ASN number for this network in the bgp configuration",
+          "type": "integer",
+          "format": "int64"
+        },
         "ips": {
           "description": "the ip addresses of the allocated machine in this vrf",
           "type": "array",
@@ -3136,17 +3142,17 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
         "sizeid",
         "ssh_pub_keys",
+        "ips",
+        "partitionid",
+        "hostname",
         "tags",
         "ha",
-        "hostname",
-        "partitionid",
+        "imageid",
         "networks",
-        "ips",
-        "projectid",
-        "imageid"
+        "tenant",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -3225,16 +3231,16 @@
     },
     "v1.FirewallDetailResponse": {
       "required": [
-        "events",
-        "partition",
-        "allocation",
-        "hardware",
         "tags",
         "state",
         "id",
-        "size",
+        "allocation",
+        "events",
         "rackid",
-        "liveliness"
+        "size",
+        "liveliness",
+        "hardware",
+        "partition"
       ],
       "properties": {
         "allocation": {
@@ -3349,9 +3355,15 @@
         "networkid",
         "ips",
         "vrf",
-        "primary"
+        "primary",
+        "asn"
       ],
       "properties": {
+        "asn": {
+          "description": "ASN number for this network in the bgp configuration",
+          "type": "integer",
+          "format": "int32"
+        },
         "ips": {
           "description": "the ip addresses of the allocated machine in this vrf",
           "type": "array",
@@ -3376,8 +3388,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "networkid",
-        "projectid"
+        "projectid",
+        "networkid"
       ],
       "properties": {
         "description": {
@@ -3400,8 +3412,8 @@
     },
     "v1.IPDetailResponse": {
       "required": [
-        "projectid",
         "networkid",
+        "projectid",
         "ipaddress",
         "created",
         "changed"
@@ -3505,10 +3517,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -3531,8 +3539,8 @@
     "v1.ImageDetailResponse": {
       "required": [
         "id",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3554,10 +3562,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -3589,10 +3593,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -3624,10 +3624,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -3689,13 +3685,13 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
-        "nat",
         "primary",
         "prefixes",
+        "nat",
         "id",
         "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3911,8 +3907,8 @@
     },
     "v1.PartitionDetailResponse": {
       "required": [
-        "id",
         "bootconfig",
+        "id",
         "created",
         "changed"
       ],
@@ -4080,8 +4076,8 @@
     },
     "v1.SizeDetailResponse": {
       "required": [
-        "constraints",
         "id",
+        "constraints",
         "created",
         "changed"
       ],

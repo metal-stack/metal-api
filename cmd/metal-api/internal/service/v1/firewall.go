@@ -14,6 +14,7 @@ type FirewallNetwork struct {
 	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	Primary   bool     `json:"primary" description:"this network is the primary vrf of the allocated machine, aka tenant vrf"`
+	ASN       int      `json:"asn" description:"ASN number for this network in the bgp configuration" rethinkdb:"-"`
 }
 
 type FirewallImmutable struct {

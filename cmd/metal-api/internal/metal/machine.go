@@ -70,6 +70,7 @@ type MachineNetwork struct {
 	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf" rethinkdb:"ips"`
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine" rethinkdb:"vrf"`
 	Primary   bool     `json:"primary" description:"this network is the primary vrf of the allocated machine, aka tenant vrf" rethinkdb:"primary"`
+	ASN       int64    `json:"asn" description:"ASN number for this network in the bgp configuration" rethinkdb:"-"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.

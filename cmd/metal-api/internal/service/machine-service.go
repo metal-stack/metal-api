@@ -554,11 +554,16 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocate *m
 			return nil, err
 		}
 
+		asn, err := ip.ASN()
+		if err != nil {
+			return nil, err
+		}
 		// FIXME what VRF is required for a firewall
 		machineNetwork := metal.MachineNetwork{
 			NetworkID: nw.ID,
 			IPs:       []string{ip.IPAddress},
 			Primary:   false,
+			ASN:       asn,
 		}
 		machineNetworks = append(machineNetworks, machineNetwork)
 	}
