@@ -6,13 +6,13 @@ import (
 
 type ImageBase struct {
 	URL      *string  `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
-	Features []string `json:"features" description:"features of this image" enum:"machine|firewall" optional:"true"`
+	Features []string `json:"features" description:"features of this image" optional:"true"`
 }
 
 type ImageCreateRequest struct {
 	Common
 	URL      string   `json:"url" description:"the url of this image"`
-	Features []string `json:"features" description:"features of this image" enum:"machine|firewall" optional:"true"`
+	Features []string `json:"features" description:"features of this image" optional:"true"`
 }
 
 type ImageUpdateRequest struct {

@@ -2326,9 +2326,14 @@
         "NetworkID",
         "IPs",
         "Vrf",
-        "Primary"
+        "Primary",
+        "ASN"
       ],
       "properties": {
+        "ASN": {
+          "type": "integer",
+          "format": "int64"
+        },
         "IPs": {
           "type": "array",
           "items": {
@@ -2591,15 +2596,15 @@
     "v1.FirewallDetailResponse": {
       "required": [
         "id",
-        "SizeID",
         "Liveliness",
-        "Tags",
-        "Allocation",
-        "IPMI",
         "RackID",
-        "PartitionID",
+        "State",
+        "SizeID",
         "Hardware",
-        "State"
+        "Tags",
+        "IPMI",
+        "Allocation",
+        "PartitionID"
       ],
       "properties": {
         "Allocation": {
@@ -2702,9 +2707,15 @@
         "networkid",
         "ips",
         "vrf",
-        "primary"
+        "primary",
+        "asn"
       ],
       "properties": {
+        "asn": {
+          "description": "ASN number for this network in the bgp configuration",
+          "type": "integer",
+          "format": "int32"
+        },
         "ips": {
           "description": "the ip addresses of the allocated machine in this vrf",
           "type": "array",
@@ -2729,8 +2740,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "projectid",
-        "networkid"
+        "networkid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -2753,8 +2764,8 @@
     },
     "v1.IPDetailResponse": {
       "required": [
-        "networkid",
         "projectid",
+        "networkid",
         "ipaddress",
         "created",
         "changed"
@@ -2858,10 +2869,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -2907,10 +2914,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -2942,10 +2945,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -2977,10 +2976,6 @@
         "features": {
           "description": "features of this image",
           "type": "array",
-          "enum": [
-            "machine",
-            "firewall"
-          ],
           "items": {
             "type": "string"
           }
@@ -3177,18 +3172,18 @@
     },
     "v1.MachineDetailResponse": {
       "required": [
-        "partition",
-        "state",
-        "rackid",
-        "allocation",
         "events",
         "size",
-        "liveliness",
+        "partition",
+        "rackid",
         "id",
+        "liveliness",
         "hardware",
+        "allocation",
+        "state",
         "tags",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "allocation": {
@@ -3374,12 +3369,12 @@
     },
     "v1.MachineIPMIResponse": {
       "required": [
-        "address",
-        "mac",
         "user",
         "password",
         "interface",
-        "fru"
+        "fru",
+        "address",
+        "mac"
       ],
       "properties": {
         "address": {
@@ -3405,15 +3400,15 @@
     "v1.MachineListResponse": {
       "required": [
         "id",
-        "partition",
-        "rackid",
-        "hardware",
+        "state",
+        "tags",
+        "allocation",
         "liveliness",
         "events",
+        "partition",
+        "rackid",
         "size",
-        "allocation",
-        "state",
-        "tags"
+        "hardware"
       ],
       "properties": {
         "allocation": {
@@ -3501,9 +3496,15 @@
       "required": [
         "networkid",
         "ips",
-        "vrf"
+        "vrf",
+        "asn"
       ],
       "properties": {
+        "asn": {
+          "description": "ASN number for this network in the bgp configuration",
+          "type": "integer",
+          "format": "int64"
+        },
         "ips": {
           "description": "the ip addresses of the allocated machine in this vrf",
           "type": "array",
@@ -3649,18 +3650,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "created",
-        "rackid",
         "id",
-        "tags",
+        "state",
         "partition",
         "size",
-        "allocation",
-        "events",
-        "liveliness",
         "hardware",
-        "state",
         "changed",
+        "liveliness",
+        "tags",
+        "events",
+        "rackid",
+        "allocation",
+        "created",
         "phone_home_token"
       ],
       "properties": {
@@ -3738,9 +3739,9 @@
     },
     "v1.NetworkCreateRequest": {
       "required": [
+        "prefixes",
         "nat",
-        "primary",
-        "prefixes"
+        "primary"
       ],
       "properties": {
         "description": {
@@ -3779,10 +3780,10 @@
     "v1.NetworkDetailResponse": {
       "required": [
         "prefixes",
-        "usage",
-        "id",
         "nat",
         "primary",
+        "usage",
+        "id",
         "created",
         "changed"
       ],
@@ -3844,9 +3845,9 @@
     "v1.NetworkListResponse": {
       "required": [
         "id",
+        "primary",
         "prefixes",
         "nat",
-        "primary",
         "usage"
       ],
       "properties": {

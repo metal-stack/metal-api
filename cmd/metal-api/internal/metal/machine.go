@@ -79,6 +79,7 @@ type MachineNetwork struct {
 	IPs       []string `rethinkdb:"ips"`
 	Vrf       uint     `rethinkdb:"vrf"`
 	Primary   bool     `rethinkdb:"primary"`
+	ASN       int64    `rethinkdb:"asn"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
