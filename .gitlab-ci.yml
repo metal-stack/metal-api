@@ -4,16 +4,14 @@ stages:
     - build
     - push
 
-nopush:
+merge-request:
     stage: build
-    except:
-      - master
-      - prod
-    script: docker-make --Lint --summary -n
+    only:
+      - merge_requests
+    script: docker-make --Lint --summary --build-only metal-api-merge-request
 
 # push:
 #     stage: push
-#     script: docker-make --Lint --summary
+#     script: docker-make --Lint --summary --build-only metal-api-master
 #     only:
 #       - master
-#       - prod

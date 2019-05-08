@@ -11,7 +11,10 @@ default-build-args:
   - NO_PROXY=${NO_PROXY}
   - no_proxy=${NO_PROXY}
 builds:
-  -
-    name: "metal-api"
+  - 
+    name: "metal-api-merge-request"
+    tags:
+      - ${CI_COMMIT_REF_SLUG}
+    name: "metal-api-master"
     tags:
       - latest
