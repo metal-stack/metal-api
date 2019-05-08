@@ -152,10 +152,6 @@ type MachineDetailResponse struct {
 	Timestamps
 }
 
-type MachineIPMIResponse struct {
-	MachineIPMI
-}
-
 func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
 	var nics metal.Nics
 	for i := range r.Nics {
@@ -389,27 +385,25 @@ func NewMachineWaitResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 	}
 }
 
-func NewMachineIPMIResponse(m *metal.IPMI) *MachineIPMIResponse {
+func NewMachineIPMI(m *metal.IPMI) *MachineIPMI {
 	if m == nil {
-		return &MachineIPMIResponse{}
+		return &MachineIPMI{}
 	}
-	return &MachineIPMIResponse{
-		MachineIPMI: MachineIPMI{
-			Address:    m.Address,
-			MacAddress: m.MacAddress,
-			User:       m.User,
-			Password:   m.Password,
-			Interface:  m.Interface,
-			Fru: MachineFru{
-				ChassisPartNumber:   &m.Fru.ChassisPartNumber,
-				ChassisPartSerial:   &m.Fru.ChassisPartSerial,
-				BoardMfg:            &m.Fru.BoardMfg,
-				BoardMfgSerial:      &m.Fru.BoardMfgSerial,
-				BoardPartNumber:     &m.Fru.BoardPartNumber,
-				ProductManufacturer: &m.Fru.ProductManufacturer,
-				ProductPartNumber:   &m.Fru.ProductPartNumber,
-				ProductSerial:       &m.Fru.ProductSerial,
-			},
+	return &MachineIPMI{
+		Address:    m.Address,
+		MacAddress: m.MacAddress,
+		User:       m.User,
+		Password:   m.Password,
+		Interface:  m.Interface,
+		Fru: MachineFru{
+			ChassisPartNumber:   &m.Fru.ChassisPartNumber,
+			ChassisPartSerial:   &m.Fru.ChassisPartSerial,
+			BoardMfg:            &m.Fru.BoardMfg,
+			BoardMfgSerial:      &m.Fru.BoardMfgSerial,
+			BoardPartNumber:     &m.Fru.BoardPartNumber,
+			ProductManufacturer: &m.Fru.ProductManufacturer,
+			ProductPartNumber:   &m.Fru.ProductPartNumber,
+			ProductSerial:       &m.Fru.ProductSerial,
 		},
 	}
 }

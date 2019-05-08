@@ -149,7 +149,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("returns the IPMI connection data for a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", v1.MachineIPMIResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineIPMI{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/wait").
@@ -481,7 +481,7 @@ func (r machineResource) ipmiData(request *restful.Request, response *restful.Re
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineIPMIResponse(&m.IPMI))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineIPMI(&m.IPMI))
 }
 
 func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationRequest *v1.MachineAllocateRequest) (*metal.Machine, error) {

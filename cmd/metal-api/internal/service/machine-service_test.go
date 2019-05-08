@@ -262,7 +262,7 @@ func TestMachineIPMI(t *testing.T) {
 					require.Regexp(t, test.wantErrMessage, result.Message)
 				}
 			} else {
-				var result v1.MachineIPMIResponse
+				var result v1.MachineIPMI
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
 				require.Nil(t, err)
