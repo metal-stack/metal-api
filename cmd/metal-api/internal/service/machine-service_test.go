@@ -209,68 +209,81 @@ func TestRegisterMachine(t *testing.T) {
 	}
 }
 
-// TODO: Tests for reading IPMI
-// 	// now read ipmi data
+func TestMachineIPMI(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	ds, mock = datastore.InitMockDB()
-// 	if len(test.dbmachines) > 0 {
-// 		mock.On(r.DB("mockdb").Table("machine").Get(test.dbmachines[0].ID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
-// 	} else {
-// 		mock.On(r.DB("mockdb").Table("machine").Get("0").Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
-// 	}
+	data := []struct {
+		name           string
+		machine        *metal.Machine
+		wantStatusCode int
+		wantErr        bool
+		wantErrMessage string
+	}{
+		{
+			name:           "retrieve machine1 ipmi",
+			machine:        &testdata.M1,
+			wantStatusCode: http.StatusOK,
+		},
+		{
+			name:           "retrieve machine2 ipmi",
+			machine:        &testdata.M2,
+			wantStatusCode: http.StatusOK,
+		},
+		{
+			name:           "retrieve unknown machine ipmi",
+			machine:        &metal.Machine{Base: metal.Base{ID: "999"}},
+			wantStatusCode: http.StatusNotFound,
+			wantErr:        true,
+		},
+	}
 
-// 	testdata.InitMockDBData(mock)
+	for _, test := range data {
+		t.Run(test.name, func(t *testing.T) {
 
-// 	req = httptest.NewRequest("GET", fmt.Sprintf("/v1/machine/%s/ipmi", test.uuid), nil)
-// 	w = httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+			container := restful.NewContainer().Add(machineservice)
 
-// 	resp = w.Result()
-// 	require.Equal(t, test.expectedIPMIStatus, resp.StatusCode, w.Body.String())
-// 	// if resp.StatusCode >= 300 {
-// 	// 	return
-// 	// }
-// 	var ipmiresult v1.MachineIPMIResponse
-// 	err = json.NewDecoder(resp.Body).Decode(&ipmiresult)
-// 	require.Nil(t, err)
+			req := httptest.NewRequest("GET", fmt.Sprintf("/v1/machine/%s/ipmi", test.machine.ID), nil)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
 
-// 	require.Equal(t, testdata.IPMI1.Address, ipmiresult.Address)
-// 	require.Equal(t, testdata.IPMI1.Interface, ipmiresult.Interface)
-// 	require.Equal(t, testdata.IPMI1.User, ipmiresult.User)
-// 	require.Equal(t, testdata.IPMI1.Password, ipmiresult.Password)
-// 	require.Equal(t, testdata.IPMI1.MacAddress, ipmiresult.MacAddress)
+			resp := w.Result()
+			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
 
-// 	require.Equal(t, testdata.IPMI1.Fru.ChassisPartNumber, *ipmiresult.Fru.ChassisPartNumber)
-// 	require.Equal(t, testdata.IPMI1.Fru.ChassisPartSerial, *ipmiresult.Fru.ChassisPartSerial)
-// 	require.Equal(t, testdata.IPMI1.Fru.BoardMfg, *ipmiresult.Fru.BoardMfg)
-// 	require.Equal(t, testdata.IPMI1.Fru.BoardMfgSerial, *ipmiresult.Fru.BoardMfgSerial)
-// 	require.Equal(t, testdata.IPMI1.Fru.BoardPartNumber, *ipmiresult.Fru.BoardPartNumber)
-// 	require.Equal(t, testdata.IPMI1.Fru.ProductManufacturer, *ipmiresult.Fru.ProductManufacturer)
-// 	require.Equal(t, testdata.IPMI1.Fru.ProductPartNumber, *ipmiresult.Fru.ProductPartNumber)
-// 	require.Equal(t, testdata.IPMI1.Fru.ProductSerial, *ipmiresult.Fru.ProductSerial)
-// })
+			if test.wantErr {
+				var result httperrors.HTTPErrorResponse
+				err := json.NewDecoder(resp.Body).Decode(&result)
 
-// func TestFinalizeUnallocatedMachine(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
+				require.Nil(t, err)
+				require.Equal(t, test.wantStatusCode, result.StatusCode)
+				if test.wantErrMessage != "" {
+					require.Regexp(t, test.wantErrMessage, result.Message)
+				}
+			} else {
+				var result v1.MachineIPMIResponse
+				err := json.NewDecoder(resp.Body).Decode(&result)
 
-// 	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
-// 	container := restful.NewContainer().Add(machineservice)
-// 	rep := metal.ReportAllocation{
-// 		Success:         true,
-// 		ErrorMessage:    "",
-// 		ConsolePassword: "blubber",
-// 	}
-// 	js, _ := json.Marshal(rep)
-// 	body := bytes.NewBuffer(js)
-// 	req := httptest.NewRequest("POST", "/v1/machine/3/report", body)
-// 	req.Header.Add("Content-Type", "application/json")
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+				require.Nil(t, err)
+				require.Equal(t, test.machine.IPMI.Address, result.Address)
+				require.Equal(t, test.machine.IPMI.Interface, result.Interface)
+				require.Equal(t, test.machine.IPMI.User, result.User)
+				require.Equal(t, test.machine.IPMI.Password, result.Password)
+				require.Equal(t, test.machine.IPMI.MacAddress, result.MacAddress)
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
-// }
+				require.Equal(t, test.machine.IPMI.Fru.ChassisPartNumber, *result.Fru.ChassisPartNumber)
+				require.Equal(t, test.machine.IPMI.Fru.ChassisPartSerial, *result.Fru.ChassisPartSerial)
+				require.Equal(t, test.machine.IPMI.Fru.BoardMfg, *result.Fru.BoardMfg)
+				require.Equal(t, test.machine.IPMI.Fru.BoardMfgSerial, *result.Fru.BoardMfgSerial)
+				require.Equal(t, test.machine.IPMI.Fru.BoardPartNumber, *result.Fru.BoardPartNumber)
+				require.Equal(t, test.machine.IPMI.Fru.ProductManufacturer, *result.Fru.ProductManufacturer)
+				require.Equal(t, test.machine.IPMI.Fru.ProductPartNumber, *result.Fru.ProductPartNumber)
+				require.Equal(t, test.machine.IPMI.Fru.ProductSerial, *result.Fru.ProductSerial)
+			}
+		})
+	}
+}
 
 func TestFinalizeMachineAllocation(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
@@ -341,28 +354,6 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestFinalizeUnknownMachineAllocation(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
-	container := restful.NewContainer().Add(machineservice)
-
-	finalizeRequest := v1.MachineFinalizeAllocationRequest{
-		ConsolePassword: "blubber",
-	}
-
-	js, _ := json.Marshal(finalizeRequest)
-	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/machine/999/report", body)
-	req.Header.Add("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
