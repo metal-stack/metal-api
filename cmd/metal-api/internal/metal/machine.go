@@ -56,6 +56,24 @@ type Machine struct {
 	IPMI        IPMI               `rethinkdb:"ipmi"`
 }
 
+// IsFirewall returns true if this machine is a firewall machine.
+func (m *Machine) IsFirewall(iMap ImageMap) bool {
+	if m.Allocation == nil {
+		return false
+	}
+	image, ok := iMap[m.Allocation.ImageID]
+	if !ok {
+		return false
+	}
+	if !image.HasFeature(ImageFeatureFirewall) {
+		return false
+	}
+	if len(m.Allocation.MachineNetworks) <= 1 {
+		return false
+	}
+	return true
+}
+
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
 	Created         time.Time        `rethinkdb:"created"`

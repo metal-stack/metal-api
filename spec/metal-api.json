@@ -2505,12 +2505,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
         "projectid",
         "partitionid",
+        "ssh_pub_keys",
+        "tenant",
         "sizeid",
         "imageid",
-        "ssh_pub_keys",
         "networks"
       ],
       "properties": {
@@ -2651,8 +2651,8 @@
     },
     "v1.IPListResponse": {
       "required": [
-        "networkid",
         "projectid",
+        "networkid",
         "ipaddress"
       ],
       "properties": {
@@ -2993,16 +2993,16 @@
     },
     "v1.MachineDetailResponse": {
       "required": [
+        "events",
         "rackid",
-        "tags",
         "size",
+        "allocation",
         "state",
         "liveliness",
+        "tags",
         "id",
-        "hardware",
-        "allocation",
-        "events",
         "partition",
+        "hardware",
         "created",
         "changed"
       ],
@@ -3191,15 +3191,15 @@
     "v1.MachineListResponse": {
       "required": [
         "id",
+        "state",
+        "liveliness",
+        "events",
+        "partition",
         "rackid",
         "size",
         "hardware",
         "allocation",
-        "tags",
-        "partition",
-        "state",
-        "liveliness",
-        "events"
+        "tags"
       ],
       "properties": {
         "allocation": {
@@ -3441,18 +3441,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "changed",
-        "tags",
+        "events",
         "id",
+        "changed",
+        "hardware",
+        "partition",
+        "size",
+        "tags",
+        "allocation",
+        "liveliness",
         "state",
         "created",
-        "hardware",
-        "allocation",
-        "partition",
         "rackid",
-        "liveliness",
-        "events",
-        "size",
         "phone_home_token"
       ],
       "properties": {
@@ -3570,11 +3570,11 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
+        "prefixes",
+        "usage",
         "primary",
         "id",
-        "prefixes",
         "nat",
-        "usage",
         "created",
         "changed"
       ],
@@ -3636,9 +3636,9 @@
     "v1.NetworkListResponse": {
       "required": [
         "id",
+        "primary",
         "prefixes",
         "nat",
-        "primary",
         "usage"
       ],
       "properties": {

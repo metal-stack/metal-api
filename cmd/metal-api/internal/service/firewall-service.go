@@ -8,6 +8,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
@@ -83,18 +84,37 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 		return
 	}
 
-	// TODO: Check if fw, otherwise return not found
+	imgs, err := r.ds.ListImages()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if !fw.IsFirewall(imgs.ByID()) {
+		sendError(utils.Logger(request), response, utils.CurrentFuncName(), httperrors.NotFound(fmt.Errorf("machine is not a firewall")))
+		return
+	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(fw, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
-	fws, err := r.ds.ListMachines()
+	possibleFws, err := r.ds.ListMachines()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	// FIXME filter firewalls from machines in these responses.
+	// potentially a little unefficient because images are also retrieved for creating the machine list response later
+	imgs, err := r.ds.ListImages()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var fws []metal.Machine
+	for i := range possibleFws {
+		if possibleFws[i].IsFirewall(imgs.ByID()) {
+			fws = append(fws, possibleFws[i])
+		}
+	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineListResponse(fws, r.ds, utils.Logger(request).Sugar()))
 }
