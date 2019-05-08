@@ -58,39 +58,39 @@ func TestRethinkStore_FindPartition(t *testing.T) {
 	}
 }
 
-// func TestRethinkStore_ListPartitions(t *testing.T) {
+func TestRethinkStore_ListPartitions(t *testing.T) {
 
-// 	// mock the DBs
-// 	ds, mock := InitMockDB()
-// 	testdata.InitMockDBData(mock)
+	// mock the DBs
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	tests := []struct {
-// 		name    string
-// 		rs      *RethinkStore
-// 		want    []metal.Partition
-// 		wantErr bool
-// 	}{
-// 		// Test Data Array / Test Cases:
-// 		{
-// 			name:    "Test 1",
-// 			rs:      ds,
-// 			want:    testdata.TestPartitions,
-// 			wantErr: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := tt.rs.ListPartitions()
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("RethinkStore.ListPartitions() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("RethinkStore.ListPartitions() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		want    metal.Partitions
+		wantErr bool
+	}{
+		// Test Data Array / Test Cases:
+		{
+			name:    "Test 1",
+			rs:      ds,
+			want:    testdata.TestPartitions,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.rs.ListPartitions()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.ListPartitions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.ListPartitions() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestRethinkStore_CreatePartition(t *testing.T) {
 

@@ -15,7 +15,7 @@ func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 
 // ListSizes returns all sizes.
 func (rs *RethinkStore) ListSizes() (metal.Sizes, error) {
-	szs := make([]metal.Size, 0)
+	szs := make(metal.Sizes, 0)
 	err := rs.listEntities(rs.sizeTable(), &szs)
 	return szs, err
 }

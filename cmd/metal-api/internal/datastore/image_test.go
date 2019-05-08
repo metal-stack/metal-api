@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -59,40 +60,40 @@ func TestRethinkStore_FindImage(t *testing.T) {
 	}
 }
 
-// func TestRethinkStore_ListImages(t *testing.T) {
+func TestRethinkStore_ListImages(t *testing.T) {
 
-// 	// mock the DBs
-// 	ds, mock := InitMockDB()
-// 	testdata.InitMockDBData(mock)
+	// mock the DBs
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	tests := []struct {
-// 		name    string
-// 		rs      *RethinkStore
-// 		want    []metal.Image
-// 		wantErr bool
-// 	}{
-// 		// Test-Data List / Test Cases:
-// 		{
-// 			name:    "TestRethinkStore_ListImages Test 1",
-// 			rs:      ds,
-// 			want:    testdata.TestImages,
-// 			wantErr: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := tt.rs.ListImages()
-// 			fmt.Printf("%#v", got)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("RethinkStore.ListImages() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("RethinkStore.ListImages() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		want    metal.Images
+		wantErr bool
+	}{
+		// Test-Data List / Test Cases:
+		{
+			name:    "TestRethinkStore_ListImages Test 1",
+			rs:      ds,
+			want:    testdata.TestImages,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.rs.ListImages()
+			fmt.Printf("%#v", got)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.ListImages() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.ListImages() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestRethinkStore_CreateImage(t *testing.T) {
 

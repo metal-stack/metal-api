@@ -51,39 +51,39 @@ func TestRethinkStore_FindSize(t *testing.T) {
 	}
 }
 
-// func TestRethinkStore_ListSizes(t *testing.T) {
+func TestRethinkStore_ListSizes(t *testing.T) {
 
-// 	// mock the DBs
-// 	ds, mock := InitMockDB()
-// 	testdata.InitMockDBData(mock)
+	// mock the DBs
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	tests := []struct {
-// 		name    string
-// 		rs      *RethinkStore
-// 		want    []metal.Size
-// 		wantErr bool
-// 	}{
-// 		// Test Data Array / Test Cases:
-// 		{
-// 			name:    "TestRethinkStore_ListSizes Test 1",
-// 			rs:      ds,
-// 			want:    testdata.TestSizes,
-// 			wantErr: false,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := tt.rs.ListSizes()
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("RethinkStore.ListSizes() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("RethinkStore.ListSizes() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		want    metal.Sizes
+		wantErr bool
+	}{
+		// Test Data Array / Test Cases:
+		{
+			name:    "TestRethinkStore_ListSizes Test 1",
+			rs:      ds,
+			want:    testdata.TestSizes,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.rs.ListSizes()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.ListSizes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.ListSizes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestRethinkStore_CreateSize(t *testing.T) {
 	// mock the DB
