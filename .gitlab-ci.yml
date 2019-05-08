@@ -1,17 +1,12 @@
-image: registry.cloud.fits/fits/buildtools:1
-
-stages:
-    - build
-    - push
+---
+image: registry.cloud.fits/fits/buildtools:dev
 
 merge-request:
-    stage: build
-    only:
-      - merge_requests
-    script: docker-make --Lint --summary --build-only metal-api-merge-request
+  script: docker-make -x rule2,rule3 --summary --build-only metal-api-merge-request
+  only:
+    - merge_requests
 
-# push:
-#     stage: push
+# master:
 #     script: docker-make --Lint --summary --build-only metal-api-master
 #     only:
 #       - master
