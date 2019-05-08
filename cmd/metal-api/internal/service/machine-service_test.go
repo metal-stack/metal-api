@@ -422,33 +422,40 @@ func TestGetMachineNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 
-// func TestFreeMachine(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
+func TestFreeMachine(t *testing.T) {
+	// TODO: Add tests for IPAM, verifying that networks are cleaned up properly
 
-// 	pub := &emptyPublisher{}
-// 	events := []string{"machine", "switch"}
-// 	eventidx := 0
-// 	pub.doPublish = func(topic string, data interface{}) error {
-// 		require.Equal(t, events[eventidx], topic)
-// 		eventidx++
-// 		if eventidx == 0 {
-// 			dv := data.(metal.MachineEvent)
-// 			require.Equal(t, "1", dv.Old.ID)
-// 		}
-// 		return nil
-// 	}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// }
+	pub := &emptyPublisher{}
+	events := []string{"machine", "switch"}
+	eventidx := 0
+	pub.doPublish = func(topic string, data interface{}) error {
+		require.Equal(t, events[eventidx], topic)
+		eventidx++
+		if eventidx == 0 {
+			dv := data.(metal.MachineEvent)
+			require.Equal(t, "1", dv.Old.ID)
+		}
+		return nil
+	}
+
+	machineservice := NewMachine(ds, pub, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(machineservice)
+	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineDetailResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Equal(t, testdata.M1.ID, result.ID)
+	require.Nil(t, result.Allocation)
+}
 
 func TestSearchMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
