@@ -146,6 +146,9 @@ var (
 	}
 	SuccessfulEventCycleWithBadHistory = ProvisioningEvents{
 		ProvisioningEvent{
+			Event: ProvisioningEventPhonedHome,
+		},
+		ProvisioningEvent{
 			Event: ProvisioningEventBootingNewKernel,
 		},
 		ProvisioningEvent{

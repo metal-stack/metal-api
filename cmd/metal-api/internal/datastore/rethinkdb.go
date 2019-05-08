@@ -241,7 +241,7 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 func (rs *RethinkStore) listEntities(table *r.Term, entity interface{}) error {
 	res, err := table.Run(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot list %v from database: %v", getEntityName(entity), err)
+		return fmt.Errorf("cannot list %vs from database: %v", getEntityName(entity), err)
 	}
 	defer res.Close()
 
@@ -269,12 +269,11 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.MetalEntity) er
 }
 
 func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.MetalEntity) error {
-	// FIXME: updating the times leads to an error in machine allocation
-	// now := time.Now()
-	// if entity.GetChanged().IsZero() {
-	// 	entity.SetChanged(now)
-	// }
-	// entity.SetChanged(now)
+	now := time.Now()
+	if entity.GetChanged().IsZero() {
+		entity.SetChanged(now)
+	}
+	entity.SetChanged(now)
 
 	res, err := table.Insert(entity, r.InsertOpts{
 		Conflict: "replace",

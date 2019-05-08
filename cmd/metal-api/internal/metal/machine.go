@@ -135,7 +135,6 @@ type Fru struct {
 
 // IPMI connection data
 type IPMI struct {
-	ID         string `rethinkdb:"id"`
 	Address    string `rethinkdb:"address"`
 	MacAddress string `rethinkdb:"mac"`
 	User       string `rethinkdb:"user"`

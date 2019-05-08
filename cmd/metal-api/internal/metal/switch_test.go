@@ -367,16 +367,8 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 					},
 					RackID:      "1",
 					PartitionID: "1",
-					Partition: Partition{
-						Base: Base{
-							ID:          "1",
-							Name:        "partition1",
-							Description: "description 1",
-						},
-					},
-					SizeID:     "1",
-					Size:       &sz1,
-					Allocation: nil,
+					SizeID:      "1",
+					Allocation:  nil,
 					Hardware: MachineHardware{
 						Memory:   100,
 						CPUCores: 1,

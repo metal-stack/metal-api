@@ -97,14 +97,14 @@ type MachineIPMI struct {
 }
 
 type MachineFru struct {
-	ChassisPartNumber   string `json:"chassis_part_number,omitempty" modelDescription:"The Field Replaceable Unit data" description:"the chassis part number"`
-	ChassisPartSerial   string `json:"chassis_part_serial,omitempty" description:"the chassis part serial"`
-	BoardMfg            string `json:"board_mfg,omitempty" description:"the board mfg"`
-	BoardMfgSerial      string `json:"board_mfg_serial,omitempty" description:"the board mfg serial"`
-	BoardPartNumber     string `json:"board_part_number,omitempty" description:"the board part number"`
-	ProductManufacturer string `json:"product_manufacturer,omitempty" description:"the product manufacturer"`
-	ProductPartNumber   string `json:"product_part_number,omitempty" description:"the product part number"`
-	ProductSerial       string `json:"product_serial,omitempty" description:"the product serial"`
+	ChassisPartNumber   *string `json:"chassis_part_number,omitempty" modelDescription:"The Field Replaceable Unit data" description:"the chassis part number" optional:"true"`
+	ChassisPartSerial   *string `json:"chassis_part_serial,omitempty" description:"the chassis part serial" optional:"true"`
+	BoardMfg            *string `json:"board_mfg,omitempty" description:"the board mfg" optional:"true"`
+	BoardMfgSerial      *string `json:"board_mfg_serial,omitempty" description:"the board mfg serial" optional:"true"`
+	BoardPartNumber     *string `json:"board_part_number,omitempty" description:"the board part number" optional:"true"`
+	ProductManufacturer *string `json:"product_manufacturer,omitempty" description:"the product manufacturer" optional:"true"`
+	ProductPartNumber   *string `json:"product_part_number,omitempty" description:"the product part number" optional:"true"`
+	ProductSerial       *string `json:"product_serial,omitempty" description:"the product serial" optional:"true"`
 }
 
 type MachineRegisterRequest struct {
@@ -191,6 +191,39 @@ func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
 }
 
 func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
+	var chassisPartNumber string
+	if r.Fru.ChassisPartNumber != nil {
+		chassisPartNumber = *r.Fru.ChassisPartNumber
+	}
+	var chassisPartSerial string
+	if r.Fru.ChassisPartSerial != nil {
+		chassisPartSerial = *r.Fru.ChassisPartSerial
+	}
+	var boardMfg string
+	if r.Fru.BoardMfg != nil {
+		boardMfg = *r.Fru.BoardMfg
+	}
+	var boardMfgSerial string
+	if r.Fru.BoardMfgSerial != nil {
+		boardMfgSerial = *r.Fru.BoardMfgSerial
+	}
+	var boardPartNumber string
+	if r.Fru.BoardPartNumber != nil {
+		boardPartNumber = *r.Fru.BoardPartNumber
+	}
+	var productManufacturer string
+	if r.Fru.ProductManufacturer != nil {
+		productManufacturer = *r.Fru.ProductManufacturer
+	}
+	var productPartNumber string
+	if r.Fru.ProductPartNumber != nil {
+		productPartNumber = *r.Fru.ProductPartNumber
+	}
+	var productSerial string
+	if r.Fru.ProductSerial != nil {
+		productSerial = *r.Fru.ProductSerial
+	}
+
 	return metal.IPMI{
 		Address:    r.Address,
 		MacAddress: r.MacAddress,
@@ -198,14 +231,14 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 		Password:   r.Password,
 		Interface:  r.Interface,
 		Fru: metal.Fru{
-			ChassisPartNumber:   r.Fru.ChassisPartNumber,
-			ChassisPartSerial:   r.Fru.ChassisPartSerial,
-			BoardMfg:            r.Fru.BoardMfg,
-			BoardMfgSerial:      r.Fru.BoardMfgSerial,
-			BoardPartNumber:     r.Fru.BoardPartNumber,
-			ProductManufacturer: r.Fru.ProductManufacturer,
-			ProductPartNumber:   r.Fru.ProductPartNumber,
-			ProductSerial:       r.Fru.ProductSerial,
+			ChassisPartNumber:   chassisPartNumber,
+			ChassisPartSerial:   chassisPartSerial,
+			BoardMfg:            boardMfg,
+			BoardMfgSerial:      boardMfgSerial,
+			BoardPartNumber:     boardPartNumber,
+			ProductManufacturer: productManufacturer,
+			ProductPartNumber:   productPartNumber,
+			ProductSerial:       productSerial,
 		},
 	}
 }
@@ -368,14 +401,14 @@ func NewMachineIPMIResponse(m *metal.IPMI) *MachineIPMIResponse {
 			Password:   m.Password,
 			Interface:  m.Interface,
 			Fru: MachineFru{
-				ChassisPartNumber:   m.Fru.ChassisPartNumber,
-				ChassisPartSerial:   m.Fru.ChassisPartSerial,
-				BoardMfg:            m.Fru.BoardMfg,
-				BoardMfgSerial:      m.Fru.BoardMfgSerial,
-				BoardPartNumber:     m.Fru.BoardPartNumber,
-				ProductManufacturer: m.Fru.ProductManufacturer,
-				ProductPartNumber:   m.Fru.ProductPartNumber,
-				ProductSerial:       m.Fru.ProductSerial,
+				ChassisPartNumber:   &m.Fru.ChassisPartNumber,
+				ChassisPartSerial:   &m.Fru.ChassisPartSerial,
+				BoardMfg:            &m.Fru.BoardMfg,
+				BoardMfgSerial:      &m.Fru.BoardMfgSerial,
+				BoardPartNumber:     &m.Fru.BoardPartNumber,
+				ProductManufacturer: &m.Fru.ProductManufacturer,
+				ProductPartNumber:   &m.Fru.ProductPartNumber,
+				ProductSerial:       &m.Fru.ProductSerial,
 			},
 		},
 	}

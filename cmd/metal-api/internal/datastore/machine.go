@@ -122,7 +122,7 @@ func (rs *RethinkStore) WaitForMachineAllocation(m *metal.Machine) (*metal.Machi
 	return &response.NewVal, nil
 }
 
-// FindAvailableMachine returns an available machine from the wait table.
+// FindAvailableMachine returns an available machine that momentarily also sits in the wait table.
 func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal.Machine, error) {
 	query := map[string]interface{}{
 		"allocation":  nil,
@@ -135,12 +135,20 @@ func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal
 	var available []metal.Machine
 	err := rs.searchEntities(rs.waitTable(), query, &available)
 	if err != nil {
-		return nil, fmt.Errorf("cannot find free machine: %v", err)
+		return nil, err
 	}
 
 	if len(available) < 1 {
 		return nil, ErrNoMachineAvailable
 	}
 
-	return &available[0], nil
+	// we actually return the machine from the machine table, not from the wait table
+	// otherwise we will get in trouble with update operations on the machine table because
+	// we have mixed timestamps with the entity from the wait table...
+	m, err := rs.FindMachine(available[0].ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }

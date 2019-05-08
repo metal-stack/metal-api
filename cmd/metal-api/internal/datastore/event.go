@@ -22,7 +22,7 @@ func (rs *RethinkStore) FindProvisioningEventContainer(id string) (*metal.Provis
 // such provisioning event container nil will be returned.
 func (rs *RethinkStore) FindProvisioningEventContainerAllowNil(id string) (*metal.ProvisioningEventContainer, error) {
 	var e metal.ProvisioningEventContainer
-	err := rs.findEntityByIDAllowNil(rs.machineTable(), &e, id)
+	err := rs.findEntityByIDAllowNil(rs.eventTable(), &e, id)
 	if e.ID != "" {
 		return &e, err
 	}

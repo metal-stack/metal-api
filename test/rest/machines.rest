@@ -40,6 +40,23 @@ Content-Type: application/json
       }
     ]
   },
+  "ipmi": {
+    "address": "address",
+    "fru": {
+      "board_mfg": "board_mfg",
+      "board_mfg_serial": "board_mfg_serial",
+      "board_part_number": "board_part_number",
+      "chassis_part_number": "chassis_part_number",
+      "chassis_part_serial": "chassis_part_serial",
+      "product_manufacturer": "product_manufacturer",
+      "product_part_number": "product_part_number",
+      "product_serial": "product_serial"
+    },
+    "interface": "interface",
+    "mac": "mac",
+    "password": "password",
+    "user": "user"
+  },
   "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873"
 }
 
@@ -140,6 +157,11 @@ Content-Type: application/json
   "sizeid": "v1-small-x86",
   "ssh_pub_keys": ["keiner"]
 }
+
+### get ipmi details
+# @name ipmi
+GET {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/ipmi
+
 
 ### set machine to available
 POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/state

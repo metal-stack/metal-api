@@ -2194,7 +2194,6 @@
     },
     "metal.IPMI": {
       "required": [
-        "ID",
         "Address",
         "MacAddress",
         "User",
@@ -2208,9 +2207,6 @@
         },
         "Fru": {
           "$ref": "#/definitions/metal.Fru"
-        },
-        "ID": {
-          "type": "string"
         },
         "Interface": {
           "type": "string"
@@ -2595,16 +2591,16 @@
     "v1.FirewallCreateRequest": {},
     "v1.FirewallDetailResponse": {
       "required": [
-        "SizeID",
-        "Hardware",
-        "id",
-        "Allocation",
         "PartitionID",
-        "IPMI",
-        "State",
-        "Liveliness",
+        "SizeID",
+        "Tags",
+        "Hardware",
+        "Allocation",
         "RackID",
-        "Tags"
+        "id",
+        "Liveliness",
+        "IPMI",
+        "State"
       ],
       "properties": {
         "Allocation": {
@@ -2764,9 +2760,9 @@
     },
     "v1.IPDetailResponse": {
       "required": [
+        "networkid",
         "ipaddress",
         "projectid",
-        "networkid",
         "created",
         "changed"
       ],
@@ -3172,15 +3168,15 @@
     },
     "v1.MachineDetailResponse": {
       "required": [
-        "partition",
+        "liveliness",
         "id",
+        "rackid",
+        "tags",
+        "partition",
+        "allocation",
+        "size",
         "hardware",
         "state",
-        "liveliness",
-        "tags",
-        "rackid",
-        "size",
-        "allocation",
         "events",
         "created",
         "changed"
@@ -3369,12 +3365,12 @@
     },
     "v1.MachineIPMIResponse": {
       "required": [
-        "password",
-        "interface",
         "fru",
         "address",
         "mac",
-        "user"
+        "user",
+        "password",
+        "interface"
       ],
       "properties": {
         "address": {
@@ -3400,15 +3396,15 @@
     "v1.MachineListResponse": {
       "required": [
         "id",
-        "hardware",
         "allocation",
         "state",
-        "liveliness",
         "events",
         "rackid",
         "size",
+        "liveliness",
+        "tags",
         "partition",
-        "tags"
+        "hardware"
       ],
       "properties": {
         "allocation": {
@@ -3650,17 +3646,17 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "liveliness",
-        "allocation",
-        "changed",
-        "id",
-        "state",
-        "size",
-        "partition",
         "events",
-        "hardware",
-        "rackid",
         "tags",
+        "id",
+        "allocation",
+        "size",
+        "hardware",
+        "changed",
+        "rackid",
+        "liveliness",
+        "state",
+        "partition",
         "created",
         "phone_home_token"
       ],
@@ -3779,13 +3775,13 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
-        "prefixes",
-        "nat",
         "id",
+        "prefixes",
         "primary",
         "usage",
-        "changed",
-        "created"
+        "nat",
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -4172,8 +4168,8 @@
       "required": [
         "id",
         "constraints",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
