@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -249,87 +250,120 @@ func TestRegisterMachine(t *testing.T) {
 // 	require.Equal(t, testdata.IPMI1.Fru.ProductSerial, *ipmiresult.Fru.ProductSerial)
 // })
 
-// func TestReportMachine(t *testing.T) {
+// func TestFinalizeUnallocatedMachine(t *testing.T) {
 // 	ds, mock := datastore.InitMockDB()
 // 	testdata.InitMockDBData(mock)
 
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
+// 	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+// 	container := restful.NewContainer().Add(machineservice)
 // 	rep := metal.ReportAllocation{
 // 		Success:         true,
+// 		ErrorMessage:    "",
 // 		ConsolePassword: "blubber",
 // 	}
 // 	js, _ := json.Marshal(rep)
 // 	body := bytes.NewBuffer(js)
-// 	req := httptest.NewRequest("POST", "/v1/machine/1/report", body)
+// 	req := httptest.NewRequest("POST", "/v1/machine/3/report", body)
 // 	req.Header.Add("Content-Type", "application/json")
 // 	w := httptest.NewRecorder()
 // 	container.ServeHTTP(w, req)
 
 // 	resp := w.Result()
-// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// 	var result metal.MachineAllocation
-// 	err := json.NewDecoder(resp.Body).Decode(&result)
-// 	require.Nil(t, err)
-// 	require.Equal(t, result.ConsolePassword, rep.ConsolePassword)
+// 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 // }
 
-// func TestReportFailureMachine(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
+func TestFinalizeMachineAllocation(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	rep := metal.ReportAllocation{
-// 		Success:         false,
-// 		ErrorMessage:    "my error message",
-// 		ConsolePassword: "blubber",
-// 	}
-// 	js, _ := json.Marshal(rep)
-// 	body := bytes.NewBuffer(js)
-// 	req := httptest.NewRequest("POST", "/v1/machine/1/report", body)
-// 	req.Header.Add("Content-Type", "application/json")
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+	data := []struct {
+		name           string
+		machineID      string
+		wantStatusCode int
+		wantErr        bool
+		wantErrMessage string
+	}{
+		{
+			name:           "finalize successfully",
+			machineID:      "1",
+			wantStatusCode: http.StatusOK,
+		},
+		{
+			name:           "finalize unknown machine",
+			machineID:      "999",
+			wantStatusCode: http.StatusNotFound,
+			wantErr:        true,
+		},
+		{
+			name:           "finalize unallocated machine",
+			machineID:      "3",
+			wantStatusCode: http.StatusUnprocessableEntity,
+			wantErr:        true,
+			wantErrMessage: "the machine \"3\" is not allocated",
+		},
+	}
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// 	var result metal.MachineAllocation
-// 	err := json.NewDecoder(resp.Body).Decode(&result)
-// 	require.Nil(t, err)
-// }
+	for _, test := range data {
+		t.Run(test.name, func(t *testing.T) {
 
-// func TestReportUnknownMachine(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
+			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+			container := restful.NewContainer().Add(machineservice)
 
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	rep := metal.ReportAllocation{
-// 		Success:         false,
-// 		ErrorMessage:    "my error message",
-// 		ConsolePassword: "blubber",
-// 	}
-// 	js, _ := json.Marshal(rep)
-// 	body := bytes.NewBuffer(js)
-// 	req := httptest.NewRequest("POST", "/v1/machine/999/report", body)
-// 	req.Header.Add("Content-Type", "application/json")
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+			finalizeRequest := v1.MachineFinalizeAllocationRequest{
+				ConsolePassword: "blubber",
+			}
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
-// }
+			js, _ := json.Marshal(finalizeRequest)
+			body := bytes.NewBuffer(js)
+			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/%s/finalize-allocation", test.machineID), body)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
 
+			resp := w.Result()
+			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
+
+			if test.wantErr {
+				var result httperrors.HTTPErrorResponse
+				err := json.NewDecoder(resp.Body).Decode(&result)
+
+				require.Nil(t, err)
+				require.Equal(t, test.wantStatusCode, result.StatusCode)
+				if test.wantErrMessage != "" {
+					require.Regexp(t, test.wantErrMessage, result.Message)
+				}
+			} else {
+				var result v1.MachineDetailResponse
+				err := json.NewDecoder(resp.Body).Decode(&result)
+
+				require.Nil(t, err)
+				require.Equal(t, finalizeRequest.ConsolePassword, *result.Allocation.ConsolePassword)
+			}
+		})
+	}
+}
+
+func TestFinalizeUnknownMachineAllocation(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(machineservice)
+
+	finalizeRequest := v1.MachineFinalizeAllocationRequest{
+		ConsolePassword: "blubber",
+	}
+
+	js, _ := json.Marshal(finalizeRequest)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/999/report", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
+}
 func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -359,56 +393,6 @@ func TestSetMachineState(t *testing.T) {
 	require.Equal(t, "blubber", result.State.Description)
 
 }
-
-// func TestReportUnknownFailure(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
-
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	rep := metal.ReportAllocation{
-// 		Success:         false,
-// 		ErrorMessage:    "my error message",
-// 		ConsolePassword: "blubber",
-// 	}
-// 	js, _ := json.Marshal(rep)
-// 	body := bytes.NewBuffer(js)
-// 	req := httptest.NewRequest("POST", "/v1/machine/404/report", body)
-// 	req.Header.Add("Content-Type", "application/json")
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
-
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
-// }
-
-// func TestReportUnallocatedMachine(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
-
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	rep := metal.ReportAllocation{
-// 		Success:         true,
-// 		ErrorMessage:    "",
-// 		ConsolePassword: "blubber",
-// 	}
-// 	js, _ := json.Marshal(rep)
-// 	body := bytes.NewBuffer(js)
-// 	req := httptest.NewRequest("POST", "/v1/machine/3/report", body)
-// 	req.Header.Add("Content-Type", "application/json")
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
-
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
-// }
 
 func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()

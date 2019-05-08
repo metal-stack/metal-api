@@ -114,7 +114,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineAllocateRequest{}).
-		Returns(http.StatusOK, "OK", v1.MachineAllocateRequest{}).
+		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/finalize-allocation").
