@@ -268,6 +268,27 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.MetalEntity) er
 	return nil
 }
 
+func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.MetalEntity) error {
+	// FIXME: updating the times leads to an error in machine allocation
+	// now := time.Now()
+	// if entity.GetChanged().IsZero() {
+	// 	entity.SetChanged(now)
+	// }
+	// entity.SetChanged(now)
+
+	res, err := table.Insert(entity, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot upsert %v in database: %v", getEntityName(entity), err)
+	}
+
+	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
+		entity.SetID(res.GeneratedKeys[0])
+	}
+	return nil
+}
+
 func (rs *RethinkStore) searchEntities(table *r.Term, filter interface{}, entity interface{}) error {
 	q := table.Filter(filter)
 
@@ -284,10 +305,10 @@ func (rs *RethinkStore) searchEntities(table *r.Term, filter interface{}, entity
 	return nil
 }
 
-func (rs *RethinkStore) deleteEntityByID(table *r.Term, id string) error {
-	_, err := table.Get(id).Delete().RunWrite(rs.session)
+func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.MetalEntity) error {
+	_, err := table.Get(entity.GetID()).Delete().RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot delete entity with id %q from database: %v", id, err)
+		return fmt.Errorf("cannot delete %v with id %q from database: %v", getEntityName(entity), entity.GetID(), err)
 	}
 	return nil
 }
@@ -298,9 +319,28 @@ func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.MetalEntity,
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error("the entity was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot update network: %v", err)
+		return fmt.Errorf("cannot update %v: %v", getEntityName(newEntity), err)
 	}
 	return nil
+}
+
+func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.MetalEntity, response interface{}) error {
+	res, err := table.Get(entity.GetID()).Changes().Run(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot listen for %v change with id %q in database", getEntityName(entity), entity.GetID())
+	}
+	defer res.Close()
+
+	for res.Next(&response) {
+		rs.SugaredLogger.Infow("entity changed", "entity", getEntityName(entity), "id", entity.GetID())
+		return nil
+	}
+	err = res.Err()
+	if err != nil {
+		return fmt.Errorf("error retrieving next %v from database: %v", getEntityName(entity), err)
+	}
+
+	return fmt.Errorf("%v's database change event stream has closed without an error", getEntityName(entity))
 }
 
 func getEntityName(entity interface{}) string {

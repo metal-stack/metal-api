@@ -49,6 +49,8 @@ type MetalEntity interface {
 	GetChanged() time.Time
 	// SetChanged sets the entity's changed time
 	SetChanged(changed time.Time)
+	// GetCreated sets the entity's creation time
+	GetCreated() time.Time
 	// SetCreated sets the entity's creation time
 	SetCreated(created time.Time)
 }
@@ -68,7 +70,11 @@ func (b *Base) GetChanged() time.Time {
 func (b *Base) SetChanged(changed time.Time) {
 	b.Changed = changed
 }
- 
+
+func (b *Base) GetCreated() time.Time {
+	return b.Created
+}
+
 func (b *Base) SetCreated(created time.Time) {
 	b.Created = created
 }

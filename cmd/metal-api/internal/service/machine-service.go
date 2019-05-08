@@ -233,49 +233,7 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 		return
 	}
 
-	s, p, i, ec := r.findMachineReferencedEntites(m, utils.Logger(request).Sugar())
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineDetailResponse(m, s, p, i, ec))
-}
-
-func (r machineResource) findMachineReferencedEntites(m *metal.Machine, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
-	var err error
-
-	var s *metal.Size
-	if m.SizeID != "" {
-		s, err = r.ds.FindSize(m.SizeID)
-		if err != nil {
-			logger.Errorw("machine with id %s references size with id %s, but size cannot be found in database", m.ID, m.SizeID)
-		}
-	}
-
-	var p *metal.Partition
-	if m.PartitionID != "" {
-		p, err = r.ds.FindPartition(m.PartitionID)
-		if err != nil {
-			logger.Errorw("machine with id %s references partition with id %s, but partition cannot be found in database", m.ID, m.PartitionID)
-		}
-	}
-
-	var i *metal.Image
-	if m.Allocation != nil {
-		if m.Allocation.ImageID != "" {
-			i, err = r.ds.FindImage(m.Allocation.ImageID)
-			if err != nil {
-				logger.Errorw("machine with id %s references image with id %s, but image cannot be found in database", m.ID, m.Allocation.ImageID)
-			}
-		}
-	}
-
-	var ec *metal.ProvisioningEventContainer
-	try, err := r.ds.FindProvisioningEventContainer(m.ID)
-	if err != nil {
-		logger.Errorw("machine with id %s has no provisioning event container in the database", m.ID)
-	} else {
-		ec = try
-	}
-
-	return s, p, i, ec
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) listMachines(request *restful.Request, response *restful.Response) {
@@ -284,56 +242,7 @@ func (r machineResource) listMachines(request *restful.Request, response *restfu
 		return
 	}
 
-	sMap, pMap, iMap, ecMap := r.getMachineReferencedEntityMaps(ms, utils.Logger(request).Sugar())
-
-	var result []*v1.MachineListResponse
-	for index := range ms {
-		var s *metal.Size
-		if ms[index].SizeID != "" {
-			sizeEntity := sMap[ms[index].SizeID]
-			s = &sizeEntity
-		}
-		var p *metal.Partition
-		if ms[index].PartitionID != "" {
-			partitionEntity := pMap[ms[index].PartitionID]
-			p = &partitionEntity
-		}
-		var i *metal.Image
-		if ms[index].Allocation != nil {
-			if ms[index].Allocation.ImageID != "" {
-				imageEntity := iMap[ms[index].Allocation.ImageID]
-				i = &imageEntity
-			}
-		}
-		ec := ecMap[ms[index].ID]
-		result = append(result, v1.NewMachineListResponse(&ms[index], s, p, i, &ec))
-	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
-}
-
-func (r machineResource) getMachineReferencedEntityMaps(m []metal.Machine, logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
-	s, err := r.ds.ListSizes()
-	if err != nil {
-		logger.Errorw("sizes could not be listed: %v", err)
-	}
-
-	p, err := r.ds.ListPartitions()
-	if err != nil {
-		logger.Errorw("partitions could not be listed: %v", err)
-	}
-
-	i, err := r.ds.ListImages()
-	if err != nil {
-		logger.Errorw("images could not be listed: %v", err)
-	}
-
-	ec, err := r.ds.ListProvisioningEventContainers()
-	if err != nil {
-		logger.Errorw("provisioning event containers could not be listed: %v", err)
-	}
-
-	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineListResponse(ms, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) searchMachine(request *restful.Request, response *restful.Response) {
@@ -344,32 +253,7 @@ func (r machineResource) searchMachine(request *restful.Request, response *restf
 		return
 	}
 
-	sMap, pMap, iMap, ecMap := r.getMachineReferencedEntityMaps(ms, utils.Logger(request).Sugar())
-
-	var result []*v1.MachineListResponse
-	for index := range ms {
-		var s *metal.Size
-		if ms[index].SizeID != "" {
-			sizeEntity := sMap[ms[index].SizeID]
-			s = &sizeEntity
-		}
-		var p *metal.Partition
-		if ms[index].PartitionID != "" {
-			partitionEntity := pMap[ms[index].PartitionID]
-			p = &partitionEntity
-		}
-		var i *metal.Image
-		if ms[index].Allocation != nil {
-			if ms[index].Allocation.ImageID != "" {
-				imageEntity := iMap[ms[index].Allocation.ImageID]
-				i = &imageEntity
-			}
-		}
-		ec := ecMap[ms[index].ID]
-		result = append(result, v1.NewMachineListResponse(&ms[index], s, p, i, &ec))
-	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineListResponse(ms, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
@@ -387,19 +271,15 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 				log.Sugar().Errorw("allocation returned an error", "error", a.Err)
 				return a.Err
 			}
-			log.Sugar().Infow("return allocated machine", "machine", a)
+
 			ka := jwt.NewPhoneHomeClaims(a.Machine)
 			token, err := ka.JWT()
 			if err != nil {
 				return fmt.Errorf("could not create jwt: %v", err)
 			}
 
-			s, p, i, ec := r.findMachineReferencedEntites(a.Machine, utils.Logger(request).Sugar())
-
-			err = response.WriteEntity(v1.NewMachineWaitResponse(a.Machine, s, p, i, ec, token))
-			if err != nil {
-				return fmt.Errorf("could not write entity: %v", err)
-			}
+			s, p, i, ec := r.findMachineReferencedEntites(a.Machine, log.Sugar())
+			response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineWaitResponse(a.Machine, s, p, i, ec, token))
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
 		}
@@ -434,13 +314,17 @@ func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Alloca
 		return alloc(a)
 	}
 
-	r.ds.InsertWaitingMachine(m)
+	err = r.ds.InsertWaitingMachine(m)
+	if err != nil {
+		return err
+	}
 	defer func() {
-		r.ds.RemoveWaitingMachine(m.ID)
+		err := r.ds.RemoveWaitingMachine(m)
+		logger.Errorw("could not remove machine from wait table", "error", err)
 	}()
 
 	go func() {
-		changedMachine, err := r.ds.WaitForMachineAllocation(m.ID)
+		changedMachine, err := r.ds.WaitForMachineAllocation(m)
 		if err != nil {
 			logger.Errorw("stop waiting for changes", "id", id)
 			a <- MachineAllocation{Err: err}
@@ -449,47 +333,9 @@ func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Alloca
 		}
 		close(a)
 	}()
+
 	return alloc(a)
 }
-
-// FIXME: Move to event endpoint
-// func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
-// 	op := utils.CurrentFuncName()
-// 	var data metal.PhoneHomeRequest
-// 	err := request.ReadEntity(&data)
-// 	log := utils.Logger(request)
-// 	if err != nil {
-// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
-// 		return
-// 	}
-// 	c, err := jwt.FromJWT(data.PhoneHomeToken)
-// 	if err != nil {
-// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
-// 		return
-// 	}
-// 	if c.Machine == nil || c.Machine.ID == "" {
-// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
-// 		return
-// 	}
-// 	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
-// 	if err != nil {
-// 		sendError(log, response, op, httperrors.NotFound(err))
-// 		return
-// 	}
-// 	if oldMachine.Allocation == nil {
-// 		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
-// 		sendError(log, response, op, httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
-// 	}
-// 	newMachine := *oldMachine
-// 	lastPingTime := time.Now()
-// 	newMachine.Allocation.LastPing = lastPingTime
-// 	newMachine.Liveliness = metal.MachineLivelinessAlive // phone home token is sent consistently, but if customer turns off the service, it could turn to unknown
-// 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
-// 	if checkError(request, response, op, err) {
-// 		return
-// 	}
-// 	response.WriteEntity(nil)
-// }
 
 func (r machineResource) setMachineState(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineState
@@ -528,9 +374,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 		return
 	}
 
-	s, p, i, ec := r.findMachineReferencedEntites(&newMachine, utils.Logger(request).Sugar())
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineDetailResponse(&newMachine, s, p, i, ec))
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(&newMachine, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) registerMachine(request *restful.Request, response *restful.Response) {
@@ -592,10 +436,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			return
 		}
 
-		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID})
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
 	} else {
 		// machine has already registered, update it
 		old := *m
@@ -614,14 +454,23 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		}
 	}
 
+	ec, err := r.ds.FindProvisioningEventContainerAllowNil(m.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if ec == nil {
+		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID})
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
 	err = r.ds.UpdateSwitchConnections(m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	s, p, i, ec := r.findMachineReferencedEntites(m, utils.Logger(request).Sugar())
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineDetailResponse(m, s, p, i, ec))
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) ipmiData(request *restful.Request, response *restful.Response) {
@@ -843,6 +692,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 		newTags = append(newTags, k)
 	}
 	machine.Tags = newTags
+
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
 		ds.DeleteIP(ip)
@@ -870,9 +720,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	s, p, i, ec := r.findMachineReferencedEntites(m, utils.Logger(request).Sugar())
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineDetailResponse(m, s, p, i, ec))
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
@@ -928,9 +776,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		return
 	}
 
-	s, p, i, ec := r.findMachineReferencedEntites(m, utils.Logger(request).Sugar())
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineDetailResponse(m, s, p, i, ec))
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
@@ -942,6 +788,13 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
+		err = r.releaseMachineNetworks(m.Allocation.MachineNetworks)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+
+		// TODO: In the future, it would be nice to have the VRF deleted from the vrftable as well
+
 		old := *m
 		m.Allocation = nil
 		err = r.ds.UpdateMachine(&old, m)
@@ -950,10 +803,9 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		}
 		utils.Logger(request).Sugar().Infow("freed machine", "machineID", id)
 	}
+
 	// do the next steps in any case, so a client can call this function multiple times to
 	// fire of the needed events
-
-	// FIXME: Release automatically allocated machine IP, clean up child prefix if last IP
 
 	sw, err := r.ds.SetVrfAtSwitch(m, "")
 	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
@@ -975,12 +827,54 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		return
 	}
 
-	s, p, i, ec := r.findMachineReferencedEntites(m, utils.Logger(request).Sugar())
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineDetailResponse(m, s, p, i, ec))
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
 }
 
-// FIXME: Put events into machine database entity
+func (r machineResource) releaseMachineNetworks(machineNetworks []metal.MachineNetwork) error {
+	for _, machineNetwork := range machineNetworks {
+		for _, ipString := range machineNetwork.IPs {
+			ip, err := r.ds.FindIP(ipString)
+			if err != nil {
+				return err
+			}
+			err = r.ipamer.ReleaseIP(*ip)
+			if err != nil {
+				return err
+			}
+			err = r.ds.DeleteIP(ip)
+			if err != nil {
+				return err
+			}
+		}
+
+		network, err := r.ds.FindNetwork(machineNetwork.NetworkID)
+		if err != nil {
+			return err
+		}
+		deleteNetwork := false
+		for _, prefix := range network.Prefixes {
+			usage, err := r.ipamer.PrefixUsage(prefix.String())
+			if err != nil {
+				return err
+			}
+			if usage.UsedIPs <= 2 { // 2 is for broadcast and network
+				err = r.ipamer.DeletePrefix(prefix)
+				if err != nil {
+					return err
+				}
+				deleteNetwork = true
+			}
+		}
+		if deleteNetwork {
+			err = r.ds.DeleteNetwork(network)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
@@ -998,6 +892,45 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 	response.WriteHeaderAndEntity(http.StatusOK, eventContainer)
 }
 
+// FIXME: Move to event endpoint
+// func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
+// 	op := utils.CurrentFuncName()
+// 	var data metal.PhoneHomeRequest
+// 	err := request.ReadEntity(&data)
+// 	log := utils.Logger(request)
+// 	if err != nil {
+// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
+// 		return
+// 	}
+// 	c, err := jwt.FromJWT(data.PhoneHomeToken)
+// 	if err != nil {
+// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
+// 		return
+// 	}
+// 	if c.Machine == nil || c.Machine.ID == "" {
+// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
+// 		return
+// 	}
+// 	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
+// 	if err != nil {
+// 		sendError(log, response, op, httperrors.NotFound(err))
+// 		return
+// 	}
+// 	if oldMachine.Allocation == nil {
+// 		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
+// 		sendError(log, response, op, httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
+// 	}
+// 	newMachine := *oldMachine
+// 	lastPingTime := time.Now()
+// 	newMachine.Allocation.LastPing = lastPingTime
+// 	newMachine.Liveliness = metal.MachineLivelinessAlive // phone home token is sent consistently, but if customer turns off the service, it could turn to unknown
+// 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
+// 	if checkError(request, response, op, err) {
+// 		return
+// 	}
+// 	response.WriteEntity(nil)
+// }
+
 func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineAllowNil(id)
@@ -1009,34 +942,63 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 			Base: metal.Base{
 				ID: id,
 			},
+			Liveliness: metal.MachineLivelinessAlive,
 		}
 		err = r.ds.CreateMachine(m)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
+	} else {
+		old := *m
+
+		m.Liveliness = metal.MachineLivelinessAlive
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
 
-	var event metal.ProvisioningEvent
-	err = request.ReadEntity(&event)
+	var requestPayload v1.MachineProvisioningEvent
+	err = request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	ok := metal.AllProvisioningEventTypes[event.Event]
+	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(requestPayload.Event)]
 	if !ok {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unknown provisioning event")) {
 			return
 		}
 	}
 
-	event.Time = time.Now()
-	err = r.ds.AddProvisioningEvent(id, &event)
+	eventContainer, err := r.ds.FindProvisioningEventContainerAllowNil(m.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	if eventContainer == nil {
+		eventContainer = &metal.ProvisioningEventContainer{
+			ID: m.ID,
+		}
+	}
 
-	newMachine := *m
-	evaluatedMachine := r.evaluateMachineLiveliness(newMachine)
-	err = r.ds.UpdateMachine(m, evaluatedMachine)
+	now := time.Now()
+
+	eventContainer.LastEventTime = &now
+
+	event := metal.ProvisioningEvent{
+		Time:    now,
+		Event:   metal.ProvisioningEventType(requestPayload.Event),
+		Message: requestPayload.Message,
+	}
+	if event.Event == metal.ProvisioningEventAlive {
+		utils.Logger(request).Sugar().Debugw("received provisioning alive event", "id", eventContainer.ID)
+	} else if event.Event == metal.ProvisioningEventPhonedHome && len(eventContainer.Events) > 0 && eventContainer.Events[0].Event == metal.ProvisioningEventPhonedHome {
+		utils.Logger(request).Sugar().Debugw("swallowing repeated phone home event", "id", eventContainer.ID)
+	} else {
+		eventContainer.Events = append([]metal.ProvisioningEvent{event}, eventContainer.Events...)
+		eventContainer.IncompleteProvisioningCycles = eventContainer.CalculateIncompleteCycles(utils.Logger(request).Sugar())
+	}
+
+	err = r.ds.UpsertProvisioningEventContainer(eventContainer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1159,7 +1121,104 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		return
 	}
 
-	s, p, i, ec := r.findMachineReferencedEntites(m, utils.Logger(request).Sugar())
+	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
+}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineDetailResponse(m, s, p, i, ec))
+func (r machineResource) makeMachineDetailResponse(m *metal.Machine, logger *zap.SugaredLogger) *v1.MachineDetailResponse {
+	s, p, i, ec := r.findMachineReferencedEntites(m, logger)
+	return v1.NewMachineDetailResponse(m, s, p, i, ec)
+}
+
+func (r machineResource) makeMachineListResponse(ms []metal.Machine, logger *zap.SugaredLogger) []*v1.MachineListResponse {
+	sMap, pMap, iMap, ecMap := r.getMachineReferencedEntityMaps(logger)
+
+	result := []*v1.MachineListResponse{}
+
+	for index := range ms {
+		var s *metal.Size
+		if ms[index].SizeID != "" {
+			sizeEntity := sMap[ms[index].SizeID]
+			s = &sizeEntity
+		}
+		var p *metal.Partition
+		if ms[index].PartitionID != "" {
+			partitionEntity := pMap[ms[index].PartitionID]
+			p = &partitionEntity
+		}
+		var i *metal.Image
+		if ms[index].Allocation != nil {
+			if ms[index].Allocation.ImageID != "" {
+				imageEntity := iMap[ms[index].Allocation.ImageID]
+				i = &imageEntity
+			}
+		}
+		ec := ecMap[ms[index].ID]
+		result = append(result, v1.NewMachineListResponse(&ms[index], s, p, i, &ec))
+	}
+
+	return result
+}
+
+func (r machineResource) findMachineReferencedEntites(m *metal.Machine, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
+	var err error
+
+	var s *metal.Size
+	if m.SizeID != "" {
+		s, err = r.ds.FindSize(m.SizeID)
+		if err != nil {
+			logger.Errorw("machine with id %s references size with id %s, but size cannot be found in database", m.ID, m.SizeID)
+		}
+	}
+
+	var p *metal.Partition
+	if m.PartitionID != "" {
+		p, err = r.ds.FindPartition(m.PartitionID)
+		if err != nil {
+			logger.Errorw("machine with id %s references partition with id %s, but partition cannot be found in database", m.ID, m.PartitionID)
+		}
+	}
+
+	var i *metal.Image
+	if m.Allocation != nil {
+		if m.Allocation.ImageID != "" {
+			i, err = r.ds.FindImage(m.Allocation.ImageID)
+			if err != nil {
+				logger.Errorw("machine with id %s references image with id %s, but image cannot be found in database", m.ID, m.Allocation.ImageID)
+			}
+		}
+	}
+
+	var ec *metal.ProvisioningEventContainer
+	try, err := r.ds.FindProvisioningEventContainer(m.ID)
+	if err != nil {
+		logger.Errorw("machine with id %s has no provisioning event container in the database", m.ID)
+	} else {
+		ec = try
+	}
+
+	return s, p, i, ec
+}
+
+func (r machineResource) getMachineReferencedEntityMaps(logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
+	s, err := r.ds.ListSizes()
+	if err != nil {
+		logger.Errorw("sizes could not be listed: %v", err)
+	}
+
+	p, err := r.ds.ListPartitions()
+	if err != nil {
+		logger.Errorw("partitions could not be listed: %v", err)
+	}
+
+	i, err := r.ds.ListImages()
+	if err != nil {
+		logger.Errorw("images could not be listed: %v", err)
+	}
+
+	ec, err := r.ds.ListProvisioningEventContainers()
+	if err != nil {
+		logger.Errorw("provisioning event containers could not be listed: %v", err)
+	}
+
+	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()
 }

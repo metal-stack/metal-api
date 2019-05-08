@@ -93,7 +93,7 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 		return
 	}
 
-	var result []*v1.FirewallListResponse
+	result := []*v1.FirewallListResponse{}
 	for _, fw := range fws {
 		result = append(result, v1.NewFirewallListResponse(&fw))
 	}

@@ -9,7 +9,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
@@ -107,7 +107,7 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 		return
 	}
 
-	var result []*v1.IPListResponse
+	result := []*v1.IPListResponse{}
 	for i := range ips {
 		result = append(result, v1.NewIPListResponse(&ips[i]))
 	}

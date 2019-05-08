@@ -176,6 +176,10 @@ func (p *ProvisioningEventContainer) SetChanged(changed time.Time) {
 	p.Changed = changed
 }
 
+func (p *ProvisioningEventContainer) GetCreated() time.Time {
+	return p.Created
+}
+
 func (p *ProvisioningEventContainer) SetCreated(created time.Time) {
 	p.Created = created
 }

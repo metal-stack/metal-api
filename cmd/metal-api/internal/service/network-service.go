@@ -105,7 +105,7 @@ func (nr networkResource) listNetworks(request *restful.Request, response *restf
 		return
 	}
 
-	var result []*v1.NetworkListResponse
+	result := []*v1.NetworkListResponse{}
 	for i := range nws {
 		usage := nr.getNetworkUsage(&nws[i])
 		result = append(result, v1.NewNetworkListResponse(&nws[i], usage))

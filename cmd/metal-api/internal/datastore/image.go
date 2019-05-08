@@ -25,7 +25,7 @@ func (rs *RethinkStore) CreateImage(i *metal.Image) error {
 
 // DeleteImage deletes an image.
 func (rs *RethinkStore) DeleteImage(i *metal.Image) error {
-	return rs.deleteEntityByID(rs.imageTable(), i.GetID())
+	return rs.deleteEntity(rs.imageTable(), i)
 }
 
 // UpdateImage updates an image.

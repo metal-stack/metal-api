@@ -35,6 +35,10 @@ func (ip *IP) SetChanged(changed time.Time) {
 	ip.Changed = changed
 }
 
+func (ip *IP) GetCreated() time.Time {
+	return ip.Created
+}
+
 func (ip *IP) SetCreated(created time.Time) {
 	ip.Created = created
 }

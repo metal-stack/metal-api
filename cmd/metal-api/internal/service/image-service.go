@@ -104,7 +104,7 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 		return
 	}
 
-	var result []*v1.ImageListResponse
+	result := []*v1.ImageListResponse{}
 	for i := range imgs {
 		result = append(result, v1.NewImageListResponse(&imgs[i]))
 	}

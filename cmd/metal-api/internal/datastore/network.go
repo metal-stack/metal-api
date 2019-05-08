@@ -75,7 +75,7 @@ func (rs *RethinkStore) CreateNetwork(nw *metal.Network) error {
 
 // DeleteNetwork deletes an network.
 func (rs *RethinkStore) DeleteNetwork(nw *metal.Network) error {
-	return rs.deleteEntityByID(rs.networkTable(), nw.GetID())
+	return rs.deleteEntity(rs.networkTable(), nw)
 }
 
 // UpdateNetwork updates an network.

@@ -27,7 +27,7 @@ func (rs *RethinkStore) CreateSize(size *metal.Size) error {
 
 // DeleteSize deletes a size.
 func (rs *RethinkStore) DeleteSize(size *metal.Size) error {
-	return rs.deleteEntityByID(rs.sizeTable(), size.GetID())
+	return rs.deleteEntity(rs.sizeTable(), size)
 }
 
 // UpdateSize updates a size.

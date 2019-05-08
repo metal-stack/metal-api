@@ -75,7 +75,7 @@ func (rs *RethinkStore) CreateMachine(m *metal.Machine) error {
 
 // DeleteMachine removes a machine from the database.
 func (rs *RethinkStore) DeleteMachine(m *metal.Machine) error {
-	return rs.deleteEntityByID(rs.machineTable(), m.GetID())
+	return rs.deleteEntity(rs.machineTable(), m)
 }
 
 // UpdateMachine replaces a machine in the database if the 'changed' field of
@@ -87,51 +87,39 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // InsertWaitingMachine adds a machine to the wait table.
 func (rs *RethinkStore) InsertWaitingMachine(m *metal.Machine) error {
 	// does not prohibit concurrent wait calls for the same UUID
-	_, err := rs.waitTable().Insert(m, r.InsertOpts{
-		Conflict: "replace",
-	}).RunWrite(rs.session)
-	if err != nil {
-		return fmt.Errorf("cannot insert machine into wait table: %v", err)
-	}
-	return nil
-}
-
-// ListenWaitTable listens on changes on the wait table for a given machine id.
-func (rs *RethinkStore) WaitForMachineAllocation(id string) (*metal.Machine, error) {
-	ch, err := rs.waitTable().Get(id).Changes().Run(rs.session)
-	if err != nil {
-		rs.SugaredLogger.Errorw("cannot wait for allocation", "error", err)
-		// simply return so this machine will not be allocated
-		// the normal timeout-behaviour of the allocator will
-		// occur without an allocation
-		return nil, err
-	}
-	type responseType struct {
-		NewVal metal.Machine `rethinkdb:"new_val"`
-		OldVal metal.Machine `rethinkdb:"old_val"`
-	}
-	var response responseType
-	for ch.Next(&response) {
-		rs.SugaredLogger.Infow("machine changed", "response", response)
-		if response.NewVal.ID == "" {
-			// the entry was deleted, no wait any more
-			return nil, fmt.Errorf("machine %s not available any more", id)
-		}
-		return &response.NewVal, nil
-	}
-	return nil, fmt.Errorf("no machine found even though change event was received")
+	return rs.upsertEntity(rs.waitTable(), m)
 }
 
 // RemoveWaitingMachine removes a machine from the wait table.
-func (rs *RethinkStore) RemoveWaitingMachine(id string) error {
-	_, err := rs.waitTable().Get(id).Delete().RunWrite(rs.session)
-	return err
+func (rs *RethinkStore) RemoveWaitingMachine(m *metal.Machine) error {
+	return rs.deleteEntity(rs.waitTable(), m)
 }
 
 // UpdateWaitingMachine updates a machine in the wait table with the given machine
 func (rs *RethinkStore) UpdateWaitingMachine(m *metal.Machine) error {
 	_, err := rs.waitTable().Get(m.ID).Update(m).RunWrite(rs.session)
 	return err
+}
+
+// WaitForMachineAllocation listens on changes on the wait table for a given machine and returns the changed machine.
+func (rs *RethinkStore) WaitForMachineAllocation(m *metal.Machine) (*metal.Machine, error) {
+	type responseType struct {
+		NewVal metal.Machine `rethinkdb:"new_val"`
+		OldVal metal.Machine `rethinkdb:"old_val"`
+	}
+	var response responseType
+	err := rs.listenForEntityChange(rs.waitTable(), m, response)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.NewVal.ID == "" {
+		// the machine was taken out of the wait table and not allocated
+		return nil, fmt.Errorf("machine %q was taken out of the wait table", m.ID)
+	}
+
+	// the machine was really allocated!
+	return &response.NewVal, nil
 }
 
 // FindAvailableMachine returns an available machine from the wait table.

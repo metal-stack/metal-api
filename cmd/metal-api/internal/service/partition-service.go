@@ -106,7 +106,7 @@ func (r partitionResource) listPartitions(request *restful.Request, response *re
 		return
 	}
 
-	var result []*v1.PartitionListResponse
+	result := []*v1.PartitionListResponse{}
 	for i := range ps {
 		result = append(result, v1.NewPartitionListResponse(&ps[i]))
 	}

@@ -25,7 +25,7 @@ func (rs *RethinkStore) CreateIP(ip *metal.IP) error {
 
 // DeleteIP deletes an ip.
 func (rs *RethinkStore) DeleteIP(ip *metal.IP) error {
-	return rs.deleteEntityByID(rs.ipTable(), ip.GetID())
+	return rs.deleteEntity(rs.ipTable(), ip)
 }
 
 // UpdateIP updates an ip.
