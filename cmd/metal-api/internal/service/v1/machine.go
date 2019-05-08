@@ -117,24 +117,21 @@ type MachineRegisterRequest struct {
 }
 
 type MachineAllocateRequest struct {
-	UUID string `json:"uuid,omitempty" description:"if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition"`
+	UUID *string `json:"uuid" description:"if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition" optional:"true"`
 	Describeable
 	Tenant      string   `json:"tenant" description:"the name of the owning tenant"`
-	Hostname    string   `json:"hostname" description:"the hostname for the allocated machine"`
+	Hostname    *string  `json:"hostname" description:"the hostname for the allocated machine (defaults to metal)" optional:"true"`
 	ProjectID   string   `json:"projectid" description:"the project id to assign this machine to"`
 	PartitionID string   `json:"partitionid" description:"the partition id to assign this machine to"`
 	SizeID      string   `json:"sizeid" description:"the size id to assign this machine to"`
 	ImageID     string   `json:"imageid" description:"the image id to assign this machine to"`
 	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-	UserData    string   `json:"user_data,omitempty" description:"cloud-init.io compatible userdata must be base64 encoded." optional:"true" rethinkdb:"userdata"`
-	Tags        []string `json:"tags" description:"tags for this machine" rethinkdb:"tags"`
-	NetworkIDs  []string `json:"networks" description:"the networks of this firewall, required."`
-	IPs         []string `json:"ips" description:"the additional ips of this firewall, optional."`
-	HA          bool     `json:"ha" description:"if set to true, this firewall is set up in a High Available manner" optional:"true"`
+	UserData    *string  `json:"user_data" description:"cloud-init.io compatible userdata must be base64 encoded" optional:"true"`
+	Tags        []string `json:"tags" description:"tags for this machine" optional:"true"`
 }
 
 type MachineFinalizeAllocationRequest struct {
-	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning" optional:"false"`
+	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
 }
 
 type MachineWaitResponse struct {

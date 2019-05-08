@@ -32,6 +32,24 @@ type machineResource struct {
 	ipamer ipam.IPAMer
 }
 
+type machineAllocationSpec struct {
+	UUID        string
+	Name        string
+	Description string
+	Tenant      string
+	Hostname    string
+	ProjectID   string
+	PartitionID string
+	SizeID      string
+	ImageID     string
+	SSHPubKeys  []string
+	UserData    string
+	Tags        []string
+	NetworkIDs  []string
+	IPs         []string
+	HA          bool
+}
+
 // The MachineAllocation contains the allocated machine or an error.
 type MachineAllocation struct {
 	Machine *metal.Machine
@@ -233,7 +251,7 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) listMachines(request *restful.Request, response *restful.Response) {
@@ -242,7 +260,7 @@ func (r machineResource) listMachines(request *restful.Request, response *restfu
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineListResponse(ms, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineListResponse(ms, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) searchMachine(request *restful.Request, response *restful.Response) {
@@ -253,7 +271,7 @@ func (r machineResource) searchMachine(request *restful.Request, response *restf
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineListResponse(ms, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineListResponse(ms, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
@@ -278,7 +296,7 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 				return fmt.Errorf("could not create jwt: %v", err)
 			}
 
-			s, p, i, ec := r.findMachineReferencedEntites(a.Machine, log.Sugar())
+			s, p, i, ec := findMachineReferencedEntites(a.Machine, r.ds, log.Sugar())
 			response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineWaitResponse(a.Machine, s, p, i, ec, token))
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
@@ -374,7 +392,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(&newMachine, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) registerMachine(request *restful.Request, response *restful.Response) {
@@ -470,7 +488,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) ipmiData(request *restful.Request, response *restful.Response) {
@@ -484,47 +502,38 @@ func (r machineResource) ipmiData(request *restful.Request, response *restful.Re
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineIPMI(&m.IPMI))
 }
 
-func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationRequest *v1.MachineAllocateRequest) (*metal.Machine, error) {
+func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	// FIXME: This is only temporary and needs to be made a little bit more elegant.
-	if allocationRequest.Tenant == "" {
+	if allocationSpec.Tenant == "" {
 		return nil, fmt.Errorf("no tenant given")
 	}
-	var machineName string
-	if allocationRequest.Name != nil {
-		machineName = *allocationRequest.Name
-	}
 
-	var machineDescription string
-	if allocationRequest.Description != nil {
-		machineDescription = *allocationRequest.Description
-	}
-
-	image, err := ds.FindImage(allocationRequest.ImageID)
+	image, err := ds.FindImage(allocationSpec.ImageID)
 	if err != nil {
 		return nil, fmt.Errorf("image cannot be found: %v", err)
 	}
 
-	if len(allocationRequest.NetworkIDs) > 0 && !image.HasFeature(metal.ImageFeatureFirewall) {
+	if len(allocationSpec.NetworkIDs) > 0 && !image.HasFeature(metal.ImageFeatureFirewall) {
 		return nil, fmt.Errorf("given image is not usable for a firewall but this machine has additional networks set, features: %s", image.ImageFeatureString())
 	}
-	if len(allocationRequest.NetworkIDs) == 0 && !image.HasFeature(metal.ImageFeatureMachine) {
+	if len(allocationSpec.NetworkIDs) == 0 && !image.HasFeature(metal.ImageFeatureMachine) {
 		return nil, fmt.Errorf("given image is not usable for a machine, features: %s", image.ImageFeatureString())
 	}
 
 	var size *metal.Size
-	size, err = ds.FindSize(allocationRequest.SizeID)
+	size, err = ds.FindSize(allocationSpec.SizeID)
 	if err != nil {
 		return nil, fmt.Errorf("size cannot be found: %v", err)
 	}
 
 	var partition *metal.Partition
-	partition, err = ds.FindPartition(allocationRequest.PartitionID)
+	partition, err = ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
 		return nil, fmt.Errorf("partition cannot be found: %v", err)
 	}
 
 	var machine *metal.Machine
-	if allocationRequest.UUID == "" {
+	if allocationSpec.UUID == "" {
 		// requesting allocation of an arbitrary machine in partition with given size
 		machine, err = ds.FindAvailableMachine(partition.ID, size.ID)
 		if err != nil {
@@ -532,7 +541,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 		}
 	} else {
 		// requesting allocation of a specific, existing machine
-		machine, err = ds.FindMachine(allocationRequest.UUID)
+		machine, err = ds.FindMachine(allocationSpec.UUID)
 		if err != nil {
 			return nil, fmt.Errorf("machine cannot be found: %v", err)
 		}
@@ -551,18 +560,18 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 	old := *machine
 
 	var vrf *metal.Vrf
-	vrf, err = ds.FindVrf(map[string]interface{}{"tenant": allocationRequest.Tenant, "projectid": allocationRequest.ProjectID})
+	vrf, err = ds.FindVrf(map[string]interface{}{"tenant": allocationSpec.Tenant, "projectid": allocationSpec.ProjectID})
 	if err != nil {
 		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
 	}
 	if vrf == nil {
-		vrf, err = ds.ReserveNewVrf(allocationRequest.Tenant, allocationRequest.ProjectID)
+		vrf, err = ds.ReserveNewVrf(allocationSpec.Tenant, allocationSpec.ProjectID)
 		if err != nil {
 			return nil, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
 		}
 	}
 
-	projectNetwork, err := ds.SearchProjectNetwork(allocationRequest.ProjectID)
+	projectNetwork, err := ds.SearchProjectNetwork(allocationSpec.ProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +596,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 			},
 			Prefixes:        metal.Prefixes{*projectPrefix},
 			PartitionID:     partition.ID,
-			ProjectID:       allocationRequest.ProjectID,
+			ProjectID:       allocationSpec.ProjectID,
 			Nat:             primaryNetwork.Nat,
 			Primary:         false,
 			ParentNetworkID: primaryNetwork.ID,
@@ -605,9 +614,9 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 		return nil, fmt.Errorf("unable to allocate an ip in network:%s %#v", projectNetwork.ID, err)
 	}
 
-	ip.Name = machineName
+	ip.Name = allocationSpec.Name
 	ip.Description = machine.ID
-	ip.ProjectID = allocationRequest.ProjectID
+	ip.ProjectID = allocationSpec.ProjectID
 
 	err = ds.CreateIP(ip)
 	if err != nil {
@@ -623,7 +632,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 		},
 	}
 
-	for _, additionalNetworkID := range allocationRequest.NetworkIDs {
+	for _, additionalNetworkID := range allocationSpec.NetworkIDs {
 
 		if additionalNetworkID == primaryNetwork.ID {
 			// We ignore if by accident this allocation contains a network which is a tenant super network
@@ -645,9 +654,9 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", nw.ID, err)
 		}
 
-		ip.Name = machineName
+		ip.Name = allocationSpec.Name
 		ip.Description = machine.ID
-		ip.ProjectID = allocationRequest.ProjectID
+		ip.ProjectID = allocationSpec.ProjectID
 
 		err = ds.CreateIP(ip)
 		if err != nil {
@@ -670,20 +679,20 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationR
 
 	alloc := &metal.MachineAllocation{
 		Created:         time.Now(),
-		Name:            machineName,
-		Description:     machineDescription,
-		Hostname:        allocationRequest.Hostname,
-		Tenant:          allocationRequest.Tenant,
-		Project:         allocationRequest.ProjectID,
+		Name:            allocationSpec.Name,
+		Description:     allocationSpec.Description,
+		Hostname:        allocationSpec.Hostname,
+		Tenant:          allocationSpec.Tenant,
+		Project:         allocationSpec.ProjectID,
 		ImageID:         image.ID,
-		SSHPubKeys:      allocationRequest.SSHPubKeys,
-		UserData:        allocationRequest.UserData,
+		SSHPubKeys:      allocationSpec.SSHPubKeys,
+		UserData:        allocationSpec.UserData,
 		MachineNetworks: machineNetworks,
 	}
 	machine.Allocation = alloc
 
 	tagSet := make(map[string]bool)
-	tagList := append(machine.Tags, allocationRequest.Tags...)
+	tagList := append(machine.Tags, allocationSpec.Tags...)
 	for _, t := range tagList {
 		tagSet[t] = true
 	}
@@ -715,12 +724,51 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &requestPayload)
+	var uuid string
+	if requestPayload.UUID != nil {
+		uuid = *requestPayload.UUID
+	}
+	var name string
+	if requestPayload.Name != nil {
+		name = *requestPayload.Name
+	}
+	var description string
+	if requestPayload.Description != nil {
+		description = *requestPayload.Description
+	}
+	hostname := "metal"
+	if requestPayload.Hostname != nil {
+		hostname = *requestPayload.Hostname
+	}
+	var userdata string
+	if requestPayload.UserData != nil {
+		userdata = *requestPayload.UserData
+	}
+
+	spec := machineAllocationSpec{
+		UUID:        uuid,
+		Name:        name,
+		Description: description,
+		Tenant:      requestPayload.Tenant,
+		Hostname:    hostname,
+		ProjectID:   requestPayload.ProjectID,
+		PartitionID: requestPayload.PartitionID,
+		SizeID:      requestPayload.SizeID,
+		ImageID:     requestPayload.ImageID,
+		SSHPubKeys:  requestPayload.SSHPubKeys,
+		UserData:    userdata,
+		Tags:        requestPayload.Tags,
+		NetworkIDs:  []string{},
+		IPs:         []string{},
+		HA:          false,
+	}
+
+	m, err := allocateMachine(r.ds, r.ipamer, &spec)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
@@ -776,7 +824,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
@@ -827,7 +875,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) releaseMachineNetworks(machineNetworks []metal.MachineNetwork) error {
@@ -1121,16 +1169,16 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, r.makeMachineDetailResponse(m, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (r machineResource) makeMachineDetailResponse(m *metal.Machine, logger *zap.SugaredLogger) *v1.MachineDetailResponse {
-	s, p, i, ec := r.findMachineReferencedEntites(m, logger)
+func makeMachineDetailResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineDetailResponse {
+	s, p, i, ec := findMachineReferencedEntites(m, ds, logger)
 	return v1.NewMachineDetailResponse(m, s, p, i, ec)
 }
 
-func (r machineResource) makeMachineListResponse(ms []metal.Machine, logger *zap.SugaredLogger) []*v1.MachineListResponse {
-	sMap, pMap, iMap, ecMap := r.getMachineReferencedEntityMaps(logger)
+func makeMachineListResponse(ms []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineListResponse {
+	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
 
 	result := []*v1.MachineListResponse{}
 
@@ -1159,12 +1207,12 @@ func (r machineResource) makeMachineListResponse(ms []metal.Machine, logger *zap
 	return result
 }
 
-func (r machineResource) findMachineReferencedEntites(m *metal.Machine, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
+func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
 	var err error
 
 	var s *metal.Size
 	if m.SizeID != "" {
-		s, err = r.ds.FindSize(m.SizeID)
+		s, err = ds.FindSize(m.SizeID)
 		if err != nil {
 			logger.Errorw("machine with id %s references size with id %s, but size cannot be found in database", m.ID, m.SizeID)
 		}
@@ -1172,7 +1220,7 @@ func (r machineResource) findMachineReferencedEntites(m *metal.Machine, logger *
 
 	var p *metal.Partition
 	if m.PartitionID != "" {
-		p, err = r.ds.FindPartition(m.PartitionID)
+		p, err = ds.FindPartition(m.PartitionID)
 		if err != nil {
 			logger.Errorw("machine with id %s references partition with id %s, but partition cannot be found in database", m.ID, m.PartitionID)
 		}
@@ -1181,7 +1229,7 @@ func (r machineResource) findMachineReferencedEntites(m *metal.Machine, logger *
 	var i *metal.Image
 	if m.Allocation != nil {
 		if m.Allocation.ImageID != "" {
-			i, err = r.ds.FindImage(m.Allocation.ImageID)
+			i, err = ds.FindImage(m.Allocation.ImageID)
 			if err != nil {
 				logger.Errorw("machine with id %s references image with id %s, but image cannot be found in database", m.ID, m.Allocation.ImageID)
 			}
@@ -1189,7 +1237,7 @@ func (r machineResource) findMachineReferencedEntites(m *metal.Machine, logger *
 	}
 
 	var ec *metal.ProvisioningEventContainer
-	try, err := r.ds.FindProvisioningEventContainer(m.ID)
+	try, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		logger.Errorw("machine with id %s has no provisioning event container in the database", m.ID)
 	} else {
@@ -1199,23 +1247,23 @@ func (r machineResource) findMachineReferencedEntites(m *metal.Machine, logger *
 	return s, p, i, ec
 }
 
-func (r machineResource) getMachineReferencedEntityMaps(logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
-	s, err := r.ds.ListSizes()
+func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
+	s, err := ds.ListSizes()
 	if err != nil {
 		logger.Errorw("sizes could not be listed: %v", err)
 	}
 
-	p, err := r.ds.ListPartitions()
+	p, err := ds.ListPartitions()
 	if err != nil {
 		logger.Errorw("partitions could not be listed: %v", err)
 	}
 
-	i, err := r.ds.ListImages()
+	i, err := ds.ListImages()
 	if err != nil {
 		logger.Errorw("images could not be listed: %v", err)
 	}
 
-	ec, err := r.ds.ListProvisioningEventContainers()
+	ec, err := ds.ListProvisioningEventContainers()
 	if err != nil {
 		logger.Errorw("provisioning event containers could not be listed: %v", err)
 	}

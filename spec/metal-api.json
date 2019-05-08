@@ -34,12 +34,12 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.FirewallListResponse"
+                "$ref": "#/definitions/v1.MachineListResponse"
               }
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -74,17 +74,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.FirewallDetailResponse"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
-          "404": {
-            "description": "No free firewall for allocation found",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -118,11 +112,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.FirewallDetailResponse"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -598,7 +592,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineAllocateRequest"
+              "$ref": "#/definitions/v1.MachineDetailResponse"
             }
           },
           "default": {
@@ -843,7 +837,10 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+            }
           },
           "default": {
             "description": "Error",
@@ -964,7 +961,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineIPMIResponse"
+              "$ref": "#/definitions/v1.MachineIPMI"
             }
           },
           "default": {
@@ -2154,74 +2151,6 @@
         }
       }
     },
-    "metal.Fru": {
-      "required": [
-        "ChassisPartNumber",
-        "ChassisPartSerial",
-        "BoardMfg",
-        "BoardMfgSerial",
-        "BoardPartNumber",
-        "ProductManufacturer",
-        "ProductPartNumber",
-        "ProductSerial"
-      ],
-      "properties": {
-        "BoardMfg": {
-          "type": "string"
-        },
-        "BoardMfgSerial": {
-          "type": "string"
-        },
-        "BoardPartNumber": {
-          "type": "string"
-        },
-        "ChassisPartNumber": {
-          "type": "string"
-        },
-        "ChassisPartSerial": {
-          "type": "string"
-        },
-        "ProductManufacturer": {
-          "type": "string"
-        },
-        "ProductPartNumber": {
-          "type": "string"
-        },
-        "ProductSerial": {
-          "type": "string"
-        }
-      }
-    },
-    "metal.IPMI": {
-      "required": [
-        "Address",
-        "MacAddress",
-        "User",
-        "Password",
-        "Interface",
-        "Fru"
-      ],
-      "properties": {
-        "Address": {
-          "type": "string"
-        },
-        "Fru": {
-          "$ref": "#/definitions/metal.Fru"
-        },
-        "Interface": {
-          "type": "string"
-        },
-        "MacAddress": {
-          "type": "string"
-        },
-        "Password": {
-          "type": "string"
-        },
-        "User": {
-          "type": "string"
-        }
-      }
-    },
     "metal.MachineAllocation": {
       "required": [
         "Created",
@@ -2345,20 +2274,6 @@
         "Vrf": {
           "type": "integer",
           "format": "integer"
-        }
-      }
-    },
-    "metal.MachineState": {
-      "required": [
-        "Value",
-        "Description"
-      ],
-      "properties": {
-        "Description": {
-          "type": "string"
-        },
-        "Value": {
-          "type": "string"
         }
       }
     },
@@ -2588,83 +2503,14 @@
         }
       }
     },
-    "v1.FirewallCreateRequest": {},
-    "v1.FirewallDetailResponse": {
+    "v1.FirewallCreateRequest": {
       "required": [
-        "PartitionID",
-        "SizeID",
-        "Tags",
-        "Hardware",
-        "Allocation",
-        "RackID",
-        "id",
-        "Liveliness",
-        "IPMI",
-        "State"
-      ],
-      "properties": {
-        "Allocation": {
-          "$ref": "#/definitions/metal.MachineAllocation"
-        },
-        "Hardware": {
-          "$ref": "#/definitions/metal.MachineHardware"
-        },
-        "IPMI": {
-          "$ref": "#/definitions/metal.IPMI"
-        },
-        "Liveliness": {
-          "type": "string"
-        },
-        "PartitionID": {
-          "type": "string"
-        },
-        "RackID": {
-          "type": "string"
-        },
-        "SizeID": {
-          "type": "string"
-        },
-        "State": {
-          "$ref": "#/definitions/metal.MachineState"
-        },
-        "Tags": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "changed": {
-          "description": "the last changed timestamp",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "the readable name",
-          "type": "string"
-        }
-      }
-    },
-    "v1.FirewallListResponse": {
-      "required": [
-        "id",
-        "partitionid",
+        "tenant",
         "projectid",
+        "partitionid",
+        "sizeid",
+        "imageid",
+        "ssh_pub_keys",
         "networks"
       ],
       "properties": {
@@ -2672,65 +2518,66 @@
           "description": "a description for this entity",
           "type": "string"
         },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+        "ha": {
+          "description": "if set to true, this firewall is set up in a High Available manner",
+          "type": "boolean"
+        },
+        "hostname": {
+          "description": "the hostname for the allocated machine (defaults to metal)",
+          "type": "string"
+        },
+        "imageid": {
+          "description": "the image id to assign this machine to",
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
         },
         "networks": {
-          "description": "the networks of this firewall, required.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1.FirewallNetwork"
-          }
-        },
-        "partitionid": {
-          "description": "the partition this firewall belongs to.",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project this firewall belongs to, can be empty if globally available.",
-          "type": "string"
-        }
-      }
-    },
-    "v1.FirewallNetwork": {
-      "required": [
-        "networkid",
-        "ips",
-        "vrf",
-        "primary",
-        "asn"
-      ],
-      "properties": {
-        "asn": {
-          "description": "ASN number for this network in the bgp configuration",
-          "type": "integer",
-          "format": "int32"
-        },
-        "ips": {
-          "description": "the ip addresses of the allocated machine in this vrf",
+          "description": "the networks of this firewall",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "networkid": {
-          "description": "the networkID of the allocated machine in this vrf",
+        "partitionid": {
+          "description": "the partition id to assign this machine to",
           "type": "string"
         },
-        "primary": {
-          "description": "this network is the primary vrf of the allocated machine, aka tenant vrf",
-          "type": "boolean"
+        "projectid": {
+          "description": "the project id to assign this machine to",
+          "type": "string"
         },
-        "vrf": {
-          "description": "the vrf of the allocated machine",
-          "type": "integer",
-          "format": "integer"
+        "sizeid": {
+          "description": "the size id to assign this machine to",
+          "type": "string"
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tenant": {
+          "description": "the name of the owning tenant",
+          "type": "string"
+        },
+        "user_data": {
+          "description": "cloud-init.io compatible userdata must be base64 encoded",
+          "type": "string"
+        },
+        "uuid": {
+          "description": "if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition",
+          "type": "string"
         }
       }
     },
@@ -2760,9 +2607,9 @@
     },
     "v1.IPDetailResponse": {
       "required": [
+        "projectid",
         "networkid",
         "ipaddress",
-        "projectid",
         "created",
         "changed"
       ],
@@ -2994,50 +2841,28 @@
     "v1.MachineAllocateRequest": {
       "required": [
         "tenant",
-        "hostname",
         "projectid",
         "partitionid",
         "sizeid",
         "imageid",
-        "ssh_pub_keys",
-        "tags",
-        "networks",
-        "ips"
+        "ssh_pub_keys"
       ],
       "properties": {
         "description": {
           "description": "a description for this entity",
           "type": "string"
         },
-        "ha": {
-          "description": "if set to true, this firewall is set up in a High Available manner",
-          "type": "boolean"
-        },
         "hostname": {
-          "description": "the hostname for the allocated machine",
+          "description": "the hostname for the allocated machine (defaults to metal)",
           "type": "string"
         },
         "imageid": {
           "description": "the image id to assign this machine to",
           "type": "string"
         },
-        "ips": {
-          "description": "the additional ips of this firewall, optional.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "networks": {
-          "description": "the networks of this firewall, required.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         },
         "partitionid": {
           "description": "the partition id to assign this machine to",
@@ -3070,7 +2895,7 @@
           "type": "string"
         },
         "user_data": {
-          "description": "cloud-init.io compatible userdata must be base64 encoded.",
+          "description": "cloud-init.io compatible userdata must be base64 encoded",
           "type": "string"
         },
         "uuid": {
@@ -3168,16 +2993,16 @@
     },
     "v1.MachineDetailResponse": {
       "required": [
-        "liveliness",
-        "id",
         "rackid",
         "tags",
-        "partition",
-        "allocation",
         "size",
-        "hardware",
         "state",
+        "liveliness",
+        "id",
+        "hardware",
+        "allocation",
         "events",
+        "partition",
         "created",
         "changed"
       ],
@@ -3363,48 +3188,18 @@
         }
       }
     },
-    "v1.MachineIPMIResponse": {
-      "required": [
-        "fru",
-        "address",
-        "mac",
-        "user",
-        "password",
-        "interface"
-      ],
-      "properties": {
-        "address": {
-          "type": "string"
-        },
-        "fru": {
-          "$ref": "#/definitions/v1.MachineFru"
-        },
-        "interface": {
-          "type": "string"
-        },
-        "mac": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        },
-        "user": {
-          "type": "string"
-        }
-      }
-    },
     "v1.MachineListResponse": {
       "required": [
         "id",
-        "allocation",
-        "state",
-        "events",
         "rackid",
         "size",
-        "liveliness",
+        "hardware",
+        "allocation",
         "tags",
         "partition",
-        "hardware"
+        "state",
+        "liveliness",
+        "events"
       ],
       "properties": {
         "allocation": {
@@ -3646,18 +3441,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "events",
+        "changed",
         "tags",
         "id",
-        "allocation",
-        "size",
+        "state",
+        "created",
         "hardware",
-        "changed",
+        "allocation",
+        "partition",
         "rackid",
         "liveliness",
-        "state",
-        "partition",
-        "created",
+        "events",
+        "size",
         "phone_home_token"
       ],
       "properties": {
@@ -3775,11 +3570,11 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
+        "primary",
         "id",
         "prefixes",
-        "primary",
-        "usage",
         "nat",
+        "usage",
         "created",
         "changed"
       ],
@@ -3997,8 +3792,8 @@
     },
     "v1.PartitionDetailResponse": {
       "required": [
-        "id",
         "bootconfig",
+        "id",
         "created",
         "changed"
       ],
