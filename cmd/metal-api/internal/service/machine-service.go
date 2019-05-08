@@ -175,7 +175,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineProvisioningEvent{}).
-		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/liveliness").
@@ -889,7 +889,7 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, eventContainer)
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(eventContainer))
 }
 
 // FIXME: Move to event endpoint
@@ -1003,7 +1003,7 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		return
 	}
 
-	response.WriteHeader(http.StatusOK)
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(eventContainer))
 }
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine

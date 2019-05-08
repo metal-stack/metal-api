@@ -23,6 +23,9 @@ var (
 		ProvisioningEvent{
 			Event: ProvisioningEventPreparing,
 		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
+		},
 	}
 	CrashEventCycle = ProvisioningEvents{
 		ProvisioningEvent{

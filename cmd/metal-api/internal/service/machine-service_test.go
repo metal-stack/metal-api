@@ -410,46 +410,43 @@ func TestSetMachineState(t *testing.T) {
 // 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 // }
 
-// func TestGetMachine(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+func TestGetMachine(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// 	var result metal.Machine
-// 	err := json.NewDecoder(resp.Body).Decode(&result)
-// 	require.Nil(t, err)
-// 	require.Equal(t, testdata.M1.ID, result.ID)
-// 	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
-// 	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
-// 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
-// 	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
-// }
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(machineservice)
+	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
 
-// func TestGetMachineNotFound(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineDetailResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
 
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+	require.Nil(t, err)
+	require.Equal(t, testdata.M1.ID, result.ID)
+	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, testdata.Sz1.Name, *result.Size.Name)
+	require.Equal(t, testdata.Img1.Name, *result.Allocation.Image.Name)
+	require.Equal(t, testdata.Partition1.Name, *result.Partition.Name)
+}
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
-// }
+func TestGetMachineNotFound(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(machineservice)
+	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
+}
+
 // func TestFreeMachine(t *testing.T) {
 // 	ds, mock := datastore.InitMockDB()
 // 	testdata.InitMockDBData(mock)
@@ -478,114 +475,119 @@ func TestSetMachineState(t *testing.T) {
 // 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 // }
 
-// func TestSearchMachine(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
-// 	testdata.InitMockDBData(mock)
+func TestSearchMachine(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
+	testdata.InitMockDBData(mock)
 
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	req := httptest.NewRequest("GET", "/v1/machine/find?mac=1", nil)
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(machineservice)
+	req := httptest.NewRequest("GET", "/v1/machine/find?mac=1", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// 	var results []metal.Machine
-// 	err := json.NewDecoder(resp.Body).Decode(&results)
-// 	require.Nil(t, err)
-// 	require.Len(t, results, 1)
-// 	result := results[0]
-// 	require.Equal(t, testdata.M1.ID, result.ID)
-// 	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
-// 	require.Equal(t, testdata.Sz1.Name, result.Size.Name)
-// 	require.Equal(t, testdata.Img1.Name, result.Allocation.Image.Name)
-// 	require.Equal(t, testdata.Partition1.Name, result.Partition.Name)
-// }
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var results []v1.MachineListResponse
+	err := json.NewDecoder(resp.Body).Decode(&results)
 
-// func TestAddProvisioningEvent(t *testing.T) {
-// 	ds, mock := datastore.InitMockDB()
-// 	testdata.InitMockDBData(mock)
+	require.Nil(t, err)
+	require.Len(t, results, 1)
+	result := results[0]
+	require.Equal(t, testdata.M1.ID, result.ID)
+	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
+	require.Equal(t, testdata.Sz1.Name, *result.Size.Name)
+	require.Equal(t, testdata.Img1.Name, *result.Allocation.Image.Name)
+	require.Equal(t, testdata.Partition1.Name, *result.Partition.Name)
+}
 
-// 	pub := &emptyPublisher{}
-// 	ip := goipam.New()
-// 	ipamer := ipam.New(ip)
-// 	dservice := NewMachine(ds, pub, ipamer)
-// 	container := restful.NewContainer().Add(dservice)
-// 	event := &metal.ProvisioningEvent{
-// 		Event:   metal.ProvisioningEventPreparing,
-// 		Message: "starting metal-hammer",
-// 	}
-// 	js, _ := json.Marshal(event)
-// 	body := bytes.NewBuffer(js)
-// 	req := httptest.NewRequest("POST", "/v1/machine/1/event", body)
-// 	req.Header.Add("Content-Type", "application/json")
-// 	w := httptest.NewRecorder()
-// 	container.ServeHTTP(w, req)
+func TestAddProvisioningEvent(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
 
-// 	resp := w.Result()
-// 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// 	require.Equal(t, int64(-1), resp.ContentLength)
-// }
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(machineservice)
+	event := &metal.ProvisioningEvent{
+		Event:   metal.ProvisioningEventPreparing,
+		Message: "starting metal-hammer",
+	}
+	js, _ := json.Marshal(event)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/1/event", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
 
-// func TestOnMachine(t *testing.T) {
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineRecentProvisioningEvents
+	err := json.NewDecoder(resp.Body).Decode(&result)
 
-// 	data := []struct {
-// 		cmd      metal.MachineCommand
-// 		endpoint string
-// 		param    string
-// 	}{
-// 		{
-// 			cmd:      metal.MachineOnCmd,
-// 			endpoint: "on",
-// 			param:    "blub",
-// 		},
-// 		{
-// 			cmd:      metal.MachineOffCmd,
-// 			endpoint: "off",
-// 			param:    "blubber",
-// 		},
-// 		{
-// 			cmd:      metal.MachineResetCmd,
-// 			endpoint: "reset",
-// 			param:    "bluba",
-// 		},
-// 		{
-// 			cmd:      metal.MachineBiosCmd,
-// 			endpoint: "bios",
-// 			param:    "blubabla",
-// 		},
-// 	}
+	require.Nil(t, err)
+	require.Equal(t, "0", *result.IncompleteProvisioningCycles)
+	require.Len(t, result.Events, 1)
+	if len(result.Events) > 0 {
+		require.Equal(t, "starting metal-hammer", result.Events[0].Message)
+		require.Equal(t, string(metal.ProvisioningEventPreparing), result.Events[0].Event)
+	}
+}
 
-// 	for _, d := range data {
-// 		t.Run("cmd_"+d.endpoint, func(t *testing.T) {
-// 			ds, mock := datastore.InitMockDB()
-// 			testdata.InitMockDBData(mock)
-// 			pub := &emptyPublisher{}
-// 			pub.doPublish = func(topic string, data interface{}) error {
-// 				require.Equal(t, "machine", topic)
-// 				dv := data.(metal.MachineEvent)
-// 				require.Equal(t, d.cmd, dv.Cmd.Command)
-// 				require.Equal(t, d.param, dv.Cmd.Params[0])
-// 				require.Equal(t, "1", dv.Cmd.Target.ID)
-// 				return nil
-// 			}
-// 			js, _ := json.Marshal([]string{d.param})
-// 			body := bytes.NewBuffer(js)
-// 			ip := goipam.New()
-// 			ipamer := ipam.New(ip)
-// 			dservice := NewMachine(ds, pub, ipamer)
-// 			container := restful.NewContainer().Add(dservice)
-// 			req := httptest.NewRequest("POST", "/v1/machine/1/"+d.endpoint, body)
-// 			req.Header.Add("Content-Type", "application/json")
-// 			w := httptest.NewRecorder()
-// 			container.ServeHTTP(w, req)
+func TestOnMachine(t *testing.T) {
 
-// 			resp := w.Result()
-// 			require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-// 		})
-// 	}
-// }
+	data := []struct {
+		cmd      metal.MachineCommand
+		endpoint string
+		param    string
+	}{
+		{
+			cmd:      metal.MachineOnCmd,
+			endpoint: "on",
+			param:    "blub",
+		},
+		{
+			cmd:      metal.MachineOffCmd,
+			endpoint: "off",
+			param:    "blubber",
+		},
+		{
+			cmd:      metal.MachineResetCmd,
+			endpoint: "reset",
+			param:    "bluba",
+		},
+		{
+			cmd:      metal.MachineBiosCmd,
+			endpoint: "bios",
+			param:    "blubabla",
+		},
+	}
+
+	for _, d := range data {
+		t.Run("cmd_"+d.endpoint, func(t *testing.T) {
+			ds, mock := datastore.InitMockDB()
+			testdata.InitMockDBData(mock)
+
+			pub := &emptyPublisher{}
+			pub.doPublish = func(topic string, data interface{}) error {
+				require.Equal(t, "machine", topic)
+				dv := data.(metal.MachineEvent)
+				require.Equal(t, d.cmd, dv.Cmd.Command)
+				require.Equal(t, d.param, dv.Cmd.Params[0])
+				require.Equal(t, "1", dv.Cmd.Target.ID)
+				return nil
+			}
+
+			machineservice := NewMachine(ds, pub, ipam.New(goipam.New()))
+
+			js, _ := json.Marshal([]string{d.param})
+			body := bytes.NewBuffer(js)
+			container := restful.NewContainer().Add(machineservice)
+			req := httptest.NewRequest("POST", "/v1/machine/1/power/"+d.endpoint, body)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
+
+			resp := w.Result()
+			require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+		})
+	}
+}

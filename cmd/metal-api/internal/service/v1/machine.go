@@ -344,13 +344,13 @@ func NewMachineListResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 				Description: m.State.Description,
 			},
 			Liveliness:               string(m.Liveliness),
-			RecentProvisioningEvents: *recentProvisioningEvents(ec),
+			RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
 			Tags:                     tags,
 		},
 	}
 }
 
-func recentProvisioningEvents(ec *metal.ProvisioningEventContainer) *MachineRecentProvisioningEvents {
+func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *MachineRecentProvisioningEvents {
 	es := []MachineProvisioningEvent{}
 	if ec == nil {
 		return &MachineRecentProvisioningEvents{
