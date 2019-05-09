@@ -161,6 +161,17 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		}
 	}
 
+	image, err := r.ds.FindImage(requestPayload.ImageID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if !image.HasFeature(metal.ImageFeatureMachine) {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given image is not usable for a firewall, features: %s", image.ImageFeatureString())) {
+			return
+		}
+	}
+
 	spec := machineAllocationSpec{
 		UUID:        uuid,
 		Name:        name,
@@ -170,7 +181,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		ProjectID:   requestPayload.ProjectID,
 		PartitionID: requestPayload.PartitionID,
 		SizeID:      requestPayload.SizeID,
-		ImageID:     requestPayload.ImageID,
+		Image:       image,
 		SSHPubKeys:  requestPayload.SSHPubKeys,
 		UserData:    userdata,
 		Tags:        requestPayload.Tags,

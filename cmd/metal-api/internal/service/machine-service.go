@@ -41,7 +41,7 @@ type machineAllocationSpec struct {
 	ProjectID   string
 	PartitionID string
 	SizeID      string
-	ImageID     string
+	Image       *metal.Image
 	SSHPubKeys  []string
 	UserData    string
 	Tags        []string
@@ -502,26 +502,79 @@ func (r machineResource) ipmiData(request *restful.Request, response *restful.Re
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineIPMI(&m.IPMI))
 }
 
+func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineAllocateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var uuid string
+	if requestPayload.UUID != nil {
+		uuid = *requestPayload.UUID
+	}
+	var name string
+	if requestPayload.Name != nil {
+		name = *requestPayload.Name
+	}
+	var description string
+	if requestPayload.Description != nil {
+		description = *requestPayload.Description
+	}
+	hostname := "metal"
+	if requestPayload.Hostname != nil {
+		hostname = *requestPayload.Hostname
+	}
+	var userdata string
+	if requestPayload.UserData != nil {
+		userdata = *requestPayload.UserData
+	}
+
+	image, err := r.ds.FindImage(requestPayload.ImageID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if !image.HasFeature(metal.ImageFeatureMachine) {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given image is not usable for a machine, features: %s", image.ImageFeatureString())) {
+			return
+		}
+	}
+
+	spec := machineAllocationSpec{
+		UUID:        uuid,
+		Name:        name,
+		Description: description,
+		Tenant:      requestPayload.Tenant,
+		Hostname:    hostname,
+		ProjectID:   requestPayload.ProjectID,
+		PartitionID: requestPayload.PartitionID,
+		SizeID:      requestPayload.SizeID,
+		Image:       image,
+		SSHPubKeys:  requestPayload.SSHPubKeys,
+		UserData:    userdata,
+		Tags:        requestPayload.Tags,
+		NetworkIDs:  []string{},
+		IPs:         []string{},
+		HA:          false,
+	}
+
+	m, err := allocateMachine(r.ds, r.ipamer, &spec)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+}
+
 func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	// FIXME: This is only temporary and needs to be made a little bit more elegant.
 	if allocationSpec.Tenant == "" {
 		return nil, fmt.Errorf("no tenant given")
 	}
 
-	image, err := ds.FindImage(allocationSpec.ImageID)
-	if err != nil {
-		return nil, fmt.Errorf("image cannot be found: %v", err)
-	}
-
-	if len(allocationSpec.NetworkIDs) > 0 && !image.HasFeature(metal.ImageFeatureFirewall) {
-		return nil, fmt.Errorf("given image is not usable for a firewall but this machine has additional networks set, features: %s", image.ImageFeatureString())
-	}
-	if len(allocationSpec.NetworkIDs) == 0 && !image.HasFeature(metal.ImageFeatureMachine) {
-		return nil, fmt.Errorf("given image is not usable for a machine, features: %s", image.ImageFeatureString())
-	}
-
 	var size *metal.Size
-	size, err = ds.FindSize(allocationSpec.SizeID)
+	size, err := ds.FindSize(allocationSpec.SizeID)
 	if err != nil {
 		return nil, fmt.Errorf("size cannot be found: %v", err)
 	}
@@ -684,7 +737,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		Hostname:        allocationSpec.Hostname,
 		Tenant:          allocationSpec.Tenant,
 		Project:         allocationSpec.ProjectID,
-		ImageID:         image.ID,
+		ImageID:         allocationSpec.Image.ID,
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		UserData:        allocationSpec.UserData,
 		MachineNetworks: machineNetworks,
@@ -715,60 +768,6 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
 	}
 	return machine, nil
-}
-
-func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineAllocateRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	var uuid string
-	if requestPayload.UUID != nil {
-		uuid = *requestPayload.UUID
-	}
-	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
-	}
-	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
-	}
-	hostname := "metal"
-	if requestPayload.Hostname != nil {
-		hostname = *requestPayload.Hostname
-	}
-	var userdata string
-	if requestPayload.UserData != nil {
-		userdata = *requestPayload.UserData
-	}
-
-	spec := machineAllocationSpec{
-		UUID:        uuid,
-		Name:        name,
-		Description: description,
-		Tenant:      requestPayload.Tenant,
-		Hostname:    hostname,
-		ProjectID:   requestPayload.ProjectID,
-		PartitionID: requestPayload.PartitionID,
-		SizeID:      requestPayload.SizeID,
-		ImageID:     requestPayload.ImageID,
-		SSHPubKeys:  requestPayload.SSHPubKeys,
-		UserData:    userdata,
-		Tags:        requestPayload.Tags,
-		NetworkIDs:  []string{},
-		IPs:         []string{},
-		HA:          false,
-	}
-
-	m, err := allocateMachine(r.ds, r.ipamer, &spec)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
