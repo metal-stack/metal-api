@@ -63,11 +63,16 @@ localkube-upgrade-metal:
 	${KCTL} config view | grep minikube && \
 	helm upgrade --force metal localkube/metal-control-plane
 
-.PHONY: generate-client
-generate-client:
+.PHONY: generate-client-prepare
+generate-client-prepare:
 	rm -rf netbox-api/*
 	cp ../netbox-api-proxy/netbox_api_proxy/api_schemas/v1.yaml netbox-api/v1.yaml
-	GO111MODULE=off swagger generate client -f netbox-api/v1.yaml -t netbox-api
+
+# 'swaggergenerate' generates swagger client with SWAGGERSPEC="swagger.json" SWAGGERTARGET="./".
+.PHONY: generate-client
+generate-client: SWAGGERSPEC="netbox-api/v1.yaml"
+generate-client: SWAGGERTARGET="netbox-api"
+generate-client: generate-client-prepare swaggergenerate
 
 .PHONY: redoc
 redoc:
