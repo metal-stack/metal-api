@@ -19,6 +19,8 @@ func generateVrfID(i string) (uint, error) {
 	return uint(hash), err
 }
 
+// TODO: Use generic methods from rethinkstore
+
 func (rs *RethinkStore) FindVrf(f map[string]interface{}) (*metal.Vrf, error) {
 	q := *rs.vrfTable()
 	q = q.Filter(f)

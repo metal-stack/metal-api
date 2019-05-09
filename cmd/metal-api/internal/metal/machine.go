@@ -130,7 +130,7 @@ func (hw *MachineHardware) DiskCapacity() uint64 {
 
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores:%d, Memory:%s, Storage: %s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()))
+	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()))
 }
 
 // BlockDevice information.

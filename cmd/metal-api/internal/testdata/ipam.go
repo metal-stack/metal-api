@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -45,7 +46,6 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (*ipam.Ipam, error) {
 		if len(TestIPs) > 3 {
 			TestIPs = TestIPs[:3]
 		}
-		fmt.Printf("jsk: %#v", TestIPs)
 		IPAMIP.IPAddress = ""
 		IPAMIP.ParentPrefixCidr = ""
 		IPAMIP.NetworkID = ""
