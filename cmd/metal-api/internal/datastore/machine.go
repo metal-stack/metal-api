@@ -7,11 +7,6 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// Some predefined error values.
-var (
-	ErrNoMachineAvailable = fmt.Errorf("no machine available")
-)
-
 // FindMachine returns the machine with the given ID. If there is no
 // such machine a metal.NotFound will be returned.
 func (rs *RethinkStore) FindMachine(id string) (*metal.Machine, error) {
@@ -128,8 +123,8 @@ func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal
 		"allocation":  nil,
 		"partitionid": partitionid,
 		"sizeid":      sizeid,
-		"state": map[string]interface{}{
-			"value": "",
+		"state": map[string]string{
+			"value": string(metal.AvailableState),
 		},
 	}
 	var available []metal.Machine
@@ -139,7 +134,7 @@ func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal
 	}
 
 	if len(available) < 1 {
-		return nil, ErrNoMachineAvailable
+		return nil, fmt.Errorf("no machine available")
 	}
 
 	// we actually return the machine from the machine table, not from the wait table

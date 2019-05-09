@@ -34,7 +34,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.MachineListResponse"
+                "$ref": "#/definitions/v1.FirewallListResponse"
               }
             }
           },
@@ -74,7 +74,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.FirewallDetailResponse"
             }
           },
           "default": {
@@ -112,7 +112,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.FirewallDetailResponse"
             }
           },
           "default": {
@@ -2505,12 +2505,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "projectid",
         "partitionid",
+        "imageid",
         "ssh_pub_keys",
         "tenant",
+        "projectid",
         "sizeid",
-        "imageid",
         "networks"
       ],
       "properties": {
@@ -2578,6 +2578,162 @@
         "uuid": {
           "description": "if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition",
           "type": "string"
+        }
+      }
+    },
+    "v1.FirewallDetailResponse": {
+      "required": [
+        "size",
+        "changed",
+        "rackid",
+        "partition",
+        "created",
+        "liveliness",
+        "tags",
+        "events",
+        "state",
+        "hardware",
+        "allocation",
+        "id"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/v1.PartitionListResponse",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/v1.SizeListResponse",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/v1.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.FirewallListResponse": {
+      "required": [
+        "size",
+        "id",
+        "tags",
+        "rackid",
+        "allocation",
+        "events",
+        "hardware",
+        "state",
+        "liveliness",
+        "partition"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/v1.PartitionListResponse",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/v1.SizeListResponse",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/v1.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -2993,16 +3149,16 @@
     },
     "v1.MachineDetailResponse": {
       "required": [
+        "liveliness",
         "events",
+        "partition",
+        "hardware",
+        "id",
         "rackid",
         "size",
         "allocation",
-        "state",
-        "liveliness",
         "tags",
-        "id",
-        "partition",
-        "hardware",
+        "state",
         "created",
         "changed"
       ],
@@ -3191,15 +3347,15 @@
     "v1.MachineListResponse": {
       "required": [
         "id",
-        "state",
-        "liveliness",
-        "events",
-        "partition",
         "rackid",
+        "events",
+        "tags",
+        "partition",
         "size",
         "hardware",
         "allocation",
-        "tags"
+        "state",
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -3288,7 +3444,8 @@
         "networkid",
         "ips",
         "vrf",
-        "asn"
+        "asn",
+        "primary"
       ],
       "properties": {
         "asn": {
@@ -3306,6 +3463,10 @@
         "networkid": {
           "description": "the networkID of the allocated machine in this vrf",
           "type": "string"
+        },
+        "primary": {
+          "description": "indicates whether this network is the primary project network",
+          "type": "boolean"
         },
         "vrf": {
           "description": "the vrf of the allocated machine",
@@ -3441,18 +3602,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "events",
         "id",
-        "changed",
-        "hardware",
-        "partition",
         "size",
-        "tags",
-        "allocation",
+        "hardware",
+        "changed",
+        "rackid",
         "liveliness",
+        "tags",
+        "partition",
         "state",
         "created",
-        "rackid",
+        "allocation",
+        "events",
         "phone_home_token"
       ],
       "properties": {
@@ -3570,11 +3731,11 @@
     },
     "v1.NetworkDetailResponse": {
       "required": [
-        "prefixes",
-        "usage",
         "primary",
+        "usage",
         "id",
         "nat",
+        "prefixes",
         "created",
         "changed"
       ],
@@ -3636,9 +3797,9 @@
     "v1.NetworkListResponse": {
       "required": [
         "id",
-        "primary",
         "prefixes",
         "nat",
+        "primary",
         "usage"
       ],
       "properties": {
@@ -3792,8 +3953,8 @@
     },
     "v1.PartitionDetailResponse": {
       "required": [
-        "bootconfig",
         "id",
+        "bootconfig",
         "created",
         "changed"
       ],
@@ -3961,10 +4122,10 @@
     },
     "v1.SizeDetailResponse": {
       "required": [
-        "id",
         "constraints",
-        "created",
-        "changed"
+        "id",
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {

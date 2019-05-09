@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -52,8 +53,8 @@ func (r firewallResource) webService() *restful.WebService {
 		Doc("get firewall by id").
 		Param(ws.PathParameter("id", "identifier of the firewall").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.MachineDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
+		Writes(v1.FirewallDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.FirewallDetailResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -61,8 +62,8 @@ func (r firewallResource) webService() *restful.WebService {
 		Operation("listFirewalls").
 		Doc("get all known firewalls").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.MachineListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.MachineListResponse{}).
+		Writes([]v1.FirewallListResponse{}).
+		Returns(http.StatusOK, "OK", []v1.FirewallListResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").
@@ -70,7 +71,7 @@ func (r firewallResource) webService() *restful.WebService {
 		Doc("allocate a firewall").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.FirewallCreateRequest{}).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.FirewallDetailResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -94,7 +95,7 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(fw, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallDetailResponse(fw, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
@@ -116,7 +117,7 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 		}
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineListResponse(fws, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallListResponse(fws, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
@@ -196,4 +197,20 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+}
+
+func makeFirewallDetailResponse(fw *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.FirewallDetailResponse {
+	return &v1.FirewallDetailResponse{MachineDetailResponse: *makeMachineDetailResponse(fw, ds, logger)}
+}
+
+func makeFirewallListResponse(fws []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.FirewallListResponse {
+	machineListResponse := makeMachineListResponse(fws, ds, logger)
+
+	firewallListResponse := []*v1.FirewallListResponse{}
+	for i := range machineListResponse {
+		firewallListResponse = append(firewallListResponse, &v1.FirewallListResponse{MachineListResponse: *machineListResponse[i]})
+	}
+
+	return firewallListResponse
+
 }
