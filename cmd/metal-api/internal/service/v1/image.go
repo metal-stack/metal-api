@@ -20,30 +20,13 @@ type ImageUpdateRequest struct {
 	ImageBase
 }
 
-type ImageListResponse struct {
+type ImageResponse struct {
 	Common
 	ImageBase
-}
-
-type ImageDetailResponse struct {
-	ImageListResponse
 	Timestamps
 }
 
-func NewImageDetailResponse(img *metal.Image) *ImageDetailResponse {
-	if img == nil {
-		return nil
-	}
-	return &ImageDetailResponse{
-		ImageListResponse: *NewImageListResponse(img),
-		Timestamps: Timestamps{
-			Created: img.Created,
-			Changed: img.Changed,
-		},
-	}
-}
-
-func NewImageListResponse(img *metal.Image) *ImageListResponse {
+func NewImageResponse(img *metal.Image) *ImageResponse {
 	if img == nil {
 		return nil
 	}
@@ -53,7 +36,7 @@ func NewImageListResponse(img *metal.Image) *ImageListResponse {
 			features = append(features, string(k))
 		}
 	}
-	return &ImageListResponse{
+	return &ImageResponse{
 		Common: Common{
 			Identifiable: Identifiable{
 				ID: img.ID,
@@ -66,6 +49,10 @@ func NewImageListResponse(img *metal.Image) *ImageListResponse {
 		ImageBase: ImageBase{
 			URL:      &img.URL,
 			Features: features,
+		},
+		Timestamps: Timestamps{
+			Created: img.Created,
+			Changed: img.Changed,
 		},
 	}
 }

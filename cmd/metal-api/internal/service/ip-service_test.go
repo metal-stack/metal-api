@@ -32,7 +32,7 @@ func TestGetIPs(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.IPListResponse
+	var result []v1.IPResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -57,7 +57,7 @@ func TestGetIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.IPDetailResponse
+	var result v1.IPResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -100,7 +100,7 @@ func TestDeleteIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.IPDetailResponse
+	var result v1.IPResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -131,7 +131,7 @@ func TestAllocateIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
-	var result v1.IPDetailResponse
+	var result v1.IPResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -165,7 +165,7 @@ func TestUpdateIP(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.IPDetailResponse
+	var result v1.IPResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)

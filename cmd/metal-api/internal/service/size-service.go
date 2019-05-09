@@ -43,8 +43,8 @@ func (r sizeResource) webService() *restful.WebService {
 		Doc("get size by id").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.SizeDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.SizeDetailResponse{}).
+		Writes(v1.SizeResponse{}).
+		Returns(http.StatusOK, "OK", v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -52,8 +52,8 @@ func (r sizeResource) webService() *restful.WebService {
 		Operation("listSizes").
 		Doc("get all sizes").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.SizeListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.SizeListResponse{}).
+		Writes([]v1.SizeResponse{}).
+		Returns(http.StatusOK, "OK", []v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
@@ -62,8 +62,8 @@ func (r sizeResource) webService() *restful.WebService {
 		Doc("deletes an size and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.SizeDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.SizeDetailResponse{}).
+		Writes(v1.SizeResponse{}).
+		Returns(http.StatusOK, "OK", v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
@@ -71,7 +71,7 @@ func (r sizeResource) webService() *restful.WebService {
 		Doc("create a size. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SizeCreateRequest{}).
-		Returns(http.StatusCreated, "Created", v1.SizeDetailResponse{}).
+		Returns(http.StatusCreated, "Created", v1.SizeResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -80,7 +80,7 @@ func (r sizeResource) webService() *restful.WebService {
 		Doc("updates a size. if the size was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SizeUpdateRequest{}).
-		Returns(http.StatusOK, "OK", v1.SizeDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.SizeResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -104,7 +104,7 @@ func (r sizeResource) findSize(request *restful.Request, response *restful.Respo
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeDetailResponse(s))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
 }
 
 func (r sizeResource) listSizes(request *restful.Request, response *restful.Response) {
@@ -113,9 +113,9 @@ func (r sizeResource) listSizes(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	result := []*v1.SizeListResponse{}
+	result := []*v1.SizeResponse{}
 	for i := range ss {
-		result = append(result, v1.NewSizeListResponse(&ss[i]))
+		result = append(result, v1.NewSizeResponse(&ss[i]))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -166,7 +166,7 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewSizeDetailResponse(s))
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewSizeResponse(s))
 }
 
 func (r sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
@@ -182,7 +182,7 @@ func (r sizeResource) deleteSize(request *restful.Request, response *restful.Res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeDetailResponse(s))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
 }
 
 func (r sizeResource) updateSize(request *restful.Request, response *restful.Response) {
@@ -224,7 +224,7 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeDetailResponse(&newSize))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(&newSize))
 }
 
 func (r sizeResource) fromHardware(request *restful.Request, response *restful.Response) {

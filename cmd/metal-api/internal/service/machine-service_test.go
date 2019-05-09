@@ -49,7 +49,7 @@ func TestGetMachines(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.MachineListResponse
+	var result []v1.MachineResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -192,7 +192,7 @@ func TestRegisterMachine(t *testing.T) {
 				require.Nil(t, err)
 				require.Regexp(t, test.expectedErrorMessage, result.Message)
 			} else {
-				var result v1.MachineDetailResponse
+				var result v1.MachineResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
 				require.Nil(t, err)
@@ -346,7 +346,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 					require.Regexp(t, test.wantErrMessage, result.Message)
 				}
 			} else {
-				var result v1.MachineDetailResponse
+				var result v1.MachineResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
 				require.Nil(t, err)
@@ -375,7 +375,7 @@ func TestSetMachineState(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.MachineDetailResponse
+	var result v1.MachineResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -397,7 +397,7 @@ func TestGetMachine(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.MachineDetailResponse
+	var result v1.MachineResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -449,7 +449,7 @@ func TestFreeMachine(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.MachineDetailResponse
+	var result v1.MachineResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -470,7 +470,7 @@ func TestSearchMachine(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var results []v1.MachineListResponse
+	var results []v1.MachineResponse
 	err := json.NewDecoder(resp.Body).Decode(&results)
 
 	require.Nil(t, err)

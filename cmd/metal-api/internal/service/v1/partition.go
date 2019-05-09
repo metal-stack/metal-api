@@ -27,35 +27,18 @@ type PartitionUpdateRequest struct {
 	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
 }
 
-type PartitionListResponse struct {
+type PartitionResponse struct {
 	Common
 	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
-}
-
-type PartitionDetailResponse struct {
-	PartitionListResponse
 	Timestamps
 }
 
-func NewPartitionDetailResponse(p *metal.Partition) *PartitionDetailResponse {
+func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 	if p == nil {
 		return nil
 	}
-	return &PartitionDetailResponse{
-		PartitionListResponse: *NewPartitionListResponse(p),
-		Timestamps: Timestamps{
-			Created: p.Created,
-			Changed: p.Changed,
-		},
-	}
-}
-
-func NewPartitionListResponse(p *metal.Partition) *PartitionListResponse {
-	if p == nil {
-		return nil
-	}
-	return &PartitionListResponse{
+	return &PartitionResponse{
 		Common: Common{
 			Identifiable: Identifiable{
 				ID: p.ID,
@@ -73,6 +56,10 @@ func NewPartitionListResponse(p *metal.Partition) *PartitionListResponse {
 			ImageURL:    &p.BootConfiguration.ImageURL,
 			KernelURL:   &p.BootConfiguration.KernelURL,
 			CommandLine: &p.BootConfiguration.CommandLine,
+		},
+		Timestamps: Timestamps{
+			Created: p.Created,
+			Changed: p.Changed,
 		},
 	}
 }

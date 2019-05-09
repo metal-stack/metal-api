@@ -47,8 +47,8 @@ func (ir ipResource) webService() *restful.WebService {
 		Doc("get ip by id").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.IPDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.IPDetailResponse{}).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -56,8 +56,8 @@ func (ir ipResource) webService() *restful.WebService {
 		Operation("listIPs").
 		Doc("get all ips").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.IPListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.IPListResponse{}).
+		Writes([]v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
@@ -66,16 +66,16 @@ func (ir ipResource) webService() *restful.WebService {
 		Doc("deletes an ip and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.IPDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.IPDetailResponse{}).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(ir.updateIP).
 		Doc("updates an ip. if the ip was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPUpdateRequest{}).
-		Writes(v1.IPDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.IPDetailResponse{}).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -83,8 +83,8 @@ func (ir ipResource) webService() *restful.WebService {
 		Doc("allocate an ip in the given network for a project.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPAllocateRequest{}).
-		Writes(v1.IPDetailResponse{}).
-		Returns(http.StatusCreated, "Created", v1.IPDetailResponse{}).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusCreated, "Created", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -98,7 +98,7 @@ func (ir ipResource) findIP(request *restful.Request, response *restful.Response
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPDetailResponse(ip))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
 }
 
 func (ir ipResource) listIPs(request *restful.Request, response *restful.Response) {
@@ -107,9 +107,9 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 		return
 	}
 
-	result := []*v1.IPListResponse{}
+	result := []*v1.IPResponse{}
 	for i := range ips {
-		result = append(result, v1.NewIPListResponse(&ips[i]))
+		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -133,7 +133,7 @@ func (ir ipResource) deleteIP(request *restful.Request, response *restful.Respon
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPDetailResponse(ip))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
 }
 
 func (ir ipResource) allocateIP(request *restful.Request, response *restful.Response) {
@@ -181,7 +181,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewIPDetailResponse(ip))
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewIPResponse(ip))
 }
 
 func (ir ipResource) updateIP(request *restful.Request, response *restful.Response) {
@@ -210,7 +210,7 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPDetailResponse(&newIP))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
 func allocateIP(parent metal.Network, ipamer ipam.IPAMer) (*metal.IP, error) {

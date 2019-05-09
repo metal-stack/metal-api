@@ -10,9 +10,9 @@ import (
 const RecentProvisioningEventsLimit = 5
 
 type MachineBase struct {
-	Partition                *PartitionListResponse          `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true"`
+	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true"`
 	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true"`
-	Size                     *SizeListResponse               `json:"size" description:"the size of this machine" readOnly:"true"`
+	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true"`
 	Hardware                 MachineHardware                 `json:"hardware" description:"the hardware of this machine"`
 	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine"`
 	State                    MachineState                    `json:"state" rethinkdb:"state" description:"the state of this machine"`
@@ -22,18 +22,18 @@ type MachineBase struct {
 }
 
 type MachineAllocation struct {
-	Created         time.Time          `json:"created" description:"the time when the machine was created"`
-	Name            string             `json:"name" description:"the name of the machine"`
-	Description     string             `json:"description,omitempty" description:"a description for this machine" optional:"true"`
-	LastPing        time.Time          `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true"`
-	Tenant          string             `json:"tenant" description:"the tenant that this machine is assigned to"`
-	Project         string             `json:"project" description:"the project that this machine is assigned to" `
-	Image           *ImageListResponse `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
-	MachineNetworks []MachineNetwork   `json:"networks" description:"the networks of this machine"`
-	Hostname        string             `json:"hostname" description:"the hostname which will be used when creating the machine"`
-	SSHPubKeys      []string           `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-	UserData        string             `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
-	ConsolePassword *string            `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
+	Created         time.Time        `json:"created" description:"the time when the machine was created"`
+	Name            string           `json:"name" description:"the name of the machine"`
+	Description     string           `json:"description,omitempty" description:"a description for this machine" optional:"true"`
+	LastPing        time.Time        `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true"`
+	Tenant          string           `json:"tenant" description:"the tenant that this machine is assigned to"`
+	Project         string           `json:"project" description:"the project that this machine is assigned to" `
+	Image           *ImageResponse   `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
+	MachineNetworks []MachineNetwork `json:"networks" description:"the networks of this machine"`
+	Hostname        string           `json:"hostname" description:"the hostname which will be used when creating the machine"`
+	SSHPubKeys      []string         `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
+	ConsolePassword *string          `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
 }
 
 type MachineNetwork struct {
@@ -136,17 +136,13 @@ type MachineFinalizeAllocationRequest struct {
 }
 
 type MachineWaitResponse struct {
-	MachineDetailResponse
+	MachineResponse
 	PhoneHomeToken string `json:"phone_home_token"`
 }
 
-type MachineListResponse struct {
+type MachineResponse struct {
 	Common
 	MachineBase
-}
-
-type MachineDetailResponse struct {
-	MachineListResponse
 	Timestamps
 }
 
@@ -237,17 +233,7 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 	}
 }
 
-func NewMachineDetailResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineDetailResponse {
-	return &MachineDetailResponse{
-		MachineListResponse: *NewMachineListResponse(m, s, p, i, ec),
-		Timestamps: Timestamps{
-			Created: m.Created,
-			Changed: m.Changed,
-		},
-	}
-}
-
-func NewMachineListResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineListResponse {
+func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
 	var nics MachineNics
 	for i := range m.Hardware.Nics {
@@ -302,7 +288,7 @@ func NewMachineListResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			Name:            m.Allocation.Name,
 			Description:     m.Allocation.Description,
 			LastPing:        m.Allocation.LastPing,
-			Image:           NewImageListResponse(i),
+			Image:           NewImageResponse(i),
 			Tenant:          m.Allocation.Tenant,
 			Project:         m.Allocation.Project,
 			Hostname:        m.Allocation.Hostname,
@@ -318,7 +304,7 @@ func NewMachineListResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 		tags = m.Tags
 	}
 
-	return &MachineListResponse{
+	return &MachineResponse{
 		Common: Common{
 			Identifiable: Identifiable{
 				ID: m.ID,
@@ -329,8 +315,8 @@ func NewMachineListResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			},
 		},
 		MachineBase: MachineBase{
-			Partition:  NewPartitionListResponse(p),
-			Size:       NewSizeListResponse(s),
+			Partition:  NewPartitionResponse(p),
+			Size:       NewSizeResponse(s),
 			Allocation: allocation,
 			RackID:     m.RackID,
 			Hardware:   hardware,
@@ -341,6 +327,10 @@ func NewMachineListResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			Liveliness:               string(m.Liveliness),
 			RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
 			Tags:                     tags,
+		},
+		Timestamps: Timestamps{
+			Created: m.Created,
+			Changed: m.Changed,
 		},
 	}
 }
@@ -379,8 +369,8 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 
 func NewMachineWaitResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer, token string) *MachineWaitResponse {
 	return &MachineWaitResponse{
-		MachineDetailResponse: *NewMachineDetailResponse(m, s, p, i, ec),
-		PhoneHomeToken:        m.Allocation.PhoneHomeToken,
+		MachineResponse: *NewMachineResponse(m, s, p, i, ec),
+		PhoneHomeToken:  m.Allocation.PhoneHomeToken,
 	}
 }
 

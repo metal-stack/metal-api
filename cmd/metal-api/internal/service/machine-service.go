@@ -95,8 +95,8 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("get machine by id").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.MachineDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -104,8 +104,8 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("listMachines").
 		Doc("get all known machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.MachineListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.MachineListResponse{}).
+		Writes([]v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/find").
@@ -113,8 +113,8 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("search machines").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.MachineListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.MachineListResponse{}).
+		Writes([]v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/register").
@@ -122,9 +122,9 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("register a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineRegisterRequest{}).
-		Writes(v1.MachineDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
-		Returns(http.StatusCreated, "Created", v1.MachineDetailResponse{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusCreated, "Created", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").
@@ -132,7 +132,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineAllocateRequest{}).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/finalize-allocation").
@@ -141,7 +141,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineFinalizeAllocationRequest{}).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/state").
@@ -150,8 +150,8 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineState{}).
-		Writes(v1.MachineDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}/free").
@@ -159,7 +159,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("free a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", v1.MachineDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/ipmi").
@@ -251,7 +251,7 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) listMachines(request *restful.Request, response *restful.Response) {
@@ -260,7 +260,7 @@ func (r machineResource) listMachines(request *restful.Request, response *restfu
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineListResponse(ms, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) searchMachine(request *restful.Request, response *restful.Response) {
@@ -271,7 +271,7 @@ func (r machineResource) searchMachine(request *restful.Request, response *restf
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineListResponse(ms, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
@@ -392,7 +392,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) registerMachine(request *restful.Request, response *restful.Response) {
@@ -488,7 +488,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) ipmiData(request *restful.Request, response *restful.Response) {
@@ -564,7 +564,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
@@ -823,7 +823,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
@@ -874,7 +874,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) releaseMachineNetworks(machineNetworks []metal.MachineNetwork) error {
@@ -1168,18 +1168,18 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func makeMachineDetailResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineDetailResponse {
+func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineResponse {
 	s, p, i, ec := findMachineReferencedEntites(m, ds, logger)
-	return v1.NewMachineDetailResponse(m, s, p, i, ec)
+	return v1.NewMachineResponse(m, s, p, i, ec)
 }
 
-func makeMachineListResponse(ms []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineListResponse {
+func makeMachineResponseList(ms []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineResponse {
 	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
 
-	result := []*v1.MachineListResponse{}
+	result := []*v1.MachineResponse{}
 
 	for index := range ms {
 		var s *metal.Size
@@ -1200,7 +1200,7 @@ func makeMachineListResponse(ms []metal.Machine, ds *datastore.RethinkStore, log
 			}
 		}
 		ec := ecMap[ms[index].ID]
-		result = append(result, v1.NewMachineListResponse(&ms[index], s, p, i, &ec))
+		result = append(result, v1.NewMachineResponse(&ms[index], s, p, i, &ec))
 	}
 
 	return result

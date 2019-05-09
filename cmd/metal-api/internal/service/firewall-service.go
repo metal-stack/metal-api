@@ -53,8 +53,8 @@ func (r firewallResource) webService() *restful.WebService {
 		Doc("get firewall by id").
 		Param(ws.PathParameter("id", "identifier of the firewall").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.FirewallDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.FirewallDetailResponse{}).
+		Writes(v1.FirewallResponse{}).
+		Returns(http.StatusOK, "OK", v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -62,8 +62,8 @@ func (r firewallResource) webService() *restful.WebService {
 		Operation("listFirewalls").
 		Doc("get all known firewalls").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.FirewallListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.FirewallListResponse{}).
+		Writes([]v1.FirewallResponse{}).
+		Returns(http.StatusOK, "OK", []v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").
@@ -71,7 +71,7 @@ func (r firewallResource) webService() *restful.WebService {
 		Doc("allocate a firewall").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.FirewallCreateRequest{}).
-		Returns(http.StatusOK, "OK", v1.FirewallDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -95,7 +95,7 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallDetailResponse(fw, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponse(fw, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
@@ -117,7 +117,7 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 		}
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallListResponse(fws, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponseList(fws, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
@@ -196,21 +196,21 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineDetailResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func makeFirewallDetailResponse(fw *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.FirewallDetailResponse {
-	return &v1.FirewallDetailResponse{MachineDetailResponse: *makeMachineDetailResponse(fw, ds, logger)}
+func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.FirewallResponse {
+	return &v1.FirewallResponse{MachineResponse: *makeMachineResponse(fw, ds, logger)}
 }
 
-func makeFirewallListResponse(fws []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.FirewallListResponse {
-	machineListResponse := makeMachineListResponse(fws, ds, logger)
+func makeFirewallResponseList(fws []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.FirewallResponse {
+	machineResponseList := makeMachineResponseList(fws, ds, logger)
 
-	firewallListResponse := []*v1.FirewallListResponse{}
-	for i := range machineListResponse {
-		firewallListResponse = append(firewallListResponse, &v1.FirewallListResponse{MachineListResponse: *machineListResponse[i]})
+	firewallResponseList := []*v1.FirewallResponse{}
+	for i := range machineResponseList {
+		firewallResponseList = append(firewallResponseList, &v1.FirewallResponse{MachineResponse: *machineResponseList[i]})
 	}
 
-	return firewallListResponse
+	return firewallResponseList
 
 }

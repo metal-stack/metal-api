@@ -34,7 +34,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.FirewallListResponse"
+                "$ref": "#/definitions/v1.FirewallResponse"
               }
             }
           },
@@ -74,7 +74,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.FirewallDetailResponse"
+              "$ref": "#/definitions/v1.FirewallResponse"
             }
           },
           "default": {
@@ -112,7 +112,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.FirewallDetailResponse"
+              "$ref": "#/definitions/v1.FirewallResponse"
             }
           },
           "default": {
@@ -172,7 +172,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.ImageListResponse"
+                "$ref": "#/definitions/v1.ImageResponse"
               }
             }
           },
@@ -210,7 +210,7 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/v1.ImageDetailResponse"
+              "$ref": "#/definitions/v1.ImageResponse"
             }
           },
           "409": {
@@ -253,7 +253,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.ImageDetailResponse"
+              "$ref": "#/definitions/v1.ImageResponse"
             }
           },
           "409": {
@@ -297,7 +297,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.ImageDetailResponse"
+              "$ref": "#/definitions/v1.ImageResponse"
             }
           },
           "default": {
@@ -333,7 +333,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.ImageDetailResponse"
+              "$ref": "#/definitions/v1.ImageResponse"
             }
           },
           "default": {
@@ -364,7 +364,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.IPListResponse"
+                "$ref": "#/definitions/v1.IPResponse"
               }
             }
           },
@@ -402,7 +402,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.IPDetailResponse"
+              "$ref": "#/definitions/v1.IPResponse"
             }
           },
           "409": {
@@ -447,7 +447,7 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/v1.IPDetailResponse"
+              "$ref": "#/definitions/v1.IPResponse"
             }
           },
           "default": {
@@ -485,7 +485,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.IPDetailResponse"
+              "$ref": "#/definitions/v1.IPResponse"
             }
           },
           "default": {
@@ -521,7 +521,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.IPDetailResponse"
+              "$ref": "#/definitions/v1.IPResponse"
             }
           },
           "default": {
@@ -552,7 +552,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.MachineListResponse"
+                "$ref": "#/definitions/v1.MachineResponse"
               }
             }
           },
@@ -592,7 +592,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -631,7 +631,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.MachineListResponse"
+                "$ref": "#/definitions/v1.MachineResponse"
               }
             }
           },
@@ -713,13 +713,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -757,7 +757,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -885,7 +885,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -923,7 +923,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -1203,7 +1203,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineDetailResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -1278,7 +1278,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.NetworkListResponse"
+                "$ref": "#/definitions/v1.NetworkResponse"
               }
             }
           },
@@ -1316,7 +1316,7 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/v1.NetworkDetailResponse"
+              "$ref": "#/definitions/v1.NetworkResponse"
             }
           },
           "409": {
@@ -1359,7 +1359,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.NetworkDetailResponse"
+              "$ref": "#/definitions/v1.NetworkResponse"
             }
           },
           "409": {
@@ -1403,7 +1403,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.NetworkDetailResponse"
+              "$ref": "#/definitions/v1.NetworkResponse"
             }
           },
           "default": {
@@ -1439,7 +1439,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.NetworkDetailResponse"
+              "$ref": "#/definitions/v1.NetworkResponse"
             }
           },
           "default": {
@@ -1470,7 +1470,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.PartitionListResponse"
+                "$ref": "#/definitions/v1.PartitionResponse"
               }
             }
           },
@@ -1508,7 +1508,7 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/v1.PartitionDetailResponse"
+              "$ref": "#/definitions/v1.PartitionResponse"
             }
           },
           "409": {
@@ -1551,7 +1551,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.PartitionDetailResponse"
+              "$ref": "#/definitions/v1.PartitionResponse"
             }
           },
           "409": {
@@ -1595,7 +1595,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.PartitionDetailResponse"
+              "$ref": "#/definitions/v1.PartitionResponse"
             }
           },
           "default": {
@@ -1631,7 +1631,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.PartitionDetailResponse"
+              "$ref": "#/definitions/v1.PartitionResponse"
             }
           },
           "default": {
@@ -1662,7 +1662,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/v1.SizeListResponse"
+                "$ref": "#/definitions/v1.SizeResponse"
               }
             }
           },
@@ -1700,7 +1700,7 @@
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/v1.SizeDetailResponse"
+              "$ref": "#/definitions/v1.SizeResponse"
             }
           },
           "409": {
@@ -1743,7 +1743,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.SizeDetailResponse"
+              "$ref": "#/definitions/v1.SizeResponse"
             }
           },
           "409": {
@@ -1835,7 +1835,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.SizeDetailResponse"
+              "$ref": "#/definitions/v1.SizeResponse"
             }
           },
           "default": {
@@ -1871,7 +1871,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.SizeDetailResponse"
+              "$ref": "#/definitions/v1.SizeResponse"
             }
           },
           "default": {
@@ -2505,10 +2505,10 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "partitionid",
-        "imageid",
-        "ssh_pub_keys",
         "tenant",
+        "partitionid",
+        "ssh_pub_keys",
+        "imageid",
         "projectid",
         "sizeid",
         "networks"
@@ -2581,20 +2581,20 @@
         }
       }
     },
-    "v1.FirewallDetailResponse": {
+    "v1.FirewallResponse": {
       "required": [
-        "size",
-        "changed",
-        "rackid",
-        "partition",
         "created",
-        "liveliness",
-        "tags",
+        "id",
         "events",
-        "state",
+        "tags",
         "hardware",
         "allocation",
-        "id"
+        "rackid",
+        "changed",
+        "size",
+        "liveliness",
+        "state",
+        "partition"
       ],
       "properties": {
         "allocation": {
@@ -2640,7 +2640,7 @@
         },
         "partition": {
           "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/v1.PartitionListResponse",
+          "$ref": "#/definitions/v1.PartitionResponse",
           "readOnly": true
         },
         "rackid": {
@@ -2650,78 +2650,7 @@
         },
         "size": {
           "description": "the size of this machine",
-          "$ref": "#/definitions/v1.SizeListResponse",
-          "readOnly": true
-        },
-        "state": {
-          "description": "the state of this machine",
-          "$ref": "#/definitions/v1.MachineState"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "v1.FirewallListResponse": {
-      "required": [
-        "size",
-        "id",
-        "tags",
-        "rackid",
-        "allocation",
-        "events",
-        "hardware",
-        "state",
-        "liveliness",
-        "partition"
-      ],
-      "properties": {
-        "allocation": {
-          "description": "the allocation data of an allocated machine",
-          "$ref": "#/definitions/v1.MachineAllocation"
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "events": {
-          "description": "recent events of this machine during provisioning",
-          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-        },
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/v1.MachineHardware"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "partition": {
-          "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/v1.PartitionListResponse",
-          "readOnly": true
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "type": "string",
-          "readOnly": true
-        },
-        "size": {
-          "description": "the size of this machine",
-          "$ref": "#/definitions/v1.SizeListResponse",
+          "$ref": "#/definitions/v1.SizeResponse",
           "readOnly": true
         },
         "state": {
@@ -2739,8 +2668,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "projectid",
-        "networkid"
+        "networkid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -2761,7 +2690,7 @@
         }
       }
     },
-    "v1.IPDetailResponse": {
+    "v1.IPResponse": {
       "required": [
         "projectid",
         "networkid",
@@ -2782,36 +2711,6 @@
           "format": "date-time",
           "readOnly": true
         },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "ipaddress": {
-          "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "networkid": {
-          "description": "the network this ip allocate request address belongs to",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project this ip address belongs to",
-          "type": "string"
-        }
-      }
-    },
-    "v1.IPListResponse": {
-      "required": [
-        "projectid",
-        "networkid",
-        "ipaddress"
-      ],
-      "properties": {
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -2887,7 +2786,7 @@
         }
       }
     },
-    "v1.ImageDetailResponse": {
+    "v1.ImageResponse": {
       "required": [
         "id",
         "created",
@@ -2906,37 +2805,6 @@
           "format": "date-time",
           "readOnly": true
         },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "features": {
-          "description": "features of this image",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "url": {
-          "description": "the url of this image",
-          "type": "string"
-        }
-      }
-    },
-    "v1.ImageListResponse": {
-      "required": [
-        "id"
-      ],
-      "properties": {
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3090,7 +2958,7 @@
         },
         "image": {
           "description": "the image assigned to this machine",
-          "$ref": "#/definitions/v1.ImageListResponse",
+          "$ref": "#/definitions/v1.ImageResponse",
           "readOnly": true
         },
         "last_ping": {
@@ -3144,91 +3012,6 @@
         "size": {
           "description": "the size of this block device",
           "type": "integer"
-        }
-      }
-    },
-    "v1.MachineDetailResponse": {
-      "required": [
-        "liveliness",
-        "events",
-        "partition",
-        "hardware",
-        "id",
-        "rackid",
-        "size",
-        "allocation",
-        "tags",
-        "state",
-        "created",
-        "changed"
-      ],
-      "properties": {
-        "allocation": {
-          "description": "the allocation data of an allocated machine",
-          "$ref": "#/definitions/v1.MachineAllocation"
-        },
-        "changed": {
-          "description": "the last changed timestamp of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "events": {
-          "description": "recent events of this machine during provisioning",
-          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-        },
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/v1.MachineHardware"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "partition": {
-          "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/v1.PartitionListResponse",
-          "readOnly": true
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "type": "string",
-          "readOnly": true
-        },
-        "size": {
-          "description": "the size of this machine",
-          "$ref": "#/definitions/v1.SizeListResponse",
-          "readOnly": true
-        },
-        "state": {
-          "description": "the state of this machine",
-          "$ref": "#/definitions/v1.MachineState"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       }
     },
@@ -3341,77 +3124,6 @@
         },
         "user": {
           "type": "string"
-        }
-      }
-    },
-    "v1.MachineListResponse": {
-      "required": [
-        "id",
-        "rackid",
-        "events",
-        "tags",
-        "partition",
-        "size",
-        "hardware",
-        "allocation",
-        "state",
-        "liveliness"
-      ],
-      "properties": {
-        "allocation": {
-          "description": "the allocation data of an allocated machine",
-          "$ref": "#/definitions/v1.MachineAllocation"
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "events": {
-          "description": "recent events of this machine during provisioning",
-          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-        },
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/v1.MachineHardware"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "partition": {
-          "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/v1.PartitionListResponse",
-          "readOnly": true
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "type": "string",
-          "readOnly": true
-        },
-        "size": {
-          "description": "the size of this machine",
-          "$ref": "#/definitions/v1.SizeListResponse",
-          "readOnly": true
-        },
-        "state": {
-          "description": "the state of this machine",
-          "$ref": "#/definitions/v1.MachineState"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       }
     },
@@ -3584,6 +3296,91 @@
         }
       }
     },
+    "v1.MachineResponse": {
+      "required": [
+        "id",
+        "liveliness",
+        "events",
+        "tags",
+        "rackid",
+        "hardware",
+        "allocation",
+        "partition",
+        "size",
+        "state",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/v1.PartitionResponse",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/v1.SizeResponse",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/v1.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "v1.MachineState": {
       "required": [
         "value",
@@ -3603,17 +3400,17 @@
     "v1.MachineWaitResponse": {
       "required": [
         "id",
-        "size",
-        "hardware",
-        "changed",
         "rackid",
         "liveliness",
-        "tags",
         "partition",
-        "state",
-        "created",
-        "allocation",
+        "size",
+        "changed",
+        "hardware",
         "events",
+        "created",
+        "tags",
+        "allocation",
+        "state",
         "phone_home_token"
       ],
       "properties": {
@@ -3660,7 +3457,7 @@
         },
         "partition": {
           "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/v1.PartitionListResponse",
+          "$ref": "#/definitions/v1.PartitionResponse",
           "readOnly": true
         },
         "phone_home_token": {
@@ -3673,7 +3470,7 @@
         },
         "size": {
           "description": "the size of this machine",
-          "$ref": "#/definitions/v1.SizeListResponse",
+          "$ref": "#/definitions/v1.SizeResponse",
           "readOnly": true
         },
         "state": {
@@ -3729,13 +3526,13 @@
         }
       }
     },
-    "v1.NetworkDetailResponse": {
+    "v1.NetworkResponse": {
       "required": [
+        "id",
+        "prefixes",
+        "nat",
         "primary",
         "usage",
-        "id",
-        "nat",
-        "prefixes",
         "created",
         "changed"
       ],
@@ -3752,57 +3549,6 @@
           "format": "date-time",
           "readOnly": true
         },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
-          "type": "boolean"
-        },
-        "partitionid": {
-          "description": "the partition this network belongs to",
-          "type": "string"
-        },
-        "prefixes": {
-          "description": "the prefixes of this network",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "primary": {
-          "description": "if set to true, this network is attached to a machine/firewall",
-          "type": "boolean"
-        },
-        "projectid": {
-          "description": "the project this network belongs to, can be empty if globally available",
-          "type": "string"
-        },
-        "usage": {
-          "description": "usage of ips and prefixes in this network",
-          "$ref": "#/definitions/v1.NetworkUsage"
-        }
-      }
-    },
-    "v1.NetworkListResponse": {
-      "required": [
-        "id",
-        "prefixes",
-        "nat",
-        "primary",
-        "usage"
-      ],
-      "properties": {
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -3951,7 +3697,7 @@
         }
       }
     },
-    "v1.PartitionDetailResponse": {
+    "v1.PartitionResponse": {
       "required": [
         "id",
         "bootconfig",
@@ -3974,42 +3720,6 @@
           "type": "string",
           "format": "date-time",
           "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "mgmtserviceaddress": {
-          "description": "the address to the management service of this partition",
-          "type": "string"
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "projectnetworkprefixlength": {
-          "description": "the length of project networks for this partition, default 22",
-          "type": "integer",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16
-        }
-      }
-    },
-    "v1.PartitionListResponse": {
-      "required": [
-        "id",
-        "bootconfig"
-      ],
-      "properties": {
-        "bootconfig": {
-          "description": "the boot configuration of this partition",
-          "$ref": "#/definitions/v1.PartitionBootConfiguration"
         },
         "description": {
           "description": "a description for this entity",
@@ -4120,12 +3830,12 @@
         }
       }
     },
-    "v1.SizeDetailResponse": {
+    "v1.SizeResponse": {
       "required": [
-        "constraints",
         "id",
-        "changed",
-        "created"
+        "constraints",
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -4146,34 +3856,6 @@
           "type": "string",
           "format": "date-time",
           "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        }
-      }
-    },
-    "v1.SizeListResponse": {
-      "required": [
-        "id",
-        "constraints"
-      ],
-      "properties": {
-        "constraints": {
-          "description": "a list of constraints that defines this size",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1.SizeConstraint"
-          }
         },
         "description": {
           "description": "a description for this entity",

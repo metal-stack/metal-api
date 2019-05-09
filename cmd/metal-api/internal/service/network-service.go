@@ -46,8 +46,8 @@ func (nr networkResource) webService() *restful.WebService {
 		Doc("get network by id").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.NetworkDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.NetworkDetailResponse{}).
+		Writes(v1.NetworkResponse{}).
+		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -55,8 +55,8 @@ func (nr networkResource) webService() *restful.WebService {
 		Operation("listNetworks").
 		Doc("get all networks").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.NetworkListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.NetworkListResponse{}).
+		Writes([]v1.NetworkResponse{}).
+		Returns(http.StatusOK, "OK", []v1.NetworkResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
@@ -65,15 +65,15 @@ func (nr networkResource) webService() *restful.WebService {
 		Doc("deletes an network and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.NetworkDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.NetworkDetailResponse{}).
+		Writes(v1.NetworkResponse{}).
+		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").To(nr.createNetwork).
 		Doc("create an network. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkCreateRequest{}).
-		Returns(http.StatusCreated, "Created", v1.NetworkDetailResponse{}).
+		Returns(http.StatusCreated, "Created", v1.NetworkResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -81,7 +81,7 @@ func (nr networkResource) webService() *restful.WebService {
 		Doc("updates an network. if the network was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkUpdateRequest{}).
-		Returns(http.StatusOK, "OK", v1.NetworkDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -96,7 +96,7 @@ func (nr networkResource) findNetwork(request *restful.Request, response *restfu
 		return
 	}
 	usage := nr.getNetworkUsage(nw)
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkDetailResponse(nw, usage))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, usage))
 }
 
 func (nr networkResource) listNetworks(request *restful.Request, response *restful.Response) {
@@ -105,10 +105,10 @@ func (nr networkResource) listNetworks(request *restful.Request, response *restf
 		return
 	}
 
-	result := []*v1.NetworkListResponse{}
+	result := []*v1.NetworkResponse{}
 	for i := range nws {
 		usage := nr.getNetworkUsage(&nws[i])
-		result = append(result, v1.NewNetworkListResponse(&nws[i], usage))
+		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -193,7 +193,7 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 
 	usage := nr.getNetworkUsage(nw)
 
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkDetailResponse(nw, usage))
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
 func (nr networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
@@ -271,7 +271,7 @@ func (nr networkResource) updateNetwork(request *restful.Request, response *rest
 
 	usage := nr.getNetworkUsage(&newNetwork)
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkDetailResponse(&newNetwork, usage))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
 }
 
 func (nr networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
@@ -299,7 +299,7 @@ func (nr networkResource) deleteNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkDetailResponse(nw, v1.NetworkUsage{}))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, v1.NetworkUsage{}))
 }
 
 func (nr networkResource) getNetworkUsage(nw *metal.Network) v1.NetworkUsage {

@@ -43,8 +43,8 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("get image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ImageDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.ImageDetailResponse{}).
+		Writes(v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -52,8 +52,8 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("listImages").
 		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.ImageListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.ImageListResponse{}).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
@@ -62,8 +62,8 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("deletes an image and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ImageDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.ImageDetailResponse{}).
+		Writes(v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
@@ -71,7 +71,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("create an image. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageCreateRequest{}).
-		Returns(http.StatusCreated, "Created", v1.ImageDetailResponse{}).
+		Returns(http.StatusCreated, "Created", v1.ImageResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -80,7 +80,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageUpdateRequest{}).
-		Returns(http.StatusOK, "OK", v1.ImageDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -95,7 +95,7 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageDetailResponse(img))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 }
 
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
@@ -104,9 +104,9 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 		return
 	}
 
-	result := []*v1.ImageListResponse{}
+	result := []*v1.ImageResponse{}
 	for i := range imgs {
-		result = append(result, v1.NewImageListResponse(&imgs[i]))
+		result = append(result, v1.NewImageResponse(&imgs[i]))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -164,7 +164,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageDetailResponse(img))
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageResponse(img))
 }
 
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
@@ -180,7 +180,7 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageDetailResponse(img))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
@@ -223,5 +223,5 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageDetailResponse(&newImage))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(&newImage))
 }

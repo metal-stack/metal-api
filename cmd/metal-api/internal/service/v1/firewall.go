@@ -7,10 +7,6 @@ type FirewallCreateRequest struct {
 	HA *bool `json:"ha" description:"if set to true, this firewall is set up in a High Available manner" optional:"true"`
 }
 
-type FirewallListResponse struct {
-	MachineListResponse
-}
-
-type FirewallDetailResponse struct {
-	MachineDetailResponse
+type FirewallResponse struct {
+	MachineResponse
 }

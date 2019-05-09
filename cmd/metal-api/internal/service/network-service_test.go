@@ -33,7 +33,7 @@ func TestGetNetworks(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.NetworkListResponse
+	var result []v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -58,7 +58,7 @@ func TestGetNetwork(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.NetworkDetailResponse
+	var result v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -100,7 +100,7 @@ func TestDeleteNetwork(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.NetworkDetailResponse
+	var result v1.NetworkResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -150,7 +150,7 @@ func TestCreateNetwork(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
-	var result v1.NetworkDetailResponse
+	var result v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
