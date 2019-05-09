@@ -30,8 +30,9 @@ import (
 )
 
 const (
-	cfgFileType = "yaml"
-	moduleName  = "metal-api"
+	cfgFileType             = "yaml"
+	moduleName              = "metal-api"
+	generatedHtmlApiDocPath = "./generate/"
 )
 
 var (
@@ -295,7 +296,14 @@ func run() {
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	logger.Infow("start metal api", "version", version.V.String(), "address", addr)
-	http.ListenAndServe(addr, nil)
+
+	// expose generated apidoc
+	http.Handle("/apidocs/", http.StripPrefix("/apidocs/", http.FileServer(http.Dir(generatedHtmlApiDocPath))))
+
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		logger.Errorw("failed to start metal api", "error", err)
+	}
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {

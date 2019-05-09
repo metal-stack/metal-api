@@ -71,5 +71,5 @@ generate-client:
 
 .PHONY: redoc
 redoc:
-	docker run -it --rm -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/redoc.html /work/spec/metal-api.json
-	xdg-open generate/redoc.html
+	docker run -it --rm -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
+	xdg-open generate/index.html
