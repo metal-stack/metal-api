@@ -8,7 +8,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 )
 
-func TestRethinkStore_GetPrimaryNetwork(t *testing.T) {
+func TestRethinkStore_FindPrimaryNetwork(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
@@ -30,9 +30,9 @@ func TestRethinkStore_GetPrimaryNetwork(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := tt.rs.GetPrimaryNetwork(tt.partitionID)
+			got, _ := tt.rs.FindPrimaryNetwork(tt.partitionID)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.GetPrimaryNetwork() = %v, want %v", got, tt.want)
+				t.Errorf("RethinkStore.FindPrimaryNetwork() = %v, want %v", got, tt.want)
 			}
 		})
 	}

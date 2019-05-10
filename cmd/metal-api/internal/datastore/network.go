@@ -8,7 +8,7 @@ import (
 )
 
 // GetPrimaryNetwork returns the network which is marked default in this partition
-func (rs *RethinkStore) GetPrimaryNetwork(partitionID string) (*metal.Network, error) {
+func (rs *RethinkStore) FindPrimaryNetwork(partitionID string) (*metal.Network, error) {
 	_, err := rs.FindPartition(partitionID)
 	if err != nil {
 		return nil, err
@@ -31,6 +31,26 @@ func (rs *RethinkStore) GetPrimaryNetwork(partitionID string) (*metal.Network, e
 	}
 
 	return &nws[0], nil
+}
+
+// SearchPrimaryNetwork returns all primary networks of a partition.
+func (rs *RethinkStore) SearchPrimaryNetwork(partitionID string) ([]metal.Network, error) {
+	_, err := rs.FindPartition(partitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var nws []metal.Network
+	searchFilter := func(row r.Term) r.Term {
+		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
+	}
+
+	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	if err != nil {
+		return nil, err
+	}
+
+	return nws, nil
 }
 
 // SearchProjectNetwork returns the network to a given project id

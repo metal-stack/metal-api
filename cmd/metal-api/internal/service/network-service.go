@@ -22,16 +22,16 @@ type networkResource struct {
 
 // NewNetwork returns a webservice for network specific endpoints.
 func NewNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer) *restful.WebService {
-	nr := networkResource{
+	r := networkResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		ipamer: ipamer,
 	}
-	return nr.webService()
+	return r.webService()
 }
 
-func (nr networkResource) webService() *restful.WebService {
+func (r networkResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path("/v1/network").
@@ -41,7 +41,7 @@ func (nr networkResource) webService() *restful.WebService {
 	tags := []string{"network"}
 
 	ws.Route(ws.GET("/{id}").
-		To(nr.findNetwork).
+		To(r.findNetwork).
 		Operation("findNetwork").
 		Doc("get network by id").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
@@ -51,7 +51,7 @@ func (nr networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(nr.listNetworks).
+		To(r.listNetworks).
 		Operation("listNetworks").
 		Doc("get all networks").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -60,7 +60,7 @@ func (nr networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(nr.deleteNetwork).
+		To(r.deleteNetwork).
 		Operation("deleteNetwork").
 		Doc("deletes an network and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
@@ -69,7 +69,8 @@ func (nr networkResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.PUT("/").To(nr.createNetwork).
+	ws.Route(ws.PUT("/").
+		To(r.createNetwork).
 		Doc("create an network. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkCreateRequest{}).
@@ -77,7 +78,8 @@ func (nr networkResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/").To(nr.updateNetwork).
+	ws.Route(ws.POST("/").
+		To(r.updateNetwork).
 		Doc("updates an network. if the network was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkUpdateRequest{}).
@@ -88,33 +90,33 @@ func (nr networkResource) webService() *restful.WebService {
 	return ws
 }
 
-func (nr networkResource) findNetwork(request *restful.Request, response *restful.Response) {
+func (r networkResource) findNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	nw, err := nr.ds.FindNetwork(id)
+	nw, err := r.ds.FindNetwork(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	usage := nr.getNetworkUsage(nw)
+	usage := r.getNetworkUsage(nw)
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, usage))
 }
 
-func (nr networkResource) listNetworks(request *restful.Request, response *restful.Response) {
-	nws, err := nr.ds.ListNetworks()
+func (r networkResource) listNetworks(request *restful.Request, response *restful.Response) {
+	nws, err := r.ds.ListNetworks()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	result := []*v1.NetworkResponse{}
 	for i := range nws {
-		usage := nr.getNetworkUsage(&nws[i])
+		usage := r.getNetworkUsage(&nws[i])
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
 }
 
-func (nr networkResource) createNetwork(request *restful.Request, response *restful.Response) {
+func (r networkResource) createNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -144,7 +146,7 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 			return
 		}
 	}
-	var prefixes metal.Prefixes
+	prefixes := metal.Prefixes{}
 	// all Prefixes must be valid
 	for _, p := range requestPayload.Prefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
@@ -157,17 +159,51 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 		prefixes = append(prefixes, *prefix)
 	}
 
+	allNws, err := r.ds.ListNetworks()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	existingPrefixes := metal.Prefixes{}
+	existingPrefixesMap := make(map[string]bool)
+	for _, nw := range allNws {
+		for _, p := range nw.Prefixes {
+			_, ok := existingPrefixesMap[p.String()]
+			if !ok {
+				existingPrefixes = append(existingPrefixes, p)
+				existingPrefixesMap[p.String()] = true
+
+			}
+		}
+	}
+
+	fmt.Printf("Existing: %#v", existingPrefixes)
+	fmt.Printf("New: %#v", prefixes)
+	err = r.ipamer.PrefixesOverlapping(existingPrefixes, prefixes)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	var partitionID string
 	if requestPayload.PartitionID != nil {
-		partition, err := nr.ds.FindPartition(*requestPayload.PartitionID)
+		partition, err := r.ds.FindPartition(*requestPayload.PartitionID)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
+
+		primary, err := r.ds.SearchPrimaryNetwork(partition.ID)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if len(primary) != 0 {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a primary network", partition.ID)) {
+				return
+			}
+		}
+
 		partitionID = partition.ID
 	}
 
 	// TODO: Check if project exists if we get a project entity
-	// FIXME: Check if prefixes overlap with existing super network prefixes (see go-ipam Prefix Overlapping)
 
 	nw := &metal.Network{
 		Base: metal.Base{
@@ -183,7 +219,7 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 	}
 
 	for _, p := range nw.Prefixes {
-		err := nr.ipamer.CreatePrefix(p)
+		err := r.ipamer.CreatePrefix(p)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -194,29 +230,29 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 		ProjectID: projectid,
 	}
 
-	err = nr.ds.CreateVrf(vrf)
+	err = r.ds.CreateVrf(vrf)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = nr.ds.CreateNetwork(nw)
+	err = r.ds.CreateNetwork(nw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	usage := nr.getNetworkUsage(nw)
+	usage := r.getNetworkUsage(nw)
 
 	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
-func (nr networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
+func (r networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	oldNetwork, err := nr.ds.FindNetwork(requestPayload.ID)
+	oldNetwork, err := r.ds.FindNetwork(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -249,7 +285,7 @@ func (nr networkResource) updateNetwork(request *restful.Request, response *rest
 		prefixesToBeRemoved = oldNetwork.SubstractPrefixes(prefixesFromRequest...)
 
 		// now validate if there are ips which have a prefix to be removed as a parent
-		allIPs, err := nr.ds.ListIPs()
+		allIPs, err := r.ds.ListIPs()
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -264,38 +300,38 @@ func (nr networkResource) updateNetwork(request *restful.Request, response *rest
 	}
 
 	for _, p := range prefixesToBeRemoved {
-		err := nr.ipamer.DeletePrefix(p)
+		err := r.ipamer.DeletePrefix(p)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 	}
 
 	for _, p := range prefixesToBeAdded {
-		err := nr.ipamer.CreatePrefix(p)
+		err := r.ipamer.CreatePrefix(p)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 	}
 
-	err = nr.ds.UpdateNetwork(oldNetwork, &newNetwork)
+	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	usage := nr.getNetworkUsage(&newNetwork)
+	usage := r.getNetworkUsage(&newNetwork)
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
 }
 
-func (nr networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
+func (r networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	nw, err := nr.ds.FindNetwork(id)
+	nw, err := r.ds.FindNetwork(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	allIPs, err := nr.ds.ListIPs()
+	allIPs, err := r.ds.ListIPs()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -307,7 +343,7 @@ func (nr networkResource) deleteNetwork(request *restful.Request, response *rest
 		}
 	}
 
-	err = nr.ds.DeleteNetwork(nw)
+	err = r.ds.DeleteNetwork(nw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -315,10 +351,10 @@ func (nr networkResource) deleteNetwork(request *restful.Request, response *rest
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, v1.NetworkUsage{}))
 }
 
-func (nr networkResource) getNetworkUsage(nw *metal.Network) v1.NetworkUsage {
+func (r networkResource) getNetworkUsage(nw *metal.Network) v1.NetworkUsage {
 	usage := v1.NetworkUsage{}
 	for _, prefix := range nw.Prefixes {
-		u, err := nr.ipamer.PrefixUsage(prefix.String())
+		u, err := r.ipamer.PrefixUsage(prefix.String())
 		if err != nil {
 			continue
 		}

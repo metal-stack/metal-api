@@ -132,16 +132,19 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 
 func TestCreateNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
+	ipamer, err := testdata.InitMockIpamData(mock, false)
+	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()))
+	networkservice := NewNetwork(ds, ipamer)
 	container := restful.NewContainer().Add(networkservice)
 
+	prefixes := []string{"172.0.0.0/24"}
 	vrfID := uint(1)
 	createRequest := &v1.NetworkCreateRequest{
 		Describeable:     v1.Describeable{Name: &testdata.Nw1.Name},
 		NetworkBase:      v1.NetworkBase{PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID},
-		NetworkImmutable: v1.NetworkImmutable{Prefixes: testdata.Nw1.Prefixes.String(), Vrf: &vrfID},
+		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, Vrf: &vrfID},
 	}
 	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)
@@ -153,7 +156,7 @@ func TestCreateNetwork(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.NetworkResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Equal(t, testdata.Nw1.Name, *result.Name)

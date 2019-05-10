@@ -15,4 +15,5 @@ type IPAMer interface {
 	CreatePrefix(prefix metal.Prefix) error
 	DeletePrefix(prefix metal.Prefix) error
 	PrefixUsage(cidr string) (*v1.NetworkUsage, error) // TODO: Also wrap usage, such that it is independent of v1
+	PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error
 }

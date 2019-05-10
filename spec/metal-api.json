@@ -2520,11 +2520,11 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "ssh_pub_keys",
         "projectid",
         "partitionid",
         "sizeid",
         "imageid",
+        "ssh_pub_keys",
         "tenant",
         "networks"
       ],
@@ -2598,18 +2598,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "allocation",
-        "id",
-        "state",
-        "liveliness",
-        "size",
-        "hardware",
-        "events",
+        "partition",
         "rackid",
+        "liveliness",
         "tags",
+        "events",
+        "allocation",
+        "state",
         "created",
         "changed",
-        "partition"
+        "size",
+        "hardware",
+        "id"
       ],
       "properties": {
         "allocation": {
@@ -2804,8 +2804,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3332,15 +3332,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "rackid",
         "size",
         "hardware",
         "state",
-        "liveliness",
         "events",
-        "tags",
         "partition",
         "allocation",
-        "rackid",
+        "liveliness",
+        "tags",
         "created",
         "changed"
       ],
@@ -3432,18 +3432,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "size",
-        "allocation",
-        "events",
-        "id",
-        "liveliness",
-        "rackid",
-        "changed",
-        "state",
         "partition",
-        "hardware",
-        "tags",
+        "liveliness",
+        "allocation",
+        "state",
         "created",
+        "hardware",
+        "events",
+        "tags",
+        "rackid",
+        "size",
+        "changed",
+        "id",
         "phone_home_token"
       ],
       "properties": {
@@ -3521,9 +3521,9 @@
     },
     "v1.NetworkCreateRequest": {
       "required": [
-        "primary",
         "prefixes",
-        "nat"
+        "nat",
+        "primary"
       ],
       "properties": {
         "description": {
@@ -3877,8 +3877,8 @@
       "required": [
         "id",
         "constraints",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {

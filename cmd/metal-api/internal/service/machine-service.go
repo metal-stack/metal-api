@@ -628,7 +628,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if err != nil {
 		return nil, err
 	}
-	primaryNetwork, err := ds.GetPrimaryNetwork(partition.ID)
+	primaryNetwork, err := ds.FindPrimaryNetwork(partition.ID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get primary network: %v", err)
 	}

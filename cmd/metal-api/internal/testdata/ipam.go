@@ -22,6 +22,12 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (*ipam.Ipam, error) {
 			return nil, fmt.Errorf("error creating ipam mock data: %v", err)
 		}
 	}
+	for _, prefix := range []metal.Prefix{prefix1, prefix2, prefix3} {
+		err := ipamer.CreatePrefix(prefix)
+		if err != nil {
+			return nil, fmt.Errorf("error creating ipam mock data: %v", err)
+		}
+	}
 
 	NwIPAM = metal.Network{
 		Base: metal.Base{
