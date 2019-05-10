@@ -13,6 +13,7 @@ type NetworkImmutable struct {
 	Prefixes []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	Nat      bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	Primary  bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
+	Vrf      *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 }
 
 type NetworkUsage struct {
@@ -63,6 +64,7 @@ func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResp
 			Prefixes: prefixes,
 			Nat:      network.Nat,
 			Primary:  network.Primary,
+			Vrf:      &network.Vrf,
 		},
 		Usage: usage,
 		Timestamps: Timestamps{

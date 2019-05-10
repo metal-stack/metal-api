@@ -79,6 +79,7 @@ type Network struct {
 	Nat             bool     `rethinkdb:"nat"`
 	Primary         bool     `rethinkdb:"primary"`
 	ParentNetworkID string   `rethinkdb:"parentnetworkid"`
+	Vrf             uint     `rethinkdb:"vrf"`
 }
 
 // FindPrefix returns the prefix by cidr if contained in this network, nil otherwise

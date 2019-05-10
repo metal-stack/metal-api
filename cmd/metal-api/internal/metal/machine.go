@@ -95,6 +95,7 @@ type MachineAllocation struct {
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
 	NetworkID string   `rethinkdb:"networkid"`
+	Prefixes  []string `rethinkdb:"prefixes"`
 	IPs       []string `rethinkdb:"ips"`
 	Vrf       uint     `rethinkdb:"vrf"`
 	Primary   bool     `rethinkdb:"primary"`

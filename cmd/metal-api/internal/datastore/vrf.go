@@ -37,6 +37,14 @@ func (rs *RethinkStore) FindVrf(f map[string]interface{}) (*metal.Vrf, error) {
 	return &vrf, nil
 }
 
+func (rs *RethinkStore) CreateVrf(v *metal.Vrf) error {
+	_, err := rs.vrfTable().Insert(v).RunWrite(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot create vrf in database: %v", err)
+	}
+	return nil
+}
+
 func (rs *RethinkStore) ReserveNewVrf(tenant, projectid string) (*metal.Vrf, error) {
 	var hashInput = tenant + projectid
 	for {

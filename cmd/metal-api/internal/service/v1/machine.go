@@ -39,6 +39,7 @@ type MachineAllocation struct {
 
 type MachineNetwork struct {
 	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
+	Prefixes  []string `json:"prefixes" description:"the prefixes of this network"`
 	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	ASN       int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`

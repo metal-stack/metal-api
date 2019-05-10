@@ -683,10 +683,11 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	machineNetworks := []metal.MachineNetwork{
 		metal.MachineNetwork{
 			NetworkID: projectNetwork.ID,
+			Prefixes:  projectNetwork.Prefixes.String(),
 			IPs:       []string{ip.IPAddress},
 			Vrf:       vrf.ID,
-			Primary:   true,
 			ASN:       asn,
+			Primary:   true,
 			Nat:       projectNetwork.Nat,
 		},
 	}
@@ -721,13 +722,15 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		if err != nil {
 			return nil, err
 		}
-		// FIXME what VRF is required for a firewall
+
 		machineNetwork := metal.MachineNetwork{
 			NetworkID: nw.ID,
+			Prefixes:  projectNetwork.Prefixes.String(),
 			IPs:       []string{ip.IPAddress},
-			Primary:   false,
 			ASN:       asn,
+			Primary:   false,
 			Nat:       projectNetwork.Nat,
+			Vrf:       nw.Vrf,
 		}
 		machineNetworks = append(machineNetworks, machineNetwork)
 	}

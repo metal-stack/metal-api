@@ -139,7 +139,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.MgmtServiceAddress != nil {
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
-	var projectNetworkPrefixLength int
+	projectNetworkPrefixLength := 22
 	if requestPayload.ProjectNetworkPrefixLength != nil {
 		projectNetworkPrefixLength = *requestPayload.ProjectNetworkPrefixLength
 		if projectNetworkPrefixLength < 16 || projectNetworkPrefixLength > 30 {
@@ -147,10 +147,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 				return
 			}
 		}
-	} else {
-		projectNetworkPrefixLength = 22
 	}
-
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL

@@ -133,6 +133,10 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 	if requestPayload.ProjectID != nil {
 		projectid = *requestPayload.ProjectID
 	}
+	var vrfID uint
+	if requestPayload.Vrf != nil {
+		vrfID = *requestPayload.Vrf
+	}
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401
@@ -175,6 +179,7 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 		ProjectID:   projectid,
 		Nat:         requestPayload.Nat,
 		Primary:     requestPayload.Primary,
+		Vrf:         vrfID,
 	}
 
 	for _, p := range nw.Prefixes {
@@ -184,11 +189,19 @@ func (nr networkResource) createNetwork(request *restful.Request, response *rest
 		}
 	}
 
+	vrf := &metal.Vrf{
+		ID:        vrfID,
+		ProjectID: projectid,
+	}
+
+	err = nr.ds.CreateVrf(vrf)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = nr.ds.CreateNetwork(nw)
-	if err != nil {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
 	usage := nr.getNetworkUsage(nw)
