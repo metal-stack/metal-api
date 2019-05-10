@@ -43,6 +43,7 @@ type MachineNetwork struct {
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	ASN       int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
 	Primary   bool     `json:"primary" description:"indicates whether this network is the primary project network"`
+	Nat       bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 }
 
 type MachineHardware struct {
@@ -275,6 +276,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Vrf:       m.Allocation.MachineNetworks[i].Vrf,
 				ASN:       m.Allocation.MachineNetworks[i].ASN,
 				Primary:   m.Allocation.MachineNetworks[i].Primary,
+				Nat:       m.Allocation.MachineNetworks[i].Nat,
 			}
 			networks = append(networks, network)
 		}

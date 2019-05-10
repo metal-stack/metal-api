@@ -99,6 +99,7 @@ type MachineNetwork struct {
 	Vrf       uint     `rethinkdb:"vrf"`
 	Primary   bool     `rethinkdb:"primary"`
 	ASN       int64    `rethinkdb:"asn"`
+	Nat       bool     `rethinkdb:"nat"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.

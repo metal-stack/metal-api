@@ -2256,7 +2256,8 @@
         "IPs",
         "Vrf",
         "Primary",
-        "ASN"
+        "ASN",
+        "Nat"
       ],
       "properties": {
         "ASN": {
@@ -2268,6 +2269,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "Nat": {
+          "type": "boolean"
         },
         "NetworkID": {
           "type": "string"
@@ -2510,10 +2514,10 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "projectid",
-        "partitionid",
         "imageid",
-        "tenant",
         "ssh_pub_keys",
+        "tenant",
+        "partitionid",
         "sizeid",
         "networks"
       ],
@@ -2587,18 +2591,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "allocation",
-        "partition",
         "size",
-        "hardware",
-        "rackid",
-        "liveliness",
-        "id",
-        "events",
+        "partition",
         "state",
+        "tags",
+        "rackid",
         "created",
         "changed",
-        "tags"
+        "id",
+        "allocation",
+        "liveliness",
+        "events",
+        "hardware"
       ],
       "properties": {
         "allocation": {
@@ -2696,8 +2700,8 @@
     },
     "v1.IPResponse": {
       "required": [
-        "projectid",
         "networkid",
+        "projectid",
         "ipaddress",
         "created",
         "changed"
@@ -3166,7 +3170,8 @@
         "ips",
         "vrf",
         "asn",
-        "primary"
+        "primary",
+        "nat"
       ],
       "properties": {
         "asn": {
@@ -3180,6 +3185,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "nat": {
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "type": "boolean"
         },
         "networkid": {
           "description": "the networkID of the allocated machine in this vrf",
@@ -3308,17 +3317,17 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "allocation",
-        "state",
-        "liveliness",
         "hardware",
-        "rackid",
-        "size",
+        "liveliness",
         "events",
         "tags",
         "partition",
-        "changed",
-        "created"
+        "rackid",
+        "state",
+        "size",
+        "allocation",
+        "created",
+        "changed"
       ],
       "properties": {
         "allocation": {
@@ -3408,18 +3417,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "tags",
-        "created",
+        "id",
         "hardware",
-        "allocation",
+        "liveliness",
+        "size",
+        "rackid",
+        "events",
+        "state",
+        "tags",
         "partition",
         "changed",
-        "id",
-        "rackid",
-        "size",
-        "liveliness",
-        "state",
-        "events",
+        "allocation",
+        "created",
         "phone_home_token"
       ],
       "properties": {
@@ -3538,12 +3547,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "prefixes",
         "nat",
         "primary",
+        "prefixes",
         "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
