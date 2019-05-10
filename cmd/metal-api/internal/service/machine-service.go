@@ -675,6 +675,10 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if err != nil {
 		return nil, err
 	}
+	asn, err := ip.ASN()
+	if err != nil {
+		return nil, err
+	}
 
 	machineNetworks := []metal.MachineNetwork{
 		metal.MachineNetwork{
@@ -682,6 +686,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			IPs:       []string{ip.IPAddress},
 			Vrf:       vrf.ID,
 			Primary:   true,
+			ASN: asn,
 		},
 	}
 
