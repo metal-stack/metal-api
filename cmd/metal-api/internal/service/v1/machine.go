@@ -34,6 +34,7 @@ type MachineAllocation struct {
 	SSHPubKeys      []string         `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
 	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
 	ConsolePassword *string          `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
+	Succeeded       bool             `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
 }
 
 type MachineNetwork struct {
@@ -296,6 +297,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			UserData:        m.Allocation.UserData,
 			ConsolePassword: consolePassword,
 			MachineNetworks: networks,
+			Succeeded:       m.Allocation.Succeeded,
 		}
 	}
 
