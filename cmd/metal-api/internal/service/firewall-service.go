@@ -167,7 +167,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	if !image.HasFeature(metal.ImageFeatureMachine) {
+	if !image.HasFeature(metal.ImageFeatureFirewall) {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given image is not usable for a firewall, features: %s", image.ImageFeatureString())) {
 			return
 		}
