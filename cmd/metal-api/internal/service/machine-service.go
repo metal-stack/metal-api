@@ -686,7 +686,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			IPs:       []string{ip.IPAddress},
 			Vrf:       vrf.ID,
 			Primary:   true,
-			ASN: asn,
+			ASN:       asn,
 		},
 	}
 
@@ -840,7 +840,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
-		err = r.releaseMachineNetworks(m.Allocation.MachineNetworks)
+		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -882,7 +882,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (r machineResource) releaseMachineNetworks(machineNetworks []metal.MachineNetwork) error {
+func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []metal.MachineNetwork) error {
 	for _, machineNetwork := range machineNetworks {
 		for _, ipString := range machineNetwork.IPs {
 			ip, err := r.ds.FindIP(ipString)
@@ -902,6 +902,10 @@ func (r machineResource) releaseMachineNetworks(machineNetworks []metal.MachineN
 		network, err := r.ds.FindNetwork(machineNetwork.NetworkID)
 		if err != nil {
 			return err
+		}
+		// Only Networks must be deleted which are "owned" by this machine.
+		if network.ProjectID != machine.Allocation.Project {
+			continue
 		}
 		deleteNetwork := false
 		for _, prefix := range network.Prefixes {
