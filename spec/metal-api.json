@@ -2520,12 +2520,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "projectid",
-        "partitionid",
-        "sizeid",
         "imageid",
         "ssh_pub_keys",
         "tenant",
+        "partitionid",
+        "sizeid",
+        "projectid",
         "networks"
       ],
       "properties": {
@@ -2598,18 +2598,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "partition",
-        "rackid",
+        "id",
         "liveliness",
-        "tags",
-        "events",
+        "size",
         "allocation",
+        "rackid",
+        "tags",
         "state",
+        "hardware",
         "created",
         "changed",
-        "size",
-        "hardware",
-        "id"
+        "partition",
+        "events"
       ],
       "properties": {
         "allocation": {
@@ -2683,8 +2683,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "projectid",
-        "networkid"
+        "networkid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -2709,6 +2709,7 @@
       "required": [
         "projectid",
         "networkid",
+        "machineid",
         "ipaddress",
         "created",
         "changed"
@@ -2735,6 +2736,10 @@
           "type": "string",
           "uniqueItems": true
         },
+        "machineid": {
+          "description": "the machine this ip address belongs to, empty if not strong coupled",
+          "type": "string"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -2751,7 +2756,8 @@
     },
     "v1.IPUpdateRequest": {
       "required": [
-        "ipaddress"
+        "ipaddress",
+        "machineid"
       ],
       "properties": {
         "description": {
@@ -2762,6 +2768,10 @@
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string",
           "uniqueItems": true
+        },
+        "machineid": {
+          "description": "the machine this ip address belongs to, empty if not strong coupled",
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -2804,8 +2814,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3332,17 +3342,17 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "tags",
         "rackid",
         "size",
         "hardware",
-        "state",
-        "events",
-        "partition",
         "allocation",
+        "state",
+        "partition",
         "liveliness",
-        "tags",
-        "created",
-        "changed"
+        "events",
+        "changed",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3432,18 +3442,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "partition",
-        "liveliness",
-        "allocation",
-        "state",
-        "created",
-        "hardware",
-        "events",
-        "tags",
-        "rackid",
-        "size",
-        "changed",
         "id",
+        "hardware",
+        "partition",
+        "tags",
+        "state",
+        "changed",
+        "rackid",
+        "allocation",
+        "liveliness",
+        "size",
+        "created",
+        "events",
         "phone_home_token"
       ],
       "properties": {
@@ -3567,9 +3577,9 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "nat",
         "primary",
         "prefixes",
+        "nat",
         "usage",
         "created",
         "changed"
@@ -3744,8 +3754,8 @@
       "required": [
         "id",
         "bootconfig",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
@@ -3877,8 +3887,8 @@
       "required": [
         "id",
         "constraints",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {

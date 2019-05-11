@@ -15,6 +15,7 @@ type IP struct {
 	Description      string    `rethinkdb:"description"`
 	Created          time.Time `rethinkdb:"created"`
 	Changed          time.Time `rethinkdb:"changed"`
+	MachineID        string    `rethinkdb:"machineid"`
 	NetworkID        string    `rethinkdb:"networkid"`
 	ProjectID        string    `rethinkdb:"projectid"`
 }

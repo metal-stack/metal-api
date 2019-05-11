@@ -11,6 +11,7 @@ type IPBase struct {
 
 type IPIdentifiable struct {
 	IPAddress string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" unique:"true" readonly:"true"`
+	MachineID string `json:"machineid" description:"the machine this ip address belongs to, empty if not strong coupled"`
 }
 
 type IPAllocateRequest struct {
@@ -42,6 +43,7 @@ func NewIPResponse(ip *metal.IP) *IPResponse {
 		},
 		IPIdentifiable: IPIdentifiable{
 			IPAddress: ip.IPAddress,
+			MachineID: ip.MachineID,
 		},
 		Timestamps: Timestamps{
 			Created: ip.Created,

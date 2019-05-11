@@ -668,7 +668,8 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	}
 
 	ip.Name = allocationSpec.Name
-	ip.Description = machine.ID
+	ip.Description = "autoassigned"
+	ip.MachineID = machine.ID
 	ip.ProjectID = allocationSpec.ProjectID
 
 	err = ds.CreateIP(ip)
