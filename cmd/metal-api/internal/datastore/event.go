@@ -15,7 +15,10 @@ func (rs *RethinkStore) ListProvisioningEventContainers() (metal.ProvisioningEve
 func (rs *RethinkStore) FindProvisioningEventContainer(id string) (*metal.ProvisioningEventContainer, error) {
 	var e metal.ProvisioningEventContainer
 	err := rs.findEntityByID(rs.eventTable(), &e, id)
-	return &e, err
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
 }
 
 // UpdateProvisioningEventContainer updates a provisioning event container.
