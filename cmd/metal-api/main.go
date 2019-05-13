@@ -32,7 +32,7 @@ import (
 const (
 	cfgFileType             = "yaml"
 	moduleName              = "metal-api"
-	generatedHtmlApiDocPath = "./generate/"
+	generatedHTMLAPIDocPath = "./generate/"
 )
 
 var (
@@ -111,7 +111,10 @@ func init() {
 	rootCmd.Flags().StringP("netbox-addr", "", "localhost:8001", "the address of netbox proxy")
 	rootCmd.Flags().StringP("netbox-api-token", "", "", "the api token to access the netbox proxy")
 
-	viper.BindPFlags(rootCmd.Flags())
+	err := viper.BindPFlags(rootCmd.Flags())
+	if err != nil {
+		logger.Error("unable to construct root command:%v", err)
+	}
 }
 
 func initConfig() {
@@ -299,7 +302,7 @@ func run() {
 	logger.Infow("start metal api", "version", version.V.String(), "address", addr)
 
 	// expose generated apidoc
-	http.Handle("/apidocs/", http.StripPrefix("/apidocs/", http.FileServer(http.Dir(generatedHtmlApiDocPath))))
+	http.Handle("/apidocs/", http.StripPrefix("/apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))
 
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {

@@ -25,6 +25,9 @@ func (rs *RethinkStore) FindVrf(f map[string]interface{}) (*metal.Vrf, error) {
 	q := *rs.vrfTable()
 	q = q.Filter(f)
 	res, err := q.Run(rs.session)
+	if err != nil {
+		return nil, err
+	}
 	defer res.Close()
 	if res.IsNil() {
 		return nil, nil
