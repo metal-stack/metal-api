@@ -15,12 +15,14 @@ const (
 	ProvisioningEventAlive            ProvisioningEventType = "Alive"
 	ProvisioningEventCrashed          ProvisioningEventType = "Crashed"
 	ProvisioningEventResetFailCount   ProvisioningEventType = "Reset Fail Count"
+	ProvisioningEventPXEBooting       ProvisioningEventType = "PXE Booting"
 	ProvisioningEventPlannedReboot    ProvisioningEventType = "Planned Reboot"
 	ProvisioningEventPreparing        ProvisioningEventType = "Preparing"
 	ProvisioningEventRegistering      ProvisioningEventType = "Registering"
 	ProvisioningEventWaiting          ProvisioningEventType = "Waiting"
 	ProvisioningEventInstalling       ProvisioningEventType = "Installing"
 	ProvisioningEventBootingNewKernel ProvisioningEventType = "Booting New Kernel"
+	ProvisioningEventPhonedHome       ProvisioningEventType = "Phoned Home"
 )
 
 type provisioningEventSequence []ProvisioningEventType
@@ -32,30 +34,37 @@ var (
 		ProvisioningEventCrashed:          true,
 		ProvisioningEventResetFailCount:   true,
 		ProvisioningEventPlannedReboot:    true,
+		ProvisioningEventPXEBooting:       true,
 		ProvisioningEventPreparing:        true,
 		ProvisioningEventRegistering:      true,
 		ProvisioningEventWaiting:          true,
 		ProvisioningEventInstalling:       true,
 		ProvisioningEventBootingNewKernel: true,
+		ProvisioningEventPhonedHome:       true,
 	}
 	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
 	provisioningEventsInspectionLimit = 3 * (len(AllProvisioningEventTypes) - 2) // reset and alive can be neglected
 	// ExpectedProvisioningEventSequence is the expected sequence in which
 	expectedProvisioningEventSequence = provisioningEventSequence{
+		ProvisioningEventPXEBooting,
 		ProvisioningEventPreparing,
 		ProvisioningEventRegistering,
 		ProvisioningEventWaiting,
 		ProvisioningEventInstalling,
 		ProvisioningEventBootingNewKernel,
+		ProvisioningEventPhonedHome,
 	}
 	expectedSuccessorEventMap = map[ProvisioningEventType]provisioningEventSequence{
-		ProvisioningEventPlannedReboot:    provisioningEventSequence{ProvisioningEventPreparing},
+		// some machines could be incapable of sending pxe boot events (depends on BIOS), therefore PXE Booting and Preparing are allowed initial states
+		ProvisioningEventPlannedReboot:    provisioningEventSequence{ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventPXEBooting:       provisioningEventSequence{ProvisioningEventPreparing},
 		ProvisioningEventPreparing:        provisioningEventSequence{ProvisioningEventRegistering, ProvisioningEventPlannedReboot},
 		ProvisioningEventRegistering:      provisioningEventSequence{ProvisioningEventWaiting, ProvisioningEventPlannedReboot},
 		ProvisioningEventWaiting:          provisioningEventSequence{ProvisioningEventInstalling, ProvisioningEventPlannedReboot},
 		ProvisioningEventInstalling:       provisioningEventSequence{ProvisioningEventBootingNewKernel, ProvisioningEventPlannedReboot},
-		ProvisioningEventBootingNewKernel: provisioningEventSequence{ProvisioningEventPreparing, ProvisioningEventPlannedReboot},
-		ProvisioningEventCrashed:          provisioningEventSequence{ProvisioningEventPreparing},
+		ProvisioningEventBootingNewKernel: provisioningEventSequence{ProvisioningEventPhonedHome},
+		ProvisioningEventPhonedHome:       provisioningEventSequence{ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventCrashed:          provisioningEventSequence{ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventResetFailCount:   expectedProvisioningEventSequence,
 	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{
@@ -136,28 +145,44 @@ func (m *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredL
 
 // ProvisioningEvent is an event emitted by a machine during the provisioning sequence
 type ProvisioningEvent struct {
-	Time    time.Time             `json:"time" description:"the time that this event was received" optional:"true" readOnly:"true" rethinkdb:"time"`
-	Event   ProvisioningEventType `json:"event" description:"the event emitted by the machine" rethinkdb:"event"`
-	Message string                `json:"message" description:"an additional message to add to the event" optional:"true" rethinkdb:"message"`
+	Time    time.Time             `rethinkdb:"time"`
+	Event   ProvisioningEventType `rethinkdb:"event"`
+	Message string                `rethinkdb:"message"`
 }
 
 // ProvisioningEventContainer stores the provisioning events of a machine
 type ProvisioningEventContainer struct {
-	ID                           string             `json:"id" description:"references the machine" rethinkdb:"id"`
-	Events                       ProvisioningEvents `json:"events" description:"the history of machine provisioning events" rethinkdb:"events"`
-	LastEventTime                *time.Time         `json:"last_event_time" description:"the time where the last event was received" rethinkdb:"last_event_time"`
-	IncompleteProvisioningCycles string             `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container" rethinkdb:"incomplete_cycles"`
+	ID                           string             `rethinkdb:"id"` // is the machine id
+	Events                       ProvisioningEvents `rethinkdb:"events"`
+	LastEventTime                *time.Time         `rethinkdb:"last_event_time"`
+	IncompleteProvisioningCycles string             `rethinkdb:"incomplete_cycles"`
+	Created                      time.Time          `rethinkdb:"created"`
+	Changed                      time.Time          `rethinkdb:"changed"`
 }
 
-// RecentProvisioningEvents is for the client response with an amount of events trimmed down to reduce the size of the payload
-type RecentProvisioningEvents struct {
-	Events                       ProvisioningEvents `json:"log" description:"the log of recent machine provisioning events"`
-	LastEventTime                *time.Time         `json:"last_event_time" description:"the time where the last event was received"`
-	IncompleteProvisioningCycles string             `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container"`
+func (p *ProvisioningEventContainer) GetID() string {
+	return p.ID
 }
 
-// RecentProvisioningEventsLimit defines how many recent events are added to the RecentProvisioningEvents struct
-const RecentProvisioningEventsLimit = 5
+func (p *ProvisioningEventContainer) SetID(id string) {
+	p.ID = id
+}
+
+func (p *ProvisioningEventContainer) GetChanged() time.Time {
+	return p.Changed
+}
+
+func (p *ProvisioningEventContainer) SetChanged(changed time.Time) {
+	p.Changed = changed
+}
+
+func (p *ProvisioningEventContainer) GetCreated() time.Time {
+	return p.Created
+}
+
+func (p *ProvisioningEventContainer) SetCreated(created time.Time) {
+	p.Created = created
+}
 
 // ProvisioningEventContainers is a list of machine provisioning event containers.
 type ProvisioningEventContainers []ProvisioningEventContainer

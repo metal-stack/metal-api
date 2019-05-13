@@ -13,6 +13,7 @@ type NetworkImmutable struct {
 	Prefixes []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	Nat      bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	Primary  bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
+	Vrf      *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 }
 
 type NetworkUsage struct {
@@ -32,34 +33,20 @@ type NetworkUpdateRequest struct {
 	Prefixes []string `json:"prefixes" description:"the prefixes of this network" optional:"true"`
 }
 
-type NetworkListResponse struct {
+type NetworkResponse struct {
 	Common
 	NetworkBase
 	NetworkImmutable
 	Usage NetworkUsage `json:"usage" description:"usage of ips and prefixes in this network" readonly:"true"`
-}
-
-type NetworkDetailResponse struct {
-	NetworkListResponse
 	Timestamps
 }
 
-func NewNetworkDetailResponse(network *metal.Network, usage NetworkUsage) *NetworkDetailResponse {
-	return &NetworkDetailResponse{
-		NetworkListResponse: *NewNetworkListResponse(network, usage),
-		Timestamps: Timestamps{
-			Created: network.Created,
-			Changed: network.Changed,
-		},
-	}
-}
-
-func NewNetworkListResponse(network *metal.Network, usage NetworkUsage) *NetworkListResponse {
+func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResponse {
 	var prefixes []string
 	for _, p := range network.Prefixes {
 		prefixes = append(prefixes, p.String())
 	}
-	return &NetworkListResponse{
+	return &NetworkResponse{
 		Common: Common{
 			Identifiable: Identifiable{
 				ID: network.ID,
@@ -77,7 +64,12 @@ func NewNetworkListResponse(network *metal.Network, usage NetworkUsage) *Network
 			Prefixes: prefixes,
 			Nat:      network.Nat,
 			Primary:  network.Primary,
+			Vrf:      &network.Vrf,
 		},
 		Usage: usage,
+		Timestamps: Timestamps{
+			Created: network.Created,
+			Changed: network.Changed,
+		},
 	}
 }

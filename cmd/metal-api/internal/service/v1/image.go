@@ -5,12 +5,14 @@ import (
 )
 
 type ImageBase struct {
-	URL *string `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
+	URL      *string  `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
+	Features []string `json:"features" description:"features of this image" optional:"true"`
 }
 
 type ImageCreateRequest struct {
-	Describeable
-	URL string `json:"url" description:"the url of this image"`
+	Common
+	URL      string   `json:"url" description:"the url of this image"`
+	Features []string `json:"features" description:"features of this image" optional:"true"`
 }
 
 type ImageUpdateRequest struct {
@@ -18,28 +20,23 @@ type ImageUpdateRequest struct {
 	ImageBase
 }
 
-type ImageListResponse struct {
+type ImageResponse struct {
 	Common
 	ImageBase
-}
-
-type ImageDetailResponse struct {
-	ImageListResponse
 	Timestamps
 }
 
-func NewImageDetailResponse(img *metal.Image) *ImageDetailResponse {
-	return &ImageDetailResponse{
-		ImageListResponse: *NewImageListResponse(img),
-		Timestamps: Timestamps{
-			Created: img.Created,
-			Changed: img.Changed,
-		},
+func NewImageResponse(img *metal.Image) *ImageResponse {
+	if img == nil {
+		return nil
 	}
-}
-
-func NewImageListResponse(img *metal.Image) *ImageListResponse {
-	return &ImageListResponse{
+	features := []string{}
+	for k, v := range img.Features {
+		if v == true {
+			features = append(features, string(k))
+		}
+	}
+	return &ImageResponse{
 		Common: Common{
 			Identifiable: Identifiable{
 				ID: img.ID,
@@ -50,7 +47,12 @@ func NewImageListResponse(img *metal.Image) *ImageListResponse {
 			},
 		},
 		ImageBase: ImageBase{
-			URL: &img.URL,
+			URL:      &img.URL,
+			Features: features,
+		},
+		Timestamps: Timestamps{
+			Created: img.Created,
+			Changed: img.Changed,
 		},
 	}
 }

@@ -7,16 +7,19 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils/jwt"
+
 	"git.f-i-ts.de/cloud-native/metallib/bus"
+	"github.com/dustin/go-humanize"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
-	"go.uber.org/zap"
 )
 
 const (
@@ -29,23 +32,55 @@ type machineResource struct {
 	ipamer ipam.IPAMer
 }
 
+type machineAllocationSpec struct {
+	UUID        string
+	Name        string
+	Description string
+	Tenant      string
+	Hostname    string
+	ProjectID   string
+	PartitionID string
+	SizeID      string
+	Image       *metal.Image
+	SSHPubKeys  []string
+	UserData    string
+	Tags        []string
+	NetworkIDs  []string
+	IPs         []string
+	HA          bool
+}
+
+// The MachineAllocation contains the allocated machine or an error.
+type MachineAllocation struct {
+	Machine *metal.Machine
+	Err     error
+}
+
+// An Allocation is a queue of allocated machines. You can read the machines
+// to get the next allocated one.
+type Allocation <-chan MachineAllocation
+
+// An Allocator is a callback for some piece of code if this wants to read
+// allocated machines.
+type Allocator func(Allocation) error
+
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ipamer ipam.IPAMer) *restful.WebService {
-	dr := machineResource{
+	r := machineResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		Publisher: pub,
 		ipamer:    ipamer,
 	}
-	return dr.webService()
+	return r.webService()
 }
 
 // webService creates the webservice endpoint
-func (dr machineResource) webService() *restful.WebService {
+func (r machineResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path("/v1/machine").
@@ -55,168 +90,196 @@ func (dr machineResource) webService() *restful.WebService {
 	tags := []string{"machine"}
 
 	ws.Route(ws.GET("/{id}").
-		To(dr.restEntityGet(dr.ds.FindMachine)).
+		To(r.findMachine).
 		Operation("findMachine").
 		Doc("get machine by id").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(metal.Machine{}).
-		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(dr.restListGet(dr.ds.ListMachines)).
+		To(r.listMachines).
 		Operation("listMachines").
 		Doc("get all known machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]metal.Machine{}).
-		Returns(http.StatusOK, "OK", []metal.Machine{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
+		Writes([]v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/find").To(dr.searchMachine).
+	ws.Route(ws.GET("/find").
+		To(r.searchMachine).
 		Doc("search machines").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]metal.Machine{}).
-		Returns(http.StatusOK, "OK", []metal.Machine{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
+		Writes([]v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/register").To(dr.registerMachine).
+	ws.Route(ws.POST("/register").
+		To(r.registerMachine).
 		Doc("register a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.RegisterMachine{}).
-		Writes(metal.Machine{}).
-		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusCreated, "Created", metal.Machine{}).
-		Returns(http.StatusNotFound, "one of the given key values was not found", httperrors.HTTPErrorResponse{}))
+		Reads(v1.MachineRegisterRequest{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusCreated, "Created", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/allocate").To(dr.allocateMachine).
+	ws.Route(ws.POST("/allocate").
+		To(r.allocateMachine).
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.AllocateMachine{}).
-		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusNotFound, "No free machine for allocation found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
+		Reads(v1.MachineAllocateRequest{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/state").To(dr.setMachineState).
+	ws.Route(ws.POST("/{id}/finalize-allocation").
+		To(r.finalizeAllocation).
+		Doc("finalize the allocation of the machine by reconfiguring the switch, sent on successful image installation").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineFinalizeAllocationRequest{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/state").
+		To(r.setMachineState).
 		Doc("set the state of a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.MachineState{}).
-		Writes(metal.Machine{}).
-		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusNotFound, "one of the given key values was not found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
+		Reads(v1.MachineState{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.DELETE("/{id}/free").To(dr.freeMachine).
+	ws.Route(ws.DELETE("/{id}/free").
+		To(r.freeMachine).
 		Doc("free a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.Machine{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/ipmi").To(dr.ipmiData).
+	ws.Route(ws.GET("/{id}/ipmi").
+		To(r.ipmiData).
 		Doc("returns the IPMI connection data for a machine").
-		Operation("ipmiData").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.IPMI{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
+		Returns(http.StatusOK, "OK", v1.MachineIPMI{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/wait").To(dr.waitForAllocation).
+	ws.Route(ws.GET("/{id}/wait").
+		To(r.waitForAllocation).
 		Doc("wait for an allocation of this machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.MachineWithPhoneHomeToken{}).
+		Returns(http.StatusOK, "OK", v1.MachineWaitResponse{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/report").To(dr.allocationReport).
-		Doc("send the allocation report of a given machine").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.ReportAllocation{}).
-		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.GET("/{id}/event").To(dr.getProvisioningEventContainer).
+	ws.Route(ws.GET("/{id}/event").
+		To(r.getProvisioningEventContainer).
 		Doc("get the current machine provisioning event container").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", metal.ProvisioningEventContainer{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
+		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/event").To(dr.addProvisioningEvent).
+	ws.Route(ws.POST("/{id}/event").
+		To(r.addProvisioningEvent).
 		Doc("adds a machine provisioning event").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.ProvisioningEvent{}).
-		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
+		Reads(v1.MachineProvisioningEvent{}).
+		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/liveliness").To(dr.checkMachineLiveliness).
-		Doc("checks machine liveliness").
+	ws.Route(ws.POST("/liveliness").
+		To(r.checkMachineLiveliness).
+		Doc("external trigger for evaluating machine liveliness").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}). // swagger client does not work if we do not have a body... emits error 406
-		Returns(http.StatusOK, "OK", metal.MachineLivelinessReport{}).
-		DefaultReturns("Unexpected Error", httperrors.HTTPErrorResponse{}))
+		Returns(http.StatusOK, "OK", v1.MachineLivelinessReport{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/on").To(dr.machineOn).
+	ws.Route(ws.POST("/{id}/power/on").
+		To(r.machineOn).
 		Doc("sends a power-on to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/off").To(dr.machineOff).
+	ws.Route(ws.POST("/{id}/power/off").
+		To(r.machineOff).
 		Doc("sends a power-off to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/reset").To(dr.machineReset).
+	ws.Route(ws.POST("/{id}/power/reset").
+		To(r.machineReset).
 		Doc("sends a reset to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/bios").To(dr.machineBios).
-		Doc("sends a bios to the machine").
+	ws.Route(ws.POST("/{id}/power/bios").
+		To(r.machineBios).
+		Doc("boots machine into BIOS on next reboot").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads([]string{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
-		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/phoneHome").To(dr.phoneHome).
-		Doc("phone back home from the machine").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.PhoneHomeRequest{}).
-		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusNotFound, "Machine could not be found by id", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusUnprocessableEntity, "Unprocessable Entity", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
 }
 
-func (dr machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
+func (r machineResource) findMachine(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	m, err := r.ds.FindMachine(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+}
+
+func (r machineResource) listMachines(request *restful.Request, response *restful.Response) {
+	ms, err := r.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
+}
+
+func (r machineResource) searchMachine(request *restful.Request, response *restful.Response) {
+	mac := strings.TrimSpace(request.QueryParameter("mac"))
+
+	ms, err := r.ds.SearchMachine(mac)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
+}
+
+func (r machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	ctx := request.Request.Context()
 	log := utils.Logger(request)
-	err := dr.ds.Wait(id, func(alloc datastore.Allocation) error {
+
+	err := r.wait(id, log.Sugar(), func(alloc Allocation) error {
 		select {
 		case <-time.After(waitForServerTimeout):
 			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
@@ -226,271 +289,361 @@ func (dr machineResource) waitForAllocation(request *restful.Request, response *
 				log.Sugar().Errorw("allocation returned an error", "error", a.Err)
 				return a.Err
 			}
-			log.Sugar().Infow("return allocated machine", "machine", a)
+
 			ka := jwt.NewPhoneHomeClaims(a.Machine)
 			token, err := ka.JWT()
 			if err != nil {
 				return fmt.Errorf("could not create jwt: %v", err)
 			}
-			err = response.WriteEntity(metal.MachineWithPhoneHomeToken{Machine: a.Machine, PhoneHomeToken: token})
-			if err != nil {
-				return fmt.Errorf("could not write entity: %v", err)
-			}
+
+			s, p, i, ec := findMachineReferencedEntites(a.Machine, r.ds, log.Sugar())
+			response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineWaitResponse(a.Machine, s, p, i, ec, token))
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
 		}
 		return nil
 	})
 	if err != nil {
-		sendError(log, response, op, httperrors.NewHTTPError(http.StatusInternalServerError, err))
+		sendError(log, response, utils.CurrentFuncName(), httperrors.InternalServerError(err))
 	}
 }
 
-func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	var data metal.PhoneHomeRequest
-	err := request.ReadEntity(&data)
-	log := utils.Logger(request)
+// Wait inserts the machine with the given ID in the waittable, so
+// this machine is ready for allocation. After this, this function waits
+// for an update of this record in the waittable, which is a signal that
+// this machine is allocated. This allocation will be signaled via the
+// given allocator in a separate goroutine. The allocator is a function
+// which will receive a channel and the caller has to select on this
+// channel to get a result. Using a channel allows the caller of this
+// function to implement timeouts to not wait forever.
+// The user of this function will block until this machine is allocated.
+func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Allocator) error {
+	m, err := r.ds.FindMachine(id)
 	if err != nil {
-		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
-		return
+		return err
 	}
-	c, err := jwt.FromJWT(data.PhoneHomeToken)
+	a := make(chan MachineAllocation)
+
+	// the machine IS already allocated, so notify this allocation back.
+	if m.Allocation != nil {
+		go func() {
+			a <- MachineAllocation{Machine: m}
+		}()
+		return alloc(a)
+	}
+
+	err = r.ds.InsertWaitingMachine(m)
 	if err != nil {
-		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
-		return
+		return err
 	}
-	if c.Machine == nil || c.Machine.ID == "" {
-		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
-		return
-	}
-	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
-	if err != nil {
-		sendError(log, response, op, httperrors.NotFound(err))
-		return
-	}
-	if oldMachine.Allocation == nil {
-		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
-		sendError(log, response, op, httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
-	}
-	newMachine := *oldMachine
-	lastPingTime := time.Now()
-	newMachine.Allocation.LastPing = lastPingTime
-	newMachine.Liveliness = metal.MachineLivelinessAlive // phone home token is sent consistently, but if customer turns off the service, it could turn to unknown
-	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
-	if checkError(request, response, op, err) {
-		return
-	}
-	response.WriteEntity(nil)
+	defer func() {
+		err := r.ds.RemoveWaitingMachine(m)
+		logger.Errorw("could not remove machine from wait table", "error", err)
+	}()
+
+	go func() {
+		changedMachine, err := r.ds.WaitForMachineAllocation(m)
+		if err != nil {
+			logger.Errorw("stop waiting for changes", "id", id)
+			a <- MachineAllocation{Err: err}
+		} else {
+			a <- MachineAllocation{Machine: changedMachine}
+		}
+		close(a)
+	}()
+
+	return alloc(a)
 }
 
-func (dr machineResource) searchMachine(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	mac := strings.TrimSpace(request.QueryParameter("mac"))
-
-	result, err := dr.ds.SearchMachine(mac)
-	if checkError(request, response, op, err) {
+func (r machineResource) setMachineState(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineState
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteEntity(result)
-}
-
-func (dr machineResource) setMachineState(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	log := utils.Logger(request).Sugar()
-	var data metal.MachineState
-	err := request.ReadEntity(&data)
-	if checkError(request, response, op, err) {
+	machineStateType, err := metal.MachineStateFrom(requestPayload.Value)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	if data.Value != metal.AvailableState && data.Description == "" {
-		// we want a "WHY" if this machine should not be available
-		log.Errorw("empty description in state", "state", data)
-		sendError(log.Desugar(), response, op, httperrors.UnprocessableEntity(fmt.Errorf("you must supply a description")))
-	}
-	found := false
-	for _, s := range metal.AllStates {
-		if data.Value == s {
-			found = true
-			break
+
+	if machineStateType != metal.AvailableState && requestPayload.Description == "" {
+		// we want a cause why this machine is not available
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
+			return
 		}
 	}
-	if !found {
-		log.Errorw("illegal state sent", "state", data, "allowed", metal.AllStates)
-		sendError(log.Desugar(), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the state is illegal")))
-	}
+
 	id := request.PathParameter("id")
-	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, op, err) {
+	oldMachine, err := r.ds.FindMachine(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	if m.State.Value == data.Value && m.State.Description == data.Description {
-		response.WriteEntity(m)
+
+	newMachine := *oldMachine
+
+	newMachine.State = metal.MachineState{
+		Value:       machineStateType,
+		Description: requestPayload.Description,
+	}
+
+	err = r.ds.UpdateMachine(oldMachine, &newMachine)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	newmachine := *m
-	newmachine.State = data
-	err = dr.ds.UpdateMachine(m, &newmachine)
-	if checkError(request, response, op, err) {
-		return
-	}
-	response.WriteEntity(newmachine)
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (dr machineResource) registerMachine(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	var data metal.RegisterMachine
-	err := request.ReadEntity(&data)
-	log := utils.Logger(request).Sugar()
-	if checkError(request, response, op, err) {
-		return
-	}
-	if data.UUID == "" {
-		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("No UUID given")))
-		return
-	}
-	part, err := dr.ds.FindPartition(data.PartitionID)
-	if checkError(request, response, op, err) {
+func (r machineResource) registerMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineRegisterRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	size, _, err := dr.ds.FromHardware(data.Hardware)
+	if requestPayload.UUID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("uuid cannot be empty")) {
+			return
+		}
+	}
+
+	partition, err := r.ds.FindPartition(requestPayload.PartitionID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	machineHardware := v1.NewMetalMachineHardware(&requestPayload.Hardware)
+	size, _, err := r.ds.FromHardware(machineHardware)
 	if err != nil {
 		size = metal.UnknownSize
-		log.Errorw("no size found for hardware", "hardware", data.Hardware, "error", err)
+		utils.Logger(request).Sugar().Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
 	}
 
-	// err = dr.dcm.RegisterMachine(part.ID, data.RackID, size.ID, data.UUID, data.Hardware.Nics)
-	// if checkError(request, response, "registerMachine", err) {
-	// 	return
-	// }
+	m, err := r.ds.FindMachine(requestPayload.UUID)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
 
-	m, err := dr.ds.RegisterMachine(data.UUID, *part, data.RackID, *size, data.Hardware, data.IPMI, data.Tags)
+	if m == nil {
+		// machine is not in the database, create it
+		name := fmt.Sprintf("%d-core/%s", machineHardware.CPUCores, humanize.Bytes(machineHardware.Memory))
+		descr := fmt.Sprintf("a machine with %d core(s) and %s of RAM", machineHardware.CPUCores, humanize.Bytes(machineHardware.Memory))
+		m = &metal.Machine{
+			Base: metal.Base{
+				ID:          requestPayload.UUID,
+				Name:        name,
+				Description: descr,
+			},
+			Allocation:  nil,
+			SizeID:      size.ID,
+			PartitionID: partition.ID,
+			RackID:      requestPayload.RackID,
+			Hardware:    machineHardware,
+			State: metal.MachineState{
+				Value:       metal.AvailableState,
+				Description: "",
+			},
+			Liveliness: metal.MachineLivelinessAlive,
+			Tags:       requestPayload.Tags,
+			IPMI:       v1.NewMetalIPMI(&requestPayload.IPMI),
+		}
 
-	if checkError(request, response, op, err) {
+		err = r.ds.CreateMachine(m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+
+	} else {
+		// machine has already registered, update it
+		old := *m
+
+		m.SizeID = size.ID
+		m.PartitionID = partition.ID
+		m.RackID = requestPayload.RackID
+		m.Hardware = machineHardware
+		m.Liveliness = metal.MachineLivelinessAlive
+		m.Tags = requestPayload.Tags
+		m.IPMI = v1.NewMetalIPMI(&requestPayload.IPMI)
+
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
+	if err != nil && metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+	if ec == nil {
+		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID})
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	err = r.ds.UpdateSwitchConnections(m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = dr.ds.UpdateSwitchConnections(m)
-	if checkError(request, response, op, err) {
-		return
-	}
-
-	response.WriteEntity(m)
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (dr machineResource) ipmiData(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
+func (r machineResource) ipmiData(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	ipmi, err := dr.ds.FindIPMI(id)
 
-	if checkError(request, response, op, err) {
+	m, err := r.ds.FindMachine(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	response.WriteEntity(ipmi)
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineIPMI(&m.IPMI))
 }
 
-func (dr machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineAllocateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var uuid string
+	if requestPayload.UUID != nil {
+		uuid = *requestPayload.UUID
+	}
+	var name string
+	if requestPayload.Name != nil {
+		name = *requestPayload.Name
+	}
+	var description string
+	if requestPayload.Description != nil {
+		description = *requestPayload.Description
+	}
+	hostname := "metal"
+	if requestPayload.Hostname != nil {
+		hostname = *requestPayload.Hostname
+	}
+	var userdata string
+	if requestPayload.UserData != nil {
+		userdata = *requestPayload.UserData
+	}
+
+	image, err := r.ds.FindImage(requestPayload.ImageID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if !image.HasFeature(metal.ImageFeatureMachine) {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given image is not usable for a machine, features: %s", image.ImageFeatureString())) {
+			return
+		}
+	}
+
+	spec := machineAllocationSpec{
+		UUID:        uuid,
+		Name:        name,
+		Description: description,
+		Tenant:      requestPayload.Tenant,
+		Hostname:    hostname,
+		ProjectID:   requestPayload.ProjectID,
+		PartitionID: requestPayload.PartitionID,
+		SizeID:      requestPayload.SizeID,
+		Image:       image,
+		SSHPubKeys:  requestPayload.SSHPubKeys,
+		UserData:    userdata,
+		Tags:        requestPayload.Tags,
+		NetworkIDs:  []string{},
+		IPs:         []string{},
+		HA:          false,
+	}
+
+	m, err := allocateMachine(r.ds, r.ipamer, &spec)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+}
+
+func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	// FIXME: This is only temporary and needs to be made a little bit more elegant.
-	op := utils.CurrentFuncName()
-	var allocate metal.AllocateMachine
-	err := request.ReadEntity(&allocate)
-	log := utils.Logger(request)
-	slog := log.Sugar()
-	if checkError(request, response, op, err) {
-		return
+	if allocationSpec.Tenant == "" {
+		return nil, fmt.Errorf("no tenant given")
 	}
-	if allocate.Tenant == "" {
-		if checkError(request, response, op, fmt.Errorf("no tenant given")) {
-			slog.Errorw("allocate", zap.String("tenant", "missing"))
-			return
-		}
-	}
-	image, err := dr.ds.FindImage(allocate.ImageID)
-	if checkError(request, response, op, err) {
-		return
-	}
+
 	var size *metal.Size
-	var part *metal.Partition
-	if allocate.UUID == "" {
-		size, err = dr.ds.FindSize(allocate.SizeID)
-		if checkError(request, response, op, err) {
-			return
-		}
-		part, err = dr.ds.FindPartition(allocate.PartitionID)
-		if checkError(request, response, op, err) {
-			return
-		}
+	size, err := ds.FindSize(allocationSpec.SizeID)
+	if err != nil {
+		return nil, fmt.Errorf("size cannot be found: %v", err)
+	}
+
+	var partition *metal.Partition
+	partition, err = ds.FindPartition(allocationSpec.PartitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition cannot be found: %v", err)
 	}
 
 	var machine *metal.Machine
-	if allocate.UUID != "" {
-		machine, err = dr.ds.FindMachine(allocate.UUID)
-		if checkError(request, response, op, err) {
-			return
-		}
-		if machine.Allocation != nil {
-			if checkError(request, response, op, fmt.Errorf("machine is already allocated")) {
-				return
-			}
+	if allocationSpec.UUID == "" {
+		// requesting allocation of an arbitrary machine in partition with given size
+		machine, err = ds.FindAvailableMachine(partition.ID, size.ID)
+		if err != nil {
+			return nil, err
 		}
 	} else {
-		machine, err = dr.ds.FindAvailableMachine(part.ID, size.ID)
-		if checkError(request, response, op, err) {
-			return
+		// requesting allocation of a specific, existing machine
+		machine, err = ds.FindMachine(allocationSpec.UUID)
+		if err != nil {
+			return nil, fmt.Errorf("machine cannot be found: %v", err)
 		}
-		// next instruction is temp fix for populating the found machine with more data
-		machine, err = dr.ds.FindMachine(machine.ID)
-		if checkError(request, response, op, err) {
-			return
+		if machine.Allocation != nil {
+			return nil, fmt.Errorf("machine is already allocated")
+		}
+		if machine.PartitionID != partition.ID {
+			return nil, fmt.Errorf("machine is not in the given partition %s", partition.ID)
 		}
 	}
+
 	if machine == nil {
-		if checkError(request, response, op, fmt.Errorf("no machine found")) {
-			return
-		}
+		return nil, fmt.Errorf("machine is nil")
 	}
 
 	old := *machine
 
 	var vrf *metal.Vrf
-	vrf, err = dr.ds.FindVrf(map[string]interface{}{"tenant": allocate.Tenant, "projectid": allocate.ProjectID})
+	vrf, err = ds.FindVrf(map[string]interface{}{"tenant": allocationSpec.Tenant, "projectid": allocationSpec.ProjectID})
 	if err != nil {
-		if checkError(request, response, op, fmt.Errorf("cannot find vrf for tenant project: %v", err)) {
-			return
-		}
+		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
 	}
 	if vrf == nil {
-		vrf, err = dr.ds.ReserveNewVrf(allocate.Tenant, allocate.ProjectID)
+		vrf, err = ds.ReserveNewVrf(allocationSpec.Tenant, allocationSpec.ProjectID)
 		if err != nil {
-			if checkError(request, response, op, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)) {
-				return
-			}
+			return nil, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
 		}
 	}
 
-	projectNetwork, err := dr.ds.SearchProjectNetwork(allocate.ProjectID)
-	if checkError(request, response, op, err) {
-		return
+	projectNetwork, err := ds.SearchProjectNetwork(allocationSpec.ProjectID)
+	if err != nil {
+		return nil, err
 	}
-
+	primaryNetwork, err := ds.FindPrimaryNetwork(partition.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get primary network: %v", err)
+	}
 	if projectNetwork == nil {
-		primaryNetwork, err := dr.ds.GetPrimaryNetwork()
-		if err != nil {
-			if checkError(request, response, op, fmt.Errorf("could not get primary network: %v", err)) {
-				return
-			}
-		}
 
-		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, metal.ProjectNetworkPrefixLength, dr.ipamer)
-		if checkError(request, response, op, err) {
-			return
+		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, partition.ProjectNetworkPrefixLength, ipamer)
+		if err != nil {
+			return nil, err
 		}
 		if projectPrefix == nil {
-			if checkError(request, response, op, fmt.Errorf("could not allocate child prefix in network: %s", primaryNetwork.ID)) {
-				return
-			}
+			return nil, fmt.Errorf("could not allocate child prefix in network: %s", primaryNetwork.ID)
 		}
 
 		projectNetwork = &metal.Network{
@@ -498,54 +651,111 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 				Name:        fmt.Sprintf("Child of %s", primaryNetwork.ID),
 				Description: "Automatically Created Project Network",
 			},
-			Prefixes:    metal.Prefixes{*projectPrefix},
-			PartitionID: part.ID,
-			ProjectID:   allocate.ProjectID,
-			Nat:         false,
-			Primary:     false,
+			Prefixes:        metal.Prefixes{*projectPrefix},
+			PartitionID:     partition.ID,
+			ProjectID:       allocationSpec.ProjectID,
+			Nat:             primaryNetwork.Nat,
+			Primary:         false,
+			ParentNetworkID: primaryNetwork.ID,
 		}
 
-		err = dr.ds.CreateNetwork(projectNetwork)
-		if checkError(request, response, op, err) {
-			return
+		err = ds.CreateNetwork(projectNetwork)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	ip, err := allocateIP(*projectNetwork, dr.ipamer)
+	// TODO allocateIP should only return a String
+	ip, err := allocateIP(*projectNetwork, ipamer)
 	if err != nil {
-		if checkError(request, response, op, fmt.Errorf("unable to allocate an ip for machine:%s", machine.ID)) {
-			return
-		}
+		return nil, fmt.Errorf("unable to allocate an ip in network:%s %#v", projectNetwork.ID, err)
 	}
 
-	ip.Name = allocate.Name
-	ip.Description = machine.ID
-	ip.ProjectID = allocate.ProjectID
+	ip.Name = allocationSpec.Name
+	ip.Description = "autoassigned"
+	ip.MachineID = machine.ID
+	ip.ProjectID = allocationSpec.ProjectID
 
-	err = dr.ds.CreateIP(ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	err = ds.CreateIP(ip)
+	if err != nil {
+		return nil, err
+	}
+	asn, err := ip.ASN()
+	if err != nil {
+		return nil, err
+	}
+
+	machineNetworks := []metal.MachineNetwork{
+		metal.MachineNetwork{
+			NetworkID: projectNetwork.ID,
+			Prefixes:  projectNetwork.Prefixes.String(),
+			IPs:       []string{ip.IPAddress},
+			Vrf:       vrf.ID,
+			ASN:       asn,
+			Primary:   true,
+			Nat:       projectNetwork.Nat,
+		},
+	}
+
+	for _, additionalNetworkID := range allocationSpec.NetworkIDs {
+
+		if additionalNetworkID == primaryNetwork.ID {
+			// We ignore if by accident this allocation contains a network which is a tenant super network
+			continue
+		}
+
+		nw, err := ds.FindNetwork(additionalNetworkID)
+		if err != nil {
+			return nil, fmt.Errorf("no network with networkid:%s found %#v", additionalNetworkID, err)
+		}
+		// additionalNetwork is a tenant network continue
+		if nw.ParentNetworkID == primaryNetwork.ID {
+			return nil, fmt.Errorf("additional network:%s cannot be a child of the primary network:%s", additionalNetworkID, primaryNetwork.ID)
+		}
+
+		// TODO allocateIP should only return a String
+		ip, err := allocateIP(*nw, ipamer)
+		if err != nil {
+			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", nw.ID, err)
+		}
+
+		ip.Name = allocationSpec.Name
+		ip.Description = machine.ID
+		ip.ProjectID = allocationSpec.ProjectID
+
+		err = ds.CreateIP(ip)
+		if err != nil {
+			return nil, err
+		}
+
+		machineNetwork := metal.MachineNetwork{
+			NetworkID: nw.ID,
+			Prefixes:  projectNetwork.Prefixes.String(),
+			IPs:       []string{ip.IPAddress},
+			ASN:       asn,
+			Primary:   false,
+			Nat:       projectNetwork.Nat,
+			Vrf:       nw.Vrf,
+		}
+		machineNetworks = append(machineNetworks, machineNetwork)
 	}
 
 	alloc := &metal.MachineAllocation{
-		Created:     time.Now(),
-		Name:        allocate.Name,
-		Hostname:    allocate.Hostname,
-		Tenant:      allocate.Tenant,
-		Project:     allocate.ProjectID,
-		Description: allocate.Description,
-		Image:       image,
-		ImageID:     image.ID,
-		SSHPubKeys:  allocate.SSHPubKeys,
-		UserData:    allocate.UserData,
-		Cidr:        ip.IPAddress,
-		Vrf:         vrf.ID,
+		Created:         time.Now(),
+		Name:            allocationSpec.Name,
+		Description:     allocationSpec.Description,
+		Hostname:        allocationSpec.Hostname,
+		Tenant:          allocationSpec.Tenant,
+		Project:         allocationSpec.ProjectID,
+		ImageID:         allocationSpec.Image.ID,
+		SSHPubKeys:      allocationSpec.SSHPubKeys,
+		UserData:        allocationSpec.UserData,
+		MachineNetworks: machineNetworks,
 	}
 	machine.Allocation = alloc
-	machine.Changed = time.Now()
 
 	tagSet := make(map[string]bool)
-	tagList := append(machine.Tags, allocate.Tags...)
+	tagList := append(machine.Tags, allocationSpec.Tags...)
 	for _, t := range tagList {
 		tagSet[t] = true
 	}
@@ -554,132 +764,355 @@ func (dr machineResource) allocateMachine(request *restful.Request, response *re
 		newTags = append(newTags, k)
 	}
 	machine.Tags = newTags
-	err = dr.ds.UpdateMachine(&old, machine)
+
+	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		dr.ds.DeleteIP(ip)
-		if checkError(request, response, op, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)) {
-			return
-		}
+		ds.DeleteIP(ip)
+		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
 	}
 
-	err = dr.ds.UpdateWaitingMachine(machine)
+	err = ds.UpdateWaitingMachine(machine)
 	if err != nil {
-		dr.ds.DeleteIP(ip)
-		dr.ds.UpdateMachine(machine, &old)
-		if checkError(request, response, op, fmt.Errorf("cannot allocate machine in DB: %v", err)) {
-			return
-		}
+		ds.DeleteIP(ip)
+		ds.UpdateMachine(machine, &old)
+		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
 	}
-
-	response.WriteEntity(machine)
+	return machine, nil
 }
 
-func (dr machineResource) freeMachine(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	id := request.PathParameter("id")
-	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, op, err) {
+func (r machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineFinalizeAllocationRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachine(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if m.Allocation == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q is not allocated", id)) {
+			return
+		}
+	}
+
+	old := *m
+	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
+
+	err = r.ds.UpdateMachine(&old, m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var sws []metal.Switch
+	for _, mn := range m.Allocation.MachineNetworks {
+		if mn.Primary {
+			vrf := fmt.Sprintf("vrf%d", mn.Vrf)
+			sws, err = r.ds.SetVrfAtSwitch(m, vrf)
+			if err != nil {
+				if m.Allocation == nil {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, mn.Vrf)) {
+						return
+					}
+				}
+			}
+		} else {
+			// FIXME implement other switch port configuration creation for firewall
+			// additional switches must be appended to sws if any.
+		}
+	}
+
+	// Push out events to signal switch configuration change
+	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
+	err = r.Publish(string(metal.TopicSwitch), evt)
+	utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+}
+
+func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachine(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
-		m, err = dr.ds.FreeMachine(id)
-		utils.Logger(request).Sugar().Infow("freed machine", "machineID", id, "error", err)
-		if checkError(request, response, op, err) {
+		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 
-		// err = dr.dcm.ReleaseMachine(id)
-		// if checkError(request, response, "freeMachine", err) {
-		// 	return
-		// }
+		// TODO: In the future, it would be nice to have the VRF deleted from the vrftable as well
+
+		old := *m
+		m.Allocation = nil
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		utils.Logger(request).Sugar().Infow("freed machine", "machineID", id)
 	}
+
 	// do the next steps in any case, so a client can call this function multiple times to
 	// fire of the needed events
 
-	// FIXME: Release automatically allocated machine IP, clean up child prefix if last IP
-
-	sw, err := dr.ds.SetVrfAtSwitch(m, "")
+	sw, err := r.ds.SetVrfAtSwitch(m, "")
 	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
-	if checkError(request, response, op, err) {
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = dr.Publish(string(metal.TopicMachine), deleteEvent)
+	err = r.Publish(string(metal.TopicMachine), deleteEvent)
 	utils.Logger(request).Sugar().Infow("published machine delete event", "machineID", id, "error", err)
-	if checkError(request, response, op, err) {
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = dr.Publish(string(metal.TopicSwitch), switchEvent)
+	err = r.Publish(string(metal.TopicSwitch), switchEvent)
 	utils.Logger(request).Sugar().Infow("published switch update event", "machineID", id, "error", err)
-	if checkError(request, response, op, err) {
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteEntity(m)
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (dr machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	id := request.PathParameter("id")
-	_, err := dr.ds.FindMachine(id)
-	if checkError(request, response, op, err) {
-		return
-	}
+func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []metal.MachineNetwork) error {
+	for _, machineNetwork := range machineNetworks {
+		for _, ipString := range machineNetwork.IPs {
+			ip, err := r.ds.FindIP(ipString)
+			if err != nil {
+				return err
+			}
+			err = r.ipamer.ReleaseIP(*ip)
+			if err != nil {
+				return err
+			}
+			err = r.ds.DeleteIP(ip)
+			if err != nil {
+				return err
+			}
+		}
 
-	eventContainer, err := dr.ds.FindProvisioningEventContainer(id)
-	if checkError(request, response, op, err) {
-		return
+		network, err := r.ds.FindNetwork(machineNetwork.NetworkID)
+		if err != nil {
+			return err
+		}
+		// Only Networks must be deleted which are "owned" by this machine.
+		if network.ProjectID != machine.Allocation.Project {
+			continue
+		}
+		deleteNetwork := false
+		for _, prefix := range network.Prefixes {
+			usage, err := r.ipamer.PrefixUsage(prefix.String())
+			if err != nil {
+				return err
+			}
+			if usage.UsedIPs <= 2 { // 2 is for broadcast and network
+				err = r.ipamer.DeletePrefix(prefix)
+				if err != nil {
+					return err
+				}
+				deleteNetwork = true
+			}
+		}
+		if deleteNetwork {
+			err = r.ds.DeleteNetwork(network)
+			if err != nil {
+				return err
+			}
+		}
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, eventContainer)
+	return nil
 }
 
-func (dr machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
+func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, op, err) {
+
+	// check for existence of the machine
+	_, err := r.ds.FindMachine(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	var event metal.ProvisioningEvent
-	err = request.ReadEntity(&event)
-	if checkError(request, response, op, err) {
+	eventContainer, err := r.ds.FindProvisioningEventContainer(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	ok := metal.AllProvisioningEventTypes[event.Event]
-	if !ok {
-		if checkError(request, response, op, fmt.Errorf("unknown provisioning event")) {
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(eventContainer))
+}
+
+// FIXME: Move to event endpoint
+// func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
+// 	op := utils.CurrentFuncName()
+// 	var data metal.PhoneHomeRequest
+// 	err := request.ReadEntity(&data)
+// 	log := utils.Logger(request)
+// 	if err != nil {
+// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
+// 		return
+// 	}
+// 	c, err := jwt.FromJWT(data.PhoneHomeToken)
+// 	if err != nil {
+// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
+// 		return
+// 	}
+// 	if c.Machine == nil || c.Machine.ID == "" {
+// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
+// 		return
+// 	}
+// 	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
+// 	if err != nil {
+// 		sendError(log, response, op, httperrors.NotFound(err))
+// 		return
+// 	}
+// 	if oldMachine.Allocation == nil {
+// 		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
+// 		sendError(log, response, op, httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
+// 	}
+// 	newMachine := *oldMachine
+// 	lastPingTime := time.Now()
+// 	newMachine.Allocation.LastPing = lastPingTime
+// 	newMachine.Liveliness = metal.MachineLivelinessAlive // phone home token is sent consistently, but if customer turns off the service, it could turn to unknown
+// 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
+// 	if checkError(request, response, op, err) {
+// 		return
+// 	}
+// 	response.WriteEntity(nil)
+// }
+
+func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachine(id)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 	}
 
-	event.Time = time.Now()
-	err = dr.ds.AddProvisioningEvent(id, &event)
-	if checkError(request, response, op, err) {
+	if m == nil {
+		m = &metal.Machine{
+			Base: metal.Base{
+				ID: id,
+			},
+			Liveliness: metal.MachineLivelinessAlive,
+		}
+		err = r.ds.CreateMachine(m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	} else {
+		old := *m
+
+		m.Liveliness = metal.MachineLivelinessAlive
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	var requestPayload v1.MachineProvisioningEvent
+	err = request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(requestPayload.Event)]
+	if !ok {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unknown provisioning event")) {
+			return
+		}
+	}
+
+	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	if ec == nil {
+		ec = &metal.ProvisioningEventContainer{
+			ID: m.ID,
+		}
+	}
+
+	now := time.Now()
+
+	ec.LastEventTime = &now
+
+	event := metal.ProvisioningEvent{
+		Time:    now,
+		Event:   metal.ProvisioningEventType(requestPayload.Event),
+		Message: requestPayload.Message,
+	}
+	if event.Event == metal.ProvisioningEventAlive {
+		utils.Logger(request).Sugar().Debugw("received provisioning alive event", "id", ec.ID)
+	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
+		utils.Logger(request).Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
+	} else {
+		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
+		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(utils.Logger(request).Sugar())
+	}
+
+	err = r.ds.UpsertProvisioningEventContainer(ec)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	newMachine := *m
-	evaluatedMachine := dr.ds.EvaluateMachineLiveliness(newMachine)
-	err = dr.ds.UpdateMachine(m, evaluatedMachine)
-	if checkError(request, response, op, err) {
-		return
-	}
-
-	response.WriteHeader(http.StatusOK)
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
 }
 
-func (dr machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
+// EvaluateMachineLiveliness evaluates the liveliness of a given machine
+func (r machineResource) evaluateMachineLiveliness(m metal.Machine) *metal.Machine {
+	if m.Allocation != nil && !m.Allocation.LastPing.IsZero() {
+		if time.Since(m.Allocation.LastPing) > metal.MachineDeadAfter {
+			// the machine is either dead or the customer did turn off the phone home service
+			m.Liveliness = metal.MachineLivelinessUnknown
+		} else {
+			m.Liveliness = metal.MachineLivelinessAlive
+		}
+		return &m
+	}
+
+	provisioningEvents, err := r.ds.FindProvisioningEventContainer(m.ID)
+	if err != nil {
+		// we have no provisioning events... we cannot tell
+		m.Liveliness = metal.MachineLivelinessUnknown
+
+		return &m
+	}
+
+	if provisioningEvents.LastEventTime != nil {
+		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
+			m.Liveliness = metal.MachineLivelinessDead
+		} else {
+			m.Liveliness = metal.MachineLivelinessAlive
+		}
+		return &m
+	}
+
+	// we have no provisioning events... we cannot tell
+	m.Liveliness = metal.MachineLivelinessUnknown
+
+	return &m
+}
+
+func (r machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
 	utils.Logger(request).Sugar().Info("liveliness report was requested")
 
-	machines, err := dr.ds.ListMachines()
-	if checkError(request, response, op, err) {
+	machines, err := r.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
@@ -687,9 +1120,9 @@ func (dr machineResource) checkMachineLiveliness(request *restful.Request, respo
 	alive := 0
 	dead := 0
 	for _, m := range machines {
-		evaluatedMachine := dr.ds.EvaluateMachineLiveliness(m)
-		err = dr.ds.UpdateMachine(&m, evaluatedMachine)
-		if checkError(request, response, op, err) {
+		evaluatedMachine := r.evaluateMachineLiveliness(m)
+		err = r.ds.UpdateMachine(&m, evaluatedMachine)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 		switch evaluatedMachine.Liveliness {
@@ -702,96 +1135,157 @@ func (dr machineResource) checkMachineLiveliness(request *restful.Request, respo
 		}
 	}
 
-	report := metal.MachineLivelinessReport{
+	report := v1.MachineLivelinessReport{
 		AliveCount:   alive,
 		DeadCount:    dead,
 		UnknownCount: unknown,
 	}
+
 	response.WriteHeaderAndEntity(http.StatusOK, report)
 }
 
-func (dr machineResource) machineOn(request *restful.Request, response *restful.Response) {
-	dr.machineCmd("machineOn", metal.MachineOnCmd, request, response)
+func (r machineResource) machineOn(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineOn", metal.MachineOnCmd, request, response)
 }
 
-func (dr machineResource) machineOff(request *restful.Request, response *restful.Response) {
-	dr.machineCmd("machineOff", metal.MachineOffCmd, request, response)
+func (r machineResource) machineOff(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineOff", metal.MachineOffCmd, request, response)
 }
 
-func (dr machineResource) machineReset(request *restful.Request, response *restful.Response) {
-	dr.machineCmd("machineReset", metal.MachineResetCmd, request, response)
+func (r machineResource) machineReset(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineReset", metal.MachineResetCmd, request, response)
 }
 
-func (dr machineResource) machineBios(request *restful.Request, response *restful.Response) {
-	dr.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
+func (r machineResource) machineBios(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
 }
 
-func (dr machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
+
 	var params []string
-	if err := request.ReadEntity(&params); checkError(request, response, op, err) {
-		return
-	}
-	m, err := dr.ds.FindMachine(id)
+	err := request.ReadEntity(&params)
 	if checkError(request, response, op, err) {
 		return
 	}
-	evt := metal.MachineEvent{Type: metal.COMMAND, Cmd: &metal.MachineExecCommand{
-		Command: cmd,
-		Params:  params,
-		Target:  m,
-	}}
-	err = dr.Publish(string(metal.TopicMachine), evt)
+
+	m, err := r.ds.FindMachine(id)
+	if checkError(request, response, op, err) {
+		return
+	}
+	evt := metal.MachineEvent{
+		Type: metal.COMMAND,
+		Cmd: &metal.MachineExecCommand{
+			Command: cmd,
+			Params:  params,
+			Target:  m,
+		},
+	}
+
+	err = r.Publish(string(metal.TopicMachine), evt)
 	utils.Logger(request).Sugar().Infow("publish event", "event", evt, "command", *evt.Cmd, "error", err)
 	if checkError(request, response, op, err) {
 		return
 	}
-	response.WriteEntity(m)
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (dr machineResource) allocationReport(request *restful.Request, response *restful.Response) {
-	op := utils.CurrentFuncName()
-	id := request.PathParameter("id")
-	var report metal.ReportAllocation
-	err := request.ReadEntity(&report)
-	if checkError(request, response, op, err) {
-		return
+func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineResponse {
+	s, p, i, ec := findMachineReferencedEntites(m, ds, logger)
+	return v1.NewMachineResponse(m, s, p, i, ec)
+}
+
+func makeMachineResponseList(ms []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineResponse {
+	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
+
+	result := []*v1.MachineResponse{}
+
+	for index := range ms {
+		var s *metal.Size
+		if ms[index].SizeID != "" {
+			sizeEntity := sMap[ms[index].SizeID]
+			s = &sizeEntity
+		}
+		var p *metal.Partition
+		if ms[index].PartitionID != "" {
+			partitionEntity := pMap[ms[index].PartitionID]
+			p = &partitionEntity
+		}
+		var i *metal.Image
+		if ms[index].Allocation != nil {
+			if ms[index].Allocation.ImageID != "" {
+				imageEntity := iMap[ms[index].Allocation.ImageID]
+				i = &imageEntity
+			}
+		}
+		ec := ecMap[ms[index].ID]
+		result = append(result, v1.NewMachineResponse(&ms[index], s, p, i, &ec))
 	}
 
-	m, err := dr.ds.FindMachine(id)
-	if checkError(request, response, op, err) {
-		return
+	return result
+}
+
+func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
+	var err error
+
+	var s *metal.Size
+	if m.SizeID != "" {
+		s, err = ds.FindSize(m.SizeID)
+		if err != nil {
+			logger.Errorw("machine with id %s references size with id %s, but size cannot be found in database", m.ID, m.SizeID)
+		}
 	}
-	if !report.Success {
-		utils.Logger(request).Sugar().Errorw("failed allocation", "id", id, "error-message", report.ErrorMessage)
-		response.WriteEntity(m.Allocation)
-		return
+
+	var p *metal.Partition
+	if m.PartitionID != "" {
+		p, err = ds.FindPartition(m.PartitionID)
+		if err != nil {
+			logger.Errorw("machine with id %s references partition with id %s, but partition cannot be found in database", m.ID, m.PartitionID)
+		}
 	}
-	if m.Allocation == nil {
-		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q is not allocated", id)))
-		return
+
+	var i *metal.Image
+	if m.Allocation != nil {
+		if m.Allocation.ImageID != "" {
+			i, err = ds.FindImage(m.Allocation.ImageID)
+			if err != nil {
+				logger.Errorw("machine with id %s references image with id %s, but image cannot be found in database", m.ID, m.Allocation.ImageID)
+			}
+		}
 	}
-	old := *m
-	m.Allocation.ConsolePassword = report.ConsolePassword
-	err = dr.ds.UpdateMachine(&old, m)
+
+	var ec *metal.ProvisioningEventContainer
+	try, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
-		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be updated", id)))
-		return
+		logger.Errorw("machine with id %s has no provisioning event container in the database", m.ID)
+	} else {
+		ec = try
 	}
 
-	vrf := fmt.Sprintf("vrf%d", m.Allocation.Vrf)
-	sw, err := dr.ds.SetVrfAtSwitch(m, vrf)
+	return s, p, i, ec
+}
+
+func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
+	s, err := ds.ListSizes()
 	if err != nil {
-		sendError(utils.Logger(request), response, op, httperrors.UnprocessableEntity(fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, m.Allocation.Vrf)))
-		return
+		logger.Errorw("sizes could not be listed: %v", err)
 	}
 
-	// Push out events to signal switch configuration change
-	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = dr.Publish(string(metal.TopicSwitch), evt)
-	utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
-	if checkError(request, response, op, err) {
-		return
+	p, err := ds.ListPartitions()
+	if err != nil {
+		logger.Errorw("partitions could not be listed: %v", err)
 	}
-	response.WriteEntity(m.Allocation)
+
+	i, err := ds.ListImages()
+	if err != nil {
+		logger.Errorw("images could not be listed: %v", err)
+	}
+
+	ec, err := ds.ListProvisioningEventContainers()
+	if err != nil {
+		logger.Errorw("provisioning event containers could not be listed: %v", err)
+	}
+
+	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()
 }

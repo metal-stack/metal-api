@@ -1,8 +1,20 @@
 [
     {
-        "id":"1",
-        "name":        "Ubuntu 18.04",
+        "id": "ubuntu-18.10",
+        "name": "Ubuntu 18.04",
         "description": "Ubuntu 18.04 Minimal",
-        "url":         "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.04/img.tar.lz4"
+        "url": "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.04/img.tar.lz4",
+        "features": [
+            "machine"
+        ]
+    },
+    {
+        "id": "ubuntu-18.10-firewall",
+        "name": "Ubuntu 18.10",
+        "description": "Ubuntu 18.04 firewall",
+        "url": "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.10fw/img.tar.lz4",
+        "features": [
+            "firewall"
+        ]
     }
 ]

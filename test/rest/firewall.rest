@@ -1,0 +1,84 @@
+@baseurl = {{scheme}}://{{host}}/v1/machine
+@firewallbaseurl = {{scheme}}://{{host}}/v1/firewall
+
+### register a firewall
+# @name register
+POST {{baseurl}}/register
+Content-Type: application/json
+
+{
+  "partitionid": "vagrant-lab",
+  "rackid": "Vagrant Rack 1",
+  "hardware": {
+    "cpu_cores": 1,
+    "disks": [
+      {
+        "name": "sda",
+        "size": 2147483648
+      }
+    ],
+    "memory": 536870912,
+    "nics": [
+      {
+        "features": [
+        ],
+        "mac": "aa:aa:aa:aa:aa:aa",
+        "name": "eth0",
+        "vendor": "Dell",
+        "neighbors": [
+        	{
+        		"mac":"11:11:11:11:11:11",
+        		"name":"switch"
+        	}
+        ]
+      },
+      {
+        "features": [
+        ],
+        "mac": "00:00:00:00:00:00",
+        "name": "lo",
+        "vendor": "Dell"
+      }
+    ]
+  },
+  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873"
+}
+
+### wait for a machine
+# @name wait
+GET {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/wait
+
+### free a machine
+# @name free
+DELETE  {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
+
+### allocate a firewall
+# @name allocate
+POST {{firewallbaseurl}}/allocate
+Content-Type: application/json
+
+{
+  "description": "My first metal host",
+  "partitionid": "vagrant-lab",
+  "hostname": "metal-test-1",
+  "imageid": "ubuntu-18.10-firewall",
+  "name": "Metal Host 1",
+  "projectid": "test",
+  "tenant": "dkb",
+  "sizeid": "v1-small-x86",
+  "ssh_pub_keys": ["keiner"],
+  "networks": [
+    "d1eb4e60-b2b2-40e4-b646-327e48f4d313"
+  ],
+  "ha": false,
+  "ips": []
+}
+
+### get a firewall
+# @name get
+GET {{firewallbaseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873
+
+### list firewalls
+# @name list
+GET {{firewallbaseurl}}/
+

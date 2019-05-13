@@ -33,21 +33,18 @@ var (
 	M1 = metal.Machine{
 		Base:        metal.Base{ID: "1"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation: &metal.MachineAllocation{
 			Name:    "d1",
 			ImageID: "1",
 			Project: "p1",
 		},
+		IPMI: IPMI1,
 	}
 	M2 = metal.Machine{
 		Base:        metal.Base{ID: "2"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation: &metal.MachineAllocation{
 			Name:    "d2",
 			ImageID: "1",
@@ -57,16 +54,12 @@ var (
 	M3 = metal.Machine{
 		Base:        metal.Base{ID: "3"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 	}
 	M4 = metal.Machine{
 		Base:        metal.Base{ID: "4"},
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation:  nil,
 	}
 	M5 = metal.Machine{
@@ -77,9 +70,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1",
-		Size:        &Sz1,
 		Allocation:  nil,
 		Hardware:    MachineHardware1,
 	}
@@ -91,9 +82,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "999",
-		Partition:   Partition1,
 		SizeID:      "1", // No Size
-		Size:        nil,
 		Allocation: &metal.MachineAllocation{
 			Name:    "6",
 			ImageID: "999",
@@ -109,9 +98,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "999", // No Size
-		Size:        nil,
 		Allocation: &metal.MachineAllocation{
 			Name:    "7",
 			ImageID: "1",
@@ -127,9 +114,7 @@ var (
 		},
 		RackID:      "1",
 		PartitionID: "1",
-		Partition:   Partition1,
 		SizeID:      "1", // No Size
-		Size:        nil,
 		Allocation: &metal.MachineAllocation{
 			Name:    "8",
 			ImageID: "999",
@@ -234,7 +219,8 @@ var (
 			Name:        "Network 1",
 			Description: "description 1",
 		},
-		Prefixes: prefixes1,
+		PartitionID: Partition1.ID,
+		Prefixes:    prefixes1,
 	}
 	Nw2 = metal.Network{
 		Base: metal.Base{
@@ -250,8 +236,9 @@ var (
 			Name:        "Network 3",
 			Description: "description 3",
 		},
-		Prefixes: prefixes3,
-		Primary:  true,
+		Prefixes:    prefixes3,
+		PartitionID: Partition1.ID,
+		Primary:     true,
 	}
 
 	NwIPAM = metal.Network{
@@ -393,7 +380,6 @@ var (
 
 	// IPMIs
 	IPMI1 = metal.IPMI{
-		ID:         "IPMI-1",
 		Address:    "192.168.0.1",
 		MacAddress: "11:11:11",
 		User:       "User",
@@ -556,7 +542,9 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get("3")).Return(Nw3, nil)
 	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("network").Filter(func(var_1 r.Term) r.Term { return var_1.Field("primary").Eq(true) })).Return(Nw3, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(func(var_1 r.Term) r.Term {
+		return var_1.Field("primary").Eq(true).And(var_1.Field("partitionid").Eq(Partition1.ID))
+	})).Return(Nw3, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("3.4.5.6")).Return(IP3, nil)
@@ -577,7 +565,6 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3")).Return(Switch3, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("switch").Get("switch999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("ipmi").Get("IPMI-1")).Return(IPMI1, nil)
 	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
 		map[string]interface{}{"new_val": M3},
 	}, nil)
@@ -590,7 +577,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything())).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything())).Return(EmptyResult, nil)
+
 	mock.On(r.DB("mockdb").Table("event").Get(r.MockAnything())).Return(EmptyResult, nil)
 
 	// X.GetTable
@@ -611,7 +598,6 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("wait").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
 
@@ -622,7 +608,6 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("ipmi").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 
 	// X.insert
@@ -632,8 +617,8 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("partition").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("vrf").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything())).Return(EmptyResult, nil)
 
 	mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{
@@ -655,9 +640,6 @@ func InitMockDBData(mock *r.Mock) {
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything(), r.InsertOpts{
-		Conflict: "replace",
-	})).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("ipmi").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything(), r.InsertOpts{

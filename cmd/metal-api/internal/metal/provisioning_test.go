@@ -23,6 +23,9 @@ var (
 		ProvisioningEvent{
 			Event: ProvisioningEventPreparing,
 		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
+		},
 	}
 	CrashEventCycle = ProvisioningEvents{
 		ProvisioningEvent{
@@ -145,6 +148,9 @@ var (
 		},
 	}
 	SuccessfulEventCycleWithBadHistory = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventPhonedHome,
+		},
 		ProvisioningEvent{
 			Event: ProvisioningEventBootingNewKernel,
 		},

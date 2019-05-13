@@ -60,7 +60,7 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		want    []metal.Size
+		want    metal.Sizes
 		wantErr bool
 	}{
 		// Test Data Array / Test Cases:

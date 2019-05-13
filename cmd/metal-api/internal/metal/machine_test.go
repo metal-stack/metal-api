@@ -27,34 +27,8 @@ func TestMachine_HasMAC(t *testing.T) {
 				},
 				RackID:      "1",
 				PartitionID: "1",
-				Partition: Partition{
-					Base: Base{
-						ID:          "1",
-						Name:        "partition1",
-						Description: "description 1",
-					},
-				},
-				SizeID: "1",
-				Size: &Size{
-					Base: Base{
-						ID:          "1",
-						Name:        "sz1",
-						Description: "description 1",
-					},
-					Constraints: []Constraint{
-						Constraint{
-							Type: CoreConstraint,
-							Min:  1,
-							Max:  1,
-						},
-						Constraint{
-							Type: MemoryConstraint,
-							Min:  100,
-							Max:  100,
-						},
-					},
-				},
-				Allocation: nil,
+				SizeID:      "1",
+				Allocation:  nil,
 				Hardware: MachineHardware{
 					Memory:   100,
 					CPUCores: 1,
@@ -84,31 +58,7 @@ func TestMachine_HasMAC(t *testing.T) {
 			d: &Machine{
 				Base:        Base{ID: "1"},
 				PartitionID: "1",
-				Partition: Partition{
-					Base: Base{
-						ID:          "1",
-						Name:        "partition1",
-						Description: "description 1",
-					},
-				},
-				SizeID: "1",
-				Size: &Size{
-					Base: Base{
-						ID:          "1",
-						Name:        "sz1",
-						Description: "description 1",
-					},
-					Constraints: []Constraint{
-						Constraint{
-							Type: CoreConstraint,
-							Min:  1,
-							Max:  1},
-						Constraint{
-							Type: MemoryConstraint,
-							Min:  100,
-							Max:  100},
-					},
-				},
+				SizeID:      "1",
 				Allocation: &MachineAllocation{
 					Name:    "d1",
 					ImageID: "1",

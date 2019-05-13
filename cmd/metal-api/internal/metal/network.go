@@ -72,12 +72,14 @@ func (p *Prefix) Equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes    Prefixes `rethinkdb:"prefixes"`
-	PartitionID string   `rethinkdb:"partitionid"`
-	ProjectID   string   `rethinkdb:"projectid"`
-	TenantID    string   `rethinkdb:"tenantid"`
-	Nat         bool     `rethinkdb:"nat"`
-	Primary     bool     `rethinkdb:"primary"`
+	Prefixes        Prefixes `rethinkdb:"prefixes"`
+	PartitionID     string   `rethinkdb:"partitionid"`
+	ProjectID       string   `rethinkdb:"projectid"`
+	TenantID        string   `rethinkdb:"tenantid"`
+	Nat             bool     `rethinkdb:"nat"`
+	Primary         bool     `rethinkdb:"primary"`
+	ParentNetworkID string   `rethinkdb:"parentnetworkid"`
+	Vrf             uint     `rethinkdb:"vrf"`
 }
 
 // FindPrefix returns the prefix by cidr if contained in this network, nil otherwise
@@ -109,11 +111,6 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	}
 	return result
 }
-
-const (
-	// ProjectNetworkPrefixLength is the prefix length of child networks.
-	ProjectNetworkPrefixLength = 22
-)
 
 // ByMac creates a indexed map from a nic list.
 func (nics Nics) ByMac() map[MacAddress]*Nic {

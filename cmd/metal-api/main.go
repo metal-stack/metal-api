@@ -248,6 +248,7 @@ func initRestServices() *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewIP(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewMachine(ds, producer, ipamer))
+	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName))

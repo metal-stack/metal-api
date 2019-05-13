@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
@@ -28,7 +28,7 @@ func TestGetImages(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.ImageListResponse
+	var result []v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -53,7 +53,7 @@ func TestGetImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.ImageDetailResponse
+	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -93,7 +93,7 @@ func TestDeleteImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.ImageDetailResponse
+	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -109,9 +109,14 @@ func TestCreateImage(t *testing.T) {
 	container := restful.NewContainer().Add(imageservice)
 
 	createRequest := v1.ImageCreateRequest{
-		Describeable: v1.Describeable{
-			Name:        &testdata.Img1.Name,
-			Description: &testdata.Img1.Description,
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Img1.ID,
+			},
+			Describeable: v1.Describeable{
+				Name:        &testdata.Img1.Name,
+				Description: &testdata.Img1.Description,
+			},
 		},
 		URL: testdata.Img1.URL,
 	}
@@ -124,10 +129,11 @@ func TestCreateImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
-	var result v1.ImageDetailResponse
+	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
+	require.Equal(t, testdata.Img1.ID, result.ID)
 	require.Equal(t, testdata.Img1.Name, *result.Name)
 	require.Equal(t, testdata.Img1.Description, *result.Description)
 	require.Equal(t, testdata.Img1.URL, *result.URL)
@@ -163,7 +169,7 @@ func TestUpdateImage(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.ImageDetailResponse
+	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)

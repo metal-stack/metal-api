@@ -107,3 +107,8 @@ func (i *Ipam) PrefixUsage(cidr string) (*v1.NetworkUsage, error) {
 		UsedPrefixes:      usage.AcquiredPrefixes,
 	}, nil
 }
+
+// PrefixesOverlapping returns an error if prefixes overlap.
+func (i *Ipam) PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error {
+	return i.ip.PrefixesOverlapping(existingPrefixes.String(), newPrefixes.String())
+}

@@ -9,7 +9,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/stretchr/testify/require"
@@ -29,7 +29,7 @@ func TestGetSizes(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.SizeListResponse
+	var result []v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -57,7 +57,7 @@ func TestGetSize(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.SizeDetailResponse
+	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -99,7 +99,7 @@ func TestDeleteSize(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.SizeDetailResponse
+	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -116,9 +116,14 @@ func TestCreateSize(t *testing.T) {
 	container := restful.NewContainer().Add(sizeservice)
 
 	createRequest := v1.SizeCreateRequest{
-		Describeable: v1.Describeable{
-			Name:        &testdata.Sz1.Name,
-			Description: &testdata.Sz1.Description,
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Sz1.ID,
+			},
+			Describeable: v1.Describeable{
+				Name:        &testdata.Sz1.Name,
+				Description: &testdata.Sz1.Description,
+			},
 		},
 	}
 	js, _ := json.Marshal(createRequest)
@@ -130,10 +135,11 @@ func TestCreateSize(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
-	var result v1.SizeDetailResponse
+	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
+	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
 }
@@ -174,7 +180,7 @@ func TestUpdateSize(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.SizeDetailResponse
+	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
@@ -28,7 +28,7 @@ func TestGetPartitions(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.PartitionListResponse
+	var result []v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -56,7 +56,7 @@ func TestGetPartition(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.PartitionDetailResponse
+	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -97,7 +97,7 @@ func TestDeletePartition(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.PartitionDetailResponse
+	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
@@ -114,9 +114,14 @@ func TestCreatePartition(t *testing.T) {
 	container := restful.NewContainer().Add(service)
 
 	createRequest := v1.PartitionCreateRequest{
-		Describeable: v1.Describeable{
-			Name:        &testdata.Partition1.Name,
-			Description: &testdata.Partition1.Description,
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Partition1.ID,
+			},
+			Describeable: v1.Describeable{
+				Name:        &testdata.Partition1.Name,
+				Description: &testdata.Partition1.Description,
+			},
 		},
 	}
 	js, _ := json.Marshal(createRequest)
@@ -128,10 +133,11 @@ func TestCreatePartition(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
-	var result v1.PartitionDetailResponse
+	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
+	require.Equal(t, testdata.Partition1.ID, result.ID)
 	require.Equal(t, testdata.Partition1.Name, *result.Name)
 	require.Equal(t, testdata.Partition1.Description, *result.Description)
 }
@@ -155,9 +161,7 @@ func TestUpdatePartition(t *testing.T) {
 				ID: testdata.Partition1.ID,
 			},
 		},
-		PartitionMgmtService: v1.PartitionMgmtService{
-			MgmtServiceAddress: &mgmtService,
-		},
+		MgmtServiceAddress: &mgmtService,
 		PartitionBootConfiguration: &v1.PartitionBootConfiguration{
 			ImageURL: &imageURL,
 		},
@@ -171,7 +175,7 @@ func TestUpdatePartition(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.PartitionDetailResponse
+	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)

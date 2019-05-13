@@ -67,7 +67,7 @@ func TestRethinkStore_ListPartitions(t *testing.T) {
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		want    []metal.Partition
+		want    metal.Partitions
 		wantErr bool
 	}{
 		// Test Data Array / Test Cases:

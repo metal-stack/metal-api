@@ -10,12 +10,15 @@ import (
 func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 	var s metal.Size
 	err := rs.findEntityByID(rs.sizeTable(), &s, id)
-	return &s, err
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 // ListSizes returns all sizes.
-func (rs *RethinkStore) ListSizes() ([]metal.Size, error) {
-	szs := make([]metal.Size, 0)
+func (rs *RethinkStore) ListSizes() (metal.Sizes, error) {
+	szs := make(metal.Sizes, 0)
 	err := rs.listEntities(rs.sizeTable(), &szs)
 	return szs, err
 }
@@ -27,7 +30,7 @@ func (rs *RethinkStore) CreateSize(size *metal.Size) error {
 
 // DeleteSize deletes a size.
 func (rs *RethinkStore) DeleteSize(size *metal.Size) error {
-	return rs.deleteEntityByID(rs.sizeTable(), size.GetID())
+	return rs.deleteEntity(rs.sizeTable(), size)
 }
 
 // UpdateSize updates a size.

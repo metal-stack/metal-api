@@ -11,7 +11,7 @@ type SizeConstraint struct {
 }
 
 type SizeCreateRequest struct {
-	Describeable
+	Common
 	SizeConstraints []SizeConstraint `json:"constraints" description:"a list of constraints that defines this size"`
 }
 
@@ -20,27 +20,17 @@ type SizeUpdateRequest struct {
 	SizeConstraints *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size" optional:"true"`
 }
 
-type SizeListResponse struct {
+type SizeResponse struct {
 	Common
 	SizeConstraints []SizeConstraint `json:"constraints" description:"a list of constraints that defines this size"`
-}
-
-type SizeDetailResponse struct {
-	SizeListResponse
 	Timestamps
 }
 
-func NewSizeDetailResponse(s *metal.Size) *SizeDetailResponse {
-	return &SizeDetailResponse{
-		SizeListResponse: *NewSizeListResponse(s),
-		Timestamps: Timestamps{
-			Created: s.Created,
-			Changed: s.Changed,
-		},
+func NewSizeResponse(s *metal.Size) *SizeResponse {
+	if s == nil {
+		return nil
 	}
-}
 
-func NewSizeListResponse(s *metal.Size) *SizeListResponse {
 	var constraints []SizeConstraint
 	for _, c := range s.Constraints {
 		constraint := SizeConstraint{
@@ -50,7 +40,7 @@ func NewSizeListResponse(s *metal.Size) *SizeListResponse {
 		}
 		constraints = append(constraints, constraint)
 	}
-	return &SizeListResponse{
+	return &SizeResponse{
 		Common: Common{
 			Identifiable: Identifiable{
 				ID: s.ID,
@@ -61,5 +51,9 @@ func NewSizeListResponse(s *metal.Size) *SizeListResponse {
 			},
 		},
 		SizeConstraints: constraints,
+		Timestamps: Timestamps{
+			Created: s.Created,
+			Changed: s.Changed,
+		},
 	}
 }

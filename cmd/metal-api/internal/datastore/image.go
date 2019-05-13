@@ -8,12 +8,15 @@ import (
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	var img metal.Image
 	err := rs.findEntityByID(rs.imageTable(), &img, id)
-	return &img, err
+	if err != nil {
+		return nil, err
+	}
+	return &img, nil
 }
 
 // ListImages returns all images.
-func (rs *RethinkStore) ListImages() ([]metal.Image, error) {
-	imgs := make([]metal.Image, 0)
+func (rs *RethinkStore) ListImages() (metal.Images, error) {
+	imgs := make(metal.Images, 0)
 	err := rs.listEntities(rs.imageTable(), &imgs)
 	return imgs, err
 }
@@ -25,7 +28,7 @@ func (rs *RethinkStore) CreateImage(i *metal.Image) error {
 
 // DeleteImage deletes an image.
 func (rs *RethinkStore) DeleteImage(i *metal.Image) error {
-	return rs.deleteEntityByID(rs.imageTable(), i.GetID())
+	return rs.deleteEntity(rs.imageTable(), i)
 }
 
 // UpdateImage updates an image.

@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -16,6 +17,12 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (*ipam.Ipam, error) {
 
 	// start creating the prefixes in the IPAM
 	for _, prefix := range prefixesIPAM {
+		err := ipamer.CreatePrefix(prefix)
+		if err != nil {
+			return nil, fmt.Errorf("error creating ipam mock data: %v", err)
+		}
+	}
+	for _, prefix := range []metal.Prefix{prefix1, prefix2, prefix3} {
 		err := ipamer.CreatePrefix(prefix)
 		if err != nil {
 			return nil, fmt.Errorf("error creating ipam mock data: %v", err)
@@ -45,7 +52,6 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (*ipam.Ipam, error) {
 		if len(TestIPs) > 3 {
 			TestIPs = TestIPs[:3]
 		}
-		fmt.Printf("jsk: %#v", TestIPs)
 		IPAMIP.IPAddress = ""
 		IPAMIP.ParentPrefixCidr = ""
 		IPAMIP.NetworkID = ""

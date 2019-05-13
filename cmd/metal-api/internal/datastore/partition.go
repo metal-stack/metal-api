@@ -8,12 +8,15 @@ import (
 func (rs *RethinkStore) FindPartition(id string) (*metal.Partition, error) {
 	var p metal.Partition
 	err := rs.findEntityByID(rs.partitionTable(), &p, id)
-	return &p, err
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }
 
 // ListPartitions returns all partition.
-func (rs *RethinkStore) ListPartitions() ([]metal.Partition, error) {
-	ps := make([]metal.Partition, 0)
+func (rs *RethinkStore) ListPartitions() (metal.Partitions, error) {
+	ps := make(metal.Partitions, 0)
 	err := rs.listEntities(rs.partitionTable(), &ps)
 	return ps, err
 }
@@ -25,7 +28,7 @@ func (rs *RethinkStore) CreatePartition(p *metal.Partition) error {
 
 // DeletePartition delets a partition.
 func (rs *RethinkStore) DeletePartition(p *metal.Partition) error {
-	return rs.deleteEntityByID(rs.partitionTable(), p.GetID())
+	return rs.deleteEntity(rs.partitionTable(), p)
 }
 
 // UpdatePartition updates a partition.

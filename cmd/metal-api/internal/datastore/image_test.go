@@ -68,7 +68,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		want    []metal.Image
+		want    metal.Images
 		wantErr bool
 	}{
 		// Test-Data List / Test Cases:

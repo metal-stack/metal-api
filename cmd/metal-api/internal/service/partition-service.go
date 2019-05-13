@@ -5,8 +5,11 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+
+	"fmt"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
@@ -42,8 +45,8 @@ func (r partitionResource) webService() *restful.WebService {
 		Doc("get Partition by id").
 		Param(ws.PathParameter("id", "identifier of the Partition").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.PartitionDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.PartitionDetailResponse{}).
+		Writes(v1.PartitionResponse{}).
+		Returns(http.StatusOK, "OK", v1.PartitionResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -51,8 +54,8 @@ func (r partitionResource) webService() *restful.WebService {
 		Operation("listPartitions").
 		Doc("get all Partitions").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.PartitionListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.PartitionListResponse{}).
+		Writes([]v1.PartitionResponse{}).
+		Returns(http.StatusOK, "OK", []v1.PartitionResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
@@ -61,8 +64,8 @@ func (r partitionResource) webService() *restful.WebService {
 		Doc("deletes a Partition and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the Partition").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.PartitionDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.PartitionDetailResponse{}).
+		Writes(v1.PartitionResponse{}).
+		Returns(http.StatusOK, "OK", v1.PartitionResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
@@ -70,7 +73,7 @@ func (r partitionResource) webService() *restful.WebService {
 		Doc("create a Partition. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.PartitionCreateRequest{}).
-		Returns(http.StatusCreated, "Created", v1.PartitionDetailResponse{}).
+		Returns(http.StatusCreated, "Created", v1.PartitionResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -79,7 +82,7 @@ func (r partitionResource) webService() *restful.WebService {
 		Doc("updates a Partition. if the Partition was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.PartitionUpdateRequest{}).
-		Returns(http.StatusOK, "OK", v1.PartitionDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.PartitionResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -94,7 +97,7 @@ func (r partitionResource) findPartition(request *restful.Request, response *res
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionDetailResponse(img))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(img))
 }
 
 func (r partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
@@ -103,9 +106,9 @@ func (r partitionResource) listPartitions(request *restful.Request, response *re
 		return
 	}
 
-	var result []*v1.PartitionListResponse
+	result := []*v1.PartitionResponse{}
 	for i := range ps {
-		result = append(result, v1.NewPartitionListResponse(&ps[i]))
+		result = append(result, v1.NewPartitionResponse(&ps[i]))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -116,6 +119,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	if requestPayload.ID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+			return
+		}
 	}
 
 	var name string
@@ -129,6 +138,15 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	var mgmtServiceAddress string
 	if requestPayload.MgmtServiceAddress != nil {
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
+	}
+	projectNetworkPrefixLength := 22
+	if requestPayload.ProjectNetworkPrefixLength != nil {
+		projectNetworkPrefixLength = *requestPayload.ProjectNetworkPrefixLength
+		if projectNetworkPrefixLength < 16 || projectNetworkPrefixLength > 30 {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectNetworkPrefixLength is out of range")) {
+				return
+			}
+		}
 	}
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
@@ -145,10 +163,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 
 	p := &metal.Partition{
 		Base: metal.Base{
+			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		MgmtServiceAddress: mgmtServiceAddress,
+		MgmtServiceAddress:         mgmtServiceAddress,
+		ProjectNetworkPrefixLength: projectNetworkPrefixLength,
 		BootConfiguration: metal.BootConfiguration{
 			ImageURL:    imageURL,
 			KernelURL:   kernelURL,
@@ -161,7 +181,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionDetailResponse(p))
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
 }
 
 func (r partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
@@ -177,7 +197,7 @@ func (r partitionResource) deletePartition(request *restful.Request, response *r
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionDetailResponse(p))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
 }
 
 func (r partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
@@ -218,5 +238,5 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionDetailResponse(&newPartition))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(&newPartition))
 }

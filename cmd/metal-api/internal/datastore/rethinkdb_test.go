@@ -415,32 +415,4 @@ func TestRethinkStore_waitTable(t *testing.T) {
 		})
 	}
 }
-
-func TestRethinkStore_ipmiTable(t *testing.T) {
-
-	// mock the DB
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	theWantedTerm := r.DB("mockdb").Table("ipmi")
-
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// test cases:
-		{
-			name: "TestRethinkStore_ipmiTable Test 1",
-			rs:   ds,
-			want: &theWantedTerm,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.ipmiTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.ipmiTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+ 

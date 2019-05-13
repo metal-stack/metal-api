@@ -6,7 +6,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
@@ -43,8 +43,8 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("get image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ImageDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.ImageDetailResponse{}).
+		Writes(v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -52,8 +52,8 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("listImages").
 		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.ImageListResponse{}).
-		Returns(http.StatusOK, "OK", []v1.ImageListResponse{}).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
@@ -62,8 +62,8 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("deletes an image and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ImageDetailResponse{}).
-		Returns(http.StatusOK, "OK", v1.ImageDetailResponse{}).
+		Writes(v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
@@ -71,7 +71,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("create an image. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageCreateRequest{}).
-		Returns(http.StatusCreated, "Created", v1.ImageDetailResponse{}).
+		Returns(http.StatusCreated, "Created", v1.ImageResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -80,7 +80,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageUpdateRequest{}).
-		Returns(http.StatusOK, "OK", v1.ImageDetailResponse{}).
+		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -95,7 +95,7 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageDetailResponse(img))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 }
 
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
@@ -104,9 +104,9 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 		return
 	}
 
-	var result []*v1.ImageListResponse
+	result := []*v1.ImageResponse{}
 	for i := range imgs {
-		result = append(result, v1.NewImageListResponse(&imgs[i]))
+		result = append(result, v1.NewImageResponse(&imgs[i]))
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, result)
@@ -117,6 +117,12 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	if requestPayload.ID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+			return
+		}
 	}
 
 	if requestPayload.URL == "" {
@@ -134,12 +140,23 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		description = *requestPayload.Description
 	}
 
+	features := make(map[metal.ImageFeatureType]bool)
+	for _, f := range requestPayload.Features {
+		ft, err := metal.ImageFeatureTypeFrom(f)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		features[ft] = true
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
+			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		URL: requestPayload.URL,
+		URL:      requestPayload.URL,
+		Features: features,
 	}
 
 	err = ir.ds.CreateImage(img)
@@ -147,7 +164,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageDetailResponse(img))
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageResponse(img))
 }
 
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
@@ -163,7 +180,7 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageDetailResponse(img))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
@@ -189,11 +206,22 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	if requestPayload.URL != nil {
 		newImage.URL = *requestPayload.URL
 	}
+	features := make(map[metal.ImageFeatureType]bool)
+	for _, f := range requestPayload.Features {
+		ft, err := metal.ImageFeatureTypeFrom(f)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		features[ft] = true
+	}
+	if len(features) > 0 {
+		newImage.Features = features
+	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageDetailResponse(&newImage))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(&newImage))
 }

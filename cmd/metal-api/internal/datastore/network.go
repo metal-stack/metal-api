@@ -7,25 +7,50 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// GetPrimaryNetwork returns the network which is marked default
-func (rs *RethinkStore) GetPrimaryNetwork() (*metal.Network, error) {
-	var nws []metal.Network
-	searchFilter := func(row r.Term) r.Term {
-		return row.Field("primary").Eq(true)
+// GetPrimaryNetwork returns the network which is marked default in this partition
+func (rs *RethinkStore) FindPrimaryNetwork(partitionID string) (*metal.Network, error) {
+	_, err := rs.FindPartition(partitionID)
+	if err != nil {
+		return nil, err
 	}
 
-	err := rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	var nws []metal.Network
+	searchFilter := func(row r.Term) r.Term {
+		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
+	}
+
+	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
 	if err != nil {
 		return nil, err
 	}
 	if len(nws) == 0 {
-		return nil, fmt.Errorf("no primary network in the database")
+		return nil, fmt.Errorf("no primary network in the database in partition:%s found", partitionID)
 	}
 	if len(nws) > 1 {
-		return nil, fmt.Errorf("more than one primary network in the database, which should not be the case")
+		return nil, fmt.Errorf("more than one primary network in partition %s in the database, which should not be the case", partitionID)
 	}
 
 	return &nws[0], nil
+}
+
+// SearchPrimaryNetwork returns all primary networks of a partition.
+func (rs *RethinkStore) SearchPrimaryNetwork(partitionID string) ([]metal.Network, error) {
+	_, err := rs.FindPartition(partitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var nws []metal.Network
+	searchFilter := func(row r.Term) r.Term {
+		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
+	}
+
+	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	if err != nil {
+		return nil, err
+	}
+
+	return nws, nil
 }
 
 // SearchProjectNetwork returns the network to a given project id
@@ -53,7 +78,10 @@ func (rs *RethinkStore) SearchProjectNetwork(projectid string) (*metal.Network, 
 func (rs *RethinkStore) FindNetwork(id string) (*metal.Network, error) {
 	var nw metal.Network
 	err := rs.findEntityByID(rs.networkTable(), &nw, id)
-	return &nw, err
+	if err != nil {
+		return nil, err
+	}
+	return &nw, nil
 }
 
 // ListNetworks returns all networks.
@@ -70,7 +98,7 @@ func (rs *RethinkStore) CreateNetwork(nw *metal.Network) error {
 
 // DeleteNetwork deletes an network.
 func (rs *RethinkStore) DeleteNetwork(nw *metal.Network) error {
-	return rs.deleteEntityByID(rs.networkTable(), nw.GetID())
+	return rs.deleteEntity(rs.networkTable(), nw)
 }
 
 // UpdateNetwork updates an network.

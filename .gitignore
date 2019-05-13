@@ -4,3 +4,4 @@ vendor
 .vscode/settings.json
 generate
 cmd/metal-api/debug
+coverage.out

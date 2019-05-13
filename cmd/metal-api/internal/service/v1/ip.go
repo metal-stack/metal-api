@@ -11,6 +11,7 @@ type IPBase struct {
 
 type IPIdentifiable struct {
 	IPAddress string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" unique:"true" readonly:"true"`
+	MachineID string `json:"machineid" description:"the machine this ip address belongs to, empty if not strong coupled"`
 }
 
 type IPAllocateRequest struct {
@@ -23,29 +24,15 @@ type IPUpdateRequest struct {
 	Describeable
 }
 
-type IPListResponse struct {
+type IPResponse struct {
 	Describeable
 	IPBase
 	IPIdentifiable
-}
-
-type IPDetailResponse struct {
-	IPListResponse
 	Timestamps
 }
 
-func NewIPDetailResponse(ip *metal.IP) *IPDetailResponse {
-	return &IPDetailResponse{
-		IPListResponse: *NewIPListResponse(ip),
-		Timestamps: Timestamps{
-			Created: ip.Created,
-			Changed: ip.Changed,
-		},
-	}
-}
-
-func NewIPListResponse(ip *metal.IP) *IPListResponse {
-	return &IPListResponse{
+func NewIPResponse(ip *metal.IP) *IPResponse {
+	return &IPResponse{
 		Describeable: Describeable{
 			Name:        &ip.Name,
 			Description: &ip.Description,
@@ -56,6 +43,11 @@ func NewIPListResponse(ip *metal.IP) *IPListResponse {
 		},
 		IPIdentifiable: IPIdentifiable{
 			IPAddress: ip.IPAddress,
+			MachineID: ip.MachineID,
+		},
+		Timestamps: Timestamps{
+			Created: ip.Created,
+			Changed: ip.Changed,
 		},
 	}
 }
