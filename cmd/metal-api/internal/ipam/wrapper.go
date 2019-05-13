@@ -1,4 +1,4 @@
-package ipam 
+package ipam
 
 import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"

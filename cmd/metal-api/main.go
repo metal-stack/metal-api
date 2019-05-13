@@ -328,22 +328,22 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "image",
 			Description: "Managing image entities"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "network",
 			Description: "Managing network entities"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "ip",
 			Description: "Managing ip entities"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "size",
 			Description: "Managing size entities"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "machine",
 			Description: "Managing machines"}},
-		spec.Tag{TagProps: spec.TagProps{
+		{TagProps: spec.TagProps{
 			Name:        "switch",
 			Description: "Managing switches"}},
 	}

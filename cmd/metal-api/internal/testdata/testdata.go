@@ -131,12 +131,12 @@ var (
 			Description: "description 1",
 		},
 		Constraints: []metal.Constraint{
-			metal.Constraint{
+			{
 				Type: metal.CoreConstraint,
 				Min:  1,
 				Max:  1,
 			},
-			metal.Constraint{
+			{
 				Type: metal.MemoryConstraint,
 				Min:  100,
 				Max:  100,
@@ -164,12 +164,12 @@ var (
 			Description: "description 1",
 		},
 		Constraints: []metal.Constraint{
-			metal.Constraint{
+			{
 				Type: metal.CoreConstraint,
 				Min:  888,
 				Max:  1111,
 			},
-			metal.Constraint{
+			{
 				Type: metal.MemoryConstraint,
 				Min:  100,
 				Max:  100,
@@ -345,10 +345,10 @@ var (
 		MacAddress: metal.MacAddress("11:11:11:11:11:11"),
 		Name:       "eth0",
 		Neighbors: []metal.Nic{
-			metal.Nic{
+			{
 				MacAddress: "21:11:11:11:11:11",
 			},
-			metal.Nic{
+			{
 				MacAddress: "31:11:11:11:11:11",
 			},
 		},
@@ -357,10 +357,10 @@ var (
 		MacAddress: metal.MacAddress("21:11:11:11:11:11"),
 		Name:       "swp1",
 		Neighbors: []metal.Nic{
-			metal.Nic{
+			{
 				MacAddress: "11:11:11:11:11:11",
 			},
-			metal.Nic{
+			{
 				MacAddress: "31:11:11:11:11:11",
 			},
 		},
@@ -369,10 +369,10 @@ var (
 		MacAddress: metal.MacAddress("31:11:11:11:11:11"),
 		Name:       "swp2",
 		Neighbors: []metal.Nic{
-			metal.Nic{
+			{
 				MacAddress: "21:11:11:11:11:11",
 			},
-			metal.Nic{
+			{
 				MacAddress: "11:11:11:11:11:11",
 			},
 		},
@@ -467,14 +467,14 @@ var (
 
 	// Create the Connections Array
 	TestConnections = []metal.Connection{
-		metal.Connection{
+		{
 			Nic: metal.Nic{
 				Name:       "swp1",
 				MacAddress: "11:11:11",
 			},
 			MachineID: "machine-1",
 		},
-		metal.Connection{
+		{
 			Nic: metal.Nic{
 				Name:       "swp2",
 				MacAddress: "22:11:11",

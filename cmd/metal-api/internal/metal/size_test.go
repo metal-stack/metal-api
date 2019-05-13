@@ -11,17 +11,17 @@ var (
 			Name: "micro",
 		},
 		Constraints: []Constraint{
-			Constraint{
+			{
 				Type: CoreConstraint,
 				Min:  1,
 				Max:  1,
 			},
-			Constraint{
+			{
 				Type: MemoryConstraint,
 				Min:  1024,
 				Max:  1024,
 			},
-			Constraint{
+			{
 				Type: StorageConstraint,
 				Min:  0,
 				Max:  1024,
@@ -33,17 +33,17 @@ var (
 			Name: "micro",
 		},
 		Constraints: []Constraint{
-			Constraint{
+			{
 				Type: CoreConstraint,
 				Min:  1,
 				Max:  1,
 			},
-			Constraint{
+			{
 				Type: MemoryConstraint,
 				Min:  1024,
 				Max:  1024,
 			},
-			Constraint{
+			{
 				Type: StorageConstraint,
 				Min:  0,
 				Max:  2048,
@@ -55,17 +55,17 @@ var (
 			Name: "tiny",
 		},
 		Constraints: []Constraint{
-			Constraint{
+			{
 				Type: CoreConstraint,
 				Min:  1,
 				Max:  1,
 			},
-			Constraint{
+			{
 				Type: MemoryConstraint,
 				Min:  1024,
 				Max:  1077838336,
 			},
-			Constraint{
+			{
 				Type: StorageConstraint,
 				Min:  1024,
 				Max:  2048,
@@ -80,12 +80,12 @@ var (
 			Description: "description 1",
 		},
 		Constraints: []Constraint{
-			Constraint{
+			{
 				Type: CoreConstraint,
 				Min:  1,
 				Max:  1,
 			},
-			Constraint{
+			{
 				Type: MemoryConstraint,
 				Min:  100,
 				Max:  100,
@@ -113,12 +113,12 @@ var (
 			Description: "description 1",
 		},
 		Constraints: []Constraint{
-			Constraint{
+			{
 				Type: CoreConstraint,
 				Min:  888,
 				Max:  1111,
 			},
-			Constraint{
+			{
 				Type: MemoryConstraint,
 				Min:  100,
 				Max:  100,
@@ -154,7 +154,7 @@ func TestSizes_FromHardware(t *testing.T) {
 					CPUCores: 1,
 					Memory:   1069838336,
 					Disks: []BlockDevice{
-						BlockDevice{
+						{
 							Size: 1025,
 						},
 					},
@@ -171,7 +171,7 @@ func TestSizes_FromHardware(t *testing.T) {
 					CPUCores: 1,
 					Memory:   1024,
 					Disks: []BlockDevice{
-						BlockDevice{
+						{
 							Size: 1025,
 						},
 					},

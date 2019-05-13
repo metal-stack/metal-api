@@ -56,15 +56,15 @@ var (
 	}
 	expectedSuccessorEventMap = map[ProvisioningEventType]provisioningEventSequence{
 		// some machines could be incapable of sending pxe boot events (depends on BIOS), therefore PXE Booting and Preparing are allowed initial states
-		ProvisioningEventPlannedReboot:    provisioningEventSequence{ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventPXEBooting:       provisioningEventSequence{ProvisioningEventPreparing},
-		ProvisioningEventPreparing:        provisioningEventSequence{ProvisioningEventRegistering, ProvisioningEventPlannedReboot},
-		ProvisioningEventRegistering:      provisioningEventSequence{ProvisioningEventWaiting, ProvisioningEventPlannedReboot},
-		ProvisioningEventWaiting:          provisioningEventSequence{ProvisioningEventInstalling, ProvisioningEventPlannedReboot},
-		ProvisioningEventInstalling:       provisioningEventSequence{ProvisioningEventBootingNewKernel, ProvisioningEventPlannedReboot},
-		ProvisioningEventBootingNewKernel: provisioningEventSequence{ProvisioningEventPhonedHome},
-		ProvisioningEventPhonedHome:       provisioningEventSequence{ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventCrashed:          provisioningEventSequence{ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventPlannedReboot:    {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventPXEBooting:       {ProvisioningEventPreparing},
+		ProvisioningEventPreparing:        {ProvisioningEventRegistering, ProvisioningEventPlannedReboot},
+		ProvisioningEventRegistering:      {ProvisioningEventWaiting, ProvisioningEventPlannedReboot},
+		ProvisioningEventWaiting:          {ProvisioningEventInstalling, ProvisioningEventPlannedReboot},
+		ProvisioningEventInstalling:       {ProvisioningEventBootingNewKernel, ProvisioningEventPlannedReboot},
+		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
+		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventResetFailCount:   expectedProvisioningEventSequence,
 	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{

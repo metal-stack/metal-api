@@ -686,7 +686,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	}
 
 	machineNetworks := []metal.MachineNetwork{
-		metal.MachineNetwork{
+		{
 			NetworkID: projectNetwork.ID,
 			Prefixes:  projectNetwork.Prefixes.String(),
 			IPs:       []string{ip.IPAddress},
