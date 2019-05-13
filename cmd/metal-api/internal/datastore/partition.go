@@ -8,7 +8,10 @@ import (
 func (rs *RethinkStore) FindPartition(id string) (*metal.Partition, error) {
 	var p metal.Partition
 	err := rs.findEntityByID(rs.partitionTable(), &p, id)
-	return &p, err
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }
 
 // ListPartitions returns all partition.

@@ -8,7 +8,10 @@ import (
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	var img metal.Image
 	err := rs.findEntityByID(rs.imageTable(), &img, id)
-	return &img, err
+	if err != nil {
+		return nil, err
+	}
+	return &img, nil
 }
 
 // ListImages returns all images.

@@ -10,7 +10,10 @@ import (
 func (rs *RethinkStore) FindSize(id string) (*metal.Size, error) {
 	var s metal.Size
 	err := rs.findEntityByID(rs.sizeTable(), &s, id)
-	return &s, err
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 
 // ListSizes returns all sizes.

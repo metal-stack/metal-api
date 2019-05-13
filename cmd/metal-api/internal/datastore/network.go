@@ -78,7 +78,10 @@ func (rs *RethinkStore) SearchProjectNetwork(projectid string) (*metal.Network, 
 func (rs *RethinkStore) FindNetwork(id string) (*metal.Network, error) {
 	var nw metal.Network
 	err := rs.findEntityByID(rs.networkTable(), &nw, id)
-	return &nw, err
+	if err != nil {
+		return nil, err
+	}
+	return &nw, nil
 }
 
 // ListNetworks returns all networks.

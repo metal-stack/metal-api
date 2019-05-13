@@ -202,22 +202,6 @@ tryAgain:
 	return db, s
 }
 
-func (rs *RethinkStore) findEntityByIDAllowNil(table *r.Term, entity interface{}, id string) error {
-	res, err := table.Get(id).Run(rs.session)
-	if err != nil {
-		return fmt.Errorf("cannot find %v with id %q in database: %v", getEntityName(entity), id, err)
-	}
-	defer res.Close()
-	if res.IsNil() {
-		return nil
-	}
-	err = res.One(entity)
-	if err != nil {
-		return fmt.Errorf("cannot fetch single %v: %v", getEntityName(entity), err)
-	}
-	return nil
-}
-
 func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id string) error {
 	res, err := table.Get(id).Run(rs.session)
 	if err != nil {

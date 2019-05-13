@@ -138,6 +138,7 @@ func TestRegisterMachine(t *testing.T) {
 				mock.On(r.DB("mockdb").Table("size").Get(test.dbmachines[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
 				mock.On(r.DB("mockdb").Table("machine").Get(test.dbmachines[0].ID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			} else {
+				mock.On(r.DB("mockdb").Table("machine").Get("0")).Return(nil, nil)
 				mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{
 					Conflict: "replace",
 				})).Return(testdata.EmptyResult, nil)

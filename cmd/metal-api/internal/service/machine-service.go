@@ -420,10 +420,13 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		utils.Logger(request).Sugar().Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
 	}
 
-	m, err := r.ds.FindMachineAllowNil(requestPayload.UUID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	m, err := r.ds.FindMachine(requestPayload.UUID)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
+	fmt.Printf("new machine: %#v", m)
 
 	if m == nil {
 		// machine is not in the database, create it
@@ -472,9 +475,11 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		}
 	}
 
-	ec, err := r.ds.FindProvisioningEventContainerAllowNil(m.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
+	if err != nil && metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
 	if ec == nil {
 		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID})
@@ -990,10 +995,13 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 
 func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	m, err := r.ds.FindMachineAllowNil(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	m, err := r.ds.FindMachine(id)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
+
 	if m == nil {
 		m = &metal.Machine{
 			Base: metal.Base{
@@ -1027,19 +1035,22 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		}
 	}
 
-	eventContainer, err := r.ds.FindProvisioningEventContainerAllowNil(m.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
-	if eventContainer == nil {
-		eventContainer = &metal.ProvisioningEventContainer{
+
+	if ec == nil {
+		ec = &metal.ProvisioningEventContainer{
 			ID: m.ID,
 		}
 	}
 
 	now := time.Now()
 
-	eventContainer.LastEventTime = &now
+	ec.LastEventTime = &now
 
 	event := metal.ProvisioningEvent{
 		Time:    now,
@@ -1047,20 +1058,20 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		Message: requestPayload.Message,
 	}
 	if event.Event == metal.ProvisioningEventAlive {
-		utils.Logger(request).Sugar().Debugw("received provisioning alive event", "id", eventContainer.ID)
-	} else if event.Event == metal.ProvisioningEventPhonedHome && len(eventContainer.Events) > 0 && eventContainer.Events[0].Event == metal.ProvisioningEventPhonedHome {
-		utils.Logger(request).Sugar().Debugw("swallowing repeated phone home event", "id", eventContainer.ID)
+		utils.Logger(request).Sugar().Debugw("received provisioning alive event", "id", ec.ID)
+	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
+		utils.Logger(request).Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
 	} else {
-		eventContainer.Events = append([]metal.ProvisioningEvent{event}, eventContainer.Events...)
-		eventContainer.IncompleteProvisioningCycles = eventContainer.CalculateIncompleteCycles(utils.Logger(request).Sugar())
+		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
+		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(utils.Logger(request).Sugar())
 	}
 
-	err = r.ds.UpsertProvisioningEventContainer(eventContainer)
+	err = r.ds.UpsertProvisioningEventContainer(ec)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(eventContainer))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
 }
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine

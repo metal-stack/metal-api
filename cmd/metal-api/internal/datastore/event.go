@@ -18,17 +18,6 @@ func (rs *RethinkStore) FindProvisioningEventContainer(id string) (*metal.Provis
 	return &e, err
 }
 
-// FindProvisioningEventContainerAllowNil returns the provisioning event container with the given ID. If there is no
-// such provisioning event container nil will be returned.
-func (rs *RethinkStore) FindProvisioningEventContainerAllowNil(id string) (*metal.ProvisioningEventContainer, error) {
-	var e metal.ProvisioningEventContainer
-	err := rs.findEntityByIDAllowNil(rs.eventTable(), &e, id)
-	if e.ID != "" {
-		return &e, err
-	}
-	return nil, err
-}
-
 // UpdateProvisioningEventContainer updates a provisioning event container.
 func (rs *RethinkStore) UpdateProvisioningEventContainer(old *metal.ProvisioningEventContainer, new *metal.ProvisioningEventContainer) error {
 	return rs.updateEntity(rs.eventTable(), new, old)

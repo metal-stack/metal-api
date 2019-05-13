@@ -8,7 +8,10 @@ import (
 func (rs *RethinkStore) FindIP(id string) (*metal.IP, error) {
 	var ip metal.IP
 	err := rs.findEntityByID(rs.ipTable(), &ip, id)
-	return &ip, err
+	if err != nil {
+		return nil, err
+	}
+	return &ip, nil
 }
 
 // ListIPs returns all ips.

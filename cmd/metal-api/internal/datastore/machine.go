@@ -12,18 +12,10 @@ import (
 func (rs *RethinkStore) FindMachine(id string) (*metal.Machine, error) {
 	var m metal.Machine
 	err := rs.findEntityByID(rs.machineTable(), &m, id)
-	return &m, err
-}
-
-// FindMachineAllowNil returns the machine with the given ID. If there is no
-// such machine nil will be returned.
-func (rs *RethinkStore) FindMachineAllowNil(id string) (*metal.Machine, error) {
-	var m metal.Machine
-	err := rs.findEntityByIDAllowNil(rs.machineTable(), &m, id)
-	if m.ID != "" {
-		return &m, err
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+	return &m, nil
 }
 
 // ListMachines returns all machines.

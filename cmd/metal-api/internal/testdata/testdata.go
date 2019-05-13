@@ -219,7 +219,8 @@ var (
 			Name:        "Network 1",
 			Description: "description 1",
 		},
-		Prefixes: prefixes1,
+		PartitionID: Partition1.ID,
+		Prefixes:    prefixes1,
 	}
 	Nw2 = metal.Network{
 		Base: metal.Base{

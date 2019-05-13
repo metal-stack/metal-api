@@ -139,6 +139,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	if requestPayload.Vrf != nil {
 		vrfID = *requestPayload.Vrf
 	}
+	primary := requestPayload.Primary
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401
@@ -171,13 +172,10 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			if !ok {
 				existingPrefixes = append(existingPrefixes, p)
 				existingPrefixesMap[p.String()] = true
-
 			}
 		}
 	}
 
-	fmt.Printf("Existing: %#v", existingPrefixes)
-	fmt.Printf("New: %#v", prefixes)
 	err = r.ipamer.PrefixesOverlapping(existingPrefixes, prefixes)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -190,13 +188,15 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			return
 		}
 
-		primary, err := r.ds.SearchPrimaryNetwork(partition.ID)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		if len(primary) != 0 {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a primary network", partition.ID)) {
+		if primary {
+			primaryNetworks, err := r.ds.SearchPrimaryNetwork(partition.ID)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
+			}
+			if len(primaryNetworks) != 0 {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a primary network", partition.ID)) {
+					return
+				}
 			}
 		}
 
@@ -214,7 +214,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		PartitionID: partitionID,
 		ProjectID:   projectid,
 		Nat:         requestPayload.Nat,
-		Primary:     requestPayload.Primary,
+		Primary:     primary,
 		Vrf:         vrfID,
 	}
 
