@@ -426,7 +426,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			return
 		}
 	}
-	fmt.Printf("new machine: %#v", m)
 
 	if m == nil {
 		// machine is not in the database, create it
