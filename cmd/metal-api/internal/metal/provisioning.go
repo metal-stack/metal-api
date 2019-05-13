@@ -57,7 +57,7 @@ var (
 	expectedSuccessorEventMap = map[ProvisioningEventType]provisioningEventSequence{
 		// some machines could be incapable of sending pxe boot events (depends on BIOS), therefore PXE Booting and Preparing are allowed initial states
 		ProvisioningEventPlannedReboot:    {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventPXEBooting:       {ProvisioningEventPreparing},
+		ProvisioningEventPXEBooting:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventPreparing:        {ProvisioningEventRegistering, ProvisioningEventPlannedReboot},
 		ProvisioningEventRegistering:      {ProvisioningEventWaiting, ProvisioningEventPlannedReboot},
 		ProvisioningEventWaiting:          {ProvisioningEventInstalling, ProvisioningEventPlannedReboot},

@@ -225,14 +225,16 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	vrf := &metal.Vrf{
-		ID:        vrfID,
-		ProjectID: projectid,
-	}
+	if vrfID != 0 {
+		vrf := &metal.Vrf{
+			ID:        vrfID,
+			ProjectID: projectid,
+		}
 
-	err = r.ds.CreateVrf(vrf)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+		err = r.ds.CreateVrf(vrf)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
 
 	err = r.ds.CreateNetwork(nw)

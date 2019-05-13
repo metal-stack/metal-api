@@ -170,6 +170,23 @@ var (
 			Event: ProvisioningEventRegistering,
 		},
 	}
+	MultipleTimesPXEBootingIsNoIncompleteCycle = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
+		},
+	}
 )
 
 func TestProvisioning_IncompleteCycles(t *testing.T) {
@@ -232,6 +249,13 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 			name: "TestProvisioning_IncompleteCycles Test 8",
 			eventContainer: ProvisioningEventContainer{
 				Events: SuccessfulEventCycleWithBadHistory,
+			},
+			want: "0",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 9",
+			eventContainer: ProvisioningEventContainer{
+				Events: MultipleTimesPXEBootingIsNoIncompleteCycle,
 			},
 			want: "0",
 		},
