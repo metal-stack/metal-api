@@ -25,6 +25,7 @@ type NetworkUsage struct {
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 type NetworkCreateRequest struct {
+	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
 	Describeable
 	NetworkBase
 	NetworkImmutable

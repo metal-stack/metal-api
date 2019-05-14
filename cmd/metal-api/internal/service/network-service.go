@@ -123,6 +123,10 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		return
 	}
 
+	var id string
+	if requestPayload.ID != nil {
+		id = *requestPayload.ID
+	}
 	var name string
 	if requestPayload.Name != nil {
 		name = *requestPayload.Name
@@ -218,6 +222,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 
 	nw := &metal.Network{
 		Base: metal.Base{
+			ID:          id,
 			Name:        name,
 			Description: description,
 		},
