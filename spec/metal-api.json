@@ -2531,12 +2531,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "partitionid",
-        "ssh_pub_keys",
         "tenant",
         "projectid",
-        "sizeid",
+        "partitionid",
         "imageid",
+        "sizeid",
+        "ssh_pub_keys",
         "networks"
       ],
       "properties": {
@@ -2609,18 +2609,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "changed",
-        "rackid",
         "state",
-        "hardware",
-        "size",
-        "created",
-        "id",
-        "tags",
+        "liveliness",
         "partition",
+        "size",
+        "tags",
+        "id",
+        "rackid",
+        "created",
+        "hardware",
         "events",
-        "allocation",
-        "liveliness"
+        "changed",
+        "allocation"
       ],
       "properties": {
         "allocation": {
@@ -3193,6 +3193,7 @@
       }
     },
     "v1.MachineNetwork": {
+      "description": "prefixes that are reachable within this network",
       "required": [
         "networkid",
         "prefixes",
@@ -3200,13 +3201,22 @@
         "vrf",
         "asn",
         "primary",
-        "nat"
+        "nat",
+        "destinationprefixes",
+        "underlay"
       ],
       "properties": {
         "asn": {
           "description": "ASN number for this network in the bgp configuration",
           "type": "integer",
           "format": "int64"
+        },
+        "destinationprefixes": {
+          "description": "the destination prefixes of this network",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "ips": {
           "description": "the ip addresses of the allocated machine in this vrf",
@@ -3232,6 +3242,10 @@
         },
         "primary": {
           "description": "indicates whether this network is the primary project network",
+          "type": "boolean"
+        },
+        "underlay": {
+          "description": "if set to true, this network can be used for underlay communication",
           "type": "boolean"
         },
         "vrf": {
@@ -3353,15 +3367,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "rackid",
-        "liveliness",
         "events",
         "tags",
-        "partition",
+        "rackid",
         "size",
         "hardware",
         "allocation",
         "state",
+        "liveliness",
+        "partition",
         "created",
         "changed"
       ],
@@ -3453,18 +3467,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "liveliness",
         "state",
-        "size",
-        "rackid",
-        "hardware",
         "id",
-        "tags",
-        "created",
-        "allocation",
-        "events",
+        "size",
+        "hardware",
         "changed",
         "partition",
+        "allocation",
+        "tags",
+        "created",
+        "rackid",
+        "events",
+        "liveliness",
         "phone_home_token"
       ],
       "properties": {
@@ -3601,11 +3615,11 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "prefixes",
+        "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "prefixes",
-        "destinationprefixes",
         "usage",
         "created",
         "changed"
@@ -3791,8 +3805,8 @@
       "required": [
         "id",
         "bootconfig",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
