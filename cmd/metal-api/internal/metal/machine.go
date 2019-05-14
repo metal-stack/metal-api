@@ -94,13 +94,15 @@ type MachineAllocation struct {
 
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
-	NetworkID string   `rethinkdb:"networkid"`
-	Prefixes  []string `rethinkdb:"prefixes"`
-	IPs       []string `rethinkdb:"ips"`
-	Vrf       uint     `rethinkdb:"vrf"`
-	Primary   bool     `rethinkdb:"primary"`
-	ASN       int64    `rethinkdb:"asn"`
-	Nat       bool     `rethinkdb:"nat"`
+	NetworkID           string   `rethinkdb:"networkid"`
+	Prefixes            []string `rethinkdb:"prefixes"`
+	IPs                 []string `rethinkdb:"ips"`
+	DestinationPrefixes []string `rethinkdb:"destinationprefixes"`
+	Vrf                 uint     `rethinkdb:"vrf"`
+	Primary             bool     `rethinkdb:"primary"`
+	ASN                 int64    `rethinkdb:"asn"`
+	Nat                 bool     `rethinkdb:"nat"`
+	Underlay            bool     `rethinkdb:"underlay"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.

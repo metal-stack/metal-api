@@ -10,10 +10,12 @@ type NetworkBase struct {
 }
 
 type NetworkImmutable struct {
-	Prefixes []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
-	Nat      bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
-	Primary  bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
-	Vrf      *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
+	Prefixes            []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
+	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	Primary             bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
+	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 }
 
 type NetworkUsage struct {
@@ -42,10 +44,6 @@ type NetworkResponse struct {
 }
 
 func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResponse {
-	var prefixes []string
-	for _, p := range network.Prefixes {
-		prefixes = append(prefixes, p.String())
-	}
 	return &NetworkResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -61,10 +59,12 @@ func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResp
 			ProjectID:   &network.ProjectID,
 		},
 		NetworkImmutable: NetworkImmutable{
-			Prefixes: prefixes,
-			Nat:      network.Nat,
-			Primary:  network.Primary,
-			Vrf:      &network.Vrf,
+			Prefixes:            network.Prefixes.String(),
+			DestinationPrefixes: network.DestinationPrefixes.String(),
+			Nat:                 network.Nat,
+			Primary:             network.Primary,
+			Underlay:            network.Underlay,
+			Vrf:                 &network.Vrf,
 		},
 		Usage: usage,
 		Timestamps: Timestamps{

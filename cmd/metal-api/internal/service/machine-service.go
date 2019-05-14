@@ -729,13 +729,15 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		}
 
 		machineNetwork := metal.MachineNetwork{
-			NetworkID: nw.ID,
-			Prefixes:  projectNetwork.Prefixes.String(),
-			IPs:       []string{ip.IPAddress},
-			ASN:       asn,
-			Primary:   false,
-			Nat:       projectNetwork.Nat,
-			Vrf:       nw.Vrf,
+			NetworkID:           nw.ID,
+			Prefixes:            projectNetwork.Prefixes.String(),
+			IPs:                 []string{ip.IPAddress},
+			DestinationPrefixes: nw.DestinationPrefixes.String(),
+			ASN:                 asn,
+			Primary:             false,
+			Underlay:            nw.Underlay,
+			Nat:                 projectNetwork.Nat,
+			Vrf:                 nw.Vrf,
 		}
 		machineNetworks = append(machineNetworks, machineNetwork)
 	}

@@ -2,7 +2,7 @@ module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
 	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190426111353-d9625af99ef7
-	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
+	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
@@ -10,16 +10,10 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful v2.9.3+incompatible
 	github.com/emicklei/go-restful-openapi v0.13.1
-	github.com/go-openapi/analysis v0.19.0 // indirect
-	github.com/go-openapi/errors v0.19.0
 	github.com/go-openapi/jsonpointer v0.19.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.0 // indirect
-	github.com/go-openapi/loads v0.19.0 // indirect
-	github.com/go-openapi/runtime v0.19.0
 	github.com/go-openapi/spec v0.19.0
-	github.com/go-openapi/strfmt v0.19.0
-	github.com/go-openapi/swag v0.19.0
-	github.com/go-openapi/validate v0.19.0
+	github.com/go-openapi/swag v0.19.0 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
