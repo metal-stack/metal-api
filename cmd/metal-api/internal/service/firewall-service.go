@@ -173,6 +173,22 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		}
 	}
 
+	hasUnderlay := false
+	for _, nid := range requestPayload.NetworkIDs {
+		n, err := r.ds.FindNetwork(nid)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if n.Underlay {
+			hasUnderlay = true
+			break
+		}
+	}
+	if !hasUnderlay {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no underlay network specified"))
+		return
+	}
+
 	spec := machineAllocationSpec{
 		UUID:        uuid,
 		Name:        name,

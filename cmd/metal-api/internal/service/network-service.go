@@ -160,6 +160,17 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		prefixes = append(prefixes, *prefix)
 	}
 
+	destPrefixes := metal.Prefixes{}
+	for _, p := range requestPayload.DestinationPrefixes {
+		prefix, err := metal.NewPrefixFromCIDR(p)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+				return
+			}
+		}
+		destPrefixes = append(destPrefixes, *prefix)
+	}
+
 	allNws, err := r.ds.ListNetworks()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -210,12 +221,14 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			Name:        name,
 			Description: description,
 		},
-		Prefixes:    prefixes,
-		PartitionID: partitionID,
-		ProjectID:   projectid,
-		Nat:         requestPayload.Nat,
-		Primary:     primary,
-		Vrf:         vrfID,
+		Prefixes:            prefixes,
+		DestinationPrefixes: destPrefixes,
+		PartitionID:         partitionID,
+		ProjectID:           projectid,
+		Nat:                 requestPayload.Nat,
+		Primary:             primary,
+		Underlay:            requestPayload.Underlay,
+		Vrf:                 vrfID,
 	}
 
 	for _, p := range nw.Prefixes {
