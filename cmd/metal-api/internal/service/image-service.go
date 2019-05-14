@@ -175,6 +175,18 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 
+	machines, err := ir.ds.ListMachines()
+	for _, m := range machines {
+		if m.Allocation == nil {
+			continue
+		}
+		if m.Allocation.ImageID == img.ID {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machine:%s", img.ID, m.ID)) {
+				return
+			}
+		}
+	}
+
 	err = ir.ds.DeleteImage(img)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
