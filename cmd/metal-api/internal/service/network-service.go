@@ -140,6 +140,8 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		vrfID = *requestPayload.Vrf
 	}
 	primary := requestPayload.Primary
+	underlay := requestPayload.Underlay
+	nat := requestPayload.Nat
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401
@@ -210,8 +212,23 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 				}
 			}
 		}
-
+		if underlay {
+			underlayNetworks, err := r.ds.SearchUnderlayNetwork(partition.ID)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+			if len(underlayNetworks) != 0 {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a underlay network", partition.ID)) {
+					return
+				}
+			}
+		}
 		partitionID = partition.ID
+	}
+
+	if (primary || underlay) && nat {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("primary or underlay network is not supposed to NAT"))
+		return
 	}
 
 	// TODO: Check if project exists if we get a project entity
@@ -225,9 +242,9 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		DestinationPrefixes: destPrefixes,
 		PartitionID:         partitionID,
 		ProjectID:           projectid,
-		Nat:                 requestPayload.Nat,
+		Nat:                 nat,
 		Primary:             primary,
-		Underlay:            requestPayload.Underlay,
+		Underlay:            underlay,
 		Vrf:                 vrfID,
 	}
 
