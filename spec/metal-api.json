@@ -663,10 +663,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "$ref": "#/definitions/service.emptyBody"
             }
           }
         ],
@@ -999,10 +996,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "$ref": "#/definitions/service.emptyBody"
             }
           }
         ],
@@ -1048,10 +1042,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "$ref": "#/definitions/service.emptyBody"
             }
           }
         ],
@@ -1097,10 +1088,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "$ref": "#/definitions/service.emptyBody"
             }
           }
         ],
@@ -1146,10 +1134,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "$ref": "#/definitions/service.emptyBody"
             }
           }
         ],
@@ -2529,14 +2514,15 @@
         }
       }
     },
+    "service.emptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "projectid",
-        "ssh_pub_keys",
         "tenant",
+        "projectid",
+        "imageid",
+        "ssh_pub_keys",
         "partitionid",
         "sizeid",
-        "imageid",
         "networks"
       ],
       "properties": {
@@ -2609,18 +2595,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
+        "state",
+        "created",
         "id",
         "rackid",
-        "changed",
-        "tags",
-        "events",
-        "partition",
-        "hardware",
-        "size",
-        "state",
-        "liveliness",
         "allocation",
-        "created"
+        "size",
+        "tags",
+        "liveliness",
+        "events",
+        "changed",
+        "partition",
+        "hardware"
       ],
       "properties": {
         "allocation": {
@@ -2718,12 +2704,12 @@
     },
     "v1.IPResponse": {
       "required": [
-        "projectid",
         "networkid",
-        "ipaddress",
+        "projectid",
         "machineid",
-        "created",
-        "changed"
+        "ipaddress",
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3367,15 +3353,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "rackid",
+        "size",
+        "allocation",
         "state",
         "events",
         "partition",
-        "hardware",
-        "allocation",
-        "tags",
-        "rackid",
-        "size",
         "liveliness",
+        "tags",
+        "hardware",
         "created",
         "changed"
       ],
@@ -3467,17 +3453,17 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "tags",
         "rackid",
-        "created",
         "allocation",
-        "liveliness",
+        "changed",
+        "tags",
         "partition",
-        "hardware",
+        "id",
         "state",
         "events",
-        "changed",
-        "id",
+        "liveliness",
+        "created",
+        "hardware",
         "size",
         "phone_home_token"
       ],
@@ -3621,14 +3607,14 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "primary",
+        "underlay",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay",
         "usage",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {

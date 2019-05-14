@@ -200,7 +200,7 @@ func (r machineResource) webService() *restful.WebService {
 		To(r.checkMachineLiveliness).
 		Doc("external trigger for evaluating machine liveliness").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}). // swagger client does not work if we do not have a body... emits error 406
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineLivelinessReport{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -209,7 +209,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a power-on to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -218,7 +218,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a power-off to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -227,7 +227,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a reset to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -236,7 +236,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("boots machine into BIOS on next reboot").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
