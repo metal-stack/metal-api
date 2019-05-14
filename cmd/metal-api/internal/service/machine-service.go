@@ -1165,12 +1165,6 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	var params []string
-	err := request.ReadEntity(&params)
-	if checkError(request, response, op, err) {
-		return
-	}
-
 	m, err := r.ds.FindMachine(id)
 	if checkError(request, response, op, err) {
 		return
@@ -1179,7 +1173,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command: cmd,
-			Params:  params,
+			Params:  []string{},
 			Target:  m,
 		},
 	}

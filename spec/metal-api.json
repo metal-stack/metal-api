@@ -2519,10 +2519,10 @@
       "required": [
         "tenant",
         "projectid",
-        "imageid",
-        "ssh_pub_keys",
         "partitionid",
         "sizeid",
+        "imageid",
+        "ssh_pub_keys",
         "networks"
       ],
       "properties": {
@@ -2595,18 +2595,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
+        "liveliness",
+        "changed",
+        "partition",
+        "hardware",
+        "events",
+        "tags",
+        "rackid",
+        "allocation",
         "state",
         "created",
         "id",
-        "rackid",
-        "allocation",
-        "size",
-        "tags",
-        "liveliness",
-        "events",
-        "changed",
-        "partition",
-        "hardware"
+        "size"
       ],
       "properties": {
         "allocation": {
@@ -2706,8 +2706,8 @@
       "required": [
         "networkid",
         "projectid",
-        "machineid",
         "ipaddress",
+        "machineid",
         "changed",
         "created"
       ],
@@ -3353,15 +3353,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "rackid",
-        "size",
+        "hardware",
         "allocation",
         "state",
-        "events",
-        "partition",
         "liveliness",
+        "events",
+        "rackid",
+        "size",
+        "partition",
         "tags",
-        "hardware",
         "created",
         "changed"
       ],
@@ -3453,18 +3453,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "rackid",
         "allocation",
-        "changed",
-        "tags",
         "partition",
-        "id",
-        "state",
-        "events",
-        "liveliness",
-        "created",
+        "rackid",
         "hardware",
+        "liveliness",
+        "tags",
+        "state",
         "size",
+        "changed",
+        "events",
+        "created",
+        "id",
         "phone_home_token"
       ],
       "properties": {
@@ -3543,11 +3543,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "prefixes",
-        "destinationprefixes",
         "nat",
         "primary",
-        "underlay"
+        "underlay",
+        "prefixes",
+        "destinationprefixes"
       ],
       "properties": {
         "description": {
@@ -3607,14 +3607,14 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "primary",
-        "underlay",
         "prefixes",
         "destinationprefixes",
         "nat",
+        "primary",
+        "underlay",
         "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
