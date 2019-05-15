@@ -8,21 +8,21 @@ import (
 func TestPartitions_ByID(t *testing.T) {
 
 	testPartitions := []Partition{
-		Partition{
+		{
 			Base: Base{
 				ID:          "1",
 				Name:        "partition1",
 				Description: "description 1",
 			},
 		},
-		Partition{
+		{
 			Base: Base{
 				ID:          "2",
 				Name:        "partition2",
 				Description: "description 2",
 			},
 		},
-		Partition{
+		{
 			Base: Base{
 				ID:          "3",
 				Name:        "partition3",

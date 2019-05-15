@@ -123,6 +123,10 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		return
 	}
 
+	var id string
+	if requestPayload.ID != nil {
+		id = *requestPayload.ID
+	}
 	var name string
 	if requestPayload.Name != nil {
 		name = *requestPayload.Name
@@ -140,6 +144,8 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		vrfID = *requestPayload.Vrf
 	}
 	primary := requestPayload.Primary
+	underlay := requestPayload.Underlay
+	nat := requestPayload.Nat
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401
@@ -158,6 +164,17 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			}
 		}
 		prefixes = append(prefixes, *prefix)
+	}
+
+	destPrefixes := metal.Prefixes{}
+	for _, p := range requestPayload.DestinationPrefixes {
+		prefix, err := metal.NewPrefixFromCIDR(p)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+				return
+			}
+		}
+		destPrefixes = append(destPrefixes, *prefix)
 	}
 
 	allNws, err := r.ds.ListNetworks()
@@ -199,23 +216,41 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 				}
 			}
 		}
-
+		if underlay {
+			underlayNetworks, err := r.ds.SearchUnderlayNetwork(partition.ID)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+			if len(underlayNetworks) != 0 {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a underlay network", partition.ID)) {
+					return
+				}
+			}
+		}
 		partitionID = partition.ID
+	}
+
+	if (primary || underlay) && nat {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("primary or underlay network is not supposed to NAT"))
+		return
 	}
 
 	// TODO: Check if project exists if we get a project entity
 
 	nw := &metal.Network{
 		Base: metal.Base{
+			ID:          id,
 			Name:        name,
 			Description: description,
 		},
-		Prefixes:    prefixes,
-		PartitionID: partitionID,
-		ProjectID:   projectid,
-		Nat:         requestPayload.Nat,
-		Primary:     primary,
-		Vrf:         vrfID,
+		Prefixes:            prefixes,
+		DestinationPrefixes: destPrefixes,
+		PartitionID:         partitionID,
+		ProjectID:           projectid,
+		Nat:                 nat,
+		Primary:             primary,
+		Underlay:            underlay,
+		Vrf:                 vrfID,
 	}
 
 	for _, p := range nw.Prefixes {
@@ -225,14 +260,16 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	vrf := &metal.Vrf{
-		ID:        vrfID,
-		ProjectID: projectid,
-	}
+	if vrfID != 0 {
+		vrf := &metal.Vrf{
+			ID:        vrfID,
+			ProjectID: projectid,
+		}
 
-	err = r.ds.CreateVrf(vrf)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+		err = r.ds.CreateVrf(vrf)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
 
 	err = r.ds.CreateNetwork(nw)

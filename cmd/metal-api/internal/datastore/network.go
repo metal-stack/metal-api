@@ -7,7 +7,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// GetPrimaryNetwork returns the network which is marked default in this partition
+// FindPrimaryNetwork returns the network which is marked default in this partition
 func (rs *RethinkStore) FindPrimaryNetwork(partitionID string) (*metal.Network, error) {
 	_, err := rs.FindPartition(partitionID)
 	if err != nil {
@@ -43,6 +43,26 @@ func (rs *RethinkStore) SearchPrimaryNetwork(partitionID string) ([]metal.Networ
 	var nws []metal.Network
 	searchFilter := func(row r.Term) r.Term {
 		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
+	}
+
+	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	if err != nil {
+		return nil, err
+	}
+
+	return nws, nil
+}
+
+// SearchUnderlayNetwork returns the network which is marked as underlay in this partition
+func (rs *RethinkStore) SearchUnderlayNetwork(partitionID string) ([]metal.Network, error) {
+	_, err := rs.FindPartition(partitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var nws []metal.Network
+	searchFilter := func(row r.Term) r.Term {
+		return row.Field("underlay").Eq(true).And(row.Field("partitionid").Eq(partitionID))
 	}
 
 	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)

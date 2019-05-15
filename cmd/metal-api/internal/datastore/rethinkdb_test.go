@@ -415,4 +415,3 @@ func TestRethinkStore_waitTable(t *testing.T) {
 		})
 	}
 }
- 

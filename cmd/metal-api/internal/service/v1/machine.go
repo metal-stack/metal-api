@@ -38,13 +38,15 @@ type MachineAllocation struct {
 }
 
 type MachineNetwork struct {
-	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
-	Prefixes  []string `json:"prefixes" description:"the prefixes of this network"`
-	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
-	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
-	ASN       int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Primary   bool     `json:"primary" description:"indicates whether this network is the primary project network"`
-	Nat       bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	NetworkID           string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
+	Prefixes            []string `json:"prefixes" description:"the prefixes of this network"`
+	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
+	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
+	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
+	Primary             bool     `json:"primary" description:"indicates whether this network is the primary project network"`
+	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 }
 
 type MachineHardware struct {
@@ -272,12 +274,15 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				ips = append(ips, ip)
 			}
 			network := MachineNetwork{
-				NetworkID: m.Allocation.MachineNetworks[i].NetworkID,
-				IPs:       ips,
-				Vrf:       m.Allocation.MachineNetworks[i].Vrf,
-				ASN:       m.Allocation.MachineNetworks[i].ASN,
-				Primary:   m.Allocation.MachineNetworks[i].Primary,
-				Nat:       m.Allocation.MachineNetworks[i].Nat,
+				NetworkID:           m.Allocation.MachineNetworks[i].NetworkID,
+				IPs:                 ips,
+				Vrf:                 m.Allocation.MachineNetworks[i].Vrf,
+				ASN:                 m.Allocation.MachineNetworks[i].ASN,
+				Primary:             m.Allocation.MachineNetworks[i].Primary,
+				Nat:                 m.Allocation.MachineNetworks[i].Nat,
+				Underlay:            m.Allocation.MachineNetworks[i].Underlay,
+				DestinationPrefixes: m.Allocation.MachineNetworks[i].DestinationPrefixes,
+				Prefixes:            m.Allocation.MachineNetworks[i].Prefixes,
 			}
 			networks = append(networks, network)
 		}

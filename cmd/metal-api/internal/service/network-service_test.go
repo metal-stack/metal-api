@@ -140,11 +140,12 @@ func TestCreateNetwork(t *testing.T) {
 	container := restful.NewContainer().Add(networkservice)
 
 	prefixes := []string{"172.0.0.0/24"}
+	destPrefixes := []string{"0.0.0.0/0"}
 	vrfID := uint(1)
 	createRequest := &v1.NetworkCreateRequest{
 		Describeable:     v1.Describeable{Name: &testdata.Nw1.Name},
 		NetworkBase:      v1.NetworkBase{PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID},
-		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, Vrf: &vrfID},
+		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, DestinationPrefixes: destPrefixes, Vrf: &vrfID},
 	}
 	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)
@@ -162,6 +163,8 @@ func TestCreateNetwork(t *testing.T) {
 	require.Equal(t, testdata.Nw1.Name, *result.Name)
 	require.Equal(t, testdata.Nw1.PartitionID, *result.PartitionID)
 	require.Equal(t, testdata.Nw1.ProjectID, *result.ProjectID)
+	require.Equal(t, testdata.Nw1.ProjectID, *result.ProjectID)
+	require.Equal(t, destPrefixes, result.DestinationPrefixes)
 }
 
 func TestUpdateNetwork(t *testing.T) {

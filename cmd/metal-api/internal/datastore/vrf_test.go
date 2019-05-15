@@ -1,4 +1,3 @@
-
 package datastore
 
 import (
@@ -9,6 +8,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
+
 func TestRethinkStore_FindVrf(t *testing.T) {
 
 	// Mock the DB:

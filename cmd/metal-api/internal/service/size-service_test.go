@@ -164,7 +164,7 @@ func TestUpdateSize(t *testing.T) {
 			},
 		},
 		SizeConstraints: &[]v1.SizeConstraint{
-			v1.SizeConstraint{
+			{
 				Type: metal.CoreConstraint,
 				Min:  minCores,
 				Max:  maxCores,

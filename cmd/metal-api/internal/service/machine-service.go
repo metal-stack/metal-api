@@ -200,7 +200,7 @@ func (r machineResource) webService() *restful.WebService {
 		To(r.checkMachineLiveliness).
 		Doc("external trigger for evaluating machine liveliness").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}). // swagger client does not work if we do not have a body... emits error 406
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineLivelinessReport{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -209,7 +209,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a power-on to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -218,7 +218,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a power-off to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -227,7 +227,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a reset to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -236,7 +236,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("boots machine into BIOS on next reboot").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads([]string{}).
+		Reads(emptyBody{}).
 		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -686,7 +686,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	}
 
 	machineNetworks := []metal.MachineNetwork{
-		metal.MachineNetwork{
+		{
 			NetworkID: projectNetwork.ID,
 			Prefixes:  projectNetwork.Prefixes.String(),
 			IPs:       []string{ip.IPAddress},
@@ -729,13 +729,15 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		}
 
 		machineNetwork := metal.MachineNetwork{
-			NetworkID: nw.ID,
-			Prefixes:  projectNetwork.Prefixes.String(),
-			IPs:       []string{ip.IPAddress},
-			ASN:       asn,
-			Primary:   false,
-			Nat:       projectNetwork.Nat,
-			Vrf:       nw.Vrf,
+			NetworkID:           nw.ID,
+			Prefixes:            projectNetwork.Prefixes.String(),
+			IPs:                 []string{ip.IPAddress},
+			DestinationPrefixes: nw.DestinationPrefixes.String(),
+			ASN:                 asn,
+			Primary:             false,
+			Underlay:            nw.Underlay,
+			Nat:                 projectNetwork.Nat,
+			Vrf:                 nw.Vrf,
 		}
 		machineNetworks = append(machineNetworks, machineNetwork)
 	}
@@ -1163,12 +1165,6 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	var params []string
-	err := request.ReadEntity(&params)
-	if checkError(request, response, op, err) {
-		return
-	}
-
 	m, err := r.ds.FindMachine(id)
 	if checkError(request, response, op, err) {
 		return
@@ -1177,7 +1173,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command: cmd,
-			Params:  params,
+			Params:  []string{},
 			Target:  m,
 		},
 	}

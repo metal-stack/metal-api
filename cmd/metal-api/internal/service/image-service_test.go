@@ -85,8 +85,10 @@ func TestDeleteImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	req := httptest.NewRequest("DELETE", "/v1/image/1", nil)
-	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
+	imageservice := NewImage(ds)
+	container := restful.NewContainer().Add(imageservice)
+	req := httptest.NewRequest("DELETE", "/v1/image/3", nil)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -96,8 +98,8 @@ func TestDeleteImage(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
-	require.Equal(t, testdata.Img1.ID, result.ID)
-	require.Equal(t, testdata.Img1.Name, *result.Name)
+	require.Equal(t, testdata.Img3.ID, result.ID)
+	require.Equal(t, testdata.Img3.Name, *result.Name)
 }
 
 func TestCreateImage(t *testing.T) {

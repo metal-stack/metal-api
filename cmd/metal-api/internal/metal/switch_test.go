@@ -67,15 +67,15 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 			fields: fields{
 				ID: "switch-1",
 				Nics: []Nic{
-					Nic{
+					{
 						Name:       "eth0",
 						MacAddress: "00:11:11",
 					},
-					Nic{
+					{
 						Name:       "swp1",
 						MacAddress: "11:11:11",
 					},
-					Nic{
+					{
 						Name:       "swp2",
 						MacAddress: "22:11:11",
 					},
@@ -89,14 +89,14 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 				RackID: "rack1",
 				MachineConnections: ConnectionMap{
 					"machine-1": []Connection{
-						Connection{
+						{
 							Nic: Nic{
 								Name:       "swp1",
 								MacAddress: "11:11:11",
 							},
 							MachineID: "machine-1",
 						},
-						Connection{
+						{
 							Nic: Nic{
 								Name:       "swp2",
 								MacAddress: "22:11:11",
@@ -112,24 +112,24 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 				},
 				Hardware: MachineHardware{
 					Nics: []Nic{
-						Nic{
+						{
 							Name: "eth0",
 							Neighbors: []Nic{
-								Nic{
+								{
 									MacAddress: "11:11:11",
 								},
-								Nic{
+								{
 									MacAddress: "11:11:12",
 								},
 							},
 						},
-						Nic{
+						{
 							Name: "eth1",
 							Neighbors: []Nic{
-								Nic{
+								{
 									MacAddress: "22:11:11",
 								},
-								Nic{
+								{
 									MacAddress: "11:11:13",
 								},
 							},
@@ -217,14 +217,14 @@ func TestNewSwitch(t *testing.T) {
 func TestConnections_ByNic(t *testing.T) {
 
 	testConnections := []Connection{
-		Connection{
+		{
 			Nic: Nic{
 				Name:       "swp1",
 				MacAddress: "11:11:11",
 			},
 			MachineID: "machine-1",
 		},
-		Connection{
+		{
 			Nic: Nic{
 				Name:       "swp2",
 				MacAddress: "22:11:11",
