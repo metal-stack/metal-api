@@ -2517,12 +2517,12 @@
     "service.emptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
         "projectid",
-        "partitionid",
         "sizeid",
         "imageid",
         "ssh_pub_keys",
+        "tenant",
+        "partitionid",
         "networks"
       ],
       "properties": {
@@ -2595,18 +2595,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "liveliness",
-        "changed",
-        "partition",
         "hardware",
         "events",
-        "tags",
+        "partition",
+        "created",
+        "state",
+        "liveliness",
         "rackid",
         "allocation",
-        "state",
-        "created",
+        "tags",
         "id",
-        "size"
+        "size",
+        "changed"
       ],
       "properties": {
         "allocation": {
@@ -2704,12 +2704,12 @@
     },
     "v1.IPResponse": {
       "required": [
-        "networkid",
         "projectid",
+        "networkid",
         "ipaddress",
         "machineid",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -2753,8 +2753,8 @@
     },
     "v1.IPUpdateRequest": {
       "required": [
-        "ipaddress",
-        "machineid"
+        "machineid",
+        "ipaddress"
       ],
       "properties": {
         "description": {
@@ -3353,15 +3353,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "rackid",
+        "size",
+        "liveliness",
+        "tags",
+        "partition",
         "hardware",
         "allocation",
         "state",
-        "liveliness",
         "events",
-        "rackid",
-        "size",
-        "partition",
-        "tags",
         "created",
         "changed"
       ],
@@ -3453,18 +3453,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "allocation",
-        "partition",
-        "rackid",
-        "hardware",
-        "liveliness",
-        "tags",
         "state",
-        "size",
+        "partition",
         "changed",
-        "events",
         "created",
         "id",
+        "liveliness",
+        "rackid",
+        "hardware",
+        "size",
+        "events",
+        "tags",
+        "allocation",
         "phone_home_token"
       ],
       "properties": {
@@ -3543,11 +3543,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "prefixes",
-        "destinationprefixes"
+        "prefixes"
       ],
       "properties": {
         "description": {
@@ -3607,11 +3607,11 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "primary",
+        "underlay",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay",
         "usage",
         "created",
         "changed"
@@ -3930,8 +3930,8 @@
       "required": [
         "id",
         "constraints",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
