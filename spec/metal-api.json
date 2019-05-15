@@ -1,4 +1,4 @@
-{"level":"warn","time":"2019-05-15T10:12:07.781+0200","caller":"metal-api/main.go:256","message":"dex not reachable","error":"cannot fetch dex keys from /keys: invalid url scheme "}
+{"level":"warn","time":"2019-05-15T10:13:02.913+0200","caller":"metal-api/main.go:256","message":"dex not reachable","error":"cannot fetch dex keys from /keys: invalid url scheme "}
 {
   "swagger": "2.0",
   "info": {
@@ -2518,12 +2518,12 @@
     "service.emptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "imageid",
         "tenant",
         "projectid",
+        "ssh_pub_keys",
         "partitionid",
         "sizeid",
-        "ssh_pub_keys",
+        "imageid",
         "networks"
       ],
       "properties": {
@@ -2596,18 +2596,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "id",
-        "partition",
-        "liveliness",
-        "tags",
+        "state",
+        "events",
+        "created",
         "size",
         "hardware",
         "allocation",
-        "events",
+        "tags",
+        "changed",
+        "liveliness",
+        "partition",
         "rackid",
-        "state",
-        "created",
-        "changed"
+        "id"
       ],
       "properties": {
         "allocation": {
@@ -2681,8 +2681,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "networkid",
-        "projectid"
+        "projectid",
+        "networkid"
       ],
       "properties": {
         "description": {
@@ -3354,15 +3354,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "events",
-        "state",
+        "partition",
         "rackid",
-        "size",
         "hardware",
-        "allocation",
         "liveliness",
         "tags",
-        "partition",
+        "size",
+        "allocation",
+        "state",
+        "events",
         "created",
         "changed"
       ],
@@ -3454,18 +3454,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "rackid",
-        "changed",
-        "liveliness",
-        "allocation",
-        "id",
-        "events",
-        "tags",
         "hardware",
-        "size",
-        "state",
-        "created",
+        "allocation",
+        "liveliness",
+        "events",
         "partition",
+        "size",
+        "created",
+        "id",
+        "state",
+        "tags",
+        "changed",
+        "rackid",
         "phone_home_token"
       ],
       "properties": {
@@ -3544,11 +3544,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "destinationprefixes",
+        "nat",
         "primary",
         "underlay",
-        "prefixes",
-        "destinationprefixes",
-        "nat"
+        "prefixes"
       ],
       "properties": {
         "description": {
@@ -3608,14 +3608,14 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "primary",
+        "underlay",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay",
         "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
