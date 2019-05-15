@@ -475,7 +475,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	}
 
 	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
-	if err != nil && metal.IsNotFound(err) {
+	if err != nil && !metal.IsNotFound(err) {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -651,12 +651,15 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 				Name:        fmt.Sprintf("Child of %s", primaryNetwork.ID),
 				Description: "Automatically Created Project Network",
 			},
-			Prefixes:        metal.Prefixes{*projectPrefix},
-			PartitionID:     partition.ID,
-			ProjectID:       allocationSpec.ProjectID,
-			Nat:             primaryNetwork.Nat,
-			Primary:         false,
-			ParentNetworkID: primaryNetwork.ID,
+			Prefixes:            metal.Prefixes{*projectPrefix},
+			DestinationPrefixes: metal.Prefixes{},
+			PartitionID:         partition.ID,
+			ProjectID:           allocationSpec.ProjectID,
+			Nat:                 primaryNetwork.Nat,
+			Primary:             false,
+			Underlay:            false,
+			Vrf:                 vrf.ID,
+			ParentNetworkID:     primaryNetwork.ID,
 		}
 
 		err = ds.CreateNetwork(projectNetwork)
@@ -687,13 +690,15 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	machineNetworks := []metal.MachineNetwork{
 		{
-			NetworkID: projectNetwork.ID,
-			Prefixes:  projectNetwork.Prefixes.String(),
-			IPs:       []string{ip.IPAddress},
-			Vrf:       vrf.ID,
-			ASN:       asn,
-			Primary:   true,
-			Nat:       projectNetwork.Nat,
+			NetworkID:           projectNetwork.ID,
+			Prefixes:            projectNetwork.Prefixes.String(),
+			DestinationPrefixes: projectNetwork.DestinationPrefixes.String(),
+			IPs:                 []string{ip.IPAddress},
+			Vrf:                 vrf.ID,
+			ASN:                 asn,
+			Primary:             projectNetwork.Primary,
+			Underlay:            projectNetwork.Underlay,
+			Nat:                 projectNetwork.Nat,
 		},
 	}
 

@@ -525,22 +525,18 @@ func TestOnMachine(t *testing.T) {
 		{
 			cmd:      metal.MachineOnCmd,
 			endpoint: "on",
-			param:    "blub",
 		},
 		{
 			cmd:      metal.MachineOffCmd,
 			endpoint: "off",
-			param:    "blubber",
 		},
 		{
 			cmd:      metal.MachineResetCmd,
 			endpoint: "reset",
-			param:    "bluba",
 		},
 		{
 			cmd:      metal.MachineBiosCmd,
 			endpoint: "bios",
-			param:    "blubabla",
 		},
 	}
 
@@ -554,7 +550,6 @@ func TestOnMachine(t *testing.T) {
 				require.Equal(t, "machine", topic)
 				dv := data.(metal.MachineEvent)
 				require.Equal(t, d.cmd, dv.Cmd.Command)
-				require.Equal(t, d.param, dv.Cmd.Params[0])
 				require.Equal(t, "1", dv.Cmd.Target.ID)
 				return nil
 			}
