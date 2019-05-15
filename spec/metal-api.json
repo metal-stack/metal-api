@@ -1,3 +1,4 @@
+{"level":"warn","time":"2019-05-14T11:30:47.599Z","caller":"metal-api/main.go:256","message":"dex not reachable","error":"cannot fetch dex keys from /keys: invalid url scheme "}
 {
   "swagger": "2.0",
   "info": {
@@ -195,7 +196,7 @@
           "image"
         ],
         "summary": "create an image. if the given ID already exists a conflict is returned",
-        "operationId": "createImage",
+        "operationId": "func1",
         "parameters": [
           {
             "name": "body",
@@ -238,7 +239,7 @@
           "image"
         ],
         "summary": "updates an image. if the image was changed since this one was read, a conflict is returned",
-        "operationId": "updateImage",
+        "operationId": "func2",
         "parameters": [
           {
             "name": "body",
@@ -2520,11 +2521,11 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "sizeid",
+        "partitionid",
         "imageid",
         "tenant",
         "projectid",
-        "partitionid",
+        "sizeid",
         "ssh_pub_keys",
         "networks"
       ],
@@ -2599,17 +2600,17 @@
     "v1.FirewallResponse": {
       "required": [
         "hardware",
+        "rackid",
+        "changed",
+        "size",
+        "state",
         "liveliness",
         "tags",
-        "changed",
-        "id",
-        "partition",
-        "state",
-        "size",
-        "rackid",
         "allocation",
+        "partition",
+        "created",
         "events",
-        "created"
+        "id"
       ],
       "properties": {
         "allocation": {
@@ -2711,8 +2712,8 @@
         "networkid",
         "ipaddress",
         "machineid",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -2814,8 +2815,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3342,15 +3343,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "rackid",
-        "size",
         "hardware",
-        "allocation",
+        "liveliness",
         "events",
         "tags",
-        "partition",
+        "rackid",
+        "size",
+        "allocation",
         "state",
-        "liveliness",
+        "partition",
         "created",
         "changed"
       ],
@@ -3444,16 +3445,16 @@
       "required": [
         "partition",
         "size",
-        "changed",
-        "id",
-        "liveliness",
-        "events",
-        "rackid",
-        "allocation",
         "state",
-        "created",
-        "tags",
+        "changed",
         "hardware",
+        "liveliness",
+        "id",
+        "rackid",
+        "tags",
+        "events",
+        "allocation",
+        "created",
         "phone_home_token"
       ],
       "properties": {
@@ -3531,9 +3532,9 @@
     },
     "v1.NetworkCreateRequest": {
       "required": [
-        "primary",
         "prefixes",
-        "nat"
+        "nat",
+        "primary"
       ],
       "properties": {
         "description": {
@@ -3581,8 +3582,8 @@
         "nat",
         "primary",
         "usage",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3887,8 +3888,8 @@
       "required": [
         "id",
         "constraints",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
