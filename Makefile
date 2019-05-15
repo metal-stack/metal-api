@@ -8,10 +8,13 @@ include $(COMMONDIR)/Makefile.inc
 
 .PHONY: all
 all::
-	@bin/metal-api dump-swagger >spec/metal-api.json
 	go mod tidy
 
 release:: all;
+
+.PHONY: spec
+spec: all
+	bin/metal-api dump-swagger >spec/metal-api.json
 
 .PHONY: createmasterdata
 createmasterdata:
