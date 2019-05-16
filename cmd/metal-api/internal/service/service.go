@@ -135,7 +135,7 @@ func oneOf(rf restful.RouteFunction, acc ...security.RessourceAccess) restful.Ro
 	return func(request *restful.Request, response *restful.Response) {
 		log := utils.Logger(request)
 		lg := log.Sugar()
-		usr := security.GetUser(request.Request.Context())
+		usr := security.GetUser(request.Request)
 		if !usr.HasGroup(acc...) {
 			err := fmt.Errorf("you are not member in one of %+v", acc)
 			lg.Infow("missing group", "user", usr, "required-group", acc)

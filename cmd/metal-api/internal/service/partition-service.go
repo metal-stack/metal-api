@@ -59,7 +59,7 @@ func (r partitionResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(r.deletePartition).
+		To(admin(r.deletePartition)).
 		Operation("deletePartition").
 		Doc("deletes a Partition and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the Partition").DataType("string")).
@@ -69,7 +69,7 @@ func (r partitionResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
-		To(r.createPartition).
+		To(admin(r.createPartition)).
 		Doc("create a Partition. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.PartitionCreateRequest{}).
@@ -78,7 +78,7 @@ func (r partitionResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").
-		To(r.updatePartition).
+		To(admin(r.updatePartition)).
 		Doc("updates a Partition. if the Partition was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.PartitionUpdateRequest{}).

@@ -42,7 +42,7 @@ func (ir ipResource) webService() *restful.WebService {
 	tags := []string{"ip"}
 
 	ws.Route(ws.GET("/{id}").
-		To(ir.findIP).
+		To(viewer(ir.findIP)).
 		Operation("findIP").
 		Doc("get ip by id").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
@@ -52,7 +52,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(ir.listIPs).
+		To(viewer(ir.listIPs)).
 		Operation("listIPs").
 		Doc("get all ips").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -61,7 +61,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(ir.deleteIP).
+		To(editor(ir.deleteIP)).
 		Operation("deleteIP").
 		Doc("deletes an ip and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
@@ -70,7 +70,7 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/").To(ir.updateIP).
+	ws.Route(ws.POST("/").To(editor(ir.updateIP)).
 		Doc("updates an ip. if the ip was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPUpdateRequest{}).
@@ -79,7 +79,7 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/allocate").To(ir.allocateIP).
+	ws.Route(ws.POST("/allocate").To(editor(ir.allocateIP)).
 		Doc("allocate an ip in the given network for a project.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPAllocateRequest{}).

@@ -94,6 +94,7 @@ func TestDeleteSize(t *testing.T) {
 	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("DELETE", "/v1/size/1", nil)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -130,6 +131,7 @@ func TestCreateSize(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -175,6 +177,7 @@ func TestUpdateSize(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 

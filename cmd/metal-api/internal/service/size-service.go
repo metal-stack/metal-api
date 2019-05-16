@@ -57,7 +57,7 @@ func (r sizeResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(r.deleteSize).
+		To(admin(r.deleteSize)).
 		Operation("deleteSize").
 		Doc("deletes an size and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the size").DataType("string")).
@@ -67,7 +67,7 @@ func (r sizeResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
-		To(r.createSize).
+		To(admin(r.createSize)).
 		Doc("create a size. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SizeCreateRequest{}).
@@ -76,7 +76,7 @@ func (r sizeResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").
-		To(r.updateSize).
+		To(admin(r.updateSize)).
 		Doc("updates a size. if the size was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SizeUpdateRequest{}).

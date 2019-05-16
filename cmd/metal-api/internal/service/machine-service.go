@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"git.f-i-ts.de/cloud-native/metallib/security"
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
@@ -90,7 +91,7 @@ func (r machineResource) webService() *restful.WebService {
 	tags := []string{"machine"}
 
 	ws.Route(ws.GET("/{id}").
-		To(r.findMachine).
+		To(viewer(r.findMachine)).
 		Operation("findMachine").
 		Doc("get machine by id").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
@@ -100,7 +101,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(r.listMachines).
+		To(viewer(r.listMachines)).
 		Operation("listMachines").
 		Doc("get all known machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -109,7 +110,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/find").
-		To(r.searchMachine).
+		To(viewer(r.searchMachine)).
 		Doc("search machines").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -118,7 +119,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/register").
-		To(r.registerMachine).
+		To(editor(r.registerMachine)).
 		Doc("register a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineRegisterRequest{}).
@@ -128,7 +129,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").
-		To(r.allocateMachine).
+		To(editor(r.allocateMachine)).
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineAllocateRequest{}).
@@ -136,7 +137,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/finalize-allocation").
-		To(r.finalizeAllocation).
+		To(editor(r.finalizeAllocation)).
 		Doc("finalize the allocation of the machine by reconfiguring the switch, sent on successful image installation").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -145,7 +146,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/state").
-		To(r.setMachineState).
+		To(editor(r.setMachineState)).
 		Doc("set the state of a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -155,7 +156,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}/free").
-		To(r.freeMachine).
+		To(editor(r.freeMachine)).
 		Doc("free a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -163,7 +164,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/ipmi").
-		To(r.ipmiData).
+		To(viewer(r.ipmiData)).
 		Doc("returns the IPMI connection data for a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -171,7 +172,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/wait").
-		To(r.waitForAllocation).
+		To(editor(r.waitForAllocation)).
 		Doc("wait for an allocation of this machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -180,7 +181,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/event").
-		To(r.getProvisioningEventContainer).
+		To(viewer(r.getProvisioningEventContainer)).
 		Doc("get the current machine provisioning event container").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -197,7 +198,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/liveliness").
-		To(r.checkMachineLiveliness).
+		To(viewer(r.checkMachineLiveliness)).
 		Doc("external trigger for evaluating machine liveliness").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(emptyBody{}).
@@ -205,7 +206,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/on").
-		To(r.machineOn).
+		To(editor(r.machineOn)).
 		Doc("sends a power-on to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -214,7 +215,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/off").
-		To(r.machineOff).
+		To(editor(r.machineOff)).
 		Doc("sends a power-off to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -223,7 +224,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/reset").
-		To(r.machineReset).
+		To(editor(r.machineReset)).
 		Doc("sends a reset to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -232,7 +233,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/bios").
-		To(r.machineBios).
+		To(editor(r.machineBios)).
 		Doc("boots machine into BIOS on next reboot").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -1007,7 +1008,11 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 			return
 		}
 	}
-
+	usr := security.GetUser(request.Request)
+	if !usr.HasGroup(metal.ViewAccess, metal.EditAccess, metal.AdminAccess) {
+		// check if this is a phone home ... and then check the phone-home-key
+		// otherwise this should be forbidden
+	}
 	if m == nil {
 		m = &metal.Machine{
 			Base: metal.Base{
