@@ -63,6 +63,7 @@ func (sr switchResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/register").To(editor(sr.registerSwitch)).
 		Doc("register a switch").
+		Operation("registerSwitch").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.RegisterSwitch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).

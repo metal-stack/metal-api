@@ -71,6 +71,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").To(editor(ir.updateIP)).
+		Operation("updateIP").
 		Doc("updates an ip. if the ip was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPUpdateRequest{}).
@@ -80,6 +81,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").To(editor(ir.allocateIP)).
+		Operation("allocateIP").
 		Doc("allocate an ip in the given network for a project.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPAllocateRequest{}).

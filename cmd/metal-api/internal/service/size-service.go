@@ -68,6 +68,7 @@ func (r sizeResource) webService() *restful.WebService {
 
 	ws.Route(ws.PUT("/").
 		To(admin(r.createSize)).
+		Operation("createSize").
 		Doc("create a size. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SizeCreateRequest{}).
@@ -77,6 +78,7 @@ func (r sizeResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/").
 		To(admin(r.updateSize)).
+		Operation("updateSize").
 		Doc("updates a size. if the size was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SizeUpdateRequest{}).
@@ -86,6 +88,7 @@ func (r sizeResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/from-hardware").
 		To(r.fromHardware).
+		Operation("fromHardware").
 		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.MachineHardware{}).

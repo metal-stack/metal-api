@@ -70,6 +70,7 @@ func (r partitionResource) webService() *restful.WebService {
 
 	ws.Route(ws.PUT("/").
 		To(admin(r.createPartition)).
+		Operation("createPartition").
 		Doc("create a Partition. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.PartitionCreateRequest{}).
@@ -79,6 +80,7 @@ func (r partitionResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/").
 		To(admin(r.updatePartition)).
+		Operation("updatePartition").
 		Doc("updates a Partition. if the Partition was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.PartitionUpdateRequest{}).

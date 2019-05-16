@@ -68,6 +68,7 @@ func (ir imageResource) webService() *restful.WebService {
 
 	ws.Route(ws.PUT("/").
 		To(admin(ir.createImage)).
+		Operation("createImage").
 		Doc("create an image. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageCreateRequest{}).
@@ -77,6 +78,7 @@ func (ir imageResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/").
 		To(admin(ir.updateImage)).
+		Operation("updateImage").
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageUpdateRequest{}).

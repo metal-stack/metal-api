@@ -71,6 +71,7 @@ func (r networkResource) webService() *restful.WebService {
 
 	ws.Route(ws.PUT("/").
 		To(editor(r.createNetwork)).
+		Operation("createNetwork").
 		Doc("create an network. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkCreateRequest{}).
@@ -80,6 +81,7 @@ func (r networkResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/").
 		To(editor(r.updateNetwork)).
+		Operation("updateNetwork").
 		Doc("updates an network. if the network was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkUpdateRequest{}).
