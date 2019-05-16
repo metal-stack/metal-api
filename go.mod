@@ -42,4 +42,4 @@ require (
 
 exclude github.com/emicklei/go-restful-openapi v1.0.0
 
-replace git.f-i-ts.de/cloud-native/metallib => ../../metallib
+// replace git.f-i-ts.de/cloud-native/metallib => ../../metallib
