@@ -741,7 +741,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			ASN:                 asn,
 			Primary:             false,
 			Underlay:            nw.Underlay,
-			Nat:                 projectNetwork.Nat,
+			Nat:                 nw.Nat,
 			Vrf:                 nw.Vrf,
 		}
 		machineNetworks = append(machineNetworks, additionalMachineNetwork)
