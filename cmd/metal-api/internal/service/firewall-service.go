@@ -68,6 +68,7 @@ func (r firewallResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/allocate").
 		To(editor(r.allocateFirewall)).
+		Operation("allocateFirewall").
 		Doc("allocate a firewall").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.FirewallCreateRequest{}).
