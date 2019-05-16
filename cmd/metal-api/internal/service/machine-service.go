@@ -696,7 +696,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			IPs:                 []string{ip.IPAddress},
 			Vrf:                 vrf.ID,
 			ASN:                 asn,
-			Primary:             projectNetwork.Primary,
+			Primary:             true,
 			Underlay:            projectNetwork.Underlay,
 			Nat:                 projectNetwork.Nat,
 		},
@@ -733,7 +733,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			return nil, err
 		}
 
-		machineNetwork := metal.MachineNetwork{
+		additionalMachineNetwork := metal.MachineNetwork{
 			NetworkID:           nw.ID,
 			Prefixes:            projectNetwork.Prefixes.String(),
 			IPs:                 []string{ip.IPAddress},
@@ -744,7 +744,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			Nat:                 projectNetwork.Nat,
 			Vrf:                 nw.Vrf,
 		}
-		machineNetworks = append(machineNetworks, machineNetwork)
+		machineNetworks = append(machineNetworks, additionalMachineNetwork)
 	}
 
 	alloc := &metal.MachineAllocation{
