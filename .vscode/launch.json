@@ -17,10 +17,12 @@
                 "METAL_API_DB_ADDR": "rethinkdb-rethinkdb-proxy:28015",
                 "METAL_API_DB_PASSWORD":"",
                 "METAL_API_LOG_LEVEL":"debug",
-                "METAL_API_NETBOX_ADDR":"metal-netbox-api-proxy:8002",
                 "METAL_API_NSQD_ADDR":"metal-nsqd:4150",
                 "METAL_API_NSQD_HTTP_ADDR":"metal-nsqd:4151",
-                "METAL_API_NETBOX_API_TOKEN":"de599cb74da0e4d16c6ca45cb80d5c9c072c1614"
+                "METAL_API_IPAM_DB_ADDR":"postgres",
+                "METAL_API_IPAM_DB_NAME":"ipam",
+                "METAL_API_IPAM_DB_PASSWORD":"metal",
+                "METAL_API_IPAM_DB_USER": "ipam"
             },
             "args": []
         }
