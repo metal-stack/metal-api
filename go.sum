@@ -1,3 +1,5 @@
+git.f-i-ts.de/cloud-native/metallib v0.0.0-20190516120446-7d313876bcb1 h1:StBuOLmSgAAc8fuyT+q6+AcfWVO4IQ+6IZJzN6BbmIU=
+git.f-i-ts.de/cloud-native/metallib v0.0.0-20190516120446-7d313876bcb1/go.mod h1:rYjjDahkhZmhj4QndersR4u8rsU2iT3bxDUM2hXpT4Y=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/PuerkitoBio/purell v1.1.0 h1:rmGxhojJlM0tuKtfdvliR84CFHljx9ag64t2xmVkjK4=
