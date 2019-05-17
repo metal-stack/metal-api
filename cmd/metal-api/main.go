@@ -391,8 +391,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		"jwt":  jwtspec,
 	}
 	swo.Security = []map[string][]string{
-		{"HMAC": []string{}},
-		{"jwt": []string{}},
+		{"Authorization": []string{"HMAC", "jwt"}},
 	}
 
 	// Maybe this leads to an issue, investigating...:
