@@ -213,7 +213,7 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 	}
 	err = res.One(entity)
 	if err != nil {
-		return fmt.Errorf("cannot fetch single %v: %v", getEntityName(entity), err)
+		return fmt.Errorf("more than one %v with same id exists: %v", getEntityName(entity), err)
 	}
 	return nil
 }
@@ -268,10 +268,8 @@ func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.MetalEntity) er
 	return nil
 }
 
-func (rs *RethinkStore) searchEntities(table *r.Term, filter interface{}, entity interface{}) error {
-	q := table.Filter(filter)
-
-	res, err := q.Run(rs.session)
+func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error {
+	res, err := query.Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot search %v in database: %v", getEntityName(entity), err)
 	}
@@ -311,7 +309,7 @@ func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.MetalE
 	defer res.Close()
 
 	for res.Next(&response) {
-		rs.SugaredLogger.Infow("entity changed", "entity", getEntityName(entity), "id", entity.GetID())
+		rs.SugaredLogger.Debugw("entity changed", "entity", getEntityName(entity), "id", entity.GetID())
 		return nil
 	}
 	err = res.Err()

@@ -1,201 +1,81 @@
 package datastore
 
 import (
-	"fmt"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // FindSwitch returns a switch for a given id.
 func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
-	res, err := rs.switchTable().Get(id).Run(rs.session)
+	var s metal.Switch
+	err := rs.findEntityByID(rs.switchTable(), &s, id)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get switch from database: %v", err)
+		return nil, err
 	}
-	defer res.Close()
-	if res.IsNil() {
-		return nil, metal.NotFound("no switch %q found", id)
-	}
-	var sw metal.Switch
-	err = res.One(&sw)
-	if err != nil {
-		return nil, fmt.Errorf("cannot fetch results: %v", err)
-	}
-	sw.FillSwitchConnections()
-	return &sw, nil
-}
-
-func (rs *RethinkStore) findSwitchByRack(rackid string) ([]metal.Switch, error) {
-	q := *rs.switchTable()
-	if rackid != "" {
-		q = q.Filter(func(s r.Term) r.Term {
-			return s.Field("rackid").Eq(rackid)
-		})
-	}
-	res, err := q.Run(rs.session)
-	if err != nil {
-		return nil, fmt.Errorf("cannot search switch by rackid: %v", err)
-	}
-	defer res.Close()
-	data := make([]metal.Switch, 0)
-	err = res.All(&data)
-	if err != nil {
-		return nil, fmt.Errorf("cannot fetch results: %v", err)
-	}
-	metal.FillAllConnections(data)
-	return data, nil
+	return &s, nil
 }
 
 // ListSwitches returns all known switches.
 func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
-	res, err := rs.switchTable().Run(rs.session)
-	if err != nil {
-		return nil, fmt.Errorf("cannot search switches from database: %v", err)
-	}
-	defer res.Close()
-	switches := make([]metal.Switch, 0)
-	err = res.All(&switches)
-	if err != nil {
-		return nil, fmt.Errorf("cannot fetch results: %v", err)
-	}
-	metal.FillAllConnections(switches)
-	return switches, nil
+	ss := make([]metal.Switch, 0)
+	err := rs.listEntities(rs.switchTable(), &ss)
+	return ss, err
 }
 
 // CreateSwitch creates a new switch.
-func (rs *RethinkStore) CreateSwitch(s *metal.Switch) (*metal.Switch, error) {
-	res, err := rs.switchTable().Insert(s).RunWrite(rs.session)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create switch in database: %v", err)
-	}
-	if s.ID == "" {
-		s.ID = res.GeneratedKeys[0]
-	}
-	s.FillSwitchConnections()
-	return s, nil
+func (rs *RethinkStore) CreateSwitch(s *metal.Switch) error {
+	return rs.createEntity(rs.switchTable(), s)
 }
 
 // DeleteSwitch deletes a switch.
-func (rs *RethinkStore) DeleteSwitch(id string) (*metal.Switch, error) {
-	sw, err := rs.FindSwitch(id)
-	if err != nil {
-		return nil, err
-	}
-	_, err = rs.switchTable().Get(id).Delete().RunWrite(rs.session)
-	if err != nil {
-		return nil, fmt.Errorf("cannot delete switch from database: %v", err)
-	}
-	return sw, nil
+func (rs *RethinkStore) DeleteSwitch(s *metal.Switch) error {
+	return rs.deleteEntity(rs.switchTable(), s)
 }
 
 // UpdateSwitch updates a switch.
 func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.Switch) error {
-	_, err := rs.switchTable().Get(oldSwitch.ID).Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(oldSwitch.Changed)), newSwitch, r.Error("the switch was changed from another, please retry"))
-	}).RunWrite(rs.session)
-	if err != nil {
-		return fmt.Errorf("cannot update switch: %v", err)
-	}
-	return nil
+	return rs.updateEntity(rs.switchTable(), newSwitch, oldSwitch)
 }
 
-// UpdateSwitchConnections fills the output field of the machine with a list
-// of connections. As the connections are stored in a map which is not visible via
-// json, this map is transformed to a collection for the clients.
-func (rs *RethinkStore) UpdateSwitchConnections(m *metal.Machine) error {
-	switches, err := rs.findSwitchByRack(m.RackID)
-	if err != nil {
-		return err
-	}
-	for _, sw := range switches {
-		oldSwitch := sw
-		sw.ConnectMachine(m)
-		err := rs.UpdateSwitch(&oldSwitch, &sw)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// SearchSwitches searches for switches by the given parameters.
+func (rs *RethinkStore) SearchSwitches(rackid string, macs []string) ([]metal.Switch, error) {
+	q := *rs.switchTable()
 
-// SetVrfAtSwitch finds the connected switches and puts the switch ports into the given vrf
-func (rs *RethinkStore) SetVrfAtSwitch(m *metal.Machine, vrf string) ([]metal.Switch, error) {
-	switches, err := rs.findSwitchByMachine(m)
+	if rackid != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("rackid").Eq(rackid)
+		})
+	}
+
+	if len(macs) > 0 {
+		macexpr := r.Expr(macs)
+
+		q = q.Filter(func(row r.Term) r.Term {
+			return macexpr.SetIntersection(row.Field("network_interfaces").Field("macAddress")).Count().Gt(1)
+		})
+	}
+
+	var ss []metal.Switch
+	err := rs.searchEntities(&q, &ss)
 	if err != nil {
 		return nil, err
 	}
-	newSwitches := make([]metal.Switch, 0)
-	for _, sw := range switches {
-		oldSwitch := sw
-		rs.setVrf(&sw, m.ID, vrf)
-		err := rs.UpdateSwitch(&oldSwitch, &sw)
-		if err != nil {
-			return nil, err
-		}
-		newSwitches = append(newSwitches, sw)
-	}
-	return newSwitches, nil
+
+	return ss, nil
 }
 
-func (rs *RethinkStore) findSwitchByMachine(m *metal.Machine) ([]metal.Switch, error) {
+// SearchSwitchesConnectedToMachine searches switches that are connected to the given machine.
+func (rs *RethinkStore) SearchSwitchesConnectedToMachine(m *metal.Machine) ([]metal.Switch, error) {
+	switches, err := rs.SearchSwitches(m.RackID, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	res := []metal.Switch{}
-	switches, err := rs.findSwitchByRack(m.RackID)
-	if err != nil {
-		return nil, err
-	}
 	for _, sw := range switches {
 		if _, has := sw.MachineConnections[m.ID]; has {
 			res = append(res, sw)
 		}
 	}
 	return res, nil
-}
-
-func (rs *RethinkStore) setVrf(s *metal.Switch, mid, vrf string) {
-	// gather nics within MachineConnections
-	changed := metal.Nics{}
-	for _, c := range s.MachineConnections[mid] {
-		c.Nic.Vrf = vrf
-		changed = append(changed, c.Nic)
-	}
-
-	if len(changed) == 0 {
-		return
-	}
-
-	// update sw.Nics
-	currentByMac := s.Nics.ByMac()
-	changedByMac := changed.ByMac()
-	s.Nics = metal.Nics{}
-	for mac, old := range currentByMac {
-		e := old
-		if new, has := changedByMac[mac]; has {
-			e = new
-		}
-		s.Nics = append(s.Nics, *e)
-	}
-}
-
-func (rs *RethinkStore) findSwithcByMac(macs []metal.Nic) ([]metal.Switch, error) {
-	var searchmacs []string
-	for _, m := range macs {
-		searchmacs = append(searchmacs, string(m.MacAddress))
-	}
-	macexpr := r.Expr(searchmacs)
-
-	res, err := rs.switchTable().Filter(func(row r.Term) r.Term {
-		return macexpr.SetIntersection(row.Field("network_interfaces").Field("macAddress")).Count().Gt(1)
-	}).Run(rs.session)
-	if err != nil {
-		return nil, fmt.Errorf("cannot search switches from database: %v", err)
-	}
-	defer res.Close()
-	switches := make([]metal.Switch, 0)
-	err = res.All(&switches)
-	if err != nil {
-		return nil, fmt.Errorf("cannot fetch results: %v", err)
-	}
-	metal.FillAllConnections(switches)
-	return switches, nil
 }

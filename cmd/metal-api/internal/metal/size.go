@@ -97,7 +97,7 @@ nextsize:
 	}
 
 	if len(found) == 0 {
-		return nil, matchlog, fmt.Errorf("no size found for hardware (%s)", hardware.ReadableSpec())
+		return nil, matchlog, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
 	}
 	if len(found) > 1 {
 		return nil, matchlog, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())

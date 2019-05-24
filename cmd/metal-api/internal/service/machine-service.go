@@ -212,7 +212,7 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("checkMachineLiveliness").
 		Doc("external trigger for evaluating machine liveliness").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(emptyBody{}).
+		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineLivelinessReport{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -222,8 +222,8 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a power-on to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(emptyBody{}).
-		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/off").
@@ -232,8 +232,8 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a power-off to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(emptyBody{}).
-		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/reset").
@@ -242,8 +242,8 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a reset to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(emptyBody{}).
-		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/bios").
@@ -252,8 +252,8 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("boots machine into BIOS on next reboot").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(emptyBody{}).
-		Returns(http.StatusOK, "OK", metal.MachineAllocation{}).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -298,8 +298,8 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 	err := r.wait(id, log.Sugar(), func(alloc Allocation) error {
 		select {
 		case <-time.After(waitForServerTimeout):
-			response.WriteErrorString(http.StatusGatewayTimeout, "server timeout")
-			return fmt.Errorf("server timeout")
+			response.WriteHeaderAndEntity(http.StatusGatewayTimeout, httperrors.NewHTTPError(http.StatusGatewayTimeout, fmt.Errorf("server timeout")))
+			return nil
 		case a := <-alloc:
 			if a.Err != nil {
 				log.Sugar().Errorw("allocation returned an error", "error", a.Err)
@@ -354,13 +354,14 @@ func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Alloca
 	}
 	defer func() {
 		err := r.ds.RemoveWaitingMachine(m)
-		logger.Errorw("could not remove machine from wait table", "error", err)
+		if err != nil {
+			logger.Errorw("could not remove machine from wait table", "error", err)
+		}
 	}()
 
 	go func() {
 		changedMachine, err := r.ds.WaitForMachineAllocation(m)
 		if err != nil {
-			logger.Errorw("stop waiting for changes", "id", id)
 			a <- MachineAllocation{Err: err}
 		} else {
 			a <- MachineAllocation{Machine: changedMachine}
@@ -433,7 +434,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	size, _, err := r.ds.FromHardware(machineHardware)
 	if err != nil {
 		size = metal.UnknownSize
-		utils.Logger(request).Sugar().Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
+		utils.Logger(request).Sugar().Warnw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
 	}
 
 	m, err := r.ds.FindMachine(requestPayload.UUID)
@@ -442,6 +443,8 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			return
 		}
 	}
+
+	returnCode := http.StatusOK
 
 	if m == nil {
 		// machine is not in the database, create it
@@ -472,6 +475,8 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			return
 		}
 
+		returnCode = http.StatusCreated
+
 	} else {
 		// machine has already registered, update it
 		old := *m
@@ -497,18 +502,18 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		}
 	}
 	if ec == nil {
-		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID})
+		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID, IncompleteProvisioningCycles: "0"})
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 	}
 
-	err = r.ds.UpdateSwitchConnections(m)
+	err = connectMachineWithSwitches(r.ds, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	response.WriteHeaderAndEntity(returnCode, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
 func (r machineResource) ipmiData(request *restful.Request, response *restful.Response) {
@@ -647,24 +652,32 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	old := *machine
 
 	var vrf *metal.Vrf
-	vrf, err = ds.FindVrf(map[string]interface{}{"tenant": allocationSpec.Tenant, "projectid": allocationSpec.ProjectID})
-	if err != nil {
-		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
-	}
-	if vrf == nil {
+
+	vrf, err = ds.FindVrfByProject(allocationSpec.ProjectID, allocationSpec.Tenant)
+	if err != nil && metal.IsNotFound(err) {
 		vrf, err = ds.ReserveNewVrf(allocationSpec.Tenant, allocationSpec.ProjectID)
+
 		if err != nil {
 			return nil, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
 		}
 	}
-
-	projectNetwork, err := ds.SearchProjectNetwork(allocationSpec.ProjectID)
-	if err != nil {
-		return nil, err
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
 	}
+
+	vrfID, err := vrf.ToUint()
+	if err != nil {
+		return nil, fmt.Errorf("cannot convert vrfid to uint: %v", err)
+	}
+
 	primaryNetwork, err := ds.FindPrimaryNetwork(partition.ID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get primary network: %v", err)
+	}
+
+	projectNetwork, err := ds.FindProjectNetwork(allocationSpec.ProjectID)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, err
 	}
 	if projectNetwork == nil {
 
@@ -677,10 +690,6 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		}
 
 		projectNetwork = &metal.Network{
-			Base: metal.Base{
-				Name:        fmt.Sprintf("Child of %s", primaryNetwork.ID),
-				Description: "Automatically Created Project Network",
-			},
 			Prefixes:            metal.Prefixes{*projectPrefix},
 			DestinationPrefixes: metal.Prefixes{},
 			PartitionID:         partition.ID,
@@ -688,7 +697,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			Nat:                 primaryNetwork.Nat,
 			Primary:             false,
 			Underlay:            false,
-			Vrf:                 vrf.ID,
+			Vrf:                 vrfID,
 			ParentNetworkID:     primaryNetwork.ID,
 		}
 
@@ -698,16 +707,20 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		}
 	}
 
-	// TODO allocateIP should only return a String
-	ip, err := allocateIP(*projectNetwork, ipamer)
+	ipAddress, ipParentCidr, err := allocateIP(projectNetwork, ipamer)
 	if err != nil {
 		return nil, fmt.Errorf("unable to allocate an ip in network:%s %#v", projectNetwork.ID, err)
 	}
 
-	ip.Name = allocationSpec.Name
-	ip.Description = "autoassigned"
-	ip.MachineID = machine.ID
-	ip.ProjectID = allocationSpec.ProjectID
+	ip := &metal.IP{
+		IPAddress:        ipAddress,
+		ParentPrefixCidr: ipParentCidr,
+		Name:             allocationSpec.Name,
+		Description:      "autoassigned",
+		MachineID:        machine.ID,
+		NetworkID:        projectNetwork.ID,
+		ProjectID:        allocationSpec.ProjectID,
+	}
 
 	err = ds.CreateIP(ip)
 	if err != nil {
@@ -724,7 +737,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			Prefixes:            projectNetwork.Prefixes.String(),
 			DestinationPrefixes: projectNetwork.DestinationPrefixes.String(),
 			IPs:                 []string{ip.IPAddress},
-			Vrf:                 vrf.ID,
+			Vrf:                 vrfID,
 			ASN:                 asn,
 			Primary:             true,
 			Underlay:            projectNetwork.Underlay,
@@ -743,20 +756,25 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		if err != nil {
 			return nil, fmt.Errorf("no network with networkid:%s found %#v", additionalNetworkID, err)
 		}
-		// additionalNetwork is a tenant network continue
+
+		// additionalNetwork is another tenant network causes a failure as security would be compromised
 		if nw.ParentNetworkID == primaryNetwork.ID {
 			return nil, fmt.Errorf("additional network:%s cannot be a child of the primary network:%s", additionalNetworkID, primaryNetwork.ID)
 		}
 
-		// TODO allocateIP should only return a String
-		ip, err := allocateIP(*nw, ipamer)
+		ipAddress, ipParentCidr, err := allocateIP(nw, ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", nw.ID, err)
 		}
 
-		ip.Name = allocationSpec.Name
-		ip.Description = machine.ID
-		ip.ProjectID = allocationSpec.ProjectID
+		ip := &metal.IP{
+			IPAddress:        ipAddress,
+			ParentPrefixCidr: ipParentCidr,
+			Name:             allocationSpec.Name,
+			Description:      "autoassigned",
+			NetworkID:        nw.ID,
+			ProjectID:        allocationSpec.ProjectID,
+		}
 
 		err = ds.CreateIP(ip)
 		if err != nil {
@@ -848,7 +866,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	for _, mn := range m.Allocation.MachineNetworks {
 		if mn.Primary {
 			vrf := fmt.Sprintf("vrf%d", mn.Vrf)
-			sws, err = r.ds.SetVrfAtSwitch(m, vrf)
+			sws, err = setVrfAtSwitches(r.ds, m, vrf)
 			if err != nil {
 				if m.Allocation == nil {
 					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, mn.Vrf)) {
@@ -901,7 +919,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	// do the next steps in any case, so a client can call this function multiple times to
 	// fire of the needed events
 
-	sw, err := r.ds.SetVrfAtSwitch(m, "")
+	sw, err := setVrfAtSwitches(r.ds, m, "")
 	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -982,12 +1000,12 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 		return
 	}
 
-	eventContainer, err := r.ds.FindProvisioningEventContainer(id)
+	ec, err := r.ds.FindProvisioningEventContainer(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(eventContainer))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
 }
 
 // FIXME: Move to event endpoint
@@ -1266,9 +1284,13 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 
 	var s *metal.Size
 	if m.SizeID != "" {
-		s, err = ds.FindSize(m.SizeID)
-		if err != nil {
-			logger.Errorw("machine with id %s references size with id %s, but size cannot be found in database", m.ID, m.SizeID)
+		if m.SizeID == metal.UnknownSize.GetID() {
+			s = metal.UnknownSize
+		} else {
+			s, err = ds.FindSize(m.SizeID)
+			if err != nil {
+				logger.Errorw("machine with id %s references size with id %s, but size cannot be found in database: %v", m.ID, m.SizeID, err)
+			}
 		}
 	}
 
@@ -1276,7 +1298,7 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 	if m.PartitionID != "" {
 		p, err = ds.FindPartition(m.PartitionID)
 		if err != nil {
-			logger.Errorw("machine with id %s references partition with id %s, but partition cannot be found in database", m.ID, m.PartitionID)
+			logger.Errorw("machine with id %s references partition with id %s, but partition cannot be found in database: %v", m.ID, m.PartitionID, err)
 		}
 	}
 
@@ -1285,7 +1307,7 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 		if m.Allocation.ImageID != "" {
 			i, err = ds.FindImage(m.Allocation.ImageID)
 			if err != nil {
-				logger.Errorw("machine with id %s references image with id %s, but image cannot be found in database", m.ID, m.Allocation.ImageID)
+				logger.Errorw("machine with id %s references image with id %s, but image cannot be found in database: %v", m.ID, m.Allocation.ImageID, err)
 			}
 		}
 	}
@@ -1293,7 +1315,7 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 	var ec *metal.ProvisioningEventContainer
 	try, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
-		logger.Errorw("machine with id %s has no provisioning event container in the database", m.ID)
+		logger.Errorw("machine with id %s has no provisioning event container in the database: %v", m.ID, err)
 	} else {
 		ec = try
 	}

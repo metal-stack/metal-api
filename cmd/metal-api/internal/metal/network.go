@@ -11,17 +11,10 @@ type MacAddress string
 
 // Nic information.
 type Nic struct {
-	MacAddress MacAddress `json:"mac"  description:"the mac address of this network interface" rethinkdb:"macAddress"`
-	Name       string     `json:"name"  description:"the name of this network interface" rethinkdb:"name"`
-	Vrf        string     `json:"vrf" description:"the vrf this network interface is part of" rethinkdb:"vrf" optional:"true"`
-	Neighbors  Nics       `json:"neighbors" description:"the neighbors visible to this network interface" rethinkdb:"neighbors"`
-}
-
-// A Vrf ...
-type Vrf struct {
-	ID        uint   `json:"id"  description:"the unique id of this vrf generated from the tenant and projectid" rethinkdb:"id"`
-	Tenant    string `json:"tenant"  description:"the tenant this vrf belongs to" rethinkdb:"tenant"`
-	ProjectID string `json:"projectid"  description:"the project this vrf belongs to" rethinkdb:"projectid"`
+	MacAddress MacAddress `rethinkdb:"macAddress"`
+	Name       string     `rethinkdb:"name"`
+	Vrf        string     `rethinkdb:"vrf"`
+	Neighbors  Nics       `rethinkdb:"neighbors"`
 }
 
 // Nics is a list of nics.

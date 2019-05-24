@@ -10,9 +10,10 @@ PUT {{baseurl}}/
 Content-Type: application/json
 
 {
+  "id": "primary-network",
   "description": "Tenant Super Network",
   "name": "tenants",
-  "nat": true,
+  "nat": false,
   "partitionid": "vagrant-lab",
   "prefixes": [
     "10.0.0.0/16"
@@ -26,6 +27,7 @@ PUT {{baseurl}}/
 Content-Type: application/json
 
 {
+  "id": "internet-vagrant-lab",
   "description": "Internet in Vagrant",
   "name": "vagrant internet",
   "nat": false,
@@ -36,3 +38,22 @@ Content-Type: application/json
   ],
   "primary": false
 }
+
+### create underlay network
+# @name createUnderlayNetwork
+PUT {{baseurl}}/
+Content-Type: application/json
+
+{
+  "id": "underlay-vagrant-lab",
+  "description": "Underlay in Vagrant",
+  "name": "vagrant underlay",
+  "nat": false,
+  "underlay": true,
+  "partitionid": "vagrant-lab",
+  "prefixes": [
+    "192.168.3.0/24"
+  ],
+  "primary": false
+}
+

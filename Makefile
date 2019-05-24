@@ -18,10 +18,9 @@ spec: all
 
 .PHONY: createmasterdata
 createmasterdata:
-	API_BASE_URL := $(or ${API_BASE_URL}, $(shell minikube service -n default --url metal-api))
-	@cat masterdata/images.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/image
-	@cat masterdata/sizes.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/size
-	@cat masterdata/partitions.json | jq -r -c -M ".[]" | xargs -d'\n' -L1 -I'{}' curl -XPUT -H "Content-Type: application/json" -d '{}' $(API_BASE_URL)/v1/partition
+	@metalctl image apply -f masterdata/images.yaml
+	@metalctl size apply -f masterdata/sizes.yaml
+	@metalctl partition apply -f masterdata/partitions.yaml
 
 .PHONY: localbuild
 localbuild: bin/$(BINARY)

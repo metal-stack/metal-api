@@ -43,17 +43,26 @@ type MachineNetwork struct {
 	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
 	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Primary             bool     `json:"primary" description:"indicates whether this network is the primary project network"`
+	Primary             bool     `json:"primary" description:"indicates whether this network is the primary network of this machine"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 }
 
-type MachineHardware struct {
+type MachineHardwareBase struct {
 	Memory   uint64               `json:"memory" description:"the total memory of the machine"`
 	CPUCores int                  `json:"cpu_cores" description:"the number of cpu cores"`
-	Nics     MachineNics          `json:"nics" description:"the list of network interfaces of this machine"`
 	Disks    []MachineBlockDevice `json:"disks" description:"the list of block devices of this machine"`
+}
+
+type MachineHardware struct {
+	MachineHardwareBase
+	Nics MachineNics `json:"nics" description:"the list of network interfaces of this machine"`
+}
+
+type MachineHardwareExtended struct {
+	MachineHardwareBase
+	Nics MachineNicsExtended `json:"nics" description:"the list of network interfaces of this machine with extended information"`
 }
 
 type MachineState struct {
@@ -69,7 +78,7 @@ type MachineBlockDevice struct {
 type MachineRecentProvisioningEvents struct {
 	Events                       []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
 	LastEventTime                *time.Time                 `json:"last_event_time" description:"the time where the last event was received"`
-	IncompleteProvisioningCycles *string                    `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container"`
+	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container"`
 }
 
 type MachineProvisioningEvent struct {
@@ -81,10 +90,15 @@ type MachineProvisioningEvent struct {
 type MachineNics []MachineNic
 
 type MachineNic struct {
-	MacAddress string      `json:"mac"  description:"the mac address of this network interface"`
-	Name       string      `json:"name"  description:"the name of this network interface"`
-	Neighbors  MachineNics `json:"neighbors" description:"the neighbors visible to this network interface"`
-	// Vrf        string `json:"vrf" description:"the vrf this network interface is part of" optional:"true"` TODO: Possibly only part of switch nic
+	MacAddress string `json:"mac"  description:"the mac address of this network interface"`
+	Name       string `json:"name"  description:"the name of this network interface"`
+}
+
+type MachineNicsExtended []SwitchNicExtended
+
+type MachineNicExtended struct {
+	MachineNic
+	Neighbors MachineNicsExtended `json:"neighbors" description:"the neighbors visible to this network interface"`
 }
 
 type MachineLivelinessReport struct {
@@ -114,12 +128,12 @@ type MachineFru struct {
 }
 
 type MachineRegisterRequest struct {
-	UUID        string          `json:"uuid" description:"the product uuid of the machine to register"`
-	PartitionID string          `json:"partitionid" description:"the partition id to register this machine with"`
-	RackID      string          `json:"rackid" description:"the rack id where this machine is connected to"`
-	Hardware    MachineHardware `json:"hardware" description:"the hardware of this machine"`
-	IPMI        MachineIPMI     `json:"ipmi" description:"the ipmi access infos"`
-	Tags        []string        `json:"tags" description:"tags for this machine"`
+	UUID        string                  `json:"uuid" description:"the product uuid of the machine to register"`
+	PartitionID string                  `json:"partitionid" description:"the partition id to register this machine with"`
+	RackID      string                  `json:"rackid" description:"the rack id where this machine is connected to"`
+	Hardware    MachineHardwareExtended `json:"hardware" description:"the hardware of this machine"`
+	IPMI        MachineIPMI             `json:"ipmi" description:"the ipmi access infos"`
+	Tags        []string                `json:"tags" description:"tags for this machine"`
 }
 
 type MachineAllocateRequest struct {
@@ -151,8 +165,8 @@ type MachineResponse struct {
 	Timestamps
 }
 
-func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
-	var nics metal.Nics
+func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
+	nics := metal.Nics{}
 	for i := range r.Nics {
 		var neighbors metal.Nics
 		for i2 := range r.Nics[i].Neighbors {
@@ -240,9 +254,8 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
-	var nics MachineNics
+	nics := MachineNics{}
 	for i := range m.Hardware.Nics {
-		// TODO: Do we need to return the neighbors here for the clients?
 		nic := MachineNic{
 			MacAddress: string(m.Hardware.Nics[i].MacAddress),
 			Name:       m.Hardware.Nics[i].Name,
@@ -258,10 +271,12 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			disks = append(disks, disk)
 		}
 		hardware = MachineHardware{
-			Memory:   m.Hardware.Memory,
-			CPUCores: m.Hardware.CPUCores,
-			Nics:     nics,
-			Disks:    disks,
+			MachineHardwareBase: MachineHardwareBase{
+				Memory:   m.Hardware.Memory,
+				CPUCores: m.Hardware.CPUCores,
+				Disks:    disks,
+			},
+			Nics: nics,
 		}
 	}
 
@@ -351,7 +366,7 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		return &MachineRecentProvisioningEvents{
 			Events:                       es,
 			LastEventTime:                nil,
-			IncompleteProvisioningCycles: nil,
+			IncompleteProvisioningCycles: "0",
 		}
 	}
 	machineEvents := ec.Events
@@ -366,13 +381,9 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		}
 		es = append(es, e)
 	}
-	var incompleteCycles *string
-	if ec.IncompleteProvisioningCycles != "" {
-		incompleteCycles = &ec.IncompleteProvisioningCycles
-	}
 	return &MachineRecentProvisioningEvents{
 		Events:                       es,
-		IncompleteProvisioningCycles: incompleteCycles,
+		IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
 		LastEventTime:                ec.LastEventTime,
 	}
 }

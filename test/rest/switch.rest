@@ -15,6 +15,10 @@ Content-Type: application/json
     {
       "mac": "11:11:11:11:11:11",
       "name": "eth1"
+    },
+    {
+      "mac": "11:11:11:11:11:13",
+      "name": "eth2s0"
     }
   ],
   "partition_id": "vagrant-lab",
