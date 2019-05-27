@@ -28,7 +28,7 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (
 		return nil, fmt.Errorf("error finding parent prefix in ipam: %s", parentPrefix.String())
 	}
 
-	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix, childLength)
+	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, childLength)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new prefix in ipam: %v", err)
 	}
@@ -66,7 +66,7 @@ func (i *Ipam) AllocateIP(prefix metal.Prefix) (string, error) {
 		return "", fmt.Errorf("error finding prefix in ipam: %s", prefix.String())
 	}
 
-	ipamIP, err := i.ip.AcquireIP(ipamPrefix)
+	ipamIP, err := i.ip.AcquireIP(ipamPrefix.Cidr)
 	if err != nil {
 		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %v", prefix.String(), err)
 	}
@@ -84,7 +84,7 @@ func (i *Ipam) ReleaseIP(ip metal.IP) error {
 		return fmt.Errorf("error finding parent prefix %s of ip %s in ipam", ip.ParentPrefixCidr, ip.IPAddress)
 	}
 
-	err := i.ip.ReleaseIPFromPrefix(ipamPrefix, ip.IPAddress)
+	err := i.ip.ReleaseIPFromPrefix(ipamPrefix.Cidr, ip.IPAddress)
 
 	if err != nil {
 		return fmt.Errorf("error release ip %s in prefix %s: %v", ip.IPAddress, ip.ParentPrefixCidr, err)
