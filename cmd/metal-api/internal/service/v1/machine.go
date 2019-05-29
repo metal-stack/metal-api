@@ -93,7 +93,7 @@ type MachineNic struct {
 	Name       string `json:"name"  description:"the name of this network interface"`
 }
 
-type MachineNicsExtended []SwitchNicExtended
+type MachineNicsExtended []MachineNicExtended
 
 type MachineNicExtended struct {
 	MachineNic

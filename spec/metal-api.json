@@ -2091,12 +2091,12 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
-        "imageid",
-        "ssh_pub_keys",
         "partitionid",
         "sizeid",
+        "tenant",
         "projectid",
+        "imageid",
+        "ssh_pub_keys",
         "networks"
       ],
       "properties": {
@@ -2169,18 +2169,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "partition",
-        "state",
-        "changed",
         "id",
         "allocation",
-        "events",
-        "liveliness",
         "created",
-        "hardware",
         "rackid",
+        "changed",
+        "hardware",
+        "tags",
+        "partition",
+        "state",
+        "liveliness",
         "size",
-        "tags"
+        "events"
       ],
       "properties": {
         "allocation": {
@@ -2719,7 +2719,7 @@
           "description": "the list of network interfaces of this machine with extended information",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1.SwitchNicExtended"
+            "$ref": "#/definitions/v1.MachineNicExtended"
           }
         }
       }
@@ -2858,6 +2858,30 @@
         }
       }
     },
+    "v1.MachineNicExtended": {
+      "required": [
+        "name",
+        "mac",
+        "neighbors"
+      ],
+      "properties": {
+        "mac": {
+          "description": "the mac address of this network interface",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of this network interface",
+          "type": "string"
+        },
+        "neighbors": {
+          "description": "the neighbors visible to this network interface",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineNicExtended"
+          }
+        }
+      }
+    },
     "v1.MachineProvisioningEvent": {
       "required": [
         "event"
@@ -2946,15 +2970,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "size",
-        "hardware",
-        "events",
-        "partition",
-        "rackid",
-        "allocation",
         "state",
         "liveliness",
+        "partition",
+        "rackid",
+        "hardware",
         "tags",
+        "size",
+        "allocation",
+        "events",
         "created",
         "changed"
       ],
@@ -3116,12 +3140,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "parentnetworkid",
         "usage",
         "created",
         "changed"
@@ -3583,30 +3607,6 @@
         "name": {
           "description": "the name of this network interface",
           "type": "string"
-        }
-      }
-    },
-    "v1.SwitchNicExtended": {
-      "required": [
-        "mac",
-        "name",
-        "neighbors"
-      ],
-      "properties": {
-        "mac": {
-          "description": "the mac address of this network interface",
-          "type": "string"
-        },
-        "name": {
-          "description": "the name of this network interface",
-          "type": "string"
-        },
-        "neighbors": {
-          "description": "the neighbors visible to this network interface",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1.SwitchNicExtended"
-          }
         },
         "vrf": {
           "description": "the vrf this network interface is part of",
@@ -3636,10 +3636,10 @@
           "type": "string"
         },
         "nics": {
-          "description": "the list of network interfaces on the switch with extended information",
+          "description": "the list of network interfaces on the switch",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1.SwitchNicExtended"
+            "$ref": "#/definitions/v1.SwitchNic"
           }
         },
         "partition_id": {

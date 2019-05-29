@@ -13,14 +13,7 @@ type SwitchNics []SwitchNic
 type SwitchNic struct {
 	MacAddress string `json:"mac"  description:"the mac address of this network interface"`
 	Name       string `json:"name"  description:"the name of this network interface"`
-}
-
-type SwitchNicsExtended []SwitchNicExtended
-
-type SwitchNicExtended struct {
-	SwitchNic
-	Vrf       string             `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
-	Neighbors SwitchNicsExtended `json:"neighbors" description:"the neighbors visible to this network interface"`
+	Vrf        string `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
 }
 
 func (ss SwitchNics) ByMac() map[string]SwitchNic {
@@ -38,8 +31,8 @@ type SwitchConnection struct {
 
 type SwitchRegisterRequest struct {
 	Common
-	Nics        SwitchNicsExtended `json:"nics" description:"the list of network interfaces on the switch with extended information"`
-	PartitionID string             `json:"partition_id" description:"the partition in which this switch is located"`
+	Nics        SwitchNics `json:"nics" description:"the list of network interfaces on the switch"`
+	PartitionID string     `json:"partition_id" description:"the partition in which this switch is located"`
 	SwitchBase
 }
 
@@ -107,19 +100,9 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition) *SwitchResponse {
 func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 	nics := metal.Nics{}
 	for i := range r.Nics {
-		var neighbors metal.Nics
-		for i2 := range r.Nics[i].Neighbors {
-			neighbor := metal.Nic{
-				MacAddress: metal.MacAddress(r.Nics[i].Neighbors[i2].MacAddress),
-				Name:       r.Nics[i].Neighbors[i2].Name,
-				Vrf:        r.Nics[i].Neighbors[i2].Vrf,
-			}
-			neighbors = append(neighbors, neighbor)
-		}
 		nic := metal.Nic{
 			MacAddress: metal.MacAddress(r.Nics[i].MacAddress),
 			Name:       r.Nics[i].Name,
-			Neighbors:  neighbors,
 			Vrf:        r.Nics[i].Vrf,
 		}
 		nics = append(nics, nic)
