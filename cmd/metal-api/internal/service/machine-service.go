@@ -15,7 +15,6 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils/jwt"
 
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"github.com/dustin/go-humanize"
@@ -184,7 +183,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("wait for an allocation of this machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", v1.MachineWaitResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -306,14 +305,8 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 				return a.Err
 			}
 
-			ka := jwt.NewPhoneHomeClaims(a.Machine)
-			token, err := ka.JWT()
-			if err != nil {
-				return fmt.Errorf("could not create jwt: %v", err)
-			}
-
 			s, p, i, ec := findMachineReferencedEntites(a.Machine, r.ds, log.Sugar())
-			response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineWaitResponse(a.Machine, s, p, i, ec, token))
+			response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineResponse(a.Machine, s, p, i, ec))
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
 		}
@@ -1008,45 +1001,6 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
 }
 
-// FIXME: Move to event endpoint
-// func (dr machineResource) phoneHome(request *restful.Request, response *restful.Response) {
-// 	op := utils.CurrentFuncName()
-// 	var data metal.PhoneHomeRequest
-// 	err := request.ReadEntity(&data)
-// 	log := utils.Logger(request)
-// 	if err != nil {
-// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Cannot read data from request: %v", err)))
-// 		return
-// 	}
-// 	c, err := jwt.FromJWT(data.PhoneHomeToken)
-// 	if err != nil {
-// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token is invalid: %v", err)))
-// 		return
-// 	}
-// 	if c.Machine == nil || c.Machine.ID == "" {
-// 		sendError(log, response, op, httperrors.UnprocessableEntity(fmt.Errorf("Token contains malformed data")))
-// 		return
-// 	}
-// 	oldMachine, err := dr.ds.FindMachine(c.Machine.ID)
-// 	if err != nil {
-// 		sendError(log, response, op, httperrors.NotFound(err))
-// 		return
-// 	}
-// 	if oldMachine.Allocation == nil {
-// 		log.Sugar().Errorw("unallocated machines sends phoneHome", "machine", *oldMachine)
-// 		sendError(log, response, op, httperrors.InternalServerError(fmt.Errorf("this machine is not allocated")))
-// 	}
-// 	newMachine := *oldMachine
-// 	lastPingTime := time.Now()
-// 	newMachine.Allocation.LastPing = lastPingTime
-// 	newMachine.Liveliness = metal.MachineLivelinessAlive // phone home token is sent consistently, but if customer turns off the service, it could turn to unknown
-// 	err = dr.ds.UpdateMachine(oldMachine, &newMachine)
-// 	if checkError(request, response, op, err) {
-// 		return
-// 	}
-// 	response.WriteEntity(nil)
-// }
-
 func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachine(id)
@@ -1134,35 +1088,27 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine
 func (r machineResource) evaluateMachineLiveliness(m metal.Machine) *metal.Machine {
-	if m.Allocation != nil && !m.Allocation.LastPing.IsZero() {
-		if time.Since(m.Allocation.LastPing) > metal.MachineDeadAfter {
-			// the machine is either dead or the customer did turn off the phone home service
-			m.Liveliness = metal.MachineLivelinessUnknown
-		} else {
-			m.Liveliness = metal.MachineLivelinessAlive
-		}
-		return &m
-	}
+	m.Liveliness = metal.MachineLivelinessUnknown
 
 	provisioningEvents, err := r.ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
-		m.Liveliness = metal.MachineLivelinessUnknown
-
 		return &m
 	}
 
 	if provisioningEvents.LastEventTime != nil {
 		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
-			m.Liveliness = metal.MachineLivelinessDead
+			if m.Allocation != nil {
+				// the machine is either dead or the customer did turn off the phone home service
+				m.Liveliness = metal.MachineLivelinessUnknown
+			} else {
+				// the machine is just dead
+				m.Liveliness = metal.MachineLivelinessDead
+			}
 		} else {
 			m.Liveliness = metal.MachineLivelinessAlive
 		}
-		return &m
 	}
-
-	// we have no provisioning events... we cannot tell
-	m.Liveliness = metal.MachineLivelinessUnknown
 
 	return &m
 }

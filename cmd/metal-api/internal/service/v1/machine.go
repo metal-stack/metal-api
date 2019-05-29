@@ -154,11 +154,6 @@ type MachineFinalizeAllocationRequest struct {
 	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
 }
 
-type MachineWaitResponse struct {
-	MachineResponse
-	PhoneHomeToken string `json:"phone_home_token"`
-}
-
 type MachineResponse struct {
 	Common
 	MachineBase
@@ -385,13 +380,6 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		Events:                       es,
 		IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
 		LastEventTime:                ec.LastEventTime,
-	}
-}
-
-func NewMachineWaitResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer, token string) *MachineWaitResponse {
-	return &MachineWaitResponse{
-		MachineResponse: *NewMachineResponse(m, s, p, i, ec),
-		PhoneHomeToken:  m.Allocation.PhoneHomeToken,
 	}
 }
 

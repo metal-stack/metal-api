@@ -1226,7 +1226,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineWaitResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "504": {
@@ -2091,12 +2091,12 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
+        "projectid",
+        "ssh_pub_keys",
+        "imageid",
+        "tenant",
         "partitionid",
         "sizeid",
-        "ssh_pub_keys",
-        "tenant",
-        "projectid",
-        "imageid",
         "networks"
       ],
       "properties": {
@@ -2169,18 +2169,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
+        "created",
+        "tags",
         "rackid",
+        "liveliness",
+        "allocation",
+        "state",
+        "id",
+        "hardware",
+        "size",
         "changed",
         "partition",
-        "size",
-        "tags",
-        "state",
-        "liveliness",
-        "created",
-        "id",
-        "allocation",
-        "events",
-        "hardware"
+        "events"
       ],
       "properties": {
         "allocation": {
@@ -2278,10 +2278,10 @@
     },
     "v1.IPResponse": {
       "required": [
-        "networkid",
         "projectid",
-        "ipaddress",
+        "networkid",
         "machineid",
+        "ipaddress",
         "created",
         "changed"
       ],
@@ -2385,8 +2385,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -2699,9 +2699,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -2952,17 +2952,17 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "tags",
         "partition",
-        "size",
         "hardware",
         "allocation",
-        "rackid",
-        "state",
         "liveliness",
+        "rackid",
+        "size",
+        "state",
         "events",
-        "created",
-        "changed"
+        "tags",
+        "changed",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3050,103 +3050,15 @@
         }
       }
     },
-    "v1.MachineWaitResponse": {
-      "required": [
-        "allocation",
-        "changed",
-        "rackid",
-        "tags",
-        "id",
-        "partition",
-        "size",
-        "state",
-        "liveliness",
-        "events",
-        "created",
-        "hardware",
-        "phone_home_token"
-      ],
-      "properties": {
-        "allocation": {
-          "description": "the allocation data of an allocated machine",
-          "$ref": "#/definitions/v1.MachineAllocation"
-        },
-        "changed": {
-          "description": "the last changed timestamp of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "events": {
-          "description": "recent events of this machine during provisioning",
-          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-        },
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/v1.MachineHardware"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "partition": {
-          "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/v1.PartitionResponse",
-          "readOnly": true
-        },
-        "phone_home_token": {
-          "type": "string"
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "type": "string",
-          "readOnly": true
-        },
-        "size": {
-          "description": "the size of this machine",
-          "$ref": "#/definitions/v1.SizeResponse",
-          "readOnly": true
-        },
-        "state": {
-          "description": "the state of this machine",
-          "$ref": "#/definitions/v1.MachineState"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "parentnetworkid",
+        "prefixes",
+        "destinationprefixes",
         "nat",
         "primary",
-        "underlay",
-        "prefixes",
-        "destinationprefixes"
+        "underlay"
       ],
       "properties": {
         "description": {
@@ -3172,6 +3084,10 @@
         "nat": {
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
+        },
+        "parentnetworkid": {
+          "description": "the id of the parent network",
+          "type": "string"
         },
         "partitionid": {
           "description": "the partition this network belongs to",
@@ -3206,6 +3122,7 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
@@ -3251,6 +3168,10 @@
         "nat": {
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
+        },
+        "parentnetworkid": {
+          "description": "the id of the parent network",
+          "type": "string"
         },
         "partitionid": {
           "description": "the partition this network belongs to",
@@ -3744,8 +3665,8 @@
         "nics",
         "partition",
         "connections",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3814,10 +3735,10 @@
   },
   "security": [
     {
-      "HMAC": []
-    },
-    {
-      "jwt": []
+      "Authorization": [
+        "HMAC",
+        "jwt"
+      ]
     }
   ],
   "tags": [

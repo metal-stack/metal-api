@@ -124,6 +124,7 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
+	container = injectAdmin(container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
