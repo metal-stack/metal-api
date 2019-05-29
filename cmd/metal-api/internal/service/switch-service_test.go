@@ -115,7 +115,7 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 				ID: testdata.Switch1.ID,
 			},
 		},
-		Nics:        v1.SwitchNicsExtended{},
+		Nics:        v1.SwitchNics{},
 		PartitionID: testdata.Switch1.PartitionID,
 		SwitchBase: v1.SwitchBase{
 			RackID: testdata.Switch1.RackID,
@@ -146,7 +146,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 	tests := []struct {
 		name    string
 		machine *metal.Machine
-		wantErr bool
+		wantErr bool 
 	}{
 		{
 			name: "Test 1",
