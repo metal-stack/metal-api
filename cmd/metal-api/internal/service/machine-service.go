@@ -593,21 +593,20 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		return nil, fmt.Errorf("no tenant given")
 	}
 
-	var size *metal.Size
-	size, err := ds.FindSize(allocationSpec.SizeID)
-	if err != nil {
-		return nil, fmt.Errorf("size cannot be found: %v", err)
-	}
-
-	var partition *metal.Partition
-	partition, err = ds.FindPartition(allocationSpec.PartitionID)
-	if err != nil {
-		return nil, fmt.Errorf("partition cannot be found: %v", err)
-	}
-
+	var err error
 	var machine *metal.Machine
+	var size *metal.Size
+	var partition *metal.Partition
 	if allocationSpec.UUID == "" {
 		// requesting allocation of an arbitrary machine in partition with given size
+		size, err = ds.FindSize(allocationSpec.SizeID)
+		if err != nil {
+			return nil, fmt.Errorf("size cannot be found: %v", err)
+		}
+		partition, err = ds.FindPartition(allocationSpec.PartitionID)
+		if err != nil {
+			return nil, fmt.Errorf("partition cannot be found: %v", err)
+		}
 		machine, err = ds.FindAvailableMachine(partition.ID, size.ID)
 		if err != nil {
 			return nil, err
@@ -618,11 +617,26 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		if err != nil {
 			return nil, fmt.Errorf("machine cannot be found: %v", err)
 		}
+
 		if machine.Allocation != nil {
 			return nil, fmt.Errorf("machine is already allocated")
 		}
-		if machine.PartitionID != partition.ID {
-			return nil, fmt.Errorf("machine is not in the given partition %s", partition.ID)
+		if allocationSpec.PartitionID != "" && machine.PartitionID != allocationSpec.PartitionID {
+			return nil, fmt.Errorf("machine %q is not in the given partition: %s", machine.ID, allocationSpec.PartitionID)
+		}
+		if allocationSpec.SizeID != "" && machine.SizeID != allocationSpec.SizeID {
+			return nil, fmt.Errorf("machine %q does not have the given size: %s", machine.ID, allocationSpec.SizeID)
+		}
+
+		partition, err = ds.FindPartition(machine.PartitionID)
+		if err != nil {
+			return nil, fmt.Errorf("partition cannot be found: %v", err)
+		}
+		// we could actually refrain from finding the size because it will not be used in the following lines
+		// this is just fpr symmetry and preventing a possible nil pointer dereference in the future when accessing the size
+		size, err = ds.FindSize(machine.SizeID)
+		if err != nil {
+			return nil, fmt.Errorf("size cannot be found: %v", err)
 		}
 	}
 
@@ -712,7 +726,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			IPs:                 []string{ip.IPAddress},
 			Vrf:                 vrf.ID,
 			ASN:                 asn,
-			Primary:             projectNetwork.Primary,
+			Primary:             true,
 			Underlay:            projectNetwork.Underlay,
 			Nat:                 projectNetwork.Nat,
 		},
@@ -749,18 +763,18 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			return nil, err
 		}
 
-		machineNetwork := metal.MachineNetwork{
+		additionalMachineNetwork := metal.MachineNetwork{
 			NetworkID:           nw.ID,
-			Prefixes:            projectNetwork.Prefixes.String(),
+			Prefixes:            nw.Prefixes.String(),
 			IPs:                 []string{ip.IPAddress},
 			DestinationPrefixes: nw.DestinationPrefixes.String(),
 			ASN:                 asn,
 			Primary:             false,
 			Underlay:            nw.Underlay,
-			Nat:                 projectNetwork.Nat,
+			Nat:                 nw.Nat,
 			Vrf:                 nw.Vrf,
 		}
-		machineNetworks = append(machineNetworks, machineNetwork)
+		machineNetworks = append(machineNetworks, additionalMachineNetwork)
 	}
 
 	alloc := &metal.MachineAllocation{
