@@ -264,6 +264,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 			lg.Warnw("illgal value for hmac lifetime, use 30secs as default", "error", err, "val", lfkey)
 			lf = 30 * time.Second
 		}
+		lg.Info("add hmac user", "name", r, "lifetime", lf, "mac", mackey)
 		auths = append(auths, security.WithHMAC(security.NewHMACAuth(
 			u.Name,
 			[]byte(mackey),
