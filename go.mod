@@ -1,7 +1,7 @@
 module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
-	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190529100237-1ce633c9d890
+	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190529124425-f20faa8286d0
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
