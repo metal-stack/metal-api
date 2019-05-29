@@ -208,7 +208,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/liveliness").
-		To(viewer(r.checkMachineLiveliness)).
+		To(r.checkMachineLiveliness).
 		Operation("checkMachineLiveliness").
 		Doc("external trigger for evaluating machine liveliness").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
