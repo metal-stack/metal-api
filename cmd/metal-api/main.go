@@ -16,7 +16,6 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"git.f-i-ts.de/cloud-native/metallib/security"
@@ -218,7 +217,7 @@ func initDataStore() {
 	err := ds.Connect()
 
 	if err != nil {
-		logger.Error("cannot connect to db in root command metal-api/internal/main.initDatastore()", "error", err)
+		logger.Errorw("cannot connect to db in root command metal-api/internal/main.initDatastore()", "error", err)
 		panic(err)
 	}
 
@@ -236,7 +235,7 @@ func initIpam() {
 			viper.GetString("ipam-db-name"),
 			"disable")
 		if err != nil {
-			logger.Error("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
+			logger.Errorw("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
 			time.Sleep(3 * time.Second)
 			goto tryAgain
 		}
@@ -246,7 +245,7 @@ func initIpam() {
 		ipamInstance := goipam.New()
 		ipamer = ipam.New(ipamInstance)
 	} else {
-		logger.Error("database not supported", "db", dbAdapter)
+		logger.Errorw("database not supported", "db", dbAdapter)
 	}
 }
 
@@ -286,11 +285,10 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
-	restful.DefaultContainer.Filter(rest.RequestLogger(lg))
+	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
 	if withauth {
 		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
 	}
-	restful.DefaultContainer.Filter(utils.MetalAPI(debug))
 
 	config := restfulspec.Config{
 		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
