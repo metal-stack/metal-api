@@ -88,6 +88,7 @@ func TestDeleteImage(t *testing.T) {
 	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("DELETE", "/v1/image/3", nil)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -105,9 +106,6 @@ func TestCreateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(ds)
-	container := restful.NewContainer().Add(imageservice)
-
 	createRequest := v1.ImageCreateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
@@ -123,6 +121,7 @@ func TestCreateImage(t *testing.T) {
 	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
+	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -163,6 +162,7 @@ func TestUpdateImage(t *testing.T) {
 	js, _ := json.Marshal(updateRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/image", body)
+	container = injectAdmin(container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

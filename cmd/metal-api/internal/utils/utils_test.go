@@ -10,8 +10,6 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func Test_loggingResponseWriter_Header(t *testing.T) {
@@ -224,13 +222,4 @@ func Test_loggingResponseWriter_Content(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestRestfulLogger(t *testing.T) {
-
-	z := zap.NewNop()
-	X := RestfulLogger(z, false)
-
-	// Only Pointer Comparison. test the returned function?
-	require.Equal(t, reflect.ValueOf(X).Pointer(), reflect.ValueOf(RestfulLogger(z, false)).Pointer())
 }

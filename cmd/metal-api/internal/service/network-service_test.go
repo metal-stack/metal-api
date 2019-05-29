@@ -28,6 +28,7 @@ func TestGetNetworks(t *testing.T) {
 	networkservice := NewNetwork(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network", nil)
+	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -53,6 +54,7 @@ func TestGetNetwork(t *testing.T) {
 	networkservice := NewNetwork(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/1", nil)
+	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -73,6 +75,7 @@ func TestGetNetworkNotFound(t *testing.T) {
 	networkservice := NewNetwork(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/999", nil)
+	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -95,6 +98,7 @@ func TestDeleteNetwork(t *testing.T) {
 	networkservice := NewNetwork(ds, ipamer)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
+	container = injectEditor(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -117,6 +121,7 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 	networkservice := NewNetwork(ds, ipamer)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
+	container = injectEditor(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -151,6 +156,7 @@ func TestCreateNetwork(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/network", body)
 	req.Header.Add("Content-Type", "application/json")
+	container = injectEditor(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -184,6 +190,7 @@ func TestUpdateNetwork(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/network", body)
 	req.Header.Add("Content-Type", "application/json")
+	container = injectEditor(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 

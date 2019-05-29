@@ -92,6 +92,7 @@ func TestDeletePartition(t *testing.T) {
 	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("DELETE", "/v1/partition/1", nil)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -128,6 +129,7 @@ func TestCreatePartition(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -170,6 +172,7 @@ func TestUpdatePartition(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 

@@ -27,6 +27,7 @@ func TestGetIPs(t *testing.T) {
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip", nil)
+	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -52,6 +53,7 @@ func TestGetIP(t *testing.T) {
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
+	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -72,6 +74,7 @@ func TestGetIPNotFound(t *testing.T) {
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
+	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -95,6 +98,7 @@ func TestDeleteIP(t *testing.T) {
 	container := restful.NewContainer().Add(ipservice)
 
 	req := httptest.NewRequest("DELETE", "/v1/ip/"+testdata.IPAMIP.IPAddress, nil)
+	container = injectEditor(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -125,6 +129,7 @@ func TestAllocateIP(t *testing.T) {
 	js, _ := json.Marshal(allocateRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/ip/allocate", body)
+	container = injectEditor(container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -159,6 +164,7 @@ func TestUpdateIP(t *testing.T) {
 	js, _ := json.Marshal(updateRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/ip", body)
+	container = injectEditor(container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

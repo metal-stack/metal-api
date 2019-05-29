@@ -52,7 +52,7 @@ func (sr switchResource) webService() *restful.WebService {
 		Writes([]metal.Switch{}).
 		Returns(http.StatusOK, "OK", []metal.Switch{}))
 
-	ws.Route(ws.DELETE("/{id}").To(sr.restEntityGet(sr.ds.DeleteSwitch)).
+	ws.Route(ws.DELETE("/{id}").To(editor(sr.restEntityGet(sr.ds.DeleteSwitch))).
 		Operation("deleteSwitch").
 		Doc("deletes an switch and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
@@ -61,8 +61,9 @@ func (sr switchResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", metal.Switch{}).
 		Returns(http.StatusNotFound, "Not Found", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/register").To(sr.registerSwitch).
+	ws.Route(ws.POST("/register").To(editor(sr.registerSwitch)).
 		Doc("register a switch").
+		Operation("registerSwitch").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(metal.RegisterSwitch{}).
 		Returns(http.StatusOK, "OK", metal.Switch{}).

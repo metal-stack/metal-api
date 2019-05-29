@@ -41,7 +41,7 @@ func (r networkResource) webService() *restful.WebService {
 	tags := []string{"network"}
 
 	ws.Route(ws.GET("/{id}").
-		To(r.findNetwork).
+		To(viewer(r.findNetwork)).
 		Operation("findNetwork").
 		Doc("get network by id").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
@@ -51,7 +51,7 @@ func (r networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(r.listNetworks).
+		To(viewer(r.listNetworks)).
 		Operation("listNetworks").
 		Doc("get all networks").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -60,7 +60,7 @@ func (r networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(r.deleteNetwork).
+		To(editor(r.deleteNetwork)).
 		Operation("deleteNetwork").
 		Doc("deletes an network and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
@@ -70,7 +70,8 @@ func (r networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
-		To(r.createNetwork).
+		To(editor(r.createNetwork)).
+		Operation("createNetwork").
 		Doc("create an network. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkCreateRequest{}).
@@ -79,7 +80,8 @@ func (r networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").
-		To(r.updateNetwork).
+		To(editor(r.updateNetwork)).
+		Operation("updateNetwork").
 		Doc("updates an network. if the network was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkUpdateRequest{}).

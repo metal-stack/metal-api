@@ -25,6 +25,25 @@ spec:
           value: logfmt
         - name: ZAP_LEVEL
           value: debug
+        - name: METAL_API_IPAM_DB_ADDR
+          value: postgres
+        - name: METAL_API_IPAM_DB_PORT
+          value: 5432"
+        - name: METAL_API_IPAM_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              key: POSTGRES_DB
+              name: postgres-env
+        - name: METAL_API_IPAM_DB_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              key: POSTGRES_PASSWORD
+              name: postgres-env
+        - name: METAL_API_IPAM_DB_USER
+          valueFrom:
+            configMapKeyRef:
+              key: POSTGRES_USER
+              name: postgres-env
         - name: METAL_API_DB_ADDR
           value: rethinkdb-rethinkdb-proxy:{{ .Values.ports.rethinkdb }}
 {{- if not .Values.dev_setup }}
@@ -36,14 +55,6 @@ spec:
 {{- end }}
         - name: METAL_API_LOG_LEVEL
           value: debug
-        - name: METAL_API_NETBOX_ADDR
-          value: {{ template "netbox-api-proxy.fullname" . }}:{{ .Values.ports.netbox_api_proxy }}
-        - name: METAL_API_NSQD_ADDR
-          value: {{ template "nsqd.fullname" . }}:4150
-        - name: METAL_API_NSQD_HTTP_ADDR
-          value: {{ template "nsqd.fullname" . }}:4151
-        - name: METAL_API_NETBOX_API_TOKEN
-          value: de599cb74da0e4d16c6ca45cb80d5c9c072c1614
         image: {{ .Values.images.metal_api.image }}:{{ .Values.images.metal_api.tag }}
         name: metal-api
         imagePullPolicy: IfNotPresent

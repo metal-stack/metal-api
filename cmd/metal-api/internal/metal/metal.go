@@ -1,6 +1,17 @@
 package metal
 
-import "time"
+import (
+	"time"
+
+	"git.f-i-ts.de/cloud-native/metallib/security"
+)
+
+// These are our supported groups.
+const (
+	ViewAccess  = security.RessourceAccess("k8s_kaas-view")
+	EditAccess  = security.RessourceAccess("k8s_kaas-edit")
+	AdminAccess = security.RessourceAccess("k8s_kaas-admin")
+)
 
 // EventType is the type for event types.
 type EventType string

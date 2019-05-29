@@ -48,7 +48,7 @@ func (r firewallResource) webService() *restful.WebService {
 	tags := []string{"firewall"}
 
 	ws.Route(ws.GET("/{id}").
-		To(r.findFirewall).
+		To(viewer(r.findFirewall)).
 		Operation("findFirewall").
 		Doc("get firewall by id").
 		Param(ws.PathParameter("id", "identifier of the firewall").DataType("string")).
@@ -58,7 +58,7 @@ func (r firewallResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(r.listFirewalls).
+		To(viewer(r.listFirewalls)).
 		Operation("listFirewalls").
 		Doc("get all known firewalls").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -67,7 +67,8 @@ func (r firewallResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").
-		To(r.allocateFirewall).
+		To(editor(r.allocateFirewall)).
+		Operation("allocateFirewall").
 		Doc("allocate a firewall").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.FirewallCreateRequest{}).

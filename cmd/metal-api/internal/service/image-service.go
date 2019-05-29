@@ -57,7 +57,7 @@ func (ir imageResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(ir.deleteImage).
+		To(admin(ir.deleteImage)).
 		Operation("deleteImage").
 		Doc("deletes an image and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
@@ -67,7 +67,8 @@ func (ir imageResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
-		To(ir.createImage).
+		To(admin(ir.createImage)).
+		Operation("createImage").
 		Doc("create an image. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageCreateRequest{}).
@@ -76,7 +77,8 @@ func (ir imageResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").
-		To(ir.updateImage).
+		To(admin(ir.updateImage)).
+		Operation("updateImage").
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.ImageUpdateRequest{}).
