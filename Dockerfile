@@ -7,6 +7,7 @@ RUN redoc-cli bundle -o /generate/index.html /spec/metal-api.json
 
 FROM alpine:3.8
 LABEL maintainer FI-TS Devops <devops@f-i-ts.de>
+RUN apk -U add ca-certificates
 COPY --from=builder /work/bin/metal-api /metal-api
 COPY --from=docbuilder /generate/index.html /generate/index.html
 CMD ["/metal-api"]
