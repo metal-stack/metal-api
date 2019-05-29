@@ -25,7 +25,6 @@ type MachineAllocation struct {
 	Created         time.Time        `json:"created" description:"the time when the machine was created"`
 	Name            string           `json:"name" description:"the name of the machine"`
 	Description     string           `json:"description,omitempty" description:"a description for this machine" optional:"true"`
-	LastPing        time.Time        `json:"last_ping" description:"the timestamp of the last phone home call/ping from the machine" optional:"true" readOnly:"true"`
 	Tenant          string           `json:"tenant" description:"the tenant that this machine is assigned to"`
 	Project         string           `json:"project" description:"the project that this machine is assigned to" `
 	Image           *ImageResponse   `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
@@ -306,7 +305,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Created:         m.Allocation.Created,
 			Name:            m.Allocation.Name,
 			Description:     m.Allocation.Description,
-			LastPing:        m.Allocation.LastPing,
 			Image:           NewImageResponse(i),
 			Tenant:          m.Allocation.Tenant,
 			Project:         m.Allocation.Project,

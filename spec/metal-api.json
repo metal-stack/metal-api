@@ -2091,12 +2091,12 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "projectid",
-        "ssh_pub_keys",
-        "imageid",
         "tenant",
+        "imageid",
+        "ssh_pub_keys",
         "partitionid",
         "sizeid",
+        "projectid",
         "networks"
       ],
       "properties": {
@@ -2169,18 +2169,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "created",
-        "tags",
-        "rackid",
-        "liveliness",
-        "allocation",
-        "state",
-        "id",
-        "hardware",
-        "size",
-        "changed",
         "partition",
-        "events"
+        "state",
+        "changed",
+        "id",
+        "allocation",
+        "events",
+        "liveliness",
+        "created",
+        "hardware",
+        "rackid",
+        "size",
+        "tags"
       ],
       "properties": {
         "allocation": {
@@ -2280,8 +2280,8 @@
       "required": [
         "projectid",
         "networkid",
-        "machineid",
         "ipaddress",
+        "machineid",
         "created",
         "changed"
       ],
@@ -2556,12 +2556,6 @@
         "image": {
           "description": "the image assigned to this machine",
           "$ref": "#/definitions/v1.ImageResponse",
-          "readOnly": true
-        },
-        "last_ping": {
-          "description": "the timestamp of the last phone home call/ping from the machine",
-          "type": "string",
-          "format": "date-time",
           "readOnly": true
         },
         "name": {
@@ -2952,17 +2946,17 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "partition",
-        "hardware",
-        "allocation",
-        "liveliness",
-        "rackid",
         "size",
-        "state",
+        "hardware",
         "events",
+        "partition",
+        "rackid",
+        "allocation",
+        "state",
+        "liveliness",
         "tags",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "allocation": {
@@ -3053,12 +3047,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay"
+        "underlay",
+        "parentnetworkid"
       ],
       "properties": {
         "description": {
@@ -3122,12 +3116,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
+        "parentnetworkid",
         "usage",
         "created",
         "changed"
