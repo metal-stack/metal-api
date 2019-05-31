@@ -960,10 +960,6 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				if err != nil {
 					return err
 				}
-				err = r.ipamer.DeletePrefix(prefix)
-				if err != nil {
-					return err
-				}
 				deleteNetwork = true
 			}
 		}
