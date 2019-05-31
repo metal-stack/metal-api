@@ -12,6 +12,7 @@ type IPAMer interface {
 	AllocateIP(prefix metal.Prefix) (string, error)
 	ReleaseIP(ip metal.IP) error
 	AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (*metal.Prefix, error)
+	ReleaseChildPrefix(childPrefix metal.Prefix) error
 	CreatePrefix(prefix metal.Prefix) error
 	DeletePrefix(prefix metal.Prefix) error
 	PrefixUsage(cidr string) (*v1.NetworkUsage, error) // TODO: Also wrap usage, such that it is independent of v1
