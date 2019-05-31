@@ -41,6 +41,22 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (
 	return prefix, nil
 }
 
+// ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
+func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
+	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
+
+	if ipamChildPrefix == nil {
+		return fmt.Errorf("error finding child prefix in ipam: %s", childPrefix.String())
+	}
+
+	err := i.ip.ReleaseChildPrefix(ipamChildPrefix)
+	if err != nil {
+		return fmt.Errorf("error releasing child prefix in ipam: %v", err)
+	}
+
+	return nil
+}
+
 // CreatePrefix creates a prefix in the IPAM.
 func (i *Ipam) CreatePrefix(prefix metal.Prefix) error {
 	_, err := i.ip.NewPrefix(prefix.String())
