@@ -2555,12 +2555,12 @@
     "service.emptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
+        "projectid",
         "sizeid",
         "imageid",
-        "ssh_pub_keys",
-        "projectid",
+        "tenant",
         "partitionid",
+        "ssh_pub_keys",
         "networks"
       ],
       "properties": {
@@ -2633,18 +2633,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "hardware",
         "partition",
-        "state",
-        "liveliness",
-        "created",
-        "changed",
         "id",
-        "rackid",
         "allocation",
-        "tags",
+        "liveliness",
         "events",
-        "size"
+        "hardware",
+        "changed",
+        "tags",
+        "rackid",
+        "size",
+        "state",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3392,14 +3392,14 @@
       "required": [
         "id",
         "partition",
-        "hardware",
-        "state",
-        "liveliness",
-        "tags",
         "rackid",
         "size",
         "allocation",
+        "state",
         "events",
+        "tags",
+        "hardware",
+        "liveliness",
         "created",
         "changed"
       ],
@@ -3491,18 +3491,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "rackid",
         "id",
-        "size",
-        "allocation",
         "events",
-        "partition",
-        "created",
-        "state",
-        "hardware",
+        "rackid",
         "tags",
-        "liveliness",
+        "hardware",
+        "allocation",
         "changed",
+        "state",
+        "liveliness",
+        "partition",
+        "size",
+        "created",
         "phone_home_token"
       ],
       "properties": {
@@ -3581,11 +3581,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "underlay",
+        "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay",
-        "prefixes"
+        "primary"
       ],
       "properties": {
         "description": {
@@ -3651,8 +3651,8 @@
         "primary",
         "underlay",
         "usage",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3927,15 +3927,20 @@
       "required": [
         "size",
         "total",
-        "total"
+        "free"
       ],
       "properties": {
+        "free": {
+          "description": "free servers with this size",
+          "type": "integer",
+          "format": "int32"
+        },
         "size": {
           "description": "the size of the server",
           "type": "string"
         },
         "total": {
-          "description": "free servers with this size",
+          "description": "total amount of servers with this size",
           "type": "integer",
           "format": "int32"
         }
