@@ -77,6 +77,14 @@ var (
 // ProvisioningEvents is just a list of ProvisioningEvents
 type ProvisioningEvents []ProvisioningEvent
 
+// Is return true if given event is equal to specific EventType
+func (p ProvisioningEventType) Is(event string) bool {
+	if string(p) == event {
+		return true
+	}
+	return false
+}
+
 func (p provisioningEventSequence) firstEvent() *ProvisioningEventType {
 	if len(p) == 0 {
 		return nil

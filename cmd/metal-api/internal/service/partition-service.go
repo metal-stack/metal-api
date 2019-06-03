@@ -276,7 +276,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 		available := false
 		if len(m.RecentProvisioningEvents.Events) > 0 {
 			events := m.RecentProvisioningEvents.Events
-			if events[0].Event == "Waiting" && m.Liveliness == "Alive" {
+			if metal.ProvisioningEventWaiting.Is(events[0].Event) && metal.ProvisioningEventAlive.Is(m.Liveliness) {
 				available = true
 			}
 		}
