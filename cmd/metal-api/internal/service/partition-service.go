@@ -273,25 +273,27 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 			continue
 		}
 		size := m.Size.ID
-		cap := v1.ServerCapacity{
-			Size: m.Size.ID,
-		}
-		free := false
+		available := false
 		if m.Allocation != nil && len(m.RecentProvisioningEvents.Events) > 0 {
 			events := m.RecentProvisioningEvents.Events
 			if events[0].Event == "Waiting" && m.Liveliness == "Alive" {
-				free = true
+				available = true
 			}
 		}
 		oldCap, ok := capacities[size]
-		if !ok {
-			cap.Total = 1
-			cap.Free = 0
-		} else {
-			cap.Total = oldCap.Total + 1
+		total := 1
+		free := 0
+		if ok {
+			total = oldCap.Total + 1
 		}
-		if free {
-			cap.Free = oldCap.Free + 1
+		if available {
+			free = oldCap.Free + 1
+		}
+
+		cap := v1.ServerCapacity{
+			Size:  m.Size.ID,
+			Total: total,
+			Free:  free,
 		}
 		capacities[size] = cap
 	}

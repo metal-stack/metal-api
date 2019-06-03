@@ -41,7 +41,7 @@ type PartitionCapacity struct {
 type ServerCapacity struct {
 	Size  string `json:"size" description:"the size of the server"`
 	Total int    `json:"total" description:"total amount of servers with this size"`
-	Free  int    `json:"total" description:"free servers with this size"`
+	Free  int    `json:"free" description:"free servers with this size"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
