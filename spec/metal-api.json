@@ -1628,6 +1628,44 @@
         }
       }
     },
+    "/v1/partition/{id}/capacity": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Partition"
+        ],
+        "summary": "get Partition capacity",
+        "operationId": "partitionCapacity",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the Partition",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.PartitionCapacity"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/size": {
       "get": {
         "consumes": [
@@ -2518,11 +2556,11 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "tenant",
-        "projectid",
-        "partitionid",
         "sizeid",
         "imageid",
         "ssh_pub_keys",
+        "projectid",
+        "partitionid",
         "networks"
       ],
       "properties": {
@@ -2595,18 +2633,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "rackid",
-        "changed",
-        "allocation",
         "hardware",
+        "partition",
+        "state",
         "liveliness",
         "created",
-        "partition",
-        "events",
-        "tags",
+        "changed",
         "id",
-        "size",
-        "state"
+        "rackid",
+        "allocation",
+        "tags",
+        "events",
+        "size"
       ],
       "properties": {
         "allocation": {
@@ -3353,15 +3391,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "events",
-        "size",
+        "partition",
         "hardware",
-        "allocation",
         "state",
         "liveliness",
         "tags",
-        "partition",
         "rackid",
+        "size",
+        "allocation",
+        "events",
         "created",
         "changed"
       ],
@@ -3453,18 +3491,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "created",
-        "partition",
-        "events",
+        "rackid",
+        "id",
         "size",
         "allocation",
+        "events",
+        "partition",
+        "created",
         "state",
-        "tags",
-        "changed",
-        "id",
-        "rackid",
         "hardware",
+        "tags",
         "liveliness",
+        "changed",
         "phone_home_token"
       ],
       "properties": {
@@ -3543,11 +3581,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "underlay",
-        "prefixes",
         "destinationprefixes",
         "nat",
-        "primary"
+        "primary",
+        "underlay",
+        "prefixes"
       ],
       "properties": {
         "description": {
@@ -3757,6 +3795,20 @@
         }
       }
     },
+    "v1.PartitionCapacity": {
+      "required": [
+        "servers"
+      ],
+      "properties": {
+        "servers": {
+          "description": "servers available in this partition",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.ServerCapacity"
+          }
+        }
+      }
+    },
     "v1.PartitionCreateRequest": {
       "required": [
         "id",
@@ -3868,6 +3920,24 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        }
+      }
+    },
+    "v1.ServerCapacity": {
+      "required": [
+        "size",
+        "total",
+        "total"
+      ],
+      "properties": {
+        "size": {
+          "description": "the size of the server",
+          "type": "string"
+        },
+        "total": {
+          "description": "free servers with this size",
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -4012,10 +4082,10 @@
   },
   "security": [
     {
-      "HMAC": []
-    },
-    {
-      "jwt": []
+      "Authorization": [
+        "HMAC",
+        "jwt"
+      ]
     }
   ],
   "tags": [

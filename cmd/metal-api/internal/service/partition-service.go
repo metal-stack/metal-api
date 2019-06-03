@@ -92,6 +92,7 @@ func (r partitionResource) webService() *restful.WebService {
 		To(r.partitionCapacity).
 		Operation("partitionCapacity").
 		Doc("get Partition capacity").
+		Param(ws.PathParameter("id", "identifier of the Partition").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.PartitionCapacity{}).
 		Returns(http.StatusOK, "OK", v1.PartitionCapacity{}).
