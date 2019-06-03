@@ -266,6 +266,9 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 	ms, err := r.ds.ListMachines()
 	mr := makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar())
 	for _, m := range mr {
+		if m.Partition == nil {
+			continue
+		}
 		if m.Partition.ID != p.ID {
 			continue
 		}
