@@ -274,7 +274,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 		}
 		size := m.Size.ID
 		available := false
-		if m.Allocation != nil && len(m.RecentProvisioningEvents.Events) > 0 {
+		if len(m.RecentProvisioningEvents.Events) > 0 {
 			events := m.RecentProvisioningEvents.Events
 			if events[0].Event == "Waiting" && m.Liveliness == "Alive" {
 				available = true
@@ -291,7 +291,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 		}
 
 		cap := v1.ServerCapacity{
-			Size:  m.Size.ID,
+			Size:  size,
 			Total: total,
 			Free:  free,
 		}
