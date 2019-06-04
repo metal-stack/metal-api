@@ -2555,12 +2555,12 @@
     "service.emptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "projectid",
-        "sizeid",
         "imageid",
         "tenant",
-        "partitionid",
         "ssh_pub_keys",
+        "projectid",
+        "partitionid",
+        "sizeid",
         "networks"
       ],
       "properties": {
@@ -2634,17 +2634,17 @@
     "v1.FirewallResponse": {
       "required": [
         "partition",
-        "id",
+        "size",
         "allocation",
+        "rackid",
+        "changed",
         "liveliness",
         "events",
-        "hardware",
-        "changed",
         "tags",
-        "rackid",
-        "size",
+        "hardware",
         "state",
-        "created"
+        "created",
+        "id"
       ],
       "properties": {
         "allocation": {
@@ -3391,15 +3391,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "partition",
+        "allocation",
+        "liveliness",
+        "hardware",
         "rackid",
         "size",
-        "allocation",
         "state",
         "events",
         "tags",
-        "hardware",
-        "liveliness",
+        "partition",
         "created",
         "changed"
       ],
@@ -3491,17 +3491,17 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "id",
-        "events",
-        "rackid",
-        "tags",
-        "hardware",
-        "allocation",
-        "changed",
-        "state",
-        "liveliness",
         "partition",
         "size",
+        "hardware",
+        "events",
+        "liveliness",
+        "tags",
+        "changed",
+        "id",
+        "rackid",
+        "state",
+        "allocation",
         "created",
         "phone_home_token"
       ],
@@ -3581,11 +3581,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "primary",
         "underlay",
         "prefixes",
         "destinationprefixes",
-        "nat",
-        "primary"
+        "nat"
       ],
       "properties": {
         "description": {
@@ -3651,8 +3651,8 @@
         "primary",
         "underlay",
         "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3797,9 +3797,23 @@
     },
     "v1.PartitionCapacity": {
       "required": [
+        "id",
         "servers"
       ],
       "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
         "servers": {
           "description": "servers available in this partition",
           "type": "array",
