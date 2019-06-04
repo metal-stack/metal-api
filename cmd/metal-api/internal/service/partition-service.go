@@ -88,14 +88,13 @@ func (r partitionResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/capacity").
+	ws.Route(ws.GET("/capacity").
 		To(r.partitionCapacity).
 		Operation("partitionCapacity").
 		Doc("get Partition capacity").
-		Param(ws.PathParameter("id", "identifier of the Partition").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.PartitionCapacity{}).
-		Returns(http.StatusOK, "OK", v1.PartitionCapacity{}).
+		Writes([]v1.PartitionCapacity{}).
+		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -254,66 +253,72 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 }
 
 func (r partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
-	p, err := r.ds.FindPartition(id)
+	ps, err := r.ds.ListPartitions()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	capacities := make(map[string]v1.ServerCapacity)
-
 	ms, err := r.ds.ListMachines()
-	mr := makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar())
-	for _, m := range mr {
-		if m.Partition == nil || m.Size == nil {
-			continue
-		}
-		if m.Partition.ID != p.ID {
-			continue
-		}
-		size := m.Size.ID
-		available := false
-		if len(m.RecentProvisioningEvents.Events) > 0 {
-			events := m.RecentProvisioningEvents.Events
-			if metal.ProvisioningEventWaiting.Is(events[0].Event) && metal.ProvisioningEventAlive.Is(m.Liveliness) {
-				available = true
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	machines := makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar())
+
+	partitionCapacities := []v1.PartitionCapacity{}
+	for _, p := range ps {
+
+		capacities := make(map[string]v1.ServerCapacity)
+		for _, m := range machines {
+			if m.Partition == nil || m.Size == nil {
+				continue
 			}
+			if m.Partition.ID != p.ID {
+				continue
+			}
+			size := m.Size.ID
+			available := false
+			if len(m.RecentProvisioningEvents.Events) > 0 {
+				events := m.RecentProvisioningEvents.Events
+				if metal.ProvisioningEventWaiting.Is(events[0].Event) && metal.ProvisioningEventAlive.Is(m.Liveliness) {
+					available = true
+				}
+			}
+			oldCap, ok := capacities[size]
+			total := 1
+			free := 0
+			if ok {
+				total = oldCap.Total + 1
+			}
+			if available {
+				free = oldCap.Free + 1
+			}
+
+			cap := v1.ServerCapacity{
+				Size:  size,
+				Total: total,
+				Free:  free,
+			}
+			capacities[size] = cap
 		}
-		oldCap, ok := capacities[size]
-		total := 1
-		free := 0
-		if ok {
-			total = oldCap.Total + 1
-		}
-		if available {
-			free = oldCap.Free + 1
+		sc := []v1.ServerCapacity{}
+		for _, c := range capacities {
+			sc = append(sc, c)
 		}
 
-		cap := v1.ServerCapacity{
-			Size:  size,
-			Total: total,
-			Free:  free,
-		}
-		capacities[size] = cap
-	}
-	sc := []v1.ServerCapacity{}
-	for _, c := range capacities {
-		sc = append(sc, c)
-	}
-
-	pc := v1.PartitionCapacity{
-		Common: v1.Common{
-			Identifiable: v1.Identifiable{
-				ID: p.ID,
+		pc := v1.PartitionCapacity{
+			Common: v1.Common{
+				Identifiable: v1.Identifiable{
+					ID: p.ID,
+				},
+				Describeable: v1.Describeable{
+					Name:        &p.Name,
+					Description: &p.Description,
+				},
 			},
-			Describeable: v1.Describeable{
-				Name:        &p.Name,
-				Description: &p.Description,
-			},
-		},
-		ServerCapacities: sc,
+			ServerCapacities: sc,
+		}
+		partitionCapacities = append(partitionCapacities, pc)
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, pc)
+	response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
 }

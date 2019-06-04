@@ -195,7 +195,7 @@ func TestPartitionCapacity(t *testing.T) {
 	service := NewPartition(ds)
 	container := restful.NewContainer().Add(service)
 
-	req := httptest.NewRequest("GET", "/v1/partition/1/capacity", nil)
+	req := httptest.NewRequest("GET", "/v1/partition/capacity", nil)
 	req.Header.Add("Content-Type", "application/json")
 	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
@@ -203,14 +203,14 @@ func TestPartitionCapacity(t *testing.T) {
 
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.PartitionCapacity
+	var result []v1.PartitionCapacity
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
-	require.Equal(t, testdata.Partition1.ID, result.ID)
-	require.NotNil(t, result.ServerCapacities)
-	require.Equal(t, 1, len(result.ServerCapacities))
-	cap := result.ServerCapacities[0]
+	require.Equal(t, testdata.Partition1.ID, result[0].ID)
+	require.NotNil(t, result[0].ServerCapacities)
+	require.Equal(t, 1, len(result[0].ServerCapacities))
+	cap := result[0].ServerCapacities[0]
 	require.Equal(t, "1", cap.Size)
 	require.Equal(t, 5, cap.Total)
 	require.Equal(t, 0, cap.Free)
