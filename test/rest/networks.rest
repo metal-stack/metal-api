@@ -8,6 +8,8 @@ GET {{baseurl}}
 # @name createTenantNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
+Authorization: Metal-Admin 8e99f348cb47cbb9f053bc768dd303d925dacfa2abc0a8fefc419d8459aa7583
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
   "id": "primary-network",
@@ -25,6 +27,8 @@ Content-Type: application/json
 # @name createInternetNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
+Authorization: Metal-Admin 8e99f348cb47cbb9f053bc768dd303d925dacfa2abc0a8fefc419d8459aa7583
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
   "id": "internet-vagrant-lab",

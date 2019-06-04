@@ -3,11 +3,15 @@
 ### get all switches
 # @name getAll
 GET {{baseurl}}
+Authorization: Metal-Admin 71f2cba9ea8ac77ef30c3fac795ea41208a3f7d5a9efe186c9975e5e531869b0
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### register a switch
 # @name register
 POST {{baseurl}}/register
 Content-Type: application/json
+Authorization: Metal-Admin d64300dffcea83ffea5ae281d1a88543b9398841ae80cc8e0929e185e3c50dcd
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
   "id": "switch1",

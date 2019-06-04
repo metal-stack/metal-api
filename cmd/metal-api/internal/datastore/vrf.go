@@ -61,13 +61,16 @@ func (rs *RethinkStore) ReserveNewVrf(tenant, projectid string) (*metal.Vrf, err
 			ProjectID: projectid,
 		}
 		err = rs.CreateVrf(vrf)
-		if metal.IsConflict(err) {
-			hashInput += "salt"
-			if try > 100 {
-				return nil, fmt.Errorf("reached threshold for trying to generate vrfID that does not overlap")
+		if err != nil {
+			if metal.IsConflict(err) {
+				hashInput += "salt"
+				if try > 100 {
+					return nil, fmt.Errorf("reached threshold for trying to generate vrfID that does not yet exist")
+				}
+				try++
+				continue
 			}
-			try++
-			continue
+			return nil, err
 		}
 
 		return vrf, nil
