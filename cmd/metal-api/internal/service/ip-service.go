@@ -167,16 +167,20 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	// TODO: Check if project exists if we get a project entity
 	// TODO: Following operations should span a database transaction if possible
 
-	ip, err := allocateIP(*nw, ir.ipamer)
+	ipAddress, ipParentCidr, err := allocateIP(nw, ir.ipamer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	utils.Logger(request).Sugar().Debugw("found an ip to allocate", "ip", ip.IPAddress, "network", nw.ID)
+	utils.Logger(request).Sugar().Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
 
-	ip.Name = name
-	ip.Description = description
-	ip.ProjectID = requestPayload.ProjectID
-	ip.NetworkID = nw.ID
+	ip := &metal.IP{
+		IPAddress:        ipAddress,
+		ParentPrefixCidr: ipParentCidr,
+		Name:             name,
+		Description:      description,
+		NetworkID:        nw.ID,
+		ProjectID:        requestPayload.ProjectID,
+	}
 
 	err = ir.ds.CreateIP(ip)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -215,7 +219,7 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func allocateIP(parent metal.Network, ipamer ipam.IPAMer) (*metal.IP, error) {
+func allocateIP(parent *metal.Network, ipamer ipam.IPAMer) (string, string, error) {
 	var errors []error
 	var err error
 	var ipAddress string
@@ -233,14 +237,10 @@ func allocateIP(parent metal.Network, ipamer ipam.IPAMer) (*metal.IP, error) {
 	}
 	if ipAddress == "" {
 		if len(errors) > 0 {
-			return nil, fmt.Errorf("cannot allocate free ip in ipam: %v", errors)
+			return "", "", fmt.Errorf("cannot allocate free ip in ipam: %v", errors)
 		}
-		return nil, fmt.Errorf("cannot allocate free ip in ipam")
+		return "", "", fmt.Errorf("cannot allocate free ip in ipam")
 	}
-	ip := &metal.IP{
-		IPAddress:        ipAddress,
-		ParentPrefixCidr: parentPrefixCidr,
-		NetworkID:        parent.ID,
-	}
-	return ip, nil
+
+	return ipAddress, parentPrefixCidr, nil
 }

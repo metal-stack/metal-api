@@ -213,7 +213,7 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 	}
 	err = res.One(entity)
 	if err != nil {
-		return fmt.Errorf("cannot fetch single %v: %v", getEntityName(entity), err)
+		return fmt.Errorf("more than one %v with same id exists: %v", getEntityName(entity), err)
 	}
 	return nil
 }
@@ -232,7 +232,7 @@ func (rs *RethinkStore) listEntities(table *r.Term, entity interface{}) error {
 	return nil
 }
 
-func (rs *RethinkStore) createEntity(table *r.Term, entity metal.MetalEntity) error {
+func (rs *RethinkStore) createEntity(table *r.Term, entity metal.Entity) error {
 	now := time.Now()
 	entity.SetCreated(now)
 	entity.SetChanged(now)
@@ -248,7 +248,7 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.MetalEntity) er
 	return nil
 }
 
-func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.MetalEntity) error {
+func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.Entity) error {
 	now := time.Now()
 	if entity.GetChanged().IsZero() {
 		entity.SetChanged(now)
@@ -268,10 +268,8 @@ func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.MetalEntity) er
 	return nil
 }
 
-func (rs *RethinkStore) searchEntities(table *r.Term, filter interface{}, entity interface{}) error {
-	q := table.Filter(filter)
-
-	res, err := q.Run(rs.session)
+func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error {
+	res, err := query.Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot search %v in database: %v", getEntityName(entity), err)
 	}
@@ -284,7 +282,7 @@ func (rs *RethinkStore) searchEntities(table *r.Term, filter interface{}, entity
 	return nil
 }
 
-func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.MetalEntity) error {
+func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.Entity) error {
 	_, err := table.Get(entity.GetID()).Delete().RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot delete %v with id %q from database: %v", getEntityName(entity), entity.GetID(), err)
@@ -292,7 +290,7 @@ func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.MetalEntity) er
 	return nil
 }
 
-func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.MetalEntity, oldEntity metal.MetalEntity) error {
+func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldEntity metal.Entity) error {
 	newEntity.SetChanged(time.Now())
 	_, err := table.Get(oldEntity.GetID()).Replace(func(row r.Term) r.Term {
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error("the entity was changed from another, please retry"))
@@ -303,7 +301,7 @@ func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.MetalEntity,
 	return nil
 }
 
-func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.MetalEntity, response interface{}) error {
+func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.Entity, response interface{}) error {
 	res, err := table.Get(entity.GetID()).Changes().Run(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot listen for %v change with id %q in database", getEntityName(entity), entity.GetID())
@@ -311,7 +309,7 @@ func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.MetalE
 	defer res.Close()
 
 	for res.Next(&response) {
-		rs.SugaredLogger.Infow("entity changed", "entity", getEntityName(entity), "id", entity.GetID())
+		rs.SugaredLogger.Debugw("entity changed", "entity", getEntityName(entity), "id", entity.GetID())
 		return nil
 	}
 	err = res.Err()

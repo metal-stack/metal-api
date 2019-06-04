@@ -11,16 +11,6 @@ import (
 )
 
 func TestRethinkStore_FindSwitch(t *testing.T) {
-
-	sw := testdata.Switch1
-	cons := make(metal.Connections, 0)
-	for _, cc := range sw.MachineConnections {
-		for _, c := range cc {
-			cons = append(cons, c)
-		}
-	}
-	sw.Connections = cons
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -35,10 +25,17 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 		want    *metal.Switch
 		wantErr bool
 	}{
-		// Test Data Array / Test Cases:
-
 		{
 			name: "TestRethinkStore_FindSwitch Test 1",
+			rs:   ds,
+			args: args{
+				id: testdata.Switch1.ID,
+			},
+			want:    &testdata.Switch1,
+			wantErr: false,
+		},
+		{
+			name: "TestRethinkStore_FindSwitch Test 2",
 			rs:   ds,
 			args: args{
 				id: "switch404",
@@ -61,29 +58,23 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_findSwitchByRack(t *testing.T) {
-
-	ds, mock := InitMockDB()
+func TestRethinkStore_FindSwitchByRack(t *testing.T) {
 
 	returnSwitches := []metal.Switch{
 		testdata.Switch2,
 	}
-
-	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return(returnSwitches, nil)
 
 	type args struct {
 		rackid string
 	}
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
 		args    args
 		want    []metal.Switch
 		wantErr bool
 	}{
 		{
-			name: "TestRethinkStore_findSwitchByRack Test 1",
-			rs:   ds,
+			name: "TestRethinkStore_SearchSwitches Test 1 by rack id",
 			args: args{
 				rackid: "2",
 			},
@@ -93,15 +84,21 @@ func TestRethinkStore_findSwitchByRack(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.findSwitchByRack(tt.args.rackid)
+			ds, mock := InitMockDB()
+
+			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return(returnSwitches, nil)
+
+			got, err := ds.SearchSwitches(tt.args.rackid, nil)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.findSwitchByRack() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			// Because deepequal of two same objects here returns false, here are some attribute validations:
 			require.Equal(t, got[0].ID, tt.want[0].ID)
 			require.Equal(t, got[0].PartitionID, tt.want[0].PartitionID)
 			require.Equal(t, got[0].RackID, tt.want[0].RackID)
+
+			mock.AssertExpectations(t)
 		})
 	}
 }
@@ -189,13 +186,10 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.CreateSwitch(tt.args.s)
+			err := tt.rs.CreateSwitch(tt.args.s)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.CreateSwitch() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -213,53 +207,30 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
-		want    *metal.Switch
+		s       *metal.Switch
 		wantErr bool
 	}{
 		// Test Data Array / Test Cases:
 
 		{
-			name: "TestRethinkStore_DeleteSwitch Test 1",
-			rs:   ds,
-			args: args{
-				id: "switch1",
-			},
-			want:    &testdata.Switch1,
+			name:    "TestRethinkStore_DeleteSwitch Test 1",
+			rs:      ds,
+			s:       &testdata.Switch1,
 			wantErr: false,
 		},
 		{
-			name: "TestRethinkStore_DeleteSwitch Test 2",
-			rs:   ds,
-			args: args{
-				id: "switch2",
-			},
-			want:    &testdata.Switch2,
+			name:    "TestRethinkStore_DeleteSwitch Test 2",
+			rs:      ds,
+			s:       &testdata.Switch2,
 			wantErr: false,
-		},
-
-		{
-			name: "TestRethinkStore_DeleteSwitch Test 3",
-			rs:   ds,
-			args: args{
-				id: "switch404",
-			},
-			want:    nil,
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.DeleteSwitch(tt.args.id)
+			err := tt.rs.DeleteSwitch(tt.s)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			// Because deepequal of two same objects here returns false, here are some attribute validations:
-			if tt.want != nil {
-				require.Equal(t, got.ID, tt.want.ID)
-				require.Equal(t, got.PartitionID, tt.want.PartitionID)
-				require.Equal(t, got.RackID, tt.want.RackID)
 			}
 		})
 	}
@@ -308,90 +279,20 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_UpdateSwitchConnections(t *testing.T) {
-
-	// mock the DB
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
+func TestRethinkStore_FindSwitchByMac(t *testing.T) {
 	type args struct {
-		dev *metal.Machine
+		macs []string
 	}
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
-		args    args
-		wantErr bool
-	}{
-		// Test-Data List / Test Cases:
-		{
-			name: "TestRethinkStore_UpdateSwitchConnections Test 1",
-			rs:   ds,
-			args: args{
-				&testdata.M1,
-			},
-			wantErr: false,
-		},
-		{
-			name: "TestRethinkStore_UpdateSwitchConnections Test 2",
-			rs:   ds,
-			args: args{
-				&testdata.M2,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdateSwitchConnections(tt.args.dev); (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.UpdateSwitchConnections() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_SetVrfAtSwitch(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	vrf := "123"
-	m := testdata.M1
-	switches, err := ds.SetVrfAtSwitch(&m, vrf)
-	require.NoError(t, err, "no error was expected: got %v", err)
-	for _, s := range switches {
-		require.Equal(t, vrf, s.Nics[0].Vrf)
-	}
-}
-
-func TestRethinkStore_findSwithcByMac(t *testing.T) {
-
-	// mock the DB
-	ds, mock := InitMockDB()
-
-	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return([]metal.Switch{
-		testdata.Switch1,
-	}, nil)
-
-	testdata.Switch1.FillSwitchConnections()
-
-	type args struct {
-		macs []metal.Nic
-	}
-	tests := []struct {
-		name    string
-		rs      *RethinkStore
 		args    args
 		want    []metal.Switch
 		wantErr bool
 	}{
-		// Test Data Array / Test Cases:
-
 		{
-			name: "TestRethinkStore_findSwithcByMac Test 1",
-			rs:   ds,
+			name: "TestRethinkStore_FindSwitch Test 1",
 			args: args{
-				macs: testdata.TestNics,
+				macs: []string{string(testdata.Switch1.Nics[0].MacAddress)},
 			},
 			want: []metal.Switch{
 				testdata.Switch1,
@@ -401,14 +302,20 @@ func TestRethinkStore_findSwithcByMac(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.findSwithcByMac(tt.args.macs)
+			ds, mock := InitMockDB()
+			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return([]metal.Switch{
+				testdata.Switch1,
+			}, nil)
+
+			got, err := ds.SearchSwitches("", tt.args.macs)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.findSwithcByMac() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.findSwithcByMac() = %v, want %v", got, tt.want)
+				t.Errorf("RethinkStore.SearchSwitches() = %v, want %v", got, tt.want)
 			}
+			mock.AssertExpectations(t)
 		})
 	}
 }

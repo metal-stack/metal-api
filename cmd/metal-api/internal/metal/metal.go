@@ -43,15 +43,15 @@ var (
 
 // Base implements common fields for most basic entity types (not all).
 type Base struct {
-	ID          string    `json:"id" description:"a unique ID" unique:"true" rethinkdb:"id,omitempty"`
-	Name        string    `json:"name" description:"the readable name" optional:"true" rethinkdb:"name"`
-	Description string    `json:"description,omitempty" description:"a description for this entity" optional:"true" rethinkdb:"description"`
-	Created     time.Time `json:"created" description:"the creation time of this entity" optional:"true" readOnly:"true" rethinkdb:"created"`
-	Changed     time.Time `json:"changed" description:"the last changed timestamp" optional:"true" readOnly:"true" rethinkdb:"changed"`
+	ID          string    `rethinkdb:"id,omitempty"`
+	Name        string    `rethinkdb:"name"`
+	Description string    `rethinkdb:"description"`
+	Created     time.Time `rethinkdb:"created"`
+	Changed     time.Time `rethinkdb:"changed"`
 }
 
-// MetalEntity is an interface that allows metal entities to be created and stored into the database with the generic creation and update functions.
-type MetalEntity interface {
+// Entity is an interface that allows metal entities to be created and stored into the database with the generic creation and update functions.
+type Entity interface {
 	// GetID returns the entity's id
 	GetID() string
 	// SetID sets the entity's id
@@ -66,26 +66,32 @@ type MetalEntity interface {
 	SetCreated(created time.Time)
 }
 
+// GetID returns the ID of the entity
 func (b *Base) GetID() string {
 	return b.ID
 }
 
+// SetID sets the ID of the entity
 func (b *Base) SetID(id string) {
 	b.ID = id
 }
 
+// GetChanged returns the last changed timestamp of the entity
 func (b *Base) GetChanged() time.Time {
 	return b.Changed
 }
 
+// SetChanged sets the last changed timestamp of the entity
 func (b *Base) SetChanged(changed time.Time) {
 	b.Changed = changed
 }
 
+// GetCreated returns the creation timestamp of the entity
 func (b *Base) GetCreated() time.Time {
 	return b.Created
 }
 
+// SetCreated sets the creation timestamp of the entity
 func (b *Base) SetCreated(created time.Time) {
 	b.Created = created
 }

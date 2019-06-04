@@ -6,19 +6,20 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-func TestRethinkStore_FindVrf(t *testing.T) {
+func TestRethinkStore_FindVrfByProject(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
+	mock.On(r.DB("mockdb").Table("vrf").Filter(r.MockAnything())).Return(testdata.Vrf1, nil)
 	testdata.InitMockDBData(mock)
 
-	mock.On(r.DB("mockdb").Table("vrf").Filter(r.MockAnything())).Return(testdata.Vrf1, nil)
-
 	type args struct {
-		f map[string]interface{}
+		projectID string
+		tenantID  string
 	}
 	tests := []struct {
 		name    string
@@ -32,7 +33,8 @@ func TestRethinkStore_FindVrf(t *testing.T) {
 			name: "Test find Vrf1 by tenant and projectid",
 			rs:   ds,
 			args: args{
-				f: map[string]interface{}{"tenant": "t", "projectid": "p"},
+				projectID: "p",
+				tenantID:  "t",
 			},
 			want:    &testdata.Vrf1,
 			wantErr: false,
@@ -40,13 +42,13 @@ func TestRethinkStore_FindVrf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindVrf(tt.args.f)
+			got, err := tt.rs.FindVrfByProject(tt.args.projectID, tt.args.tenantID)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.FindVrf() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RethinkStore.FindVrfByProject() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindVrf() = %v, want %v", got, tt.want)
+				t.Errorf("RethinkStore.FindVrfByProject() = %v, want %v", got, tt.want)
 			}
 		})
 	}

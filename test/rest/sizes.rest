@@ -10,7 +10,7 @@ GET {{baseurl}}
 GET {{baseurl}}/{{sizeid}}
 
 ### check if a size is found (success)
-POST {{baseurl}}/fromHardware
+POST {{baseurl}}/from-hardware
 Content-Type: application/json
 
 {
@@ -51,7 +51,7 @@ Content-Type: application/json
 }
 
 ### check if a size is found (no match)
-POST {{baseurl}}/fromHardware
+POST {{baseurl}}/from-hardware
 Content-Type: application/json
 
 {

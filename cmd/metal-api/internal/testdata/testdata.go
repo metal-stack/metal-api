@@ -494,7 +494,9 @@ var (
 
 	// All Vrfs
 	Vrf1 = metal.Vrf{
-		ID:        1,
+		Base: metal.Base{
+			ID: "42000",
+		},
 		ProjectID: "p",
 		Tenant:    "t",
 	}

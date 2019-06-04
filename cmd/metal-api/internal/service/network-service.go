@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
@@ -264,7 +265,9 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 
 	if vrfID != 0 {
 		vrf := &metal.Vrf{
-			ID:        vrfID,
+			Base: metal.Base{
+				ID: strconv.FormatUint(uint64(vrfID), 10),
+			},
 			ProjectID: projectid,
 		}
 

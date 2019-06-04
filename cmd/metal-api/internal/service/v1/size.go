@@ -5,7 +5,7 @@ import (
 )
 
 type SizeConstraint struct {
-	Type metal.ConstraintType `json:"type" modelDescription:"a machine matches to a size in order to make them easier to categorize"  enum:"cores|memory|storage" description:"the type of the constraint"`
+	Type metal.ConstraintType `json:"type" modelDescription:"a machine matches to a size in order to make them easier to categorize" enum:"cores|memory|storage" description:"the type of the constraint"`
 	Min  uint64               `json:"min" description:"the minimum value of the constraint"`
 	Max  uint64               `json:"max" description:"the maximum value of the constraint"`
 }
@@ -24,6 +24,41 @@ type SizeResponse struct {
 	Common
 	SizeConstraints []SizeConstraint `json:"constraints" description:"a list of constraints that defines this size"`
 	Timestamps
+}
+
+type SizeConstraintMatchingLog struct {
+	Constraint SizeConstraint `json:"constraint" description:"the size constraint to which this log relates to"`
+	Match      bool           `json:"match" description:"indicates whether the constraint matched or not"`
+	Log        string         `json:"log" description:"a string represention of the matching condition"`
+}
+
+type SizeMatchingLog struct {
+	Name        string                      `json:"name"`
+	Log         string                      `json:"log"`
+	Match       bool                        `json:"match"`
+	Constraints []SizeConstraintMatchingLog `json:"constraints"`
+}
+
+func NewSizeMatchingLog(m *metal.SizeMatchingLog) *SizeMatchingLog {
+	constraints := []SizeConstraintMatchingLog{}
+	for i := range m.Constraints {
+		constraint := SizeConstraintMatchingLog{
+			Constraint: SizeConstraint{
+				Type: m.Constraints[i].Constraint.Type,
+				Min:  m.Constraints[i].Constraint.Min,
+				Max:  m.Constraints[i].Constraint.Max,
+			},
+			Match: m.Constraints[i].Match,
+			Log:   m.Constraints[i].Log,
+		}
+		constraints = append(constraints, constraint)
+	}
+	return &SizeMatchingLog{
+		Name:        m.Name,
+		Match:       m.Match,
+		Log:         m.Log,
+		Constraints: constraints,
+	}
 }
 
 func NewSizeResponse(s *metal.Size) *SizeResponse {

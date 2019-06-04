@@ -84,7 +84,7 @@ func TestRegisterMachine(t *testing.T) {
 			dbsizes:          []metal.Size{testdata.Sz1},
 			numcores:         1,
 			memory:           100,
-			expectedStatus:   http.StatusOK,
+			expectedStatus:   http.StatusCreated,
 			expectedSizeName: testdata.Sz1.Name,
 		},
 		{
@@ -118,14 +118,14 @@ func TestRegisterMachine(t *testing.T) {
 			expectedErrorMessage: "no partition with id \"\" found",
 		},
 		{
-			name:             "unknown size because wrong cpu",
+			name:             "new with unknown size",
 			uuid:             "0",
 			partitionid:      "1",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
 			numcores:         2,
 			memory:           100,
-			expectedStatus:   http.StatusOK,
+			expectedStatus:   http.StatusCreated,
 			expectedSizeName: metal.UnknownSize.Name,
 		},
 	}
@@ -169,9 +169,11 @@ func TestRegisterMachine(t *testing.T) {
 						ProductSerial:       &testdata.IPMI1.Fru.ProductSerial,
 					},
 				},
-				Hardware: v1.MachineHardware{
-					CPUCores: test.numcores,
-					Memory:   uint64(test.memory),
+				Hardware: v1.MachineHardwareExtended{
+					MachineHardwareBase: v1.MachineHardwareBase{
+						CPUCores: test.numcores,
+						Memory:   uint64(test.memory),
+					},
 				},
 			}
 
@@ -517,7 +519,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
-	require.Equal(t, "0", *result.IncompleteProvisioningCycles)
+	require.Equal(t, "0", result.IncompleteProvisioningCycles)
 	require.Len(t, result.Events, 1)
 	if len(result.Events) > 0 {
 		require.Equal(t, "starting metal-hammer", result.Events[0].Message)
