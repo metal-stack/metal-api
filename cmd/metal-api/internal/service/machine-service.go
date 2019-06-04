@@ -427,7 +427,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	size, _, err := r.ds.FromHardware(machineHardware)
 	if err != nil {
 		size = metal.UnknownSize
-		utils.Logger(request).Sugar().Warnw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
+		utils.Logger(request).Sugar().Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
 	}
 
 	m, err := r.ds.FindMachine(requestPayload.UUID)
@@ -1235,7 +1235,7 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 		} else {
 			s, err = ds.FindSize(m.SizeID)
 			if err != nil {
-				logger.Errorw("machine with id %s references size with id %s, but size cannot be found in database: %v", m.ID, m.SizeID, err)
+				logger.Errorw("machine references size, but size cannot be found in database", "machineID", m.ID, "sizeID", m.SizeID, "error", err)
 			}
 		}
 	}
@@ -1244,7 +1244,7 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 	if m.PartitionID != "" {
 		p, err = ds.FindPartition(m.PartitionID)
 		if err != nil {
-			logger.Errorw("machine with id %s references partition with id %s, but partition cannot be found in database: %v", m.ID, m.PartitionID, err)
+			logger.Errorw("machine references partition, but partition cannot be found in database", "machineID", m.ID, "partitionID", m.PartitionID, "error", err)
 		}
 	}
 
@@ -1253,7 +1253,7 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 		if m.Allocation.ImageID != "" {
 			i, err = ds.FindImage(m.Allocation.ImageID)
 			if err != nil {
-				logger.Errorw("machine with id %s references image with id %s, but image cannot be found in database: %v", m.ID, m.Allocation.ImageID, err)
+				logger.Errorw("machine references image, but image cannot be found in database", "machineID", m.ID, "imageID", m.Allocation.ImageID, "error", err)
 			}
 		}
 	}
@@ -1261,7 +1261,7 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 	var ec *metal.ProvisioningEventContainer
 	try, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
-		logger.Errorw("machine with id %s has no provisioning event container in the database: %v", m.ID, err)
+		logger.Errorw("machine has no provisioning event container in the database", "machineID", m.ID, "error", err)
 	} else {
 		ec = try
 	}
@@ -1272,22 +1272,22 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
 	s, err := ds.ListSizes()
 	if err != nil {
-		logger.Errorw("sizes could not be listed: %v", err)
+		logger.Errorw("sizes could not be listed", "error", err)
 	}
 
 	p, err := ds.ListPartitions()
 	if err != nil {
-		logger.Errorw("partitions could not be listed: %v", err)
+		logger.Errorw("partitions could not be listed", "error", err)
 	}
 
 	i, err := ds.ListImages()
 	if err != nil {
-		logger.Errorw("images could not be listed: %v", err)
+		logger.Errorw("images could not be listed", "error", err)
 	}
 
 	ec, err := ds.ListProvisioningEventContainers()
 	if err != nil {
-		logger.Errorw("provisioning event containers could not be listed: %v", err)
+		logger.Errorw("provisioning event containers could not be listed", "error", err)
 	}
 
 	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()

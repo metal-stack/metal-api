@@ -293,7 +293,7 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, lo
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
 		if err != nil {
-			logger.Errorw("switch with id %s references partition with id %s, but partition cannot be found in database: %v", s.ID, s.PartitionID, err)
+			logger.Errorw("switch references partition, but partition cannot be found in database", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
 		}
 	}
 
@@ -320,7 +320,7 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) metal.PartitionMap {
 	p, err := ds.ListPartitions()
 	if err != nil {
-		logger.Errorw("partitions could not be listed: %v", err)
+		logger.Errorw("partitions could not be listed", "error", err)
 	}
 
 	return p.ByID()
