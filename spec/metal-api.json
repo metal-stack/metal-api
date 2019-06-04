@@ -1554,6 +1554,38 @@
         }
       }
     },
+    "/v1/partition/capacity": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Partition"
+        ],
+        "summary": "get Partition capacity",
+        "operationId": "partitionCapacity",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.PartitionCapacity"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/partition/{id}": {
       "get": {
         "consumes": [
@@ -1617,44 +1649,6 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/v1.PartitionResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/v1/partition/{id}/capacity": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "Partition"
-        ],
-        "summary": "get Partition capacity",
-        "operationId": "partitionCapacity",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the Partition",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.PartitionCapacity"
             }
           },
           "default": {
@@ -2555,12 +2549,12 @@
     "service.emptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "imageid",
-        "tenant",
-        "ssh_pub_keys",
         "projectid",
         "partitionid",
         "sizeid",
+        "imageid",
+        "ssh_pub_keys",
+        "tenant",
         "networks"
       ],
       "properties": {
@@ -2633,18 +2627,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "partition",
-        "size",
-        "allocation",
-        "rackid",
-        "changed",
         "liveliness",
-        "events",
-        "tags",
-        "hardware",
         "state",
-        "created",
-        "id"
+        "events",
+        "partition",
+        "tags",
+        "changed",
+        "id",
+        "allocation",
+        "size",
+        "rackid",
+        "hardware",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3392,14 +3386,14 @@
       "required": [
         "id",
         "allocation",
-        "liveliness",
-        "hardware",
-        "rackid",
-        "size",
         "state",
+        "hardware",
+        "liveliness",
         "events",
         "tags",
         "partition",
+        "rackid",
+        "size",
         "created",
         "changed"
       ],
@@ -3491,18 +3485,18 @@
     },
     "v1.MachineWaitResponse": {
       "required": [
-        "partition",
-        "size",
-        "hardware",
-        "events",
-        "liveliness",
-        "tags",
-        "changed",
-        "id",
-        "rackid",
         "state",
+        "tags",
         "allocation",
+        "partition",
+        "rackid",
+        "id",
+        "liveliness",
+        "events",
+        "hardware",
         "created",
+        "changed",
+        "size",
         "phone_home_token"
       ],
       "properties": {
@@ -3581,11 +3575,11 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "primary",
-        "underlay",
         "prefixes",
         "destinationprefixes",
-        "nat"
+        "nat",
+        "primary",
+        "underlay"
       ],
       "properties": {
         "description": {
