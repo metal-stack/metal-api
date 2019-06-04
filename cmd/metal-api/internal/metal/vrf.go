@@ -25,6 +25,7 @@ func GenerateVrfID(i string) (string, error) {
 	return strconv.FormatUint(hash, 10), nil
 }
 
+// ToUint converts the VrfID to an unsigned integer.
 func (v *Vrf) ToUint() (uint, error) {
 	id, err := strconv.ParseUint(v.ID, 10, 64)
 	if err != nil {

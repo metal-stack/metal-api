@@ -160,26 +160,32 @@ type ProvisioningEventContainer struct {
 	Changed                      time.Time          `rethinkdb:"changed"`
 }
 
+// GetID returns the ID of the entity
 func (p *ProvisioningEventContainer) GetID() string {
 	return p.ID
 }
 
+// SetID sets the ID of the entity
 func (p *ProvisioningEventContainer) SetID(id string) {
 	p.ID = id
 }
 
+// GetChanged returns the last changed timestamp of the entity
 func (p *ProvisioningEventContainer) GetChanged() time.Time {
 	return p.Changed
 }
 
+// SetChanged sets the last changed timestamp of the entity
 func (p *ProvisioningEventContainer) SetChanged(changed time.Time) {
 	p.Changed = changed
 }
 
+// GetCreated returns the creation timestamp of the entity
 func (p *ProvisioningEventContainer) GetCreated() time.Time {
 	return p.Created
 }
 
+// SetCreated sets the creation timestamp of the entity
 func (p *ProvisioningEventContainer) SetCreated(created time.Time) {
 	p.Created = created
 }

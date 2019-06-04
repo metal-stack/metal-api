@@ -108,15 +108,15 @@ nextsize:
 // A ConstraintMatchingLog is used do return a log message to the caller
 // beside the contraint itself.
 type ConstraintMatchingLog struct {
-	Constraint Constraint `json:"constraint,omitempty"`
-	Match      bool       `json:"match"`
-	Log        string     `json:"log,omitempty"`
+	Constraint Constraint
+	Match      bool
+	Log        string
 }
 
 // A SizeMatchingLog returns information about a list of constraints.
 type SizeMatchingLog struct {
-	Name        string                  `json:"name"`
-	Log         string                  `json:"log,omitempty"`
-	Match       bool                    `json:"match"`
-	Constraints []ConstraintMatchingLog `json:"constraints,omitempty"`
+	Name        string
+	Log         string
+	Match       bool
+	Constraints []ConstraintMatchingLog
 }
