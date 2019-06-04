@@ -269,13 +269,16 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 
 		capacities := make(map[string]v1.ServerCapacity)
 		for _, m := range machines {
-			if m.Partition == nil || m.Size == nil {
+			if m.Partition == nil {
 				continue
 			}
 			if m.Partition.ID != p.ID {
 				continue
 			}
-			size := m.Size.ID
+			size := "unknown"
+			if m.Size != nil {
+				size = m.Size.ID
+			}
 			available := false
 			if len(m.RecentProvisioningEvents.Events) > 0 {
 				events := m.RecentProvisioningEvents.Events
