@@ -166,6 +166,8 @@ github.com/mattn/go-sqlite3 v1.10.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsO
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/metal-pod/go-ipam v1.1.0 h1:NojfVTRCSVKIOPrHfvZCzXlH+HcHLmTctoxW6f5Tv7Y=
 github.com/metal-pod/go-ipam v1.1.0/go.mod h1:3Zswnfy08VHMkfhG1XX53ee/8aLDaipK04QMeaseJgg=
+github.com/metal-pod/v v0.0.2 h1:iCHmbNqkX+aoOPxfictrJ8CQC0TWdCkRAf998NHFby4=
+github.com/metal-pod/v v0.0.2/go.mod h1:zfivn9g6ekhIur+pz78MLlOBqUqTk8sWJaFJNaz9OKk=
 github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=

@@ -25,6 +25,7 @@ require (
 	github.com/lestrrat-go/jwx v0.9.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/metal-pod/go-ipam v1.1.0
+	github.com/metal-pod/v v0.0.2
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/pelletier/go-toml v1.3.0 // indirect
 	github.com/pkg/errors v0.8.1
