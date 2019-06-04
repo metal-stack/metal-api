@@ -79,7 +79,6 @@ type MachineAllocation struct {
 	Created         time.Time        `rethinkdb:"created"`
 	Name            string           `rethinkdb:"name"`
 	Description     string           `rethinkdb:"description"`
-	LastPing        time.Time        `rethinkdb:"last_ping"`
 	Tenant          string           `rethinkdb:"tenant"`
 	Project         string           `rethinkdb:"project"`
 	ImageID         string           `rethinkdb:"imageid"`

@@ -91,9 +91,8 @@ func (r sizeResource) webService() *restful.WebService {
 		Operation("fromHardware").
 		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(metal.MachineHardware{}).
-		Returns(http.StatusOK, "OK", metal.SizeMatchingLog{}).
-		Returns(http.StatusNotFound, "NotFound", []metal.SizeMatchingLog{}).
+		Reads(v1.MachineHardwareExtended{}).
+		Returns(http.StatusOK, "OK", v1.SizeMatchingLog{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -133,6 +132,12 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 
 	if requestPayload.ID == "" {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+			return
+		}
+	}
+
+	if requestPayload.ID == metal.UnknownSize.GetID() {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id cannot be %q", metal.UnknownSize.GetID())) {
 			return
 		}
 	}
@@ -231,16 +236,23 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 }
 
 func (r sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
-	var hw metal.MachineHardware
-	err := request.ReadEntity(&hw)
+	var requestPayload v1.MachineHardwareExtended
+	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
+	hw := v1.NewMetalMachineHardware(&requestPayload)
 	_, lg, err := r.ds.FromHardware(hw)
-	if err != nil {
-		response.WriteHeaderAndEntity(http.StatusNotFound, lg)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	response.WriteEntity(lg[0])
+
+	if len(lg) < 1 {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("size matching log is empty")) {
+			return
+		}
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
 }

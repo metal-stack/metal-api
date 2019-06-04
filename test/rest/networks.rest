@@ -8,11 +8,14 @@ GET {{baseurl}}
 # @name createTenantNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
+Authorization: Metal-Admin 8e99f348cb47cbb9f053bc768dd303d925dacfa2abc0a8fefc419d8459aa7583
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
+  "id": "primary-network",
   "description": "Tenant Super Network",
   "name": "tenants",
-  "nat": true,
+  "nat": false,
   "partitionid": "vagrant-lab",
   "prefixes": [
     "10.0.0.0/16"
@@ -24,8 +27,11 @@ Content-Type: application/json
 # @name createInternetNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
+Authorization: Metal-Admin 8e99f348cb47cbb9f053bc768dd303d925dacfa2abc0a8fefc419d8459aa7583
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
+  "id": "internet-vagrant-lab",
   "description": "Internet in Vagrant",
   "name": "vagrant internet",
   "nat": false,
@@ -36,3 +42,22 @@ Content-Type: application/json
   ],
   "primary": false
 }
+
+### create underlay network
+# @name createUnderlayNetwork
+PUT {{baseurl}}/
+Content-Type: application/json
+
+{
+  "id": "underlay-vagrant-lab",
+  "description": "Underlay in Vagrant",
+  "name": "vagrant underlay",
+  "nat": false,
+  "underlay": true,
+  "partitionid": "vagrant-lab",
+  "prefixes": [
+    "192.168.3.0/24"
+  ],
+  "primary": false
+}
+

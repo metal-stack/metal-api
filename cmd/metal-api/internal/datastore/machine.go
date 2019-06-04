@@ -27,20 +27,18 @@ func (rs *RethinkStore) ListMachines() ([]metal.Machine, error) {
 
 // SearchMachine returns the machines filtered by the given search filter.
 func (rs *RethinkStore) SearchMachine(mac string) ([]metal.Machine, error) {
-	searchFilter := func(row r.Term) r.Term {
-		return row
-	}
+	q := *rs.machineTable()
 
 	if mac != "" {
-		searchFilter = func(row r.Term) r.Term {
+		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("macAddress")
 			}).Contains(r.Expr(mac))
-		}
+		})
 	}
 
 	var ms []metal.Machine
-	err := rs.searchEntities(rs.machineTable(), searchFilter, &ms)
+	err := rs.searchEntities(&q, &ms)
 	if err != nil {
 		return nil, err
 	}
@@ -111,16 +109,18 @@ func (rs *RethinkStore) WaitForMachineAllocation(m *metal.Machine) (*metal.Machi
 
 // FindAvailableMachine returns an available machine that momentarily also sits in the wait table.
 func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal.Machine, error) {
-	query := map[string]interface{}{
+	q := *rs.waitTable()
+	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
 		"partitionid": partitionid,
 		"sizeid":      sizeid,
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
-	}
+	})
+
 	var available []metal.Machine
-	err := rs.searchEntities(rs.waitTable(), query, &available)
+	err := rs.searchEntities(&q, &available)
 	if err != nil {
 		return nil, err
 	}

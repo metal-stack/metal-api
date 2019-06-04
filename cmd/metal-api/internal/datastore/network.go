@@ -14,17 +14,18 @@ func (rs *RethinkStore) FindPrimaryNetwork(partitionID string) (*metal.Network, 
 		return nil, err
 	}
 
-	var nws []metal.Network
-	searchFilter := func(row r.Term) r.Term {
+	q := *rs.networkTable()
+	q = q.Filter(func(row r.Term) r.Term {
 		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
-	}
+	})
 
-	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	var nws []metal.Network
+	err = rs.searchEntities(&q, &nws)
 	if err != nil {
 		return nil, err
 	}
 	if len(nws) == 0 {
-		return nil, fmt.Errorf("no primary network in the database in partition:%s found", partitionID)
+		return nil, metal.NotFound("no primary network in the database in partition:%s found", partitionID)
 	}
 	if len(nws) > 1 {
 		return nil, fmt.Errorf("more than one primary network in partition %s in the database, which should not be the case", partitionID)
@@ -40,12 +41,13 @@ func (rs *RethinkStore) SearchPrimaryNetwork(partitionID string) ([]metal.Networ
 		return nil, err
 	}
 
-	var nws []metal.Network
-	searchFilter := func(row r.Term) r.Term {
+	q := *rs.networkTable()
+	q = q.Filter(func(row r.Term) r.Term {
 		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
-	}
+	})
 
-	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	var nws []metal.Network
+	err = rs.searchEntities(&q, &nws)
 	if err != nil {
 		return nil, err
 	}
@@ -60,12 +62,13 @@ func (rs *RethinkStore) SearchUnderlayNetwork(partitionID string) ([]metal.Netwo
 		return nil, err
 	}
 
-	var nws []metal.Network
-	searchFilter := func(row r.Term) r.Term {
+	q := *rs.networkTable()
+	q = q.Filter(func(row r.Term) r.Term {
 		return row.Field("underlay").Eq(true).And(row.Field("partitionid").Eq(partitionID))
-	}
+	})
 
-	err = rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	var nws []metal.Network
+	err = rs.searchEntities(&q, &nws)
 	if err != nil {
 		return nil, err
 	}
@@ -73,19 +76,20 @@ func (rs *RethinkStore) SearchUnderlayNetwork(partitionID string) ([]metal.Netwo
 	return nws, nil
 }
 
-// SearchProjectNetwork returns the network to a given project id
-func (rs *RethinkStore) SearchProjectNetwork(projectid string) (*metal.Network, error) {
-	var nws []metal.Network
-	searchFilter := func(row r.Term) r.Term {
+// FindProjectNetwork returns the network to a given project id
+func (rs *RethinkStore) FindProjectNetwork(projectid string) (*metal.Network, error) {
+	q := *rs.networkTable()
+	q = q.Filter(func(row r.Term) r.Term {
 		return row.Field("projectid").Eq(projectid)
-	}
+	})
 
-	err := rs.searchEntities(rs.networkTable(), searchFilter, &nws)
+	var nws []metal.Network
+	err := rs.searchEntities(&q, &nws)
 	if err != nil {
 		return nil, err
 	}
 	if len(nws) == 0 {
-		return nil, nil
+		return nil, metal.NotFound("did not find a project network for project: %s", projectid)
 	}
 	if len(nws) > 1 {
 		return nil, fmt.Errorf("found multiple network for project %s, which should never be the case", projectid)

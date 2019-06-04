@@ -4,6 +4,8 @@
 # @name register
 POST {{baseurl}}/register
 Content-Type: application/json
+Authorization: Metal-Admin d64300dffcea83ffea5ae281d1a88543b9398841ae80cc8e0929e185e3c50dcd
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
   "partitionid": "vagrant-lab",
@@ -100,24 +102,35 @@ Content-Type: application/json
 
 ### find all
 GET {{baseurl}}
+Authorization: Metal-Admin 71f2cba9ea8ac77ef30c3fac795ea41208a3f7d5a9efe186c9975e5e531869b0
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### find by MAC
 GET {{baseurl}}/find?mac=aa:aa:aa:aa:aa:aa
+Authorization: Metal-Admin 71f2cba9ea8ac77ef30c3fac795ea41208a3f7d5a9efe186c9975e5e531869b0
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### wait for a machine
 # @name wait
 GET {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/wait
+Authorization: Metal-Admin 71f2cba9ea8ac77ef30c3fac795ea41208a3f7d5a9efe186c9975e5e531869b0
+X-Date: 1985-04-12T23:20:50.52Z
 
 
 ### free a machine
 # @name free
 DELETE {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
+Authorization: Metal-Admin ed0392208f864ced6b84d34cda05e020b30a8466e91debdb8f9ca4b7de882a91
+X-Date: 1985-04-12T23:20:50.52Z
 
 
 ### allocate a machine
 # @name allocate
 POST {{baseurl}}/allocate
 Content-Type: application/json
+Authorization: Metal-Admin d64300dffcea83ffea5ae281d1a88543b9398841ae80cc8e0929e185e3c50dcd
+X-Date: 1985-04-12T23:20:50.52Z
+
 
 {
   "description": "My first metal host",

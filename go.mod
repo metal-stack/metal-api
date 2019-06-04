@@ -1,12 +1,11 @@
 module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
-	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190603121159-3531e391ccec
+	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190529124425-f20faa8286d0
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful v2.9.5+incompatible
 	github.com/emicklei/go-restful-openapi v0.13.2
@@ -38,9 +37,9 @@ require (
 	github.com/stretchr/testify v1.3.0
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0
-	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5 // indirect
+	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f // indirect
 	golang.org/x/net v0.0.0-20190522155817-f3200d17e092 // indirect
-	golang.org/x/sys v0.0.0-20190531073156-46560c3f3c0a // indirect
+	golang.org/x/sys v0.0.0-20190529130038-5219a1e1c5f8 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1
 )

@@ -13,9 +13,10 @@ type NetworkImmutable struct {
 	Prefixes            []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
-	Primary             bool     `json:"primary" description:"if set to true, this network is attached to a machine/firewall"`
+	Primary             bool     `json:"primary" description:"if set to true, a subnetwork of this network is attached to a machine/firewall, there can only be one primary network per partition"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
+	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network"`
 }
 
 type NetworkUsage struct {
@@ -45,6 +46,11 @@ type NetworkResponse struct {
 }
 
 func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResponse {
+	var parentNetworkID *string
+	if network.ParentNetworkID != "" {
+		parentNetworkID = &network.ParentNetworkID
+	}
+
 	return &NetworkResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -66,6 +72,7 @@ func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResp
 			Primary:             network.Primary,
 			Underlay:            network.Underlay,
 			Vrf:                 &network.Vrf,
+			ParentNetworkID:     parentNetworkID,
 		},
 		Usage: usage,
 		Timestamps: Timestamps{

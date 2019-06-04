@@ -20,26 +20,32 @@ type IP struct {
 	ProjectID        string    `rethinkdb:"projectid"`
 }
 
+// GetID returns the ID of the entity
 func (ip *IP) GetID() string {
 	return ip.IPAddress
 }
 
+// SetID sets the ID of the entity
 func (ip *IP) SetID(id string) {
 	ip.IPAddress = id
 }
 
+// GetChanged returns the last changed timestamp of the entity
 func (ip *IP) GetChanged() time.Time {
 	return ip.Changed
 }
 
+// SetChanged sets the last changed timestamp of the entity
 func (ip *IP) SetChanged(changed time.Time) {
 	ip.Changed = changed
 }
 
+// GetCreated returns the creation timestamp of the entity
 func (ip *IP) GetCreated() time.Time {
 	return ip.Created
 }
 
+// SetCreated sets the creation timestamp of the entity
 func (ip *IP) SetCreated(created time.Time) {
 	ip.Created = created
 }

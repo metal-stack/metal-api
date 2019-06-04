@@ -663,7 +663,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.emptyBody"
+              "$ref": "#/definitions/v1.EmptyBody"
             }
           }
         ],
@@ -996,7 +996,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.emptyBody"
+              "$ref": "#/definitions/v1.EmptyBody"
             }
           }
         ],
@@ -1004,7 +1004,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.MachineAllocation"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -1042,7 +1042,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.emptyBody"
+              "$ref": "#/definitions/v1.EmptyBody"
             }
           }
         ],
@@ -1050,7 +1050,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.MachineAllocation"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -1088,7 +1088,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.emptyBody"
+              "$ref": "#/definitions/v1.EmptyBody"
             }
           }
         ],
@@ -1096,7 +1096,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.MachineAllocation"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -1134,7 +1134,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/service.emptyBody"
+              "$ref": "#/definitions/v1.EmptyBody"
             }
           }
         ],
@@ -1142,7 +1142,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.MachineAllocation"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "default": {
@@ -1226,7 +1226,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineWaitResponse"
+              "$ref": "#/definitions/v1.MachineResponse"
             }
           },
           "504": {
@@ -1765,7 +1765,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.MachineHardware"
+              "$ref": "#/definitions/v1.MachineHardwareExtended"
             }
           }
         ],
@@ -1773,16 +1773,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.SizeMatchingLog"
-            }
-          },
-          "404": {
-            "description": "NotFound",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/metal.SizeMatchingLog"
-              }
+              "$ref": "#/definitions/v1.SizeMatchingLog"
             }
           },
           "default": {
@@ -1887,8 +1878,14 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/metal.Switch"
+                "$ref": "#/definitions/v1.SwitchResponse"
               }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         }
@@ -1913,7 +1910,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/metal.RegisterSwitch"
+              "$ref": "#/definitions/v1.SwitchRegisterRequest"
             }
           }
         ],
@@ -1921,17 +1918,17 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Switch"
+              "$ref": "#/definitions/v1.SwitchResponse"
             }
           },
           "201": {
             "description": "Created",
             "schema": {
-              "$ref": "#/definitions/metal.Switch"
+              "$ref": "#/definitions/v1.SwitchResponse"
             }
           },
-          "409": {
-            "description": "Conflict",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -1965,11 +1962,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Switch"
+              "$ref": "#/definitions/v1.SwitchResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -2001,11 +1998,11 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/metal.Switch"
+              "$ref": "#/definitions/v1.SwitchResponse"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "default": {
+            "description": "Error",
             "schema": {
               "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
@@ -2055,429 +2052,6 @@
         }
       }
     },
-    "metal.BlockDevice": {
-      "required": [
-        "Name",
-        "Size"
-      ],
-      "properties": {
-        "Name": {
-          "type": "string"
-        },
-        "Size": {
-          "type": "integer"
-        }
-      }
-    },
-    "metal.BootConfiguration": {
-      "required": [
-        "ImageURL",
-        "KernelURL",
-        "CommandLine"
-      ],
-      "properties": {
-        "CommandLine": {
-          "type": "string"
-        },
-        "ImageURL": {
-          "type": "string"
-        },
-        "KernelURL": {
-          "type": "string"
-        }
-      }
-    },
-    "metal.Connection": {
-      "required": [
-        "nic"
-      ],
-      "properties": {
-        "machine_id": {
-          "description": "the machine id of the machine connected to the nic",
-          "type": "string"
-        },
-        "nic": {
-          "description": "a network interface on the switch",
-          "$ref": "#/definitions/metal.Nic"
-        }
-      }
-    },
-    "metal.Constraint": {
-      "required": [
-        "Type",
-        "Min",
-        "Max"
-      ],
-      "properties": {
-        "Max": {
-          "type": "integer"
-        },
-        "Min": {
-          "type": "integer"
-        },
-        "Type": {
-          "type": "string"
-        }
-      }
-    },
-    "metal.ConstraintMatchingLog": {
-      "required": [
-        "match"
-      ],
-      "properties": {
-        "constraint": {
-          "$ref": "#/definitions/metal.Constraint"
-        },
-        "log": {
-          "type": "string"
-        },
-        "match": {
-          "type": "boolean"
-        }
-      }
-    },
-    "metal.MachineAllocation": {
-      "required": [
-        "Created",
-        "Name",
-        "Description",
-        "LastPing",
-        "Tenant",
-        "Project",
-        "ImageID",
-        "MachineNetworks",
-        "Hostname",
-        "SSHPubKeys",
-        "UserData",
-        "ConsolePassword",
-        "PhoneHomeToken",
-        "Succeeded"
-      ],
-      "properties": {
-        "ConsolePassword": {
-          "type": "string"
-        },
-        "Created": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "Description": {
-          "type": "string"
-        },
-        "Hostname": {
-          "type": "string"
-        },
-        "ImageID": {
-          "type": "string"
-        },
-        "LastPing": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "MachineNetworks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.MachineNetwork"
-          }
-        },
-        "Name": {
-          "type": "string"
-        },
-        "PhoneHomeToken": {
-          "type": "string"
-        },
-        "Project": {
-          "type": "string"
-        },
-        "SSHPubKeys": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "Succeeded": {
-          "type": "boolean"
-        },
-        "Tenant": {
-          "type": "string"
-        },
-        "UserData": {
-          "type": "string"
-        }
-      }
-    },
-    "metal.MachineHardware": {
-      "required": [
-        "Memory",
-        "CPUCores",
-        "Nics",
-        "Disks"
-      ],
-      "properties": {
-        "CPUCores": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "Disks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.BlockDevice"
-          }
-        },
-        "Memory": {
-          "type": "integer"
-        },
-        "Nics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Nic"
-          }
-        }
-      }
-    },
-    "metal.MachineNetwork": {
-      "required": [
-        "NetworkID",
-        "Prefixes",
-        "IPs",
-        "DestinationPrefixes",
-        "Vrf",
-        "Primary",
-        "ASN",
-        "Nat",
-        "Underlay"
-      ],
-      "properties": {
-        "ASN": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "DestinationPrefixes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "IPs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "Nat": {
-          "type": "boolean"
-        },
-        "NetworkID": {
-          "type": "string"
-        },
-        "Prefixes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "Primary": {
-          "type": "boolean"
-        },
-        "Underlay": {
-          "type": "boolean"
-        },
-        "Vrf": {
-          "type": "integer",
-          "format": "integer"
-        }
-      }
-    },
-    "metal.Nic": {
-      "required": [
-        "mac",
-        "name",
-        "neighbors"
-      ],
-      "properties": {
-        "mac": {
-          "description": "the mac address of this network interface",
-          "type": "string"
-        },
-        "name": {
-          "description": "the name of this network interface",
-          "type": "string"
-        },
-        "neighbors": {
-          "description": "the neighbors visible to this network interface",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Nic"
-          }
-        },
-        "vrf": {
-          "description": "the vrf this network interface is part of",
-          "type": "string"
-        }
-      }
-    },
-    "metal.Partition": {
-      "required": [
-        "id",
-        "BootConfiguration",
-        "MgmtServiceAddress",
-        "ProjectNetworkPrefixLength"
-      ],
-      "properties": {
-        "BootConfiguration": {
-          "$ref": "#/definitions/metal.BootConfiguration"
-        },
-        "MgmtServiceAddress": {
-          "type": "string"
-        },
-        "ProjectNetworkPrefixLength": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "changed": {
-          "description": "the last changed timestamp",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "the readable name",
-          "type": "string"
-        }
-      }
-    },
-    "metal.RegisterSwitch": {
-      "required": [
-        "id",
-        "nics",
-        "partition_id",
-        "rack_id"
-      ],
-      "properties": {
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "nics": {
-          "description": "the list of network interfaces on the switch",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Nic"
-          }
-        },
-        "partition_id": {
-          "description": "the id of the partition in which this switch is located",
-          "type": "string"
-        },
-        "rack_id": {
-          "description": "the id of the rack in which this switch is located",
-          "type": "string"
-        }
-      }
-    },
-    "metal.SizeMatchingLog": {
-      "required": [
-        "name",
-        "match"
-      ],
-      "properties": {
-        "constraints": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.ConstraintMatchingLog"
-          }
-        },
-        "log": {
-          "type": "string"
-        },
-        "match": {
-          "type": "boolean"
-        },
-        "name": {
-          "type": "string"
-        }
-      }
-    },
-    "metal.Switch": {
-      "description": "A switch that can register at the api.",
-      "required": [
-        "id",
-        "nics",
-        "connections",
-        "partition_id",
-        "rack_id",
-        "partition"
-      ],
-      "properties": {
-        "changed": {
-          "description": "the last changed timestamp",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "connections": {
-          "description": "a connection between a switch port and a machine",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Connection"
-          }
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "a unique ID",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "the readable name",
-          "type": "string"
-        },
-        "nics": {
-          "description": "the list of network interfaces on the switch",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/metal.Nic"
-          }
-        },
-        "partition": {
-          "description": "the partition in which this switch is located",
-          "$ref": "#/definitions/metal.Partition"
-        },
-        "partition_id": {
-          "description": "the id of the partition in which this switch is located",
-          "type": "string"
-        },
-        "rack_id": {
-          "description": "the id of the rack in which this switch is located",
-          "type": "string"
-        }
-      }
-    },
     "rest.status": {
       "required": [
         "message"
@@ -2514,13 +2088,13 @@
         }
       }
     },
-    "service.emptyBody": {},
+    "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
-        "projectid",
         "partitionid",
         "sizeid",
+        "tenant",
+        "projectid",
         "imageid",
         "ssh_pub_keys",
         "networks"
@@ -2595,18 +2169,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
+        "id",
+        "allocation",
+        "created",
         "rackid",
         "changed",
-        "allocation",
         "hardware",
-        "liveliness",
-        "created",
-        "partition",
-        "events",
         "tags",
-        "id",
+        "partition",
+        "state",
+        "liveliness",
         "size",
-        "state"
+        "events"
       ],
       "properties": {
         "allocation": {
@@ -2984,12 +2558,6 @@
           "$ref": "#/definitions/v1.ImageResponse",
           "readOnly": true
         },
-        "last_ping": {
-          "description": "the timestamp of the last phone home call/ping from the machine",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
         "name": {
           "description": "the name of the machine",
           "type": "string"
@@ -3094,8 +2662,8 @@
       "required": [
         "memory",
         "cpu_cores",
-        "nics",
-        "disks"
+        "disks",
+        "nics"
       ],
       "properties": {
         "cpu_cores": {
@@ -3119,6 +2687,39 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/v1.MachineNic"
+          }
+        }
+      }
+    },
+    "v1.MachineHardwareExtended": {
+      "required": [
+        "memory",
+        "cpu_cores",
+        "disks",
+        "nics"
+      ],
+      "properties": {
+        "cpu_cores": {
+          "description": "the number of cpu cores",
+          "type": "integer",
+          "format": "int32"
+        },
+        "disks": {
+          "description": "the list of block devices of this machine",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineBlockDevice"
+          }
+        },
+        "memory": {
+          "description": "the total memory of the machine",
+          "type": "integer"
+        },
+        "nics": {
+          "description": "the list of network interfaces of this machine with extended information",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineNicExtended"
           }
         }
       }
@@ -3227,7 +2828,7 @@
           }
         },
         "primary": {
-          "description": "indicates whether this network is the primary project network",
+          "description": "indicates whether this network is the primary network of this machine",
           "type": "boolean"
         },
         "underlay": {
@@ -3244,7 +2845,23 @@
     "v1.MachineNic": {
       "required": [
         "mac",
+        "name"
+      ],
+      "properties": {
+        "mac": {
+          "description": "the mac address of this network interface",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of this network interface",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MachineNicExtended": {
+      "required": [
         "name",
+        "mac",
         "neighbors"
       ],
       "properties": {
@@ -3260,7 +2877,7 @@
           "description": "the neighbors visible to this network interface",
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1.MachineNic"
+            "$ref": "#/definitions/v1.MachineNicExtended"
           }
         }
       }
@@ -3323,7 +2940,7 @@
       "properties": {
         "hardware": {
           "description": "the hardware of this machine",
-          "$ref": "#/definitions/v1.MachineHardware"
+          "$ref": "#/definitions/v1.MachineHardwareExtended"
         },
         "ipmi": {
           "description": "the ipmi access infos",
@@ -3353,15 +2970,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "events",
-        "size",
-        "hardware",
-        "allocation",
         "state",
         "liveliness",
-        "tags",
         "partition",
         "rackid",
+        "hardware",
+        "tags",
+        "size",
+        "allocation",
+        "events",
         "created",
         "changed"
       ],
@@ -3451,103 +3068,15 @@
         }
       }
     },
-    "v1.MachineWaitResponse": {
-      "required": [
-        "created",
-        "partition",
-        "events",
-        "size",
-        "allocation",
-        "state",
-        "tags",
-        "changed",
-        "id",
-        "rackid",
-        "hardware",
-        "liveliness",
-        "phone_home_token"
-      ],
-      "properties": {
-        "allocation": {
-          "description": "the allocation data of an allocated machine",
-          "$ref": "#/definitions/v1.MachineAllocation"
-        },
-        "changed": {
-          "description": "the last changed timestamp of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "events": {
-          "description": "recent events of this machine during provisioning",
-          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-        },
-        "hardware": {
-          "description": "the hardware of this machine",
-          "$ref": "#/definitions/v1.MachineHardware"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "partition": {
-          "description": "the partition assigned to this machine",
-          "$ref": "#/definitions/v1.PartitionResponse",
-          "readOnly": true
-        },
-        "phone_home_token": {
-          "type": "string"
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "type": "string",
-          "readOnly": true
-        },
-        "size": {
-          "description": "the size of this machine",
-          "$ref": "#/definitions/v1.SizeResponse",
-          "readOnly": true
-        },
-        "state": {
-          "description": "the state of this machine",
-          "$ref": "#/definitions/v1.MachineState"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "underlay",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary"
+        "primary",
+        "underlay",
+        "parentnetworkid"
       ],
       "properties": {
         "description": {
@@ -3574,6 +3103,10 @@
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "parentnetworkid": {
+          "description": "the id of the parent network",
+          "type": "string"
+        },
         "partitionid": {
           "description": "the partition this network belongs to",
           "type": "string"
@@ -3586,7 +3119,7 @@
           }
         },
         "primary": {
-          "description": "if set to true, this network is attached to a machine/firewall",
+          "description": "if set to true, a subnetwork of this network is attached to a machine/firewall, there can only be one primary network per partition",
           "type": "boolean"
         },
         "projectid": {
@@ -3607,6 +3140,7 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
@@ -3653,6 +3187,10 @@
           "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
+        "parentnetworkid": {
+          "description": "the id of the parent network",
+          "type": "string"
+        },
         "partitionid": {
           "description": "the partition this network belongs to",
           "type": "string"
@@ -3665,7 +3203,7 @@
           }
         },
         "primary": {
-          "description": "if set to true, this network is attached to a machine/firewall",
+          "description": "if set to true, a subnetwork of this network is attached to a machine/firewall, there can only be one primary network per partition",
           "type": "boolean"
         },
         "projectid": {
@@ -3898,6 +3436,27 @@
         }
       }
     },
+    "v1.SizeConstraintMatchingLog": {
+      "required": [
+        "constraint",
+        "match",
+        "log"
+      ],
+      "properties": {
+        "constraint": {
+          "description": "the size constraint to which this log relates to",
+          "$ref": "#/definitions/v1.SizeConstraint"
+        },
+        "log": {
+          "description": "a string represention of the matching condition",
+          "type": "string"
+        },
+        "match": {
+          "description": "indicates whether the constraint matched or not",
+          "type": "boolean"
+        }
+      }
+    },
     "v1.SizeCreateRequest": {
       "required": [
         "id",
@@ -3922,6 +3481,31 @@
         },
         "name": {
           "description": "a readable name for this entity",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SizeMatchingLog": {
+      "required": [
+        "name",
+        "log",
+        "match",
+        "constraints"
+      ],
+      "properties": {
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SizeConstraintMatchingLog"
+          }
+        },
+        "log": {
+          "type": "string"
+        },
+        "match": {
+          "type": "boolean"
+        },
+        "name": {
           "type": "string"
         }
       }
@@ -3994,6 +3578,139 @@
           "type": "string"
         }
       }
+    },
+    "v1.SwitchConnection": {
+      "required": [
+        "nic"
+      ],
+      "properties": {
+        "machine_id": {
+          "description": "the machine id of the machine connected to the nic",
+          "type": "string"
+        },
+        "nic": {
+          "description": "a network interface on the switch",
+          "$ref": "#/definitions/v1.SwitchNic"
+        }
+      }
+    },
+    "v1.SwitchNic": {
+      "required": [
+        "mac",
+        "name"
+      ],
+      "properties": {
+        "mac": {
+          "description": "the mac address of this network interface",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of this network interface",
+          "type": "string"
+        },
+        "vrf": {
+          "description": "the vrf this network interface is part of",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SwitchRegisterRequest": {
+      "required": [
+        "id",
+        "nics",
+        "partition_id",
+        "rack_id"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "nics": {
+          "description": "the list of network interfaces on the switch",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SwitchNic"
+          }
+        },
+        "partition_id": {
+          "description": "the partition in which this switch is located",
+          "type": "string"
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SwitchResponse": {
+      "required": [
+        "id",
+        "rack_id",
+        "nics",
+        "partition",
+        "connections",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "connections": {
+          "description": "a connection between a switch port and a machine",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SwitchConnection"
+          }
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "nics": {
+          "description": "the list of network interfaces on the switch",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.SwitchNic"
+          }
+        },
+        "partition": {
+          "description": "the partition in which this switch is located",
+          "$ref": "#/definitions/v1.PartitionResponse"
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        }
+      }
     }
   },
   "securityDefinitions": {
@@ -4012,10 +3729,10 @@
   },
   "security": [
     {
-      "HMAC": []
-    },
-    {
-      "jwt": []
+      "Authorization": [
+        "HMAC",
+        "jwt"
+      ]
     }
   ],
   "tags": [
