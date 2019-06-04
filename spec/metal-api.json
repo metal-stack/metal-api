@@ -1554,6 +1554,38 @@
         }
       }
     },
+    "/v1/partition/capacity": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Partition"
+        ],
+        "summary": "get Partition capacity",
+        "operationId": "partitionCapacity",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.PartitionCapacity"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/partition/{id}": {
       "get": {
         "consumes": [
@@ -2092,11 +2124,11 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "partitionid",
-        "sizeid",
-        "tenant",
-        "projectid",
         "imageid",
         "ssh_pub_keys",
+        "projectid",
+        "sizeid",
+        "tenant",
         "networks"
       ],
       "properties": {
@@ -2170,17 +2202,17 @@
     "v1.FirewallResponse": {
       "required": [
         "id",
+        "size",
         "allocation",
-        "created",
-        "rackid",
-        "changed",
         "hardware",
-        "tags",
-        "partition",
+        "changed",
         "state",
         "liveliness",
-        "size",
-        "events"
+        "partition",
+        "rackid",
+        "created",
+        "events",
+        "tags"
       ],
       "properties": {
         "allocation": {
@@ -2660,9 +2692,9 @@
     },
     "v1.MachineHardware": {
       "required": [
+        "disks",
         "memory",
         "cpu_cores",
-        "disks",
         "nics"
       ],
       "properties": {
@@ -2860,8 +2892,8 @@
     },
     "v1.MachineNicExtended": {
       "required": [
-        "name",
         "mac",
+        "name",
         "neighbors"
       ],
       "properties": {
@@ -2970,15 +3002,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "state",
         "liveliness",
+        "events",
         "partition",
         "rackid",
-        "hardware",
-        "tags",
         "size",
+        "state",
+        "hardware",
         "allocation",
-        "events",
+        "tags",
         "created",
         "changed"
       ],
@@ -3071,12 +3103,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay",
-        "parentnetworkid"
+        "underlay"
       ],
       "properties": {
         "description": {
@@ -3140,12 +3172,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
+        "parentnetworkid",
         "usage",
         "created",
         "changed"
@@ -3295,6 +3327,34 @@
         }
       }
     },
+    "v1.PartitionCapacity": {
+      "required": [
+        "id",
+        "servers"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "servers": {
+          "description": "servers available in this partition",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.ServerCapacity"
+          }
+        }
+      }
+    },
     "v1.PartitionCreateRequest": {
       "required": [
         "id",
@@ -3335,8 +3395,8 @@
       "required": [
         "id",
         "bootconfig",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
@@ -3406,6 +3466,29 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        }
+      }
+    },
+    "v1.ServerCapacity": {
+      "required": [
+        "size",
+        "total",
+        "free"
+      ],
+      "properties": {
+        "free": {
+          "description": "free servers with this size",
+          "type": "integer",
+          "format": "int32"
+        },
+        "size": {
+          "description": "the size of the server",
+          "type": "string"
+        },
+        "total": {
+          "description": "total amount of servers with this size",
+          "type": "integer",
+          "format": "int32"
         }
       }
     },

@@ -268,3 +268,38 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 		})
 	}
 }
+
+func TestProvisioningEventType_Is(t *testing.T) {
+	tests := []struct {
+		name string
+		event string
+		p    ProvisioningEventType
+		want bool
+	}{
+		{
+			name: "simple",
+			event: "Waiting",
+			p: ProvisioningEventWaiting,
+			want: true,
+		},
+		{
+			name: "simple",
+			event: "Waiting",
+			p: ProvisioningEventInstalling,
+			want: false,
+		},
+		{
+			name: "simple",
+			event: "Alive",
+			p: ProvisioningEventAlive,
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.p.Is(tt.event); got != tt.want {
+				t.Errorf("ProvisioningEventType.Is() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

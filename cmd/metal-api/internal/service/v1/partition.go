@@ -34,6 +34,17 @@ type PartitionResponse struct {
 	Timestamps
 }
 
+type PartitionCapacity struct {
+	Common
+	ServerCapacities []ServerCapacity `json:"servers" description:"servers available in this partition"`
+}
+
+type ServerCapacity struct {
+	Size  string `json:"size" description:"the size of the server"`
+	Total int    `json:"total" description:"total amount of servers with this size"`
+	Free  int    `json:"free" description:"free servers with this size"`
+}
+
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 	if p == nil {
 		return nil
