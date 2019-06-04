@@ -22,7 +22,8 @@
                 "METAL_API_IPAM_DB_ADDR":"postgres",
                 "METAL_API_IPAM_DB_NAME":"ipam",
                 "METAL_API_IPAM_DB_PASSWORD":"metal",
-                "METAL_API_IPAM_DB_USER": "ipam"
+                "METAL_API_IPAM_DB_USER": "ipam",
+                "METAL_API_DEX_ADDR":"https://dex.test.fi-ts.io/dex/"
             },
             "args": []
         }

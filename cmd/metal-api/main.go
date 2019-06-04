@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"github.com/metal-pod/v"
+
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -19,7 +21,6 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"git.f-i-ts.de/cloud-native/metallib/security"
-	"git.f-i-ts.de/cloud-native/metallib/version"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -47,7 +48,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:     moduleName,
 	Short:   "an api to offer pure metal",
-	Version: version.V.String(),
+	Version: v.V.String(),
 	Run: func(cmd *cobra.Command, args []string) {
 		initLogging()
 		initDataStore()
@@ -61,7 +62,7 @@ var rootCmd = &cobra.Command{
 var dumpSwagger = &cobra.Command{
 	Use:     "dump-swagger",
 	Short:   "dump the current swagger configuration",
-	Version: version.V.String(),
+	Version: v.V.String(),
 	Run: func(cmd *cobra.Command, args []string) {
 		dumpSwaggerJSON()
 	},
@@ -70,7 +71,7 @@ var dumpSwagger = &cobra.Command{
 var initDatabase = &cobra.Command{
 	Use:     "initdb",
 	Short:   "initializes the database with all tables and indices",
-	Version: version.V.String(),
+	Version: v.V.String(),
 	Run: func(cmd *cobra.Command, args []string) {
 		initializeDatabase()
 	},
@@ -332,7 +333,7 @@ func run() {
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	logger.Infow("start metal api", "version", version.V.String(), "address", addr)
+	logger.Infow("start metal api", "version", v.V.String(), "address", addr)
 
 	// expose generated apidoc
 	http.Handle("/apidocs/", http.StripPrefix("/apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))

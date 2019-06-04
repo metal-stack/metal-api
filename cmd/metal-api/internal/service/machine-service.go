@@ -967,7 +967,7 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				return err
 			}
 			if usage.UsedIPs <= 2 { // 2 is for broadcast and network
-				err = r.ipamer.DeletePrefix(prefix)
+				err = r.ipamer.ReleaseChildPrefix(prefix)
 				if err != nil {
 					return err
 				}
