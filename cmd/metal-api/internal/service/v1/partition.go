@@ -35,6 +35,7 @@ type PartitionResponse struct {
 }
 
 type PartitionCapacity struct {
+	Common
 	ServerCapacities []ServerCapacity `json:"servers" description:"servers available in this partition"`
 }
 

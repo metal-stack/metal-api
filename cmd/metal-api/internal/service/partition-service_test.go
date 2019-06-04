@@ -10,7 +10,6 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	"github.com/stretchr/testify/require"
@@ -187,4 +186,32 @@ func TestUpdatePartition(t *testing.T) {
 	require.Equal(t, testdata.Partition2.Description, *result.Description)
 	require.Equal(t, mgmtService, *result.MgmtServiceAddress)
 	require.Equal(t, imageURL, *result.PartitionBootConfiguration.ImageURL)
+}
+
+func TestPartitionCapacity(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	service := NewPartition(ds)
+	container := restful.NewContainer().Add(service)
+
+	req := httptest.NewRequest("GET", "/v1/partition/1/capacity", nil)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectAdmin(container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.PartitionCapacity
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Equal(t, testdata.Partition1.ID, result.ID)
+	require.NotNil(t, result.ServerCapacities)
+	require.Equal(t, 1, len(result.ServerCapacities))
+	cap := result.ServerCapacities[0]
+	require.Equal(t, "1", cap.Size)
+	require.Equal(t, 5, cap.Total)
+	require.Equal(t, 0, cap.Free)
 }

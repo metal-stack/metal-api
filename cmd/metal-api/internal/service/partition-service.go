@@ -303,6 +303,15 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 	}
 
 	pc := v1.PartitionCapacity{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: p.ID,
+			},
+			Describeable: v1.Describeable{
+				Name:        &p.Name,
+				Description: &p.Description,
+			},
+		},
 		ServerCapacities: sc,
 	}
 
