@@ -5,7 +5,7 @@ FROM letsdeal/redoc-cli:latest as docbuilder
 COPY --from=builder /work/spec/metal-api.json /spec/metal-api.json
 RUN redoc-cli bundle -o /generate/index.html /spec/metal-api.json
 
-FROM alpine:3.8
+FROM alpine:3.9
 LABEL maintainer FI-TS Devops <devops@f-i-ts.de>
 RUN apk -U add ca-certificates
 COPY --from=builder /work/bin/metal-api /metal-api
