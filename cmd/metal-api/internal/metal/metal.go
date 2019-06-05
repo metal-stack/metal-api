@@ -3,7 +3,7 @@ package metal
 import (
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metallib/security"
+	"github.com/metal-pod/security"
 )
 
 // These are our supported groups.

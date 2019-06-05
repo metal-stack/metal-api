@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"git.f-i-ts.de/cloud-native/metallib/security"
+	"github.com/metal-pod/security"
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"

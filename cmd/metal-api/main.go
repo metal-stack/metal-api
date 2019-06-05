@@ -19,12 +19,12 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
-	"git.f-i-ts.de/cloud-native/metallib/security"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
 	goipam "github.com/metal-pod/go-ipam"
+	"github.com/metal-pod/security"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
