@@ -342,6 +342,22 @@ func Test_updateSwitchNics(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "updating a nic name, which already has a connection",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				newNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:11"},
+				},
+				currentConnections: metal.ConnectionMap{
+					"machine-uuid-1": metal.Connections{metal.Connection{MachineID: "machine-uuid-1", Nic: metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"}}},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
