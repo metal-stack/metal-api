@@ -856,29 +856,36 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	}
 
 	var sws []metal.Switch
-	for _, mn := range m.Allocation.MachineNetworks {
-		if mn.Primary {
-			vrf := fmt.Sprintf("vrf%d", mn.Vrf)
-			sws, err = setVrfAtSwitches(r.ds, m, vrf)
-			if err != nil {
-				if m.Allocation == nil {
-					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf vrf%d", id, mn.Vrf)) {
-						return
-					}
-				}
+	var vrf = ""
+	if len(m.Allocation.MachineNetworks) > 1 {
+		// if a machine has multiple networks, it serves as firewall, so it can not be enslaved into the tenant vrf
+		vrf = "default"
+	} else {
+		for _, mn := range m.Allocation.MachineNetworks {
+			if mn.Primary {
+				vrf = fmt.Sprintf("vrf%d", mn.Vrf)
+				break
 			}
-		} else {
-			// FIXME implement other switch port configuration creation for firewall
-			// additional switches must be appended to sws if any.
 		}
 	}
 
-	// Push out events to signal switch configuration change
-	evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
-	err = r.Publish(string(metal.TopicSwitch), evt)
-	utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	sws, err = setVrfAtSwitches(r.ds, m, vrf)
+	if err != nil {
+		if m.Allocation == nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s", id, vrf)) {
+				return
+			}
+		}
+	}
+
+	if len(sws) > 0 {
+		// Push out events to signal switch configuration change
+		evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
+		err = r.Publish(string(metal.TopicSwitch), evt)
+		utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
