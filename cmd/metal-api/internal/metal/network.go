@@ -107,8 +107,10 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	return result
 }
 
+type NicMap map[MacAddress]*Nic
+
 // ByMac creates a indexed map from a nic list.
-func (nics Nics) ByMac() map[MacAddress]*Nic {
+func (nics Nics) ByMac() NicMap {
 	res := make(map[MacAddress]*Nic)
 	for i, n := range nics {
 		res[n.MacAddress] = &nics[i]

@@ -5,17 +5,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
-
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	"github.com/stretchr/testify/require"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -146,7 +146,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 	tests := []struct {
 		name    string
 		machine *metal.Machine
-		wantErr bool 
+		wantErr bool
 	}{
 		{
 			name: "Test 1",
@@ -216,4 +216,143 @@ func TestSetVrfAtSwitch(t *testing.T) {
 		require.Equal(t, vrf, s.Nics[0].Vrf)
 	}
 	mock.AssertExpectations(t)
+}
+
+func Test_updateSwitchNics(t *testing.T) {
+	type args struct {
+		oldNics            metal.NicMap
+		newNics            metal.NicMap
+		currentConnections metal.ConnectionMap
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    metal.Nics
+		wantErr bool
+	}{
+		{
+			name: "idempotence",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				newNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				currentConnections: metal.ConnectionMap{},
+			},
+			want: metal.Nics{
+				metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "adding a nic",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				newNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+					"11:11:11:11:11:12": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"},
+				},
+				currentConnections: metal.ConnectionMap{},
+			},
+			want: metal.Nics{
+				metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "removing a nic",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				newNics:            metal.NicMap{},
+				currentConnections: metal.ConnectionMap{},
+			},
+			want:    metal.Nics{},
+			wantErr: false,
+		},
+		{
+			name: "removing a nic 2",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+					"11:11:11:11:11:12": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"},
+				},
+				newNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				currentConnections: metal.ConnectionMap{},
+			},
+			want: metal.Nics{
+				metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "removing a used nic",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+					"11:11:11:11:11:12": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"},
+				},
+				newNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				currentConnections: metal.ConnectionMap{
+					"machine-uuid-1": metal.Connections{metal.Connection{MachineID: "machine-uuid-1", Nic: metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"}}},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "updating a nic",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
+				},
+				newNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:11"},
+				},
+				currentConnections: metal.ConnectionMap{},
+			},
+			want: metal.Nics{
+				metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:11"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "updating a nic, vrf should not be altered",
+			args: args{
+				oldNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", Vrf: "vrf1", MacAddress: "11:11:11:11:11:11"},
+				},
+				newNics: metal.NicMap{
+					"11:11:11:11:11:11": &metal.Nic{Name: "swp2", Vrf: "vrf2", MacAddress: "11:11:11:11:11:11"},
+				},
+				currentConnections: metal.ConnectionMap{},
+			},
+			want: metal.Nics{
+				metal.Nic{Name: "swp2", Vrf: "vrf1", MacAddress: "11:11:11:11:11:11"},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := updateSwitchNics(tt.args.oldNics, tt.args.newNics, tt.args.currentConnections)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("updateSwitchNics() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got.ByMac(), tt.want.ByMac()) {
+				t.Errorf("updateSwitchNics() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

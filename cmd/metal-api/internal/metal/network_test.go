@@ -23,7 +23,7 @@ func TestNics_ByMac(t *testing.T) {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
 
-	map1 := make(map[MacAddress]*Nic)
+	map1 := NicMap{}
 	for i, n := range nicArray {
 		map1[n.MacAddress] = &nicArray[i]
 	}
@@ -31,7 +31,7 @@ func TestNics_ByMac(t *testing.T) {
 	tests := []struct {
 		name string
 		nics Nics
-		want map[MacAddress]*Nic
+		want NicMap
 	}{
 		// Test Data Array (only 1 data):
 		{

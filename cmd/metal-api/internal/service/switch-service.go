@@ -172,31 +172,9 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 			}
 		}
 
-		oldNics := old.Nics.ByMac()
-		newNics := spec.Nics.ByMac()
-
-		// TODO: Broken switch would change nics, but if this happens we would need to repair broken connections:
-		// https://git.f-i-ts.de/cloud-native/metal/metal/issues/28
-
-		// To start off we just prevent basic things that can go wrong in the following lines:
-		nicsThatGetLost := metal.Nics{}
-		for mac, nic := range oldNics {
-			_, ok := newNics[mac]
-			if !ok {
-				nicsThatGetLost = append(nicsThatGetLost, *nic)
-			}
-		}
-
-		for _, nicThatGetsLost := range nicsThatGetLost {
-			for machineID, connections := range old.MachineConnections {
-				for _, c := range connections {
-					if c.Nic.MacAddress == nicThatGetsLost.MacAddress {
-						if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("nic with mac address %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.MacAddress, machineID)) {
-							return
-						}
-					}
-				}
-			}
+		nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
 		}
 
 		if requestPayload.Name != nil {
@@ -207,7 +185,8 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		}
 		s.RackID = spec.RackID
 		s.PartitionID = spec.PartitionID
-		s.Nics = spec.Nics
+
+		s.Nics = nics
 		// Do not replace connections here: We do not want to loose them!
 
 		err = r.ds.UpdateSwitch(&old, s)
@@ -218,6 +197,50 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	}
 
 	response.WriteHeaderAndEntity(returnCode, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
+}
+
+func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnections metal.ConnectionMap) (metal.Nics, error) {
+	// TODO: Broken switch would change nics, but if this happens we would need to repair broken connections:
+	// https://git.f-i-ts.de/cloud-native/metal/metal/issues/28
+
+	// To start off we just prevent basic things that can go wrong
+	nicsThatGetLost := metal.Nics{}
+	for mac, nic := range oldNics {
+		_, ok := newNics[mac]
+		if !ok {
+			nicsThatGetLost = append(nicsThatGetLost, *nic)
+		}
+	}
+
+	for _, nicThatGetsLost := range nicsThatGetLost {
+		for machineID, connections := range currentConnections {
+			for _, c := range connections {
+				if c.Nic.MacAddress == nicThatGetsLost.MacAddress {
+					return nil, fmt.Errorf("nic with mac address %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.MacAddress, machineID)
+				}
+			}
+		}
+	}
+
+	nicsThatGetAdded := metal.Nics{}
+	nicsThatAlreadyExist := metal.Nics{}
+	for mac, nic := range newNics {
+		oldNic, ok := oldNics[mac]
+		if ok {
+			updatedNic := *oldNic
+			updatedNic.Name = nic.Name
+			nicsThatAlreadyExist = append(nicsThatAlreadyExist, updatedNic)
+		} else {
+			nicsThatGetAdded = append(nicsThatGetAdded, *nic)
+		}
+	}
+
+	finalNics := metal.Nics{}
+	finalNics = append(finalNics, nicsThatGetAdded...)
+	finalNics = append(finalNics, nicsThatAlreadyExist...)
+
+	return finalNics, nil
+
 }
 
 // SetVrfAtSwitches finds the switches connected to the given machine and puts the switch ports into the given vrf.
