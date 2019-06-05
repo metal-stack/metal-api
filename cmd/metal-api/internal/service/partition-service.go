@@ -293,13 +293,13 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 				total = oldCap.Total + 1
 			}
 			if available {
-				free = oldCap.Free + 1
+				free = 1
 			}
 
 			cap := v1.ServerCapacity{
 				Size:  size,
 				Total: total,
-				Free:  free,
+				Free:  oldCap.Free + free,
 			}
 			capacities[size] = cap
 		}
