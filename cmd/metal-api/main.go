@@ -10,9 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"go.uber.org/zap"
 	"github.com/metal-pod/v"
-
+	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -251,7 +250,7 @@ func initIpam() {
 }
 
 func initAuth(lg *zap.SugaredLogger) security.UserGetter {
-	dx, err := security.NewDex(viper.GetString("dex-addr"), lg.Desugar())
+	dx, err := security.NewDex(viper.GetString("dex-addr"))
 	if err != nil {
 		logger.Warnw("dex not reachable", "error", err)
 	}
