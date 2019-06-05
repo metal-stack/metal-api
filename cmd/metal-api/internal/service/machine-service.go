@@ -857,7 +857,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	var sws []metal.Switch
 	var vrf = ""
-	if len(m.Allocation.MachineNetworks) > 0 {
+	if len(m.Allocation.MachineNetworks) > 1 {
 		// if a machine has multiple networks, it serves as firewall, so it can not be enslaved into the tenant vrf
 		vrf = "default"
 	} else {
