@@ -55,6 +55,7 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition) *SwitchResponse {
 		nic := SwitchNic{
 			MacAddress: string(s.Nics[i].MacAddress),
 			Name:       s.Nics[i].Name,
+			Vrf:        s.Nics[i].Vrf,
 		}
 		nics = append(nics, nic)
 	}
@@ -65,6 +66,7 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition) *SwitchResponse {
 			nic := SwitchNic{
 				MacAddress: string(metalConnections[i].Nic.MacAddress),
 				Name:       metalConnections[i].Nic.Name,
+				Vrf:        metalConnections[i].Nic.Vrf,
 			}
 			con := SwitchConnection{
 				Nic:       nic,
