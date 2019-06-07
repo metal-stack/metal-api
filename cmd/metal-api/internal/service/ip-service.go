@@ -94,6 +94,7 @@ func (ir ipResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/allocate/{ip}").
 		To(editor(ir.allocateIP)).
 		Operation("allocateSpecificIP").
+		Param(ws.PathParameter("ip", "ip to try to allocate").DataType("string")).
 		Doc("allocate an specific ip in the given network for a project.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPAllocateRequest{}).

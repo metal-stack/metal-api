@@ -474,6 +474,13 @@
         "operationId": "allocateSpecificIP",
         "parameters": [
           {
+            "type": "string",
+            "description": "ip to try to allocate",
+            "name": "ip",
+            "in": "path",
+            "required": true
+          },
+          {
             "name": "body",
             "in": "body",
             "required": true,
@@ -2162,11 +2169,11 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
-        "ssh_pub_keys",
         "partitionid",
         "sizeid",
         "imageid",
+        "ssh_pub_keys",
+        "tenant",
         "projectid",
         "networks"
       ],
@@ -2241,17 +2248,17 @@
     "v1.FirewallResponse": {
       "required": [
         "events",
-        "rackid",
-        "tags",
-        "state",
-        "liveliness",
-        "hardware",
-        "id",
-        "size",
-        "partition",
-        "created",
         "changed",
-        "allocation"
+        "partition",
+        "size",
+        "allocation",
+        "tags",
+        "rackid",
+        "state",
+        "created",
+        "id",
+        "hardware",
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -2764,9 +2771,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
-        "memory",
         "cpu_cores",
         "disks",
+        "memory",
         "nics"
       ],
       "properties": {
@@ -3041,15 +3048,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "tags",
-        "hardware",
-        "events",
-        "size",
         "allocation",
-        "state",
         "liveliness",
-        "partition",
+        "tags",
         "rackid",
+        "size",
+        "state",
+        "events",
+        "partition",
+        "hardware",
         "created",
         "changed"
       ],
@@ -3142,12 +3149,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary"
+        "primary",
+        "underlay"
       ],
       "properties": {
         "description": {
@@ -3218,8 +3225,8 @@
         "primary",
         "underlay",
         "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3434,8 +3441,8 @@
       "required": [
         "id",
         "bootconfig",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "bootconfig": {
@@ -3781,8 +3788,8 @@
         "nics",
         "partition",
         "connections",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
