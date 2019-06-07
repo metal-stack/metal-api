@@ -459,6 +459,45 @@
         }
       }
     },
+    "/v1/ip/allocate/{ip}": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "ip"
+        ],
+        "summary": "allocate an specific ip in the given network for a project.",
+        "operationId": "allocateSpecificIP",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.IPAllocateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/ip/{id}": {
       "get": {
         "consumes": [
@@ -2123,12 +2162,12 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "partitionid",
-        "imageid",
-        "ssh_pub_keys",
-        "projectid",
-        "sizeid",
         "tenant",
+        "ssh_pub_keys",
+        "partitionid",
+        "sizeid",
+        "imageid",
+        "projectid",
         "networks"
       ],
       "properties": {
@@ -2201,18 +2240,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "id",
-        "size",
-        "allocation",
-        "hardware",
-        "changed",
+        "events",
+        "rackid",
+        "tags",
         "state",
         "liveliness",
+        "hardware",
+        "id",
+        "size",
         "partition",
-        "rackid",
         "created",
-        "events",
-        "tags"
+        "changed",
+        "allocation"
       ],
       "properties": {
         "allocation": {
@@ -2692,9 +2731,9 @@
     },
     "v1.MachineHardware": {
       "required": [
-        "disks",
         "memory",
         "cpu_cores",
+        "disks",
         "nics"
       ],
       "properties": {
@@ -3002,15 +3041,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "liveliness",
+        "tags",
+        "hardware",
         "events",
+        "size",
+        "allocation",
+        "state",
+        "liveliness",
         "partition",
         "rackid",
-        "size",
-        "state",
-        "hardware",
-        "allocation",
-        "tags",
         "created",
         "changed"
       ],
@@ -3103,12 +3142,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay"
+        "primary"
       ],
       "properties": {
         "description": {
@@ -3172,15 +3211,15 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "parentnetworkid",
         "usage",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
