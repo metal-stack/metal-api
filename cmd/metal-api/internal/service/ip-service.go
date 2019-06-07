@@ -70,7 +70,8 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/").To(editor(ir.updateIP)).
+	ws.Route(ws.POST("/").
+		To(editor(ir.updateIP)).
 		Operation("updateIP").
 		Doc("updates an ip. if the ip was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -80,9 +81,20 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/allocate").To(editor(ir.allocateIP)).
+	ws.Route(ws.POST("/allocate").
+		To(editor(ir.allocateIP)).
 		Operation("allocateIP").
 		Doc("allocate an ip in the given network for a project.").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.IPAllocateRequest{}).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusCreated, "Created", v1.IPResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/allocate/{ip}").
+		To(editor(ir.allocateIP)).
+		Operation("allocateSpecificIP").
+		Doc("allocate an specific ip in the given network for a project.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPAllocateRequest{}).
 		Writes(v1.IPResponse{}).
@@ -139,6 +151,7 @@ func (ir ipResource) deleteIP(request *restful.Request, response *restful.Respon
 }
 
 func (ir ipResource) allocateIP(request *restful.Request, response *restful.Response) {
+	specificIP := request.PathParameter("ip")
 	var requestPayload v1.IPAllocateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -167,7 +180,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	// TODO: Check if project exists if we get a project entity
 	// TODO: Following operations should span a database transaction if possible
 
-	ipAddress, ipParentCidr, err := allocateIP(nw, ir.ipamer)
+	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, ir.ipamer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -219,13 +232,17 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func allocateIP(parent *metal.Network, ipamer ipam.IPAMer) (string, string, error) {
+func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
 	var errors []error
 	var err error
 	var ipAddress string
 	var parentPrefixCidr string
 	for _, prefix := range parent.Prefixes {
-		ipAddress, err = ipamer.AllocateIP(prefix)
+		if specificIP == "" {
+			ipAddress, err = ipamer.AllocateIP(prefix)
+		} else {
+			ipAddress, err = ipamer.AllocateSpecificIP(prefix, specificIP)
+		}
 		if err != nil {
 			errors = append(errors, err)
 			continue

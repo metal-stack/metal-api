@@ -700,7 +700,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		}
 	}
 
-	ipAddress, ipParentCidr, err := allocateIP(projectNetwork, ipamer)
+	ipAddress, ipParentCidr, err := allocateIP(projectNetwork, "", ipamer)
 	if err != nil {
 		return nil, fmt.Errorf("unable to allocate an ip in network:%s %#v", projectNetwork.ID, err)
 	}
@@ -755,7 +755,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			return nil, fmt.Errorf("additional network:%s cannot be a child of the primary network:%s", additionalNetworkID, primaryNetwork.ID)
 		}
 
-		ipAddress, ipParentCidr, err := allocateIP(nw, ipamer)
+		ipAddress, ipParentCidr, err := allocateIP(nw, "", ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", nw.ID, err)
 		}

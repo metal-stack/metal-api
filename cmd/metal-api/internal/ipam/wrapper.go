@@ -10,6 +10,7 @@ import (
 // Later Implementations should also allocate and release Networks.
 type IPAMer interface {
 	AllocateIP(prefix metal.Prefix) (string, error)
+	AllocateSpecificIP(prefix metal.Prefix, specificIP string) (string, error)
 	ReleaseIP(ip metal.IP) error
 	AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (*metal.Prefix, error)
 	ReleaseChildPrefix(childPrefix metal.Prefix) error

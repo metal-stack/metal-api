@@ -75,7 +75,7 @@ func (i *Ipam) DeletePrefix(prefix metal.Prefix) error {
 	return nil
 }
 
-// AllocateIP an ip in the IPAM and returns the allocted IP as a string.
+// AllocateIP an ip in the IPAM and returns the allocated IP as a string.
 func (i *Ipam) AllocateIP(prefix metal.Prefix) (string, error) {
 	ipamPrefix := i.ip.PrefixFrom(prefix.String())
 	if ipamPrefix == nil {
@@ -83,6 +83,23 @@ func (i *Ipam) AllocateIP(prefix metal.Prefix) (string, error) {
 	}
 
 	ipamIP, err := i.ip.AcquireIP(ipamPrefix.Cidr)
+	if err != nil {
+		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %v", prefix.String(), err)
+	}
+	if ipamIP == nil {
+		return "", fmt.Errorf("cannot find free ip to allocate in ipam: %s", prefix.String())
+	}
+
+	return ipamIP.IP.String(), nil
+}
+
+// AllocateSpecificIP a specific ip in the IPAM and returns the allocated IP as a string.
+func (i *Ipam) AllocateSpecificIP(prefix metal.Prefix, specificIP string) (string, error) {
+	ipamPrefix := i.ip.PrefixFrom(prefix.String())
+	if ipamPrefix == nil {
+		return "", fmt.Errorf("error finding prefix in ipam: %s", prefix.String())
+	}
+	ipamIP, err := i.ip.AcquireSpecificIP(ipamPrefix.Cidr, specificIP)
 	if err != nil {
 		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %v", prefix.String(), err)
 	}
