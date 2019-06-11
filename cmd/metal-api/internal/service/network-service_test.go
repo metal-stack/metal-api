@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -137,6 +138,7 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 
 func TestCreateNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("vrf").Get("1")).Return(testdata.EmptyResult, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)

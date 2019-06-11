@@ -264,16 +264,27 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 
 	if vrfID != 0 {
-		vrf := &metal.Vrf{
-			Base: metal.Base{
-				ID: strconv.FormatUint(uint64(vrfID), 10),
-			},
-			ProjectID: projectid,
-		}
+		vrfID := strconv.FormatUint(uint64(vrfID), 10)
 
-		err = r.ds.CreateVrf(vrf)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		_, err := r.ds.FindVrf(vrfID)
+		if err != nil {
+			if metal.IsNotFound(err) {
+				vrf := &metal.Vrf{
+					Base: metal.Base{
+						ID: vrfID,
+					},
+					ProjectID: projectid,
+				}
+
+				err = r.ds.CreateVrf(vrf)
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
+			} else {
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
+			}
 		}
 	}
 
