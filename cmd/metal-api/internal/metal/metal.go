@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/metal-pod/security"
@@ -40,6 +41,11 @@ var (
 
 	getNow = time.Now
 )
+
+// GetFQN gets the fully qualified name of a NSQTopic
+func (t NSQTopic) GetFQN(partitionID string) string {
+	return fmt.Sprintf("%s-%s", partitionID, string(t))
+}
 
 // Base implements common fields for most basic entity types (not all).
 type Base struct {

@@ -439,7 +439,7 @@ func TestFreeMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	events := []string{"machine", "switch"}
+	events := []string{"1-machine", "1-switch"}
 	eventidx := 0
 	pub.doPublish = func(topic string, data interface{}) error {
 		require.Equal(t, events[eventidx], topic)
@@ -559,7 +559,7 @@ func TestOnMachine(t *testing.T) {
 
 			pub := &emptyPublisher{}
 			pub.doPublish = func(topic string, data interface{}) error {
-				require.Equal(t, "machine", topic)
+				require.Equal(t, "1-machine", topic)
 				dv := data.(metal.MachineEvent)
 				require.Equal(t, d.cmd, dv.Cmd.Command)
 				require.Equal(t, "1", dv.Cmd.Target.ID)

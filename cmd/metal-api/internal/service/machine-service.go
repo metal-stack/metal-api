@@ -886,7 +886,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	if len(sws) > 0 {
 		// Push out events to signal switch configuration change
 		evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
-		err = r.Publish(string(metal.TopicSwitch), evt)
+		err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), evt)
 		utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -931,14 +931,14 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = r.Publish(string(metal.TopicMachine), deleteEvent)
+	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	utils.Logger(request).Sugar().Infow("published machine delete event", "machineID", id, "error", err)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = r.Publish(string(metal.TopicSwitch), switchEvent)
+	err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
 	utils.Logger(request).Sugar().Infow("published switch update event", "machineID", id, "error", err)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -1193,7 +1193,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		},
 	}
 
-	err = r.Publish(string(metal.TopicMachine), evt)
+	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	utils.Logger(request).Sugar().Infow("publish event", "event", evt, "command", *evt.Cmd, "error", err)
 	if checkError(request, response, op, err) {
 		return

@@ -188,11 +188,20 @@ Outer:
 			continue
 		}
 		logger.Infow("nsq connected", "nsqd", nsqd)
-		for _, t := range metal.Topics {
-			if err := p.CreateTopic(string(t)); err != nil {
-				logger.Errorw("cannot create Topic", "topic", t, "error", err)
-				time.Sleep(3 * time.Second)
-				continue Outer
+		partitions, err := ds.ListPartitions()
+		if err != nil {
+			logger.Errorw("cannot list partitions", "error", err)
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		for _, partition := range partitions {
+			for _, t := range metal.Topics {
+				n := t.GetFQN(partition.GetID())
+				if err := p.CreateTopic(n); err != nil {
+					logger.Errorw("cannot create Topic", "topic", n, "error", err)
+					time.Sleep(3 * time.Second)
+					continue Outer
+				}
 			}
 		}
 		producer = p
