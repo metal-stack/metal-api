@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"go.uber.org/zap"
@@ -57,6 +58,17 @@ func (r firewallResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.GET("/find").
+		To(viewer(r.searchFirewall)).
+		Operation("searchFirewall").
+		Doc("search firewalls").
+		Param(ws.QueryParameter("project", "project that this firewall is allocated with").DataType("string")).
+		Param(ws.QueryParameter("partition", "the partition in which the firewall is located").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.FirewallResponse{}).
+		Returns(http.StatusOK, "OK", []v1.FirewallResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/").
 		To(viewer(r.listFirewalls)).
 		Operation("listFirewalls").
@@ -99,6 +111,31 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponse(fw, r.ds, utils.Logger(request).Sugar()))
 }
 
+func (r firewallResource) searchFirewall(request *restful.Request, response *restful.Response) {
+	partition := strings.TrimSpace(request.QueryParameter("partition"))
+	project := strings.TrimSpace(request.QueryParameter("project"))
+ 
+	possibleFws, err := searchMachine(r.ds, "", partition, project)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	imgs, err := r.ds.ListImages()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var fws []metal.Machine
+	imageMap := imgs.ByID()
+	for i := range possibleFws {
+		if possibleFws[i].IsFirewall(imageMap) {
+			fws = append(fws, possibleFws[i])
+		}
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponseList(fws, r.ds, utils.Logger(request).Sugar()))
+}
+
 func (r firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
 	possibleFws, err := r.ds.ListMachines()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -112,8 +149,9 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 	}
 
 	var fws []metal.Machine
+	imageMap := imgs.ByID()
 	for i := range possibleFws {
-		if possibleFws[i].IsFirewall(imgs.ByID()) {
+		if possibleFws[i].IsFirewall(imageMap) {
 			fws = append(fws, possibleFws[i])
 		}
 	}

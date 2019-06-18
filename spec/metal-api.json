@@ -86,6 +86,52 @@
         }
       }
     },
+    "/v1/firewall/find": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "firewall"
+        ],
+        "summary": "search firewalls",
+        "operationId": "searchFirewall",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "project that this firewall is allocated with",
+            "name": "project",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "the partition in which the firewall is located",
+            "name": "partition",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.FirewallResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/firewall/{id}": {
       "get": {
         "consumes": [
@@ -668,6 +714,18 @@
             "type": "string",
             "description": "one of the MAC address of the machine",
             "name": "mac",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "project that this machine is allocated with",
+            "name": "project",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "the partition in which the machine is located",
+            "name": "partition",
             "in": "query"
           }
         ],
@@ -2169,12 +2227,12 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "partitionid",
-        "sizeid",
         "imageid",
         "ssh_pub_keys",
-        "tenant",
         "projectid",
+        "tenant",
+        "partitionid",
+        "sizeid",
         "networks"
       ],
       "properties": {
@@ -2247,18 +2305,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "events",
-        "changed",
-        "partition",
-        "size",
-        "allocation",
         "tags",
+        "partition",
+        "changed",
         "rackid",
+        "size",
+        "hardware",
+        "events",
+        "id",
         "state",
         "created",
-        "id",
-        "hardware",
-        "liveliness"
+        "liveliness",
+        "allocation"
       ],
       "properties": {
         "allocation": {
@@ -2405,8 +2463,8 @@
     },
     "v1.IPUpdateRequest": {
       "required": [
-        "ipaddress",
-        "machineid"
+        "machineid",
+        "ipaddress"
       ],
       "properties": {
         "description": {
@@ -2771,9 +2829,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -2938,8 +2996,8 @@
     },
     "v1.MachineNicExtended": {
       "required": [
-        "mac",
         "name",
+        "mac",
         "neighbors"
       ],
       "properties": {
@@ -3050,13 +3108,13 @@
         "id",
         "allocation",
         "liveliness",
-        "tags",
-        "rackid",
-        "size",
-        "state",
         "events",
-        "partition",
+        "tags",
+        "size",
+        "rackid",
         "hardware",
+        "state",
+        "partition",
         "created",
         "changed"
       ],
@@ -3218,12 +3276,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "parentnetworkid",
-        "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
+        "parentnetworkid",
+        "prefixes",
         "usage",
         "created",
         "changed"
@@ -3643,8 +3701,8 @@
       "required": [
         "id",
         "constraints",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3788,8 +3846,8 @@
         "nics",
         "partition",
         "connections",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {

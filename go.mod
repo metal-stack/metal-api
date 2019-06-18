@@ -17,26 +17,25 @@ require (
 	github.com/go-openapi/swag v0.19.0 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
+	github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63 // indirect
 	github.com/metal-pod/go-ipam v1.2.0
-	github.com/metal-pod/security v0.0.0-20190605085245-f3d2eb409950
+	github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89
 	github.com/metal-pod/v v0.0.2
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/pelletier/go-toml v1.3.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/cobra v0.0.3
+	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0
-	golang.org/x/net v0.0.0-20190606173856-1492cefac77f // indirect
+	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980 // indirect
 	golang.org/x/sys v0.0.0-20190606203320-7fc4e5ec1444 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.0.1

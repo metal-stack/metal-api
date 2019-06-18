@@ -113,6 +113,8 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("searchMachine").
 		Doc("search machines").
 		Param(ws.QueryParameter("mac", "one of the MAC address of the machine").DataType("string")).
+		Param(ws.QueryParameter("project", "project that this machine is allocated with").DataType("string")).
+		Param(ws.QueryParameter("partition", "the partition in which the machine is located").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
@@ -280,13 +282,19 @@ func (r machineResource) listMachines(request *restful.Request, response *restfu
 
 func (r machineResource) searchMachine(request *restful.Request, response *restful.Response) {
 	mac := strings.TrimSpace(request.QueryParameter("mac"))
+	partition := strings.TrimSpace(request.QueryParameter("partition"))
+	project := strings.TrimSpace(request.QueryParameter("project"))
 
-	ms, err := r.ds.SearchMachine(mac)
+	ms, err := searchMachine(r.ds, mac, partition, project)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
+}
+
+func searchMachine(ds *datastore.RethinkStore, mac, partition, project string) ([]metal.Machine, error) {
+	return ds.SearchMachine(mac, partition, project)
 }
 
 func (r machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {

@@ -107,7 +107,22 @@ X-Date: 1985-04-12T23:20:50.52Z
 
 ### find by MAC
 GET {{baseurl}}/find?mac=aa:aa:aa:aa:aa:aa
-Authorization: Metal-Admin 71f2cba9ea8ac77ef30c3fac795ea41208a3f7d5a9efe186c9975e5e531869b0
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### find by partition
+GET {{baseurl}}/find?partition=vagrant-lab
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### find by project
+GET {{baseurl}}/find?project=test
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### find by partition and mac
+GET {{baseurl}}/find?mac=aa:aa:aa:aa:aa:aa&partition=vagrant-lab
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
 X-Date: 1985-04-12T23:20:50.52Z
 
 ### wait for a machine

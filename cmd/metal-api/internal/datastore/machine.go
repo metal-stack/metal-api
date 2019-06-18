@@ -26,7 +26,7 @@ func (rs *RethinkStore) ListMachines() ([]metal.Machine, error) {
 }
 
 // SearchMachine returns the machines filtered by the given search filter.
-func (rs *RethinkStore) SearchMachine(mac string) ([]metal.Machine, error) {
+func (rs *RethinkStore) SearchMachine(mac, partition, project string) ([]metal.Machine, error) {
 	q := *rs.machineTable()
 
 	if mac != "" {
@@ -34,6 +34,18 @@ func (rs *RethinkStore) SearchMachine(mac string) ([]metal.Machine, error) {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("macAddress")
 			}).Contains(r.Expr(mac))
+		})
+	}
+
+	if partition != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("partitionid").Eq(partition)
+		})
+	}
+
+	if project != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("project").Eq(project)
 		})
 	}
 

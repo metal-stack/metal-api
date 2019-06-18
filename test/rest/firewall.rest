@@ -4,6 +4,8 @@
 ### register a firewall
 # @name register
 POST {{baseurl}}/register
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
 Content-Type: application/json
 
 {
@@ -47,11 +49,15 @@ Content-Type: application/json
 ### wait for a machine
 # @name wait
 GET {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/wait
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### allocate a firewall
 # @name allocate
 POST {{firewallbaseurl}}/allocate
 Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
   "description": "My first metal host",
@@ -78,8 +84,17 @@ DELETE  {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
 ### get a firewall
 # @name get
 GET {{firewallbaseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### list firewalls
 # @name list
 GET {{firewallbaseurl}}/
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
 
+### find a firewall
+# @name find
+GET {{firewallbaseurl}}/find?project=test
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z

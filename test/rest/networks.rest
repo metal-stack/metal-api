@@ -47,6 +47,8 @@ X-Date: 1985-04-12T23:20:50.52Z
 # @name createUnderlayNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
+Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
   "id": "underlay-vagrant-lab",
