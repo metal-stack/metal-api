@@ -911,6 +911,12 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		return
 	}
 
+	if m.State.Value == metal.LockedState {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine is locked")) {
+			return
+		}
+	}
+
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
 		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
