@@ -153,6 +153,70 @@ type MachineFinalizeAllocationRequest struct {
 	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
 }
 
+type FindMachinesRequest struct {
+	ID          *string  `json:"id"`
+	Name        *string  `json:"name"`
+	PartitionID *string  `json:"partition_id"`
+	SizeID      *string  `json:"sizeid"`
+	RackID      *string  `json:"rackid"`
+	Liveliness  *string  `json:"liveliness"`
+	Tags        []string `json:"tags"`
+
+	// allocation
+	AllocationName      *string `json:"allocation_name"`
+	AllocationTenant    *string `json:"allocation_tenant"`
+	AllocationProject   *string `json:"allocation_project"`
+	AllocationImageID   *string `json:"allocation_image_id"`
+	AllocationHostname  *string `json:"allocation_hostname"`
+	AllocationSucceeded *bool   `json:"allocation_succeeded"`
+
+	// network
+	NetworkIDs                 []string `json:"network_id"`
+	NetworkPrefixes            []string `json:"network_prefixes"`
+	NetworkIPs                 []string `json:"network_ips"`
+	NetworkDestinationPrefixes []string `json:"network_destination_prefixes"`
+	NetworkVrfs                []uint   `json:"network_vrfs"`
+	NetworkPrimary             *bool    `json:"network_primaries"`
+	NetworkASNs                []int64  `json:"network_asns"`
+	NetworkNat                 *bool    `json:"network_nat"`
+	NetworkUnderlay            *bool    `json:"network_underlay"`
+
+	// hardware
+	HardwareMemory   *uint64 `json:"hardware_memory"`
+	HardwareCPUCores *int    `json:"hardware_cpu_cores"`
+
+	// nics
+	NicsMacAddresses         []string `json:"nics_mac_addresses"`
+	NicsNames                []string `json:"nics_names"`
+	NicsVrfs                 []string `json:"nics_vrfs"`
+	NicsNeighborMacAddresses []string `json:"nics_neighbor_mac_addresses"`
+	NicsNeighborNames        []string `json:"nics_neighbor_names"`
+	NicsNeighborVrfs         []string `json:"nics_neighbor_vrfs"`
+
+	// disks
+	DiskNames []string `json:"disk_names"`
+	DiskSizes []uint64 `json:"disk_sizes"`
+
+	// state
+	StateValue *string `json:"state_value"`
+
+	// ipmi
+	IpmiAddress    *string `json:"ipmi_address"`
+	IpmiMacAddress *string `json:"ipmi_mac_address"`
+	IpmiUser       *string `json:"ipmi_user"`
+	IpmiInterface  *string `json:"ipmi_interface"`
+
+	// fru
+	FruChassisPartNumber   *string `json:"fru_chassis_part_number"`
+	FruChassisPartSerial   *string `json:"fru_chassis_part_serial"`
+	FruBoardMfg            *string `json:"fru_board_mfg"`
+	FruBoardMfgSerial      *string `json:"fru_board_mfg_serial"`
+	FruBoardPartNumber     *string `json:"fru_board_part_number"`
+	FruProductManufacturer *string `json:"fru_product_manufacturer"`
+	FruProductPartNumber   *string `json:"fru_product_part_number"`
+	FruProductSerial       *string `json:"fru_product_serial"`
+}
+
 type MachineResponse struct {
 	Common
 	MachineBase

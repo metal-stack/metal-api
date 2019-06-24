@@ -14,11 +14,12 @@ type MState string
 const (
 	AvailableState MState = ""
 	ReservedState  MState = "RESERVED"
+	LockedState    MState = "LOCKED"
 )
 
 var (
 	// AllStates contains all possible values of a machine state
-	AllStates = []MState{AvailableState, ReservedState}
+	AllStates = []MState{AvailableState, ReservedState, LockedState}
 )
 
 // A MachineState describes the state of a machine. If the Value is AvailableState,
@@ -29,12 +30,15 @@ type MachineState struct {
 	Description string `rethinkdb:"description"`
 }
 
+// MachineStateFrom converts a machineState string to the type
 func MachineStateFrom(name string) (MState, error) {
 	switch name {
 	case string(AvailableState):
 		return AvailableState, nil
 	case string(ReservedState):
 		return ReservedState, nil
+	case string(LockedState):
+		return LockedState, nil
 	default:
 		return "", fmt.Errorf("unknown MachineStateType:%s", name)
 	}

@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"fmt"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -25,11 +26,155 @@ func (rs *RethinkStore) ListMachines() ([]metal.Machine, error) {
 	return ms, err
 }
 
-// SearchMachine returns the machines filtered by the given search filter.
-func (rs *RethinkStore) SearchMachine(mac, partition, project string) ([]metal.Machine, error) {
+// FindMachines returns the machines filtered by the given search filter.
+func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Machine, error) {
 	q := *rs.machineTable()
 
-	if mac != "" {
+	if props.ID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("id").Eq(*props.ID)
+		})
+	}
+
+	if props.Name != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("name").Eq(*props.Name)
+		})
+	}
+
+	if props.PartitionID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("partitionid").Eq(*props.PartitionID)
+		})
+	}
+
+	if props.SizeID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("sizeid").Eq(*props.SizeID)
+		})
+	}
+
+	if props.RackID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("rackid").Eq(*props.RackID)
+		})
+	}
+
+	if props.Liveliness != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("liveliness").Eq(*props.Liveliness)
+		})
+	}
+
+	for _, tag := range props.Tags {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("tags").Contains(r.Expr(tag))
+		})
+	}
+
+	if props.AllocationName != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("name").Eq(*props.AllocationName)
+		})
+	}
+
+	if props.AllocationTenant != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("tenant").Eq(*props.AllocationTenant)
+		})
+	}
+
+	if props.AllocationProject != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("project").Eq(*props.AllocationProject)
+		})
+	}
+
+	if props.AllocationImageID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("imageid").Eq(*props.AllocationImageID)
+		})
+	}
+
+	if props.AllocationHostname != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("hostname").Eq(*props.AllocationHostname)
+		})
+	}
+
+	if props.AllocationSucceeded != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("succeeded").Eq(*props.AllocationSucceeded)
+		})
+	}
+
+	for _, id := range props.NetworkIDs {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("networkid").Contains(r.Expr(id))
+		})
+	}
+
+	for _, prefix := range props.NetworkPrefixes {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("prefixes").Contains(r.Expr(prefix))
+		})
+	}
+
+	for _, ip := range props.NetworkIPs {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("ips").Contains(r.Expr(ip))
+		})
+	}
+
+	for _, destPrefix := range props.NetworkDestinationPrefixes {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("destinationprefixes").Contains(r.Expr(destPrefix))
+		})
+	}
+
+	for _, vrf := range props.NetworkVrfs {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("vrf").Contains(r.Expr(vrf))
+		})
+	}
+
+	if props.NetworkPrimary != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("primary").Eq(*props.NetworkPrimary)
+		})
+	}
+
+	for _, asn := range props.NetworkASNs {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("asn").Contains(r.Expr(asn))
+		})
+	}
+
+	if props.NetworkNat != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("nat").Eq(*props.NetworkNat)
+		})
+	}
+
+	if props.NetworkUnderlay != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networks").Field("underlay").Eq(*props.NetworkUnderlay)
+		})
+	}
+
+	if props.HardwareMemory != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("hardware").Field("memory").Eq(*props.HardwareMemory)
+		})
+	}
+
+	if props.HardwareCPUCores != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("hardware").Field("cpu_cores").Eq(*props.HardwareCPUCores)
+		})
+	}
+
+	for _, mac := range props.NicsMacAddresses {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("macAddress")
@@ -37,15 +182,133 @@ func (rs *RethinkStore) SearchMachine(mac, partition, project string) ([]metal.M
 		})
 	}
 
-	if partition != "" {
+	for _, name := range props.NicsNames {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("partitionid").Eq(partition)
+			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+				return nic.Field("name")
+			}).Contains(r.Expr(name))
 		})
 	}
 
-	if project != "" {
+	for _, vrf := range props.NicsVrfs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("project").Eq(project)
+			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+				return nic.Field("vrf")
+			}).Contains(r.Expr(vrf))
+		})
+	}
+
+	for _, mac := range props.NicsNeighborMacAddresses {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("hardware").Field("network_interfaces").Field("neighbors").Map(func(nic r.Term) r.Term {
+				return nic.Field("macAddress")
+			}).Contains(r.Expr(mac))
+		})
+	}
+
+	for _, name := range props.NicsNames {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("hardware").Field("network_interfaces").Field("neighbors").Map(func(nic r.Term) r.Term {
+				return nic.Field("name")
+			}).Contains(r.Expr(name))
+		})
+	}
+
+	for _, vrf := range props.NicsVrfs {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("hardware").Field("network_interfaces").Field("neighbors").Map(func(nic r.Term) r.Term {
+				return nic.Field("vrf")
+			}).Contains(r.Expr(vrf))
+		})
+	}
+
+	for _, name := range props.DiskNames {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("block_devices").Field("name").Contains(r.Expr(name))
+		})
+	}
+
+	for _, size := range props.DiskSizes {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("block_devices").Field("vrf").Contains(r.Expr(size))
+		})
+	}
+
+	if props.StateValue != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("state_value").Eq(*props.StateValue)
+		})
+	}
+
+	if props.IpmiAddress != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("address").Eq(*props.IpmiAddress)
+		})
+	}
+
+	if props.IpmiMacAddress != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("mac").Eq(*props.IpmiMacAddress)
+		})
+	}
+
+	if props.IpmiUser != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("user").Eq(*props.IpmiUser)
+		})
+	}
+
+	if props.IpmiInterface != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("interface").Eq(*props.IpmiInterface)
+		})
+	}
+
+	if props.FruChassisPartNumber != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("chassis_part_number").Eq(*props.FruChassisPartNumber)
+		})
+	}
+
+	if props.FruChassisPartSerial != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("chassis_part_serial").Eq(*props.FruChassisPartSerial)
+		})
+	}
+
+	if props.FruBoardMfg != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("board_mfg").Eq(*props.FruBoardMfg)
+		})
+	}
+
+	if props.FruBoardMfgSerial != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("board_mfg_serial").Eq(*props.FruBoardMfgSerial)
+		})
+	}
+
+	if props.FruBoardPartNumber != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("board_part_number").Eq(*props.FruBoardPartNumber)
+		})
+	}
+
+	if props.FruProductManufacturer != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("product_manufacturer").Eq(*props.FruProductManufacturer)
+		})
+	}
+
+	if props.FruProductPartNumber != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("product_part_number").Eq(*props.FruProductPartNumber)
+		})
+	}
+
+	if props.FruProductSerial != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("ipmi").Field("fru").Field("product_serial").Eq(*props.FruProductSerial)
 		})
 	}
 

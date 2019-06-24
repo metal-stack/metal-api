@@ -114,8 +114,12 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 func (r firewallResource) searchFirewall(request *restful.Request, response *restful.Response) {
 	partition := strings.TrimSpace(request.QueryParameter("partition"))
 	project := strings.TrimSpace(request.QueryParameter("project"))
- 
-	possibleFws, err := searchMachine(r.ds, "", partition, project)
+
+	req := &v1.FindMachinesRequest{
+		PartitionID:       &partition,
+		AllocationProject: &project,
+	}
+	possibleFws, err := r.ds.FindMachines(req)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

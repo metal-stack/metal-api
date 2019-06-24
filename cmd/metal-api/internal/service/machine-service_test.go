@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/ssh"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -475,7 +476,9 @@ func TestSearchMachine(t *testing.T) {
 
 	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(machineservice)
-	req := httptest.NewRequest("GET", "/v1/machine/find?mac=1", nil)
+	requestJSON := fmt.Sprintf("{%q:[%q]}", "nics_mac_addresses", "1")
+	req := httptest.NewRequest("POST", "/v1/machine/find", bytes.NewBufferString(requestJSON))
+	req.Header.Add("Content-Type", "application/json")
 	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -581,4 +584,22 @@ func TestOnMachine(t *testing.T) {
 			require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 		})
 	}
+}
+
+func TestParsePublicKey(t *testing.T) {
+	pubKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1X"
+	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
+	require.Nil(t, err)
+
+	pubKey = ""
+	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
+	require.NotNil(t, err)
+
+	pubKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1"
+	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
+	require.NotNil(t, err)
+
+	pubKey = "AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1X"
+	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
+	require.NotNil(t, err)
 }

@@ -271,28 +271,28 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 
 func TestProvisioningEventType_Is(t *testing.T) {
 	tests := []struct {
-		name string
+		name  string
 		event string
-		p    ProvisioningEventType
-		want bool
+		p     ProvisioningEventType
+		want  bool
 	}{
 		{
-			name: "simple",
+			name:  "simple",
 			event: "Waiting",
-			p: ProvisioningEventWaiting,
-			want: true,
+			p:     ProvisioningEventWaiting,
+			want:  true,
 		},
 		{
-			name: "simple",
+			name:  "simple",
 			event: "Waiting",
-			p: ProvisioningEventInstalling,
-			want: false,
+			p:     ProvisioningEventInstalling,
+			want:  false,
 		},
 		{
-			name: "simple",
+			name:  "simple",
 			event: "Alive",
-			p: ProvisioningEventAlive,
-			want: true,
+			p:     ProvisioningEventAlive,
+			want:  true,
 		},
 	}
 	for _, tt := range tests {

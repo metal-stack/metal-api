@@ -47,27 +47,27 @@ func TestGenerateVrfID(t *testing.T) {
 func TestVrf_ToUint(t *testing.T) {
 	tests := []struct {
 		name    string
-		id  string
+		id      string
 		want    uint
 		wantErr bool
 	}{
 		{
-			name: "vrf to uint",
-			id: "42000",
-			want: 42000,
+			name:    "vrf to uint",
+			id:      "42000",
+			want:    42000,
 			wantErr: false,
 		},
 		{
-			name: "vrf to uint with error",
-			id: "42000kl",
-			want: 0,
+			name:    "vrf to uint with error",
+			id:      "42000kl",
+			want:    0,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := &Vrf{
-				Base:      Base{
+				Base: Base{
 					ID: tt.id,
 				},
 			}
