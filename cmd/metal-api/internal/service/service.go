@@ -13,8 +13,8 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/go-stack/stack"
 
-	"github.com/metal-pod/security"
 	restful "github.com/emicklei/go-restful"
+	"github.com/metal-pod/security"
 	"go.uber.org/zap"
 )
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"golang.org/x/crypto/ssh"
 	"net/http"
 	"strings"
 	"time"
@@ -597,6 +598,13 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	// FIXME: This is only temporary and needs to be made a little bit more elegant.
 	if allocationSpec.Tenant == "" {
 		return nil, fmt.Errorf("no tenant given")
+	}
+
+	for _, pubKey := range allocationSpec.SSHPubKeys {
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
+		if err != nil {
+			return nil, fmt.Errorf("invalid public SSH key: %s", pubKey)
+		}
 	}
 
 	var err error

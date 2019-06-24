@@ -9,8 +9,8 @@ import (
 	"bytes"
 
 	"git.f-i-ts.de/cloud-native/metallib/rest"
-	"github.com/metal-pod/security"
 	restful "github.com/emicklei/go-restful"
+	"github.com/metal-pod/security"
 )
 
 func injectViewer(container *restful.Container, rq *http.Request) *restful.Container {

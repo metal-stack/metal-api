@@ -42,7 +42,6 @@ var (
 	}
 )
 
-
 func TestSwitch_ConnectMachine(t *testing.T) {
 	type args struct {
 		*Machine
