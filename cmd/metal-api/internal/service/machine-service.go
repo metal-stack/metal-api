@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ssh"
 	"net/http"
-	"strings"
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
@@ -19,7 +18,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"github.com/dustin/go-humanize"
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
 
@@ -109,14 +108,12 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/find").
-		To(viewer(r.searchMachine)).
-		Operation("searchMachine").
+	ws.Route(ws.POST("/find").
+		To(viewer(r.findMachines)).
+		Operation("findMachines").
 		Doc("search machines").
-		Param(ws.QueryParameter("mac", "one of the MAC address of the machine").DataType("string")).
-		Param(ws.QueryParameter("project", "project that this machine is allocated with").DataType("string")).
-		Param(ws.QueryParameter("partition", "the partition in which the machine is located").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.FindMachinesRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -261,6 +258,15 @@ func (r machineResource) webService() *restful.WebService {
 	return ws
 }
 
+func (r machineResource) listMachines(request *restful.Request, response *restful.Response) {
+	ms, err := r.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
+}
+
 func (r machineResource) findMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
@@ -272,30 +278,19 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (r machineResource) listMachines(request *restful.Request, response *restful.Response) {
-	ms, err := r.ds.ListMachines()
+func (r machineResource) findMachines(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.FindMachinesRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	ms, err := r.ds.FindMachines(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
-}
-
-func (r machineResource) searchMachine(request *restful.Request, response *restful.Response) {
-	mac := strings.TrimSpace(request.QueryParameter("mac"))
-	partition := strings.TrimSpace(request.QueryParameter("partition"))
-	project := strings.TrimSpace(request.QueryParameter("project"))
-
-	ms, err := searchMachine(r.ds, mac, partition, project)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
-}
-
-func searchMachine(ds *datastore.RethinkStore, mac, partition, project string) ([]metal.Machine, error) {
-	return ds.SearchMachine(mac, partition, project)
 }
 
 func (r machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {

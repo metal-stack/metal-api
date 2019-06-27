@@ -476,7 +476,9 @@ func TestSearchMachine(t *testing.T) {
 
 	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(machineservice)
-	req := httptest.NewRequest("GET", "/v1/machine/find?mac=1", nil)
+	requestJSON := fmt.Sprintf("{%q:[%q]}", "nics_mac_addresses", "1")
+	req := httptest.NewRequest("POST", "/v1/machine/find", bytes.NewBufferString(requestJSON))
+	req.Header.Add("Content-Type", "application/json")
 	container = injectViewer(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

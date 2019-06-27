@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"reflect"
 	"testing"
 	"testing/quick"
@@ -139,13 +140,16 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.SearchMachine(tt.args.mac, "", "")
+			req := &v1.FindMachinesRequest{
+				NicsMacAddresses: []string{tt.args.mac},
+			}
+			got, err := tt.rs.FindMachines(req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.SearchMachine() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.SearchMachine() = %v, want %v", got, tt.want)
+				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
 			}
 		})
 	}
