@@ -2,10 +2,11 @@ package service
 
 import (
 	"fmt"
-	"golang.org/x/crypto/ssh"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/metal-pod/security"
@@ -1148,7 +1149,8 @@ func (r machineResource) evaluateMachineLiveliness(m metal.Machine) *metal.Machi
 }
 
 func (r machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
-	utils.Logger(request).Sugar().Info("liveliness report was requested")
+	logger := utils.Logger(request).Sugar()
+	logger.Info("liveliness report was requested")
 
 	machines, err := r.ds.ListMachines()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1161,8 +1163,9 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 	for _, m := range machines {
 		evaluatedMachine := r.evaluateMachineLiveliness(m)
 		err = r.ds.UpdateMachine(&m, evaluatedMachine)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if err != nil {
+			logger.Errorw("cannot update machine", "error", err, "machine", m, "evaluatedMachine", evaluatedMachine)
+			// fall through, so the caller should get the evaulated state, although it is not persistet
 		}
 		switch evaluatedMachine.Liveliness {
 		case metal.MachineLivelinessAlive:
