@@ -177,9 +177,9 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	if requestPayload.Vrf != nil {
 		vrfID = *requestPayload.Vrf
 	}
-	primary := requestPayload.Primary != nil && *requestPayload.Primary
-	underlay := requestPayload.Underlay != nil && *requestPayload.Underlay
-	nat := requestPayload.Nat != nil && *requestPayload.Nat
+	primary := requestPayload.Primary
+	underlay := requestPayload.Underlay
+	nat := requestPayload.Nat
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401

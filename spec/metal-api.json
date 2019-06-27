@@ -2268,73 +2268,47 @@
     },
     "v1.EmptyBody": {},
     "v1.FindNetworksRequest": {
-      "required": [
-        "id",
-        "prefixes",
-        "destinationprefixes",
-        "nat",
-        "parentnetworkid",
-        "primary",
-        "underlay",
-        "tenantid"
-      ],
       "properties": {
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
         "destinationprefixes": {
-          "description": "the destination prefixes of this network",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "id": {
-          "description": "the unique ID of this entity, auto-generated if left empty",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
-          "description": "a readable name for this entity",
           "type": "string"
         },
         "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
           "type": "boolean"
         },
         "parentnetworkid": {
-          "description": "the id of the parent network",
           "type": "string"
         },
         "partitionid": {
-          "description": "the partition this network belongs to",
           "type": "string"
         },
         "prefixes": {
-          "description": "the prefixes of this network",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "primary": {
-          "description": "if set to true, a subnetwork of this network is attached to a machine/firewall, there can only be one primary network per partition",
           "type": "boolean"
         },
         "projectid": {
-          "description": "the project this network belongs to, can be empty if globally available",
           "type": "string"
         },
         "tenantid": {
           "type": "string"
         },
         "underlay": {
-          "description": "if set to true, this network can be used for underlay communication",
           "type": "boolean"
         },
         "vrf": {
-          "description": "the vrf this network is associated with",
           "type": "integer",
           "format": "integer"
         }
@@ -2343,11 +2317,11 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "tenant",
-        "partitionid",
-        "sizeid",
-        "imageid",
         "projectid",
+        "sizeid",
         "ssh_pub_keys",
+        "partitionid",
+        "imageid",
         "networks"
       ],
       "properties": {
@@ -2420,18 +2394,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "events",
         "partition",
         "hardware",
-        "id",
+        "created",
         "tags",
-        "liveliness",
-        "changed",
-        "state",
-        "rackid",
-        "size",
         "allocation",
-        "created"
+        "state",
+        "liveliness",
+        "size",
+        "events",
+        "changed",
+        "id",
+        "rackid"
       ],
       "properties": {
         "allocation": {
@@ -2911,9 +2885,9 @@
     },
     "v1.MachineHardware": {
       "required": [
-        "disks",
         "memory",
         "cpu_cores",
+        "disks",
         "nics"
       ],
       "properties": {
@@ -2944,9 +2918,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -3221,15 +3195,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "tags",
+        "partition",
         "rackid",
         "size",
         "allocation",
+        "events",
+        "hardware",
         "state",
         "liveliness",
-        "events",
-        "tags",
-        "partition",
-        "hardware",
         "created",
         "changed"
       ],
@@ -3391,12 +3365,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
+        "underlay",
         "usage",
         "created",
         "changed"
