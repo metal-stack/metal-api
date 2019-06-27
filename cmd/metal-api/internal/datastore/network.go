@@ -2,8 +2,8 @@ package datastore
 
 import (
 	"fmt"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -34,8 +34,8 @@ func (rs *RethinkStore) FindPrimaryNetwork(partitionID string) (*metal.Network, 
 	return &nws[0], nil
 }
 
-// SearchPrimaryNetwork returns all primary networks of a partition.
-func (rs *RethinkStore) SearchPrimaryNetwork(partitionID string) ([]metal.Network, error) {
+// FindPrimaryNetworks returns all primary networks of a partition.
+func (rs *RethinkStore) FindPrimaryNetworks(partitionID string) ([]metal.Network, error) {
 	_, err := rs.FindPartition(partitionID)
 	if err != nil {
 		return nil, err
@@ -55,8 +55,8 @@ func (rs *RethinkStore) SearchPrimaryNetwork(partitionID string) ([]metal.Networ
 	return nws, nil
 }
 
-// SearchUnderlayNetwork returns the network which is marked as underlay in this partition
-func (rs *RethinkStore) SearchUnderlayNetwork(partitionID string) ([]metal.Network, error) {
+// FindUnderlayNetworks returns the networks that are marked as underlay in this partition
+func (rs *RethinkStore) FindUnderlayNetworks(partitionID string) ([]metal.Network, error) {
 	_, err := rs.FindPartition(partitionID)
 	if err != nil {
 		return nil, err
@@ -69,6 +69,97 @@ func (rs *RethinkStore) SearchUnderlayNetwork(partitionID string) ([]metal.Netwo
 
 	var nws []metal.Network
 	err = rs.searchEntities(&q, &nws)
+	if err != nil {
+		return nil, err
+	}
+
+	return nws, nil
+}
+
+// FindNetworks returns the networks that match the given properties
+func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Network, error) {
+	q := *rs.networkTable()
+
+	if props.ID != nil && *props.ID != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("id").Eq(*props.ID)
+		})
+	}
+
+	if props.TenantID != nil && *props.TenantID != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("tenantid").Eq(*props.TenantID)
+		})
+	}
+
+	if props.ProjectID != nil && *props.ProjectID != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("projectid").Eq(*props.ProjectID)
+		})
+	}
+
+	if props.PartitionID != nil && *props.PartitionID != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("partitionid").Eq(*props.PartitionID)
+		})
+	}
+
+	if props.ParentNetworkID != nil && *props.ParentNetworkID != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("parentnetworkid").Eq(*props.ParentNetworkID)
+		})
+	}
+
+	if props.Name != nil && *props.Name != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("name").Eq(*props.Name)
+		})
+	}
+
+	if props.Vrf != nil && *props.Vrf != 0 {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("vfr").Eq(*props.Vrf)
+		})
+	}
+
+	if props.Nat != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("nat").Eq(*props.Nat)
+		})
+	}
+
+	if props.Primary != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("primary").Eq(*props.Primary)
+		})
+	}
+
+	if props.Underlay != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("underlay").Eq(*props.Underlay)
+		})
+	}
+
+	for _, prefix := range props.Prefixes {
+		if prefix == "" {
+			continue
+		}
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("prefixes").Slice().Contains(r.Expr(prefix))
+		})
+	}
+
+	for _, destPrefix := range props.DestinationPrefixes {
+		if destPrefix == "" {
+			continue
+		}
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("destinationprefixes").Slice().Contains(r.Expr(destPrefix))
+		})
+	}
+
+	var nws []metal.Network
+	err := rs.searchEntities(&q, &nws)
 	if err != nil {
 		return nil, err
 	}

@@ -128,11 +128,11 @@ const (
 
 // DiskCapacity calculates the capacity of all disks.
 func (hw *MachineHardware) DiskCapacity() uint64 {
-	var cap uint64
+	var c uint64
 	for _, d := range hw.Disks {
-		cap += d.Size
+		c += d.Size
 	}
-	return cap
+	return c
 }
 
 // ReadableSpec returns a human readable string for the hardware.

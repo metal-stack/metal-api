@@ -12,9 +12,9 @@ type NetworkBase struct {
 type NetworkImmutable struct {
 	Prefixes            []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
-	Primary             bool     `json:"primary" description:"if set to true, a subnetwork of this network is attached to a machine/firewall, there can only be one primary network per partition"`
-	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+	Nat                 *bool    `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	Primary             *bool    `json:"primary" description:"if set to true, a subnetwork of this network is attached to a machine/firewall, there can only be one primary network per partition"`
+	Underlay            *bool    `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network"`
 }
@@ -25,11 +25,17 @@ type NetworkUsage struct {
 	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
+
 type NetworkCreateRequest struct {
 	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
 	Describable
 	NetworkBase
 	NetworkImmutable
+}
+
+type FindNetworksRequest struct {
+	NetworkCreateRequest
+	TenantID *string `json:"tenantid"`
 }
 
 type NetworkUpdateRequest struct {
@@ -68,9 +74,9 @@ func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResp
 		NetworkImmutable: NetworkImmutable{
 			Prefixes:            network.Prefixes.String(),
 			DestinationPrefixes: network.DestinationPrefixes.String(),
-			Nat:                 network.Nat,
-			Primary:             network.Primary,
-			Underlay:            network.Underlay,
+			Nat:                 &network.Nat,
+			Primary:             &network.Primary,
+			Underlay:            &network.Underlay,
 			Vrf:                 &network.Vrf,
 			ParentNetworkID:     parentNetworkID,
 		},

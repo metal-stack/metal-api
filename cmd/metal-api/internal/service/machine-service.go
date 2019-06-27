@@ -647,7 +647,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			return nil, fmt.Errorf("partition cannot be found: %v", err)
 		}
 		// we could actually refrain from finding the size because it will not be used in the following lines
-		// this is just fpr symmetry and preventing a possible nil pointer dereference in the future when accessing the size
+		// this is just for symmetry and preventing a possible nil pointer dereference in the future when accessing the size
 		size, err = ds.FindSize(machine.SizeID)
 		if err != nil {
 			return nil, fmt.Errorf("size cannot be found: %v", err)
