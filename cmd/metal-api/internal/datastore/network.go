@@ -80,43 +80,43 @@ func (rs *RethinkStore) FindUnderlayNetworks(partitionID string) ([]metal.Networ
 func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Network, error) {
 	q := *rs.networkTable()
 
-	if props.ID != nil && *props.ID != "" {
+	if props.ID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("id").Eq(*props.ID)
 		})
 	}
 
-	if props.TenantID != nil && *props.TenantID != "" {
+	if props.TenantID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tenantid").Eq(*props.TenantID)
 		})
 	}
 
-	if props.ProjectID != nil && *props.ProjectID != "" {
+	if props.ProjectID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("projectid").Eq(*props.ProjectID)
 		})
 	}
 
-	if props.PartitionID != nil && *props.PartitionID != "" {
+	if props.PartitionID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("partitionid").Eq(*props.PartitionID)
 		})
 	}
 
-	if props.ParentNetworkID != nil && *props.ParentNetworkID != "" {
+	if props.ParentNetworkID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("parentnetworkid").Eq(*props.ParentNetworkID)
 		})
 	}
 
-	if props.Name != nil && *props.Name != "" {
+	if props.Name != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("name").Eq(*props.Name)
 		})
 	}
 
-	if props.Vrf != nil && *props.Vrf != 0 {
+	if props.Vrf != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("vfr").Eq(*props.Vrf)
 		})
@@ -141,18 +141,12 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 	}
 
 	for _, prefix := range props.Prefixes {
-		if prefix == "" {
-			continue
-		}
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("prefixes").Slice().Contains(r.Expr(prefix))
 		})
 	}
 
 	for _, destPrefix := range props.DestinationPrefixes {
-		if destPrefix == "" {
-			continue
-		}
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("destinationprefixes").Slice().Contains(r.Expr(destPrefix))
 		})
