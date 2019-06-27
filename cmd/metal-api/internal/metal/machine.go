@@ -91,7 +91,6 @@ type MachineAllocation struct {
 	SSHPubKeys      []string         `rethinkdb:"sshPubKeys"`
 	UserData        string           `rethinkdb:"userdata"`
 	ConsolePassword string           `rethinkdb:"console_password"`
-	PhoneHomeToken  string           `rethinkdb:"phone_home_token"`
 	Succeeded       bool             `rethinkdb:"succeeded"`
 }
 
