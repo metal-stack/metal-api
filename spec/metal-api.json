@@ -2268,6 +2268,19 @@
     },
     "v1.EmptyBody": {},
     "v1.FindNetworksRequest": {
+      "required": [
+        "id",
+        "partitionid",
+        "projectid",
+        "prefixes",
+        "destinationprefixes",
+        "nat",
+        "primary",
+        "underlay",
+        "vrf",
+        "parentnetworkid",
+        "tenantid"
+      ],
       "properties": {
         "destinationprefixes": {
           "type": "array",
@@ -2316,12 +2329,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
         "projectid",
-        "sizeid",
-        "ssh_pub_keys",
         "partitionid",
+        "sizeid",
+        "tenant",
         "imageid",
+        "ssh_pub_keys",
         "networks"
       ],
       "properties": {
@@ -2394,18 +2407,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "partition",
-        "hardware",
-        "created",
+        "rackid",
         "tags",
-        "allocation",
-        "state",
-        "liveliness",
         "size",
-        "events",
+        "created",
         "changed",
+        "state",
+        "hardware",
+        "partition",
+        "events",
         "id",
-        "rackid"
+        "allocation",
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -2507,8 +2520,8 @@
         "networkid",
         "ipaddress",
         "machineid",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -2610,8 +2623,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -2918,9 +2931,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "disks",
         "memory",
         "cpu_cores",
-        "disks",
         "nics"
       ],
       "properties": {
@@ -3195,15 +3208,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "tags",
         "partition",
         "rackid",
-        "size",
         "allocation",
-        "events",
+        "liveliness",
+        "size",
         "hardware",
         "state",
-        "liveliness",
+        "events",
+        "tags",
         "created",
         "changed"
       ],
@@ -3296,12 +3309,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "prefixes",
+        "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "parentnetworkid",
-        "prefixes",
-        "destinationprefixes"
+        "parentnetworkid"
       ],
       "properties": {
         "description": {

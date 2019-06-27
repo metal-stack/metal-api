@@ -34,18 +34,18 @@ type NetworkCreateRequest struct {
 }
 
 type FindNetworksRequest struct {
-	ID                  *string  `json:"id" optional:"true"`
-	Name                *string  `json:"name,omitempty"  optional:"true"`
-	PartitionID         *string  `json:"partitionid" optional:"true"`
-	ProjectID           *string  `json:"projectid" optional:"true"`
-	Prefixes            []string `json:"prefixes" optional:"true"`
-	DestinationPrefixes []string `json:"destinationprefixes" optional:"true"`
-	Nat                 *bool    `json:"nat" optional:"true"`
-	Primary             *bool    `json:"primary" optional:"true"`
-	Underlay            *bool    `json:"underlay" optional:"true"`
-	Vrf                 *uint    `json:"vrf" optional:"true"`
-	ParentNetworkID     *string  `json:"parentnetworkid" optional:"true"`
-	TenantID            *string  `json:"tenantid" optional:"true"`
+	ID                  *string  `json:"id"`
+	Name                *string  `json:"name,omitempty"`
+	PartitionID         *string  `json:"partitionid"`
+	ProjectID           *string  `json:"projectid"`
+	Prefixes            []string `json:"prefixes"`
+	DestinationPrefixes []string `json:"destinationprefixes"`
+	Nat                 *bool    `json:"nat"`
+	Primary             *bool    `json:"primary"`
+	Underlay            *bool    `json:"underlay"`
+	Vrf                 *uint    `json:"vrf"`
+	ParentNetworkID     *string  `json:"parentnetworkid"`
+	TenantID            *string  `json:"tenantid"`
 }
 
 type NetworkUpdateRequest struct {
