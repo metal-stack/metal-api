@@ -259,7 +259,7 @@ func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.Entity) error {
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot upsert %v in database: %v", getEntityName(entity), err)
+		return fmt.Errorf("cannot upsert %v (%s) in database: %v", getEntityName(entity), entity.GetID(), err)
 	}
 
 	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
@@ -296,7 +296,7 @@ func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldE
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error("the entity was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot update %v: %v", getEntityName(newEntity), err)
+		return fmt.Errorf("cannot update %v (%s): %v", getEntityName(newEntity), oldEntity.GetID(), err)
 	}
 	return nil
 }
@@ -314,10 +314,10 @@ func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.Entity
 	}
 	err = res.Err()
 	if err != nil {
-		return fmt.Errorf("error retrieving next %v from database: %v", getEntityName(entity), err)
+		return fmt.Errorf("error retrieving next %v (%s) from database: %v", getEntityName(entity), entity.GetID(), err)
 	}
 
-	return fmt.Errorf("%v's database change event stream has closed without an error", getEntityName(entity))
+	return fmt.Errorf("%v (%s) database change event stream has closed without an error", getEntityName(entity), entity.GetID())
 }
 
 func getEntityName(entity interface{}) string {
