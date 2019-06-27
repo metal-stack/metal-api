@@ -25,11 +25,27 @@ type NetworkUsage struct {
 	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
+
 type NetworkCreateRequest struct {
 	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
-	Describeable
+	Describable
 	NetworkBase
 	NetworkImmutable
+}
+
+type FindNetworksRequest struct {
+	ID                  *string  `json:"id"`
+	Name                *string  `json:"name"`
+	PartitionID         *string  `json:"partitionid"`
+	ProjectID           *string  `json:"projectid"`
+	Prefixes            []string `json:"prefixes"`
+	DestinationPrefixes []string `json:"destinationprefixes"`
+	Nat                 *bool    `json:"nat"`
+	Primary             *bool    `json:"primary"`
+	Underlay            *bool    `json:"underlay"`
+	Vrf                 *uint    `json:"vrf"`
+	ParentNetworkID     *string  `json:"parentnetworkid"`
+	TenantID            *string  `json:"tenantid"`
 }
 
 type NetworkUpdateRequest struct {
@@ -56,7 +72,7 @@ func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResp
 			Identifiable: Identifiable{
 				ID: network.ID,
 			},
-			Describeable: Describeable{
+			Describable: Describable{
 				Name:        &network.Name,
 				Description: &network.Description,
 			},

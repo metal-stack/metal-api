@@ -123,8 +123,8 @@ func TestAllocateIP(t *testing.T) {
 
 	name := "testip1"
 	allocateRequest := v1.IPAllocateRequest{
-		Describeable: v1.Describeable{Name: &name},
-		IPBase:       v1.IPBase{ProjectID: "123", NetworkID: testdata.NwIPAM.ID},
+		Describable: v1.Describable{Name: &name},
+		IPBase:      v1.IPBase{ProjectID: "123", NetworkID: testdata.NwIPAM.ID},
 	}
 	js, _ := json.Marshal(allocateRequest)
 	body := bytes.NewBuffer(js)
@@ -153,7 +153,7 @@ func TestUpdateIP(t *testing.T) {
 	container := restful.NewContainer().Add(ipservice)
 
 	updateRequest := v1.IPUpdateRequest{
-		Describeable: v1.Describeable{
+		Describable: v1.Describable{
 			Name:        &testdata.IP2.Name,
 			Description: &testdata.IP2.Description,
 		},

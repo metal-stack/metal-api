@@ -13,14 +13,14 @@ type Identifiable struct {
 	ID string `json:"id" description:"the unique ID of this entity" unique:"true" required:"true"`
 }
 
-type Describeable struct {
+type Describable struct {
 	Name        *string `json:"name,omitempty" description:"a readable name for this entity" optional:"true"`
 	Description *string `json:"description,omitempty" description:"a description for this entity" optional:"true"`
 }
 
 type Common struct {
 	Identifiable
-	Describeable
+	Describable
 }
 
 type Timestamps struct {

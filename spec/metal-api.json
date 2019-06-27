@@ -1466,6 +1466,48 @@
         }
       }
     },
+    "/v1/network/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "network"
+        ],
+        "summary": "get all networks that match given properties",
+        "operationId": "findNetworks",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FindNetworksRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.NetworkResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/network/{id}": {
       "get": {
         "consumes": [
@@ -2225,14 +2267,75 @@
       }
     },
     "v1.EmptyBody": {},
+    "v1.FindNetworksRequest": {
+      "required": [
+        "id",
+        "name",
+        "partitionid",
+        "projectid",
+        "prefixes",
+        "destinationprefixes",
+        "nat",
+        "primary",
+        "underlay",
+        "vrf",
+        "parentnetworkid",
+        "tenantid"
+      ],
+      "properties": {
+        "destinationprefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nat": {
+          "type": "boolean"
+        },
+        "parentnetworkid": {
+          "type": "string"
+        },
+        "partitionid": {
+          "type": "string"
+        },
+        "prefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "primary": {
+          "type": "boolean"
+        },
+        "projectid": {
+          "type": "string"
+        },
+        "tenantid": {
+          "type": "string"
+        },
+        "underlay": {
+          "type": "boolean"
+        },
+        "vrf": {
+          "type": "integer",
+          "format": "integer"
+        }
+      }
+    },
     "v1.FirewallCreateRequest": {
       "required": [
+        "sizeid",
+        "tenant",
         "imageid",
         "ssh_pub_keys",
         "projectid",
-        "tenant",
         "partitionid",
-        "sizeid",
         "networks"
       ],
       "properties": {
@@ -2305,18 +2408,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "tags",
-        "partition",
-        "changed",
         "rackid",
-        "size",
+        "changed",
+        "tags",
         "hardware",
         "events",
-        "id",
-        "state",
         "created",
+        "id",
+        "allocation",
         "liveliness",
-        "allocation"
+        "partition",
+        "size",
+        "state"
       ],
       "properties": {
         "allocation": {
@@ -2414,8 +2517,8 @@
     },
     "v1.IPResponse": {
       "required": [
-        "projectid",
         "networkid",
+        "projectid",
         "ipaddress",
         "machineid",
         "created",
@@ -2463,8 +2566,8 @@
     },
     "v1.IPUpdateRequest": {
       "required": [
-        "machineid",
-        "ipaddress"
+        "ipaddress",
+        "machineid"
       ],
       "properties": {
         "description": {
@@ -2796,9 +2899,9 @@
     },
     "v1.MachineHardware": {
       "required": [
-        "memory",
         "cpu_cores",
         "disks",
+        "memory",
         "nics"
       ],
       "properties": {
@@ -2996,8 +3099,8 @@
     },
     "v1.MachineNicExtended": {
       "required": [
-        "name",
         "mac",
+        "name",
         "neighbors"
       ],
       "properties": {
@@ -3106,17 +3209,17 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "state",
+        "tags",
+        "rackid",
+        "size",
+        "hardware",
+        "events",
+        "partition",
         "allocation",
         "liveliness",
-        "events",
-        "tags",
-        "size",
-        "rackid",
-        "hardware",
-        "state",
-        "partition",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3276,12 +3379,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "parentnetworkid",
+        "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "parentnetworkid",
-        "prefixes",
         "usage",
         "created",
         "changed"
@@ -3499,8 +3602,8 @@
       "required": [
         "id",
         "bootconfig",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
@@ -3701,8 +3804,8 @@
       "required": [
         "id",
         "constraints",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {

@@ -15,17 +15,17 @@ type IPIdentifiable struct {
 }
 
 type IPAllocateRequest struct {
-	Describeable
+	Describable
 	IPBase
 }
 
 type IPUpdateRequest struct {
 	IPIdentifiable
-	Describeable
+	Describable
 }
 
 type IPResponse struct {
-	Describeable
+	Describable
 	IPBase
 	IPIdentifiable
 	Timestamps
@@ -33,7 +33,7 @@ type IPResponse struct {
 
 func NewIPResponse(ip *metal.IP) *IPResponse {
 	return &IPResponse{
-		Describeable: Describeable{
+		Describable: Describable{
 			Name:        &ip.Name,
 			Description: &ip.Description,
 		},

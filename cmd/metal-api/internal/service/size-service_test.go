@@ -121,7 +121,7 @@ func TestCreateSize(t *testing.T) {
 			Identifiable: v1.Identifiable{
 				ID: testdata.Sz1.ID,
 			},
-			Describeable: v1.Describeable{
+			Describable: v1.Describable{
 				Name:        &testdata.Sz1.Name,
 				Description: &testdata.Sz1.Description,
 			},
@@ -157,7 +157,7 @@ func TestUpdateSize(t *testing.T) {
 	maxCores := uint64(4)
 	updateRequest := v1.SizeUpdateRequest{
 		Common: v1.Common{
-			Describeable: v1.Describeable{
+			Describable: v1.Describable{
 				Name:        &testdata.Sz2.Name,
 				Description: &testdata.Sz2.Description,
 			},
