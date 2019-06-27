@@ -142,13 +142,13 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 
 	for _, prefix := range props.Prefixes {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("prefixes").Slice().Contains(r.Expr(prefix))
+			return row.Field("prefixes").Contains(r.Expr(prefix))
 		})
 	}
 
 	for _, destPrefix := range props.DestinationPrefixes {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("destinationprefixes").Slice().Contains(r.Expr(destPrefix))
+			return row.Field("destinationprefixes").Contains(r.Expr(destPrefix))
 		})
 	}
 
