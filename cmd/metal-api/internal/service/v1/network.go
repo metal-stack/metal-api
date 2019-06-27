@@ -27,7 +27,7 @@ type NetworkUsage struct {
 }
 type NetworkCreateRequest struct {
 	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
-	Describeable
+	Describable
 	NetworkBase
 	NetworkImmutable
 }
@@ -56,7 +56,7 @@ func NewNetworkResponse(network *metal.Network, usage NetworkUsage) *NetworkResp
 			Identifiable: Identifiable{
 				ID: network.ID,
 			},
-			Describeable: Describeable{
+			Describable: Describable{
 				Name:        &network.Name,
 				Description: &network.Description,
 			},

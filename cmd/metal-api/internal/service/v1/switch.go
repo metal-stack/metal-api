@@ -81,7 +81,7 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition) *SwitchResponse {
 			Identifiable: Identifiable{
 				ID: s.ID,
 			},
-			Describeable: Describeable{
+			Describable: Describable{
 				Name:        &s.Name,
 				Description: &s.Description,
 			},

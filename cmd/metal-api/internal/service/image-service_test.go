@@ -111,7 +111,7 @@ func TestCreateImage(t *testing.T) {
 			Identifiable: v1.Identifiable{
 				ID: testdata.Img1.ID,
 			},
-			Describeable: v1.Describeable{
+			Describable: v1.Describable{
 				Name:        &testdata.Img1.Name,
 				Description: &testdata.Img1.Description,
 			},
@@ -147,7 +147,7 @@ func TestUpdateImage(t *testing.T) {
 
 	updateRequest := v1.ImageUpdateRequest{
 		Common: v1.Common{
-			Describeable: v1.Describeable{
+			Describable: v1.Describable{
 				Name:        &testdata.Img2.Name,
 				Description: &testdata.Img2.Description,
 			},

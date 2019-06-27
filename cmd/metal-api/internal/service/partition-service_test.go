@@ -118,7 +118,7 @@ func TestCreatePartition(t *testing.T) {
 			Identifiable: v1.Identifiable{
 				ID: testdata.Partition1.ID,
 			},
-			Describeable: v1.Describeable{
+			Describable: v1.Describable{
 				Name:        &testdata.Partition1.Name,
 				Description: &testdata.Partition1.Description,
 			},
@@ -154,7 +154,7 @@ func TestUpdatePartition(t *testing.T) {
 	imageURL := "http://somewhere/image1.zip"
 	updateRequest := v1.PartitionUpdateRequest{
 		Common: v1.Common{
-			Describeable: v1.Describeable{
+			Describable: v1.Describable{
 				Name:        &testdata.Partition2.Name,
 				Description: &testdata.Partition2.Description,
 			},

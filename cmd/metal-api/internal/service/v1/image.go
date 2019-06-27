@@ -41,7 +41,7 @@ func NewImageResponse(img *metal.Image) *ImageResponse {
 			Identifiable: Identifiable{
 				ID: img.ID,
 			},
-			Describeable: Describeable{
+			Describable: Describable{
 				Name:        &img.Name,
 				Description: &img.Description,
 			},

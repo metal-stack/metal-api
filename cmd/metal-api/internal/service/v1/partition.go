@@ -54,7 +54,7 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			Identifiable: Identifiable{
 				ID: p.ID,
 			},
-			Describeable: Describeable{
+			Describable: Describable{
 				Name:        &p.Name,
 				Description: &p.Description,
 			},

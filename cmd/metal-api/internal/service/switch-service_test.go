@@ -31,7 +31,7 @@ func TestRegisterSwitch(t *testing.T) {
 			Identifiable: v1.Identifiable{
 				ID: "switch999",
 			},
-			Describeable: v1.Describeable{
+			Describable: v1.Describable{
 				Name: &name,
 			},
 		},
