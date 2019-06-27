@@ -137,7 +137,7 @@ type MachineRegisterRequest struct {
 
 type MachineAllocateRequest struct {
 	UUID *string `json:"uuid" description:"if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition" optional:"true"`
-	Describeable
+	Describable
 	Tenant      string   `json:"tenant" description:"the name of the owning tenant"`
 	Hostname    *string  `json:"hostname" description:"the hostname for the allocated machine (defaults to metal)" optional:"true"`
 	ProjectID   string   `json:"projectid" description:"the project id to assign this machine to"`
@@ -391,7 +391,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Identifiable: Identifiable{
 				ID: m.ID,
 			},
-			Describeable: Describeable{
+			Describable: Describable{
 				Name:        &m.Name,
 				Description: &m.Description,
 			},

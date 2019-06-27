@@ -1456,6 +1456,48 @@
         }
       }
     },
+    "/v1/network/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "network"
+        ],
+        "summary": "get all networks that match given properties",
+        "operationId": "findNetworks",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FindNetworksRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.NetworkResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/network/{id}": {
       "get": {
         "consumes": [
@@ -2230,12 +2272,12 @@
         "allocation_image_id",
         "allocation_hostname",
         "allocation_succeeded",
-        "network_id",
+        "network_ids",
         "network_prefixes",
         "network_ips",
         "network_destination_prefixes",
         "network_vrfs",
-        "network_primaries",
+        "network_primary",
         "network_asns",
         "network_nat",
         "network_underlay",
@@ -2320,10 +2362,11 @@
         },
         "hardware_cpu_cores": {
           "type": "integer",
-          "format": "int32"
+          "format": "int64"
         },
         "hardware_memory": {
-          "type": "integer"
+          "type": "integer",
+          "format": "int64"
         },
         "id": {
           "type": "string"
@@ -2358,7 +2401,7 @@
             "type": "string"
           }
         },
-        "network_id": {
+        "network_ids": {
           "type": "array",
           "items": {
             "type": "string"
@@ -2379,7 +2422,7 @@
             "type": "string"
           }
         },
-        "network_primaries": {
+        "network_primary": {
           "type": "boolean"
         },
         "network_underlay": {
@@ -2447,14 +2490,75 @@
         }
       }
     },
+    "v1.FindNetworksRequest": {
+      "required": [
+        "id",
+        "name",
+        "partitionid",
+        "projectid",
+        "prefixes",
+        "destinationprefixes",
+        "nat",
+        "primary",
+        "underlay",
+        "vrf",
+        "parentnetworkid",
+        "tenantid"
+      ],
+      "properties": {
+        "destinationprefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nat": {
+          "type": "boolean"
+        },
+        "parentnetworkid": {
+          "type": "string"
+        },
+        "partitionid": {
+          "type": "string"
+        },
+        "prefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "primary": {
+          "type": "boolean"
+        },
+        "projectid": {
+          "type": "string"
+        },
+        "tenantid": {
+          "type": "string"
+        },
+        "underlay": {
+          "type": "boolean"
+        },
+        "vrf": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
-        "ssh_pub_keys",
-        "projectid",
-        "partitionid",
         "sizeid",
         "imageid",
+        "ssh_pub_keys",
+        "partitionid",
+        "tenant",
+        "projectid",
         "networks"
       ],
       "properties": {
@@ -2527,18 +2631,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "partition",
-        "events",
-        "hardware",
-        "allocation",
-        "state",
-        "liveliness",
-        "created",
-        "id",
-        "rackid",
         "tags",
-        "size",
-        "changed"
+        "id",
+        "partition",
+        "created",
+        "allocation",
+        "liveliness",
+        "events",
+        "rackid",
+        "hardware",
+        "changed",
+        "state",
+        "size"
       ],
       "properties": {
         "allocation": {
@@ -2743,8 +2847,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3018,9 +3122,9 @@
     },
     "v1.MachineHardware": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -3329,14 +3433,14 @@
       "required": [
         "id",
         "state",
+        "tags",
+        "size",
+        "hardware",
+        "allocation",
         "liveliness",
         "events",
         "partition",
         "rackid",
-        "size",
-        "hardware",
-        "allocation",
-        "tags",
         "created",
         "changed"
       ],
@@ -3429,12 +3533,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay",
-        "parentnetworkid"
+        "underlay"
       ],
       "properties": {
         "description": {
@@ -3498,12 +3602,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "nat",
-        "primary",
-        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
+        "nat",
+        "primary",
+        "underlay",
         "usage",
         "created",
         "changed"

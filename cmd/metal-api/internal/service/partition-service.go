@@ -313,7 +313,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 				Identifiable: v1.Identifiable{
 					ID: p.ID,
 				},
-				Describeable: v1.Describeable{
+				Describable: v1.Describable{
 					Name:        &p.Name,
 					Description: &p.Description,
 				},

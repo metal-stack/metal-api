@@ -150,7 +150,7 @@ func TestCreateNetwork(t *testing.T) {
 	destPrefixes := []string{"0.0.0.0/0"}
 	vrfID := uint(1)
 	createRequest := &v1.NetworkCreateRequest{
-		Describeable:     v1.Describeable{Name: &testdata.Nw1.Name},
+		Describable:      v1.Describable{Name: &testdata.Nw1.Name},
 		NetworkBase:      v1.NetworkBase{PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID},
 		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, DestinationPrefixes: destPrefixes, Vrf: &vrfID},
 	}
@@ -186,7 +186,7 @@ func TestUpdateNetwork(t *testing.T) {
 	updateRequest := &v1.NetworkUpdateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{ID: testdata.Nw1.GetID()},
-			Describeable: v1.Describeable{Name: &newName}},
+			Describable:  v1.Describable{Name: &newName}},
 	}
 	js, _ := json.Marshal(updateRequest)
 	body := bytes.NewBuffer(js)

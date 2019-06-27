@@ -60,6 +60,16 @@ func (r networkResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.NetworkResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/find").
+		To(viewer(r.findNetworks)).
+		Operation("findNetworks").
+		Doc("get all networks that match given properties").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.FindNetworksRequest{}).
+		Writes([]v1.NetworkResponse{}).
+		Returns(http.StatusOK, "OK", []v1.NetworkResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.DELETE("/{id}").
 		To(editor(r.deleteNetwork)).
 		Operation("deleteNetwork").
@@ -110,7 +120,28 @@ func (r networkResource) listNetworks(request *restful.Request, response *restfu
 		return
 	}
 
-	result := []*v1.NetworkResponse{}
+	var result []*v1.NetworkResponse
+	for i := range nws {
+		usage := r.getNetworkUsage(&nws[i])
+		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (r networkResource) findNetworks(request *restful.Request, response *restful.Response) {
+	var requestPayload *v1.FindNetworksRequest
+	err := request.ReadEntity(requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	nws, err := r.ds.FindNetworks(requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var result []*v1.NetworkResponse
 	for i := range nws {
 		usage := r.getNetworkUsage(&nws[i])
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
@@ -209,7 +240,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 
 		if primary {
-			primaryNetworks, err := r.ds.SearchPrimaryNetwork(partition.ID)
+			primaryNetworks, err := r.ds.FindPrimaryNetworks(partition.ID)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
@@ -220,7 +251,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			}
 		}
 		if underlay {
-			underlayNetworks, err := r.ds.SearchUnderlayNetwork(partition.ID)
+			underlayNetworks, err := r.ds.FindUnderlayNetworks(partition.ID)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}

@@ -80,7 +80,7 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 			Identifiable: Identifiable{
 				ID: s.ID,
 			},
-			Describeable: Describeable{
+			Describable: Describable{
 				Name:        &s.Name,
 				Description: &s.Description,
 			},
