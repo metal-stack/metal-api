@@ -35,7 +35,7 @@ type NetworkCreateRequest struct {
 
 type FindNetworksRequest struct {
 	ID                  *string  `json:"id"`
-	Name                *string  `json:"name,omitempty"`
+	Name                *string  `json:"name"`
 	PartitionID         *string  `json:"partitionid"`
 	ProjectID           *string  `json:"projectid"`
 	Prefixes            []string `json:"prefixes"`
