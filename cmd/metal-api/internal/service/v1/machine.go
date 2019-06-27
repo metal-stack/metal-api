@@ -171,19 +171,19 @@ type FindMachinesRequest struct {
 	AllocationSucceeded *bool   `json:"allocation_succeeded"`
 
 	// network
-	NetworkIDs                 []string `json:"network_id"`
+	NetworkIDs                 []string `json:"network_ids"`
 	NetworkPrefixes            []string `json:"network_prefixes"`
 	NetworkIPs                 []string `json:"network_ips"`
 	NetworkDestinationPrefixes []string `json:"network_destination_prefixes"`
-	NetworkVrfs                []uint   `json:"network_vrfs"`
-	NetworkPrimary             *bool    `json:"network_primaries"`
+	NetworkVrfs                []int64  `json:"network_vrfs"`
+	NetworkPrimary             *bool    `json:"network_primary"`
 	NetworkASNs                []int64  `json:"network_asns"`
 	NetworkNat                 *bool    `json:"network_nat"`
 	NetworkUnderlay            *bool    `json:"network_underlay"`
 
 	// hardware
-	HardwareMemory   *uint64 `json:"hardware_memory"`
-	HardwareCPUCores *int    `json:"hardware_cpu_cores"`
+	HardwareMemory   *int64 `json:"hardware_memory"`
+	HardwareCPUCores *int64 `json:"hardware_cpu_cores"`
 
 	// nics
 	NicsMacAddresses         []string `json:"nics_mac_addresses"`
@@ -195,7 +195,7 @@ type FindMachinesRequest struct {
 
 	// disks
 	DiskNames []string `json:"disk_names"`
-	DiskSizes []uint64 `json:"disk_sizes"`
+	DiskSizes []int64  `json:"disk_sizes"`
 
 	// state
 	StateValue *string `json:"state_value"`

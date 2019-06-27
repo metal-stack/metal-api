@@ -2553,12 +2553,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
+        "tenant",
+        "projectid",
+        "partitionid",
         "sizeid",
         "imageid",
         "ssh_pub_keys",
-        "partitionid",
-        "tenant",
-        "projectid",
         "networks"
       ],
       "properties": {
@@ -2632,17 +2632,17 @@
     "v1.FirewallResponse": {
       "required": [
         "tags",
-        "id",
-        "partition",
-        "created",
+        "size",
         "allocation",
-        "liveliness",
-        "events",
         "rackid",
         "hardware",
-        "changed",
+        "events",
+        "liveliness",
         "state",
-        "size"
+        "id",
+        "created",
+        "changed",
+        "partition"
       ],
       "properties": {
         "allocation": {
@@ -2742,8 +2742,8 @@
       "required": [
         "projectid",
         "networkid",
-        "ipaddress",
         "machineid",
+        "ipaddress",
         "created",
         "changed"
       ],
@@ -3122,9 +3122,9 @@
     },
     "v1.MachineHardware": {
       "required": [
+        "disks",
         "memory",
         "cpu_cores",
-        "disks",
         "nics"
       ],
       "properties": {
@@ -3432,15 +3432,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "state",
-        "tags",
-        "size",
         "hardware",
-        "allocation",
         "liveliness",
-        "events",
-        "partition",
         "rackid",
+        "size",
+        "state",
+        "events",
+        "tags",
+        "partition",
+        "allocation",
         "created",
         "changed"
       ],
@@ -3602,12 +3602,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay",
         "usage",
         "created",
         "changed"

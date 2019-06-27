@@ -43,7 +43,7 @@ type FindNetworksRequest struct {
 	Nat                 *bool    `json:"nat"`
 	Primary             *bool    `json:"primary"`
 	Underlay            *bool    `json:"underlay"`
-	Vrf                 *uint    `json:"vrf"`
+	Vrf                 *int64   `json:"vrf"`
 	ParentNetworkID     *string  `json:"parentnetworkid"`
 	TenantID            *string  `json:"tenantid"`
 }
