@@ -107,8 +107,8 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	mock.On(r.DB("mockdb").Table("machine").Filter(func(d r.Term) r.Term {
-		return d.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
+		return m.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 			return nic.Field("macAddress")
 		}).Contains(r.Expr("11:11:11"))
 	})).Return([]metal.Machine{
@@ -142,6 +142,278 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := &v1.FindMachinesRequest{
 				NicsMacAddresses: []string{tt.args.mac},
+			}
+			got, err := tt.rs.FindMachines(req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_SearchMachine2(t *testing.T) {
+
+	// Mock the DB:
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
+		return m.Field("block_devices").Map(func(bd r.Term) r.Term {
+			return bd.Field("size")
+		}).Contains(r.Expr(int64(1000000000000)))
+	})).Return([]metal.Machine{
+		testdata.M1,
+	}, nil)
+
+	type args struct {
+		size int64
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		want    []metal.Machine
+		wantErr bool
+	}{
+		// Test Data Array:
+		{
+			name: "Test 1",
+			rs:   ds,
+			args: args{
+				size: 1000000000000,
+			},
+			want: []metal.Machine{
+				testdata.M1,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &v1.FindMachinesRequest{
+				DiskSizes: []int64{tt.args.size},
+			}
+			got, err := tt.rs.FindMachines(req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_SearchMachine3(t *testing.T) {
+
+	// Mock the DB:
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
+		return m.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+			return nw.Field("networkid")
+		}).Contains(r.Expr("1"))
+	})).Return([]metal.Machine{
+		testdata.M1,
+	}, nil)
+
+	type args struct {
+		networkID string
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		want    []metal.Machine
+		wantErr bool
+	}{
+		// Test Data Array:
+		{
+			name: "Test 1",
+			rs:   ds,
+			args: args{
+				networkID: "1",
+			},
+			want: []metal.Machine{
+				testdata.M1,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &v1.FindMachinesRequest{
+				NetworkIDs: []string{tt.args.networkID},
+			}
+			got, err := tt.rs.FindMachines(req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_SearchMachine4(t *testing.T) {
+
+	// Mock the DB:
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
+		return m.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+			return nw.Field("ips")
+		}).Contains(r.Expr("1.2.3.4"))
+	})).Return([]metal.Machine{
+		testdata.M1,
+	}, nil)
+
+	type args struct {
+		ip string
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		want    []metal.Machine
+		wantErr bool
+	}{
+		// Test Data Array:
+		{
+			name: "Test 1",
+			rs:   ds,
+			args: args{
+				ip: "1.2.3.4",
+			},
+			want: []metal.Machine{
+				testdata.M1,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &v1.FindMachinesRequest{
+				NetworkIPs: []string{tt.args.ip},
+			}
+			got, err := tt.rs.FindMachines(req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_SearchMachine5(t *testing.T) {
+
+	// Mock the DB:
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
+		return m.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+			return nw.Field("prefixes")
+		}).Contains(r.Expr("1.1.1.1/32"))
+	})).Return([]metal.Machine{
+		testdata.M1,
+	}, nil)
+
+	type args struct {
+		prefix string
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		want    []metal.Machine
+		wantErr bool
+	}{
+		// Test Data Array:
+		{
+			name: "Test 1",
+			rs:   ds,
+			args: args{
+				prefix: "1.1.1.1/32",
+			},
+			want: []metal.Machine{
+				testdata.M1,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &v1.FindMachinesRequest{
+				NetworkPrefixes: []string{tt.args.prefix},
+			}
+			got, err := tt.rs.FindMachines(req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_SearchMachine6(t *testing.T) {
+
+	// Mock the DB:
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
+		return m.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+			return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
+				return neigh.Field("macAddress")
+			})
+		}).Contains(r.Expr("21:11:11:11:11:11"))
+	})).Return([]metal.Machine{
+		testdata.M1,
+	}, nil)
+
+	type args struct {
+		mac string
+	}
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		args    args
+		want    []metal.Machine
+		wantErr bool
+	}{
+		// Test Data Array:
+		{
+			name: "Test 1",
+			rs:   ds,
+			args: args{
+				mac: "21:11:11:11:11:11",
+			},
+			want: []metal.Machine{
+				testdata.M1,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &v1.FindMachinesRequest{
+				NicsNeighborMacAddresses: []string{tt.args.mac},
 			}
 			got, err := tt.rs.FindMachines(req)
 			if (err != nil) != tt.wantErr {

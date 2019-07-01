@@ -6,6 +6,7 @@ import (
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	"strconv"
 )
 
 // FindPrimaryNetwork returns the network which is marked default in this partition
@@ -145,16 +146,16 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 		ip, length := utils.SplitCIDR(prefix)
 
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("prefixes").Map(func(nic r.Term) r.Term {
-				return nic.Field("ip")
+			return row.Field("prefixes").Map(func(p r.Term) r.Term {
+				return p.Field("ip")
 			}).Contains(r.Expr(ip))
 		})
 
 		if length != nil {
 			q = q.Filter(func(row r.Term) r.Term {
-				return row.Field("prefixes").Map(func(nic r.Term) r.Term {
-					return nic.Field("length")
-				}).Contains(r.Expr(*length))
+				return row.Field("prefixes").Map(func(p r.Term) r.Term {
+					return p.Field("length")
+				}).Contains(r.Expr(strconv.Itoa(*length)))
 			})
 		}
 	}
@@ -163,16 +164,16 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 		ip, length := utils.SplitCIDR(destPrefix)
 
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("destinationprefixes").Map(func(nic r.Term) r.Term {
-				return nic.Field("ip")
+			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
+				return dp.Field("ip")
 			}).Contains(r.Expr(ip))
 		})
 
 		if length != nil {
 			q = q.Filter(func(row r.Term) r.Term {
-				return row.Field("destinationprefixes").Map(func(nic r.Term) r.Term {
-					return nic.Field("length")
-				}).Contains(r.Expr(*length))
+				return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
+					return dp.Field("length")
+				}).Contains(r.Expr(strconv.Itoa(*length)))
 			})
 		}
 	}

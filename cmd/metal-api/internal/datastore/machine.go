@@ -110,55 +110,73 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 
 	for _, id := range props.NetworkIDs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("networkid").Eq(r.Expr(id))
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("networkid")
+			}).Contains(r.Expr(id))
 		})
 	}
 
 	for _, prefix := range props.NetworkPrefixes {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("prefixes").Contains(r.Expr(prefix))
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("prefixes")
+			}).Contains(r.Expr(prefix))
 		})
 	}
 
 	for _, ip := range props.NetworkIPs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("ips").Contains(r.Expr(ip))
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("ips")
+			}).Contains(r.Expr(ip))
 		})
 	}
 
 	for _, destPrefix := range props.NetworkDestinationPrefixes {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("destinationprefixes").Contains(r.Expr(destPrefix))
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("destinationprefixes")
+			}).Contains(r.Expr(destPrefix))
 		})
 	}
 
 	for _, vrf := range props.NetworkVrfs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("vrf").Eq(r.Expr(vrf))
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("vrf")
+			}).Contains(r.Expr(vrf))
 		})
 	}
 
 	if props.NetworkPrimary != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("primary").Eq(*props.NetworkPrimary)
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("primary")
+			}).Contains(*props.NetworkPrimary)
 		})
 	}
 
 	for _, asn := range props.NetworkASNs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("asn").Eq(r.Expr(asn))
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("asn")
+			}).Contains(r.Expr(asn))
 		})
 	}
 
 	if props.NetworkNat != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("nat").Eq(*props.NetworkNat)
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("nat")
+			}).Contains(*props.NetworkNat)
 		})
 	}
 
 	if props.NetworkUnderlay != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("underlay").Eq(*props.NetworkUnderlay)
+			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
+				return nw.Field("underlay")
+			}).Contains(*props.NetworkUnderlay)
 		})
 	}
 
@@ -200,37 +218,47 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 
 	for _, mac := range props.NicsNeighborMacAddresses {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("network_interfaces").Field("neighbors").Map(func(nic r.Term) r.Term {
-				return nic.Field("macAddress")
+			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
+					return neigh.Field("macAddress")
+				})
 			}).Contains(r.Expr(mac))
 		})
 	}
 
 	for _, name := range props.NicsNames {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("network_interfaces").Field("neighbors").Map(func(nic r.Term) r.Term {
-				return nic.Field("name")
+			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
+					return neigh.Field("name")
+				})
 			}).Contains(r.Expr(name))
 		})
 	}
 
 	for _, vrf := range props.NicsVrfs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("network_interfaces").Field("neighbors").Map(func(nic r.Term) r.Term {
-				return nic.Field("vrf")
+			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
+				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
+					return neigh.Field("vrf")
+				})
 			}).Contains(r.Expr(vrf))
 		})
 	}
 
 	for _, name := range props.DiskNames {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("block_devices").Field("name").Eq(r.Expr(name))
+			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
+				return bd.Field("name")
+			}).Contains(r.Expr(name))
 		})
 	}
 
 	for _, size := range props.DiskSizes {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("block_devices").Field("vrf").Eq(r.Expr(size))
+			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
+				return bd.Field("size")
+			}).Contains(r.Expr(size))
 		})
 	}
 
