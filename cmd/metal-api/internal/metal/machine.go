@@ -55,7 +55,6 @@ type Machine struct {
 	RackID      string             `rethinkdb:"rackid"`
 	Hardware    MachineHardware    `rethinkdb:"hardware"`
 	State       MachineState       `rethinkdb:"state"`
-	Liveliness  MachineLiveliness  `rethinkdb:"liveliness"`
 	Tags        []string           `rethinkdb:"tags"`
 	IPMI        IPMI               `rethinkdb:"ipmi"`
 }

@@ -406,7 +406,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Value:       string(m.State.Value),
 				Description: m.State.Description,
 			},
-			Liveliness:               string(m.Liveliness),
+			Liveliness:               string(ec.Liveliness),
 			RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
 			Tags:                     tags,
 		},

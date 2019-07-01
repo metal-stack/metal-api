@@ -161,6 +161,7 @@ type ProvisioningEvent struct {
 // ProvisioningEventContainer stores the provisioning events of a machine
 type ProvisioningEventContainer struct {
 	ID                           string             `rethinkdb:"id"` // is the machine id
+	Liveliness                   MachineLiveliness  `rethinkdb:"liveliness"`
 	Events                       ProvisioningEvents `rethinkdb:"events"`
 	LastEventTime                *time.Time         `rethinkdb:"last_event_time"`
 	IncompleteProvisioningCycles string             `rethinkdb:"incomplete_cycles"`

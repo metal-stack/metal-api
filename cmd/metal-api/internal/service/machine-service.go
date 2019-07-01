@@ -463,9 +463,8 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 				Value:       metal.AvailableState,
 				Description: "",
 			},
-			Liveliness: metal.MachineLivelinessAlive,
-			Tags:       requestPayload.Tags,
-			IPMI:       v1.NewMetalIPMI(&requestPayload.IPMI),
+			Tags: requestPayload.Tags,
+			IPMI: v1.NewMetalIPMI(&requestPayload.IPMI),
 		}
 
 		err = r.ds.CreateMachine(m)
@@ -483,7 +482,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		m.PartitionID = partition.ID
 		m.RackID = requestPayload.RackID
 		m.Hardware = machineHardware
-		m.Liveliness = metal.MachineLivelinessAlive
 		m.Tags = requestPayload.Tags
 		m.IPMI = v1.NewMetalIPMI(&requestPayload.IPMI)
 
@@ -499,8 +497,9 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			return
 		}
 	}
+
 	if ec == nil {
-		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID, IncompleteProvisioningCycles: "0"})
+		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID, Liveliness: metal.MachineLivelinessAlive, IncompleteProvisioningCycles: "0"})
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -1049,7 +1048,6 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 			Base: metal.Base{
 				ID: id,
 			},
-			Liveliness: metal.MachineLivelinessAlive,
 		}
 		err = r.ds.CreateMachine(m)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1057,8 +1055,6 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		}
 	} else {
 		old := *m
-
-		m.Liveliness = metal.MachineLivelinessAlive
 		err = r.ds.UpdateMachine(&old, m)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -1086,7 +1082,8 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 
 	if ec == nil {
 		ec = &metal.ProvisioningEventContainer{
-			ID: m.ID,
+			ID:         m.ID,
+			Liveliness: metal.MachineLivelinessAlive,
 		}
 	}
 
@@ -1101,11 +1098,14 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 	}
 	if event.Event == metal.ProvisioningEventAlive {
 		utils.Logger(request).Sugar().Debugw("received provisioning alive event", "id", ec.ID)
+		ec.Liveliness = metal.MachineLivelinessAlive
 	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
 		utils.Logger(request).Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
+		ec.Liveliness = metal.MachineLivelinessAlive
 	} else {
 		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
 		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(utils.Logger(request).Sugar())
+		ec.Liveliness = metal.MachineLivelinessAlive
 	}
 
 	err = r.ds.UpsertProvisioningEventContainer(ec)
@@ -1117,30 +1117,34 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 }
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine
-func (r machineResource) evaluateMachineLiveliness(m metal.Machine) *metal.Machine {
-	m.Liveliness = metal.MachineLivelinessUnknown
-
+func (r machineResource) evaluateMachineLiveliness(m metal.Machine) (metal.MachineLiveliness, error) {
 	provisioningEvents, err := r.ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
-		return &m
+		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
 	}
+
+	old := *provisioningEvents
 
 	if provisioningEvents.LastEventTime != nil {
 		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
 			if m.Allocation != nil {
 				// the machine is either dead or the customer did turn off the phone home service
-				m.Liveliness = metal.MachineLivelinessUnknown
+				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
 			} else {
 				// the machine is just dead
-				m.Liveliness = metal.MachineLivelinessDead
+				provisioningEvents.Liveliness = metal.MachineLivelinessDead
 			}
 		} else {
-			m.Liveliness = metal.MachineLivelinessAlive
+			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
+		}
+		err = r.ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
+		if err != nil {
+			return provisioningEvents.Liveliness, err
 		}
 	}
 
-	return &m
+	return provisioningEvents.Liveliness, nil
 }
 
 func (r machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
@@ -1156,13 +1160,12 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 	alive := 0
 	dead := 0
 	for _, m := range machines {
-		evaluatedMachine := r.evaluateMachineLiveliness(m)
-		err = r.ds.UpdateMachine(&m, evaluatedMachine)
+		lvlness, err := r.evaluateMachineLiveliness(m)
 		if err != nil {
-			logger.Errorw("cannot update machine", "error", err, "machine", m, "evaluatedMachine", evaluatedMachine)
+			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
 			// fall through, so the caller should get the evaulated state, although it is not persistet
 		}
-		switch evaluatedMachine.Liveliness {
+		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
 		case metal.MachineLivelinessDead:
