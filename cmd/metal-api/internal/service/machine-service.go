@@ -8,7 +8,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"github.com/metal-pod/security"
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
@@ -198,7 +197,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/event").
-		To(r.addProvisioningEvent).
+		To(editor(r.addProvisioningEvent)).
 		Operation("addProvisioningEvent").
 		Doc("adds a machine provisioning event").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
@@ -1038,11 +1037,9 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 			return
 		}
 	}
-	usr := security.GetUser(request.Request)
-	if !usr.HasGroup(metal.ViewAccess, metal.EditAccess, metal.AdminAccess) {
-		// check if this is a phone home ... and then check the phone-home-key
-		// otherwise this should be forbidden
-	}
+
+	// an event can actually create an empty machine. This enables us to also catch the very first PXE Booting event
+	// in a machine lifecycle
 	if m == nil {
 		m = &metal.Machine{
 			Base: metal.Base{
@@ -1050,12 +1047,6 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 			},
 		}
 		err = r.ds.CreateMachine(m)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	} else {
-		old := *m
-		err = r.ds.UpdateMachine(&old, m)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
