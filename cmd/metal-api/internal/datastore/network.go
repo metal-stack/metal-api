@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -118,7 +119,7 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 
 	if props.Vrf != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("vfr").Eq(*props.Vrf)
+			return row.Field("vrf").Eq(*props.Vrf)
 		})
 	}
 
@@ -141,15 +142,39 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 	}
 
 	for _, prefix := range props.Prefixes {
+		ip, length := utils.SplitCIDR(prefix)
+
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("prefixes").Contains(r.Expr(prefix))
+			return row.Field("prefixes").Map(func(nic r.Term) r.Term {
+				return nic.Field("ip")
+			}).Contains(r.Expr(ip))
 		})
+
+		if length != nil {
+			q = q.Filter(func(row r.Term) r.Term {
+				return row.Field("prefixes").Map(func(nic r.Term) r.Term {
+					return nic.Field("length")
+				}).Contains(r.Expr(*length))
+			})
+		}
 	}
 
 	for _, destPrefix := range props.DestinationPrefixes {
+		ip, length := utils.SplitCIDR(destPrefix)
+
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("destinationprefixes").Contains(r.Expr(destPrefix))
+			return row.Field("destinationprefixes").Map(func(nic r.Term) r.Term {
+				return nic.Field("ip")
+			}).Contains(r.Expr(ip))
 		})
+
+		if length != nil {
+			q = q.Filter(func(row r.Term) r.Term {
+				return row.Field("destinationprefixes").Map(func(nic r.Term) r.Term {
+					return nic.Field("length")
+				}).Contains(r.Expr(*length))
+			})
+		}
 	}
 
 	var nws []metal.Network

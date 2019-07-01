@@ -2,6 +2,7 @@ package utils
 
 import (
 	"runtime"
+	"strconv"
 	"strings"
 
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
@@ -26,4 +27,17 @@ func CurrentFuncName() string {
 	}
 	pp := strings.Split(ffpc.Name(), ".")
 	return pp[len(pp)-1]
+}
+
+func SplitCIDR(cidr string) (string, *int) {
+	parts := strings.Split(cidr, "/")
+	if len(parts) == 2 {
+		length, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return parts[0], nil
+		}
+		return parts[0], &length
+	}
+
+	return cidr, nil
 }

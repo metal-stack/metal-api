@@ -110,7 +110,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 
 	for _, id := range props.NetworkIDs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("networkid").Contains(r.Expr(id))
+			return row.Field("networks").Field("networkid").Eq(r.Expr(id))
 		})
 	}
 
@@ -134,7 +134,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 
 	for _, vrf := range props.NetworkVrfs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("vrf").Contains(r.Expr(vrf))
+			return row.Field("networks").Field("vrf").Eq(r.Expr(vrf))
 		})
 	}
 
@@ -146,7 +146,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 
 	for _, asn := range props.NetworkASNs {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networks").Field("asn").Contains(r.Expr(asn))
+			return row.Field("networks").Field("asn").Eq(r.Expr(asn))
 		})
 	}
 
@@ -224,13 +224,13 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 
 	for _, name := range props.DiskNames {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("block_devices").Field("name").Contains(r.Expr(name))
+			return row.Field("block_devices").Field("name").Eq(r.Expr(name))
 		})
 	}
 
 	for _, size := range props.DiskSizes {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("block_devices").Field("vrf").Contains(r.Expr(size))
+			return row.Field("block_devices").Field("vrf").Eq(r.Expr(size))
 		})
 	}
 
