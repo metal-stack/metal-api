@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -204,4 +205,31 @@ func TestUpdateNetwork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, testdata.Nw1.ID, result.ID)
 	require.Equal(t, newName, result.Name)
+}
+
+func TestSearchNetwork(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{testdata.Nw1}, nil)
+	testdata.InitMockDBData(mock)
+
+	networkService := NewNetwork(ds, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(networkService)
+	requestJSON := fmt.Sprintf("{%q:%q}", "partitionid", "1")
+	req := httptest.NewRequest("POST", "/v1/network/find", bytes.NewBufferString(requestJSON))
+	req.Header.Add("Content-Type", "application/json")
+	container = injectViewer(container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var results []v1.NetworkResponse
+	err := json.NewDecoder(resp.Body).Decode(&results)
+
+	require.Nil(t, err)
+	require.Len(t, results, 1)
+	result := results[0]
+	require.Equal(t, testdata.Nw1.ID, result.ID)
+	require.Equal(t, testdata.Nw1.PartitionID, *result.PartitionID)
+	require.Equal(t, testdata.Nw1.Name, *result.Name)
 }

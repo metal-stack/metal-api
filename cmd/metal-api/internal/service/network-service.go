@@ -130,13 +130,13 @@ func (r networkResource) listNetworks(request *restful.Request, response *restfu
 }
 
 func (r networkResource) findNetworks(request *restful.Request, response *restful.Response) {
-	var requestPayload *v1.FindNetworksRequest
-	err := request.ReadEntity(requestPayload)
+	var requestPayload v1.FindNetworksRequest
+	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	nws, err := r.ds.FindNetworks(requestPayload)
+	nws, err := r.ds.FindNetworks(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
