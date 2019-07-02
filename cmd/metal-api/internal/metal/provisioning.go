@@ -43,7 +43,7 @@ var (
 		ProvisioningEventPhonedHome:       true,
 	}
 	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
-	provisioningEventsInspectionLimit = 3 * (len(AllProvisioningEventTypes) - 2) // reset and alive can be neglected
+	ProvisioningEventsInspectionLimit = 2 * len(expectedProvisioningEventSequence) // only saved events count
 	// ExpectedProvisioningEventSequence is the expected sequence in which
 	expectedProvisioningEventSequence = provisioningEventSequence{
 		ProvisioningEventPXEBooting,
@@ -125,11 +125,11 @@ func (e *ProvisioningEvent) hasExpectedSuccessor(log *zap.SugaredLogger, actualS
 }
 
 // CalculateIncompleteCycles calculates the number of events that occurred out of order. Can be used to determine if a machine is in an error loop.
-func (m *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredLogger) string {
+func (p *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredLogger) string {
 	incompleteCycles := 0
 	atLeastOneTimeCompleted := true
 	var successor ProvisioningEventType
-	for i, event := range m.Events {
+	for i, event := range p.Events {
 		if successor != "" && !event.hasExpectedSuccessor(log, successor) {
 			incompleteCycles++
 		}
@@ -139,7 +139,7 @@ func (m *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredL
 			break
 		}
 
-		if i >= provisioningEventsInspectionLimit-1 {
+		if i >= ProvisioningEventsInspectionLimit-1 {
 			// we have reached the inspection limit without having reached the last event in the sequence once...
 			atLeastOneTimeCompleted = false
 		}
@@ -151,6 +151,13 @@ func (m *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredL
 	return result
 }
 
+// TrimEvents trim the events to maxCount
+func (p ProvisioningEventContainer) TrimEvents(maxCount int) {
+	if len(p.Events) > maxCount {
+		p.Events = p.Events[:maxCount]
+	}
+}
+
 // ProvisioningEvent is an event emitted by a machine during the provisioning sequence
 type ProvisioningEvent struct {
 	Time    time.Time             `rethinkdb:"time"`
@@ -160,43 +167,11 @@ type ProvisioningEvent struct {
 
 // ProvisioningEventContainer stores the provisioning events of a machine
 type ProvisioningEventContainer struct {
-	ID                           string             `rethinkdb:"id"` // is the machine id
+	Base
 	Liveliness                   MachineLiveliness  `rethinkdb:"liveliness"`
 	Events                       ProvisioningEvents `rethinkdb:"events"`
 	LastEventTime                *time.Time         `rethinkdb:"last_event_time"`
 	IncompleteProvisioningCycles string             `rethinkdb:"incomplete_cycles"`
-	Created                      time.Time          `rethinkdb:"created"`
-	Changed                      time.Time          `rethinkdb:"changed"`
-}
-
-// GetID returns the ID of the entity
-func (p *ProvisioningEventContainer) GetID() string {
-	return p.ID
-}
-
-// SetID sets the ID of the entity
-func (p *ProvisioningEventContainer) SetID(id string) {
-	p.ID = id
-}
-
-// GetChanged returns the last changed timestamp of the entity
-func (p *ProvisioningEventContainer) GetChanged() time.Time {
-	return p.Changed
-}
-
-// SetChanged sets the last changed timestamp of the entity
-func (p *ProvisioningEventContainer) SetChanged(changed time.Time) {
-	p.Changed = changed
-}
-
-// GetCreated returns the creation timestamp of the entity
-func (p *ProvisioningEventContainer) GetCreated() time.Time {
-	return p.Created
-}
-
-// SetCreated sets the creation timestamp of the entity
-func (p *ProvisioningEventContainer) SetCreated(created time.Time) {
-	p.Created = created
 }
 
 // ProvisioningEventContainers is a list of machine provisioning event containers.
@@ -206,10 +181,10 @@ type ProvisioningEventContainers []ProvisioningEventContainer
 type ProvisioningEventContainerMap map[string]ProvisioningEventContainer
 
 // ByID creates a map of event provisioning containers with the id as the index.
-func (m ProvisioningEventContainers) ByID() ProvisioningEventContainerMap {
+func (p ProvisioningEventContainers) ByID() ProvisioningEventContainerMap {
 	res := make(ProvisioningEventContainerMap)
-	for i, f := range m {
-		res[f.ID] = m[i]
+	for i, f := range p {
+		res[f.ID] = p[i]
 	}
 	return res
 }
