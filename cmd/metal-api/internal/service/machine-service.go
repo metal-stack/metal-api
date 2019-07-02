@@ -1303,25 +1303,35 @@ func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, 
 }
 
 func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
+	start := time.Now()
+	globalStart := start
+	logger.Infow("getMachineReferencedEntityMaps", "start", start)
 	s, err := ds.ListSizes()
 	if err != nil {
 		logger.Errorw("sizes could not be listed", "error", err)
 	}
+	logger.Infow("getMachineReferencedEntityMaps", "sizes", time.Now().Sub(start))
 
+	start = time.Now()
 	p, err := ds.ListPartitions()
 	if err != nil {
 		logger.Errorw("partitions could not be listed", "error", err)
 	}
+	logger.Infow("getMachineReferencedEntityMaps", "partitions", time.Now().Sub(start))
+	start = time.Now()
 
 	i, err := ds.ListImages()
 	if err != nil {
 		logger.Errorw("images could not be listed", "error", err)
 	}
+	logger.Infow("getMachineReferencedEntityMaps", "images", time.Now().Sub(start))
+	start = time.Now()
 
 	ec, err := ds.ListProvisioningEventContainers()
 	if err != nil {
 		logger.Errorw("provisioning event containers could not be listed", "error", err)
 	}
+	logger.Infow("getMachineReferencedEntityMaps", "events", time.Now().Sub(start), "total", time.Now().Sub(globalStart))
 
 	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()
 }
