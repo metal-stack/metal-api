@@ -152,7 +152,7 @@ func (p *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredL
 }
 
 // TrimEvents trim the events to maxCount
-func (p ProvisioningEventContainer) TrimEvents(maxCount int) {
+func (p *ProvisioningEventContainer) TrimEvents(maxCount int) {
 	if len(p.Events) > maxCount {
 		p.Events = p.Events[:maxCount]
 	}
