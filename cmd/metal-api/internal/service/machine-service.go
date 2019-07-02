@@ -498,7 +498,11 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	}
 
 	if ec == nil {
-		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{ID: m.ID, Liveliness: metal.MachineLivelinessAlive, IncompleteProvisioningCycles: "0"})
+		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
+			Base:                         metal.Base{ID: m.ID},
+			Liveliness:                   metal.MachineLivelinessAlive,
+			IncompleteProvisioningCycles: "0"},
+		)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -1073,7 +1077,9 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 
 	if ec == nil {
 		ec = &metal.ProvisioningEventContainer{
-			ID:         m.ID,
+			Base: metal.Base{
+				ID: m.ID,
+			},
 			Liveliness: metal.MachineLivelinessAlive,
 		}
 	}
@@ -1095,6 +1101,7 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		ec.Liveliness = metal.MachineLivelinessAlive
 	} else {
 		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
+		ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
 		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(utils.Logger(request).Sugar())
 		ec.Liveliness = metal.MachineLivelinessAlive
 	}
