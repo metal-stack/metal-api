@@ -1101,10 +1101,10 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		ec.Liveliness = metal.MachineLivelinessAlive
 	} else {
 		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
-		ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
 		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(utils.Logger(request).Sugar())
 		ec.Liveliness = metal.MachineLivelinessAlive
 	}
+	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
 
 	err = r.ds.UpsertProvisioningEventContainer(ec)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
