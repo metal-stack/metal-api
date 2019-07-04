@@ -551,6 +551,48 @@
         }
       }
     },
+    "/v1/ip/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "ip"
+        ],
+        "summary": "get all ips that match given properties",
+        "operationId": "findIPs",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FindIPsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.IPResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/ip/{id}": {
       "get": {
         "consumes": [
@@ -2257,6 +2299,38 @@
       }
     },
     "v1.EmptyBody": {},
+    "v1.FindIPsRequest": {
+      "description": "an ip address that can be attached to a machine",
+      "required": [
+        "ipaddress",
+        "projectid",
+        "networkprefix",
+        "networkid",
+        "machineid"
+      ],
+      "properties": {
+        "ipaddress": {
+          "description": "the address (ipv4 or ipv6) of this ip",
+          "type": "string"
+        },
+        "machineid": {
+          "description": "the machine this ip address belongs to, empty if not strong coupled",
+          "type": "string"
+        },
+        "networkid": {
+          "description": "the network this ip allocate request address belongs to",
+          "type": "string"
+        },
+        "networkprefix": {
+          "description": "the prefix of the network this ip address belongs to",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project this ip address belongs to",
+          "type": "string"
+        }
+      }
+    },
     "v1.FindMachinesRequest": {
       "required": [
         "id",
@@ -2553,12 +2627,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "tenant",
-        "projectid",
-        "partitionid",
-        "sizeid",
         "imageid",
         "ssh_pub_keys",
+        "partitionid",
+        "sizeid",
+        "tenant",
+        "projectid",
         "networks"
       ],
       "properties": {
@@ -2631,18 +2705,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "tags",
-        "size",
-        "allocation",
-        "rackid",
-        "hardware",
-        "events",
-        "liveliness",
-        "state",
         "id",
-        "created",
         "changed",
-        "partition"
+        "tags",
+        "partition",
+        "liveliness",
+        "size",
+        "state",
+        "hardware",
+        "allocation",
+        "created",
+        "rackid",
+        "events"
       ],
       "properties": {
         "allocation": {
@@ -2742,8 +2816,8 @@
       "required": [
         "projectid",
         "networkid",
-        "machineid",
         "ipaddress",
+        "machineid",
         "created",
         "changed"
       ],
@@ -3122,9 +3196,9 @@
     },
     "v1.MachineHardware": {
       "required": [
-        "disks",
         "memory",
         "cpu_cores",
+        "disks",
         "nics"
       ],
       "properties": {
@@ -3432,15 +3506,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "hardware",
         "liveliness",
-        "rackid",
-        "size",
-        "state",
-        "events",
         "tags",
         "partition",
+        "size",
         "allocation",
+        "state",
+        "rackid",
+        "hardware",
+        "events",
         "created",
         "changed"
       ],
@@ -3533,12 +3607,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay"
+        "underlay",
+        "parentnetworkid"
       ],
       "properties": {
         "description": {
@@ -3602,12 +3676,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "underlay",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
+        "underlay",
+        "parentnetworkid",
         "usage",
         "created",
         "changed"

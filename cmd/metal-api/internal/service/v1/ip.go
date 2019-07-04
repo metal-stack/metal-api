@@ -24,6 +24,14 @@ type IPUpdateRequest struct {
 	Describable
 }
 
+type FindIPsRequest struct {
+	IPAddress        *string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip"`
+	ProjectID        *string `json:"projectid" description:"the project this ip address belongs to"`
+	ParentPrefixCidr *string `json:"networkprefix" description:"the prefix of the network this ip address belongs to"`
+	NetworkID        *string `json:"networkid" description:"the network this ip allocate request address belongs to"`
+	MachineID        *string `json:"machineid" description:"the machine this ip address belongs to, empty if not strong coupled"`
+}
+
 type IPResponse struct {
 	Describable
 	IPBase
