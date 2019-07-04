@@ -60,6 +60,16 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/find").
+		To(viewer(ir.findIPs)).
+		Operation("findIPs").
+		Doc("get all ips that match given properties").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.FindIPsRequest{}).
+		Writes([]v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.DELETE("/{id}").
 		To(editor(ir.deleteIP)).
 		Operation("deleteIP").
@@ -123,6 +133,26 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 	}
 
 	result := []*v1.IPResponse{}
+	for i := range ips {
+		result = append(result, v1.NewIPResponse(&ips[i]))
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (ir ipResource) findIPs(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.FindIPsRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	ips, err := ir.ds.FindIPs(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var result []*v1.IPResponse
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
