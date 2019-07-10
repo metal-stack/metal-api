@@ -302,7 +302,6 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 		select {
 		case <-time.After(waitForServerTimeout):
 			response.WriteHeaderAndEntity(http.StatusGatewayTimeout, httperrors.NewHTTPError(http.StatusGatewayTimeout, fmt.Errorf("server timeout")))
-			return nil
 		case a := <-alloc:
 			if a.Err != nil {
 				log.Sugar().Errorw("allocation returned an error", "error", a.Err)
@@ -584,8 +583,11 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		HA:          false,
 	}
 
+	// maybe retry this like three times on error to make it more stable + trigger network cleanup on error
 	m, err := allocateMachine(r.ds, r.ipamer, &spec)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		go networkGarbageCollection(r.ds, r.ipamer)
+		utils.Logger(request).Sugar().Errorf("machine allocation went wrong, triggered network garbage collection", "error", err)
 		return
 	}
 
@@ -593,33 +595,69 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 }
 
 func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
-	// FIXME: This is only temporary and needs to be made a little bit more elegant.
-	if allocationSpec.Tenant == "" {
-		return nil, fmt.Errorf("no tenant given")
+	err := validateAllocationSpec(allocationSpec)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, pubKey := range allocationSpec.SSHPubKeys {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
-		if err != nil {
-			return nil, fmt.Errorf("invalid public SSH key: %s", pubKey)
+	machineCandidate, err := findMachineCandidate(ds, allocationSpec)
+	// as some fields in the allocation spec are optional, they will now be clearly defined by the machine candidate
+	allocationSpec.UUID = machineCandidate.ID
+	allocationSpec.PartitionID = machineCandidate.PartitionID
+	allocationSpec.SizeID = machineCandidate.SizeID
+
+	machineNetworks, err := makeMachineNetworks(ds, ipamer, allocationSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	// refetch the machine to catch possible updates after dealing with the network...
+	machine, err := ds.FindMachine(machineCandidate.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	old := *machine
+
+	alloc := &metal.MachineAllocation{
+		Created:         time.Now(),
+		Name:            allocationSpec.Name,
+		Description:     allocationSpec.Description,
+		Hostname:        allocationSpec.Hostname,
+		Tenant:          allocationSpec.Tenant,
+		Project:         allocationSpec.ProjectID,
+		ImageID:         allocationSpec.Image.ID,
+		SSHPubKeys:      allocationSpec.SSHPubKeys,
+		UserData:        allocationSpec.UserData,
+		MachineNetworks: machineNetworks,
+	}
+	machine.Allocation = alloc
+
+	addMachineTags(machine, allocationSpec.Tags)
+
+	err = ds.UpdateMachine(&old, machine)
+	if err != nil {
+		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
+	}
+
+	err = ds.UpdateWaitingMachine(machine)
+	if err != nil {
+		updateErr := ds.UpdateMachine(machine, &old) // try rollback allocation
+		if updateErr != nil {
+			return nil, fmt.Errorf("during update rollback due to an error (%v), another error occurred: %v", err, updateErr)
 		}
+		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
 	}
 
+	return machine, nil
+}
+
+func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	var err error
 	var machine *metal.Machine
-	var size *metal.Size
-	var partition *metal.Partition
 	if allocationSpec.UUID == "" {
 		// requesting allocation of an arbitrary machine in partition with given size
-		size, err = ds.FindSize(allocationSpec.SizeID)
-		if err != nil {
-			return nil, fmt.Errorf("size cannot be found: %v", err)
-		}
-		partition, err = ds.FindPartition(allocationSpec.PartitionID)
-		if err != nil {
-			return nil, fmt.Errorf("partition cannot be found: %v", err)
-		}
-		machine, err = ds.FindAvailableMachine(partition.ID, size.ID)
+		machine, err = findAllocatableMachine(ds, allocationSpec.PartitionID, allocationSpec.SizeID)
 		if err != nil {
 			return nil, err
 		}
@@ -634,47 +672,64 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			return nil, fmt.Errorf("machine is already allocated")
 		}
 		if allocationSpec.PartitionID != "" && machine.PartitionID != allocationSpec.PartitionID {
-			return nil, fmt.Errorf("machine %q is not in the given partition: %s", machine.ID, allocationSpec.PartitionID)
+			return nil, fmt.Errorf("machine %q is not in the requested partition: %s", machine.ID, allocationSpec.PartitionID)
 		}
+
 		if allocationSpec.SizeID != "" && machine.SizeID != allocationSpec.SizeID {
-			return nil, fmt.Errorf("machine %q does not have the given size: %s", machine.ID, allocationSpec.SizeID)
+			return nil, fmt.Errorf("machine %q does not have the requested size: %s", machine.ID, allocationSpec.SizeID)
 		}
+	}
+	return machine, err
+}
 
-		partition, err = ds.FindPartition(machine.PartitionID)
+func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
+	if allocationSpec.Tenant == "" {
+		return fmt.Errorf("no tenant given")
+	}
+
+	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
+		return fmt.Errorf("when no machine id is given, a partition id must be specified")
+	}
+
+	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
+		return fmt.Errorf("when no machine id is given, a size id must be specified")
+	}
+
+	for _, pubKey := range allocationSpec.SSHPubKeys {
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
 		if err != nil {
-			return nil, fmt.Errorf("partition cannot be found: %v", err)
-		}
-		// we could actually refrain from finding the size because it will not be used in the following lines
-		// this is just for symmetry and preventing a possible nil pointer dereference in the future when accessing the size
-		size, err = ds.FindSize(machine.SizeID)
-		if err != nil {
-			return nil, fmt.Errorf("size cannot be found: %v", err)
+			return fmt.Errorf("invalid public SSH key: %s", pubKey)
 		}
 	}
 
-	if machine == nil {
-		return nil, fmt.Errorf("machine is nil")
-	}
+	return nil
+}
 
-	old := *machine
-
-	var vrf *metal.Vrf
-
-	vrf, err = ds.FindVrfByProject(allocationSpec.ProjectID, allocationSpec.Tenant)
-	if err != nil && metal.IsNotFound(err) {
-		vrf, err = ds.ReserveNewVrf(allocationSpec.Tenant, allocationSpec.ProjectID)
-
-		if err != nil {
-			return nil, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
-		}
-	}
-	if err != nil && !metal.IsNotFound(err) {
-		return nil, fmt.Errorf("cannot find vrf for tenant project: %v", err)
-	}
-
-	vrfID, err := vrf.ToUint()
+func findAllocatableMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
+	size, err := ds.FindSize(sizeID)
 	if err != nil {
-		return nil, fmt.Errorf("cannot convert vrfid to uint: %v", err)
+		return nil, fmt.Errorf("size cannot be found: %v", err)
+	}
+	partition, err := ds.FindPartition(partitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition cannot be found: %v", err)
+	}
+	machine, err := ds.FindAvailableMachine(partition.ID, size.ID)
+	if err != nil {
+		return nil, err
+	}
+	return machine, nil
+}
+
+func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) ([]metal.MachineNetwork, error) {
+	partition, err := ds.FindPartition(allocationSpec.PartitionID)
+	if err != nil {
+		return nil, fmt.Errorf("partition cannot be found: %v", err)
+	}
+
+	vrfID, err := ensureProjectVrf(ds, allocationSpec)
+	if err != nil {
+		return nil, err
 	}
 
 	primaryNetwork, err := ds.FindPrimaryNetwork(partition.ID)
@@ -686,8 +741,8 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
 	}
-	if projectNetwork == nil {
 
+	if projectNetwork == nil {
 		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, partition.ProjectNetworkPrefixLength, ipamer)
 		if err != nil {
 			return nil, err
@@ -724,7 +779,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		ParentPrefixCidr: ipParentCidr,
 		Name:             allocationSpec.Name,
 		Description:      "autoassigned",
-		MachineID:        machine.ID,
+		MachineID:        allocationSpec.UUID,
 		NetworkID:        projectNetwork.ID,
 		ProjectID:        allocationSpec.ProjectID,
 	}
@@ -780,6 +835,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 			Name:             allocationSpec.Name,
 			Description:      "autoassigned",
 			NetworkID:        nw.ID,
+			MachineID:        allocationSpec.UUID,
 			ProjectID:        allocationSpec.ProjectID,
 		}
 
@@ -802,22 +858,33 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		machineNetworks = append(machineNetworks, additionalMachineNetwork)
 	}
 
-	alloc := &metal.MachineAllocation{
-		Created:         time.Now(),
-		Name:            allocationSpec.Name,
-		Description:     allocationSpec.Description,
-		Hostname:        allocationSpec.Hostname,
-		Tenant:          allocationSpec.Tenant,
-		Project:         allocationSpec.ProjectID,
-		ImageID:         allocationSpec.Image.ID,
-		SSHPubKeys:      allocationSpec.SSHPubKeys,
-		UserData:        allocationSpec.UserData,
-		MachineNetworks: machineNetworks,
-	}
-	machine.Allocation = alloc
+	return machineNetworks, nil
+}
 
+func ensureProjectVrf(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (uint, error) {
+	vrf, err := ds.FindVrfByProject(allocationSpec.ProjectID, allocationSpec.Tenant)
+	if err != nil {
+		if metal.IsNotFound(err) {
+			vrf, err = ds.ReserveNewVrf(allocationSpec.Tenant, allocationSpec.ProjectID)
+			if err != nil {
+				return 0, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
+			}
+		} else {
+			return 0, fmt.Errorf("cannot find vrf for tenant project: %v", err)
+		}
+	}
+
+	vrfID, err := vrf.ToUint()
+	if err != nil {
+		return 0, fmt.Errorf("cannot convert vrfid to uint: %v", err)
+	}
+
+	return vrfID, nil
+}
+
+func addMachineTags(machine *metal.Machine, tags []string) {
 	tagSet := make(map[string]bool)
-	tagList := append(machine.Tags, allocationSpec.Tags...)
+	tagList := append(machine.Tags, tags...)
 	for _, t := range tagList {
 		tagSet[t] = true
 	}
@@ -826,20 +893,6 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		newTags = append(newTags, k)
 	}
 	machine.Tags = newTags
-
-	err = ds.UpdateMachine(&old, machine)
-	if err != nil {
-		ds.DeleteIP(ip)
-		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
-	}
-
-	err = ds.UpdateWaitingMachine(machine)
-	if err != nil {
-		ds.DeleteIP(ip)
-		ds.UpdateMachine(machine, &old)
-		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
-	}
-	return machine, nil
 }
 
 func (r machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
@@ -926,11 +979,10 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
 		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if err != nil {
+			go networkGarbageCollection(r.ds, r.ipamer)
+			utils.Logger(request).Sugar().Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
 		}
-
-		// TODO: In the future, it would be nice to have the VRF deleted from the vrftable as well
 
 		old := *m
 		m.Allocation = nil
@@ -1014,6 +1066,12 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 		}
 	}
 	return nil
+}
+
+func networkGarbageCollection(ds *datastore.RethinkStore, ipamer ipam.IPAMer) {
+	// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
+	// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
+	// TODO: Check if there are tenant networks that do not have any IPs in use, clean them up
 }
 
 func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
