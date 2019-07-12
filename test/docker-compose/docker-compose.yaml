@@ -1,0 +1,14 @@
+version: "3.7"
+services:
+  kubefwd:
+    image: txn2/kubefwd:v1.8.3
+    container_name: kubefwd
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./../../../metal-api/bin/metal-api:/usr/local/bin/metal-api
+      - ./../../../metal-api/masterdata:/masterdata
+      - ./../../../metalctl/bin/metalctl:/usr/local/bin/metalctl
+      - ./../../../metal-lab:/metal-lab
+      - ./metalctl.config.yaml:/root/.metalctl/config.yaml
+    entrypoint: ./entrypoint.sh
+    network_mode: host

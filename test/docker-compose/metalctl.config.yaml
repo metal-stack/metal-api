@@ -1,0 +1,3 @@
+---
+url: http://metal-control-plane-api:8080
+hmac: "metal-admin"
