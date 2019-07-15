@@ -79,18 +79,18 @@ func (m *Machine) IsFirewall(iMap ImageMap) bool {
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
-	Created         time.Time        `rethinkdb:"created"`
-	Name            string           `rethinkdb:"name"`
-	Description     string           `rethinkdb:"description"`
-	Tenant          string           `rethinkdb:"tenant"`
-	Project         string           `rethinkdb:"project"`
-	ImageID         string           `rethinkdb:"imageid"`
-	MachineNetworks []MachineNetwork `rethinkdb:"networks"`
-	Hostname        string           `rethinkdb:"hostname"`
-	SSHPubKeys      []string         `rethinkdb:"sshPubKeys"`
-	UserData        string           `rethinkdb:"userdata"`
-	ConsolePassword string           `rethinkdb:"console_password"`
-	Succeeded       bool             `rethinkdb:"succeeded"`
+	Created         time.Time         `rethinkdb:"created"`
+	Name            string            `rethinkdb:"name"`
+	Description     string            `rethinkdb:"description"`
+	Tenant          string            `rethinkdb:"tenant"`
+	Project         string            `rethinkdb:"project"`
+	ImageID         string            `rethinkdb:"imageid"`
+	MachineNetworks []*MachineNetwork `rethinkdb:"networks"`
+	Hostname        string            `rethinkdb:"hostname"`
+	SSHPubKeys      []string          `rethinkdb:"sshPubKeys"`
+	UserData        string            `rethinkdb:"userdata"`
+	ConsolePassword string            `rethinkdb:"console_password"`
+	Succeeded       bool              `rethinkdb:"succeeded"`
 }
 
 // MachineNetwork stores the Network details of the machine

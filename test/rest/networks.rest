@@ -3,6 +3,8 @@
 ### get all ips
 # @name getAll
 GET {{baseurl}}
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### create tenant network
 # @name createTenantNetwork

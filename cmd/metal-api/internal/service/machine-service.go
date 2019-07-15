@@ -749,19 +749,19 @@ func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string
 	return machine, nil
 }
 
-func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) ([]metal.MachineNetwork, error) {
+func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) ([]*metal.MachineNetwork, error) {
 	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	machineNetworks := []metal.MachineNetwork{}
+	machineNetworks := []*metal.MachineNetwork{}
 	for _, n := range networks {
 		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return nil, err
 		}
-		machineNetworks = append(machineNetworks, *machineNetwork)
+		machineNetworks = append(machineNetworks, machineNetwork)
 	}
 
 	// TODO: It's duplicated information, but the ASN of the tenant network must be present on all other networks...
@@ -773,6 +773,7 @@ func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocat
 			break
 		}
 	}
+	fmt.Printf("Halo: %v", asn)
 	for _, n := range machineNetworks {
 		n.ASN = asn
 	}
@@ -1162,7 +1163,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []metal.MachineNetwork) error {
+func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []*metal.MachineNetwork) error {
 	for _, machineNetwork := range machineNetworks {
 		for _, ipString := range machineNetwork.IPs {
 			ip, err := r.ds.FindIP(ipString)

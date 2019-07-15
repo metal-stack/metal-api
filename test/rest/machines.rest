@@ -154,7 +154,7 @@ X-Date: 1985-04-12T23:20:50.52Z
   "tenant": "dkb",
   "sizeid": "v1-small-x86",
   "ssh_pub_keys": [],
-  "ips": ["185.24.0.5"],
+  "ips": [],
   "networks": [
      {"networkid": "internet-vagrant-lab"}
   ]
