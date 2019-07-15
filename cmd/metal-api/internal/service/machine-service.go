@@ -764,6 +764,19 @@ func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocat
 		machineNetworks = append(machineNetworks, *machineNetwork)
 	}
 
+	// TODO: It's duplicated information, but the ASN of the tenant network must be present on all other networks...
+	// This needs to be done more elegantly, this is a quick fix:
+	var asn int64
+	for _, n := range machineNetworks {
+		if n.ASN != 0 {
+			asn = n.ASN
+			break
+		}
+	}
+	for _, n := range machineNetworks {
+		n.ASN = asn
+	}
+
 	return machineNetworks, nil
 }
 
