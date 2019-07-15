@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -45,9 +46,17 @@ type machineAllocationSpec struct {
 	SSHPubKeys  []string
 	UserData    string
 	Tags        []string
-	NetworkIDs  []string
+	Networks    v1.MachineAllocationNetworks
 	IPs         []string
 	HA          bool
+	IsFirewall  bool
+}
+
+type allocationNetwork struct {
+	network         *metal.Network
+	ips             []metal.IP
+	auto            bool
+	isTenantNetwork bool
 }
 
 // The MachineAllocation contains the allocated machine or an error.
@@ -578,15 +587,15 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		SSHPubKeys:  requestPayload.SSHPubKeys,
 		UserData:    userdata,
 		Tags:        requestPayload.Tags,
-		NetworkIDs:  []string{},
-		IPs:         []string{},
+		Networks:    requestPayload.Networks,
+		IPs:         requestPayload.IPs,
 		HA:          false,
+		IsFirewall:  false,
 	}
 
-	// maybe retry this like three times on error to make it more stable + trigger network cleanup on error
 	m, err := allocateMachine(r.ds, r.ipamer, &spec)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
-		go networkGarbageCollection(r.ds, r.ipamer)
+		// TODO: Trigger network garbage collection
 		utils.Logger(request).Sugar().Errorf("machine allocation went wrong, triggered network garbage collection", "error", err)
 		return
 	}
@@ -601,6 +610,9 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	}
 
 	machineCandidate, err := findMachineCandidate(ds, allocationSpec)
+	if err != nil {
+		return nil, err
+	}
 	// as some fields in the allocation spec are optional, they will now be clearly defined by the machine candidate
 	allocationSpec.UUID = machineCandidate.ID
 	allocationSpec.PartitionID = machineCandidate.PartitionID
@@ -610,14 +622,6 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if err != nil {
 		return nil, err
 	}
-
-	// refetch the machine to catch possible updates after dealing with the network...
-	machine, err := ds.FindMachine(machineCandidate.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	old := *machine
 
 	alloc := &metal.MachineAllocation{
 		Created:         time.Now(),
@@ -631,9 +635,16 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		UserData:        allocationSpec.UserData,
 		MachineNetworks: machineNetworks,
 	}
-	machine.Allocation = alloc
 
-	addMachineTags(machine, allocationSpec.Tags)
+	// refetch the machine to catch possible updates after dealing with the network...
+	machine, err := ds.FindMachine(machineCandidate.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	old := *machine
+	machine.Allocation = alloc
+	machine.Tags = uniqueTags(allocationSpec.Tags)
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
@@ -652,12 +663,52 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	return machine, nil
 }
 
+func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
+	if allocationSpec.Tenant == "" {
+		return fmt.Errorf("no tenant given")
+	}
+
+	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
+		return fmt.Errorf("when no machine id is given, a partition id must be specified")
+	}
+
+	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
+		return fmt.Errorf("when no machine id is given, a size id must be specified")
+	}
+
+	for _, ip := range allocationSpec.IPs {
+		if net.ParseIP(ip) == nil {
+			return fmt.Errorf("%q is not a valid IP address", ip)
+		}
+	}
+
+	for _, pubKey := range allocationSpec.SSHPubKeys {
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
+		if err != nil {
+			return fmt.Errorf("invalid public SSH key: %s", pubKey)
+		}
+	}
+
+	// A firewall must have either IP or Network with auto IP acquire specified.
+	if allocationSpec.IsFirewall {
+		if len(allocationSpec.IPs) == 0 && allocationSpec.autoNetworkN() == 0 {
+			return fmt.Errorf("when no ip is given at least one auto acquire network must be specified")
+		}
+	}
+
+	if noautoNetN := allocationSpec.noautoNetworkN(); noautoNetN > len(allocationSpec.IPs) {
+		return fmt.Errorf("missing ip(s) for network(s) without automatic ip allocation")
+	}
+
+	return nil
+}
+
 func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	var err error
 	var machine *metal.Machine
 	if allocationSpec.UUID == "" {
 		// requesting allocation of an arbitrary machine in partition with given size
-		machine, err = findAllocatableMachine(ds, allocationSpec.PartitionID, allocationSpec.SizeID)
+		machine, err = findAvailableMachine(ds, allocationSpec.PartitionID, allocationSpec.SizeID)
 		if err != nil {
 			return nil, err
 		}
@@ -682,30 +733,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	return machine, err
 }
 
-func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
-	if allocationSpec.Tenant == "" {
-		return fmt.Errorf("no tenant given")
-	}
-
-	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
-		return fmt.Errorf("when no machine id is given, a partition id must be specified")
-	}
-
-	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
-		return fmt.Errorf("when no machine id is given, a size id must be specified")
-	}
-
-	for _, pubKey := range allocationSpec.SSHPubKeys {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
-		if err != nil {
-			return fmt.Errorf("invalid public SSH key: %s", pubKey)
-		}
-	}
-
-	return nil
-}
-
-func findAllocatableMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
+func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
 	size, err := ds.FindSize(sizeID)
 	if err != nil {
 		return nil, fmt.Errorf("size cannot be found: %v", err)
@@ -722,19 +750,146 @@ func findAllocatableMachine(ds *datastore.RethinkStore, partitionID, sizeID stri
 }
 
 func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) ([]metal.MachineNetwork, error) {
+	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	machineNetworks := []metal.MachineNetwork{}
+	for _, n := range networks {
+		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
+		if err != nil {
+			return nil, err
+		}
+		machineNetworks = append(machineNetworks, *machineNetwork)
+	}
+
+	return machineNetworks, nil
+}
+
+func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (map[string]*allocationNetwork, error) {
 	partition, err := ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
 		return nil, fmt.Errorf("partition cannot be found: %v", err)
 	}
 
-	vrfID, err := ensureProjectVrf(ds, allocationSpec)
+	userNetworks, err := gatherUserNetworks(ds, allocationSpec, partition)
 	if err != nil {
 		return nil, err
 	}
 
-	primaryNetwork, err := ds.FindPrimaryNetwork(partition.ID)
+	var underlayNetwork *allocationNetwork
+	if allocationSpec.IsFirewall {
+		underlayNetwork, err = gatherUnderlayNetwork(ds, allocationSpec, partition)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	projectNetwork, err := gatherOrCreateProjectNetwork(ds, ipamer, allocationSpec, partition)
 	if err != nil {
-		return nil, fmt.Errorf("could not get primary network: %v", err)
+		return nil, err
+	}
+
+	gatheredNetworks := make(map[string]*allocationNetwork)
+	for k, v := range userNetworks {
+		gatheredNetworks[k] = v
+	}
+	if underlayNetwork != nil {
+		gatheredNetworks[underlayNetwork.network.ID] = underlayNetwork
+	}
+	gatheredNetworks[projectNetwork.network.ID] = projectNetwork
+
+	return gatheredNetworks, nil
+}
+
+func gatherUserNetworks(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition) (map[string]*allocationNetwork, error) {
+	isPrimary := true
+	primaryNetworks, err := ds.FindNetworks(&v1.FindNetworksRequest{Primary: &isPrimary})
+	if err != nil {
+		return nil, err
+	}
+
+	userNetworks := make(map[string]*allocationNetwork)
+
+	for _, n := range allocationSpec.Networks {
+		network, err := ds.FindNetwork(n.NetworkID)
+		if err != nil {
+			return nil, err
+		}
+
+		if network.Underlay {
+			return nil, fmt.Errorf("underlay networks are not allowed to be set explicitly: %s", network.ID)
+		}
+		if network.Primary {
+			return nil, fmt.Errorf("primary networks are not allowed to be set explicitly: %s", network.ID)
+		}
+		for _, primaryNetwork := range primaryNetworks {
+			if network.ParentNetworkID == primaryNetwork.ID {
+				return nil, fmt.Errorf("given network %q must not be a child of a primary network: %s", network.ID, primaryNetwork.ID)
+			}
+		}
+
+		auto := true
+		if n.AutoAcquireIP != nil {
+			auto = *n.AutoAcquireIP
+		}
+
+		userNetworks[network.ID] = &allocationNetwork{
+			network:         network,
+			auto:            auto,
+			ips:             []metal.IP{},
+			isTenantNetwork: false,
+		}
+	}
+
+	if len(userNetworks) != len(allocationSpec.Networks) {
+		return nil, fmt.Errorf("given network ids are not unique: %v", allocationSpec.Networks)
+	}
+
+	for _, ipString := range allocationSpec.IPs {
+		ip, err := ds.FindIP(ipString)
+		if err != nil {
+			return nil, err
+		}
+		if ip.ProjectID != allocationSpec.ProjectID {
+			return nil, fmt.Errorf("given ip %q with project %q does not belong to the project of this allocation: %s", ip.IPAddress, ip.ProjectID, allocationSpec.ProjectID)
+		}
+		network, ok := userNetworks[ip.NetworkID]
+		if !ok {
+			return nil, fmt.Errorf("given ip %q is not in any of the given networks, which is required", ip.IPAddress)
+		}
+		network.ips = append(network.ips, *ip)
+	}
+
+	return userNetworks, nil
+}
+
+func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition) (*allocationNetwork, error) {
+	underlays, err := ds.FindUnderlayNetworks(partition.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(underlays) == 0 {
+		return nil, fmt.Errorf("no underlay found in the given partition: %v", err)
+	}
+	if len(underlays) > 1 {
+		return nil, fmt.Errorf("more than one underlay network in partition %s in the database, which should not be the case", partition.ID)
+	}
+	underlay := &underlays[0]
+
+	return &allocationNetwork{
+		network:         underlay,
+		auto:            true,
+		isTenantNetwork: false,
+	}, nil
+}
+
+func gatherOrCreateProjectNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, partition *metal.Partition) (*allocationNetwork, error) {
+	// TODO: The vrf should become an attribute of a project and created on project creation
+	vrfID, err := ensureProjectVrf(ds, allocationSpec)
+	if err != nil {
+		return nil, err
 	}
 
 	projectNetwork, err := ds.FindProjectNetwork(allocationSpec.ProjectID)
@@ -743,6 +898,11 @@ func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocat
 	}
 
 	if projectNetwork == nil {
+		primaryNetwork, err := ds.FindPrimaryNetwork(partition.ID)
+		if err != nil {
+			return nil, fmt.Errorf("could not get primary network: %v", err)
+		}
+
 		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, partition.ProjectNetworkPrefixLength, ipamer)
 		if err != nil {
 			return nil, err
@@ -754,7 +914,7 @@ func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocat
 		projectNetwork = &metal.Network{
 			Prefixes:            metal.Prefixes{*projectPrefix},
 			DestinationPrefixes: metal.Prefixes{},
-			PartitionID:         partition.ID,
+			PartitionID:         allocationSpec.PartitionID,
 			ProjectID:           allocationSpec.ProjectID,
 			Nat:                 primaryNetwork.Nat,
 			Primary:             false,
@@ -769,96 +929,11 @@ func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocat
 		}
 	}
 
-	ipAddress, ipParentCidr, err := allocateIP(projectNetwork, "", ipamer)
-	if err != nil {
-		return nil, fmt.Errorf("unable to allocate an ip in network:%s %#v", projectNetwork.ID, err)
-	}
-
-	ip := &metal.IP{
-		IPAddress:        ipAddress,
-		ParentPrefixCidr: ipParentCidr,
-		Name:             allocationSpec.Name,
-		Description:      "autoassigned",
-		MachineID:        allocationSpec.UUID,
-		NetworkID:        projectNetwork.ID,
-		ProjectID:        allocationSpec.ProjectID,
-	}
-
-	err = ds.CreateIP(ip)
-	if err != nil {
-		return nil, err
-	}
-	asn, err := ip.ASN()
-	if err != nil {
-		return nil, err
-	}
-
-	machineNetworks := []metal.MachineNetwork{
-		{
-			NetworkID:           projectNetwork.ID,
-			Prefixes:            projectNetwork.Prefixes.String(),
-			DestinationPrefixes: projectNetwork.DestinationPrefixes.String(),
-			IPs:                 []string{ip.IPAddress},
-			Vrf:                 vrfID,
-			ASN:                 asn,
-			Primary:             true,
-			Underlay:            projectNetwork.Underlay,
-			Nat:                 projectNetwork.Nat,
-		},
-	}
-
-	for _, additionalNetworkID := range allocationSpec.NetworkIDs {
-
-		if additionalNetworkID == primaryNetwork.ID {
-			// We ignore if by accident this allocation contains a network which is a tenant super network
-			continue
-		}
-
-		nw, err := ds.FindNetwork(additionalNetworkID)
-		if err != nil {
-			return nil, fmt.Errorf("no network with networkid:%s found %#v", additionalNetworkID, err)
-		}
-
-		// additionalNetwork is another tenant network causes a failure as security would be compromised
-		if nw.ParentNetworkID == primaryNetwork.ID {
-			return nil, fmt.Errorf("additional network:%s cannot be a child of the primary network:%s", additionalNetworkID, primaryNetwork.ID)
-		}
-
-		ipAddress, ipParentCidr, err := allocateIP(nw, "", ipamer)
-		if err != nil {
-			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", nw.ID, err)
-		}
-
-		ip := &metal.IP{
-			IPAddress:        ipAddress,
-			ParentPrefixCidr: ipParentCidr,
-			Name:             allocationSpec.Name,
-			Description:      "autoassigned",
-			NetworkID:        nw.ID,
-			MachineID:        allocationSpec.UUID,
-			ProjectID:        allocationSpec.ProjectID,
-		}
-
-		err = ds.CreateIP(ip)
-		if err != nil {
-			return nil, err
-		}
-
-		additionalMachineNetwork := metal.MachineNetwork{
-			NetworkID:           nw.ID,
-			Prefixes:            nw.Prefixes.String(),
-			IPs:                 []string{ip.IPAddress},
-			DestinationPrefixes: nw.DestinationPrefixes.String(),
-			ASN:                 asn,
-			Primary:             false,
-			Underlay:            nw.Underlay,
-			Nat:                 nw.Nat,
-			Vrf:                 nw.Vrf,
-		}
-		machineNetworks = append(machineNetworks, additionalMachineNetwork)
-	}
-
-	return machineNetworks, nil
+	return &allocationNetwork{
+		network:         projectNetwork,
+		auto:            true,
+		isTenantNetwork: true,
+	}, nil
 }
 
 func ensureProjectVrf(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (uint, error) {
@@ -882,17 +957,72 @@ func ensureProjectVrf(ds *datastore.RethinkStore, allocationSpec *machineAllocat
 	return vrfID, nil
 }
 
-func addMachineTags(machine *metal.Machine, tags []string) {
+func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
+	var asn int64
+	primary := false
+
+	if n.auto {
+		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
+		if err != nil {
+			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", n.network.ID, err)
+		}
+
+		ip := &metal.IP{
+			IPAddress:        ipAddress,
+			ParentPrefixCidr: ipParentCidr,
+			Name:             allocationSpec.Name,
+			Description:      "autoassigned",
+			NetworkID:        n.network.ID,
+			MachineID:        allocationSpec.UUID,
+			ProjectID:        allocationSpec.ProjectID,
+		}
+
+		err = ds.CreateIP(ip)
+		if err != nil {
+			return nil, err
+		}
+
+		if n.isTenantNetwork {
+			asn, err = ip.ASN()
+			if err != nil {
+				return nil, err
+			}
+			primary = true
+		}
+
+		n.ips = append(n.ips, *ip)
+	}
+
+	ipAddresses := []string{}
+	for _, ip := range n.ips {
+		ipAddresses = append(ipAddresses, ip.IPAddress)
+	}
+
+	machineNetwork := metal.MachineNetwork{
+		NetworkID:           n.network.ID,
+		Prefixes:            n.network.Prefixes.String(),
+		IPs:                 ipAddresses,
+		DestinationPrefixes: n.network.DestinationPrefixes.String(),
+		ASN:                 asn,
+		Primary:             primary,
+		Underlay:            n.network.Underlay,
+		Nat:                 n.network.Nat,
+		Vrf:                 n.network.Vrf,
+	}
+
+	return &machineNetwork, nil
+}
+
+func uniqueTags(tags []string) []string {
 	tagSet := make(map[string]bool)
-	tagList := append(machine.Tags, tags...)
-	for _, t := range tagList {
+	for _, t := range tags {
 		tagSet[t] = true
 	}
-	newTags := []string{}
+	uniqueTags := []string{}
 	for k := range tagSet {
-		newTags = append(newTags, k)
+		uniqueTags = append(uniqueTags, k)
 	}
-	machine.Tags = newTags
+	return uniqueTags
 }
 
 func (r machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
@@ -980,7 +1110,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		// if the machine is allocated, we free it in our database
 		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
 		if err != nil {
-			go networkGarbageCollection(r.ds, r.ipamer)
+			// TODO: Trigger network garbage collection
 			utils.Logger(request).Sugar().Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
 		}
 
@@ -1392,4 +1522,22 @@ func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.Suga
 	logger.Infow("getMachineReferencedEntityMaps", "events", time.Now().Sub(start), "total", time.Now().Sub(globalStart))
 
 	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()
+}
+
+func (s machineAllocationSpec) noautoNetworkN() int {
+	result := 0
+	for _, net := range s.Networks {
+		if net.AutoAcquireIP != nil && !*net.AutoAcquireIP {
+			result++
+		}
+	}
+	return result
+}
+
+func (s machineAllocationSpec) autoNetworkN() int {
+	return len(s.Networks) - s.noautoNetworkN()
+}
+
+func (s machineAllocationSpec) isMachine() bool {
+	return !s.IsFirewall
 }

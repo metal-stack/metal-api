@@ -2627,13 +2627,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "imageid",
-        "ssh_pub_keys",
-        "partitionid",
         "sizeid",
+        "partitionid",
+        "ssh_pub_keys",
         "tenant",
-        "projectid",
-        "networks"
+        "imageid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -2652,15 +2651,22 @@
           "description": "the image id to assign this machine to",
           "type": "string"
         },
+        "ips": {
+          "description": "the ips to attach to this machine additionally",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
         },
         "networks": {
-          "description": "the networks of this firewall",
+          "description": "the networks that this machine will be placed in.",
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/v1.MachineAllocationNetwork"
           }
         },
         "partitionid": {
@@ -2705,18 +2711,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "id",
-        "changed",
-        "tags",
-        "partition",
         "liveliness",
+        "changed",
         "size",
-        "state",
-        "hardware",
         "allocation",
-        "created",
         "rackid",
-        "events"
+        "hardware",
+        "id",
+        "events",
+        "partition",
+        "tags",
+        "state",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3016,9 +3022,23 @@
           "description": "the image id to assign this machine to",
           "type": "string"
         },
+        "ips": {
+          "description": "the ips to attach to this machine additionally",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "networks": {
+          "description": "the networks that this machine will be placed in.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1.MachineAllocationNetwork"
+          }
         },
         "partitionid": {
           "description": "the partition id to assign this machine to",
@@ -3130,6 +3150,21 @@
         }
       }
     },
+    "v1.MachineAllocationNetwork": {
+      "required": [
+        "networkid"
+      ],
+      "properties": {
+        "autoacquire": {
+          "description": "will automatically acquire an ip in this network if set to true, default is true",
+          "type": "boolean"
+        },
+        "networkid": {
+          "description": "the id of the network that this machine will be placed in",
+          "type": "string"
+        }
+      }
+    },
     "v1.MachineBlockDevice": {
       "required": [
         "name",
@@ -3196,9 +3231,9 @@
     },
     "v1.MachineHardware": {
       "required": [
-        "memory",
         "cpu_cores",
         "disks",
+        "memory",
         "nics"
       ],
       "properties": {
@@ -3506,15 +3541,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "liveliness",
-        "tags",
         "partition",
         "size",
         "allocation",
         "state",
+        "liveliness",
         "rackid",
         "hardware",
         "events",
+        "tags",
         "created",
         "changed"
       ],
@@ -3607,12 +3642,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "underlay",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay",
-        "parentnetworkid"
+        "primary"
       ],
       "properties": {
         "description": {

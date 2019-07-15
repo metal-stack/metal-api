@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/ssh"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"golang.org/x/crypto/ssh"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -602,4 +605,172 @@ func TestParsePublicKey(t *testing.T) {
 	pubKey = "AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1X"
 	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
 	require.NotNil(t, err)
+}
+
+func Test_validateAllocationSpec(t *testing.T) {
+	assert := assert.New(t)
+	trueValue := true
+	falseValue := false
+
+	tests := []struct {
+		spec     machineAllocationSpec
+		isError  bool
+		name     string
+		expected string
+	}{
+		{
+			spec: machineAllocationSpec{
+				Tenant:     "gopher",
+				UUID:       "gopher-uuid",
+				IsFirewall: false,
+				Networks: []v1.MachineAllocationNetwork{
+					{
+						NetworkID: "network",
+					},
+				},
+				IPs: []string{"1.2.3.4"},
+			},
+			isError:  false,
+			expected: "",
+			name:     "auto acquire network and additional ip",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant: "gopher",
+				UUID:   "gopher-uuid",
+				Networks: []v1.MachineAllocationNetwork{
+					{
+						NetworkID:     "network",
+						AutoAcquireIP: &trueValue},
+				},
+			},
+			isError: false,
+			name:    "good case (explicit network)",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant:     "gopher",
+				UUID:       "gopher-uuid",
+				IsFirewall: false,
+			},
+			isError:  false,
+			expected: "",
+			name:     "good case (no network)",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant:      "gopher",
+				PartitionID: "42",
+				SizeID:      "42",
+			},
+			isError: false,
+			name:    "partition and size id for absent uuid",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant:      "gopher",
+				PartitionID: "42",
+			},
+			isError:  true,
+			expected: "when no machine id is given, a size id must be specified",
+			name:     "missing size id",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant: "gopher",
+				SizeID: "42",
+			},
+			isError:  true,
+			expected: "when no machine id is given, a partition id must be specified",
+			name:     "missing partition id",
+		},
+		{
+			spec: machineAllocationSpec{
+				UUID: "42",
+			},
+			isError:  true,
+			expected: "no tenant given",
+			name:     "absent tenant",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant: "gopher",
+			},
+			isError:  true,
+			expected: "when no machine id is given, a partition id must be specified",
+			name:     "absent uuid",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant:     "gopher",
+				UUID:       "gopher-uuid",
+				IsFirewall: false,
+				Networks: []v1.MachineAllocationNetwork{
+					{
+						NetworkID:     "network",
+						AutoAcquireIP: &falseValue,
+					},
+				},
+			},
+			isError:  true,
+			expected: "missing ip(s) for network(s) without automatic ip allocation",
+			name:     "missing ip definition for noauto network",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant: "gopher",
+				UUID:   "42",
+				IPs:    []string{"42"},
+			},
+			isError:  true,
+			expected: `"42" is not a valid IP address`,
+			name:     "illegal ip",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant:     "gopher",
+				UUID:       "42",
+				IsFirewall: true,
+			},
+			isError:  true,
+			expected: "when no ip is given at least one auto acquire network must be specified",
+			name:     "missing network/ ip in case of firewall",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant:     "gopher",
+				UUID:       "42",
+				SSHPubKeys: []string{"42"},
+			},
+			isError:  true,
+			expected: `invalid public SSH key: 42`,
+			name:     "invalid ssh",
+		},
+		{
+			spec: machineAllocationSpec{
+				Tenant:     "gopher",
+				UUID:       "gopher-uuid",
+				IsFirewall: false,
+				Networks: []v1.MachineAllocationNetwork{
+					{
+						NetworkID: "network",
+					},
+				},
+			},
+			isError:  false,
+			expected: "",
+			name:     "implicit auto acquire network",
+		},
+	}
+
+	for _, test := range tests {
+		err := validateAllocationSpec(&test.spec)
+		if test.isError {
+			assert.Error(err, "Test: %s", test.name)
+			assert.EqualError(err, test.expected, "Test: %s", test.name)
+		} else {
+			assert.NoError(err, "Test: %s", test.name)
+		}
+	}
+
 }
