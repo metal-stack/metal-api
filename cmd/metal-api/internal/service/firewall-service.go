@@ -190,7 +190,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 	if requestPayload.UserData != nil {
 		userdata = *requestPayload.UserData
 	}
-	if requestPayload.NetworkIDs != nil && len(requestPayload.NetworkIDs) <= 0 {
+	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("network ids cannot be empty")) {
 			return
 		}
@@ -216,22 +216,6 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		}
 	}
 
-	hasUnderlay := false
-	for _, nid := range requestPayload.NetworkIDs {
-		n, err := r.ds.FindNetwork(nid)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		if n.Underlay {
-			hasUnderlay = true
-			break
-		}
-	}
-	if !hasUnderlay {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no underlay network specified"))
-		return
-	}
-
 	spec := machineAllocationSpec{
 		UUID:        uuid,
 		Name:        name,
@@ -245,9 +229,10 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		SSHPubKeys:  requestPayload.SSHPubKeys,
 		UserData:    userdata,
 		Tags:        requestPayload.Tags,
-		NetworkIDs:  requestPayload.NetworkIDs,
-		IPs:         []string{}, // for the time being not supported
+		Networks:    requestPayload.Networks,
+		IPs:         requestPayload.IPs,
 		HA:          ha,
+		IsFirewall:  true,
 	}
 
 	m, err := allocateMachine(r.ds, r.ipamer, &spec)

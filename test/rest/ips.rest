@@ -1,0 +1,21 @@
+@baseurl = {{scheme}}://{{host}}/v1/ip
+
+### get all ips
+# @name getAll
+GET {{baseurl}}
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### allocate ip
+# @name allocateIP
+POST {{baseurl}}/allocate/185.24.0.5
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "description": "an ip",
+  "name": "test-ip1",
+  "networkid": "internet-vagrant-lab",
+  "projectid": "devops"
+}

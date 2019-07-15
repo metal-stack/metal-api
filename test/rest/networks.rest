@@ -1,6 +1,6 @@
 @baseurl = {{scheme}}://{{host}}/v1/network
 
-### get all partitions
+### get all ips
 # @name getAll
 GET {{baseurl}}
 
@@ -8,7 +8,7 @@ GET {{baseurl}}
 # @name createTenantNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
-Authorization: Metal-Admin 8e99f348cb47cbb9f053bc768dd303d925dacfa2abc0a8fefc419d8459aa7583
+Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
@@ -62,4 +62,3 @@ X-Date: 1985-04-12T23:20:50.52Z
   ],
   "primary": false
 }
-
