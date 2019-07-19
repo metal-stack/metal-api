@@ -155,7 +155,7 @@ type MachineAllocationNetworks []MachineAllocationNetwork
 
 type MachineAllocationNetwork struct {
 	NetworkID     string `json:"networkid" description:"the id of the network that this machine will be placed in"`
-	AutoAcquireIP *bool  `json:"autoacquire" description:"will automatically acquire an ip in this network if set to true, default is true" optional:"true"`
+	AutoAcquireIP *bool  `json:"autoacquire" description:"will automatically acquire an ip in this network if set to true, default is true"`
 }
 
 type MachineFinalizeAllocationRequest struct {

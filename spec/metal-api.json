@@ -2627,12 +2627,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
+        "projectid",
+        "imageid",
         "sizeid",
-        "partitionid",
         "ssh_pub_keys",
         "tenant",
-        "imageid",
-        "projectid"
+        "partitionid"
       ],
       "properties": {
         "description": {
@@ -2711,18 +2711,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "liveliness",
-        "changed",
-        "size",
-        "allocation",
-        "rackid",
-        "hardware",
         "id",
+        "liveliness",
+        "tags",
+        "hardware",
+        "state",
         "events",
         "partition",
-        "tags",
-        "state",
-        "created"
+        "rackid",
+        "changed",
+        "allocation",
+        "created",
+        "size"
       ],
       "properties": {
         "allocation": {
@@ -3152,7 +3152,8 @@
     },
     "v1.MachineAllocationNetwork": {
       "required": [
-        "networkid"
+        "networkid",
+        "autoacquire"
       ],
       "properties": {
         "autoacquire": {
@@ -3231,9 +3232,9 @@
     },
     "v1.MachineHardware": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -3542,13 +3543,13 @@
       "required": [
         "id",
         "partition",
-        "size",
         "allocation",
+        "events",
+        "rackid",
+        "size",
+        "hardware",
         "state",
         "liveliness",
-        "rackid",
-        "hardware",
-        "events",
         "tags",
         "created",
         "changed"
@@ -3642,12 +3643,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "underlay",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary"
+        "primary",
+        "underlay",
+        "parentnetworkid"
       ],
       "properties": {
         "description": {
@@ -3711,12 +3712,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "parentnetworkid",
         "usage",
         "created",
         "changed"
@@ -3934,8 +3935,8 @@
       "required": [
         "id",
         "bootconfig",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
