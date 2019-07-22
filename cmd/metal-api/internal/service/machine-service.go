@@ -677,8 +677,8 @@ func additionalTags(machine *metal.Machine) []string {
 			if len(n.IPs) < 1 {
 				continue
 			}
-			ip, _, error := net.ParseCIDR(n.IPs[0])
-			if error != nil {
+			ip, _, err := net.ParseCIDR(n.IPs[0])
+			if err != nil {
 				continue
 			}
 			// Set the last octet to "0" regardles of version
