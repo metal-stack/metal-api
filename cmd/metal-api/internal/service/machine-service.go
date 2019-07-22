@@ -644,7 +644,10 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	old := *machine
 	machine.Allocation = alloc
-	machine.Tags = uniqueTags(allocationSpec.Tags)
+	tags := allocationSpec.Tags
+	additionalTags := additionalTags(machine)
+	tags = append(tags, additionalTags...)
+	machine.Tags = uniqueTags(tags)
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
@@ -661,6 +664,35 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	}
 
 	return machine, nil
+}
+
+func additionalTags(machine *metal.Machine) []string {
+	const tagSuffix = "machine.metal-pod.io"
+	tags := []string{}
+	for _, n := range machine.Allocation.MachineNetworks {
+		if n.Primary {
+			if n.ASN != 0 {
+				tags = append(tags, fmt.Sprintf("asn.primary.network.%s=%d", tagSuffix, n.ASN))
+			}
+			if len(n.IPs) < 1 {
+				continue
+			}
+			ip, _, error := net.ParseCIDR(n.IPs[0])
+			if error != nil {
+				continue
+			}
+			// Set the last octet to "0" regardles of version
+			ip[len(ip)-1] = 0
+			tags = append(tags, fmt.Sprintf("ip.localbgp.primary.network.%s=%s/32", tagSuffix, ip))
+		}
+	}
+	if machine.RackID != "" {
+		tags = append(tags, fmt.Sprintf("rack.%s=%s", tagSuffix, machine.RackID))
+	}
+	if machine.IPMI.Fru.ChassisPartSerial != "" {
+		tags = append(tags, fmt.Sprintf("chassis.%s=%s", tagSuffix, machine.IPMI.Fru.ChassisPartSerial))
+	}
+	return tags
 }
 
 func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
