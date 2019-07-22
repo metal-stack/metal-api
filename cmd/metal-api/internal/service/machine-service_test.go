@@ -6,24 +6,21 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	"golang.org/x/crypto/ssh"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	goipam "github.com/metal-pod/go-ipam"
-	"github.com/stretchr/testify/require"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
-
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/emicklei/go-restful"
+	goipam "github.com/metal-pod/go-ipam"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 type emptyPublisher struct {
@@ -773,4 +770,47 @@ func Test_validateAllocationSpec(t *testing.T) {
 		}
 	}
 
+}
+
+func Test_additionalTags(t *testing.T) {
+	networks := []*metal.MachineNetwork{}
+	network := &metal.MachineNetwork{
+		Primary: true,
+		IPs:     []string{"1.2.3.4/22"},
+		ASN:     1203874,
+	}
+	networks = append(networks, network)
+	tests := []struct {
+		name    string
+		machine *metal.Machine
+		want    []string
+	}{
+		{
+			name: "simple",
+			machine: &metal.Machine{
+				Allocation: &metal.MachineAllocation{
+					MachineNetworks: networks,
+				},
+				RackID: "rack01",
+				IPMI: metal.IPMI{
+					Fru: metal.Fru{
+						ChassisPartSerial: "chassis123",
+					},
+				},
+			},
+			want: []string{
+				"asn.primary.network.machine.metal-pod.io=1203874",
+				"ip.localbgp.primary.network.machine.metal-pod.io=1.2.3.0/32",
+				"rack.machine.metal-pod.io=rack01",
+				"chassis.machine.metal-pod.io=chassis123",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := additionalTags(tt.machine); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("additionalTags() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
