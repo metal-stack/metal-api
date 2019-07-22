@@ -677,10 +677,7 @@ func additionalTags(machine *metal.Machine) []string {
 			if len(n.IPs) < 1 {
 				continue
 			}
-			ip, _, err := net.ParseCIDR(n.IPs[0])
-			if err != nil {
-				continue
-			}
+			ip := net.ParseIP(n.IPs[0])
 			// Set the last octet to "0" regardles of version
 			ip[len(ip)-1] = 0
 			tags = append(tags, fmt.Sprintf("ip.localbgp.primary.network.%s=%s/32", tagSuffix, ip))

@@ -776,7 +776,7 @@ func Test_additionalTags(t *testing.T) {
 	networks := []*metal.MachineNetwork{}
 	network := &metal.MachineNetwork{
 		Primary: true,
-		IPs:     []string{"1.2.3.4/22"},
+		IPs:     []string{"1.2.3.4"},
 		ASN:     1203874,
 	}
 	networks = append(networks, network)
