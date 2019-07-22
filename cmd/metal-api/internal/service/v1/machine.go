@@ -391,7 +391,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	}
 
 	tags := []string{}
-	if len(tags) > 0 {
+	if len(m.Tags) > 0 {
 		tags = m.Tags
 	}
 
