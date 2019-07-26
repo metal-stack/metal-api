@@ -800,7 +800,7 @@ func Test_additionalTags(t *testing.T) {
 			},
 			want: []string{
 				"asn.primary.network.machine.metal-pod.io=1203874",
-				"ip.localbgp.primary.network.machine.metal-pod.io=1.2.3.0/32",
+				"ip.localbgp.primary.network.machine.metal-pod.io=1.2.3.0",
 				"rack.machine.metal-pod.io=rack01",
 				"chassis.machine.metal-pod.io=chassis123",
 			},

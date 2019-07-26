@@ -680,7 +680,11 @@ func additionalTags(machine *metal.Machine) []string {
 			ip := net.ParseIP(n.IPs[0])
 			// Set the last octet to "0" regardles of version
 			ip[len(ip)-1] = 0
-			tags = append(tags, fmt.Sprintf("ip.localbgp.primary.network.%s=%s/32", tagSuffix, ip))
+
+			// IP without mask is sufficient and
+			// kubernetes labels values must not contain a "/"
+			// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+			tags = append(tags, fmt.Sprintf("ip.localbgp.primary.network.%s=%s", tagSuffix, ip))
 		}
 	}
 	if machine.RackID != "" {
