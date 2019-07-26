@@ -799,10 +799,10 @@ func Test_additionalTags(t *testing.T) {
 				},
 			},
 			want: []string{
-				"asn.primary.network.machine.metal-pod.io=1203874",
-				"ip.localbgp.primary.network.machine.metal-pod.io=1.2.3.0",
-				"rack.machine.metal-pod.io=rack01",
-				"chassis.machine.metal-pod.io=chassis123",
+				"machine.metal-pod.io/network.primary.asn=1203874",
+				"machine.metal-pod.io/network.primary.localbgp.ip=1.2.3.0",
+				"machine.metal-pod.io/rack=rack01",
+				"machine.metal-pod.io/chassis=chassis123",
 			},
 		},
 	}

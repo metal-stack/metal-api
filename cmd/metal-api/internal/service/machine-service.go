@@ -667,12 +667,12 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 }
 
 func additionalTags(machine *metal.Machine) []string {
-	const tagSuffix = "machine.metal-pod.io"
+	const tagprefix = "machine.metal-pod.io"
 	tags := []string{}
 	for _, n := range machine.Allocation.MachineNetworks {
 		if n.Primary {
 			if n.ASN != 0 {
-				tags = append(tags, fmt.Sprintf("asn.primary.network.%s=%d", tagSuffix, n.ASN))
+				tags = append(tags, fmt.Sprintf("%s/network.primary.asn=%d", tagprefix, n.ASN))
 			}
 			if len(n.IPs) < 1 {
 				continue
@@ -684,14 +684,14 @@ func additionalTags(machine *metal.Machine) []string {
 			// IP without mask is sufficient and
 			// kubernetes labels values must not contain a "/"
 			// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-			tags = append(tags, fmt.Sprintf("ip.localbgp.primary.network.%s=%s", tagSuffix, ip))
+			tags = append(tags, fmt.Sprintf("%s/network.primary.localbgp.ip=%s", tagprefix, ip))
 		}
 	}
 	if machine.RackID != "" {
-		tags = append(tags, fmt.Sprintf("rack.%s=%s", tagSuffix, machine.RackID))
+		tags = append(tags, fmt.Sprintf("%s/rack=%s", tagprefix, machine.RackID))
 	}
 	if machine.IPMI.Fru.ChassisPartSerial != "" {
-		tags = append(tags, fmt.Sprintf("chassis.%s=%s", tagSuffix, machine.IPMI.Fru.ChassisPartSerial))
+		tags = append(tags, fmt.Sprintf("%s/chassis=%s", tagprefix, machine.IPMI.Fru.ChassisPartSerial))
 	}
 	return tags
 }
