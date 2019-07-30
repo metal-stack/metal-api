@@ -666,32 +666,40 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	return machine, nil
 }
 
+// adds tags to the machine, e.g. rack and chassis
+// ip.localbgp.primary.network.machine.metal-pod.io first IP of the network for the localbgp dummy-interface
 func additionalTags(machine *metal.Machine) []string {
-	const tagprefix = "machine.metal-pod.io"
+	const tagPrefix = "machine.metal-pod.io"
 	tags := []string{}
 	for _, n := range machine.Allocation.MachineNetworks {
 		if n.Primary {
 			if n.ASN != 0 {
-				tags = append(tags, fmt.Sprintf("%s/network.primary.asn=%d", tagprefix, n.ASN))
+				tags = append(tags, fmt.Sprintf("%s/network.primary.asn=%d", tagPrefix, n.ASN))
 			}
 			if len(n.IPs) < 1 {
 				continue
 			}
 			ip := net.ParseIP(n.IPs[0])
-			// Set the last octet to "0" regardles of version
-			ip[len(ip)-1] = 0
-
-			// IP without mask is sufficient and
-			// kubernetes labels values must not contain a "/"
-			// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-			tags = append(tags, fmt.Sprintf("%s/network.primary.localbgp.ip=%s", tagprefix, ip))
+			for _, p := range n.Prefixes {
+				pip, ipnet, err := net.ParseCIDR(p)
+				if err != nil {
+					continue
+				}
+				if ipnet.Contains(ip) {
+					// use the ip-address of the prefix as bgplocal-ip
+					// IP without mask is sufficient and kubernetes labels values must not contain a "/"
+					// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+					tags = append(tags, fmt.Sprintf("%s/network.primary.localbgp.ip=%s", tagPrefix, pip))
+					break
+				}
+			}
 		}
 	}
 	if machine.RackID != "" {
-		tags = append(tags, fmt.Sprintf("%s/rack=%s", tagprefix, machine.RackID))
+		tags = append(tags, fmt.Sprintf("%s/rack=%s", tagPrefix, machine.RackID))
 	}
 	if machine.IPMI.Fru.ChassisPartSerial != "" {
-		tags = append(tags, fmt.Sprintf("%s/chassis=%s", tagprefix, machine.IPMI.Fru.ChassisPartSerial))
+		tags = append(tags, fmt.Sprintf("%s/chassis=%s", tagPrefix, machine.IPMI.Fru.ChassisPartSerial))
 	}
 	return tags
 }

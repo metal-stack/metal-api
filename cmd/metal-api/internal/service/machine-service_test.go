@@ -773,13 +773,46 @@ func Test_validateAllocationSpec(t *testing.T) {
 }
 
 func Test_additionalTags(t *testing.T) {
+
+	//
 	networks := []*metal.MachineNetwork{}
 	network := &metal.MachineNetwork{
-		Primary: true,
-		IPs:     []string{"1.2.3.4"},
-		ASN:     1203874,
+		Primary:  true,
+		IPs:      []string{"1.2.3.4"},
+		Prefixes: []string{"1.2.0.0/22", "1.2.2.0/22", "2.3.4.0/24"},
+		ASN:      1203874,
 	}
 	networks = append(networks, network)
+
+	networks26 := []*metal.MachineNetwork{}
+	network26 := &metal.MachineNetwork{
+		Primary:  true,
+		IPs:      []string{"1.2.2.67"},
+		Prefixes: []string{"1.2.1.0/28", "1.2.2.0/26", "2.3.4.0/24", "1.6.0.0/16", "1.2.2.64/26"},
+		ASN:      1203874,
+	}
+	networks26 = append(networks26, network26)
+
+	// no match -> no label
+	nomatchNetworks := []*metal.MachineNetwork{}
+	nomatchNetwork := &metal.MachineNetwork{
+		Primary:  true,
+		IPs:      []string{"10.2.0.4"},
+		Prefixes: []string{"1.2.0.0/22", "1.2.2.0/22", "2.3.4.0/24"},
+		ASN:      1203874,
+	}
+	nomatchNetworks = append(nomatchNetworks, nomatchNetwork)
+
+	// no ip -> no label
+	noipNetworks := []*metal.MachineNetwork{}
+	noipNetwork := &metal.MachineNetwork{
+		Primary:  true,
+		IPs:      []string{},
+		Prefixes: []string{"1.2.0.0/22", "1.2.2.0/22", "2.3.4.0/24"},
+		ASN:      1203874,
+	}
+	noipNetworks = append(noipNetworks, noipNetwork)
+
 	tests := []struct {
 		name    string
 		machine *metal.Machine
@@ -800,7 +833,65 @@ func Test_additionalTags(t *testing.T) {
 			},
 			want: []string{
 				"machine.metal-pod.io/network.primary.asn=1203874",
-				"machine.metal-pod.io/network.primary.localbgp.ip=1.2.3.0",
+				"machine.metal-pod.io/network.primary.localbgp.ip=1.2.0.0",
+				"machine.metal-pod.io/rack=rack01",
+				"machine.metal-pod.io/chassis=chassis123",
+			},
+		},
+		{
+			name: "simple26",
+			machine: &metal.Machine{
+				Allocation: &metal.MachineAllocation{
+					MachineNetworks: networks26,
+				},
+				RackID: "rack01",
+				IPMI: metal.IPMI{
+					Fru: metal.Fru{
+						ChassisPartSerial: "chassis123",
+					},
+				},
+			},
+			want: []string{
+				"machine.metal-pod.io/network.primary.asn=1203874",
+				"machine.metal-pod.io/network.primary.localbgp.ip=1.2.2.64",
+				"machine.metal-pod.io/rack=rack01",
+				"machine.metal-pod.io/chassis=chassis123",
+			},
+		},
+		{
+			name: "ip does not match prefix",
+			machine: &metal.Machine{
+				Allocation: &metal.MachineAllocation{
+					MachineNetworks: nomatchNetworks,
+				},
+				RackID: "rack01",
+				IPMI: metal.IPMI{
+					Fru: metal.Fru{
+						ChassisPartSerial: "chassis123",
+					},
+				},
+			},
+			want: []string{
+				"machine.metal-pod.io/network.primary.asn=1203874",
+				"machine.metal-pod.io/rack=rack01",
+				"machine.metal-pod.io/chassis=chassis123",
+			},
+		},
+		{
+			name: "no ip",
+			machine: &metal.Machine{
+				Allocation: &metal.MachineAllocation{
+					MachineNetworks: nomatchNetworks,
+				},
+				RackID: "rack01",
+				IPMI: metal.IPMI{
+					Fru: metal.Fru{
+						ChassisPartSerial: "chassis123",
+					},
+				},
+			},
+			want: []string{
+				"machine.metal-pod.io/network.primary.asn=1203874",
 				"machine.metal-pod.io/rack=rack01",
 				"machine.metal-pod.io/chassis=chassis123",
 			},
