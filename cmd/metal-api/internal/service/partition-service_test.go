@@ -19,7 +19,7 @@ func TestGetPartitions(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(ds)
+	service := NewPartition(ds, &emptyPublisher{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition", nil)
 	w := httptest.NewRecorder()
@@ -47,7 +47,7 @@ func TestGetPartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(ds)
+	service := NewPartition(ds, &emptyPublisher{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition/1", nil)
 	w := httptest.NewRecorder()
@@ -68,7 +68,7 @@ func TestGetPartitionNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(ds)
+	service := NewPartition(ds, &emptyPublisher{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition/999", nil)
 	w := httptest.NewRecorder()
@@ -88,7 +88,7 @@ func TestDeletePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(ds)
+	service := NewPartition(ds, &emptyPublisher{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("DELETE", "/v1/partition/1", nil)
 	container = injectAdmin(container, req)
@@ -110,7 +110,7 @@ func TestCreatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(ds)
+	service := NewPartition(ds, &emptyPublisher{})
 	container := restful.NewContainer().Add(service)
 
 	createRequest := v1.PartitionCreateRequest{
@@ -147,7 +147,7 @@ func TestUpdatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(ds)
+	service := NewPartition(ds, &emptyPublisher{})
 	container := restful.NewContainer().Add(service)
 
 	mgmtService := "mgmt"
@@ -192,7 +192,7 @@ func TestPartitionCapacity(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(ds)
+	service := NewPartition(ds, &emptyPublisher{})
 	container := restful.NewContainer().Add(service)
 
 	req := httptest.NewRequest("GET", "/v1/partition/capacity", nil)
