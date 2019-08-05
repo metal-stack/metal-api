@@ -11,6 +11,8 @@ import (
 
 	"fmt"
 
+	"git.f-i-ts.de/cloud-native/metallib/bus"
+
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -18,14 +20,16 @@ import (
 
 type partitionResource struct {
 	webResource
+	bus.Publisher
 }
 
 // NewPartition returns a webservice for partition specific endpoints.
-func NewPartition(ds *datastore.RethinkStore) *restful.WebService {
+func NewPartition(ds *datastore.RethinkStore, pub bus.Publisher) *restful.WebService {
 	r := partitionResource{
 		webResource: webResource{
 			ds: ds,
 		},
+		Publisher: pub,
 	}
 	return r.webService()
 }
@@ -190,6 +194,13 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	err = r.ds.CreatePartition(p)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	fqn := metal.TopicSwitch.GetFQN(p.GetID()) 
+	if err := r.CreateTopic(fqn); err != nil {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
 
 	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
