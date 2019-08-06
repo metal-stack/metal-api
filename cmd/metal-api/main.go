@@ -284,7 +284,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 func initRestServices(withauth bool) *restfulspec.Config {
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewPartition(ds))
+	restful.DefaultContainer.Add(service.NewPartition(ds, producer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer))
