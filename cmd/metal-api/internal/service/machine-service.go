@@ -1120,10 +1120,8 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	sws, err = setVrfAtSwitches(r.ds, m, vrf)
 	if err != nil {
-		if m.Allocation == nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s", id, vrf)) {
-				return
-			}
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s", id, vrf)) {
+			return
 		}
 	}
 
