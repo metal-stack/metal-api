@@ -316,46 +316,197 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 }
 
 func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.SwitchResponse {
-	p := findSwitchReferencedEntites(s, ds, logger)
-	return v1.NewSwitchResponse(s, p)
+	p, ips, iMap, machines := findSwitchReferencedEntites(s, ds, logger)
+	nics := makeSwitchNics(s, ips, iMap, machines)
+	cons := makeSwitchCons(s)
+	return v1.NewSwitchResponse(s, p, nics, cons)
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *metal.Partition {
+func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
+	vnis := []string{}
+	cidrs := []string{}
+	for _, net := range m.Allocation.MachineNetworks {
+		if net.Underlay {
+			for _, ip := range net.IPs {
+				cidrs = append(cidrs, fmt.Sprintf("%s/32", ip))
+			}
+		} else {
+			vnis = append(vnis, fmt.Sprintf("%d", net.Vrf))
+			// filter for "project" addresses / cidrs is not possible since EVPN Type-5 routes can not be filtered by prefixes
+		}
+	}
+	return v1.NewBGPFilter(vnis, cidrs)
+}
+
+func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
+	vnis := []string{}
+	cidrs := []string{}
+	p := m.Allocation.Project
+	var primary *metal.MachineNetwork
+	var underlay *metal.MachineNetwork
+	for _, net := range m.Allocation.MachineNetworks {
+		if net.Primary {
+			primary = net
+		} else if net.Underlay {
+			underlay = net
+		}
+	}
+
+	// Allow all prefixes of the primary network
+	if primary != nil {
+		cidrs = append(cidrs, primary.Prefixes...)
+	}
+	for _, i := range ips[p] {
+		// No need to add /32 addresses of the primary network to the whitelist.
+		if primary != nil && primary.ContainsIP(i.IPAddress) {
+			continue
+		}
+		// Do not allow underlay addresses to be announced.
+		if underlay != nil && underlay.ContainsIP(i.IPAddress) {
+			continue
+		}
+		// Allow all other ip addresses allocated for the project.
+		cidrs = append(cidrs, fmt.Sprintf("%s/32", i.IPAddress))
+	}
+	return v1.NewBGPFilter(vnis, cidrs)
+}
+
+func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.ImageMap) v1.BGPFilter {
+	var filter v1.BGPFilter
+	if m.IsFirewall(iMap) {
+		// vrf "default" means: the firewall was successfully allocated and the switch port configured
+		// otherwise the port is still not configured yet (pxe-setup) and a BGPFilter would break the install routine
+		if vrf == "default" {
+			filter = makeBGPFilterFirewall(m)
+		}
+	} else {
+		filter = makeBGPFilterMachine(m, ips)
+	}
+	return filter
+}
+
+func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, machines []metal.Machine) v1.SwitchNics {
+	machinesByID := map[string]*metal.Machine{}
+	for i, m := range machines {
+		machinesByID[m.ID] = &machines[i]
+	}
+	machinesBySwp := map[string]*metal.Machine{}
+	for mid, metalConnections := range s.MachineConnections {
+		for _, mc := range metalConnections {
+			if mid == mc.MachineID {
+				machinesBySwp[mc.Nic.Name] = machinesByID[mid]
+				break
+			}
+		}
+	}
+	nics := v1.SwitchNics{}
+	for _, n := range s.Nics {
+		m := machinesBySwp[n.Name]
+		var filter *v1.BGPFilter
+		if m != nil && m.Allocation != nil {
+			f := makeBGPFilter(*m, n.Vrf, ips, iMap)
+			filter = &f
+		}
+		nic := v1.SwitchNic{
+			MacAddress: string(n.MacAddress),
+			Name:       n.Name,
+			Vrf:        n.Vrf,
+			BGPFilter:  filter,
+		}
+		nics = append(nics, nic)
+	}
+	return nics
+}
+
+func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
+	cons := []v1.SwitchConnection{}
+	for _, metalConnections := range s.MachineConnections {
+		for _, mc := range metalConnections {
+			nic := v1.SwitchNic{
+				MacAddress: string(mc.Nic.MacAddress),
+				Name:       mc.Nic.Name,
+				Vrf:        mc.Nic.Vrf,
+			}
+			con := v1.SwitchConnection{
+				Nic:       nic,
+				MachineID: mc.MachineID,
+			}
+			cons = append(cons, con)
+		}
+	}
+	return cons
+}
+
+func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.ImageMap, []metal.Machine) {
 	var err error
 
 	var p *metal.Partition
+	var m []metal.Machine
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
 		if err != nil {
 			logger.Errorw("switch references partition, but partition cannot be found in database", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
 		}
+
+		props := v1.FindMachinesRequest{
+			PartitionID: &s.PartitionID,
+		}
+		m, err = ds.FindMachines(&props)
+		if err != nil {
+			logger.Errorw("could not find machines of partition", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
+		}
 	}
 
-	return p
+	ips, err := ds.ListIPs()
+	if err != nil {
+		logger.Errorw("ips could not be listed", "error", err)
+	}
+
+	imgs, err := ds.ListImages()
+	if err != nil {
+		logger.Errorw("images could not be listed", "error", err)
+	}
+
+	return p, ips.ByProjectID(), imgs.ByID(), m
 }
 
 func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.SwitchResponse {
-	pMap := getSwitchReferencedEntityMaps(ds, logger)
-
+	pMap, ips, iMap := getSwitchReferencedEntityMaps(ds, logger)
 	result := []*v1.SwitchResponse{}
-
-	for index := range ss {
+	m, err := ds.FindMachines(&v1.FindMachinesRequest{})
+	if err != nil {
+		logger.Errorw("could not find machines")
+	}
+	for _, sw := range ss {
 		var p *metal.Partition
-		if ss[index].PartitionID != "" {
-			partitionEntity := pMap[ss[index].PartitionID]
+		if sw.PartitionID != "" {
+			partitionEntity := pMap[sw.PartitionID]
 			p = &partitionEntity
 		}
-		result = append(result, v1.NewSwitchResponse(&ss[index], p))
+
+		nics := makeSwitchNics(&sw, ips, iMap, m)
+		cons := makeSwitchCons(&sw)
+		result = append(result, v1.NewSwitchResponse(&sw, p, nics, cons))
 	}
 
 	return result
 }
 
-func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) metal.PartitionMap {
+func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.PartitionMap, metal.IPsMap, metal.ImageMap) {
 	p, err := ds.ListPartitions()
 	if err != nil {
 		logger.Errorw("partitions could not be listed", "error", err)
 	}
 
-	return p.ByID()
+	ips, err := ds.ListIPs()
+	if err != nil {
+		logger.Errorw("ips could not be listed", "error", err)
+	}
+
+	imgs, err := ds.ListImages()
+	if err != nil {
+		logger.Errorw("images could not be listed", "error", err)
+	}
+
+	return p.ByID(), ips.ByProjectID(), imgs.ByID()
 }

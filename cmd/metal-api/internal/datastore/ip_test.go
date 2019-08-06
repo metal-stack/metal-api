@@ -67,7 +67,7 @@ func TestRethinkStore_ListIPs(t *testing.T) {
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		want    []metal.IP
+		want    metal.IPs
 		wantErr bool
 	}{
 		// Test-Data List / Test Cases:

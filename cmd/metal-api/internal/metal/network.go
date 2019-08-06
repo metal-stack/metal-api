@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -86,6 +87,21 @@ func (n *Network) FindPrefix(cidr string) *Prefix {
 		}
 	}
 	return found
+}
+
+// ContainsIP checks whether the given ip is included in the networks prefixes
+func (n *MachineNetwork) ContainsIP(ip string) bool {
+	pip := net.ParseIP(ip)
+	for _, p := range n.Prefixes {
+		_, n, err := net.ParseCIDR(p)
+		if err != nil {
+			continue
+		}
+		if n.Contains(pip) {
+			return true
+		}
+	}
+	return false
 }
 
 // SubstractPrefixes returns the prefixes of the network minus the prefixes passed in the arguments

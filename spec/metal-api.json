@@ -2298,6 +2298,27 @@
         }
       }
     },
+    "v1.BGPFilter": {
+      "required": [
+        "cidrs"
+      ],
+      "properties": {
+        "cidrs": {
+          "description": "the cidr addresses that are allowed to be announced at this switch port",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "vnis": {
+          "description": "the virtual networks that are exposed at this switch port",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "v1.EmptyBody": {},
     "v1.FindIPsRequest": {
       "description": "an ip address that can be attached to a machine",
@@ -2627,12 +2648,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
+        "tenant",
         "projectid",
+        "partitionid",
         "imageid",
         "sizeid",
-        "ssh_pub_keys",
-        "tenant",
-        "partitionid"
+        "ssh_pub_keys"
       ],
       "properties": {
         "description": {
@@ -2711,18 +2732,18 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "id",
-        "liveliness",
-        "tags",
         "hardware",
-        "state",
-        "events",
-        "partition",
-        "rackid",
-        "changed",
-        "allocation",
+        "tags",
         "created",
-        "size"
+        "size",
+        "rackid",
+        "allocation",
+        "state",
+        "id",
+        "events",
+        "changed",
+        "partition",
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -2824,8 +2845,8 @@
         "networkid",
         "ipaddress",
         "machineid",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -2869,8 +2890,8 @@
     },
     "v1.IPUpdateRequest": {
       "required": [
-        "ipaddress",
-        "machineid"
+        "machineid",
+        "ipaddress"
       ],
       "properties": {
         "description": {
@@ -3265,9 +3286,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "disks",
         "memory",
         "cpu_cores",
-        "disks",
         "nics"
       ],
       "properties": {
@@ -3432,8 +3453,8 @@
     },
     "v1.MachineNicExtended": {
       "required": [
-        "mac",
         "name",
+        "mac",
         "neighbors"
       ],
       "properties": {
@@ -3542,17 +3563,17 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "partition",
+        "hardware",
         "allocation",
         "events",
+        "partition",
         "rackid",
-        "size",
-        "hardware",
-        "state",
         "liveliness",
         "tags",
-        "created",
-        "changed"
+        "size",
+        "state",
+        "changed",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3643,12 +3664,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "parentnetworkid"
+        "parentnetworkid",
+        "prefixes"
       ],
       "properties": {
         "description": {
@@ -3712,12 +3733,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "primary",
+        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay",
         "usage",
         "created",
         "changed"
@@ -4223,6 +4244,10 @@
         "name"
       ],
       "properties": {
+        "filter": {
+          "description": "configures the bgp filter applied at the switch port",
+          "$ref": "#/definitions/v1.BGPFilter"
+        },
         "mac": {
           "description": "the mac address of this network interface",
           "type": "string"

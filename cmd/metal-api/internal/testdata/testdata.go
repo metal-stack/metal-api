@@ -562,6 +562,9 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("machine").Get("8")).Return(M8, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("machine").Get("999")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("machine").Filter(func(var_1 r.Term) r.Term {
+		return var_1.Field("partitionid").Eq(Partition1.ID)
+	})).Return([]metal.Machine{M1, M2, M3, M4, M5, M7, M8}, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(Switch1, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch2")).Return(Switch2, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3")).Return(Switch3, nil)

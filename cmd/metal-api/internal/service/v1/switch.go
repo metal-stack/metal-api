@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"sort"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 )
 
@@ -11,9 +13,25 @@ type SwitchBase struct {
 type SwitchNics []SwitchNic
 
 type SwitchNic struct {
-	MacAddress string `json:"mac"  description:"the mac address of this network interface"`
-	Name       string `json:"name"  description:"the name of this network interface"`
-	Vrf        string `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
+	MacAddress string     `json:"mac" description:"the mac address of this network interface"`
+	Name       string     `json:"name" description:"the name of this network interface"`
+	Vrf        string     `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
+	BGPFilter  *BGPFilter `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
+}
+
+type BGPFilter struct {
+	CIDRs []string `json:"cidrs" description:"the cidr addresses that are allowed to be announced at this switch port"`
+	VNIs  []string `json:"vnis" description:"the virtual networks that are exposed at this switch port" optional:"true"`
+}
+
+func NewBGPFilter(vnis, cidrs []string) BGPFilter {
+	// Sort VNIs and CIDRs to avoid unnecessary configuration changes on leaf switches
+	sort.Strings(vnis)
+	sort.Strings(cidrs)
+	return BGPFilter{
+		VNIs:  vnis,
+		CIDRs: cidrs,
+	}
 }
 
 func (ss SwitchNics) ByMac() map[string]SwitchNic {
@@ -45,35 +63,9 @@ type SwitchResponse struct {
 	Timestamps
 }
 
-func NewSwitchResponse(s *metal.Switch, p *metal.Partition) *SwitchResponse {
+func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, cons []SwitchConnection) *SwitchResponse {
 	if s == nil {
 		return nil
-	}
-
-	nics := SwitchNics{}
-	for i := range s.Nics {
-		nic := SwitchNic{
-			MacAddress: string(s.Nics[i].MacAddress),
-			Name:       s.Nics[i].Name,
-			Vrf:        s.Nics[i].Vrf,
-		}
-		nics = append(nics, nic)
-	}
-
-	cons := []SwitchConnection{}
-	for _, metalConnections := range s.MachineConnections {
-		for i := range metalConnections {
-			nic := SwitchNic{
-				MacAddress: string(metalConnections[i].Nic.MacAddress),
-				Name:       metalConnections[i].Nic.Name,
-				Vrf:        metalConnections[i].Nic.Vrf,
-			}
-			con := SwitchConnection{
-				Nic:       nic,
-				MachineID: metalConnections[i].MachineID,
-			}
-			cons = append(cons, con)
-		}
 	}
 
 	return &SwitchResponse{
