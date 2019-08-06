@@ -63,3 +63,15 @@ func (ip *IP) ASN() (int64, error) {
 	asn := asnbase + int64(i[14])*256 + int64(i[15])
 	return asn, nil
 }
+
+type IPs []IP
+
+type IPsMap map[string]IPs
+
+func (l IPs) ByProjectID() IPsMap {
+	res := IPsMap{}
+	for _, e := range l {
+		res[e.ProjectID] = append(res[e.ProjectID], e)
+	}
+	return res
+}

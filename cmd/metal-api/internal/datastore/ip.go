@@ -60,7 +60,7 @@ func (rs *RethinkStore) FindIPs(props *v1.FindIPsRequest) ([]metal.IP, error) {
 }
 
 // ListIPs returns all ips.
-func (rs *RethinkStore) ListIPs() ([]metal.IP, error) {
+func (rs *RethinkStore) ListIPs() (metal.IPs, error) {
 	ips := make([]metal.IP, 0)
 	err := rs.listEntities(rs.ipTable(), &ips)
 	return ips, err

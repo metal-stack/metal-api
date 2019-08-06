@@ -218,6 +218,277 @@ func TestSetVrfAtSwitch(t *testing.T) {
 	mock.AssertExpectations(t)
 }
 
+func TestMakeBGPFilterFirewall(t *testing.T) {
+	type args struct {
+		maschine metal.Machine
+	}
+	tests := []struct {
+		name string
+		args args
+		want v1.BGPFilter
+	}{
+		{
+			name: "valid firewall networks with underlay",
+			args: args{
+				maschine: metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						MachineNetworks: []*metal.MachineNetwork{
+							&metal.MachineNetwork{
+								IPs: []string{},
+								Vrf: 104010,
+							},
+							&metal.MachineNetwork{
+								IPs:      []string{"10.0.0.2", "10.0.0.1"},
+								Vrf:      0,
+								Underlay: true,
+							},
+							&metal.MachineNetwork{
+								IPs: []string{"212.89.42.1", "212.89.42.2"},
+								Vrf: 104009,
+							},
+						},
+					},
+				},
+			},
+			want: v1.NewBGPFilter([]string{"104009", "104010"}, []string{"10.0.0.1/32", "10.0.0.2/32"}),
+		},
+		{
+			name: "no underlay firewall networks",
+			args: args{
+				maschine: metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						MachineNetworks: []*metal.MachineNetwork{
+							&metal.MachineNetwork{
+								IPs:      []string{"10.0.0.1"},
+								Vrf:      104010,
+								Underlay: false,
+							},
+						},
+					},
+				},
+			},
+			want: v1.BGPFilter{
+				VNIs:  []string{"104010"},
+				CIDRs: []string{},
+			},
+		},
+		{
+			name: "empty firewall networks",
+			args: args{
+				maschine: metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						MachineNetworks: []*metal.MachineNetwork{},
+					},
+				},
+			},
+			want: v1.BGPFilter{
+				VNIs:  []string{},
+				CIDRs: []string{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := makeBGPFilterFirewall(tt.args.maschine)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("makeBGPFilterFirewall() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMakeBGPFilterMachine(t *testing.T) {
+	type args struct {
+		maschine metal.Machine
+		ipsMap   metal.IPsMap
+	}
+	tests := []struct {
+		name string
+		args args
+		want v1.BGPFilter
+	}{
+		{
+			name: "valid machine networks",
+			args: args{
+				ipsMap: metal.IPsMap{"project": metal.IPs{
+					metal.IP{
+						IPAddress: "212.89.42.1",
+					},
+					metal.IP{
+						IPAddress: "212.89.42.2",
+					},
+					metal.IP{
+						IPAddress: "100.127.1.1",
+					},
+					metal.IP{
+						IPAddress: "10.1.0.1",
+					},
+				}},
+				maschine: metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						Project: "project",
+						MachineNetworks: []*metal.MachineNetwork{
+							&metal.MachineNetwork{
+								IPs:      []string{"10.1.0.1"},
+								Prefixes: []string{"10.2.0.0/22", "10.1.0.0/22"},
+								Vrf:      1234,
+								Primary:  true,
+							},
+							&metal.MachineNetwork{
+								IPs:      []string{"10.0.0.2", "10.0.0.1"},
+								Vrf:      0,
+								Underlay: true,
+							},
+							&metal.MachineNetwork{
+								IPs: []string{"212.89.42.2", "212.89.42.1"},
+								Vrf: 104009,
+							},
+						},
+					},
+				},
+			},
+			want: v1.NewBGPFilter([]string{}, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "212.89.42.1/32", "212.89.42.2/32"}),
+		},
+		{
+			name: "allow only allocated project ips",
+			args: args{
+				ipsMap: metal.IPsMap{"project": metal.IPs{
+					metal.IP{
+						IPAddress: "212.89.42.1",
+					},
+				}},
+				maschine: metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						Project: "project",
+						MachineNetworks: []*metal.MachineNetwork{
+							&metal.MachineNetwork{
+								IPs: []string{"212.89.42.2", "212.89.42.1"},
+								Vrf: 104009,
+							},
+						},
+					},
+				},
+			},
+			want: v1.NewBGPFilter([]string{}, []string{"212.89.42.1/32"}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := makeBGPFilterMachine(tt.args.maschine, tt.args.ipsMap)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMakeSwitchNics(t *testing.T) {
+	type args struct {
+		s        *metal.Switch
+		ips      metal.IPsMap
+		images   metal.ImageMap
+		machines []metal.Machine
+	}
+	tests := []struct {
+		name string
+		args args
+		want v1.SwitchNics
+	}{
+		{
+			name: "machine and firewall bgp filter",
+			args: args{
+				s: &metal.Switch{
+					MachineConnections: metal.ConnectionMap{
+						"m1": metal.Connections{
+							metal.Connection{
+								MachineID: "m1",
+								Nic: metal.Nic{
+									Name: "swp1",
+								},
+							},
+						},
+						"fw1": metal.Connections{
+							metal.Connection{
+								MachineID: "fw1",
+								Nic: metal.Nic{
+									Name: "swp2",
+								},
+							},
+						},
+					},
+					Nics: metal.Nics{
+						metal.Nic{
+							Name: "swp1",
+							Vrf:  "vrf1",
+						},
+						metal.Nic{
+							Name: "swp2",
+							Vrf:  "default",
+						},
+					},
+				},
+				ips: metal.IPsMap{"project": metal.IPs{
+					metal.IP{
+						IPAddress: "212.89.1.1",
+					},
+				},
+				},
+				images: metal.ImageMap{
+					"fwimg": metal.Image{
+						Base:     metal.Base{ID: "fwimg"},
+						Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureFirewall: true},
+					},
+				},
+				machines: []metal.Machine{
+					metal.Machine{
+						Base: metal.Base{ID: "m1"},
+						Allocation: &metal.MachineAllocation{
+							Project: "project",
+						},
+					},
+					metal.Machine{
+						Base: metal.Base{ID: "fw1"},
+						Allocation: &metal.MachineAllocation{
+							Project: "project",
+							ImageID: "fwimg",
+							MachineNetworks: []*metal.MachineNetwork{
+								&metal.MachineNetwork{Vrf: 1},
+								&metal.MachineNetwork{Vrf: 2},
+							},
+						},
+					},
+				},
+			},
+			want: v1.SwitchNics{
+				v1.SwitchNic{
+					Name: "swp1",
+					Vrf:  "vrf1",
+					BGPFilter: &v1.BGPFilter{
+						CIDRs: []string{"212.89.1.1/32"},
+						VNIs:  []string{},
+					},
+				},
+				v1.SwitchNic{
+					Name: "swp2",
+					Vrf:  "default",
+					BGPFilter: &v1.BGPFilter{
+						CIDRs: []string{},
+						VNIs:  []string{"1", "2"},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.images, tt.args.machines)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_updateSwitchNics(t *testing.T) {
 	type args struct {
 		oldNics            metal.NicMap

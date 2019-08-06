@@ -2,11 +2,12 @@ package datastore
 
 import (
 	"fmt"
+	"strconv"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
-	"strconv"
 )
 
 // FindPrimaryNetwork returns the network which is marked default in this partition
