@@ -196,7 +196,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		return
 	}
 
-	fqn := metal.TopicSwitch.GetFQN(p.GetID()) 
+	fqn := metal.TopicSwitch.GetFQN(p.GetID())
 	if err := r.CreateTopic(fqn); err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
