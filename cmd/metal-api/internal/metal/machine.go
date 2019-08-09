@@ -182,10 +182,12 @@ type MachineCommand string
 
 // our supported machines commands.
 const (
-	MachineOnCmd    MachineCommand = "ON"
-	MachineOffCmd   MachineCommand = "OFF"
-	MachineResetCmd MachineCommand = "RESET"
-	MachineBiosCmd  MachineCommand = "BIOS"
+	MachineOnCmd     MachineCommand = "ON"
+	MachineOffCmd    MachineCommand = "OFF"
+	MachineResetCmd  MachineCommand = "RESET"
+	MachineBiosCmd   MachineCommand = "BIOS"
+	MachineLedOnCmd  MachineCommand = "LED-ON"
+	MachineLedOffCmd MachineCommand = "LED-OFF"
 )
 
 // A MachineExecCommand can be sent via a MachineEvent to execute

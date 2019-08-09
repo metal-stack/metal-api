@@ -553,6 +553,14 @@ func TestOnMachine(t *testing.T) {
 			cmd:      metal.MachineBiosCmd,
 			endpoint: "bios",
 		},
+		{
+			cmd:      metal.MachineLedOnCmd,
+			endpoint: "led-on",
+		},
+		{
+			cmd:      metal.MachineLedOffCmd,
+			endpoint: "led-off",
+		},
 	}
 
 	for _, d := range data {

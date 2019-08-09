@@ -264,6 +264,26 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/power/led-on").
+		To(editor(r.machineLEDOn)).
+		Operation("machineLedOn").
+		Doc("sends a power-on to the machine chassis identify LED").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/power/led-off").
+		To(editor(r.machineLEDOff)).
+		Operation("machineLedOff").
+		Doc("sends a power-off to the machine chassis identify LED").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
 }
 
@@ -317,7 +337,7 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 				return a.Err
 			}
 
-			s, p, i, ec := findMachineReferencedEntites(a.Machine, r.ds, log.Sugar())
+			s, p, i, ec := findMachineReferencedEntities(a.Machine, r.ds, log.Sugar())
 			response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineResponse(a.Machine, s, p, i, ec))
 		case <-ctx.Done():
 			return fmt.Errorf("client timeout")
@@ -1439,6 +1459,14 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
 }
 
+func (r machineResource) machineLEDOn(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineLEDOn", metal.MachineLedOnCmd, request, response)
+}
+
+func (r machineResource) machineLEDOff(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineLEDOff", metal.MachineLedOffCmd, request, response)
+}
+
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
@@ -1465,7 +1493,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 }
 
 func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineResponse {
-	s, p, i, ec := findMachineReferencedEntites(m, ds, logger)
+	s, p, i, ec := findMachineReferencedEntities(m, ds, logger)
 	return v1.NewMachineResponse(m, s, p, i, ec)
 }
 
@@ -1499,7 +1527,7 @@ func makeMachineResponseList(ms []metal.Machine, ds *datastore.RethinkStore, log
 	return result
 }
 
-func findMachineReferencedEntites(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
+func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
 	var err error
 
 	var s *metal.Size
