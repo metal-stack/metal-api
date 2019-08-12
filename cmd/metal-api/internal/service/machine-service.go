@@ -266,7 +266,7 @@ func (r machineResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/{id}/power/led-on").
 		To(editor(r.machineLEDOn)).
-		Operation("machineLedOn").
+		Operation("machineLEDOn").
 		Doc("sends a power-on to the machine chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -276,7 +276,7 @@ func (r machineResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/{id}/power/led-off").
 		To(editor(r.machineLEDOff)).
-		Operation("machineLedOff").
+		Operation("machineLEDOff").
 		Doc("sends a power-off to the machine chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -404,12 +404,12 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 		return
 	}
 
-	machineStateType, err := metal.MachineStateFrom(requestPayload.Value)
+	machineState, err := metal.MachineStateFrom(requestPayload.Value)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	if machineStateType != metal.AvailableState && requestPayload.Description == "" {
+	if machineState != metal.AvailableState && requestPayload.Description == "" {
 		// we want a cause why this machine is not available
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
 			return
@@ -425,7 +425,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 	newMachine := *oldMachine
 
 	newMachine.State = metal.MachineState{
-		Value:       machineStateType,
+		Value:       machineState,
 		Description: requestPayload.Description,
 	}
 
@@ -487,8 +487,10 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			RackID:      requestPayload.RackID,
 			Hardware:    machineHardware,
 			State: metal.MachineState{
-				Value:       metal.AvailableState,
-				Description: "",
+				Value: metal.AvailableState,
+			},
+			LEDState: metal.MachineLEDState{
+				Value: metal.LEDOnState,
 			},
 			Tags: requestPayload.Tags,
 			IPMI: v1.NewMetalIPMI(&requestPayload.IPMI),

@@ -363,6 +363,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 		})
 	}
 }
+
 func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -391,7 +392,6 @@ func TestSetMachineState(t *testing.T) {
 	require.Equal(t, "1", result.ID)
 	require.Equal(t, string(metal.ReservedState), result.State.Value)
 	require.Equal(t, "blubber", result.State.Description)
-
 }
 
 func TestGetMachine(t *testing.T) {
