@@ -1106,6 +1106,52 @@
         }
       }
     },
+    "/v1/machine/{id}/led-state": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "set the state of a machine chassis identify LED",
+        "operationId": "setMachineLEDState",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineLEDState"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/{id}/power/bios": {
       "post": {
         "consumes": [
@@ -2742,10 +2788,10 @@
       "required": [
         "imageid",
         "projectid",
-        "sizeid",
-        "ssh_pub_keys",
+        "partitionid",
         "tenant",
-        "partitionid"
+        "sizeid",
+        "ssh_pub_keys"
       ],
       "properties": {
         "description": {
@@ -2824,19 +2870,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "state",
-        "partition",
         "rackid",
-        "changed",
-        "size",
+        "state",
         "hardware",
+        "id",
         "tags",
+        "allocation",
         "events",
         "created",
-        "id",
-        "allocation",
+        "changed",
+        "liveliness",
+        "partition",
         "ledstate",
-        "liveliness"
+        "size"
       ],
       "properties": {
         "allocation": {
@@ -2914,8 +2960,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "projectid",
-        "networkid"
+        "networkid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -3383,9 +3429,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
-        "memory",
         "cpu_cores",
         "disks",
+        "memory",
         "nics"
       ],
       "properties": {
@@ -3676,16 +3722,16 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "state",
+        "size",
+        "allocation",
         "ledstate",
         "liveliness",
-        "tags",
+        "events",
         "partition",
         "rackid",
-        "size",
         "hardware",
-        "allocation",
-        "events",
+        "state",
+        "tags",
         "created",
         "changed"
       ],
@@ -3851,12 +3897,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "parentnetworkid",
+        "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
         "underlay",
-        "parentnetworkid",
-        "prefixes",
         "usage",
         "created",
         "changed"

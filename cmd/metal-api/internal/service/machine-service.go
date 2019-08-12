@@ -168,6 +168,17 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/led-state").
+		To(editor(r.setMachineLEDState)).
+		Operation("setMachineLEDState").
+		Doc("set the state of a machine chassis identify LED").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineLEDState{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.DELETE("/{id}/free").
 		To(editor(r.freeMachine)).
 		Operation("freeMachine").
@@ -426,6 +437,46 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 
 	newMachine.State = metal.MachineState{
 		Value:       machineState,
+		Description: requestPayload.Description,
+	}
+
+	err = r.ds.UpdateMachine(oldMachine, &newMachine)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
+}
+
+func (r machineResource) setMachineLEDState(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineState
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	machineLEDState, err := metal.MachineLEDStateFrom(requestPayload.Value)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if machineLEDState == metal.LEDOffState && requestPayload.Description == "" {
+		// we want a cause why this machine chassis identify LED is off
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
+			return
+		}
+	}
+
+	id := request.PathParameter("id")
+	oldMachine, err := r.ds.FindMachine(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	newMachine := *oldMachine
+
+	newMachine.LEDState = metal.MachineLEDState{
+		Value:       machineLEDState,
 		Description: requestPayload.Description,
 	}
 
