@@ -40,8 +40,33 @@ func MachineStateFrom(name string) (MState, error) {
 	case string(LockedState):
 		return LockedState, nil
 	default:
-		return "", fmt.Errorf("unknown MachineStateType:%s", name)
+		return "", fmt.Errorf("unknown MachineState:%s", name)
 	}
+}
+
+type LEDState string
+
+const (
+	LEDOffState LEDState = "Off"
+	LEDOnState  LEDState = "On"
+)
+
+// MachineLEDStateFrom converts a machineLEDState string to the type
+func MachineLEDStateFrom(name string) (LEDState, error) {
+	switch name {
+	case string(LEDOnState):
+		return LEDOnState, nil
+	case string(LEDOffState):
+		return LEDOffState, nil
+	default:
+		return "", fmt.Errorf("unknown MachineLEDState:%s", name)
+	}
+}
+
+// A MachineLEDState describes the state of a machine chassis identify LED, i.e. On/Off.
+type MachineLEDState struct {
+	Value       LEDState `rethinkdb:"value"`
+	Description string   `rethinkdb:"description"`
 }
 
 // A Machine is a piece of metal which is under the control of our system. It registers itself
@@ -55,6 +80,7 @@ type Machine struct {
 	RackID      string             `rethinkdb:"rackid"`
 	Hardware    MachineHardware    `rethinkdb:"hardware"`
 	State       MachineState       `rethinkdb:"state"`
+	LEDState    MachineLEDState    `rethinkdb:"ledstate"`
 	Tags        []string           `rethinkdb:"tags"`
 	IPMI        IPMI               `rethinkdb:"ipmi"`
 }

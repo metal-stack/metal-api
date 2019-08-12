@@ -1164,7 +1164,7 @@
           "machine"
         ],
         "summary": "sends a power-off to the machine chassis identify LED",
-        "operationId": "machineLedOff",
+        "operationId": "machineLEDOff",
         "parameters": [
           {
             "type": "string",
@@ -1210,7 +1210,7 @@
           "machine"
         ],
         "summary": "sends a power-on to the machine chassis identify LED",
-        "operationId": "machineLedOn",
+        "operationId": "machineLEDOn",
         "parameters": [
           {
             "type": "string",
@@ -2740,12 +2740,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "sizeid",
-        "tenant",
-        "partitionid",
-        "ssh_pub_keys",
+        "imageid",
         "projectid",
-        "imageid"
+        "sizeid",
+        "ssh_pub_keys",
+        "tenant",
+        "partitionid"
       ],
       "properties": {
         "description": {
@@ -2824,18 +2824,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "events",
+        "state",
         "partition",
-        "allocation",
+        "rackid",
+        "changed",
         "size",
+        "hardware",
+        "tags",
+        "events",
         "created",
         "id",
-        "state",
-        "tags",
-        "liveliness",
-        "hardware",
-        "changed",
-        "rackid"
+        "allocation",
+        "ledstate",
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -2870,6 +2871,10 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "ledstate": {
+          "description": "the state of this machine chassis identify LED",
+          "$ref": "#/definitions/v1.MachineLEDState"
         },
         "liveliness": {
           "description": "the liveliness of this machine",
@@ -2935,8 +2940,8 @@
       "required": [
         "projectid",
         "networkid",
-        "machineid",
         "ipaddress",
+        "machineid",
         "created",
         "changed"
       ],
@@ -3440,6 +3445,22 @@
         }
       }
     },
+    "v1.MachineLEDState": {
+      "required": [
+        "value",
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description why this machine chassis identify LED is in the given state",
+          "type": "string"
+        },
+        "value": {
+          "description": "the state of this machine chassis identify LED. empty means On",
+          "type": "string"
+        }
+      }
+    },
     "v1.MachineLivelinessReport": {
       "required": [
         "alive_count",
@@ -3655,15 +3676,16 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "hardware",
-        "allocation",
-        "events",
         "state",
+        "ledstate",
         "liveliness",
         "tags",
         "partition",
         "rackid",
         "size",
+        "hardware",
+        "allocation",
+        "events",
         "created",
         "changed"
       ],
@@ -3700,6 +3722,10 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "ledstate": {
+          "description": "the state of this machine chassis identify LED",
+          "$ref": "#/definitions/v1.MachineLEDState"
         },
         "liveliness": {
           "description": "the liveliness of this machine",
@@ -3756,12 +3782,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay",
-        "parentnetworkid"
+        "underlay"
       ],
       "properties": {
         "description": {
@@ -3832,8 +3858,8 @@
         "parentnetworkid",
         "prefixes",
         "usage",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {

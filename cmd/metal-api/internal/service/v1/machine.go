@@ -16,6 +16,7 @@ type MachineBase struct {
 	Hardware                 MachineHardware                 `json:"hardware" description:"the hardware of this machine"`
 	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine"`
 	State                    MachineState                    `json:"state" rethinkdb:"state" description:"the state of this machine"`
+	LEDState                 MachineLEDState                 `json:"ledstate" rethinkdb:"ledstate" description:"the state of this machine chassis identify LED"`
 	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine"`
 	RecentProvisioningEvents MachineRecentProvisioningEvents `json:"events" description:"recent events of this machine during provisioning"`
 	Tags                     []string                        `json:"tags" description:"tags for this machine"`
@@ -67,6 +68,11 @@ type MachineHardwareExtended struct {
 type MachineState struct {
 	Value       string `json:"value" description:"the state of this machine. empty means available for all"`
 	Description string `json:"description" description:"a description why this machine is in the given state"`
+}
+
+type MachineLEDState struct {
+	Value       string `json:"value" description:"the state of this machine chassis identify LED. empty means On"`
+	Description string `json:"description" description:"a description why this machine chassis identify LED is in the given state"`
 }
 
 type MachineBlockDevice struct {
@@ -414,6 +420,10 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			State: MachineState{
 				Value:       string(m.State.Value),
 				Description: m.State.Description,
+			},
+			LEDState: MachineLEDState{
+				Value:       string(m.LEDState.Value),
+				Description: m.LEDState.Description,
 			},
 			Liveliness:               string(ec.Liveliness),
 			RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
