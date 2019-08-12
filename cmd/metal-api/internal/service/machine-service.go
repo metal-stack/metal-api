@@ -449,7 +449,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 }
 
 func (r machineResource) setMachineLEDState(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineState
+	var requestPayload v1.MachineLEDState
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
