@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
+
 	"github.com/metal-pod/v"
 	"go.uber.org/zap"
 
@@ -36,12 +38,12 @@ const (
 )
 
 var (
-	cfgFile  string
-	ds       *datastore.RethinkStore
-	ipamer   *ipam.Ipam
-	producer bus.Publisher
-	logger   = zapup.MustRootLogger().Sugar()
-	debug    = false
+	cfgFile string
+	ds      *datastore.RethinkStore
+	ipamer  *ipam.Ipam
+	nsqer   *eventbus.NSQClient
+	logger  = zapup.MustRootLogger().Sugar()
+	debug   = false
 )
 
 var rootCmd = &cobra.Command{
@@ -177,36 +179,29 @@ func initSignalHandlers() {
 }
 
 func initEventBus() {
-Outer:
+	nsqdAddr := viper.GetString("nsqd-addr")
+	nsqdRESTEndpoint := viper.GetString("nsqd-http-addr")
+	partitions := waitForPartitions()
+
+	nsq := eventbus.NewNSQ(nsqdAddr, nsqdRESTEndpoint, zapup.MustRootLogger(), bus.NewPublisher)
+	nsq.WaitForPublisher()
+	nsq.WaitForTopicsCreated(partitions, metal.Topics)
+	nsqer = &nsq
+}
+
+func waitForPartitions() metal.Partitions {
+	var partitions metal.Partitions
+	var err error
 	for {
-		nsqd := viper.GetString("nsqd-addr")
-		httpnsqd := viper.GetString("nsqd-http-addr")
-		p, err := bus.NewPublisher(zapup.MustRootLogger(), nsqd, httpnsqd)
-		if err != nil {
-			logger.Errorw("cannot create nsq publisher", "error", err)
-			time.Sleep(3 * time.Second)
-			continue
-		}
-		logger.Infow("nsq connected", "nsqd", nsqd)
-		partitions, err := ds.ListPartitions()
+		partitions, err = ds.ListPartitions()
 		if err != nil {
 			logger.Errorw("cannot list partitions", "error", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
-		for _, partition := range partitions {
-			for _, t := range metal.Topics {
-				n := t.GetFQN(partition.GetID())
-				if err := p.CreateTopic(n); err != nil {
-					logger.Errorw("cannot create Topic", "topic", n, "error", err)
-					time.Sleep(3 * time.Second)
-					continue Outer
-				}
-			}
-		}
-		producer = p
 		break
 	}
+	return partitions
 }
 
 func initDataStore() {
@@ -284,12 +279,12 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 func initRestServices(withauth bool) *restfulspec.Config {
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewPartition(ds, producer))
+	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewIP(ds, ipamer))
-	restful.DefaultContainer.Add(service.NewMachine(ds, producer, ipamer))
+	restful.DefaultContainer.Add(service.NewMachine(ds, nsqer.Publisher, ipamer))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
