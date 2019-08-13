@@ -1198,7 +1198,7 @@
         }
       }
     },
-    "/v1/machine/{id}/power/chassis-identify-led-off": {
+    "/v1/machine/{id}/power/chassis-identify-led-off/{description}": {
       "post": {
         "consumes": [
           "application/json"
@@ -2809,11 +2809,11 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "ssh_pub_keys",
-        "tenant",
+        "partitionid",
         "projectid",
         "sizeid",
-        "partitionid",
+        "tenant",
+        "ssh_pub_keys",
         "imageid"
       ],
       "properties": {
@@ -2893,19 +2893,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "tags",
-        "created",
+        "ledstate",
+        "liveliness",
+        "events",
         "changed",
         "partition",
         "size",
-        "id",
         "allocation",
+        "id",
         "state",
-        "events",
         "hardware",
         "rackid",
-        "ledstate",
-        "liveliness"
+        "tags",
+        "created"
       ],
       "properties": {
         "allocation": {
@@ -3419,9 +3419,9 @@
     },
     "v1.MachineHardware": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -3452,9 +3452,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "disks",
         "memory",
         "cpu_cores",
-        "disks",
         "nics"
       ],
       "properties": {
@@ -3619,8 +3619,8 @@
     },
     "v1.MachineNicExtended": {
       "required": [
-        "mac",
         "name",
+        "mac",
         "neighbors"
       ],
       "properties": {
@@ -3730,15 +3730,15 @@
       "required": [
         "id",
         "state",
-        "liveliness",
-        "partition",
-        "rackid",
-        "allocation",
+        "ledstate",
         "events",
         "tags",
+        "partition",
         "size",
         "hardware",
-        "ledstate",
+        "allocation",
+        "liveliness",
+        "rackid",
         "created",
         "changed"
       ],
@@ -3904,12 +3904,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "underlay",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
+        "underlay",
+        "parentnetworkid",
         "usage",
         "created",
         "changed"
@@ -4127,8 +4127,8 @@
       "required": [
         "id",
         "bootconfig",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
@@ -4329,8 +4329,8 @@
       "required": [
         "id",
         "constraints",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {

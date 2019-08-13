@@ -559,7 +559,7 @@ func TestOnMachine(t *testing.T) {
 		},
 		{
 			cmd:      metal.ChassisIdentifyLEDOffCmd,
-			endpoint: "chassis-identify-led-off",
+			endpoint: "chassis-identify-led-off/test",
 		},
 	}
 
