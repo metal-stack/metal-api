@@ -902,6 +902,52 @@
         }
       }
     },
+    "/v1/machine/{id}/chassis-identify-led-state": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "set the state of a chassis identify LED",
+        "operationId": "setChassisIdentifyLEDState",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.ChassisIdentifyLEDState"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/{id}/event": {
       "get": {
         "consumes": [
@@ -1106,52 +1152,6 @@
         }
       }
     },
-    "/v1/machine/{id}/led-state": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "machine"
-        ],
-        "summary": "set the state of a machine chassis identify LED",
-        "operationId": "setMachineLEDState",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the machine",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineLEDState"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
     "/v1/machine/{id}/power/bios": {
       "post": {
         "consumes": [
@@ -1198,7 +1198,7 @@
         }
       }
     },
-    "/v1/machine/{id}/power/led-off": {
+    "/v1/machine/{id}/power/chassis-identify-led-off": {
       "post": {
         "consumes": [
           "application/json"
@@ -1209,13 +1209,20 @@
         "tags": [
           "machine"
         ],
-        "summary": "sends a power-off to the machine chassis identify LED",
-        "operationId": "machineLEDOff",
+        "summary": "sends a power-off to the chassis identify LED",
+        "operationId": "chassisIdentifyLEDOff",
         "parameters": [
           {
             "type": "string",
             "description": "identifier of the machine",
             "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "reason why the chassis identify LED should be turned off",
+            "name": "description",
             "in": "path",
             "required": true
           },
@@ -1244,7 +1251,7 @@
         }
       }
     },
-    "/v1/machine/{id}/power/led-on": {
+    "/v1/machine/{id}/power/chassis-identify-led-on": {
       "post": {
         "consumes": [
           "application/json"
@@ -1255,8 +1262,8 @@
         "tags": [
           "machine"
         ],
-        "summary": "sends a power-on to the machine chassis identify LED",
-        "operationId": "machineLEDOn",
+        "summary": "sends a power-on to the chassis identify LED",
+        "operationId": "chassisIdentifyLEDOn",
         "parameters": [
           {
             "type": "string",
@@ -2457,6 +2464,22 @@
         }
       }
     },
+    "v1.ChassisIdentifyLEDState": {
+      "required": [
+        "value",
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "description": "a description why this chassis identify LED is in the given state",
+          "type": "string"
+        },
+        "value": {
+          "description": "the state of this chassis identify LED. empty means LED-ON",
+          "type": "string"
+        }
+      }
+    },
     "v1.EmptyBody": {},
     "v1.FindIPsRequest": {
       "description": "an ip address that can be attached to a machine",
@@ -2786,12 +2809,12 @@
     },
     "v1.FirewallCreateRequest": {
       "required": [
-        "imageid",
-        "projectid",
-        "partitionid",
+        "ssh_pub_keys",
         "tenant",
+        "projectid",
         "sizeid",
-        "ssh_pub_keys"
+        "partitionid",
+        "imageid"
       ],
       "properties": {
         "description": {
@@ -2870,19 +2893,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "rackid",
-        "state",
-        "hardware",
-        "id",
         "tags",
-        "allocation",
-        "events",
         "created",
         "changed",
-        "liveliness",
         "partition",
+        "size",
+        "id",
+        "allocation",
+        "state",
+        "events",
+        "hardware",
+        "rackid",
         "ledstate",
-        "size"
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -2919,8 +2942,8 @@
           "uniqueItems": true
         },
         "ledstate": {
-          "description": "the state of this machine chassis identify LED",
-          "$ref": "#/definitions/v1.MachineLEDState"
+          "description": "the state of this chassis identify LED",
+          "$ref": "#/definitions/v1.ChassisIdentifyLEDState"
         },
         "liveliness": {
           "description": "the liveliness of this machine",
@@ -2960,8 +2983,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "networkid",
-        "projectid"
+        "projectid",
+        "networkid"
       ],
       "properties": {
         "description": {
@@ -3396,9 +3419,9 @@
     },
     "v1.MachineHardware": {
       "required": [
-        "memory",
         "cpu_cores",
         "disks",
+        "memory",
         "nics"
       ],
       "properties": {
@@ -3429,9 +3452,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -3487,22 +3510,6 @@
           "type": "string"
         },
         "user": {
-          "type": "string"
-        }
-      }
-    },
-    "v1.MachineLEDState": {
-      "required": [
-        "value",
-        "description"
-      ],
-      "properties": {
-        "description": {
-          "description": "a description why this machine chassis identify LED is in the given state",
-          "type": "string"
-        },
-        "value": {
-          "description": "the state of this machine chassis identify LED. empty means On",
           "type": "string"
         }
       }
@@ -3722,16 +3729,16 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "size",
-        "allocation",
-        "ledstate",
+        "state",
         "liveliness",
-        "events",
         "partition",
         "rackid",
-        "hardware",
-        "state",
+        "allocation",
+        "events",
         "tags",
+        "size",
+        "hardware",
+        "ledstate",
         "created",
         "changed"
       ],
@@ -3770,8 +3777,8 @@
           "uniqueItems": true
         },
         "ledstate": {
-          "description": "the state of this machine chassis identify LED",
-          "$ref": "#/definitions/v1.MachineLEDState"
+          "description": "the state of this chassis identify LED",
+          "$ref": "#/definitions/v1.ChassisIdentifyLEDState"
         },
         "liveliness": {
           "description": "the liveliness of this machine",
@@ -3828,12 +3835,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay"
+        "underlay",
+        "parentnetworkid"
       ],
       "properties": {
         "description": {
@@ -3897,12 +3904,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
+        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay",
         "usage",
         "created",
         "changed"
@@ -4322,8 +4329,8 @@
       "required": [
         "id",
         "constraints",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {

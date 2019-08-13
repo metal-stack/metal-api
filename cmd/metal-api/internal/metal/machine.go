@@ -47,24 +47,24 @@ func MachineStateFrom(name string) (MState, error) {
 type LEDState string
 
 const (
-	LEDOffState LEDState = "Off"
-	LEDOnState  LEDState = "On"
+	LEDStateOn  LEDState = "LED-ON"
+	LEDStateOff LEDState = "LED-OFF"
 )
 
-// MachineLEDStateFrom converts a machineLEDState string to the type
-func MachineLEDStateFrom(name string) (LEDState, error) {
+// LEDStateFrom converts an LEDState string to the corresponding type
+func LEDStateFrom(name string) (LEDState, error) {
 	switch name {
-	case string(LEDOnState):
-		return LEDOnState, nil
-	case string(LEDOffState):
-		return LEDOffState, nil
+	case string(LEDStateOff):
+		return LEDStateOff, nil
+	case string(LEDStateOn):
+		return LEDStateOn, nil
 	default:
-		return "", fmt.Errorf("unknown MachineLEDState:%s", name)
+		return "", fmt.Errorf("unknown LEDState:%s", name)
 	}
 }
 
-// A MachineLEDState describes the state of a machine chassis identify LED, i.e. On/Off.
-type MachineLEDState struct {
+// A ChassisIdentifyLEDState describes the state of a chassis identify LED, i.e. LED-ON/LED-OFF.
+type ChassisIdentifyLEDState struct {
 	Value       LEDState `rethinkdb:"value"`
 	Description string   `rethinkdb:"description"`
 }
@@ -74,15 +74,15 @@ type MachineLEDState struct {
 // be filled. Any unallocated (free) machine won't have such values.
 type Machine struct {
 	Base
-	Allocation  *MachineAllocation `rethinkdb:"allocation"`
-	PartitionID string             `rethinkdb:"partitionid"`
-	SizeID      string             `rethinkdb:"sizeid"`
-	RackID      string             `rethinkdb:"rackid"`
-	Hardware    MachineHardware    `rethinkdb:"hardware"`
-	State       MachineState       `rethinkdb:"state"`
-	LEDState    MachineLEDState    `rethinkdb:"ledstate"`
-	Tags        []string           `rethinkdb:"tags"`
-	IPMI        IPMI               `rethinkdb:"ipmi"`
+	Allocation  *MachineAllocation      `rethinkdb:"allocation"`
+	PartitionID string                  `rethinkdb:"partitionid"`
+	SizeID      string                  `rethinkdb:"sizeid"`
+	RackID      string                  `rethinkdb:"rackid"`
+	Hardware    MachineHardware         `rethinkdb:"hardware"`
+	State       MachineState            `rethinkdb:"state"`
+	LEDState    ChassisIdentifyLEDState `rethinkdb:"ledstate"`
+	Tags        []string                `rethinkdb:"tags"`
+	IPMI        IPMI                    `rethinkdb:"ipmi"`
 }
 
 // IsFirewall returns true if this machine is a firewall machine.
@@ -208,12 +208,12 @@ type MachineCommand string
 
 // our supported machines commands.
 const (
-	MachineOnCmd     MachineCommand = "ON"
-	MachineOffCmd    MachineCommand = "OFF"
-	MachineResetCmd  MachineCommand = "RESET"
-	MachineBiosCmd   MachineCommand = "BIOS"
-	MachineLedOnCmd  MachineCommand = "LED-ON"
-	MachineLedOffCmd MachineCommand = "LED-OFF"
+	MachineOnCmd             MachineCommand = "ON"
+	MachineOffCmd            MachineCommand = "OFF"
+	MachineResetCmd          MachineCommand = "RESET"
+	MachineBiosCmd           MachineCommand = "BIOS"
+	ChassisIdentifyLEDOnCmd  MachineCommand = "LED-ON"
+	ChassisIdentifyLEDOffCmd MachineCommand = "LED-OFF"
 )
 
 // A MachineExecCommand can be sent via a MachineEvent to execute

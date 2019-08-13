@@ -554,12 +554,12 @@ func TestOnMachine(t *testing.T) {
 			endpoint: "bios",
 		},
 		{
-			cmd:      metal.MachineLedOnCmd,
-			endpoint: "led-on",
+			cmd:      metal.ChassisIdentifyLEDOnCmd,
+			endpoint: "chassis-identify-led-on",
 		},
 		{
-			cmd:      metal.MachineLedOffCmd,
-			endpoint: "led-off",
+			cmd:      metal.ChassisIdentifyLEDOffCmd,
+			endpoint: "chassis-identify-led-off",
 		},
 	}
 

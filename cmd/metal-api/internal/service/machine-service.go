@@ -168,13 +168,13 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/led-state").
-		To(editor(r.setMachineLEDState)).
-		Operation("setMachineLEDState").
-		Doc("set the state of a machine chassis identify LED").
+	ws.Route(ws.POST("/{id}/chassis-identify-led-state").
+		To(editor(r.setChassisIdentifyLEDState)).
+		Operation("setChassisIdentifyLEDState").
+		Doc("set the state of a chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineLEDState{}).
+		Reads(v1.ChassisIdentifyLEDState{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -275,21 +275,22 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/led-on").
-		To(editor(r.machineLEDOn)).
-		Operation("machineLEDOn").
-		Doc("sends a power-on to the machine chassis identify LED").
+	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on").
+		To(editor(r.chassisIdentifyLEDOn)).
+		Operation("chassisIdentifyLEDOn").
+		Doc("sends a power-on to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/led-off").
-		To(editor(r.machineLEDOff)).
-		Operation("machineLEDOff").
-		Doc("sends a power-off to the machine chassis identify LED").
+	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off").
+		To(editor(r.chassisIdentifyLEDOff)).
+		Operation("chassisIdentifyLEDOff").
+		Doc("sends a power-off to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.PathParameter("description", "reason why the chassis identify LED should be turned off").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
@@ -448,20 +449,20 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 	response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (r machineResource) setMachineLEDState(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineLEDState
+func (r machineResource) setChassisIdentifyLEDState(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.ChassisIdentifyLEDState
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	machineLEDState, err := metal.MachineLEDStateFrom(requestPayload.Value)
+	ledState, err := metal.LEDStateFrom(requestPayload.Value)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	if machineLEDState == metal.LEDOffState && requestPayload.Description == "" {
-		// we want a cause why this machine chassis identify LED is off
+	if ledState == metal.LEDStateOff && requestPayload.Description == "" {
+		// we want a cause why this chassis identify LED is off
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
 			return
 		}
@@ -475,8 +476,8 @@ func (r machineResource) setMachineLEDState(request *restful.Request, response *
 
 	newMachine := *oldMachine
 
-	newMachine.LEDState = metal.MachineLEDState{
-		Value:       machineLEDState,
+	newMachine.LEDState = metal.ChassisIdentifyLEDState{
+		Value:       ledState,
 		Description: requestPayload.Description,
 	}
 
@@ -540,8 +541,9 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			State: metal.MachineState{
 				Value: metal.AvailableState,
 			},
-			LEDState: metal.MachineLEDState{
-				Value: metal.LEDOnState,
+			LEDState: metal.ChassisIdentifyLEDState{
+				Value:       metal.LEDStateOn,
+				Description: "registered machine",
 			},
 			Tags: requestPayload.Tags,
 			IPMI: v1.NewMetalIPMI(&requestPayload.IPMI),
@@ -1512,15 +1514,15 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
 }
 
-func (r machineResource) machineLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineLEDOn", metal.MachineLedOnCmd, request, response)
+func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
+	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response)
 }
 
-func (r machineResource) machineLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineLEDOff", metal.MachineLedOffCmd, request, response)
+func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
+	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.PathParameter("description"))
 }
 
-func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachine(id)
@@ -1531,7 +1533,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command: cmd,
-			Params:  []string{},
+			Params:  params,
 			Target:  m,
 		},
 	}

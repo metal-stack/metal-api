@@ -284,7 +284,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewIP(ds, ipamer))
-	restful.DefaultContainer.Add(service.NewMachine(ds, nsqer.Publisher, ipamer))
+	var p bus.Publisher
+	if nsqer != nil {
+		p = nsqer.Publisher
+	}
+	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
