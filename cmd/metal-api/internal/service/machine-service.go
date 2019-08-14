@@ -275,6 +275,16 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on").
+		To(editor(r.chassisIdentifyLEDOn)).
+		Operation("chassisIdentifyLEDOn").
+		Doc("sends a power-on to the chassis identify LED").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on/{description}").
 		To(editor(r.chassisIdentifyLEDOn)).
 		Operation("chassisIdentifyLEDOn").
@@ -1531,8 +1541,10 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		return
 	}
 	pp := []string{}
-	if len(params) > 0 {
-		pp = params
+	for _, p := range params {
+		if len(p) > 0 {
+			pp = append(pp, p)
+		}
 	}
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,

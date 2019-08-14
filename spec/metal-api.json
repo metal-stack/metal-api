@@ -1251,6 +1251,52 @@
         }
       }
     },
+    "/v1/machine/{id}/power/chassis-identify-led-on": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "sends a power-on to the chassis identify LED",
+        "operationId": "chassisIdentifyLEDOn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the machine",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.EmptyBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/{id}/power/chassis-identify-led-on/{description}": {
       "post": {
         "consumes": [
@@ -2817,11 +2863,11 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "partitionid",
+        "ssh_pub_keys",
+        "imageid",
         "tenant",
         "projectid",
-        "sizeid",
-        "imageid",
-        "ssh_pub_keys"
+        "sizeid"
       ],
       "properties": {
         "description": {
@@ -2900,19 +2946,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "state",
         "tags",
+        "rackid",
         "ledstate",
-        "id",
+        "partition",
         "hardware",
         "allocation",
-        "changed",
-        "liveliness",
-        "rackid",
-        "size",
         "events",
         "created",
-        "partition"
+        "id",
+        "state",
+        "liveliness",
+        "size",
+        "changed"
       ],
       "properties": {
         "allocation": {
@@ -2990,8 +3036,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "networkid",
-        "projectid"
+        "projectid",
+        "networkid"
       ],
       "properties": {
         "description": {
@@ -3018,8 +3064,8 @@
         "networkid",
         "ipaddress",
         "machineid",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3426,9 +3472,9 @@
     },
     "v1.MachineHardware": {
       "required": [
-        "memory",
         "cpu_cores",
         "disks",
+        "memory",
         "nics"
       ],
       "properties": {
@@ -3736,16 +3782,16 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "events",
-        "tags",
-        "rackid",
-        "size",
-        "ledstate",
-        "state",
-        "liveliness",
         "partition",
-        "hardware",
+        "size",
         "allocation",
+        "state",
+        "ledstate",
+        "events",
+        "rackid",
+        "hardware",
+        "liveliness",
+        "tags",
         "created",
         "changed"
       ],
@@ -3842,12 +3888,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "primary",
-        "underlay"
+        "primary"
       ],
       "properties": {
         "description": {
@@ -3911,12 +3957,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "nat",
-        "primary",
-        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
+        "nat",
+        "primary",
+        "underlay",
         "usage",
         "created",
         "changed"
@@ -4134,8 +4180,8 @@
       "required": [
         "id",
         "bootconfig",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "bootconfig": {
