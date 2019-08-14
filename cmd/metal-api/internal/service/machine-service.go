@@ -275,11 +275,12 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on").
+	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on/{description}").
 		To(editor(r.chassisIdentifyLEDOn)).
 		Operation("chassisIdentifyLEDOn").
 		Doc("sends a power-on to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned on").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
@@ -290,7 +291,7 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("chassisIdentifyLEDOff").
 		Doc("sends a power-off to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("description", "reason why the chassis identify LED should be turned off").DataType("string")).
+		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
@@ -1515,7 +1516,7 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 }
 
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response)
+	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.PathParameter("description"))
 }
 
 func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {

@@ -1221,7 +1221,7 @@
           },
           {
             "type": "string",
-            "description": "reason why the chassis identify LED should be turned off",
+            "description": "reason why the chassis identify LED has been turned off",
             "name": "description",
             "in": "path",
             "required": true
@@ -1251,7 +1251,7 @@
         }
       }
     },
-    "/v1/machine/{id}/power/chassis-identify-led-on": {
+    "/v1/machine/{id}/power/chassis-identify-led-on/{description}": {
       "post": {
         "consumes": [
           "application/json"
@@ -1269,6 +1269,13 @@
             "type": "string",
             "description": "identifier of the machine",
             "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "reason why the chassis identify LED has been turned on",
+            "name": "description",
             "in": "path",
             "required": true
           },
@@ -2810,11 +2817,11 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "partitionid",
+        "tenant",
         "projectid",
         "sizeid",
-        "tenant",
-        "ssh_pub_keys",
-        "imageid"
+        "imageid",
+        "ssh_pub_keys"
       ],
       "properties": {
         "description": {
@@ -2893,19 +2900,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "ledstate",
-        "liveliness",
-        "events",
-        "changed",
-        "partition",
-        "size",
-        "allocation",
-        "id",
         "state",
-        "hardware",
-        "rackid",
         "tags",
-        "created"
+        "ledstate",
+        "id",
+        "hardware",
+        "allocation",
+        "changed",
+        "liveliness",
+        "rackid",
+        "size",
+        "events",
+        "created",
+        "partition"
       ],
       "properties": {
         "allocation": {
@@ -2983,8 +2990,8 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
-        "projectid",
-        "networkid"
+        "networkid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -3011,8 +3018,8 @@
         "networkid",
         "ipaddress",
         "machineid",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3452,9 +3459,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
-        "disks",
         "memory",
         "cpu_cores",
+        "disks",
         "nics"
       ],
       "properties": {
@@ -3729,16 +3736,16 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "state",
-        "ledstate",
         "events",
         "tags",
-        "partition",
+        "rackid",
         "size",
+        "ledstate",
+        "state",
+        "liveliness",
+        "partition",
         "hardware",
         "allocation",
-        "liveliness",
-        "rackid",
         "created",
         "changed"
       ],
@@ -3835,12 +3842,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "primary",
-        "underlay",
-        "parentnetworkid"
+        "underlay"
       ],
       "properties": {
         "description": {
@@ -3904,12 +3911,12 @@
     "v1.NetworkResponse": {
       "required": [
         "id",
-        "prefixes",
-        "destinationprefixes",
         "nat",
         "primary",
         "underlay",
         "parentnetworkid",
+        "prefixes",
+        "destinationprefixes",
         "usage",
         "created",
         "changed"
