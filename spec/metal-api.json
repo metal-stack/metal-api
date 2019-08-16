@@ -2528,7 +2528,7 @@
           "type": "string"
         },
         "value": {
-          "description": "the state of this chassis identify LED. empty means LED-ON",
+          "description": "the state of this chassis identify LED. empty means LED-OFF",
           "type": "string"
         }
       }
@@ -2863,11 +2863,11 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "partitionid",
-        "ssh_pub_keys",
         "imageid",
-        "tenant",
         "projectid",
-        "sizeid"
+        "sizeid",
+        "tenant",
+        "ssh_pub_keys"
       ],
       "properties": {
         "description": {
@@ -2946,19 +2946,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "tags",
+        "id",
         "rackid",
         "ledstate",
-        "partition",
-        "hardware",
-        "allocation",
-        "events",
         "created",
-        "id",
-        "state",
-        "liveliness",
+        "tags",
+        "partition",
+        "allocation",
+        "hardware",
+        "changed",
+        "events",
         "size",
-        "changed"
+        "state",
+        "liveliness"
       ],
       "properties": {
         "allocation": {
@@ -3167,8 +3167,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3472,9 +3472,9 @@
     },
     "v1.MachineHardware": {
       "required": [
+        "memory",
         "cpu_cores",
         "disks",
-        "memory",
         "nics"
       ],
       "properties": {
@@ -3672,8 +3672,8 @@
     },
     "v1.MachineNicExtended": {
       "required": [
-        "name",
         "mac",
+        "name",
         "neighbors"
       ],
       "properties": {
@@ -3782,15 +3782,15 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "liveliness",
+        "events",
         "partition",
         "size",
         "allocation",
         "state",
         "ledstate",
-        "events",
         "rackid",
         "hardware",
-        "liveliness",
         "tags",
         "created",
         "changed"
@@ -3888,12 +3888,12 @@
     "v1.NetworkCreateRequest": {
       "required": [
         "id",
+        "nat",
+        "primary",
         "underlay",
         "parentnetworkid",
         "prefixes",
-        "destinationprefixes",
-        "nat",
-        "primary"
+        "destinationprefixes"
       ],
       "properties": {
         "description": {

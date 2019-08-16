@@ -553,8 +553,8 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 				Value: metal.AvailableState,
 			},
 			LEDState: metal.ChassisIdentifyLEDState{
-				Value:       metal.LEDStateOn,
-				Description: "registered machine",
+				Value:       metal.LEDStateOff,
+				Description: "Machine registered",
 			},
 			Tags: requestPayload.Tags,
 			IPMI: v1.NewMetalIPMI(&requestPayload.IPMI),

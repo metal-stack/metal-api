@@ -71,7 +71,7 @@ type MachineState struct {
 }
 
 type ChassisIdentifyLEDState struct {
-	Value       string `json:"value" description:"the state of this chassis identify LED. empty means LED-ON"`
+	Value       string `json:"value" description:"the state of this chassis identify LED. empty means LED-OFF"`
 	Description string `json:"description" description:"a description why this chassis identify LED is in the given state"`
 }
 
