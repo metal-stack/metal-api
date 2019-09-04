@@ -727,6 +727,9 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if err != nil {
 		return nil, err
 	}
+	if machine.Allocation != nil {
+		return nil, fmt.Errorf("machine %q already allocated", machine.ID)
+	}
 
 	old := *machine
 	machine.Allocation = alloc
