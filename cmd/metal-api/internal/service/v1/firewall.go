@@ -8,3 +8,7 @@ type FirewallCreateRequest struct {
 type FirewallResponse struct {
 	MachineResponse
 }
+
+type FirewallFindRequest struct {
+	MachineFindRequest
+}

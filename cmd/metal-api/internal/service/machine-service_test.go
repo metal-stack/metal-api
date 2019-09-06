@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
@@ -72,7 +71,7 @@ func TestRegisterMachine(t *testing.T) {
 		memory               int
 		dbpartitions         []metal.Partition
 		dbsizes              []metal.Size
-		dbmachines           []metal.Machine
+		dbmachines           metal.Machines
 		expectedStatus       int
 		expectedErrorMessage string
 		expectedSizeName     string
@@ -94,7 +93,7 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:      "1",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
-			dbmachines:       []metal.Machine{testdata.M1},
+			dbmachines:       metal.Machines{testdata.M1},
 			numcores:         1,
 			memory:           100,
 			expectedStatus:   http.StatusOK,
@@ -629,8 +628,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 	}{
 		{
 			spec: machineAllocationSpec{
-				Tenant:     "gopher",
 				UUID:       "gopher-uuid",
+				ProjectID:  "123",
 				IsFirewall: false,
 				Networks: []v1.MachineAllocationNetwork{
 					{
@@ -645,8 +644,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant: "gopher",
-				UUID:   "gopher-uuid",
+				UUID:      "gopher-uuid",
+				ProjectID: "123",
 				Networks: []v1.MachineAllocationNetwork{
 					{
 						NetworkID:     "network",
@@ -658,8 +657,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant:     "gopher",
 				UUID:       "gopher-uuid",
+				ProjectID:  "123",
 				IsFirewall: false,
 			},
 			isError:  false,
@@ -668,8 +667,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant:      "gopher",
 				PartitionID: "42",
+				ProjectID:   "123",
 				SizeID:      "42",
 			},
 			isError: false,
@@ -677,8 +676,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant:      "gopher",
 				PartitionID: "42",
+				ProjectID:   "123",
 			},
 			isError:  true,
 			expected: "when no machine id is given, a size id must be specified",
@@ -686,33 +685,23 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant: "gopher",
-				SizeID: "42",
+				SizeID:    "42",
+				ProjectID: "123",
 			},
 			isError:  true,
 			expected: "when no machine id is given, a partition id must be specified",
 			name:     "missing partition id",
 		},
 		{
-			spec: machineAllocationSpec{
-				UUID: "42",
-			},
+			spec:     machineAllocationSpec{},
 			isError:  true,
-			expected: "no tenant given",
-			name:     "absent tenant",
+			expected: "project id must be specified",
+			name:     "absent project id",
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant: "gopher",
-			},
-			isError:  true,
-			expected: "when no machine id is given, a partition id must be specified",
-			name:     "absent uuid",
-		},
-		{
-			spec: machineAllocationSpec{
-				Tenant:     "gopher",
 				UUID:       "gopher-uuid",
+				ProjectID:  "123",
 				IsFirewall: false,
 				Networks: []v1.MachineAllocationNetwork{
 					{
@@ -727,9 +716,9 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant: "gopher",
-				UUID:   "42",
-				IPs:    []string{"42"},
+				UUID:      "42",
+				ProjectID: "123",
+				IPs:       []string{"42"},
 			},
 			isError:  true,
 			expected: `"42" is not a valid IP address`,
@@ -737,8 +726,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant:     "gopher",
 				UUID:       "42",
+				ProjectID:  "123",
 				IsFirewall: true,
 			},
 			isError:  true,
@@ -747,8 +736,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant:     "gopher",
 				UUID:       "42",
+				ProjectID:  "123",
 				SSHPubKeys: []string{"42"},
 			},
 			isError:  true,
@@ -757,8 +746,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				Tenant:     "gopher",
 				UUID:       "gopher-uuid",
+				ProjectID:  "123",
 				IsFirewall: false,
 				Networks: []v1.MachineAllocationNetwork{
 					{
@@ -784,135 +773,499 @@ func Test_validateAllocationSpec(t *testing.T) {
 
 }
 
-func Test_additionalTags(t *testing.T) {
-
-	//
-	networks := []*metal.MachineNetwork{}
-	network := &metal.MachineNetwork{
-		Primary:  true,
-		IPs:      []string{"1.2.3.4"},
-		Prefixes: []string{"1.2.0.0/22", "1.2.2.0/22", "2.3.4.0/24"},
-		ASN:      1203874,
+func Test_makeMachineTags(t *testing.T) {
+	type args struct {
+		m        *metal.Machine
+		networks allocationNetworkMap
+		userTags []string
 	}
-	networks = append(networks, network)
-
-	networks26 := []*metal.MachineNetwork{}
-	network26 := &metal.MachineNetwork{
-		Primary:  true,
-		IPs:      []string{"1.2.2.67"},
-		Prefixes: []string{"1.2.1.0/28", "1.2.2.0/26", "2.3.4.0/24", "1.6.0.0/16", "1.2.2.64/26"},
-		ASN:      1203874,
-	}
-	networks26 = append(networks26, network26)
-
-	// no match -> no label
-	nomatchNetworks := []*metal.MachineNetwork{}
-	nomatchNetwork := &metal.MachineNetwork{
-		Primary:  true,
-		IPs:      []string{"10.2.0.4"},
-		Prefixes: []string{"1.2.0.0/22", "1.2.2.0/22", "2.3.4.0/24"},
-		ASN:      1203874,
-	}
-	nomatchNetworks = append(nomatchNetworks, nomatchNetwork)
-
-	// no ip -> no label
-	noipNetworks := []*metal.MachineNetwork{}
-	noipNetwork := &metal.MachineNetwork{
-		Primary:  true,
-		IPs:      []string{},
-		Prefixes: []string{"1.2.0.0/22", "1.2.2.0/22", "2.3.4.0/24"},
-		ASN:      1203874,
-	}
-	noipNetworks = append(noipNetworks, noipNetwork)
-
 	tests := []struct {
-		name    string
-		machine *metal.Machine
-		want    []string
+		name string
+		args args
+		want []string
 	}{
 		{
-			name: "simple",
-			machine: &metal.Machine{
-				Allocation: &metal.MachineAllocation{
-					MachineNetworks: networks,
-				},
-				RackID: "rack01",
-				IPMI: metal.IPMI{
-					Fru: metal.Fru{
-						ChassisPartSerial: "chassis123",
+			name: "All possible tags",
+			args: args{
+				m: &metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						MachineNetworks: []*metal.MachineNetwork{
+							&metal.MachineNetwork{
+								Private: true,
+								ASN:     1203874,
+							},
+						},
+					},
+					RackID: "rack01",
+					IPMI: metal.IPMI{
+						Fru: metal.Fru{
+							ChassisPartSerial: "chassis123",
+						},
 					},
 				},
-			},
-			want: []string{
-				"machine.metal-pod.io/network.primary.asn=1203874",
-				"machine.metal-pod.io/network.primary.localbgp.ip=1.2.0.0",
-				"machine.metal-pod.io/rack=rack01",
-				"machine.metal-pod.io/chassis=chassis123",
-			},
-		},
-		{
-			name: "simple26",
-			machine: &metal.Machine{
-				Allocation: &metal.MachineAllocation{
-					MachineNetworks: networks26,
-				},
-				RackID: "rack01",
-				IPMI: metal.IPMI{
-					Fru: metal.Fru{
-						ChassisPartSerial: "chassis123",
+				networks: allocationNetworkMap{
+					"network-uuid-1": &allocationNetwork{
+						network: &metal.Network{
+							Labels: map[string]string{
+								"external-network-label": "1",
+							},
+						},
+					},
+					"network-uuid-2": &allocationNetwork{
+						network: &metal.Network{
+							Labels: map[string]string{
+								"private-network-label": "1",
+							},
+						},
+						isPrivate: true,
 					},
 				},
+				userTags: []string{"usertag=something"},
 			},
 			want: []string{
-				"machine.metal-pod.io/network.primary.asn=1203874",
-				"machine.metal-pod.io/network.primary.localbgp.ip=1.2.2.64",
-				"machine.metal-pod.io/rack=rack01",
-				"machine.metal-pod.io/chassis=chassis123",
-			},
-		},
-		{
-			name: "ip does not match prefix",
-			machine: &metal.Machine{
-				Allocation: &metal.MachineAllocation{
-					MachineNetworks: nomatchNetworks,
-				},
-				RackID: "rack01",
-				IPMI: metal.IPMI{
-					Fru: metal.Fru{
-						ChassisPartSerial: "chassis123",
-					},
-				},
-			},
-			want: []string{
+				"external-network-label=1",
+				"private-network-label=1",
+				"usertag=something",
 				"machine.metal-pod.io/network.primary.asn=1203874",
 				"machine.metal-pod.io/rack=rack01",
 				"machine.metal-pod.io/chassis=chassis123",
 			},
 		},
 		{
-			name: "no ip",
-			machine: &metal.Machine{
-				Allocation: &metal.MachineAllocation{
-					MachineNetworks: nomatchNetworks,
+			name: "private network tags higher precedence than external network tags",
+			args: args{
+				m: &metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						MachineNetworks: []*metal.MachineNetwork{},
+					},
 				},
-				RackID: "rack01",
-				IPMI: metal.IPMI{
-					Fru: metal.Fru{
-						ChassisPartSerial: "chassis123",
+				networks: allocationNetworkMap{
+					"network-uuid-1": &allocationNetwork{
+						network: &metal.Network{
+							Labels: map[string]string{
+								"override": "1",
+							},
+						},
+					},
+					"network-uuid-2": &allocationNetwork{
+						network: &metal.Network{
+							Labels: map[string]string{
+								"override": "2",
+							},
+						},
+						isPrivate: true,
 					},
 				},
 			},
 			want: []string{
+				"override=2",
+			},
+		},
+		{
+			name: "user tags higher precedence than network tags",
+			args: args{
+				m: &metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						MachineNetworks: []*metal.MachineNetwork{},
+					},
+				},
+				networks: allocationNetworkMap{
+					"network-uuid-1": &allocationNetwork{
+						network: &metal.Network{
+							Labels: map[string]string{
+								"override": "1",
+							},
+						},
+					},
+					"network-uuid-2": &allocationNetwork{
+						network: &metal.Network{
+							Labels: map[string]string{
+								"override": "2",
+							},
+						},
+						isPrivate: true,
+					},
+				},
+				userTags: []string{"override=3"},
+			},
+			want: []string{
+				"override=3",
+			},
+		},
+		{
+			name: "system tags higher precedence than user tags",
+			args: args{
+				m: &metal.Machine{
+					Allocation: &metal.MachineAllocation{
+						MachineNetworks: []*metal.MachineNetwork{
+							&metal.MachineNetwork{
+								Private: true,
+								ASN:     1203874,
+							},
+						},
+					},
+				},
+				networks: allocationNetworkMap{},
+				userTags: []string{"machine.metal-pod.io/network.primary.asn=iamdoingsomethingevil"},
+			},
+			want: []string{
 				"machine.metal-pod.io/network.primary.asn=1203874",
-				"machine.metal-pod.io/rack=rack01",
-				"machine.metal-pod.io/chassis=chassis123",
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := additionalTags(tt.machine); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("additionalTags() = %v, want %v", got, tt.want)
+			got := makeMachineTags(tt.args.m, tt.args.networks, tt.args.userTags)
+
+			for _, wantElement := range tt.want {
+				require.Contains(t, got, wantElement, "tag not contained in result")
+			}
+			require.Len(t, got, len(tt.want))
+		})
+	}
+}
+
+func Test_gatherNetworksFromSpec(t *testing.T) {
+	boolTrue := true
+	boolFalse := false
+	partitionSuperNetworks := metal.Networks{testdata.Partition1PrivateSuperNetwork, testdata.Partition2PrivateSuperNetwork}
+
+	type mock struct {
+		term     r.Term
+		response interface{}
+		err      error
+	}
+	tests := []struct {
+		name                   string
+		allocationSpec         *machineAllocationSpec
+		partition              *metal.Partition
+		partitionSuperNetworks metal.Networks
+		mocks                  []mock
+		want                   allocationNetworkMap
+		wantErr                bool
+		errRegex               string
+	}{
+		{
+			name: "no networks and ips given (implicit private network creation)",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			mocks: []mock{
+				mock{
+					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
+					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
+				},
+				mock{
+					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
+					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
+				},
+			},
+			wantErr: false,
+			want: allocationNetworkMap{
+				"implicitly-acquired-network": &allocationNetwork{
+					network:        &metal.Network{},
+					machineNetwork: &metal.MachineNetwork{},
+					ips:            []metal.IP{},
+					auto:           true,
+					isPrivate:      true,
+				},
+			},
+		},
+		{
+			name: "no networks but existing ip given",
+			allocationSpec: &machineAllocationSpec{
+				Networks:  v1.MachineAllocationNetworks{},
+				IPs:       []string{testdata.IP1.IPAddress},
+				ProjectID: testdata.IP1.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			mocks: []mock{
+				mock{
+					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
+					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
+				},
+				mock{
+					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
+					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
+				},
+			},
+			wantErr:  true,
+			errRegex: "given ip .* is not in any of the given networks",
+		},
+		{
+			name: "no networks and no existing ip given",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{},
+				IPs:      []string{"127.0.0.1"},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			mocks: []mock{
+				mock{
+					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
+					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
+				},
+				mock{
+					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
+					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
+				},
+				mock{
+					term:     r.DB("mockdb").Table("ip").Get("127.0.0.1"),
+					response: nil,
+				},
+			},
+			wantErr:  true,
+			errRegex: "NotFound",
+		},
+		{
+			name: "private network given",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                false,
+			want: allocationNetworkMap{
+				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
+					network:        &testdata.Partition1ExistingPrivateNetwork,
+					machineNetwork: &metal.MachineNetwork{},
+					ips:            []metal.IP{},
+					auto:           true,
+					isPrivate:      true,
+				},
+			},
+		},
+		{
+			name: "private network given, but no auto acquisition and no ip provided",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolFalse,
+					},
+				},
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "the private network has no auto ip acquisition, but no suitable IPs were provided",
+		},
+		{
+			name: "private network and internet network given",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1InternetNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                false,
+			want: allocationNetworkMap{
+				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
+					network:        &testdata.Partition1ExistingPrivateNetwork,
+					machineNetwork: &metal.MachineNetwork{},
+					ips:            []metal.IP{},
+					auto:           true,
+					isPrivate:      true,
+				},
+				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
+					network:        &testdata.Partition1InternetNetwork,
+					machineNetwork: &metal.MachineNetwork{},
+					ips:            []metal.IP{},
+					auto:           true,
+					isPrivate:      false,
+				},
+			},
+		},
+		{
+			name: "private network and internet network with no auto acquired internet ip",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1InternetNetwork.ID,
+						AutoAcquireIP: &boolFalse,
+					},
+				},
+				IPs:       []string{testdata.Partition1InternetIP.IPAddress},
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                false,
+			want: allocationNetworkMap{
+				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
+					network:        &testdata.Partition1ExistingPrivateNetwork,
+					machineNetwork: &metal.MachineNetwork{},
+					ips:            []metal.IP{},
+					auto:           true,
+					isPrivate:      true,
+				},
+				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
+					network:        &testdata.Partition1InternetNetwork,
+					machineNetwork: &metal.MachineNetwork{},
+					ips:            []metal.IP{testdata.Partition1InternetIP},
+					auto:           false,
+					isPrivate:      false,
+				},
+			},
+		},
+		{
+			name: "private of other network given",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+				ProjectID: "another-project",
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "the given private network does not belong to the project, which is not allowed",
+		},
+		{
+			name: "try to assign machine to private network of other partition",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition2ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+				ProjectID: testdata.Partition2ExistingPrivateNetwork.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "the private network must be in the partition where the machine is going to be placed",
+		},
+		{
+			name: "try to assign machine to super network",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1PrivateSuperNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "private super networks are not allowed to be set explicitly",
+		},
+		{
+			name: "try to assign machine to underlay network",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1UnderlayNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "underlay networks are not allowed to be set explicitly",
+		},
+		{
+			name: "try to add machine to multiple private networks",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
+					},
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition2ExistingPrivateNetwork.ID,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "multiple private networks provided, which is not allowed",
+		},
+		{
+			name: "try to add the same network a couple of times",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1InternetNetwork.ID,
+					},
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1InternetNetwork.ID,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "given network ids are not unique",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			// init tests
+			ds, mock := datastore.InitMockDB()
+			for _, testMock := range tt.mocks {
+				mock.On(testMock.term).Return(testMock.response, testMock.err)
+			}
+			ipamer, err := testdata.InitMockIpamData(mock, false)
+			require.Nil(t, err)
+			testdata.InitMockDBData(mock)
+
+			// run
+			got, err := gatherNetworksFromSpec(ds, ipamer, tt.allocationSpec, tt.partition, tt.partitionSuperNetworks)
+
+			// verify
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("gatherNetworksFromSpec() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if tt.errRegex != "" {
+					require.Regexp(t, tt.errRegex, err)
+				}
+				return
+			}
+
+			require.Len(t, got, len(tt.want), "number of gathered networks is incorrect")
+			for wantNetworkID, wantNetwork := range tt.want {
+				require.Contains(t, got, wantNetworkID)
+				gotNetwork := got[wantNetworkID]
+				require.Equal(t, wantNetwork.isPrivate, gotNetwork.isPrivate)
+				require.Equal(t, wantNetwork.auto, gotNetwork.auto)
+
+				for _, wantIP := range wantNetwork.ips {
+					require.Contains(t, gotNetwork.ips, wantIP)
+				}
 			}
 		})
 	}

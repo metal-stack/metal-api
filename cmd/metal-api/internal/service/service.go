@@ -19,7 +19,8 @@ import (
 
 // Some predefined users
 var (
-	Viewer = security.User{
+	BasePath = "/"
+	Viewer   = security.User{
 		EMail:  "metal-view@fi-ts.io",
 		Name:   "Metal-View",
 		Groups: []security.RessourceAccess{metal.ViewAccess},
@@ -40,11 +41,6 @@ var (
 		"admin": Admin,
 	}
 )
-
-// emptyBody is useful because with go-restful you cannot define an insert / update endpoint
-// without specifying a payload for reading. it would immediately intercept the request and
-// return 406: Not Acceptable to the client.
-type emptyBody struct{}
 
 type webResource struct {
 	ds *datastore.RethinkStore

@@ -127,25 +127,6 @@ func TestRethinkStore_Close(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_Connect(t *testing.T) {
-
-	// mock the DB
-	_, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-	}{
-		// Tests
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.rs.Connect()
-		})
-	}
-}
-
 func Test_connect(t *testing.T) {
 
 	type args struct {
@@ -175,39 +156,6 @@ func Test_connect(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("connect() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func Test_mustConnect(t *testing.T) {
-
-	// mock the DB
-	_, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	type args struct {
-		hosts    []string
-		dbname   string
-		username string
-		pwd      string
-	}
-	tests := []struct {
-		name  string
-		args  args
-		want  *r.Term
-		want1 *r.Session
-	}{
-		// Test-Data List / Test Cases:
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := mustConnect(tt.args.hosts, tt.args.dbname, tt.args.username, tt.args.pwd)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("mustConnect() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("mustConnect() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}

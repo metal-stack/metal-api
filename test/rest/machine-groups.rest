@@ -1,0 +1,49 @@
+@baseurl = {{scheme}}://{{host}}/v1/machine-group
+
+### get all machine groups
+# @name getAll
+GET {{baseurl}}
+Content-Type: application/json
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### get specific machine group
+# @name get
+GET {{baseurl}}/982d69e3-d770-4347-a21e-870eb43d65ae
+Content-Type: application/json
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### find specific machine group
+# @name find
+POST {{baseurl}}/find
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "labels": {"application": "something"}
+}
+
+### create a machine group
+# @name create
+PUT {{baseurl}}
+Content-Type: application/json
+Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "description": "a test machine group",
+  "name": "test-machine-group",
+  "partitionid": "vagrant-lab",
+  "projectid": "9b1a3fbe-8bcf-41f6-9e9a-29b3c6c5d3f5",
+  "sshpubkeys": [],
+  "labels": {"application": "something"}
+}
+
+### delete a machine group
+# @name delete
+DELETE {{baseurl}}/59f311d8-58dc-4c00-a92b-e1e4ee30fb78
+Content-Type: application/json
+Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z

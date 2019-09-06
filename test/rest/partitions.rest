@@ -7,3 +7,10 @@ GET {{baseurl}}
 ### get vagrant-lab
 # @name getVagrantLab
 GET {{baseurl}}/vagrant-lab
+
+### delete vagrant-lab
+# @name deleteVagrantLab
+DELETE {{baseurl}}/vagrant-lab
+Content-Type: application/json
+Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z

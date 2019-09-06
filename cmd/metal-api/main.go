@@ -93,6 +93,8 @@ func init() {
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
 
+	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
+
 	rootCmd.Flags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.Flags().StringP("db-name", "", "metalapi", "the database name to use")
 	rootCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
@@ -278,6 +280,11 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 }
 
 func initRestServices(withauth bool) *restfulspec.Config {
+	service.BasePath = viper.GetString("base-path")
+	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
+		logger.Fatalf("base path must start and end with a slash")
+	}
+
 	lg := logger.Desugar()
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
@@ -291,8 +298,9 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
-	restful.DefaultContainer.Add(rest.NewHealth(lg, ds.Health))
-	restful.DefaultContainer.Add(rest.NewVersion(moduleName))
+	restful.DefaultContainer.Add(service.NewProject(ds))
+	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
+	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
 	if withauth {
 		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
@@ -383,10 +391,13 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Description: "Managing size entities"}},
 		{TagProps: spec.TagProps{
 			Name:        "machine",
-			Description: "Managing machines"}},
+			Description: "Managing machine entities"}},
+		{TagProps: spec.TagProps{
+			Name:        "project",
+			Description: "Managing project entities"}},
 		{TagProps: spec.TagProps{
 			Name:        "switch",
-			Description: "Managing switches"}},
+			Description: "Managing switch entities"}},
 	}
 	jwtspec := spec.APIKeyAuth("Authorization", "header")
 	jwtspec.Description = "Add a 'Authorization: Bearer ....' header to the request"
@@ -397,6 +408,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		"HMAC": hmacspec,
 		"jwt":  jwtspec,
 	}
+	swo.BasePath = viper.GetString("base-path")
 	swo.Security = []map[string][]string{
 		{"Authorization": []string{"HMAC", "jwt"}},
 	}

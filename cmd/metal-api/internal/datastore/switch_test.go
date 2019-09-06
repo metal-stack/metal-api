@@ -201,9 +201,6 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-		id string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore

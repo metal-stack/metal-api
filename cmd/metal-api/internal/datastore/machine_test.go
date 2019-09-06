@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"reflect"
 	"testing"
 	"testing/quick"
@@ -13,14 +12,14 @@ import (
 
 // Test that generates many input data
 // Reference: https://golang.org/pkg/testing/quick/
-func TestRethinkStore_FindMachine2(t *testing.T) {
+func TestRethinkStore_FindMachineByID2(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
 
 	f := func(x string) bool {
-		_, err := ds.FindMachine(x)
+		_, err := ds.FindMachineByID(x)
 		returnvalue := true
 		if err != nil {
 			returnvalue = false
@@ -31,7 +30,7 @@ func TestRethinkStore_FindMachine2(t *testing.T) {
 		t.Error(err)
 	}
 }
-func TestRethinkStore_FindMachine(t *testing.T) {
+func TestRethinkStore_FindMachineByID(t *testing.T) {
 
 	// Mock the DB:
 	ds, mock := InitMockDB()
@@ -87,7 +86,7 @@ func TestRethinkStore_FindMachine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindMachine(tt.args.id)
+			got, err := tt.rs.FindMachineByID(tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachine() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -111,7 +110,7 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 		return m.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 			return nic.Field("macAddress")
 		}).Contains(r.Expr("11:11:11"))
-	})).Return([]metal.Machine{
+	})).Return(metal.Machines{
 		testdata.M1,
 	}, nil)
 
@@ -122,7 +121,7 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    []metal.Machine
+		want    metal.Machines
 		wantErr bool
 	}{
 		// Test Data Array:
@@ -132,7 +131,7 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 			args: args{
 				mac: "11:11:11",
 			},
-			want: []metal.Machine{
+			want: metal.Machines{
 				testdata.M1,
 			},
 			wantErr: false,
@@ -140,10 +139,8 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &v1.FindMachinesRequest{
-				NicsMacAddresses: []string{tt.args.mac},
-			}
-			got, err := tt.rs.FindMachines(req)
+			var got metal.Machines
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsMacAddresses: []string{tt.args.mac}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -165,7 +162,7 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 		return m.Field("block_devices").Map(func(bd r.Term) r.Term {
 			return bd.Field("size")
 		}).Contains(r.Expr(int64(1000000000000)))
-	})).Return([]metal.Machine{
+	})).Return(metal.Machines{
 		testdata.M1,
 	}, nil)
 
@@ -176,7 +173,7 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    []metal.Machine
+		want    metal.Machines
 		wantErr bool
 	}{
 		// Test Data Array:
@@ -186,7 +183,7 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 			args: args{
 				size: 1000000000000,
 			},
-			want: []metal.Machine{
+			want: metal.Machines{
 				testdata.M1,
 			},
 			wantErr: false,
@@ -194,10 +191,8 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &v1.FindMachinesRequest{
-				DiskSizes: []int64{tt.args.size},
-			}
-			got, err := tt.rs.FindMachines(req)
+			var got metal.Machines
+			err := tt.rs.SearchMachines(&MachineSearchQuery{DiskSizes: []int64{tt.args.size}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -219,7 +214,7 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 		return m.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 			return nw.Field("networkid")
 		}).Contains(r.Expr("1"))
-	})).Return([]metal.Machine{
+	})).Return(metal.Machines{
 		testdata.M1,
 	}, nil)
 
@@ -230,7 +225,7 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    []metal.Machine
+		want    metal.Machines
 		wantErr bool
 	}{
 		// Test Data Array:
@@ -240,7 +235,7 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 			args: args{
 				networkID: "1",
 			},
-			want: []metal.Machine{
+			want: metal.Machines{
 				testdata.M1,
 			},
 			wantErr: false,
@@ -248,10 +243,8 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &v1.FindMachinesRequest{
-				NetworkIDs: []string{tt.args.networkID},
-			}
-			got, err := tt.rs.FindMachines(req)
+			var got metal.Machines
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIDs: []string{tt.args.networkID}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -273,7 +266,7 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 		return m.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 			return nw.Field("ips")
 		}).Contains(r.Expr("1.2.3.4"))
-	})).Return([]metal.Machine{
+	})).Return(metal.Machines{
 		testdata.M1,
 	}, nil)
 
@@ -284,7 +277,7 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    []metal.Machine
+		want    metal.Machines
 		wantErr bool
 	}{
 		// Test Data Array:
@@ -294,7 +287,7 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 			args: args{
 				ip: "1.2.3.4",
 			},
-			want: []metal.Machine{
+			want: metal.Machines{
 				testdata.M1,
 			},
 			wantErr: false,
@@ -302,10 +295,8 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &v1.FindMachinesRequest{
-				NetworkIPs: []string{tt.args.ip},
-			}
-			got, err := tt.rs.FindMachines(req)
+			var got metal.Machines
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIPs: []string{tt.args.ip}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -327,7 +318,7 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 		return m.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 			return nw.Field("prefixes")
 		}).Contains(r.Expr("1.1.1.1/32"))
-	})).Return([]metal.Machine{
+	})).Return(metal.Machines{
 		testdata.M1,
 	}, nil)
 
@@ -338,7 +329,7 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    []metal.Machine
+		want    metal.Machines
 		wantErr bool
 	}{
 		// Test Data Array:
@@ -348,7 +339,7 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 			args: args{
 				prefix: "1.1.1.1/32",
 			},
-			want: []metal.Machine{
+			want: metal.Machines{
 				testdata.M1,
 			},
 			wantErr: false,
@@ -356,10 +347,8 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &v1.FindMachinesRequest{
-				NetworkPrefixes: []string{tt.args.prefix},
-			}
-			got, err := tt.rs.FindMachines(req)
+			var got metal.Machines
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkPrefixes: []string{tt.args.prefix}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -383,7 +372,7 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 				return neigh.Field("macAddress")
 			})
 		}).Contains(r.Expr("21:11:11:11:11:11"))
-	})).Return([]metal.Machine{
+	})).Return(metal.Machines{
 		testdata.M1,
 	}, nil)
 
@@ -394,7 +383,7 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 		name    string
 		rs      *RethinkStore
 		args    args
-		want    []metal.Machine
+		want    metal.Machines
 		wantErr bool
 	}{
 		// Test Data Array:
@@ -404,7 +393,7 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 			args: args{
 				mac: "21:11:11:11:11:11",
 			},
-			want: []metal.Machine{
+			want: metal.Machines{
 				testdata.M1,
 			},
 			wantErr: false,
@@ -412,10 +401,8 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := &v1.FindMachinesRequest{
-				NicsNeighborMacAddresses: []string{tt.args.mac},
-			}
-			got, err := tt.rs.FindMachines(req)
+			var got metal.Machines
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsNeighborMacAddresses: []string{tt.args.mac}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -436,7 +423,7 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		want    []metal.Machine
+		want    metal.Machines
 		wantErr bool
 	}{
 		// Test Data Array

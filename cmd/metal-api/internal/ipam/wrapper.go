@@ -2,7 +2,6 @@ package ipam
 
 import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 )
 
 // A IPAMer is responsible to allocate a IP for a given purpose
@@ -16,6 +15,6 @@ type IPAMer interface {
 	ReleaseChildPrefix(childPrefix metal.Prefix) error
 	CreatePrefix(prefix metal.Prefix) error
 	DeletePrefix(prefix metal.Prefix) error
-	PrefixUsage(cidr string) (*v1.NetworkUsage, error) // TODO: Also wrap usage, such that it is independent of v1
+	PrefixUsage(cidr string) (*metal.NetworkUsage, error) 
 	PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error
 }

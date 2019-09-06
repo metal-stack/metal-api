@@ -31,7 +31,7 @@ func NewSize(ds *datastore.RethinkStore) *restful.WebService {
 func (r sizeResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/size").
+		Path(BasePath + "v1/size").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 

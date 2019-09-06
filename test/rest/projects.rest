@@ -1,0 +1,45 @@
+@baseurl = {{scheme}}://{{host}}/v1/project
+
+### get all projects
+# @name getAll
+GET {{baseurl}}
+Content-Type: application/json
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### get specific project
+# @name get
+GET {{baseurl}}/43d9eba2-e1f7-43f9-8054-1d3a9b59302c
+Content-Type: application/json
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### find specific project
+# @name find
+POST {{baseurl}}/find
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "name": "project-1"
+}
+
+### create a project
+# @name create
+PUT {{baseurl}}
+Content-Type: application/json
+Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "description": "a test project",
+  "name": "project-1"
+}
+
+### delete a project
+# @name delete
+DELETE {{baseurl}}/e4c35a15-3aed-4f57-9e17-f3767bcde02f
+Content-Type: application/json
+Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z

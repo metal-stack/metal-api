@@ -8,37 +8,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 )
 
-func TestRethinkStore_FindPrimaryNetwork(t *testing.T) {
-
-	// mock the DB
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	tests := []struct {
-		name        string
-		rs          *RethinkStore
-		want        *metal.Network
-		wantErr     bool
-		partitionID string
-	}{
-		{
-			name:        "TestRethinkStore_GetPrimaryNetwork Test 2",
-			rs:          ds,
-			want:        &testdata.Nw3,
-			partitionID: testdata.Nw3.PartitionID,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, _ := tt.rs.FindPrimaryNetwork(tt.partitionID)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindPrimaryNetwork() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_FindNetwork(t *testing.T) {
+func TestRethinkStore_FindNetworkByID(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
@@ -56,7 +26,7 @@ func TestRethinkStore_FindNetwork(t *testing.T) {
 	}{
 		// Test Data Array:
 		{
-			name: "TestRethinkStore_FindNetwork Test 1",
+			name: "TestRethinkStore_FindNetworkByID Test 1",
 			rs:   ds,
 			args: args{
 				id: "1",
@@ -65,7 +35,7 @@ func TestRethinkStore_FindNetwork(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "TestRethinkStore_FindNetwork Test 2",
+			name: "TestRethinkStore_FindNetworkByID Test 2",
 			rs:   ds,
 			args: args{
 				id: "2",
@@ -76,13 +46,13 @@ func TestRethinkStore_FindNetwork(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindNetwork(tt.args.id)
+			got, err := tt.rs.FindNetworkByID(tt.args.id)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.FindNetwork() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RethinkStore.FindNetworkByID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindNetwork() = %v, want %v", got, tt.want)
+				t.Errorf("RethinkStore.FindNetworkByID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -97,7 +67,7 @@ func TestRethinkStore_ListNetworks(t *testing.T) {
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		want    []metal.Network
+		want    metal.Networks
 		wantErr bool
 	}{
 		// Test-Data List / Test Cases:

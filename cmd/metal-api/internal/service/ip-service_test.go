@@ -97,8 +97,9 @@ func TestDeleteIP(t *testing.T) {
 	ipservice := NewIP(ds, ipamer)
 	container := restful.NewContainer().Add(ipservice)
 
-	req := httptest.NewRequest("DELETE", "/v1/ip/"+testdata.IPAMIP.IPAddress, nil)
+	req := httptest.NewRequest("POST", "/v1/ip/release/"+testdata.IPAMIP.IPAddress, nil)
 	container = injectEditor(container, req)
+	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -142,7 +143,6 @@ func TestAllocateIP(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "10.0.0.1", result.IPAddress)
 	require.Equal(t, name, *result.Name)
-	require.Equal(t, allocateRequest.ProjectID, result.ProjectID)
 }
 
 func TestUpdateIP(t *testing.T) {

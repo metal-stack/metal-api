@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"go.uber.org/zap"
@@ -42,7 +41,7 @@ func NewFirewall(
 func (r firewallResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/firewall").
+		Path(BasePath + "v1/firewall").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -59,11 +58,10 @@ func (r firewallResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/find").
-		To(viewer(r.searchFirewall)).
-		Operation("searchFirewall").
-		Doc("search firewalls").
-		Param(ws.QueryParameter("project", "project that this firewall is allocated with").DataType("string")).
-		Param(ws.QueryParameter("partition", "the partition in which the firewall is located").DataType("string")).
+		To(viewer(r.findFirewalls)).
+		Operation("findFirewalls").
+		Doc("find firewalls by multiple criteria").
+		Reads(v1.FirewallFindRequest{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]v1.FirewallResponse{}).
 		Returns(http.StatusOK, "OK", []v1.FirewallResponse{}).
@@ -93,7 +91,7 @@ func (r firewallResource) webService() *restful.WebService {
 func (r firewallResource) findFirewall(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	fw, err := r.ds.FindMachine(id)
+	fw, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -111,15 +109,15 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 	response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponse(fw, r.ds, utils.Logger(request).Sugar()))
 }
 
-func (r firewallResource) searchFirewall(request *restful.Request, response *restful.Response) {
-	partition := strings.TrimSpace(request.QueryParameter("partition"))
-	project := strings.TrimSpace(request.QueryParameter("project"))
-
-	req := &v1.FindMachinesRequest{
-		PartitionID:       &partition,
-		AllocationProject: &project,
+func (r firewallResource) findFirewalls(request *restful.Request, response *restful.Response) {
+	var requestPayload datastore.MachineSearchQuery
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
-	possibleFws, err := r.ds.FindMachines(req)
+
+	var possibleFws metal.Machines
+	err = r.ds.SearchMachines(&requestPayload, &possibleFws)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -129,7 +127,7 @@ func (r firewallResource) searchFirewall(request *restful.Request, response *res
 		return
 	}
 
-	var fws []metal.Machine
+	fws := metal.Machines{}
 	imageMap := imgs.ByID()
 	for i := range possibleFws {
 		if possibleFws[i].IsFirewall(imageMap) {
@@ -152,7 +150,7 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 		return
 	}
 
-	var fws []metal.Machine
+	var fws metal.Machines
 	imageMap := imgs.ByID()
 	for i := range possibleFws {
 		if possibleFws[i].IsFirewall(imageMap) {
@@ -220,7 +218,6 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		UUID:        uuid,
 		Name:        name,
 		Description: description,
-		Tenant:      requestPayload.Tenant,
 		Hostname:    hostname,
 		ProjectID:   requestPayload.ProjectID,
 		PartitionID: requestPayload.PartitionID,
@@ -247,7 +244,7 @@ func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore, logger 
 	return &v1.FirewallResponse{MachineResponse: *makeMachineResponse(fw, ds, logger)}
 }
 
-func makeFirewallResponseList(fws []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.FirewallResponse {
+func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.FirewallResponse {
 	machineResponseList := makeMachineResponseList(fws, ds, logger)
 
 	firewallResponseList := []*v1.FirewallResponse{}

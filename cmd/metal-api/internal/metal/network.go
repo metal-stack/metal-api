@@ -62,20 +62,43 @@ func (p *Prefix) Equals(other *Prefix) bool {
 	return p.String() == other.String()
 }
 
-// Network is a network in a metal as a service infrastructure, routable between.
+// Network is a network in a metal as a service infrastructure.
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes            Prefixes `rethinkdb:"prefixes"`
-	DestinationPrefixes Prefixes `rethinkdb:"destinationprefixes"`
-	PartitionID         string   `rethinkdb:"partitionid"`
-	ProjectID           string   `rethinkdb:"projectid"`
-	TenantID            string   `rethinkdb:"tenantid"`
-	ParentNetworkID     string   `rethinkdb:"parentnetworkid"`
-	Vrf                 uint     `rethinkdb:"vrf"`
-	Primary             bool     `rethinkdb:"primary"`
-	Nat                 bool     `rethinkdb:"nat"`
-	Underlay            bool     `rethinkdb:"underlay"`
+	Prefixes            Prefixes          `rethinkdb:"prefixes"`
+	DestinationPrefixes Prefixes          `rethinkdb:"destinationprefixes"`
+	PartitionID         string            `rethinkdb:"partitionid"`
+	ProjectID           string            `rethinkdb:"projectid"`
+	ParentNetworkID     string            `rethinkdb:"parentnetworkid"`
+	Vrf                 uint              `rethinkdb:"vrf"`
+	PrivateSuper        bool              `rethinkdb:"privatesuper"`
+	Nat                 bool              `rethinkdb:"nat"`
+	Underlay            bool              `rethinkdb:"underlay"`
+	Labels              map[string]string `rethinkdb:"labels"`
+}
+
+// Networks is a list of networks.
+type Networks []Network
+
+// NetworkMap is an indexed map of networks
+type NetworkMap map[string]Network
+
+// NetworkUsage contains usage information of a network
+type NetworkUsage struct {
+	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
+	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+}
+
+// ByID creates an indexed map of partitions whre the id is the index.
+func (nws Networks) ByID() NetworkMap {
+	res := make(NetworkMap)
+	for i, nw := range nws {
+		res[nw.ID] = nws[i]
+	}
+	return res
 }
 
 // FindPrefix returns the prefix by cidr if contained in this network, nil otherwise

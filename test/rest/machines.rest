@@ -100,28 +100,18 @@ Content-Type: application/json
   "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873"
 }
 
+### find machine
+POST {{baseurl}}/find
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "partition_id": "vagrant-lab"
+}
+
 ### find all
 GET {{baseurl}}
-Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
-X-Date: 1985-04-12T23:20:50.52Z
-
-### find by MAC
-GET {{baseurl}}/find?mac=aa:aa:aa:aa:aa:aa
-Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
-X-Date: 1985-04-12T23:20:50.52Z
-
-### find by partition
-GET {{baseurl}}/find?partition=vagrant-lab
-Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
-X-Date: 1985-04-12T23:20:50.52Z
-
-### find by project
-GET {{baseurl}}/find?project=test
-Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
-X-Date: 1985-04-12T23:20:50.52Z
-
-### find by partition and mac
-GET {{baseurl}}/find?mac=aa:aa:aa:aa:aa:aa&partition=vagrant-lab
 Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
 X-Date: 1985-04-12T23:20:50.52Z
 
@@ -129,12 +119,6 @@ X-Date: 1985-04-12T23:20:50.52Z
 # @name wait
 GET {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/wait
 Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
-X-Date: 1985-04-12T23:20:50.52Z
-
-### free a machine
-# @name free
-DELETE {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
-Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
 X-Date: 1985-04-12T23:20:50.52Z
 
 ### allocate a machine
@@ -148,17 +132,22 @@ X-Date: 1985-04-12T23:20:50.52Z
   "description": "My first metal host",
   "partitionid": "vagrant-lab",
   "hostname": "metal-test-1",
-  "imageid": "ubuntu-18.10",
+  "imageid": "ubuntu-19.04",
   "name": "Metal Host 1",
-  "projectid": "devops",
-  "tenant": "dkb",
+  "projectid": "cada86ca-af5c-4358-b222-a2a09652f269",
   "sizeid": "v1-small-x86",
   "ssh_pub_keys": [],
   "ips": [],
   "networks": [
-     {"networkid": "internet-vagrant-lab"}
+    {"networkid": "internet-vagrant-lab"}
   ]
 }
+
+### free a machine
+# @name free
+DELETE {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
+Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### set machine to reserved
 POST {{baseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/state
@@ -181,8 +170,7 @@ Content-Type: application/json
   "hostname": "metal-test-1",
   "imageid": "1",
   "name": "Metal Host 1",
-  "projectid": "test",
-  "tenant": "dkb",
+  "projectid": "9b6fa6b9-3a67-4bde-a79e-8a9dede76092",
   "sizeid": "v1-small-x86",
   "ssh_pub_keys": ["keiner"]
 }
