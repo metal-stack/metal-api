@@ -35,7 +35,7 @@ func NewIP(ds *datastore.RethinkStore, ipamer ipam.IPAMer) *restful.WebService {
 func (ir ipResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/ip").
+		Path(BasePath + "v1/ip").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -65,15 +65,15 @@ func (ir ipResource) webService() *restful.WebService {
 		Operation("findIPs").
 		Doc("get all ips that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.FindIPsRequest{}).
+		Reads(v1.IPFindRequest{}).
 		Writes([]v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.DELETE("/{id}").
-		To(editor(ir.deleteIP)).
-		Operation("deleteIP").
-		Doc("deletes an ip and returns the deleted entity").
+	ws.Route(ws.POST("/release/{id}").
+		To(editor(ir.releaseIP)).
+		Operation("releaseIP").
+		Doc("releases an ip").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.IPResponse{}).
@@ -94,7 +94,7 @@ func (ir ipResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/allocate").
 		To(editor(ir.allocateIP)).
 		Operation("allocateIP").
-		Doc("allocate an ip in the given network for a project.").
+		Doc("allocate an ip in the given network.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPAllocateRequest{}).
 		Writes(v1.IPResponse{}).
@@ -105,7 +105,7 @@ func (ir ipResource) webService() *restful.WebService {
 		To(editor(ir.allocateIP)).
 		Operation("allocateSpecificIP").
 		Param(ws.PathParameter("ip", "ip to try to allocate").DataType("string")).
-		Doc("allocate an specific ip in the given network for a project.").
+		Doc("allocate a specific ip in the given network.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.IPAllocateRequest{}).
 		Writes(v1.IPResponse{}).
@@ -118,7 +118,7 @@ func (ir ipResource) webService() *restful.WebService {
 func (ir ipResource) findIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	ip, err := ir.ds.FindIP(id)
+	ip, err := ir.ds.FindIPByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -141,18 +141,19 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 }
 
 func (ir ipResource) findIPs(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.FindIPsRequest
+	var requestPayload datastore.IPSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	ips, err := ir.ds.FindIPs(&requestPayload)
+	var ips metal.IPs
+	err = ir.ds.SearchIPs(&requestPayload, &ips)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	var result []*v1.IPResponse
+	result := []*v1.IPResponse{}
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
@@ -160,10 +161,10 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 	response.WriteHeaderAndEntity(http.StatusOK, result)
 }
 
-func (ir ipResource) deleteIP(request *restful.Request, response *restful.Response) {
+func (ir ipResource) releaseIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	ip, err := ir.ds.FindIP(id)
+	ip, err := ir.ds.FindIPByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -194,6 +195,11 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 			return
 		}
 	}
+	if requestPayload.ProjectID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectid should not be empty")) {
+			return
+		}
+	}
 
 	var name string
 	if requestPayload.Name != nil {
@@ -204,11 +210,16 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		description = *requestPayload.Description
 	}
 
-	nw, err := ir.ds.FindNetwork(requestPayload.NetworkID)
+	nw, err := ir.ds.FindNetworkByID(requestPayload.NetworkID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	// TODO: Check if project exists if we get a project entity
+
+	p, err := ir.ds.FindProjectByID(requestPayload.ProjectID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	// TODO: Following operations should span a database transaction if possible
 
 	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, ir.ipamer)
@@ -223,7 +234,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		Name:             name,
 		Description:      description,
 		NetworkID:        nw.ID,
-		ProjectID:        requestPayload.ProjectID,
+		ProjectID:        p.ID,
 	}
 
 	err = ir.ds.CreateIP(ip)
@@ -241,7 +252,7 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 		return
 	}
 
-	oldIP, err := ir.ds.FindIP(requestPayload.IPAddress)
+	oldIP, err := ir.ds.FindIPByID(requestPayload.IPAddress)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

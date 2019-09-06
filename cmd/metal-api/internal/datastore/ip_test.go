@@ -8,7 +8,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 )
 
-func TestRethinkStore_FindIP(t *testing.T) {
+func TestRethinkStore_FindIPByID(t *testing.T) {
 
 	// mock the DB
 	ds, mock := InitMockDB()
@@ -46,7 +46,7 @@ func TestRethinkStore_FindIP(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindIP(tt.args.id)
+			got, err := tt.rs.FindIPByID(tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindIP() error = %v, wantErr %v", err, tt.wantErr)
 				return

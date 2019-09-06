@@ -2,12 +2,57 @@ package datastore
 
 import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// FindIP returns an ip of a given id.
-func (rs *RethinkStore) FindIP(id string) (*metal.IP, error) {
+// IPSearchQuery can be used to search networks.
+type IPSearchQuery struct {
+	IPAddress        *string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip"`
+	ParentPrefixCidr *string `json:"networkprefix" description:"the prefix of the network this ip address belongs to"`
+	NetworkID        *string `json:"networkid" description:"the network this ip allocate request address belongs to"`
+	MachineID        *string `json:"machineid" description:"the machine this ip address belongs to, empty if not strong coupled"`
+	ProjectID        *string `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled"`
+}
+
+// GenerateTerm generates the project search query term.
+func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
+	q := *rs.ipTable()
+
+	if p.IPAddress != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("id").Eq(*p.IPAddress)
+		})
+	}
+
+	if p.ProjectID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("projectid").Eq(*p.ProjectID)
+		})
+	}
+
+	if p.NetworkID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networkid").Eq(*p.NetworkID)
+		})
+	}
+
+	if p.ParentPrefixCidr != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("networkprefix").Eq(*p.ParentPrefixCidr)
+		})
+	}
+
+	if p.MachineID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("machineid").Eq(*p.MachineID)
+		})
+	}
+
+	return &q
+}
+
+// FindIPByID returns an ip of a given id.
+func (rs *RethinkStore) FindIPByID(id string) (*metal.IP, error) {
 	var ip metal.IP
 	err := rs.findEntityByID(rs.ipTable(), &ip, id)
 	if err != nil {
@@ -16,47 +61,14 @@ func (rs *RethinkStore) FindIP(id string) (*metal.IP, error) {
 	return &ip, nil
 }
 
-// FindIPs returns the ips that match the given properties
-func (rs *RethinkStore) FindIPs(props *v1.FindIPsRequest) ([]metal.IP, error) {
-	q := *rs.ipTable()
+// FindIPs returns an IP by the given query, fails if there is no record or multiple records found.
+func (rs *RethinkStore) FindIPs(q *IPSearchQuery, ip *metal.IP) error {
+	return rs.findEntity(q.generateTerm(rs), &ip)
+}
 
-	if props.IPAddress != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("id").Eq(*props.IPAddress)
-		})
-	}
-
-	if props.ProjectID != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("projectid").Eq(*props.ProjectID)
-		})
-	}
-
-	if props.NetworkID != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networkid").Eq(*props.NetworkID)
-		})
-	}
-
-	if props.ParentPrefixCidr != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("networkprefix").Eq(*props.ParentPrefixCidr)
-		})
-	}
-
-	if props.MachineID != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("machineid").Eq(*props.MachineID)
-		})
-	}
-
-	var ips []metal.IP
-	err := rs.searchEntities(&q, &ips)
-	if err != nil {
-		return nil, err
-	}
-
-	return ips, nil
+// SearchIPs returns the result of the ips search request query.
+func (rs *RethinkStore) SearchIPs(q *IPSearchQuery, ips *metal.IPs) error {
+	return rs.searchEntities(q.generateTerm(rs), ips)
 }
 
 // ListIPs returns all ips.

@@ -219,8 +219,9 @@ var (
 			Name:        "Network 1",
 			Description: "description 1",
 		},
-		PartitionID: Partition1.ID,
-		Prefixes:    prefixes1,
+		PartitionID:  Partition1.ID,
+		Prefixes:     prefixes1,
+		PrivateSuper: true,
 	}
 	Nw2 = metal.Network{
 		Base: metal.Base{
@@ -229,6 +230,7 @@ var (
 			Description: "description 2",
 		},
 		Prefixes: prefixes2,
+		Underlay: true,
 	}
 	Nw3 = metal.Network{
 		Base: metal.Base{
@@ -236,9 +238,113 @@ var (
 			Name:        "Network 3",
 			Description: "description 3",
 		},
-		Prefixes:    prefixes3,
-		PartitionID: Partition1.ID,
-		Primary:     true,
+		Prefixes:        prefixes3,
+		PartitionID:     Partition1.ID,
+		ParentNetworkID: Nw1.ID,
+	}
+
+	Partition1PrivateSuperNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "super-tenant-network-1",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.0.0.0", Length: "16"}},
+		PartitionID:     Partition1.ID,
+		ParentNetworkID: "",
+		ProjectID:       "",
+		PrivateSuper:    true,
+		Nat:             false,
+		Underlay:        false,
+	}
+
+	Partition2PrivateSuperNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "super-tenant-network-2",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.3.0.0", Length: "16"}},
+		PartitionID:     Partition2.ID,
+		ParentNetworkID: "",
+		ProjectID:       "",
+		PrivateSuper:    true,
+		Nat:             false,
+		Underlay:        false,
+	}
+
+	Partition1UnderlayNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "underlay-network-1",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.1.0.0", Length: "24"}},
+		PartitionID:     Partition1.ID,
+		ParentNetworkID: "",
+		ProjectID:       "",
+		PrivateSuper:    false,
+		Nat:             false,
+		Underlay:        true,
+	}
+
+	Partition2UnderlayNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "underlay-network-1",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.2.0.0", Length: "24"}},
+		PartitionID:     Partition2.ID,
+		ParentNetworkID: "",
+		ProjectID:       "",
+		PrivateSuper:    false,
+		Nat:             false,
+		Underlay:        true,
+	}
+
+	Partition1InternetNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "internet-network-1",
+		},
+		Prefixes:        metal.Prefixes{{IP: "212.34.0.0", Length: "24"}},
+		PartitionID:     Partition1.ID,
+		ParentNetworkID: "",
+		ProjectID:       "",
+		PrivateSuper:    false,
+		Nat:             true,
+		Underlay:        false,
+	}
+
+	Partition2InternetNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "internet-network-2",
+		},
+		Prefixes:        metal.Prefixes{{IP: "212.35.0.0", Length: "24"}},
+		PartitionID:     Partition2.ID,
+		ParentNetworkID: "",
+		ProjectID:       "",
+		PrivateSuper:    false,
+		Nat:             true,
+		Underlay:        false,
+	}
+
+	Partition1ExistingPrivateNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "existing-private-network-1",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.0.204.0", Length: "22"}},
+		PartitionID:     Partition1.ID,
+		ParentNetworkID: Partition1PrivateSuperNetwork.ID,
+		ProjectID:       "project-uuid",
+		PrivateSuper:    false,
+		Nat:             false,
+		Underlay:        false,
+	}
+
+	Partition2ExistingPrivateNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "existing-private-network-2",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.3.88.0", Length: "22"}},
+		PartitionID:     Partition2.ID,
+		ParentNetworkID: Partition2PrivateSuperNetwork.ID,
+		ProjectID:       "project-uuid",
+		PrivateSuper:    false,
+		Nat:             false,
+		Underlay:        false,
 	}
 
 	NwIPAM = metal.Network{
@@ -270,6 +376,11 @@ var (
 		Name:        "IPAM IP",
 		Description: "description IPAM",
 	}
+	Partition1InternetIP = metal.IP{
+		IPAddress: "212.34.0.1",
+		ProjectID: Partition1ExistingPrivateNetwork.ProjectID,
+		NetworkID: Partition1InternetNetwork.ID,
+	}
 
 	// partitions
 	Partition1 = metal.Partition{
@@ -278,6 +389,7 @@ var (
 			Name:        "partition1",
 			Description: "description 1",
 		},
+		PrivateNetworkPrefixLength: 22,
 	}
 	Partition2 = metal.Partition{
 		Base: metal.Base{
@@ -285,6 +397,7 @@ var (
 			Name:        "partition2",
 			Description: "description 2",
 		},
+		PrivateNetworkPrefixLength: 22,
 	}
 	Partition3 = metal.Partition{
 		Base: metal.Base{
@@ -292,6 +405,7 @@ var (
 			Name:        "partition3",
 			Description: "description 3",
 		},
+		PrivateNetworkPrefixLength: 22,
 	}
 
 	// Switches
@@ -428,6 +542,13 @@ var (
 	// All Networks
 	TestNetworks = []metal.Network{
 		Nw1, Nw2, Nw3, NwIPAM,
+		// Partition1ExistingPrivateNetwork,
+		// Partition1InternetNetwork,
+		// Partition1PrivateSuperNetwork,
+		// Partition1UnderlayNetwork,
+		// Partition2InternetNetwork,
+		// Partition2PrivateSuperNetwork,
+		// Partition2UnderlayNetwork,
 	}
 	// All IPs
 	TestIPs = []metal.IP{
@@ -488,20 +609,8 @@ var (
 	}
 
 	// All Machines
-	TestMachines = []metal.Machine{
+	TestMachines = metal.Machines{
 		M1, M2, M3, M4, M5,
-	}
-
-	// All Vrfs
-	Vrf1 = metal.Vrf{
-		Base: metal.Base{
-			ID: "42000",
-		},
-		ProjectID: "p",
-		Tenant:    "t",
-	}
-	TestVrfs = []metal.Vrf{
-		Vrf1,
 	}
 
 	EmptyResult = map[string]interface{}{}
@@ -539,19 +648,28 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("image").Get("3")).Return(Img3, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("image").Get("999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("network").Get("1")).Return(Nw1, nil)
-	mock.On(r.DB("mockdb").Table("network").Get("2")).Return(Nw2, nil)
-	mock.On(r.DB("mockdb").Table("network").Get("3")).Return(Nw3, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Nw1.ID)).Return(Nw1, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Nw2.ID)).Return(Nw2, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Nw3.ID)).Return(Nw3, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition1ExistingPrivateNetwork.ID)).Return(Partition1ExistingPrivateNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition1InternetNetwork.ID)).Return(Partition1InternetNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition1PrivateSuperNetwork.ID)).Return(Partition1PrivateSuperNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition1UnderlayNetwork.ID)).Return(Partition1UnderlayNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition2ExistingPrivateNetwork.ID)).Return(Partition2ExistingPrivateNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition2InternetNetwork.ID)).Return(Partition2InternetNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition2PrivateSuperNetwork.ID)).Return(Partition2PrivateSuperNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition2UnderlayNetwork.ID)).Return(Partition2UnderlayNetwork, nil)
+
 	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("network").Filter(func(var_1 r.Term) r.Term {
-		return var_1.Field("primary").Eq(true).And(var_1.Field("partitionid").Eq(Partition1.ID))
-	})).Return(Nw3, nil)
+	mock.On(r.DB("mockdb").Table("network").Filter(func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("1") }).Filter(func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(Nw3, nil)
+
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("3.4.5.6")).Return(IP3, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("8.8.8.8")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("ip").Get("9.9.9.9")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(Partition1InternetIP.IPAddress)).Return(Partition1InternetIP, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("1")).Return(M1, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("2")).Return(M2, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("3")).Return(M3, nil)
@@ -564,7 +682,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("machine").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(var_1 r.Term) r.Term {
 		return var_1.Field("partitionid").Eq(Partition1.ID)
-	})).Return([]metal.Machine{M1, M2, M3, M4, M5, M7, M8}, nil)
+	})).Return(metal.Machines{M1, M2, M3, M4, M5, M7, M8}, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(Switch1, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch2")).Return(Switch2, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3")).Return(Switch3, nil)
@@ -573,6 +691,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
 		map[string]interface{}{"new_val": M3},
 	}, nil)
+	mock.On(r.DB("mockdb").Table("integerpool").Get(r.MockAnything()).Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}}, nil)
 
 	// Default: Return Empty result
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)
@@ -582,6 +701,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("project").Get(r.MockAnything())).Return(EmptyResult, nil)
 
 	mock.On(r.DB("mockdb").Table("event").Get(r.MockAnything())).Return(EmptyResult, nil)
 
@@ -594,7 +714,6 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
 	mock.On(r.DB("mockdb").Table("event")).Return(TestEvents, nil)
-	mock.On(r.DB("mockdb").Table("vrf")).Return(TestVrfs, nil)
 
 	// X.Delete
 	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Delete()).Return(EmptyResult, nil)
@@ -623,7 +742,6 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("partition").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(EmptyResult, nil)
-	mock.On(r.DB("mockdb").Table("vrf").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything())).Return(EmptyResult, nil)
 
 	mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{

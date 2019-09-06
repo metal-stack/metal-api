@@ -39,7 +39,7 @@ func NewPartition(ds *datastore.RethinkStore, tc TopicCreater) *restful.WebServi
 func (r partitionResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/partition").
+		Path(BasePath + "v1/partition").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -156,11 +156,11 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.MgmtServiceAddress != nil {
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
-	projectNetworkPrefixLength := 22
-	if requestPayload.ProjectNetworkPrefixLength != nil {
-		projectNetworkPrefixLength = *requestPayload.ProjectNetworkPrefixLength
-		if projectNetworkPrefixLength < 16 || projectNetworkPrefixLength > 30 {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectNetworkPrefixLength is out of range")) {
+	prefixLength := 22
+	if requestPayload.PrivateNetworkPrefixLength != nil {
+		prefixLength = *requestPayload.PrivateNetworkPrefixLength
+		if prefixLength < 16 || prefixLength > 30 {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("private network prefix length is out of range")) {
 				return
 			}
 		}
@@ -185,7 +185,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 			Description: description,
 		},
 		MgmtServiceAddress:         mgmtServiceAddress,
-		ProjectNetworkPrefixLength: projectNetworkPrefixLength,
+		PrivateNetworkPrefixLength: prefixLength,
 		BootConfiguration: metal.BootConfiguration{
 			ImageURL:    imageURL,
 			KernelURL:   kernelURL,

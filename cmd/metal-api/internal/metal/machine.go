@@ -15,6 +15,8 @@ const (
 	AvailableState MState = ""
 	ReservedState  MState = "RESERVED"
 	LockedState    MState = "LOCKED"
+
+	MachineLabelPrefix = "machine.metal-pod.io"
 )
 
 var (
@@ -85,6 +87,8 @@ type Machine struct {
 	IPMI        IPMI                    `rethinkdb:"ipmi"`
 }
 
+type Machines []Machine
+
 // IsFirewall returns true if this machine is a firewall machine.
 func (m *Machine) IsFirewall(iMap ImageMap) bool {
 	if m.Allocation == nil {
@@ -108,7 +112,6 @@ type MachineAllocation struct {
 	Created         time.Time         `rethinkdb:"created"`
 	Name            string            `rethinkdb:"name"`
 	Description     string            `rethinkdb:"description"`
-	Tenant          string            `rethinkdb:"tenant"`
 	Project         string            `rethinkdb:"project"`
 	ImageID         string            `rethinkdb:"imageid"`
 	MachineNetworks []*MachineNetwork `rethinkdb:"networks"`
@@ -119,6 +122,17 @@ type MachineAllocation struct {
 	Succeeded       bool              `rethinkdb:"succeeded"`
 }
 
+// ByProjectID creates a map of machines with the project id as the index.
+func (ms Machines) ByProjectID() map[string]Machines {
+	res := make(map[string]Machines)
+	for i, m := range ms {
+		if m.Allocation != nil {
+			res[m.Allocation.Project] = append(res[m.Allocation.Project], ms[i])
+		}
+	}
+	return res
+}
+
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
 	NetworkID           string   `rethinkdb:"networkid"`
@@ -126,7 +140,7 @@ type MachineNetwork struct {
 	IPs                 []string `rethinkdb:"ips"`
 	DestinationPrefixes []string `rethinkdb:"destinationprefixes"`
 	Vrf                 uint     `rethinkdb:"vrf"`
-	Primary             bool     `rethinkdb:"primary"`
+	Private             bool     `rethinkdb:"private"`
 	ASN                 int64    `rethinkdb:"asn"`
 	Nat                 bool     `rethinkdb:"nat"`
 	Underlay            bool     `rethinkdb:"underlay"`

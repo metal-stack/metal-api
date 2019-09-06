@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
+
 )
 
 // RecentProvisioningEventsLimit defines how many recent events are added to the MachineRecentProvisioningEvents struct
@@ -26,8 +28,7 @@ type MachineAllocation struct {
 	Created         time.Time        `json:"created" description:"the time when the machine was created"`
 	Name            string           `json:"name" description:"the name of the machine"`
 	Description     string           `json:"description,omitempty" description:"a description for this machine" optional:"true"`
-	Tenant          string           `json:"tenant" description:"the tenant that this machine is assigned to"`
-	Project         string           `json:"project" description:"the project that this machine is assigned to" `
+	Project         string           `json:"project" description:"the project id that this machine is assigned to" `
 	Image           *ImageResponse   `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
 	MachineNetworks []MachineNetwork `json:"networks" description:"the networks of this machine"`
 	Hostname        string           `json:"hostname" description:"the hostname which will be used when creating the machine"`
@@ -43,7 +44,7 @@ type MachineNetwork struct {
 	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
 	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Primary             bool     `json:"primary" description:"indicates whether this network is the primary network of this machine"`
+	Private             bool     `json:"private" description:"indicates whether this network is the private network of this machine"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
@@ -144,7 +145,6 @@ type MachineRegisterRequest struct {
 type MachineAllocateRequest struct {
 	UUID *string `json:"uuid" description:"if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition" optional:"true"`
 	Describable
-	Tenant      string                    `json:"tenant" description:"the name of the owning tenant"`
 	Hostname    *string                   `json:"hostname" description:"the hostname for the allocated machine (defaults to metal)" optional:"true"`
 	ProjectID   string                    `json:"projectid" description:"the project id to assign this machine to"`
 	PartitionID string                    `json:"partitionid" description:"the partition id to assign this machine to"`
@@ -168,68 +168,8 @@ type MachineFinalizeAllocationRequest struct {
 	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
 }
 
-type FindMachinesRequest struct {
-	ID          *string  `json:"id"`
-	Name        *string  `json:"name"`
-	PartitionID *string  `json:"partition_id"`
-	SizeID      *string  `json:"sizeid"`
-	RackID      *string  `json:"rackid"`
-	Liveliness  *string  `json:"liveliness"`
-	Tags        []string `json:"tags"`
-
-	// allocation
-	AllocationName      *string `json:"allocation_name"`
-	AllocationTenant    *string `json:"allocation_tenant"`
-	AllocationProject   *string `json:"allocation_project"`
-	AllocationImageID   *string `json:"allocation_image_id"`
-	AllocationHostname  *string `json:"allocation_hostname"`
-	AllocationSucceeded *bool   `json:"allocation_succeeded"`
-
-	// network
-	NetworkIDs                 []string `json:"network_ids"`
-	NetworkPrefixes            []string `json:"network_prefixes"`
-	NetworkIPs                 []string `json:"network_ips"`
-	NetworkDestinationPrefixes []string `json:"network_destination_prefixes"`
-	NetworkVrfs                []int64  `json:"network_vrfs"`
-	NetworkPrimary             *bool    `json:"network_primary"`
-	NetworkASNs                []int64  `json:"network_asns"`
-	NetworkNat                 *bool    `json:"network_nat"`
-	NetworkUnderlay            *bool    `json:"network_underlay"`
-
-	// hardware
-	HardwareMemory   *int64 `json:"hardware_memory"`
-	HardwareCPUCores *int64 `json:"hardware_cpu_cores"`
-
-	// nics
-	NicsMacAddresses         []string `json:"nics_mac_addresses"`
-	NicsNames                []string `json:"nics_names"`
-	NicsVrfs                 []string `json:"nics_vrfs"`
-	NicsNeighborMacAddresses []string `json:"nics_neighbor_mac_addresses"`
-	NicsNeighborNames        []string `json:"nics_neighbor_names"`
-	NicsNeighborVrfs         []string `json:"nics_neighbor_vrfs"`
-
-	// disks
-	DiskNames []string `json:"disk_names"`
-	DiskSizes []int64  `json:"disk_sizes"`
-
-	// state
-	StateValue *string `json:"state_value"`
-
-	// ipmi
-	IpmiAddress    *string `json:"ipmi_address"`
-	IpmiMacAddress *string `json:"ipmi_mac_address"`
-	IpmiUser       *string `json:"ipmi_user"`
-	IpmiInterface  *string `json:"ipmi_interface"`
-
-	// fru
-	FruChassisPartNumber   *string `json:"fru_chassis_part_number"`
-	FruChassisPartSerial   *string `json:"fru_chassis_part_serial"`
-	FruBoardMfg            *string `json:"fru_board_mfg"`
-	FruBoardMfgSerial      *string `json:"fru_board_mfg_serial"`
-	FruBoardPartNumber     *string `json:"fru_board_part_number"`
-	FruProductManufacturer *string `json:"fru_product_manufacturer"`
-	FruProductPartNumber   *string `json:"fru_product_part_number"`
-	FruProductSerial       *string `json:"fru_product_serial"`
+type MachineFindRequest struct {
+	datastore.MachineSearchQuery
 }
 
 type MachineResponse struct {
@@ -366,7 +306,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				IPs:                 ips,
 				Vrf:                 m.Allocation.MachineNetworks[i].Vrf,
 				ASN:                 m.Allocation.MachineNetworks[i].ASN,
-				Primary:             m.Allocation.MachineNetworks[i].Primary,
+				Private:             m.Allocation.MachineNetworks[i].Private,
 				Nat:                 m.Allocation.MachineNetworks[i].Nat,
 				Underlay:            m.Allocation.MachineNetworks[i].Underlay,
 				DestinationPrefixes: m.Allocation.MachineNetworks[i].DestinationPrefixes,
@@ -385,7 +325,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Name:            m.Allocation.Name,
 			Description:     m.Allocation.Description,
 			Image:           NewImageResponse(i),
-			Tenant:          m.Allocation.Tenant,
 			Project:         m.Allocation.Project,
 			Hostname:        m.Allocation.Hostname,
 			SSHPubKeys:      m.Allocation.SSHPubKeys,

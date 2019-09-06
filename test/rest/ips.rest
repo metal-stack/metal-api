@@ -17,5 +17,12 @@ X-Date: 1985-04-12T23:20:50.52Z
   "description": "an ip",
   "name": "test-ip1",
   "networkid": "internet-vagrant-lab",
-  "projectid": "devops"
+  "projectid": "9b1a3fbe-8bcf-41f6-9e9a-29b3c6c5d3f5"
 }
+
+### release ip
+# @name releaseIP
+POST {{baseurl}}/release/185.24.0.1
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z

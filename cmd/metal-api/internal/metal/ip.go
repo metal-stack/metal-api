@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+
 // IP of a machine/firewall.
 type IP struct {
 	IPAddress        string    `rethinkdb:"id"`
@@ -50,17 +51,20 @@ func (ip *IP) SetCreated(created time.Time) {
 	ip.Created = created
 }
 
+// ASNBase is the offset for all Machine ASN´s
+const ASNBase = int64(4200000000)
+
 // ASN calculate a ASN from the ip
 // we start to calculate ASNs for machines with the first ASN in the 32bit ASN range and
 // add the last 2 octets of the ip of the machine to achieve unique ASNs per vrf
+// TODO consider using IntegerPool here as well to calculate the addition to ASNBase
 func (ip *IP) ASN() (int64, error) {
-	const asnbase = 4200000000
-
+	
 	i := net.ParseIP(ip.IPAddress)
 	if i == nil {
 		return int64(-1), errors.Errorf("unable to parse ip %s", ip.IPAddress)
 	}
-	asn := asnbase + int64(i[14])*256 + int64(i[15])
+	asn := ASNBase + int64(i[14])*256 + int64(i[15])
 	return asn, nil
 }
 

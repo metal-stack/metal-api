@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "vrf", "event", "network", "ip"}
+	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "project", "event", "network", "ip",
+		"integerpool", "integerpoolinfo"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -66,7 +67,7 @@ func (rs *RethinkStore) Health() error {
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	db := rs.db()
 
-	return multi(rs.session,
+	err := multi(rs.session,
 		// create our tables
 		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
 			return db.TableCreate(r, opts)
@@ -76,6 +77,35 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 			return r.Branch(i, nil, db.Table("machine").IndexCreate("project"))
 		}),
 	)
+	if err != nil {
+		return err
+	}
+
+	err = rs.initIntegerPool()
+	if err != nil {
+		return err
+	}
+
+	// this is a default project, which is used for metal internal entities
+	// (like internet IPs that we immediately reserve after initial deployment)
+	// this will be possibly be removed when factoring out the project entity to another microservice
+	_, err = rs.FindProjectByID("00000000-0000-0000-0000-000000000000")
+	if err == nil {
+		return nil
+	}
+
+	if metal.IsNotFound(err) {
+		p := &metal.Project{
+			Base: metal.Base{
+				ID:          "00000000-0000-0000-0000-000000000000",
+				Name:        "metal-system",
+				Description: "internal administrative project",
+			},
+			Tenant: "metal-system",
+		}
+		err = rs.CreateProject(p)
+	}
+	return err
 }
 
 func (rs *RethinkStore) sizeTable() *r.Term {
@@ -102,10 +132,6 @@ func (rs *RethinkStore) waitTable() *r.Term {
 	res := r.DB(rs.dbname).Table("wait")
 	return &res
 }
-func (rs *RethinkStore) vrfTable() *r.Term {
-	res := r.DB(rs.dbname).Table("vrf")
-	return &res
-}
 func (rs *RethinkStore) eventTable() *r.Term {
 	res := r.DB(rs.dbname).Table("event")
 	return &res
@@ -116,6 +142,18 @@ func (rs *RethinkStore) networkTable() *r.Term {
 }
 func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
+	return &res
+}
+func (rs *RethinkStore) projectTable() *r.Term {
+	res := r.DB(rs.dbname).Table("project")
+	return &res
+}
+func (rs *RethinkStore) integerTable() *r.Term {
+	res := r.DB(rs.dbname).Table("integerpool")
+	return &res
+}
+func (rs *RethinkStore) integerInfoTable() *r.Term {
+	res := r.DB(rs.dbname).Table("integerpoolinfo")
 	return &res
 }
 func (rs *RethinkStore) db() *r.Term {
@@ -149,8 +187,7 @@ func (rs *RethinkStore) Connect() error {
 	rs.database, rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
-	err := rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
-	return err
+	return rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
 }
 
 func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, error) {
@@ -176,16 +213,6 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, err
 
 	db := r.DB(dbname)
 	return &db, session, nil
-}
-
-// mustConnect versucht eine DB Verbindung herszustellen. Wenn es nicht
-// funktioniert kommt es zu einem panic.
-func mustConnect(hosts []string, dbname, username, pwd string) (*r.Term, *r.Session) {
-	d, s, e := connect(hosts, dbname, username, pwd)
-	if e != nil {
-		panic(e)
-	}
-	return d, s
 }
 
 // retryConnect versucht endlos eine Verbindung zur DB herzustellen. Wenn
@@ -218,6 +245,44 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 	return nil
 }
 
+func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
+	res, err := query.Run(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot find %v in database: %v", getEntityName(entity), err)
+	}
+	defer res.Close()
+	if res.IsNil() {
+		return metal.NotFound("no %v with found", getEntityName(entity))
+	}
+
+	hasResult := res.Next(entity)
+	if !hasResult {
+		return fmt.Errorf("cannot find %v in database: %v", getEntityName(entity), err)
+	}
+
+	next := map[string]interface{}{}
+	hasResult = res.Next(&next)
+	if hasResult {
+		return fmt.Errorf("more than one %v exists", getEntityName(entity))
+	}
+
+	return nil
+}
+
+func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error {
+	res, err := query.Run(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot search %v in database: %v", getEntityName(entity), err)
+	}
+	defer res.Close()
+
+	err = res.All(entity)
+	if err != nil {
+		return fmt.Errorf("cannot fetch all entities: %v", err)
+	}
+	return nil
+}
+
 func (rs *RethinkStore) listEntities(table *r.Term, entity interface{}) error {
 	res, err := table.Run(rs.session)
 	if err != nil {
@@ -237,6 +302,7 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.Entity) error {
 	entity.SetCreated(now)
 	entity.SetChanged(now)
 
+	// TODO: Return metal.Conflict
 	res, err := table.Insert(entity).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot create %v in database: %v", getEntityName(entity), err)
@@ -264,20 +330,6 @@ func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.Entity) error {
 
 	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
 		entity.SetID(res.GeneratedKeys[0])
-	}
-	return nil
-}
-
-func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error {
-	res, err := query.Run(rs.session)
-	if err != nil {
-		return fmt.Errorf("cannot search %v in database: %v", getEntityName(entity), err)
-	}
-	defer res.Close()
-
-	err = res.All(entity)
-	if err != nil {
-		return fmt.Errorf("cannot fetch all entities: %v", err)
 	}
 	return nil
 }
@@ -321,11 +373,9 @@ func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.Entity
 }
 
 func getEntityName(entity interface{}) string {
-	var name string
-	if t := reflect.TypeOf(entity); t.Kind() == reflect.Ptr {
-		name = t.Elem().Name()
-	} else {
-		name = t.Name()
+	t := reflect.TypeOf(entity)
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
 	}
-	return strings.ToLower(name)
+	return strings.ToLower(t.Name())
 }

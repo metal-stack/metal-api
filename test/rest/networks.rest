@@ -1,35 +1,45 @@
 @baseurl = {{scheme}}://{{host}}/v1/network
 
-### get all ips
+### get all networks
 # @name getAll
 GET {{baseurl}}
 Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
 X-Date: 1985-04-12T23:20:50.52Z
 
-### create tenant network
-# @name createTenantNetwork
+### find network
+POST {{baseurl}}/find
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "partitionid": "vagrant-lab"
+}
+
+### create project super network
+# @name createProjectSuperNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
 Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "id": "primary-network",
-  "description": "Tenant Super Network",
-  "name": "tenants",
+  "id": "tenant-super-network-vagrant-lab",
+  "description": "Project Super Network",
+  "name": "projects",
   "nat": false,
   "partitionid": "vagrant-lab",
   "prefixes": [
     "10.0.0.0/16"
   ],
-  "primary": true
+  "privatesuper": true
 }
 
 ### create internet network
 # @name createInternetNetwork
 PUT {{baseurl}}/
 Content-Type: application/json
-Authorization: Metal-Admin 8e99f348cb47cbb9f053bc768dd303d925dacfa2abc0a8fefc419d8459aa7583
+Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
@@ -42,7 +52,7 @@ X-Date: 1985-04-12T23:20:50.52Z
     "185.24.0.0/16",
     "185.27.0.0/16"
   ],
-  "primary": false
+  "privatesuper": false
 }
 
 ### create underlay network
@@ -59,8 +69,36 @@ X-Date: 1985-04-12T23:20:50.52Z
   "nat": false,
   "underlay": true,
   "partitionid": "vagrant-lab",
+  "vrf": 10000,
   "prefixes": [
-    "192.168.3.0/24"
+    "10.1.0.0/24"
   ],
-  "primary": false
+  "privatesuper": false
 }
+
+### acquire network
+# @name acquireNetwork
+POST {{baseurl}}/acquire
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "projectid": "cada86ca-af5c-4358-b222-a2a09652f269",
+  "partitionid": "vagrant-lab"
+}
+
+### release network
+# @name releaseNetwork
+POST {{baseurl}}/release/f900e906-8b65-4262-892a-4dd4f520735d
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+
+### delete network
+# @name deleteNetwork
+DELETE {{baseurl}}/tenant-super-network-vagrant-lab
+Content-Type: application/json
+Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z

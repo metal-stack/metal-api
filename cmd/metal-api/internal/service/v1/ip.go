@@ -2,6 +2,7 @@ package v1
 
 import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 )
 
 type IPBase struct {
@@ -24,12 +25,8 @@ type IPUpdateRequest struct {
 	Describable
 }
 
-type FindIPsRequest struct {
-	IPAddress        *string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip"`
-	ProjectID        *string `json:"projectid" description:"the project this ip address belongs to"`
-	ParentPrefixCidr *string `json:"networkprefix" description:"the prefix of the network this ip address belongs to"`
-	NetworkID        *string `json:"networkid" description:"the network this ip allocate request address belongs to"`
-	MachineID        *string `json:"machineid" description:"the machine this ip address belongs to, empty if not strong coupled"`
+type IPFindRequest struct {
+	datastore.IPSearchQuery
 }
 
 type IPResponse struct {

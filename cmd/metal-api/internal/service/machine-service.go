@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -21,6 +23,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -33,11 +36,11 @@ type machineResource struct {
 	ipamer ipam.IPAMer
 }
 
+// machineAllocationSpec is a specification for a machine allocation
 type machineAllocationSpec struct {
 	UUID        string
 	Name        string
 	Description string
-	Tenant      string
 	Hostname    string
 	ProjectID   string
 	PartitionID string
@@ -52,11 +55,40 @@ type machineAllocationSpec struct {
 	IsFirewall  bool
 }
 
+// allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
 type allocationNetwork struct {
-	network         *metal.Network
-	ips             []metal.IP
-	auto            bool
-	isTenantNetwork bool
+	network        *metal.Network
+	machineNetwork *metal.MachineNetwork
+	ips            []metal.IP
+	auto           bool
+	isPrivate      bool
+}
+
+// allocationNetworkMap is a map of allocationNetworks with the network id as the key
+type allocationNetworkMap map[string]*allocationNetwork
+
+// getPrivateNetwork extracts the private network from an allocationNetworkMap
+func getPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
+	var privateNetwork *allocationNetwork
+	for _, n := range networks {
+		if n.isPrivate {
+			privateNetwork = n
+			break
+		}
+	}
+	if privateNetwork == nil {
+		return nil, fmt.Errorf("no private network contained")
+	}
+	return privateNetwork, nil
+}
+
+// getMachineNetworks extracts the machines networks from an allocationNetworkMap
+func getMachineNetworks(networks allocationNetworkMap) []*metal.MachineNetwork {
+	machineNetworks := []*metal.MachineNetwork{}
+	for _, n := range networks {
+		machineNetworks = append(machineNetworks, n.machineNetwork)
+	}
+	return machineNetworks
 }
 
 // The MachineAllocation contains the allocated machine or an error.
@@ -92,7 +124,7 @@ func NewMachine(
 func (r machineResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/machine").
+		Path(BasePath + "v1/machine").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -120,9 +152,9 @@ func (r machineResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/find").
 		To(viewer(r.findMachines)).
 		Operation("findMachines").
-		Doc("search machines").
+		Doc("find machines by multiple criteria").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.FindMachinesRequest{}).
+		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -322,7 +354,7 @@ func (r machineResource) listMachines(request *restful.Request, response *restfu
 func (r machineResource) findMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	m, err := r.ds.FindMachine(id)
+	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -331,13 +363,14 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 }
 
 func (r machineResource) findMachines(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.FindMachinesRequest
+	var requestPayload datastore.MachineSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	ms, err := r.ds.FindMachines(&requestPayload)
+	ms := metal.Machines{}
+	err = r.ds.SearchMachines(&requestPayload, &ms)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -382,7 +415,7 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 // function to implement timeouts to not wait forever.
 // The user of this function will block until this machine is allocated.
 func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Allocator) error {
-	m, err := r.ds.FindMachine(id)
+	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
 		return err
 	}
@@ -440,7 +473,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 	}
 
 	id := request.PathParameter("id")
-	oldMachine, err := r.ds.FindMachine(id)
+	oldMachine, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -480,7 +513,7 @@ func (r machineResource) setChassisIdentifyLEDState(request *restful.Request, re
 	}
 
 	id := request.PathParameter("id")
-	oldMachine, err := r.ds.FindMachine(id)
+	oldMachine, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -525,7 +558,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		utils.Logger(request).Sugar().Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
 	}
 
-	m, err := r.ds.FindMachine(requestPayload.UUID)
+	m, err := r.ds.FindMachineByID(requestPayload.UUID)
 	if err != nil && !metal.IsNotFound(err) {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -613,7 +646,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 func (r machineResource) ipmiData(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	m, err := r.ds.FindMachine(id)
+	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -664,7 +697,6 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		UUID:        uuid,
 		Name:        name,
 		Description: description,
-		Tenant:      requestPayload.Tenant,
 		Hostname:    hostname,
 		ProjectID:   requestPayload.ProjectID,
 		PartitionID: requestPayload.PartitionID,
@@ -695,6 +727,11 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		return nil, err
 	}
 
+	_, err = ds.FindProjectByID(allocationSpec.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
 	machineCandidate, err := findMachineCandidate(ds, allocationSpec)
 	if err != nil {
 		return nil, err
@@ -704,7 +741,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
 
-	machineNetworks, err := makeMachineNetworks(ds, ipamer, allocationSpec)
+	networks, err := makeNetworks(ds, ipamer, allocationSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -714,16 +751,15 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		Name:            allocationSpec.Name,
 		Description:     allocationSpec.Description,
 		Hostname:        allocationSpec.Hostname,
-		Tenant:          allocationSpec.Tenant,
 		Project:         allocationSpec.ProjectID,
 		ImageID:         allocationSpec.Image.ID,
-		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		UserData:        allocationSpec.UserData,
-		MachineNetworks: machineNetworks,
+		SSHPubKeys:      allocationSpec.SSHPubKeys,
+		MachineNetworks: getMachineNetworks(networks),
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
-	machine, err := ds.FindMachine(machineCandidate.ID)
+	machine, err := ds.FindMachineByID(machineCandidate.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -733,10 +769,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	old := *machine
 	machine.Allocation = alloc
-	tags := allocationSpec.Tags
-	additionalTags := additionalTags(machine)
-	tags = append(tags, additionalTags...)
-	machine.Tags = uniqueTags(tags)
+	machine.Tags = makeMachineTags(machine, networks, allocationSpec.Tags)
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
@@ -755,47 +788,9 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	return machine, nil
 }
 
-// adds tags to the machine, e.g. rack and chassis
-// ip.localbgp.primary.network.machine.metal-pod.io first IP of the network for the localbgp dummy-interface
-func additionalTags(machine *metal.Machine) []string {
-	const tagPrefix = "machine.metal-pod.io"
-	tags := []string{}
-	for _, n := range machine.Allocation.MachineNetworks {
-		if n.Primary {
-			if n.ASN != 0 {
-				tags = append(tags, fmt.Sprintf("%s/network.primary.asn=%d", tagPrefix, n.ASN))
-			}
-			if len(n.IPs) < 1 {
-				continue
-			}
-			ip := net.ParseIP(n.IPs[0])
-			for _, p := range n.Prefixes {
-				pip, ipnet, err := net.ParseCIDR(p)
-				if err != nil {
-					continue
-				}
-				if ipnet.Contains(ip) {
-					// use the ip-address of the prefix as bgplocal-ip
-					// IP without mask is sufficient and kubernetes labels values must not contain a "/"
-					// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-					tags = append(tags, fmt.Sprintf("%s/network.primary.localbgp.ip=%s", tagPrefix, pip))
-					break
-				}
-			}
-		}
-	}
-	if machine.RackID != "" {
-		tags = append(tags, fmt.Sprintf("%s/rack=%s", tagPrefix, machine.RackID))
-	}
-	if machine.IPMI.Fru.ChassisPartSerial != "" {
-		tags = append(tags, fmt.Sprintf("%s/chassis=%s", tagPrefix, machine.IPMI.Fru.ChassisPartSerial))
-	}
-	return tags
-}
-
 func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
-	if allocationSpec.Tenant == "" {
-		return fmt.Errorf("no tenant given")
+	if allocationSpec.ProjectID == "" {
+		return fmt.Errorf("project id must be specified")
 	}
 
 	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
@@ -844,7 +839,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 		}
 	} else {
 		// requesting allocation of a specific, existing machine
-		machine, err = ds.FindMachine(allocationSpec.UUID)
+		machine, err = ds.FindMachineByID(allocationSpec.UUID)
 		if err != nil {
 			return nil, fmt.Errorf("machine cannot be found: %v", err)
 		}
@@ -879,45 +874,43 @@ func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string
 	return machine, nil
 }
 
-func makeMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) ([]*metal.MachineNetwork, error) {
+func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
 	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	machineNetworks := []*metal.MachineNetwork{}
 	for _, n := range networks {
 		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return nil, err
 		}
-		machineNetworks = append(machineNetworks, machineNetwork)
+		n.machineNetwork = machineNetwork
 	}
 
-	// TODO: It's duplicated information, but the ASN of the tenant network must be present on all other networks...
-	// This needs to be done more elegantly, this is a quick fix:
-	var asn int64
-	for _, n := range machineNetworks {
-		if n.ASN != 0 {
-			asn = n.ASN
-			break
-		}
-	}
-	fmt.Printf("Halo: %v", asn)
-	for _, n := range machineNetworks {
-		n.ASN = asn
+	// the metal-networker expects to have the same unique ASN on all networks of this machine
+	asn, err := makeASN(networks)
+	for _, n := range networks {
+		n.machineNetwork.ASN = asn
 	}
 
-	return machineNetworks, nil
+	return networks, nil
 }
 
-func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (map[string]*allocationNetwork, error) {
+func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
 	partition, err := ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
 		return nil, fmt.Errorf("partition cannot be found: %v", err)
 	}
 
-	userNetworks, err := gatherUserNetworks(ds, allocationSpec, partition)
+	var privateSuperNetworks metal.Networks
+	boolTrue := true
+	err = ds.SearchNetworks(&datastore.NetworkSearchQuery{PrivateSuper: &boolTrue}, &privateSuperNetworks)
+	if err != nil {
+		return nil, errors.Wrap(err, "partition has no private super network")
+	}
+
+	specNetworks, err := gatherNetworksFromSpec(ds, ipamer, allocationSpec, partition, privateSuperNetworks)
 	if err != nil {
 		return nil, err
 	}
@@ -930,34 +923,44 @@ func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSp
 		}
 	}
 
-	projectNetwork, err := gatherOrCreateProjectNetwork(ds, ipamer, allocationSpec, partition)
-	if err != nil {
-		return nil, err
-	}
-
-	gatheredNetworks := make(map[string]*allocationNetwork)
-	for k, v := range userNetworks {
-		gatheredNetworks[k] = v
-	}
+	// assemble result
+	result := specNetworks
 	if underlayNetwork != nil {
-		gatheredNetworks[underlayNetwork.network.ID] = underlayNetwork
+		result[underlayNetwork.network.ID] = underlayNetwork
 	}
-	gatheredNetworks[projectNetwork.network.ID] = projectNetwork
 
-	return gatheredNetworks, nil
+	return result, nil
 }
 
-func gatherUserNetworks(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition) (map[string]*allocationNetwork, error) {
-	isPrimary := true
-	primaryNetworks, err := ds.FindNetworks(&v1.FindNetworksRequest{Primary: &isPrimary})
-	if err != nil {
-		return nil, err
+func gatherNetworksFromSpec(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, partition *metal.Partition, privateSuperNetworks metal.Networks) (allocationNetworkMap, error) {
+	var partitionPrivateSuperNetwork *metal.Network
+	for _, privateSuperNetwork := range privateSuperNetworks {
+		if partition.ID == privateSuperNetwork.PartitionID {
+			partitionPrivateSuperNetwork = &privateSuperNetwork
+			break
+		}
+	}
+	if partitionPrivateSuperNetwork == nil {
+		return nil, fmt.Errorf("partition %s does not have a private super network", partition.ID)
 	}
 
-	userNetworks := make(map[string]*allocationNetwork)
+	// what do we have to prevent:
+	// - user wants to place his machine in a network that does not belong to the project in which the machine is being placed
+	// - user wants a machine with an private network that is not in the partition of the machine
+	// - user wants to define multiple private networks for his machine
+	// - user specifies administrative networks, i.e. underlay or privatesuper networks
+	// - user's private network is specified with noauto, which would make the machine have no ip address
 
-	for _, n := range allocationSpec.Networks {
-		network, err := ds.FindNetwork(n.NetworkID)
+	specNetworks := make(map[string]*allocationNetwork)
+	var privateNetwork *allocationNetwork
+
+	for _, networkSpec := range allocationSpec.Networks {
+		auto := true
+		if networkSpec.AutoAcquireIP != nil {
+			auto = *networkSpec.AutoAcquireIP
+		}
+
+		network, err := ds.FindNetworkByID(networkSpec.NetworkID)
 		if err != nil {
 			return nil, err
 		}
@@ -965,52 +968,94 @@ func gatherUserNetworks(ds *datastore.RethinkStore, allocationSpec *machineAlloc
 		if network.Underlay {
 			return nil, fmt.Errorf("underlay networks are not allowed to be set explicitly: %s", network.ID)
 		}
-		if network.Primary {
-			return nil, fmt.Errorf("primary networks are not allowed to be set explicitly: %s", network.ID)
+		if network.PrivateSuper {
+			return nil, fmt.Errorf("private super networks are not allowed to be set explicitly: %s", network.ID)
 		}
-		for _, primaryNetwork := range primaryNetworks {
-			if network.ParentNetworkID == primaryNetwork.ID {
-				return nil, fmt.Errorf("given network %q must not be a child of a primary network: %s", network.ID, primaryNetwork.ID)
+
+		n := &allocationNetwork{
+			network:   network,
+			auto:      auto,
+			ips:       []metal.IP{},
+			isPrivate: false,
+		}
+
+		for _, privateSuperNetwork := range privateSuperNetworks {
+			if network.ParentNetworkID == privateSuperNetwork.ID {
+				// this is the user given private network
+				if privateNetwork != nil {
+					return nil, fmt.Errorf("multiple private networks provided, which is not allowed")
+				}
+				if network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
+					return nil, fmt.Errorf("the private network must be in the partition where the machine is going to be placed")
+				}
+				n.isPrivate = true
+				privateNetwork = n
+				break
 			}
 		}
 
-		auto := true
-		if n.AutoAcquireIP != nil {
-			auto = *n.AutoAcquireIP
-		}
-
-		userNetworks[network.ID] = &allocationNetwork{
-			network:         network,
-			auto:            auto,
-			ips:             []metal.IP{},
-			isTenantNetwork: false,
-		}
+		specNetworks[network.ID] = n
 	}
 
-	if len(userNetworks) != len(allocationSpec.Networks) {
-		return nil, fmt.Errorf("given network ids are not unique: %v", allocationSpec.Networks)
+	if len(specNetworks) != len(allocationSpec.Networks) {
+		return nil, fmt.Errorf("given network ids are not unique")
+	}
+
+	if privateNetwork == nil {
+		nwSpec := &metal.Network{
+			Base: metal.Base{
+				Name:        "implicitly generated",
+				Description: "implicitly generated",
+			},
+			PartitionID: partitionPrivateSuperNetwork.PartitionID,
+			ProjectID:   allocationSpec.ProjectID,
+		}
+		nw, err := createChildNetwork(ds, ipamer, nwSpec, partitionPrivateSuperNetwork, partition.PrivateNetworkPrefixLength)
+		if err != nil {
+			return nil, err
+		}
+
+		privateNetwork = &allocationNetwork{
+			network:   nw,
+			auto:      true,
+			ips:       []metal.IP{},
+			isPrivate: true,
+		}
+
+		specNetworks[nw.ID] = privateNetwork
+	}
+
+	if privateNetwork.network.ProjectID != allocationSpec.ProjectID {
+		return nil, fmt.Errorf("the given private network does not belong to the project, which is not allowed")
 	}
 
 	for _, ipString := range allocationSpec.IPs {
-		ip, err := ds.FindIP(ipString)
+		ip, err := ds.FindIPByID(ipString)
 		if err != nil {
 			return nil, err
 		}
 		if ip.ProjectID != allocationSpec.ProjectID {
-			return nil, fmt.Errorf("given ip %q with project %q does not belong to the project of this allocation: %s", ip.IPAddress, ip.ProjectID, allocationSpec.ProjectID)
+			return nil, fmt.Errorf("given ip %q with project id %q does not belong to the project of this allocation: %s", ip.IPAddress, ip.ProjectID, allocationSpec.ProjectID)
 		}
-		network, ok := userNetworks[ip.NetworkID]
+		network, ok := specNetworks[ip.NetworkID]
 		if !ok {
 			return nil, fmt.Errorf("given ip %q is not in any of the given networks, which is required", ip.IPAddress)
 		}
+
 		network.ips = append(network.ips, *ip)
 	}
 
-	return userNetworks, nil
+	if !privateNetwork.auto && len(privateNetwork.ips) == 0 {
+		return nil, fmt.Errorf("the private network has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address")
+	}
+
+	return specNetworks, nil
 }
 
 func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition) (*allocationNetwork, error) {
-	underlays, err := ds.FindUnderlayNetworks(partition.ID)
+	boolTrue := true
+	var underlays metal.Networks
+	err := ds.SearchNetworks(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &underlays)
 	if err != nil {
 		return nil, err
 	}
@@ -1023,88 +1068,13 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 	underlay := &underlays[0]
 
 	return &allocationNetwork{
-		network:         underlay,
-		auto:            true,
-		isTenantNetwork: false,
+		network:   underlay,
+		auto:      true,
+		isPrivate: false,
 	}, nil
-}
-
-func gatherOrCreateProjectNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, partition *metal.Partition) (*allocationNetwork, error) {
-	// TODO: The vrf should become an attribute of a project and created on project creation
-	vrfID, err := ensureProjectVrf(ds, allocationSpec)
-	if err != nil {
-		return nil, err
-	}
-
-	projectNetwork, err := ds.FindProjectNetwork(allocationSpec.ProjectID)
-	if err != nil && !metal.IsNotFound(err) {
-		return nil, err
-	}
-
-	if projectNetwork == nil {
-		primaryNetwork, err := ds.FindPrimaryNetwork(partition.ID)
-		if err != nil {
-			return nil, fmt.Errorf("could not get primary network: %v", err)
-		}
-
-		projectPrefix, err := createChildPrefix(primaryNetwork.Prefixes, partition.ProjectNetworkPrefixLength, ipamer)
-		if err != nil {
-			return nil, err
-		}
-		if projectPrefix == nil {
-			return nil, fmt.Errorf("could not allocate child prefix in network: %s", primaryNetwork.ID)
-		}
-
-		projectNetwork = &metal.Network{
-			Prefixes:            metal.Prefixes{*projectPrefix},
-			DestinationPrefixes: metal.Prefixes{},
-			PartitionID:         allocationSpec.PartitionID,
-			ProjectID:           allocationSpec.ProjectID,
-			Nat:                 primaryNetwork.Nat,
-			Primary:             false,
-			Underlay:            false,
-			Vrf:                 vrfID,
-			ParentNetworkID:     primaryNetwork.ID,
-		}
-
-		err = ds.CreateNetwork(projectNetwork)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &allocationNetwork{
-		network:         projectNetwork,
-		auto:            true,
-		isTenantNetwork: true,
-	}, nil
-}
-
-func ensureProjectVrf(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (uint, error) {
-	vrf, err := ds.FindVrfByProject(allocationSpec.ProjectID, allocationSpec.Tenant)
-	if err != nil {
-		if metal.IsNotFound(err) {
-			vrf, err = ds.ReserveNewVrf(allocationSpec.Tenant, allocationSpec.ProjectID)
-			if err != nil {
-				return 0, fmt.Errorf("cannot reserve new vrf for tenant project: %v", err)
-			}
-		} else {
-			return 0, fmt.Errorf("cannot find vrf for tenant project: %v", err)
-		}
-	}
-
-	vrfID, err := vrf.ToUint()
-	if err != nil {
-		return 0, fmt.Errorf("cannot convert vrfid to uint: %v", err)
-	}
-
-	return vrfID, nil
 }
 
 func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
-	var asn int64
-	primary := false
-
 	if n.auto {
 		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
 		if err != nil {
@@ -1126,14 +1096,6 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 			return nil, err
 		}
 
-		if n.isTenantNetwork {
-			asn, err = ip.ASN()
-			if err != nil {
-				return nil, err
-			}
-			primary = true
-		}
-
 		n.ips = append(n.ips, *ip)
 	}
 
@@ -1147,8 +1109,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		Prefixes:            n.network.Prefixes.String(),
 		IPs:                 ipAddresses,
 		DestinationPrefixes: n.network.DestinationPrefixes.String(),
-		ASN:                 asn,
-		Primary:             primary,
+		Private:             n.isPrivate,
 		Underlay:            n.network.Underlay,
 		Nat:                 n.network.Nat,
 		Vrf:                 n.network.Vrf,
@@ -1157,6 +1118,100 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	return &machineNetwork, nil
 }
 
+// makeASN we can use the IP of the private network (which always have to be present and unique)
+// for generating a unique ASN.
+func makeASN(networks allocationNetworkMap) (int64, error) {
+	privateNetwork, err := getPrivateNetwork(networks)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(privateNetwork.ips) == 0 {
+		return 0, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
+	}
+
+	asn, err := privateNetwork.ips[0].ASN()
+	if err != nil {
+		return 0, err
+	}
+
+	return asn, nil
+}
+
+// makeMachineTags constructs the tags of the machine.
+// following tags are added in the following precedence (from lowest to highest in case of duplication):
+// - external network labels (concatenated, from all machine networks that this machine belongs to)
+// - private network labels (concatenated)
+// - user given tags (from allocation spec)
+// - system tags (immutable information from the metal-api that are useful for the end user, e.g. machine rack and chassis)
+func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags []string) []string {
+	labels := make(map[string]string)
+
+	for _, n := range networks {
+		if !n.isPrivate {
+			for k, v := range n.network.Labels {
+				labels[k] = v
+			}
+		}
+	}
+
+	privateNetwork, _ := getPrivateNetwork(networks)
+	if privateNetwork != nil {
+		for k, v := range privateNetwork.network.Labels {
+			labels[k] = v
+		}
+	}
+
+	// as user labels are given as an array, we need to figure out if label-like tags were provided.
+	// otherwise the user could provide confusing information like:
+	// - machine.metal-pod.io/chassis=123
+	// - machine.metal-pod.io/chassis=789
+	userLabels := make(map[string]string)
+	actualUserTags := []string{}
+	for _, tag := range userTags {
+		if strings.Contains(tag, "=") {
+			parts := strings.SplitN(tag, "=", 2)
+			userLabels[parts[0]] = parts[1]
+		} else {
+			actualUserTags = append(actualUserTags, tag)
+		}
+	}
+	for k, v := range userLabels {
+		labels[k] = v
+	}
+
+	for k, v := range makeMachineSystemLabels(m) {
+		labels[k] = v
+	}
+
+	tags := actualUserTags
+	for k, v := range labels {
+		tags = append(tags, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return uniqueTags(tags)
+}
+
+func makeMachineSystemLabels(m *metal.Machine) map[string]string {
+	labels := make(map[string]string)
+	for _, n := range m.Allocation.MachineNetworks {
+		if n.Private {
+			if n.ASN != 0 {
+				labels[fmt.Sprintf("%s/%s", metal.MachineLabelPrefix, "network.primary.asn")] = strconv.FormatInt(n.ASN, 10)
+				break
+			}
+		}
+	}
+	if m.RackID != "" {
+		labels[fmt.Sprintf("%s/%s", metal.MachineLabelPrefix, "rack")] = m.RackID
+	}
+	if m.IPMI.Fru.ChassisPartSerial != "" {
+		labels[fmt.Sprintf("%s/%s", metal.MachineLabelPrefix, "chassis")] = m.IPMI.Fru.ChassisPartSerial
+	}
+	return labels
+}
+
+// uniqueTags the last added tags will be kept!
 func uniqueTags(tags []string) []string {
 	tagSet := make(map[string]bool)
 	for _, t := range tags {
@@ -1177,7 +1232,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	}
 
 	id := request.PathParameter("id")
-	m, err := r.ds.FindMachine(id)
+	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1208,7 +1263,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		vrf = "default"
 	} else {
 		for _, mn := range m.Allocation.MachineNetworks {
-			if mn.Primary {
+			if mn.Private {
 				vrf = fmt.Sprintf("vrf%d", mn.Vrf)
 				break
 			}
@@ -1237,7 +1292,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	m, err := r.ds.FindMachine(id)
+	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1294,7 +1349,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []*metal.MachineNetwork) error {
 	for _, machineNetwork := range machineNetworks {
 		for _, ipString := range machineNetwork.IPs {
-			ip, err := r.ds.FindIP(ipString)
+			ip, err := r.ds.FindIPByID(ipString)
 			if err != nil {
 				return err
 			}
@@ -1307,35 +1362,6 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				return err
 			}
 		}
-
-		network, err := r.ds.FindNetwork(machineNetwork.NetworkID)
-		if err != nil {
-			return err
-		}
-		// Only Networks must be deleted which are "owned" by this machine.
-		if network.ProjectID != machine.Allocation.Project {
-			continue
-		}
-		deleteNetwork := false
-		for _, prefix := range network.Prefixes {
-			usage, err := r.ipamer.PrefixUsage(prefix.String())
-			if err != nil {
-				return err
-			}
-			if usage.UsedIPs <= 2 { // 2 is for broadcast and network
-				err = r.ipamer.ReleaseChildPrefix(prefix)
-				if err != nil {
-					return err
-				}
-				deleteNetwork = true
-			}
-		}
-		if deleteNetwork {
-			err = r.ds.DeleteNetwork(network)
-			if err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
@@ -1343,14 +1369,13 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 func networkGarbageCollection(ds *datastore.RethinkStore, ipamer ipam.IPAMer) {
 	// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
 	// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-	// TODO: Check if there are tenant networks that do not have any IPs in use, clean them up
 }
 
 func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	// check for existence of the machine
-	_, err := r.ds.FindMachine(id)
+	_, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1365,7 +1390,7 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 
 func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	m, err := r.ds.FindMachine(id)
+	m, err := r.ds.FindMachineByID(id)
 	if err != nil && !metal.IsNotFound(err) {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -1539,7 +1564,7 @@ func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, respons
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
 	id := request.PathParameter("id")
 
-	m, err := r.ds.FindMachine(id)
+	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, op, err) {
 		return
 	}
@@ -1572,7 +1597,7 @@ func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *z
 	return v1.NewMachineResponse(m, s, p, i, ec)
 }
 
-func makeMachineResponseList(ms []metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineResponse {
+func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineResponse {
 	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
 
 	result := []*v1.MachineResponse{}
@@ -1647,35 +1672,25 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore,
 }
 
 func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
-	start := time.Now()
-	globalStart := start
-	logger.Infow("getMachineReferencedEntityMaps", "start", start)
 	s, err := ds.ListSizes()
 	if err != nil {
 		logger.Errorw("sizes could not be listed", "error", err)
 	}
-	logger.Infow("getMachineReferencedEntityMaps", "sizes", time.Now().Sub(start))
 
-	start = time.Now()
 	p, err := ds.ListPartitions()
 	if err != nil {
 		logger.Errorw("partitions could not be listed", "error", err)
 	}
-	logger.Infow("getMachineReferencedEntityMaps", "partitions", time.Now().Sub(start))
-	start = time.Now()
 
 	i, err := ds.ListImages()
 	if err != nil {
 		logger.Errorw("images could not be listed", "error", err)
 	}
-	logger.Infow("getMachineReferencedEntityMaps", "images", time.Now().Sub(start))
-	start = time.Now()
 
 	ec, err := ds.ListProvisioningEventContainers()
 	if err != nil {
 		logger.Errorw("provisioning event containers could not be listed", "error", err)
 	}
-	logger.Infow("getMachineReferencedEntityMaps", "events", time.Now().Sub(start), "total", time.Now().Sub(globalStart))
 
 	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()
 }

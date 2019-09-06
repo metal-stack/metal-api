@@ -140,9 +140,6 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 }
 
 func TestConnectMachineWithSwitches(t *testing.T) {
-	type args struct {
-		dev *metal.Machine
-	}
 	tests := []struct {
 		name    string
 		machine *metal.Machine
@@ -220,7 +217,7 @@ func TestSetVrfAtSwitch(t *testing.T) {
 
 func TestMakeBGPFilterFirewall(t *testing.T) {
 	type args struct {
-		maschine metal.Machine
+		machine metal.Machine
 	}
 	tests := []struct {
 		name string
@@ -230,7 +227,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 		{
 			name: "valid firewall networks with underlay",
 			args: args{
-				maschine: metal.Machine{
+				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
 							&metal.MachineNetwork{
@@ -255,7 +252,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 		{
 			name: "no underlay firewall networks",
 			args: args{
-				maschine: metal.Machine{
+				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
 							&metal.MachineNetwork{
@@ -275,7 +272,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 		{
 			name: "empty firewall networks",
 			args: args{
-				maschine: metal.Machine{
+				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{},
 					},
@@ -289,7 +286,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeBGPFilterFirewall(tt.args.maschine)
+			got := makeBGPFilterFirewall(tt.args.machine)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterFirewall() = %v, want %v", got, tt.want)
 			}
@@ -299,8 +296,8 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 
 func TestMakeBGPFilterMachine(t *testing.T) {
 	type args struct {
-		maschine metal.Machine
-		ipsMap   metal.IPsMap
+		machine metal.Machine
+		ipsMap  metal.IPsMap
 	}
 	tests := []struct {
 		name string
@@ -324,7 +321,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 						IPAddress: "10.1.0.1",
 					},
 				}},
-				maschine: metal.Machine{
+				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
@@ -332,7 +329,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 								IPs:      []string{"10.1.0.1"},
 								Prefixes: []string{"10.2.0.0/22", "10.1.0.0/22"},
 								Vrf:      1234,
-								Primary:  true,
+								Private:  true,
 							},
 							&metal.MachineNetwork{
 								IPs:      []string{"10.0.0.2", "10.0.0.1"},
@@ -350,14 +347,14 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 			want: v1.NewBGPFilter([]string{}, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "212.89.42.1/32", "212.89.42.2/32"}),
 		},
 		{
-			name: "allow only allocated project ips",
+			name: "allow only allocated ips",
 			args: args{
 				ipsMap: metal.IPsMap{"project": metal.IPs{
 					metal.IP{
 						IPAddress: "212.89.42.1",
 					},
 				}},
-				maschine: metal.Machine{
+				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
@@ -374,7 +371,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeBGPFilterMachine(tt.args.maschine, tt.args.ipsMap)
+			got := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
 			}
@@ -387,7 +384,7 @@ func TestMakeSwitchNics(t *testing.T) {
 		s        *metal.Switch
 		ips      metal.IPsMap
 		images   metal.ImageMap
-		machines []metal.Machine
+		machines metal.Machines
 	}
 	tests := []struct {
 		name string
@@ -439,7 +436,7 @@ func TestMakeSwitchNics(t *testing.T) {
 						Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureFirewall: true},
 					},
 				},
-				machines: []metal.Machine{
+				machines: metal.Machines{
 					metal.Machine{
 						Base: metal.Base{ID: "m1"},
 						Allocation: &metal.MachineAllocation{
@@ -449,7 +446,7 @@ func TestMakeSwitchNics(t *testing.T) {
 					metal.Machine{
 						Base: metal.Base{ID: "fw1"},
 						Allocation: &metal.MachineAllocation{
-							Project: "project",
+							Project: "p",
 							ImageID: "fwimg",
 							MachineNetworks: []*metal.MachineNetwork{
 								&metal.MachineNetwork{Vrf: 1},

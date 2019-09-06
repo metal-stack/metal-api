@@ -62,7 +62,6 @@ func TestMachine_HasMAC(t *testing.T) {
 				Allocation: &MachineAllocation{
 					Name:    "d1",
 					ImageID: "1",
-					Project: "p1",
 				},
 			},
 			args: args{

@@ -93,6 +93,7 @@ func TestGetNetworkNotFound(t *testing.T) {
 
 func TestDeleteNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
@@ -100,7 +101,7 @@ func TestDeleteNetwork(t *testing.T) {
 	networkservice := NewNetwork(ds, ipamer)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
-	container = injectEditor(container, req)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -116,6 +117,7 @@ func TestDeleteNetwork(t *testing.T) {
 
 func TestDeleteNetworkIPInUse(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
+	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, true)
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
@@ -123,7 +125,7 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 	networkservice := NewNetwork(ds, ipamer)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
-	container = injectEditor(container, req)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -139,7 +141,6 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 
 func TestCreateNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
-	mock.On(r.DB("mockdb").Table("vrf").Get("1")).Return(testdata.EmptyResult, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
@@ -149,17 +150,17 @@ func TestCreateNetwork(t *testing.T) {
 
 	prefixes := []string{"172.0.0.0/24"}
 	destPrefixes := []string{"0.0.0.0/0"}
-	vrfID := uint(1)
+	vrf := uint(10000)
 	createRequest := &v1.NetworkCreateRequest{
 		Describable:      v1.Describable{Name: &testdata.Nw1.Name},
 		NetworkBase:      v1.NetworkBase{PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID},
-		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, DestinationPrefixes: destPrefixes, Vrf: &vrfID},
+		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, DestinationPrefixes: destPrefixes, Vrf: &vrf},
 	}
 	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/network", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -171,7 +172,6 @@ func TestCreateNetwork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, testdata.Nw1.Name, *result.Name)
 	require.Equal(t, testdata.Nw1.PartitionID, *result.PartitionID)
-	require.Equal(t, testdata.Nw1.ProjectID, *result.ProjectID)
 	require.Equal(t, testdata.Nw1.ProjectID, *result.ProjectID)
 	require.Equal(t, destPrefixes, result.DestinationPrefixes)
 }
@@ -193,7 +193,7 @@ func TestUpdateNetwork(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/network", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 

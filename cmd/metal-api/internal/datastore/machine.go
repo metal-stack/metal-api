@@ -2,113 +2,152 @@ package datastore
 
 import (
 	"fmt"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// FindMachine returns the machine with the given ID. If there is no
-// such machine a metal.NotFound will be returned.
-func (rs *RethinkStore) FindMachine(id string) (*metal.Machine, error) {
-	var m metal.Machine
-	err := rs.findEntityByID(rs.machineTable(), &m, id)
-	if err != nil {
-		return nil, err
-	}
-	return &m, nil
+// MachineSearchQuery can be used to search machines.
+type MachineSearchQuery struct {
+	ID          *string  `json:"id"`
+	Name        *string  `json:"name"`
+	PartitionID *string  `json:"partition_id"`
+	SizeID      *string  `json:"sizeid"`
+	RackID      *string  `json:"rackid"`
+	Liveliness  *string  `json:"liveliness"`
+	Tags        []string `json:"tags"`
+
+	// allocation
+	AllocationName      *string `json:"allocation_name"`
+	AllocationProject   *string `json:"allocation_project"`
+	AllocationImageID   *string `json:"allocation_image_id"`
+	AllocationHostname  *string `json:"allocation_hostname"`
+	AllocationSucceeded *bool   `json:"allocation_succeeded"`
+
+	// network
+	NetworkIDs                 []string `json:"network_ids"`
+	NetworkPrefixes            []string `json:"network_prefixes"`
+	NetworkIPs                 []string `json:"network_ips"`
+	NetworkDestinationPrefixes []string `json:"network_destination_prefixes"`
+	NetworkVrfs                []int64  `json:"network_vrfs"`
+	NetworkPrivate             *bool    `json:"network_private"`
+	NetworkASNs                []int64  `json:"network_asns"`
+	NetworkNat                 *bool    `json:"network_nat"`
+	NetworkUnderlay            *bool    `json:"network_underlay"`
+
+	// hardware
+	HardwareMemory   *int64 `json:"hardware_memory"`
+	HardwareCPUCores *int64 `json:"hardware_cpu_cores"`
+
+	// nics
+	NicsMacAddresses         []string `json:"nics_mac_addresses"`
+	NicsNames                []string `json:"nics_names"`
+	NicsVrfs                 []string `json:"nics_vrfs"`
+	NicsNeighborMacAddresses []string `json:"nics_neighbor_mac_addresses"`
+	NicsNeighborNames        []string `json:"nics_neighbor_names"`
+	NicsNeighborVrfs         []string `json:"nics_neighbor_vrfs"`
+
+	// disks
+	DiskNames []string `json:"disk_names"`
+	DiskSizes []int64  `json:"disk_sizes"`
+
+	// state
+	StateValue *string `json:"state_value"`
+
+	// ipmi
+	IpmiAddress    *string `json:"ipmi_address"`
+	IpmiMacAddress *string `json:"ipmi_mac_address"`
+	IpmiUser       *string `json:"ipmi_user"`
+	IpmiInterface  *string `json:"ipmi_interface"`
+
+	// fru
+	FruChassisPartNumber   *string `json:"fru_chassis_part_number"`
+	FruChassisPartSerial   *string `json:"fru_chassis_part_serial"`
+	FruBoardMfg            *string `json:"fru_board_mfg"`
+	FruBoardMfgSerial      *string `json:"fru_board_mfg_serial"`
+	FruBoardPartNumber     *string `json:"fru_board_part_number"`
+	FruProductManufacturer *string `json:"fru_product_manufacturer"`
+	FruProductPartNumber   *string `json:"fru_product_part_number"`
+	FruProductSerial       *string `json:"fru_product_serial"`
 }
 
-// ListMachines returns all machines.
-func (rs *RethinkStore) ListMachines() ([]metal.Machine, error) {
-	ms := make([]metal.Machine, 0)
-	err := rs.listEntities(rs.machineTable(), &ms)
-	return ms, err
-}
-
-// FindMachines returns the machines filtered by the given search filter.
-func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Machine, error) {
+// GenerateTerm generates the project search query term.
+func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	q := *rs.machineTable()
 
-	if props.ID != nil {
+	if p.ID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("id").Eq(*props.ID)
+			return row.Field("id").Eq(*p.ID)
 		})
 	}
 
-	if props.Name != nil {
+	if p.Name != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("name").Eq(*props.Name)
+			return row.Field("name").Eq(*p.Name)
 		})
 	}
 
-	if props.PartitionID != nil {
+	if p.PartitionID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("partitionid").Eq(*props.PartitionID)
+			return row.Field("partitionid").Eq(*p.PartitionID)
 		})
 	}
 
-	if props.SizeID != nil {
+	if p.SizeID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("sizeid").Eq(*props.SizeID)
+			return row.Field("sizeid").Eq(*p.SizeID)
 		})
 	}
 
-	if props.RackID != nil {
+	if p.RackID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("rackid").Eq(*props.RackID)
+			return row.Field("rackid").Eq(*p.RackID)
 		})
 	}
 
-	if props.Liveliness != nil {
+	if p.Liveliness != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("liveliness").Eq(*props.Liveliness)
+			return row.Field("liveliness").Eq(*p.Liveliness)
 		})
 	}
 
-	for _, tag := range props.Tags {
+	for _, tag := range p.Tags {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tags").Contains(r.Expr(tag))
 		})
 	}
 
-	if props.AllocationName != nil {
+	if p.AllocationName != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("name").Eq(*props.AllocationName)
+			return row.Field("allocation").Field("name").Eq(*p.AllocationName)
 		})
 	}
 
-	if props.AllocationTenant != nil {
+	if p.AllocationProject != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("tenant").Eq(*props.AllocationTenant)
+			return row.Field("allocation").Field("project").Eq(*p.AllocationProject)
 		})
 	}
 
-	if props.AllocationProject != nil {
+	if p.AllocationImageID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("project").Eq(*props.AllocationProject)
+			return row.Field("allocation").Field("imageid").Eq(*p.AllocationImageID)
 		})
 	}
 
-	if props.AllocationImageID != nil {
+	if p.AllocationHostname != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("imageid").Eq(*props.AllocationImageID)
+			return row.Field("allocation").Field("hostname").Eq(*p.AllocationHostname)
 		})
 	}
 
-	if props.AllocationHostname != nil {
+	if p.AllocationSucceeded != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("hostname").Eq(*props.AllocationHostname)
+			return row.Field("allocation").Field("succeeded").Eq(*p.AllocationSucceeded)
 		})
 	}
 
-	if props.AllocationSucceeded != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("succeeded").Eq(*props.AllocationSucceeded)
-		})
-	}
-
-	for _, id := range props.NetworkIDs {
+	for _, id := range p.NetworkIDs {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("networkid")
@@ -116,7 +155,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, prefix := range props.NetworkPrefixes {
+	for _, prefix := range p.NetworkPrefixes {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("prefixes")
@@ -124,7 +163,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, ip := range props.NetworkIPs {
+	for _, ip := range p.NetworkIPs {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("ips")
@@ -132,7 +171,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, destPrefix := range props.NetworkDestinationPrefixes {
+	for _, destPrefix := range p.NetworkDestinationPrefixes {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("destinationprefixes")
@@ -140,7 +179,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, vrf := range props.NetworkVrfs {
+	for _, vrf := range p.NetworkVrfs {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("vrf")
@@ -148,15 +187,15 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	if props.NetworkPrimary != nil {
+	if p.NetworkPrivate != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("primary")
-			}).Contains(*props.NetworkPrimary)
+				return nw.Field("private")
+			}).Contains(*p.NetworkPrivate)
 		})
 	}
 
-	for _, asn := range props.NetworkASNs {
+	for _, asn := range p.NetworkASNs {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("asn")
@@ -164,35 +203,35 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	if props.NetworkNat != nil {
+	if p.NetworkNat != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("nat")
-			}).Contains(*props.NetworkNat)
+			}).Contains(*p.NetworkNat)
 		})
 	}
 
-	if props.NetworkUnderlay != nil {
+	if p.NetworkUnderlay != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("underlay")
-			}).Contains(*props.NetworkUnderlay)
+			}).Contains(*p.NetworkUnderlay)
 		})
 	}
 
-	if props.HardwareMemory != nil {
+	if p.HardwareMemory != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("memory").Eq(*props.HardwareMemory)
+			return row.Field("hardware").Field("memory").Eq(*p.HardwareMemory)
 		})
 	}
 
-	if props.HardwareCPUCores != nil {
+	if p.HardwareCPUCores != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("cpu_cores").Eq(*props.HardwareCPUCores)
+			return row.Field("hardware").Field("cpu_cores").Eq(*p.HardwareCPUCores)
 		})
 	}
 
-	for _, mac := range props.NicsMacAddresses {
+	for _, mac := range p.NicsMacAddresses {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("macAddress")
@@ -200,7 +239,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, name := range props.NicsNames {
+	for _, name := range p.NicsNames {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("name")
@@ -208,7 +247,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, vrf := range props.NicsVrfs {
+	for _, vrf := range p.NicsVrfs {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("vrf")
@@ -216,7 +255,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, mac := range props.NicsNeighborMacAddresses {
+	for _, mac := range p.NicsNeighborMacAddresses {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
@@ -226,7 +265,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, name := range props.NicsNames {
+	for _, name := range p.NicsNames {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
@@ -236,7 +275,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, vrf := range props.NicsVrfs {
+	for _, vrf := range p.NicsVrfs {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
@@ -246,7 +285,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, name := range props.DiskNames {
+	for _, name := range p.DiskNames {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("name")
@@ -254,7 +293,7 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	for _, size := range props.DiskSizes {
+	for _, size := range p.DiskSizes {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("size")
@@ -262,91 +301,112 @@ func (rs *RethinkStore) FindMachines(props *v1.FindMachinesRequest) ([]metal.Mac
 		})
 	}
 
-	if props.StateValue != nil {
+	if p.StateValue != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("state_value").Eq(*props.StateValue)
+			return row.Field("state_value").Eq(*p.StateValue)
 		})
 	}
 
-	if props.IpmiAddress != nil {
+	if p.IpmiAddress != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("address").Eq(*props.IpmiAddress)
+			return row.Field("ipmi").Field("address").Eq(*p.IpmiAddress)
 		})
 	}
 
-	if props.IpmiMacAddress != nil {
+	if p.IpmiMacAddress != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("mac").Eq(*props.IpmiMacAddress)
+			return row.Field("ipmi").Field("mac").Eq(*p.IpmiMacAddress)
 		})
 	}
 
-	if props.IpmiUser != nil {
+	if p.IpmiUser != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("user").Eq(*props.IpmiUser)
+			return row.Field("ipmi").Field("user").Eq(*p.IpmiUser)
 		})
 	}
 
-	if props.IpmiInterface != nil {
+	if p.IpmiInterface != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("interface").Eq(*props.IpmiInterface)
+			return row.Field("ipmi").Field("interface").Eq(*p.IpmiInterface)
 		})
 	}
 
-	if props.FruChassisPartNumber != nil {
+	if p.FruChassisPartNumber != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("chassis_part_number").Eq(*props.FruChassisPartNumber)
+			return row.Field("ipmi").Field("fru").Field("chassis_part_number").Eq(*p.FruChassisPartNumber)
 		})
 	}
 
-	if props.FruChassisPartSerial != nil {
+	if p.FruChassisPartSerial != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("chassis_part_serial").Eq(*props.FruChassisPartSerial)
+			return row.Field("ipmi").Field("fru").Field("chassis_part_serial").Eq(*p.FruChassisPartSerial)
 		})
 	}
 
-	if props.FruBoardMfg != nil {
+	if p.FruBoardMfg != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("board_mfg").Eq(*props.FruBoardMfg)
+			return row.Field("ipmi").Field("fru").Field("board_mfg").Eq(*p.FruBoardMfg)
 		})
 	}
 
-	if props.FruBoardMfgSerial != nil {
+	if p.FruBoardMfgSerial != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("board_mfg_serial").Eq(*props.FruBoardMfgSerial)
+			return row.Field("ipmi").Field("fru").Field("board_mfg_serial").Eq(*p.FruBoardMfgSerial)
 		})
 	}
 
-	if props.FruBoardPartNumber != nil {
+	if p.FruBoardPartNumber != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("board_part_number").Eq(*props.FruBoardPartNumber)
+			return row.Field("ipmi").Field("fru").Field("board_part_number").Eq(*p.FruBoardPartNumber)
 		})
 	}
 
-	if props.FruProductManufacturer != nil {
+	if p.FruProductManufacturer != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("product_manufacturer").Eq(*props.FruProductManufacturer)
+			return row.Field("ipmi").Field("fru").Field("product_manufacturer").Eq(*p.FruProductManufacturer)
 		})
 	}
 
-	if props.FruProductPartNumber != nil {
+	if p.FruProductPartNumber != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("product_part_number").Eq(*props.FruProductPartNumber)
+			return row.Field("ipmi").Field("fru").Field("product_part_number").Eq(*p.FruProductPartNumber)
 		})
 	}
 
-	if props.FruProductSerial != nil {
+	if p.FruProductSerial != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("ipmi").Field("fru").Field("product_serial").Eq(*props.FruProductSerial)
+			return row.Field("ipmi").Field("fru").Field("product_serial").Eq(*p.FruProductSerial)
 		})
 	}
 
-	var ms []metal.Machine
-	err := rs.searchEntities(&q, &ms)
+	return &q
+}
+
+// FindMachineByID returns a machine for a given id.
+func (rs *RethinkStore) FindMachineByID(id string) (*metal.Machine, error) {
+	var m metal.Machine
+	err := rs.findEntityByID(rs.machineTable(), &m, id)
 	if err != nil {
 		return nil, err
 	}
+	return &m, nil
+}
 
-	return ms, nil
+// FindMachine returns a machine by the given query, fails if there is no record or multiple records found.
+func (rs *RethinkStore) FindMachine(q *MachineSearchQuery, ms *metal.Machine) error {
+	return rs.findEntity(q.generateTerm(rs), &ms)
+}
+
+// SearchMachines returns the result of the machines search request query.
+func (rs *RethinkStore) SearchMachines(q *MachineSearchQuery, ms *metal.Machines) error {
+	return rs.searchEntities(q.generateTerm(rs), ms)
+}
+
+// ListMachines returns all machines.
+func (rs *RethinkStore) ListMachines() (metal.Machines, error) {
+	ms := make(metal.Machines, 0)
+	err := rs.listEntities(rs.machineTable(), &ms)
+	return ms, err
 }
 
 // CreateMachine creates a new machine in the database as "unallocated new machines".
@@ -422,7 +482,7 @@ func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal
 		},
 	})
 
-	var available []metal.Machine
+	var available metal.Machines
 	err := rs.searchEntities(&q, &available)
 	if err != nil {
 		return nil, err
@@ -435,7 +495,7 @@ func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal
 	// we actually return the machine from the machine table, not from the wait table
 	// otherwise we will get in trouble with update operations on the machine table because
 	// we have mixed timestamps with the entity from the wait table...
-	m, err := rs.FindMachine(available[0].ID)
+	m, err := rs.FindMachineByID(available[0].ID)
 	if err != nil {
 		return nil, err
 	}

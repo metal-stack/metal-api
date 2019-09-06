@@ -31,7 +31,7 @@ func NewImage(ds *datastore.RethinkStore) *restful.WebService {
 func (ir imageResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/image").
+		Path(BasePath + "v1/image").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -178,6 +178,9 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 	}
 
 	machines, err := ir.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 	for _, m := range machines {
 		if m.Allocation == nil {
 			continue

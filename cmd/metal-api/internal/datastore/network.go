@@ -1,149 +1,92 @@
 package datastore
 
 import (
-	"fmt"
 	"strconv"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
-// FindPrimaryNetwork returns the network which is marked default in this partition
-func (rs *RethinkStore) FindPrimaryNetwork(partitionID string) (*metal.Network, error) {
-	_, err := rs.FindPartition(partitionID)
-	if err != nil {
-		return nil, err
-	}
-
-	q := *rs.networkTable()
-	q = q.Filter(func(row r.Term) r.Term {
-		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
-	})
-
-	var nws []metal.Network
-	err = rs.searchEntities(&q, &nws)
-	if err != nil {
-		return nil, err
-	}
-	if len(nws) == 0 {
-		return nil, metal.NotFound("no primary network in the database in partition:%s found", partitionID)
-	}
-	if len(nws) > 1 {
-		return nil, fmt.Errorf("more than one primary network in partition %s in the database, which should not be the case", partitionID)
-	}
-
-	return &nws[0], nil
+// NetworkSearchQuery can be used to search networks.
+type NetworkSearchQuery struct {
+	ID                  *string           `json:"id"`
+	Name                *string           `json:"name"`
+	PartitionID         *string           `json:"partitionid"`
+	ProjectID           *string           `json:"projectid"`
+	Prefixes            []string          `json:"prefixes"`
+	DestinationPrefixes []string          `json:"destinationprefixes"`
+	Nat                 *bool             `json:"nat"`
+	PrivateSuper        *bool             `json:"privatesuper"`
+	Underlay            *bool             `json:"underlay"`
+	Vrf                 *int64            `json:"vrf"`
+	ParentNetworkID     *string           `json:"parentnetworkid"`
+	Labels              map[string]string `json:"labels"`
 }
 
-// FindPrimaryNetworks returns all primary networks of a partition.
-func (rs *RethinkStore) FindPrimaryNetworks(partitionID string) ([]metal.Network, error) {
-	_, err := rs.FindPartition(partitionID)
-	if err != nil {
-		return nil, err
-	}
-
-	q := *rs.networkTable()
-	q = q.Filter(func(row r.Term) r.Term {
-		return row.Field("primary").Eq(true).And(row.Field("partitionid").Eq(partitionID))
-	})
-
-	var nws []metal.Network
-	err = rs.searchEntities(&q, &nws)
-	if err != nil {
-		return nil, err
-	}
-
-	return nws, nil
-}
-
-// FindUnderlayNetworks returns the networks that are marked as underlay in this partition
-func (rs *RethinkStore) FindUnderlayNetworks(partitionID string) ([]metal.Network, error) {
-	_, err := rs.FindPartition(partitionID)
-	if err != nil {
-		return nil, err
-	}
-
-	q := *rs.networkTable()
-	q = q.Filter(func(row r.Term) r.Term {
-		return row.Field("underlay").Eq(true).And(row.Field("partitionid").Eq(partitionID))
-	})
-
-	var nws []metal.Network
-	err = rs.searchEntities(&q, &nws)
-	if err != nil {
-		return nil, err
-	}
-
-	return nws, nil
-}
-
-// FindNetworks returns the networks that match the given properties
-func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Network, error) {
+// GenerateTerm generates the project search query term.
+func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	q := *rs.networkTable()
 
-	if props.ID != nil {
+	if p.ID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("id").Eq(*props.ID)
+			return row.Field("id").Eq(*p.ID)
 		})
 	}
 
-	if props.TenantID != nil {
+	if p.ProjectID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("tenantid").Eq(*props.TenantID)
+			return row.Field("projectid").Eq(*p.ProjectID)
 		})
 	}
 
-	if props.ProjectID != nil {
+	if p.PartitionID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("projectid").Eq(*props.ProjectID)
+			return row.Field("partitionid").Eq(*p.PartitionID)
 		})
 	}
 
-	if props.PartitionID != nil {
+	if p.ParentNetworkID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("partitionid").Eq(*props.PartitionID)
+			return row.Field("parentnetworkid").Eq(*p.ParentNetworkID)
 		})
 	}
 
-	if props.ParentNetworkID != nil {
+	if p.Name != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("parentnetworkid").Eq(*props.ParentNetworkID)
+			return row.Field("name").Eq(*p.Name)
 		})
 	}
 
-	if props.Name != nil {
+	if p.Vrf != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("name").Eq(*props.Name)
+			return row.Field("vrf").Eq(*p.Vrf)
 		})
 	}
 
-	if props.Vrf != nil {
+	if p.Nat != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("vrf").Eq(*props.Vrf)
+			return row.Field("nat").Eq(*p.Nat)
 		})
 	}
 
-	if props.Nat != nil {
+	if p.PrivateSuper != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("nat").Eq(*props.Nat)
+			return row.Field("privatesuper").Eq(*p.PrivateSuper)
 		})
 	}
 
-	if props.Primary != nil {
+	if p.Underlay != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("primary").Eq(*props.Primary)
+			return row.Field("underlay").Eq(*p.Underlay)
 		})
 	}
 
-	if props.Underlay != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("underlay").Eq(*props.Underlay)
-		})
+	if p.Labels != nil {
+		q = q.Filter(map[string]interface{}{"labels": p.Labels})
 	}
 
-	for _, prefix := range props.Prefixes {
+	for _, prefix := range p.Prefixes {
 		ip, length := utils.SplitCIDR(prefix)
 
 		q = q.Filter(func(row r.Term) r.Term {
@@ -161,7 +104,7 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 		}
 	}
 
-	for _, destPrefix := range props.DestinationPrefixes {
+	for _, destPrefix := range p.DestinationPrefixes {
 		ip, length := utils.SplitCIDR(destPrefix)
 
 		q = q.Filter(func(row r.Term) r.Term {
@@ -179,39 +122,11 @@ func (rs *RethinkStore) FindNetworks(props *v1.FindNetworksRequest) ([]metal.Net
 		}
 	}
 
-	var nws []metal.Network
-	err := rs.searchEntities(&q, &nws)
-	if err != nil {
-		return nil, err
-	}
-
-	return nws, nil
+	return &q
 }
 
-// FindProjectNetwork returns the network to a given project id
-func (rs *RethinkStore) FindProjectNetwork(projectid string) (*metal.Network, error) {
-	q := *rs.networkTable()
-	q = q.Filter(func(row r.Term) r.Term {
-		return row.Field("projectid").Eq(projectid)
-	})
-
-	var nws []metal.Network
-	err := rs.searchEntities(&q, &nws)
-	if err != nil {
-		return nil, err
-	}
-	if len(nws) == 0 {
-		return nil, metal.NotFound("did not find a project network for project: %s", projectid)
-	}
-	if len(nws) > 1 {
-		return nil, fmt.Errorf("found multiple network for project %s, which should never be the case", projectid)
-	}
-
-	return &nws[0], nil
-}
-
-// FindNetwork returns an network of a given id.
-func (rs *RethinkStore) FindNetwork(id string) (*metal.Network, error) {
+// FindNetworkByID returns an network of a given id.
+func (rs *RethinkStore) FindNetworkByID(id string) (*metal.Network, error) {
 	var nw metal.Network
 	err := rs.findEntityByID(rs.networkTable(), &nw, id)
 	if err != nil {
@@ -220,9 +135,19 @@ func (rs *RethinkStore) FindNetwork(id string) (*metal.Network, error) {
 	return &nw, nil
 }
 
+// FindNetwork returns a machine by the given query, fails if there is no record or multiple records found.
+func (rs *RethinkStore) FindNetwork(q *NetworkSearchQuery, n *metal.Network) error {
+	return rs.findEntity(q.generateTerm(rs), &n)
+}
+
+// SearchNetworks returns the networks that match the given properties
+func (rs *RethinkStore) SearchNetworks(q *NetworkSearchQuery, ns *metal.Networks) error {
+	return rs.searchEntities(q.generateTerm(rs), ns)
+}
+
 // ListNetworks returns all networks.
-func (rs *RethinkStore) ListNetworks() ([]metal.Network, error) {
-	nws := make([]metal.Network, 0)
+func (rs *RethinkStore) ListNetworks() (metal.Networks, error) {
+	nws := make(metal.Networks, 0)
 	err := rs.listEntities(rs.networkTable(), &nws)
 	return nws, err
 }

@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
@@ -35,7 +34,7 @@ func NewNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer) *restful.WebServ
 func (r networkResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/network").
+		Path(BasePath + "v1/network").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -65,15 +64,15 @@ func (r networkResource) webService() *restful.WebService {
 		Operation("findNetworks").
 		Doc("get all networks that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.FindNetworksRequest{}).
+		Reads(v1.NetworkFindRequest{}).
 		Writes([]v1.NetworkResponse{}).
 		Returns(http.StatusOK, "OK", []v1.NetworkResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(editor(r.deleteNetwork)).
+		To(admin(r.deleteNetwork)).
 		Operation("deleteNetwork").
-		Doc("deletes an network and returns the deleted entity").
+		Doc("deletes a network and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.NetworkResponse{}).
@@ -81,9 +80,9 @@ func (r networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
-		To(editor(r.createNetwork)).
+		To(admin(r.createNetwork)).
 		Operation("createNetwork").
-		Doc("create an network. if the given ID already exists a conflict is returned").
+		Doc("create a network. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkCreateRequest{}).
 		Returns(http.StatusCreated, "Created", v1.NetworkResponse{}).
@@ -91,11 +90,31 @@ func (r networkResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").
-		To(editor(r.updateNetwork)).
+		To(admin(r.updateNetwork)).
 		Operation("updateNetwork").
-		Doc("updates an network. if the network was changed since this one was read, a conflict is returned").
+		Doc("updates a network. if the network was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.NetworkUpdateRequest{}).
+		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/acquire").
+		To(editor(r.acquireChildNetwork)).
+		Operation("acquireChildNetwork").
+		Doc("acquires a child network from a partition's private super network").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.NetworkAcquireRequest{}).
+		Returns(http.StatusCreated, "Created", v1.NetworkResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/release/{id}").
+		To(editor(r.releaseChildNetwork)).
+		Operation("releaseChildNetwork").
+		Doc("releases a child network").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
 		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -106,11 +125,11 @@ func (r networkResource) webService() *restful.WebService {
 func (r networkResource) findNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	nw, err := r.ds.FindNetwork(id)
+	nw, err := r.ds.FindNetworkByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	usage := r.getNetworkUsage(nw)
+	usage := getNetworkUsage(nw, r.ipamer)
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, usage))
 }
 
@@ -122,7 +141,7 @@ func (r networkResource) listNetworks(request *restful.Request, response *restfu
 
 	var result []*v1.NetworkResponse
 	for i := range nws {
-		usage := r.getNetworkUsage(&nws[i])
+		usage := getNetworkUsage(&nws[i], r.ipamer)
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
@@ -130,20 +149,21 @@ func (r networkResource) listNetworks(request *restful.Request, response *restfu
 }
 
 func (r networkResource) findNetworks(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.FindNetworksRequest
+	var requestPayload datastore.NetworkSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	nws, err := r.ds.FindNetworks(&requestPayload)
+	var nws metal.Networks
+	err = r.ds.SearchNetworks(&requestPayload, &nws)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	var result []*v1.NetworkResponse
+	result := []*v1.NetworkResponse{}
 	for i := range nws {
-		usage := r.getNetworkUsage(&nws[i])
+		usage := getNetworkUsage(&nws[i], r.ipamer)
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
@@ -169,17 +189,29 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	if requestPayload.Description != nil {
 		description = *requestPayload.Description
 	}
-	var projectid string
+	var projectID string
 	if requestPayload.ProjectID != nil {
-		projectid = *requestPayload.ProjectID
+		projectID = *requestPayload.ProjectID
 	}
-	var vrfID uint
+	var vrf uint
 	if requestPayload.Vrf != nil {
-		vrfID = *requestPayload.Vrf
+		vrf = *requestPayload.Vrf
 	}
-	primary := requestPayload.Primary
+	vrfShared := false
+	if requestPayload.VrfShared != nil {
+		vrfShared = *requestPayload.VrfShared
+	}
+
+	privateSuper := requestPayload.PrivateSuper
 	underlay := requestPayload.Underlay
 	nat := requestPayload.Nat
+
+	if projectID != "" {
+		_, err = r.ds.FindProjectByID(*requestPayload.ProjectID)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401
@@ -239,24 +271,32 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			return
 		}
 
-		if primary {
-			primaryNetworks, err := r.ds.FindPrimaryNetworks(partition.ID)
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
-			if len(primaryNetworks) != 0 {
-				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a primary network", partition.ID)) {
+		if privateSuper {
+			boolTrue := true
+			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &metal.Network{})
+			if err != nil {
+				if !metal.IsNotFound(err) {
+					if checkError(request, response, utils.CurrentFuncName(), err) {
+						return
+					}
+				}
+			} else {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a private super network", partition.ID)) {
 					return
 				}
 			}
 		}
 		if underlay {
-			underlayNetworks, err := r.ds.FindUnderlayNetworks(partition.ID)
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
-			if len(underlayNetworks) != 0 {
-				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a underlay network", partition.ID)) {
+			boolTrue := true
+			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &metal.Network{})
+			if err != nil {
+				if !metal.IsNotFound(err) {
+					if checkError(request, response, utils.CurrentFuncName(), err) {
+						return
+					}
+				}
+			} else {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has an underlay network", partition.ID)) {
 					return
 				}
 			}
@@ -264,12 +304,26 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		partitionID = partition.ID
 	}
 
-	if (primary || underlay) && nat {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("primary or underlay network is not supposed to NAT"))
+	if (privateSuper || underlay) && nat {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("private super or underlay network is not supposed to NAT"))
 		return
 	}
 
-	// TODO: Check if project exists if we get a project entity
+	if vrf != 0 {
+		_, err := r.ds.AcquireUniqueInteger(vrf)
+		if err != nil {
+			if !metal.IsConflict(err) {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %v", err)) {
+					return
+				}
+			}
+			if !vrfShared {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot acquire a unique vrf id twice except vrfShared is set to true: %v", err)) {
+					return
+				}
+			}
+		}
+	}
 
 	nw := &metal.Network{
 		Base: metal.Base{
@@ -280,11 +334,11 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		Prefixes:            prefixes,
 		DestinationPrefixes: destPrefixes,
 		PartitionID:         partitionID,
-		ProjectID:           projectid,
+		ProjectID:           projectID,
 		Nat:                 nat,
-		Primary:             primary,
+		PrivateSuper:        privateSuper,
 		Underlay:            underlay,
-		Vrf:                 vrfID,
+		Vrf:                 vrf,
 	}
 
 	for _, p := range nw.Prefixes {
@@ -294,39 +348,170 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	if vrfID != 0 {
-		vrfID := strconv.FormatUint(uint64(vrfID), 10)
-
-		_, err := r.ds.FindVrf(vrfID)
-		if err != nil {
-			if metal.IsNotFound(err) {
-				vrf := &metal.Vrf{
-					Base: metal.Base{
-						ID: vrfID,
-					},
-					ProjectID: projectid,
-				}
-
-				err = r.ds.CreateVrf(vrf)
-				if checkError(request, response, utils.CurrentFuncName(), err) {
-					return
-				}
-			} else {
-				if checkError(request, response, utils.CurrentFuncName(), err) {
-					return
-				}
-			}
-		}
-	}
-
 	err = r.ds.CreateNetwork(nw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	usage := r.getNetworkUsage(nw)
+	usage := getNetworkUsage(nw, r.ipamer)
 
 	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+}
+
+func (r networkResource) acquireChildNetwork(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.NetworkAcquireRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var name string
+	if requestPayload.Name != nil {
+		name = *requestPayload.Name
+	}
+	var description string
+	if requestPayload.Description != nil {
+		description = *requestPayload.Description
+	}
+	var projectID string
+	if requestPayload.ProjectID != nil {
+		projectID = *requestPayload.ProjectID
+	}
+	var partitionID string
+	if requestPayload.PartitionID != nil {
+		partitionID = *requestPayload.PartitionID
+	}
+
+	if projectID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectid should not be empty")) {
+			return
+		}
+	}
+	if partitionID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partitionid should not be empty")) {
+			return
+		}
+	}
+
+	project, err := r.ds.FindProjectByID(projectID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	partition, err := r.ds.FindPartition(partitionID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	var superNetwork metal.Network
+	boolTrue := true
+	err = r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetwork)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	nwSpec := &metal.Network{
+		Base: metal.Base{
+			Name:        name,
+			Description: description,
+		},
+		PartitionID: partition.ID,
+		ProjectID:   project.ID,
+		Labels:      requestPayload.Labels,
+	}
+
+	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	usage := getNetworkUsage(nw, r.ipamer)
+
+	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+}
+
+func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
+	vrf, err := ds.AcquireRandomUniqueInteger()
+	if err != nil {
+		return nil, fmt.Errorf("Could not acquire a vrf: %v", err)
+	}
+
+	childPrefix, err := createChildPrefix(parent.Prefixes, childLength, ipamer)
+	if err != nil {
+		return nil, err
+	}
+
+	if childPrefix == nil {
+		return nil, fmt.Errorf("could not allocate child prefix in parent network: %s", parent.ID)
+	}
+
+	nw := &metal.Network{
+		Base: metal.Base{
+			Name:        nwSpec.Name,
+			Description: nwSpec.Description,
+		},
+		Prefixes:            metal.Prefixes{*childPrefix},
+		DestinationPrefixes: metal.Prefixes{},
+		PartitionID:         parent.PartitionID,
+		ProjectID:           nwSpec.ProjectID,
+		Nat:                 parent.Nat,
+		PrivateSuper:        false,
+		Underlay:            false,
+		Vrf:                 vrf,
+		ParentNetworkID:     parent.ID,
+		Labels:              nwSpec.Labels,
+	}
+
+	err = ds.CreateNetwork(nw)
+	if err != nil {
+		return nil, err
+	}
+
+	return nw, nil
+}
+
+func (r networkResource) releaseChildNetwork(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	nw, err := r.ds.FindNetworkByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	for _, prefix := range nw.Prefixes {
+		usage, err := r.ipamer.PrefixUsage(prefix.String())
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if usage.UsedIPs > 2 {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot release child prefix %s because IPs in the prefix are still in use: %v", prefix.String(), usage.UsedIPs-2)) {
+				return
+			}
+		}
+	}
+
+	for _, prefix := range nw.Prefixes {
+		err = r.ipamer.ReleaseChildPrefix(prefix)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	if nw.Vrf != 0 {
+		err = r.ds.ReleaseUniqueInteger(nw.Vrf)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
+				return
+			}
+		}
+	}
+
+	err = r.ds.DeleteNetwork(nw)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 }
 
 func (r networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
@@ -336,7 +521,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		return
 	}
 
-	oldNetwork, err := r.ds.FindNetwork(requestPayload.ID)
+	oldNetwork, err := r.ds.FindNetworkByID(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -402,7 +587,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		return
 	}
 
-	usage := r.getNetworkUsage(&newNetwork)
+	usage := getNetworkUsage(&newNetwork, r.ipamer)
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
 }
@@ -410,9 +595,21 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 func (r networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	nw, err := r.ds.FindNetwork(id)
+	nw, err := r.ds.FindNetworkByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	var children metal.Networks
+	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{ParentNetworkID: &nw.ID}, &children)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if len(children) != 0 {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("network cannot be deleted because there are children of this network")) {
+			return
+		}
 	}
 
 	allIPs, err := r.ds.ListIPs()
@@ -427,18 +624,37 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 		}
 	}
 
+	for _, p := range nw.Prefixes {
+		err := r.ipamer.DeletePrefix(p)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	if nw.Vrf != 0 {
+		err = r.ds.ReleaseUniqueInteger(nw.Vrf)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
+				return
+			}
+		}
+	}
+
 	err = r.ds.DeleteNetwork(nw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, v1.NetworkUsage{}))
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 }
 
-func (r networkResource) getNetworkUsage(nw *metal.Network) v1.NetworkUsage {
-	usage := v1.NetworkUsage{}
+func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage {
+	usage := &metal.NetworkUsage{}
+	if nw == nil {
+		return usage
+	}
 	for _, prefix := range nw.Prefixes {
-		u, err := r.ipamer.PrefixUsage(prefix.String())
+		u, err := ipamer.PrefixUsage(prefix.String())
 		if err != nil {
 			continue
 		}

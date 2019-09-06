@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 
 	ipam "github.com/metal-pod/go-ipam"
 )
@@ -126,14 +125,14 @@ func (i *Ipam) ReleaseIP(ip metal.IP) error {
 }
 
 // PrefixUsage calculates the IP and Prefix Usage
-func (i *Ipam) PrefixUsage(cidr string) (*v1.NetworkUsage, error) {
+func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	prefix := i.ip.PrefixFrom(cidr)
 	if prefix == nil {
 		return nil, fmt.Errorf("prefix for cidr:%s not found", cidr)
 	}
 	usage := prefix.Usage()
 
-	return &v1.NetworkUsage{
+	return &metal.NetworkUsage{
 		AvailableIPs:      usage.AvailableIPs,
 		UsedIPs:           usage.AcquiredIPs,
 		AvailablePrefixes: usage.AvailablePrefixes,

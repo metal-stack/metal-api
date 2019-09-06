@@ -31,7 +31,7 @@ func NewSwitch(ds *datastore.RethinkStore) *restful.WebService {
 func (r switchResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path("/v1/switch").
+		Path(BasePath + "v1/switch").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -341,24 +341,24 @@ func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
 	vnis := []string{}
 	cidrs := []string{}
-	p := m.Allocation.Project
-	var primary *metal.MachineNetwork
+
+	var private *metal.MachineNetwork
 	var underlay *metal.MachineNetwork
 	for _, net := range m.Allocation.MachineNetworks {
-		if net.Primary {
-			primary = net
+		if net.Private {
+			private = net
 		} else if net.Underlay {
 			underlay = net
 		}
 	}
 
-	// Allow all prefixes of the primary network
-	if primary != nil {
-		cidrs = append(cidrs, primary.Prefixes...)
+	// Allow all prefixes of the private network
+	if private != nil {
+		cidrs = append(cidrs, private.Prefixes...)
 	}
-	for _, i := range ips[p] {
+	for _, i := range ips[m.Allocation.Project] {
 		// No need to add /32 addresses of the primary network to the whitelist.
-		if primary != nil && primary.ContainsIP(i.IPAddress) {
+		if private != nil && private.ContainsIP(i.IPAddress) {
 			continue
 		}
 		// Do not allow underlay addresses to be announced.
@@ -385,7 +385,7 @@ func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.Ima
 	return filter
 }
 
-func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, machines []metal.Machine) v1.SwitchNics {
+func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, machines metal.Machines) v1.SwitchNics {
 	machinesByID := map[string]*metal.Machine{}
 	for i, m := range machines {
 		machinesByID[m.ID] = &machines[i]
@@ -437,23 +437,20 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.ImageMap, []metal.Machine) {
+func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.ImageMap, metal.Machines) {
 	var err error
 
 	var p *metal.Partition
-	var m []metal.Machine
+	var m metal.Machines
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
 		if err != nil {
 			logger.Errorw("switch references partition, but partition cannot be found in database", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
 		}
 
-		props := v1.FindMachinesRequest{
-			PartitionID: &s.PartitionID,
-		}
-		m, err = ds.FindMachines(&props)
+		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
 		if err != nil {
-			logger.Errorw("could not find machines of partition", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
+			logger.Errorw("could not search machines of partition", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
 		}
 	}
 
@@ -473,7 +470,7 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, lo
 func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.SwitchResponse {
 	pMap, ips, iMap := getSwitchReferencedEntityMaps(ds, logger)
 	result := []*v1.SwitchResponse{}
-	m, err := ds.FindMachines(&v1.FindMachinesRequest{})
+	m, err := ds.ListMachines()
 	if err != nil {
 		logger.Errorw("could not find machines")
 	}
