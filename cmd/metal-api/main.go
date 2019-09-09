@@ -308,7 +308,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 
 	config := restfulspec.Config{
 		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:                       "/apidocs.json",
+		APIPath:                       service.BasePath + "apidocs.json",
 		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
