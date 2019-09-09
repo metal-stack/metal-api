@@ -49,3 +49,6 @@ require (
 exclude github.com/emicklei/go-restful-openapi v1.0.0
 
 // replace git.f-i-ts.de/cloud-native/metallib => ../../metallib
+
+// required because by default viper depends on etcd v3.3.10 which has a corrupt sum
+replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.15+incompatible
