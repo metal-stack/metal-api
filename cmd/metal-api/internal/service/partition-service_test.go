@@ -32,7 +32,7 @@ type expectingTopicCreater struct {
 func (n expectingTopicCreater) CreateTopic(partitionID, topicFQN string) error {
 	assert := assert.New(n.t)
 	assert.NotEmpty(topicFQN)
-	assert.Contains(n.expectedTopics, topicFQN, "Expecatation %v contains %s failed.", n.expectedTopics, topicFQN)
+	assert.Contains(n.expectedTopics, topicFQN, "Expectation %v contains %s failed.", n.expectedTopics, topicFQN)
 	return nil
 }
 
@@ -133,7 +133,7 @@ func TestCreatePartition(t *testing.T) {
 
 	topicCreater := expectingTopicCreater{
 		t:              t,
-		expectedTopics: []string{"1-switch"},
+		expectedTopics: []string{"1-switch", "1-machine"},
 	}
 	service := NewPartition(ds, topicCreater)
 	container := restful.NewContainer().Add(service)
