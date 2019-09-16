@@ -198,10 +198,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		return
 	}
 
-	fqn := metal.TopicSwitch.GetFQN(p.GetID())
-	if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+	fqns := []string{metal.TopicMachine.GetFQN(p.GetID()), metal.TopicSwitch.GetFQN(p.GetID())}
+	for _, fqn := range fqns {
+		if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
 		}
 	}
 
