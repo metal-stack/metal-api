@@ -12,6 +12,7 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
 
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/metal-pod/v"
 	"go.uber.org/zap"
 
@@ -347,12 +348,19 @@ func run() {
 		Container:      restful.DefaultContainer}
 	restful.DefaultContainer.Filter(cors.Filter)
 
-	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
-	logger.Infow("start metal api", "version", v.V.String(), "address", addr)
-
 	// expose generated apidoc
-	http.Handle("/apidocs/", http.StripPrefix("/apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))
+	http.Handle(service.BasePath+"apidocs/", http.StripPrefix(service.BasePath+"apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))
 
+	// catch all other errors
+	restful.DefaultContainer.Add(new(restful.WebService).Path("/"))
+	restful.DefaultContainer.ServiceErrorHandler(func(serviceErr restful.ServiceError, request *restful.Request, response *restful.Response) {
+		response.Header().Set("Content-Type", "application/json")
+		response.WriteHeader(serviceErr.Code)
+		response.WriteAsJson(httperrors.NewHTTPError(serviceErr.Code, fmt.Errorf(serviceErr.Message)))
+	})
+
+	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
+	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		logger.Errorw("failed to start metal api", "error", err)
