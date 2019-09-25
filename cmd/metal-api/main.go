@@ -401,6 +401,9 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "machine",
 			Description: "Managing machine entities"}},
 		{TagProps: spec.TagProps{
+			Name:        "partition",
+			Description: "Managing partition entities"}},
+		{TagProps: spec.TagProps{
 			Name:        "project",
 			Description: "Managing project entities"}},
 		{TagProps: spec.TagProps{
