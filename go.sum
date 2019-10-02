@@ -1,8 +1,8 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0 h1:eOI3/cP2VTU6uZLDYAoic+eyzzB9YyGmJ7eIjl8rOPg=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-git.f-i-ts.de/cloud-native/metallib v0.0.0-20191002105841-a526f60fd03d h1:Z+1yG9L2Jxs1/PqyPK5r9h9Wxc6r/bn6G3lDE9Kou6k=
-git.f-i-ts.de/cloud-native/metallib v0.0.0-20191002105841-a526f60fd03d/go.mod h1:CZxU8vAF4MVyB0HGKfc+G/uSqFDdy9atlJIwLbnF8hk=
+git.f-i-ts.de/cloud-native/metallib v0.0.0-20191002152054-f8c8a9320bf4 h1:8KdmfgtfwECNeQSJanfkUQTWrv9NBAS71tHs5whAoHE=
+git.f-i-ts.de/cloud-native/metallib v0.0.0-20191002152054-f8c8a9320bf4/go.mod h1:CZxU8vAF4MVyB0HGKfc+G/uSqFDdy9atlJIwLbnF8hk=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 h1:w+iIsaOQNcT7OZ575w+acHgRric5iCyQh+xv+KJ4HB8=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78/go.mod h1:LmzpDX56iTiv29bbRTIsUNlaFfuhWRQBWjQdVyAevI8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
