@@ -1,13 +1,14 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations: null
-  creationTimestamp: null
   labels:
     app: rethinkdb-rethinkdb
   name: rethinkdb-rethinkdb
 spec:
+  selector:
+    matchLabels:
+      app: rethinkdb-rethinkdb
   replicas: 1
   strategy:
     type: Recreate
@@ -15,7 +16,7 @@ spec:
     metadata:
       creationTimestamp: null
       labels:
-        service: rethinkdb-rethinkdb
+        app: rethinkdb-rethinkdb
     spec:
       containers:
       - image: rethinkdb:latest
@@ -27,7 +28,6 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: rethinkdb-rethinkdb
-      restartPolicy: Always
       volumes:
       - name: rethinkdb-rethinkdb
         persistentVolumeClaim:
@@ -53,8 +53,6 @@ status: {}
 apiVersion: v1
 kind: Service
 metadata:
-  annotations: null
-  creationTimestamp: null
   labels:
     service: rethinkdb-rethinkdb-proxy
   name: rethinkdb-rethinkdb-proxy
@@ -69,8 +67,5 @@ spec:
     port: 28015
     targetPort: 28015
   selector:
-    service: rethinkdb-rethinkdb
-status:
-  loadBalancer: {}
+    app: rethinkdb-rethinkdb
 
- 

@@ -7,17 +7,52 @@ Implementation of the *Metal API*
 
 ## Local development
 
-If the netbox-API changes, you need an installation of `go-swagger` to create a client for accessing netbox.
-Normally you do not need this, because the generated client is vendored and versioned.
+Local Development is supported by running the environment in a local minikube.
 
-To compile the service, simply call `make` if you want to force the compilation do a `make clean all`. In
-most cases you also want a docker image so call `make clean all localbuild` which will create a new image
-`registry.fi-ts.io/metal/metal-api` without a tag (aka `latest`).
+### Preparation
 
-To run the service, you need to have a clone of `metal-lab`. Enter the `provision/api` directory and do
-a `docker-compose up -d && docker-compose logs -f`.
+* [minikube](https://github.com/kubernetes/minikube/releases)
+* [helm](https://github.com/helm/helm/releases/) - helm 3 beta 3 works like a charm
+* [kubefwd](https://github.com/txn2/kubefwd/releases)
 
-> Be sure to do a regularly `docker-compose pull` to have up-to-date images.
+Hint: kubefwd must be executed with root privileges, so move kubefwd to `/usr/local/bin`, `chown root:root`, and set SUID with `chmod +s`
 
-After building a new image for `metal-api` you simply do a `CTRL-C` and again `docker-compose up -d && docker-compose logs -f`.
-This will take the new image for `metal-api`.
+
+### Install environment
+
+```
+make localkube-install
+```
+
+```
+make local-forward
+```
+
+Test with HMAC
+
+```
+METALCTL_URL=http://metal-api:8080 METALCTL_HMAC=must-be-changed metalctl machine ls
+```
+
+Test with Token
+
+```
+METALCTL_URL=http://metal-api:8080 metalctl login
+METALCTL_URL=http://metal-api:8080 metalctl machine ls
+```
+
+### Update metal-api
+
+Build the metal-api docker-container and restarts the metal-api pod.
+
+```
+make localbuild-push
+```
+
+### Uninstall
+
+```
+helm uninstall rethink metal
+```
+
+Please wait some time before you retry installation again, because the PVCs need some time to vanish.

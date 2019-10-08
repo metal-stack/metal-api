@@ -36,26 +36,18 @@ localbuild-push: localbuild Dockerfile.dev
 watch:
 	modd -n -f ./modd.conf
 
-# localdev should be started in a fresh shell
-.PHONY: localdev
-localdev:
-	cd ../metal-lab/provision/api && docker-compose pull && cd -
-	tmux new-session -d 'cd ../metal-lab/provision/api && docker-compose up -d && docker-compose logs -f'
-	tmux split-window -v '$(MAKE) watch'
-	tmux attach-session -d
-
 # this must be run as root, kubefwd neets root priv's. inside my vsc-docker-image
-# the UID bit is set on the kubefwd binary
+# the SUID bit is set on the kubefwd binary
 .PHONY: local-forward
 local-forward:
-	kubefwd svc -c $HOME/.kube/minikube
+	kubefwd svc
 
 # commands for localkube development. first do a check to make sure we are
 # on minikube and do not overwrite other environments by accident.
 localkube-install:
 	${KCTL} config view | grep minikube && \
-	helm install -n rethink localkube/rethinkdb && \
-	helm install -n metal localkube/metal-control-plane
+	helm install rethink localkube/rethinkdb && \
+	helm install metal localkube/metal-control-plane
 
 localkube-upgrade-rethink:
 	${KCTL} config view | grep minikube && \
