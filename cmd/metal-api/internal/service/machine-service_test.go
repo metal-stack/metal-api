@@ -225,15 +225,27 @@ func TestMachineIPMIReport(t *testing.T) {
 		wantStatusCode int
 	}{
 		{
-			name:           "update machine1 ipmi address",
-			input:          v1.MachineIpmiReport{PartitionID: testdata.M1.PartitionID, Leases: map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"}},
-			output:         v1.MachineIpmiReportResponse{Updated: map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"}},
+			name: "update machine1 ipmi address",
+			input: v1.MachineIpmiReport{
+				PartitionID: testdata.M1.PartitionID,
+				Leases:      map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"},
+			},
+			output: v1.MachineIpmiReportResponse{
+				Updated: map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"},
+				Unknown: map[string]string{},
+			},
 			wantStatusCode: http.StatusOK,
 		},
 		{
-			name:           "don't update machine with unkown mac",
-			input:          v1.MachineIpmiReport{PartitionID: testdata.M1.PartitionID, Leases: map[string]string{"xyz": "192.167.0.1"}},
-			output:         v1.MachineIpmiReportResponse{Updated: map[string]string{}},
+			name: "don't update machine with unkown mac",
+			input: v1.MachineIpmiReport{
+				PartitionID: testdata.M1.PartitionID,
+				Leases:      map[string]string{"xyz": "192.167.0.1"},
+			},
+			output: v1.MachineIpmiReportResponse{
+				Updated: map[string]string{},
+				Unknown: map[string]string{"xyz": "192.167.0.1"},
+			},
 			wantStatusCode: http.StatusOK,
 		},
 	}

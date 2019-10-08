@@ -680,6 +680,23 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	known := map[string]string{}
+	for _, m := range ms {
+		mac := m.IPMI.MacAddress
+		if mac == "" {
+			continue
+		}
+		known[mac] = m.IPMI.Address
+	}
+	unknown := map[string]string{}
+	for mac, ip := range requestPayload.Leases {
+		if mac == "" {
+			continue
+		}
+		if _, ok := known[mac]; !ok {
+			unknown[mac] = ip
+		}
+	}
 	updated := map[string]string{}
 	for _, m := range ms {
 		mac := m.IPMI.MacAddress
@@ -701,7 +718,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		}
 		updated[mac] = ip
 	}
-	response.WriteHeaderAndEntity(http.StatusOK, v1.MachineIpmiReportResponse{Updated: updated})
+	response.WriteHeaderAndEntity(http.StatusOK, v1.MachineIpmiReportResponse{Updated: updated, Unknown: unknown})
 }
 
 func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {

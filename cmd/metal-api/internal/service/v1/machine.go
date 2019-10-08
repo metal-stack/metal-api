@@ -184,6 +184,7 @@ type MachineIpmiReport struct {
 
 type MachineIpmiReportResponse struct {
 	Updated map[string]string
+	Unknown map[string]string
 }
 
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
