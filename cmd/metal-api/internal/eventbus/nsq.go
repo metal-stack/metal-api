@@ -1,6 +1,7 @@
 package eventbus
 
 import (
+	"fmt"
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -11,36 +12,50 @@ import (
 // NSQRetryDelay represents the delay that is used for retries in blocking calls.
 const NSQRetryDelay = 3 * time.Second
 
+type Publisher func(*zap.Logger, string, string) (bus.Publisher, error)
+
+type NSQDConfig struct {
+	TCPAddress     string
+	RESTEndpoint   string
+	CACertFile     string
+	ClientCertFile string
+}
+
 // NSQClient is a type to request NSQ related tasks such as creation of topics.
 type NSQClient struct {
-	logger            *zap.Logger
-	nsqAddress        string
-	nsqRESTEndpoint   string
-	Publisher         bus.Publisher
-	publisherProvider func(*zap.Logger, string, string) (bus.Publisher, error)
+	logger    *zap.Logger
+	config    *NSQDConfig
+	Publisher bus.Publisher
+	publisher Publisher
 }
 
 // NewNSQ create a new NSQClient.
-func NewNSQ(nsqAddr string, restEndpoint string, logger *zap.Logger, publisherProvider func(*zap.Logger, string,
-	string) (bus.Publisher, error)) NSQClient {
+func NewNSQ(nsqdAddress, nsqdRESTEndpoint string, logger *zap.Logger, publisher Publisher) NSQClient {
+	return NewTLSNSQ(&NSQDConfig{
+		TCPAddress:   nsqdAddress,
+		RESTEndpoint: nsqdRESTEndpoint,
+	}, logger, publisher)
+}
+
+// NewNSQ create a new NSQClient.
+func NewTLSNSQ(config *NSQDConfig, logger *zap.Logger, publisher Publisher) NSQClient {
 	return NSQClient{
-		logger:            logger,
-		nsqAddress:        nsqAddr,
-		nsqRESTEndpoint:   restEndpoint,
-		publisherProvider: publisherProvider,
+		config:    config,
+		logger:    logger,
+		publisher: publisher,
 	}
 }
 
 //WaitForPublisher blocks until the given provider is able to provide a non nil publisher.
 func (n *NSQClient) WaitForPublisher() {
 	for {
-		publisher, err := n.publisherProvider(n.logger, n.nsqAddress, n.nsqRESTEndpoint)
+		publisher, err := n.publisher(n.logger, n.config.TCPAddress, n.config.RESTEndpoint)
 		if err != nil {
 			n.logger.Sugar().Errorw("cannot create nsq publisher", "error", err)
 			n.delay()
 			continue
 		}
-		n.logger.Sugar().Infow("nsq connected", "nsqd", n.nsqAddress)
+		n.logger.Sugar().Infow("nsq connected", "nsqd", fmt.Sprintf("%+v", n.config))
 		n.Publisher = publisher
 		break
 	}
