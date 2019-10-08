@@ -49,6 +49,8 @@ spec:
               name: postgres-env
         - name: METAL_API_DB_ADDR
           value: rethinkdb-rethinkdb-proxy:{{ .Values.ports.rethinkdb }}
+        - name: METAL_API_DEX_ADDR
+          value: {{ .Values.images.metal_api.dex_addr }}
 {{- if not .Values.dev_setup }}
         - name: METAL_API_DB_PASSWORD
           valueFrom:

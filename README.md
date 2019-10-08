@@ -18,11 +18,15 @@ Local Development is supported by running the environment in a local minikube.
 Hint: kubefwd must be executed with root privileges, so move kubefwd to `/usr/local/bin`, `chown root:root`, and set SUID with `chmod +s`
 
 
-### Install environment
+### Deploy metal-api environment
+
+Deploy 
 
 ```
 make localkube-install
 ```
+
+Start kubefwd
 
 ```
 make local-forward
@@ -41,15 +45,17 @@ METALCTL_URL=http://metal-api:8080 metalctl login
 METALCTL_URL=http://metal-api:8080 metalctl machine ls
 ```
 
-### Update metal-api
+### Build and push metal-api
 
-Build the metal-api docker-container and restarts the metal-api pod.
+Build the metal-api docker-container and restarts the metal-api pod. **You have to do this once to see your local version of metal-api!**
 
 ```
 make localbuild-push
 ```
 
-### Uninstall
+You have to restart kubefwd. 
+
+### Remove metal-api and environment deployment 
 
 ```
 helm uninstall rethink metal

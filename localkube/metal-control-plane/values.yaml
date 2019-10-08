@@ -5,6 +5,7 @@ images:
   metal_api:
     image: registry.fi-ts.io/metal/metal-api
     tag: latest
+    dex_addr: https://dex.test.fi-ts.io/dex
   nsq:
     image: nsqio/nsq
     tag: v1.1.0
