@@ -229,6 +229,15 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineIPMI{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/ipmiReport").
+		To(viewer(r.ipmiReport)).
+		Operation("ipmiReport").
+		Doc("report IPMI macs and ip addresses leased by a management server").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineIpmiReport{}).
+		Returns(http.StatusOK, "OK", v1.MachineIpmiReportResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/{id}/wait").
 		To(editor(r.waitForAllocation)).
 		Operation("waitForAllocation").
@@ -652,6 +661,64 @@ func (r machineResource) ipmiData(request *restful.Request, response *restful.Re
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineIPMI(&m.IPMI))
+}
+
+func (r machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineIpmiReport
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if requestPayload.PartitionID == "" {
+		err := fmt.Errorf("given partition id was not found")
+		checkError(request, response, utils.CurrentFuncName(), err)
+		return
+	}
+
+	var ms metal.Machines
+	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &requestPayload.PartitionID}, &ms)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	known := map[string]string{}
+	for _, m := range ms {
+		mac := m.IPMI.MacAddress
+		if mac == "" {
+			continue
+		}
+		known[mac] = m.IPMI.Address
+	}
+	unknown := map[string]string{}
+	for mac, ip := range requestPayload.Leases {
+		if mac == "" {
+			continue
+		}
+		if _, ok := known[mac]; !ok {
+			unknown[mac] = ip
+		}
+	}
+	updated := map[string]string{}
+	for _, m := range ms {
+		mac := m.IPMI.MacAddress
+		if mac == "" {
+			continue
+		}
+		if _, ok := requestPayload.Leases[mac]; !ok {
+			continue
+		}
+		if m.IPMI.Address == requestPayload.Leases[mac] {
+			continue
+		}
+		ip := requestPayload.Leases[mac]
+		n := m
+		n.IPMI.Address = ip
+		err = r.ds.UpdateMachine(&m, &n)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		updated[mac] = ip
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, v1.MachineIpmiReportResponse{Updated: updated, Unknown: unknown})
 }
 
 func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {

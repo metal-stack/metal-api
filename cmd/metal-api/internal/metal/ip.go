@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-
 // IP of a machine/firewall.
 type IP struct {
 	IPAddress        string    `rethinkdb:"id"`
@@ -59,7 +58,7 @@ const ASNBase = int64(4200000000)
 // add the last 2 octets of the ip of the machine to achieve unique ASNs per vrf
 // TODO consider using IntegerPool here as well to calculate the addition to ASNBase
 func (ip *IP) ASN() (int64, error) {
-	
+
 	i := net.ParseIP(ip.IPAddress)
 	if i == nil {
 		return int64(-1), errors.Errorf("unable to parse ip %s", ip.IPAddress)

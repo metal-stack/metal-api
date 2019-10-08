@@ -214,6 +214,65 @@ func TestRegisterMachine(t *testing.T) {
 	}
 }
 
+func TestMachineIPMIReport(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	data := []struct {
+		name           string
+		input          v1.MachineIpmiReport
+		output         v1.MachineIpmiReportResponse
+		wantStatusCode int
+	}{
+		{
+			name: "update machine1 ipmi address",
+			input: v1.MachineIpmiReport{
+				PartitionID: testdata.M1.PartitionID,
+				Leases:      map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"},
+			},
+			output: v1.MachineIpmiReportResponse{
+				Updated: map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"},
+				Unknown: map[string]string{},
+			},
+			wantStatusCode: http.StatusOK,
+		},
+		{
+			name: "don't update machine with unkown mac",
+			input: v1.MachineIpmiReport{
+				PartitionID: testdata.M1.PartitionID,
+				Leases:      map[string]string{"xyz": "192.167.0.1"},
+			},
+			output: v1.MachineIpmiReportResponse{
+				Updated: map[string]string{},
+				Unknown: map[string]string{"xyz": "192.167.0.1"},
+			},
+			wantStatusCode: http.StatusOK,
+		},
+	}
+
+	for _, test := range data {
+		t.Run(test.name, func(t *testing.T) {
+			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+			container := restful.NewContainer().Add(machineservice)
+			js, _ := json.Marshal(test.input)
+			body := bytes.NewBuffer(js)
+			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/ipmiReport"), body)
+			req.Header.Add("Content-Type", "application/json")
+			container = injectViewer(container, req)
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
+
+			resp := w.Result()
+			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
+
+			var result v1.MachineIpmiReportResponse
+			err := json.NewDecoder(resp.Body).Decode(&result)
+			require.Nil(t, err)
+			require.Equal(t, test.output, result)
+		})
+	}
+}
+
 func TestMachineIPMI(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)

@@ -3,9 +3,8 @@ package v1
 import (
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 )
 
 // RecentProvisioningEventsLimit defines how many recent events are added to the MachineRecentProvisioningEvents struct
@@ -176,6 +175,16 @@ type MachineResponse struct {
 	Common
 	MachineBase
 	Timestamps
+}
+
+type MachineIpmiReport struct {
+	PartitionID string
+	Leases      map[string]string
+}
+
+type MachineIpmiReportResponse struct {
+	Updated map[string]string
+	Unknown map[string]string
 }
 
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
