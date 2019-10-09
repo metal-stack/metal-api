@@ -184,15 +184,17 @@ func initSignalHandlers() {
 }
 
 func initEventBus() {
-	nsqdConfig := &eventbus.NSQDConfig{
+	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:     viper.GetString("nsqd-tcp-addr"),
 		RESTEndpoint:   viper.GetString("nsqd-rest-endpoint"),
-		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+		TLS: &bus.TLSConfig{
+			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
+			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+		},
 	}
 	partitions := waitForPartitions()
 
-	nsq := eventbus.NewTLSNSQ(nsqdConfig, zapup.MustRootLogger(), bus.NewPublisher)
+	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
 	nsqer = &nsq

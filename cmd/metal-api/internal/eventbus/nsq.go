@@ -9,47 +9,32 @@ import (
 	"go.uber.org/zap"
 )
 
-// NSQRetryDelay represents the delay that is used for retries in blocking calls.
-const NSQRetryDelay = 3 * time.Second
+// nsqdRetryDelay represents the delay that is used for retries in blocking calls.
+const nsqdRetryDelay = 3 * time.Second
 
-type Publisher func(*zap.Logger, string, string) (bus.Publisher, error)
-
-type NSQDConfig struct {
-	TCPAddress     string
-	RESTEndpoint   string
-	CACertFile     string
-	ClientCertFile string
-}
+type PublisherProvider func(*zap.Logger, *bus.PublisherConfig) (bus.Publisher, error)
 
 // NSQClient is a type to request NSQ related tasks such as creation of topics.
 type NSQClient struct {
-	logger    *zap.Logger
-	config    *NSQDConfig
-	Publisher bus.Publisher
-	publisher Publisher
+	logger            *zap.Logger
+	config            *bus.PublisherConfig
+	publisherProvider PublisherProvider
+	Publisher         bus.Publisher
 }
 
 // NewNSQ create a new NSQClient.
-func NewNSQ(nsqdAddress, nsqdRESTEndpoint string, logger *zap.Logger, publisher Publisher) NSQClient {
-	return NewTLSNSQ(&NSQDConfig{
-		TCPAddress:   nsqdAddress,
-		RESTEndpoint: nsqdRESTEndpoint,
-	}, logger, publisher)
-}
-
-// NewNSQ create a new NSQClient.
-func NewTLSNSQ(config *NSQDConfig, logger *zap.Logger, publisher Publisher) NSQClient {
+func NewNSQ(publisherConfig *bus.PublisherConfig, logger *zap.Logger, publisherProvider PublisherProvider) NSQClient {
 	return NSQClient{
-		config:    config,
-		logger:    logger,
-		publisher: publisher,
+		config:            publisherConfig,
+		logger:            logger,
+		publisherProvider: publisherProvider,
 	}
 }
 
 //WaitForPublisher blocks until the given provider is able to provide a non nil publisher.
 func (n *NSQClient) WaitForPublisher() {
 	for {
-		publisher, err := n.publisher(n.logger, n.config.TCPAddress, n.config.RESTEndpoint)
+		publisher, err := n.publisherProvider(n.logger, n.config)
 		if err != nil {
 			n.logger.Sugar().Errorw("cannot create nsq publisher", "error", err)
 			n.delay()
@@ -96,5 +81,5 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 }
 
 func (n NSQClient) delay() {
-	time.Sleep(NSQRetryDelay)
+	time.Sleep(nsqdRetryDelay)
 }
