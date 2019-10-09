@@ -232,7 +232,7 @@ func (r machineResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/ipmi").
 		To(editor(r.ipmiReport)).
 		Operation("ipmiReport").
-		Doc("report IPMI macs and ip addresses leased by a management server").
+		Doc("reports IPMI ip addresses leased by a management server for machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineIpmiReport{}).
 		Returns(http.StatusOK, "OK", v1.MachineIpmiReportResponse{}).
@@ -706,6 +706,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			Base: metal.Base{
 				ID: uuid,
 			},
+			PartitionID: requestPayload.PartitionID,
 			IPMI: metal.IPMI{
 				Address: ip,
 			},
