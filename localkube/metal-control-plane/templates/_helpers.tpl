@@ -35,27 +35,6 @@ If release name contains chart name it will be used as a full name.
 {{- define "nsq-data-volume.fullname" -}}
 {{- printf "%s-%s" .Release.Name "nsq-data-volume" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
-{{- define "netbox-api-proxy.fullname" -}}
-{{- printf "%s-%s" .Release.Name "netbox-api-proxy" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- define "netbox.fullname" -}}
-{{- printf "%s-%s" .Release.Name "netbox" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- define "netbox-postgres.fullname" -}}
-{{- printf "%s-%s" .Release.Name "netbox-postgres" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- define "netbox-postgres-data-volume.fullname" -}}
-{{- printf "%s-%s" .Release.Name "netbox-postgres-data-volume" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- define "netbox-nginx.fullname" -}}
-{{- printf "%s-%s" .Release.Name "netbox-nginx" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- define "netbox-nginx-static-content.fullname" -}}
-{{- printf "%s-%s" .Release.Name "netbox-nginx-static-content" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- define "netbox-nginx-config.fullname" -}}
-{{- printf "%s-%s" .Release.Name "netbox-nginx-config" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
 {{- define "swagger-ui.fullname" -}}
 {{- printf "%s-%s" .Release.Name "swagger-ui" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}

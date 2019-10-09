@@ -1,6 +1,7 @@
 package eventbus
 
 import (
+	"fmt"
 	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -8,25 +9,24 @@ import (
 	"go.uber.org/zap"
 )
 
-// NSQRetryDelay represents the delay that is used for retries in blocking calls.
-const NSQRetryDelay = 3 * time.Second
+// nsqdRetryDelay represents the delay that is used for retries in blocking calls.
+const nsqdRetryDelay = 3 * time.Second
+
+type PublisherProvider func(*zap.Logger, *bus.PublisherConfig) (bus.Publisher, error)
 
 // NSQClient is a type to request NSQ related tasks such as creation of topics.
 type NSQClient struct {
 	logger            *zap.Logger
-	nsqAddress        string
-	nsqRESTEndpoint   string
+	config            *bus.PublisherConfig
+	publisherProvider PublisherProvider
 	Publisher         bus.Publisher
-	publisherProvider func(*zap.Logger, string, string) (bus.Publisher, error)
 }
 
 // NewNSQ create a new NSQClient.
-func NewNSQ(nsqAddr string, restEndpoint string, logger *zap.Logger, publisherProvider func(*zap.Logger, string,
-	string) (bus.Publisher, error)) NSQClient {
+func NewNSQ(publisherConfig *bus.PublisherConfig, logger *zap.Logger, publisherProvider PublisherProvider) NSQClient {
 	return NSQClient{
+		config:            publisherConfig,
 		logger:            logger,
-		nsqAddress:        nsqAddr,
-		nsqRESTEndpoint:   restEndpoint,
 		publisherProvider: publisherProvider,
 	}
 }
@@ -34,13 +34,13 @@ func NewNSQ(nsqAddr string, restEndpoint string, logger *zap.Logger, publisherPr
 //WaitForPublisher blocks until the given provider is able to provide a non nil publisher.
 func (n *NSQClient) WaitForPublisher() {
 	for {
-		publisher, err := n.publisherProvider(n.logger, n.nsqAddress, n.nsqRESTEndpoint)
+		publisher, err := n.publisherProvider(n.logger, n.config)
 		if err != nil {
 			n.logger.Sugar().Errorw("cannot create nsq publisher", "error", err)
 			n.delay()
 			continue
 		}
-		n.logger.Sugar().Infow("nsq connected", "nsqd", n.nsqAddress)
+		n.logger.Sugar().Infow("nsq connected", "nsqd", fmt.Sprintf("%+v", n.config))
 		n.Publisher = publisher
 		break
 	}
@@ -81,5 +81,5 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 }
 
 func (n NSQClient) delay() {
-	time.Sleep(NSQRetryDelay)
+	time.Sleep(nsqdRetryDelay)
 }

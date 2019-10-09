@@ -188,16 +188,21 @@ spec:
         requests:
           storage: 100Mi
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nsqadmin
+  labels:
+    app: nsqadmin
 spec:
+  selector:
+    matchLabels:
+      app: nsqadmin
   replicas: 2
   template:
     metadata:
       labels:
-        app: nsq
+        app: nsqadmin
         component: nsqadmin
     spec:
       containers:

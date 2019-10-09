@@ -1,17 +1,17 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations: null
-  creationTimestamp: null
   labels:
     app: postgres
   name: postgres
 spec:
+  selector:
+    matchLabels:
+      app: postgres
   replicas: 1
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: postgres
     spec:
@@ -53,7 +53,6 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  creationTimestamp: null
   labels:
     service: postgres
   name: postgres
@@ -63,13 +62,10 @@ spec:
   resources:
     requests:
       storage: 2Gi
-status: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  annotations: null
-  creationTimestamp: null
   labels:
     app: postgres
   name: postgres
@@ -80,8 +76,6 @@ spec:
     targetPort: 5432
   selector:
     app: postgres
-status:
-  loadBalancer: {}
 ---
 apiVersion: v1
 kind: ConfigMap
