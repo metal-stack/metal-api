@@ -229,8 +229,8 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineIPMI{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/ipmiReport").
-		To(viewer(r.ipmiReport)).
+	ws.Route(ws.POST("/ipmi").
+		To(editor(r.ipmiReport)).
 		Operation("ipmiReport").
 		Doc("report IPMI macs and ip addresses leased by a management server").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -665,6 +665,8 @@ func (r machineResource) ipmiData(request *restful.Request, response *restful.Re
 
 func (r machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineIpmiReport
+	log := utils.Logger(request)
+	logger := log.Sugar()
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -680,45 +682,64 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	known := map[string]string{}
+	known := v1.Leases{}
 	for _, m := range ms {
-		mac := m.IPMI.MacAddress
-		if mac == "" {
+		uuid := m.ID
+		if uuid == "" {
 			continue
 		}
-		known[mac] = m.IPMI.Address
+		known[uuid] = m.IPMI.Address
 	}
-	unknown := map[string]string{}
-	for mac, ip := range requestPayload.Leases {
-		if mac == "" {
+	resp := v1.MachineIpmiReportResponse{
+		Updated: v1.Leases{},
+		Created: v1.Leases{},
+	}
+	// create empty machines for uuids that are not yet known to the metal-api
+	for uuid, ip := range requestPayload.Leases {
+		if uuid == "" {
 			continue
 		}
-		if _, ok := known[mac]; !ok {
-			unknown[mac] = ip
+		if _, ok := known[uuid]; ok {
+			continue
 		}
+		m := &metal.Machine{
+			Base: metal.Base{
+				ID: uuid,
+			},
+			IPMI: metal.IPMI{
+				Address: ip,
+			},
+		}
+		err = r.ds.CreateMachine(m)
+		if err != nil {
+			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", ip, "m", m, "err", err)
+			continue
+		}
+		resp.Created[uuid] = ip
 	}
-	updated := map[string]string{}
+	// update machine ipmi data if ipmi ip changed
 	for _, m := range ms {
-		mac := m.IPMI.MacAddress
-		if mac == "" {
+		uuid := m.ID
+		if uuid == "" {
 			continue
 		}
-		if _, ok := requestPayload.Leases[mac]; !ok {
+		if _, ok := requestPayload.Leases[uuid]; !ok {
 			continue
 		}
-		if m.IPMI.Address == requestPayload.Leases[mac] {
+		if m.IPMI.Address == requestPayload.Leases[uuid] {
 			continue
 		}
-		ip := requestPayload.Leases[mac]
+		ip := requestPayload.Leases[uuid]
 		n := m
 		n.IPMI.Address = ip
 		err = r.ds.UpdateMachine(&m, &n)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if err != nil {
+			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", n, "err", err)
+			continue
 		}
-		updated[mac] = ip
+		resp.Updated[uuid] = ip
 	}
-	response.WriteHeaderAndEntity(http.StatusOK, v1.MachineIpmiReportResponse{Updated: updated, Unknown: unknown})
+	response.WriteHeaderAndEntity(http.StatusOK, resp)
 }
 
 func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {

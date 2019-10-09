@@ -228,11 +228,11 @@ func TestMachineIPMIReport(t *testing.T) {
 			name: "update machine1 ipmi address",
 			input: v1.MachineIpmiReport{
 				PartitionID: testdata.M1.PartitionID,
-				Leases:      map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"},
+				Leases:      map[string]string{testdata.M1.ID: "192.167.0.1"},
 			},
 			output: v1.MachineIpmiReportResponse{
-				Updated: map[string]string{testdata.M1.IPMI.MacAddress: "192.167.0.1"},
-				Unknown: map[string]string{},
+				Updated: map[string]string{testdata.M1.ID: "192.167.0.1"},
+				Created: map[string]string{},
 			},
 			wantStatusCode: http.StatusOK,
 		},
@@ -244,7 +244,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			},
 			output: v1.MachineIpmiReportResponse{
 				Updated: map[string]string{},
-				Unknown: map[string]string{"xyz": "192.167.0.1"},
+				Created: map[string]string{"xyz": "192.167.0.1"},
 			},
 			wantStatusCode: http.StatusOK,
 		},
@@ -256,9 +256,9 @@ func TestMachineIPMIReport(t *testing.T) {
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/ipmiReport"), body)
+			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/ipmi"), body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectViewer(container, req)
+			container = injectEditor(container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
