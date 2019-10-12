@@ -2,6 +2,8 @@ module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
 	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190905110823-e8641014c2d9
+	github.com/Masterminds/semver v1.5.0
+	github.com/Masterminds/semver/v3 v3.0.1
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -14,7 +16,7 @@ require (
 	github.com/go-openapi/swag v0.19.5 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
+	github.com/google/go-cmp v0.3.1
 	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
@@ -52,3 +54,5 @@ exclude github.com/emicklei/go-restful-openapi v1.0.0
 
 // required because by default viper depends on etcd v3.3.10 which has a corrupt sum
 replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.15+incompatible
+
+go 1.13

@@ -151,6 +151,11 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		features[ft] = true
 	}
 
+	os, v, err := ir.ds.GetOsAndSemver(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -159,6 +164,8 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		},
 		URL:      requestPayload.URL,
 		Features: features,
+		OS:       os,
+		Version:  v.String(),
 	}
 
 	err = ir.ds.CreateImage(img)

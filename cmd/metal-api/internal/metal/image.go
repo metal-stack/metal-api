@@ -10,6 +10,8 @@ type Image struct {
 	Base
 	URL      string                    `rethinkdb:"url"`
 	Features map[ImageFeatureType]bool `rethinkdb:"features"`
+	OS       string                    `rethinkdb:"os"`
+	Version  string                    `rethinkdb:"version"`
 }
 
 type ImageFeatureType string
