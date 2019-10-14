@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"github.com/Masterminds/semver/v3"
@@ -46,6 +47,39 @@ func (rs *RethinkStore) DeleteImage(i *metal.Image) error {
 // UpdateImage updates an image.
 func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image) error {
 	return rs.updateEntity(rs.imageTable(), newImage, oldImage)
+}
+
+// DeleteOrphanImages deletes Images which are no longer allocated by a machine and older than allowed.
+func (rs *RethinkStore) DeleteOrphanImages(images metal.Images, machines metal.Machines) (metal.Images, error) {
+	result := metal.Images{}
+	for _, image := range images.ByID() {
+		if isOrphanImage(image, machines) {
+			err := rs.DeleteImage(&image)
+			if err != nil {
+				return nil, fmt.Errorf("unable to delete image:%s err:%v", image.ID, err)
+			}
+			result = append(result, image)
+		}
+	}
+	return result, nil
+}
+
+// isOrphanImage check if a image is not allocated and older than allowed.
+func isOrphanImage(image metal.Image, machines metal.Machines) bool {
+	if time.Since(image.ValidTo) < 0 {
+		return false
+	}
+	orphan := true
+	for _, m := range machines {
+		if m.Allocation == nil {
+			continue
+		}
+		if image.ID == m.Allocation.ImageID {
+			orphan = false
+			continue
+		}
+	}
+	return orphan
 }
 
 // getMostRecentImageFor

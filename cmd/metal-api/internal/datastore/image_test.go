@@ -3,6 +3,7 @@ package datastore
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
@@ -354,6 +355,50 @@ func Test_sortImages(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := sortImages(tt.images); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("sortImages() \n%s", cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
+func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
+	ds, mock := InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	invalid := time.Now().Add(time.Hour * -1)
+	valid := time.Now().Add(time.Hour)
+	i1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ValidTo: valid}
+	i2 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ValidTo: valid}
+	i3 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04", ValidTo: valid}
+	i4 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ValidTo: valid}
+	i5 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ValidTo: valid}
+	i6 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.04", ValidTo: invalid} // not allocated
+	i7 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ValidTo: invalid} // allocated
+	tests := []struct {
+		name     string
+		images   metal.Images
+		machines metal.Machines
+		rs       *RethinkStore
+		want     metal.Images
+		wantErr  bool
+	}{
+		{
+			name:     "simple",
+			images:   []metal.Image{i1, i2, i3, i4, i5, i6, i7},
+			machines: []metal.Machine{testdata.M1, testdata.M9},
+			rs:       ds,
+			want:     metal.Images{i6},
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.rs.DeleteOrphanImages(tt.images, tt.machines)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.DeleteOrphanImages() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RethinkStore.DeleteOrphanImages() = %s", cmp.Diff(got, tt.want))
 			}
 		})
 	}

@@ -66,6 +66,15 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.DELETE("/").
+		To(admin(ir.deleteImages)).
+		Operation("deleteImages").
+		Doc("deletes all images which are older than validto and not used by a machine").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.PUT("/").
 		To(admin(ir.createImage)).
 		Operation("createImage").
@@ -205,6 +214,28 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
+}
+
+func (ir imageResource) deleteImages(request *restful.Request, response *restful.Response) {
+
+	images, err := ir.ds.ListImages()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	machines, err := ir.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	deletedImages, err := ir.ds.DeleteOrphanImages(images, machines)
+
+	result := []*v1.ImageResponse{}
+	for _, image := range deletedImages {
+		result = append(result, v1.NewImageResponse(&image))
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, result)
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {

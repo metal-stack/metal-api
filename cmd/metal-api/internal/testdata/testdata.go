@@ -122,6 +122,22 @@ var (
 		},
 		Hardware: MachineHardware1,
 	}
+	M9 = metal.Machine{
+		Base: metal.Base{
+			Name:        "1-core/100 B",
+			Description: "a machine with 1 core(s) and 100 B of RAM",
+			ID:          "6",
+		},
+		RackID:      "1",
+		PartitionID: "1",
+		SizeID:      "1", // No Size
+		Allocation: &metal.MachineAllocation{
+			Name:    "8",
+			ImageID: "ubuntu-19.10",
+			Project: "p2",
+		},
+		Hardware: MachineHardware1,
+	}
 
 	// Sizes
 	Sz1 = metal.Size{

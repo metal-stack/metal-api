@@ -3,6 +3,7 @@ package metal
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // An Image describes an image which could be used for provisioning.
@@ -12,9 +13,18 @@ type Image struct {
 	Features map[ImageFeatureType]bool `rethinkdb:"features"`
 	OS       string                    `rethinkdb:"os"`
 	Version  string                    `rethinkdb:"version"`
+	ValidTo  time.Time                 `rethinkdb:"validto"`
 }
 
+// ImageFeatureType specifies the features of a images
 type ImageFeatureType string
+
+const (
+	// ImageFeatureFirewall from this image only a firewall can created
+	ImageFeatureFirewall ImageFeatureType = "firewall"
+	// ImageFeatureMachine from this image only a machine can created
+	ImageFeatureMachine ImageFeatureType = "machine"
+)
 
 // ImageFeatureString returns the features of an image as a string.
 func (i *Image) ImageFeatureString() string {
@@ -24,11 +34,6 @@ func (i *Image) ImageFeatureString() string {
 	}
 	return strings.Join(features, ", ")
 }
-
-const (
-	ImageFeatureFirewall ImageFeatureType = "firewall"
-	ImageFeatureMachine  ImageFeatureType = "machine"
-)
 
 // Images is a collection of images.
 type Images []Image
