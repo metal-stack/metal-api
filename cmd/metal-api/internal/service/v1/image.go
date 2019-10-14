@@ -1,12 +1,15 @@
 package v1
 
 import (
+	"time"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 )
 
 type ImageBase struct {
-	URL      *string  `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
-	Features []string `json:"features" description:"features of this image" optional:"true"`
+	URL      *string   `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
+	Features []string  `json:"features" description:"features of this image" optional:"true"`
+	ValidTo  time.Time `json:"validto" description:"date to which it is allowed to allocate machines from" optional:"false"`
 }
 
 type ImageCreateRequest struct {
@@ -49,6 +52,7 @@ func NewImageResponse(img *metal.Image) *ImageResponse {
 		ImageBase: ImageBase{
 			URL:      &img.URL,
 			Features: features,
+			ValidTo:  img.ValidTo,
 		},
 		Timestamps: Timestamps{
 			Created: img.Created,

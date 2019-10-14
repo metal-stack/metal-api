@@ -237,22 +237,26 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 }
 
 func Test_getMostRecentImageFor(t *testing.T) {
-	i1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1"}
-	i2 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04"}
-	i3 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04"}
-	i4 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10"}
-	i5 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04"}
-	i6 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.4"}
-	i7 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10"}
-	i8 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200401"}, OS: "ubuntu", Version: "20.04.20200401"}
-	i9 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501"}
-	i10 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502"}
-	i11 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603"}
+	invalid := time.Now().Add(time.Hour * -1)
+	valid := time.Now().Add(time.Hour)
+	i1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ValidTo: valid}
+	i2 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ValidTo: valid}
+	i3 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04", ValidTo: valid}
+	i4 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ValidTo: valid}
+	i5 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ValidTo: valid}
+	i6 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.4", ValidTo: valid}
+	i7 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ValidTo: valid}
+	i8 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200401"}, OS: "ubuntu", Version: "20.04.20200401", ValidTo: valid}
+	i9 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501", ValidTo: valid}
+	i10 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502", ValidTo: valid}
+	i11 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603", ValidTo: valid}
+	i12 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200602"}, OS: "ubuntu", Version: "20.10.20200602", ValidTo: valid}
+	i13 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200603"}, OS: "ubuntu", Version: "20.10.20200603", ValidTo: invalid}
 
-	i21 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9"}
-	i22 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012"}
-	i23 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10"}
-	i24 := metal.Image{Base: metal.Base{ID: "alpine-3.10.20191012"}, OS: "alpine", Version: "3.10.20191012"}
+	i21 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ValidTo: valid}
+	i22 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012", ValidTo: valid}
+	i23 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ValidTo: valid}
+	i24 := metal.Image{Base: metal.Base{ID: "alpine-3.10.20191012"}, OS: "alpine", Version: "3.10.20191012", ValidTo: valid}
 	tests := []struct {
 		name    string
 		id      string
@@ -300,6 +304,13 @@ func Test_getMostRecentImageFor(t *testing.T) {
 			id:      "alpine-3.9",
 			images:  []metal.Image{i10, i21, i7, i3, i24, i8, i6, i1, i9, i5, i23, i2, i4, i11, i22},
 			want:    &i22,
+			wantErr: false,
+		},
+		{
+			name:    "ubuntu with invalid",
+			id:      "ubuntu-20.10",
+			images:  []metal.Image{i12, i13},
+			want:    &i12,
 			wantErr: false,
 		},
 	}

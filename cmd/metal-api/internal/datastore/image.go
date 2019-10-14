@@ -113,6 +113,9 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 		if !strings.HasPrefix(id, image.OS) {
 			continue
 		}
+		if time.Since(image.ValidTo) > 0 {
+			continue
+		}
 		v, err := semver.NewVersion(image.Version)
 		if err != nil {
 			continue

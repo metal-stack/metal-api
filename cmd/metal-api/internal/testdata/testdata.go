@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
@@ -193,6 +194,7 @@ var (
 		},
 	}
 
+	valid = time.Now().Add(time.Hour)
 	// Images
 	Img1 = metal.Image{
 		Base: metal.Base{
@@ -203,6 +205,7 @@ var (
 		URL:     "http://somewhere/image1.zip",
 		OS:      "image",
 		Version: "1.0.0",
+		ValidTo: valid,
 	}
 	Img2 = metal.Image{
 		Base: metal.Base{
@@ -213,6 +216,7 @@ var (
 		URL:     "http://somewhere/image2.zip",
 		OS:      "image",
 		Version: "2.0.0",
+		ValidTo: valid,
 	}
 	Img3 = metal.Image{
 		Base: metal.Base{
@@ -222,6 +226,7 @@ var (
 		},
 		OS:      "image",
 		Version: "3.0.0",
+		ValidTo: valid,
 	}
 
 	// Networks
