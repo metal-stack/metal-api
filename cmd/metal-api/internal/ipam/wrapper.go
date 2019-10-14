@@ -15,6 +15,6 @@ type IPAMer interface {
 	ReleaseChildPrefix(childPrefix metal.Prefix) error
 	CreatePrefix(prefix metal.Prefix) error
 	DeletePrefix(prefix metal.Prefix) error
-	PrefixUsage(cidr string) (*metal.NetworkUsage, error) 
+	PrefixUsage(cidr string) (*metal.NetworkUsage, error)
 	PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error
 }

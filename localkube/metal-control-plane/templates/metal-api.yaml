@@ -1,11 +1,14 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     app: {{ template "metal-api.fullname" . }}
   name: {{ template "metal-api.fullname" . }}
 spec:
+    selector:
+        matchLabels:
+            app: {{ template "metal-api.fullname" . }}
   replicas: {{ .Values.metal_api.replicas }}
   strategy: {}
   template:
@@ -28,7 +31,7 @@ spec:
         - name: METAL_API_IPAM_DB_ADDR
           value: postgres
         - name: METAL_API_IPAM_DB_PORT
-          value: 5432"
+          value: "5432"
         - name: METAL_API_IPAM_DB_NAME
           valueFrom:
             configMapKeyRef:
@@ -46,6 +49,8 @@ spec:
               name: postgres-env
         - name: METAL_API_DB_ADDR
           value: rethinkdb-rethinkdb-proxy:{{ .Values.ports.rethinkdb }}
+        - name: METAL_API_DEX_ADDR
+          value: {{ .Values.images.metal_api.dex_addr }}
 {{- if not .Values.dev_setup }}
         - name: METAL_API_DB_PASSWORD
           valueFrom:

@@ -177,14 +177,16 @@ type MachineResponse struct {
 	Timestamps
 }
 
+type Leases map[string]string
+
 type MachineIpmiReport struct {
-	PartitionID string
-	Leases      map[string]string
+	PartitionID string `json:"partitionid" description:"the partition id for the ipmi report"`
+	Leases      Leases `json:"leases" description:"the active leases to be reported by a management server"`
 }
 
 type MachineIpmiReportResponse struct {
-	Updated map[string]string
-	Unknown map[string]string
+	Updated Leases `json:"updated" description:"the leases that triggered an update of ipmi data"`
+	Created Leases `json:"created" description:"the leases that triggered a creation of a machine entity"`
 }
 
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {

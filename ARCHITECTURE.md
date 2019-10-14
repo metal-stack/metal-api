@@ -1,8 +1,14 @@
 # Architectural Decisions
 
-## Netbox
+## Go-IPAM
 
-### Reasoning
+We found out that Netbox was slow and we would have to extend Netbox to suit our needs.
+Considering the findings and that but we anyhow only use a very small part of it
+we decided to implement the bare minimum IMPI ourselves, see [https://github.com/metal-pod/go-ipam](https://github.com/metal-pod/go-ipam) . 
+
+---
+
+## Netbox (not used anymore)
 
 In order to save time implementing software for managing IP addresses ([IPAM](https://en.wikipedia.org/wiki/IP_address_management)) and organising our datacenter infrastructure ([DCIM](https://en.wikipedia.org/wiki/Data_center_management#Data_Center_Infrastructure_Management)), we decided to take advantage of third-party software solutions.
 

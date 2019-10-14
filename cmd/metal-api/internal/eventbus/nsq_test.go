@@ -9,30 +9,33 @@ import (
 )
 
 func TestNewNSQ(t *testing.T) {
-	nsqAddr := "addr"
-	nsqRESTAddr := "rest"
-	provider := bus.NewPublisher
+	cfg := &bus.PublisherConfig{
+		TCPAddress:   "addr",
+		RESTEndpoint: "rest",
+	}
+	publisher := bus.NewPublisher
 	logger := zap.NewNop()
 
-	actual := NewNSQ(nsqAddr, nsqRESTAddr, logger, provider)
+	actual := NewNSQ(cfg, logger, publisher)
 
 	assert := assert.New(t)
 	assert.NotNil(actual)
-	assert.Equal(nsqAddr, actual.nsqAddress)
-	assert.Equal(nsqRESTAddr, actual.nsqRESTEndpoint)
+	assert.Equal(cfg.TCPAddress, actual.config.TCPAddress)
+	assert.Equal(cfg.RESTEndpoint, actual.config.RESTEndpoint)
 	assert.Nil(actual.Publisher)
 }
 
 func TestNSQ_WaitForPublisher(t *testing.T) {
-	nsqAddr := "addr"
-	nsqRESTAddr := "rest"
+	cfg := &bus.PublisherConfig{
+		TCPAddress:   "addr",
+		RESTEndpoint: "rest",
+	}
 	publisher := NopPublisher{}
 	assert := assert.New(t)
 
-	nsq := NewNSQ(nsqAddr, nsqRESTAddr, zap.NewNop(), func(logger *zap.Logger, s string,
-		s2 string) (bus.Publisher, error) {
-		assert.Equal(nsqAddr, s)
-		assert.Equal(nsqRESTAddr, s2)
+	nsq := NewNSQ(cfg, zap.NewNop(), func(logger *zap.Logger, config *bus.PublisherConfig) (bus.Publisher, error) {
+		assert.Equal(cfg.TCPAddress, config.TCPAddress)
+		assert.Equal(cfg.RESTEndpoint, config.RESTEndpoint)
 		return publisher, nil
 	})
 	assert.NotNil(nsq)
@@ -50,10 +53,10 @@ func TestNSQ_WaitForTopicsCreated(t *testing.T) {
 		Base: metal.Base{ID: "partition-id"},
 	}
 	publisher := NopPublisher{
-		T: t,
+		T:     t,
 		topic: topic.GetFQN(partition.GetID()),
 	}
-	nsq := NewNSQ("", "", zap.NewNop(), func(*zap.Logger, string, string) (bus.Publisher, error) {
+	nsq := NewNSQ(nil, zap.NewNop(), func(*zap.Logger, *bus.PublisherConfig) (bus.Publisher, error) {
 		return nil, nil
 	})
 	assert.NotNil(nsq)
@@ -65,7 +68,7 @@ func TestNSQ_WaitForTopicsCreated(t *testing.T) {
 }
 
 type NopPublisher struct {
-	T assert.TestingT
+	T     assert.TestingT
 	topic string
 }
 
