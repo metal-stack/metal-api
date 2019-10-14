@@ -175,6 +175,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		Features: features,
 		OS:       os,
 		Version:  v.String(),
+		ValidTo:  requestPayload.ValidTo,
 	}
 
 	err = ir.ds.CreateImage(img)
