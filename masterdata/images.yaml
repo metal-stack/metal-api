@@ -1,8 +1,32 @@
 ---
 id: ubuntu-18.10
-name: "Ubuntu 18.04"
+name: "Ubuntu 18.10"
 description: "Ubuntu 18.04 Minimal"
 url: "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.04/img.tar.lz4"
+features:
+    - machine
+validto: "2019-12-31T23:59:59Z"
+---
+id: ubuntu-18.10.20191011
+name: "Ubuntu 18.10 20191011"
+description: "Ubuntu 18.04 20191011"
+url: "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.10.20191011/img.tar.lz4"
+features:
+    - machine
+validto: "2019-12-31T23:59:59Z"
+---
+id: ubuntu-18.10.20191012
+name: "Ubuntu 18.10 20191012"
+description: "Ubuntu 18.04 20191012"
+url: "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.10.20191012/img.tar.lz4"
+features:
+    - machine
+validto: "2019-12-31T23:59:59Z"
+---
+id: ubuntu-18.10.20191013
+name: "Ubuntu 18.10 20191013"
+description: "Ubuntu 18.04 20191013"
+url: "http://blobstore.fi-ts.io/metal/images/os/ubuntu/18.10.20191013/img.tar.lz4"
 features:
     - machine
 validto: "2019-12-31T23:59:59Z"
