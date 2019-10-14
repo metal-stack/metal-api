@@ -403,7 +403,7 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.DeleteOrphanImages(tt.images, tt.machines)
+			got, err := tt.rs.DeleteOrphanImages(&tt.images, &tt.machines)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteOrphanImages() error = %v, wantErr %v", err, tt.wantErr)
 				return

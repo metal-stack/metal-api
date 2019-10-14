@@ -14,8 +14,9 @@ type ImageBase struct {
 
 type ImageCreateRequest struct {
 	Common
-	URL      string   `json:"url" description:"the url of this image"`
-	Features []string `json:"features" description:"features of this image" optional:"true"`
+	URL      string    `json:"url" description:"the url of this image"`
+	Features []string  `json:"features" description:"features of this image" optional:"true"`
+	ValidTo  time.Time `json:"validto" description:"date to which it is allowed to allocate machines from" optional:"false"`
 }
 
 type ImageUpdateRequest struct {

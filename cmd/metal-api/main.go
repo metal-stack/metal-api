@@ -47,40 +47,53 @@ var (
 	debug   = false
 )
 
-var rootCmd = &cobra.Command{
-	Use:     moduleName,
-	Short:   "an api to offer pure metal",
-	Version: v.V.String(),
-	Run: func(cmd *cobra.Command, args []string) {
-		initLogging()
-		initDataStore()
-		initEventBus()
-		initIpam()
-		initSignalHandlers()
-		run()
-	},
-}
+var (
+	rootCmd = &cobra.Command{
+		Use:     moduleName,
+		Short:   "an api to offer pure metal",
+		Version: v.V.String(),
+		Run: func(cmd *cobra.Command, args []string) {
+			initLogging()
+			initDataStore()
+			initEventBus()
+			initIpam()
+			initSignalHandlers()
+			run()
+		},
+	}
 
-var dumpSwagger = &cobra.Command{
-	Use:     "dump-swagger",
-	Short:   "dump the current swagger configuration",
-	Version: v.V.String(),
-	Run: func(cmd *cobra.Command, args []string) {
-		dumpSwaggerJSON()
-	},
-}
+	dumpSwagger = &cobra.Command{
+		Use:     "dump-swagger",
+		Short:   "dump the current swagger configuration",
+		Version: v.V.String(),
+		Run: func(cmd *cobra.Command, args []string) {
+			dumpSwaggerJSON()
+		},
+	}
 
-var initDatabase = &cobra.Command{
-	Use:     "initdb",
-	Short:   "initializes the database with all tables and indices",
-	Version: v.V.String(),
-	Run: func(cmd *cobra.Command, args []string) {
-		initializeDatabase()
-	},
-}
+	initDatabase = &cobra.Command{
+		Use:     "initdb",
+		Short:   "initializes the database with all tables and indices",
+		Version: v.V.String(),
+		Run: func(cmd *cobra.Command, args []string) {
+			initializeDatabase()
+		},
+	}
+
+	deleteOrphanImagesCmd = &cobra.Command{
+		Use:     "delete-orphan-images",
+		Short:   "delete orphan images",
+		Version: v.V.String(),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			initLogging()
+			initDataStore()
+			return deleteOrphanImages()
+		},
+	}
+)
 
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase)
+	rootCmd.AddCommand(dumpSwagger, initDatabase, deleteOrphanImagesCmd)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -122,10 +135,25 @@ func init() {
 	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
+	deleteOrphanImagesCmd.Flags().StringP("db", "", "rethinkdb", "the database adapter to use")
+	deleteOrphanImagesCmd.Flags().StringP("db-name", "", "metalapi", "the database name to use")
+	deleteOrphanImagesCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
+	deleteOrphanImagesCmd.Flags().StringP("db-user", "", "", "the database user to use")
+	deleteOrphanImagesCmd.Flags().StringP("db-password", "", "", "the database password to use")
+
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
 		logger.Error("unable to construct root command:%v", err)
 	}
+	err = viper.BindPFlags(deleteOrphanImagesCmd.Flags())
+	if err != nil {
+		logger.Error("unable to construct deleteOrphanImages command:%v", err)
+	}
+}
+
+func deleteOrphanImages() error {
+	_, err := ds.DeleteOrphanImages(nil, nil)
+	return err
 }
 
 func initConfig() {
