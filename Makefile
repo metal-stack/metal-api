@@ -47,7 +47,7 @@ local-forward:
 localkube-install:
 	${KCTL} config view | grep minikube && \
 	helm install rethink localkube/rethinkdb && \
-	helm install metal localkube/metal-control-plane
+	helm install metal localkube/metal
 
 localkube-upgrade-rethink:
 	${KCTL} config view | grep minikube && \
@@ -55,7 +55,7 @@ localkube-upgrade-rethink:
 
 localkube-upgrade-metal:
 	${KCTL} config view | grep minikube && \
-	helm upgrade --force metal localkube/metal-control-plane
+	helm upgrade --force metal localkube/metal
 
 .PHONY: redoc
 redoc:
