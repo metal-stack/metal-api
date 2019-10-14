@@ -13,7 +13,7 @@ Local Development is supported by running the environment in a local minikube.
 ### Preparation
 
 * [minikube](https://github.com/kubernetes/minikube/releases)
-* [helm](https://github.com/helm/helm/releases/) - helm 3 beta 3 works like a charm
+* [helm](https://github.com/helm/helm/releases/) - helm 3 beta 4 works like a charm
 * [kubefwd](https://github.com/txn2/kubefwd/releases)
 
 Hint: kubefwd must be executed with root privileges, so move kubefwd to `/usr/local/bin`, `chown root:root`, and set SUID with `chmod +s`
