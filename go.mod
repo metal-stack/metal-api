@@ -2,7 +2,6 @@ module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
 	git.f-i-ts.de/cloud-native/metallib v0.0.0-20190905110823-e8641014c2d9
-	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/semver/v3 v3.0.1
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
