@@ -720,34 +720,36 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		resp.Created[uuid] = ip
 	}
 	// update machine ipmi data if ipmi ip changed
-	for _, m := range ms {
-		uuid := m.ID
+	for _, oldMachine := range ms {
+		uuid := oldMachine.ID
 		if uuid == "" {
 			continue
 		}
 		if _, ok := requestPayload.Leases[uuid]; !ok {
 			continue
 		}
-		if m.IPMI.Address == requestPayload.Leases[uuid] {
-			continue
-		}
+
 		ip := requestPayload.Leases[uuid]
-		n := m
+		newMachine := oldMachine
 
 		// Replace host part of ipmi address with the ip from the ipmicatcher
-		hostAndPort := strings.Split(m.IPMI.Address, ":")
+		hostAndPort := strings.Split(oldMachine.IPMI.Address, ":")
 		if len(hostAndPort) == 2 {
-			n.IPMI.Address = ip + ":" + hostAndPort[1]
+			newMachine.IPMI.Address = ip + ":" + hostAndPort[1]
 		} else if len(hostAndPort) < 2 {
-			n.IPMI.Address = ip + ":" + defaultIPMIPort
+			newMachine.IPMI.Address = ip + ":" + defaultIPMIPort
 		} else {
-			logger.Errorf("could not update machine, address is garbage", "id", uuid, "ip", ip, "machine", n, "address", n.IPMI.Address)
+			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", ip, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
 
-		err = r.ds.UpdateMachine(&m, &n)
+		if newMachine.IPMI.Address == oldMachine.IPMI.Address {
+			continue
+		}
+
+		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", n, "err", err)
+			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", newMachine, "err", err)
 			continue
 		}
 		resp.Updated[uuid] = ip
