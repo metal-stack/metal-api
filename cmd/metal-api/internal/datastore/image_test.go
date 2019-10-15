@@ -384,6 +384,8 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	i5 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ValidTo: valid}
 	i6 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.04", ValidTo: invalid} // not allocated
 	i7 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ValidTo: invalid} // allocated
+	i8 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ValidTo: invalid}     // not allocated
+	i9 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ValidTo: invalid}   // not allocated but kept because last from that os
 	tests := []struct {
 		name     string
 		images   metal.Images
@@ -394,10 +396,10 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	}{
 		{
 			name:     "simple",
-			images:   []metal.Image{i1, i2, i3, i4, i5, i6, i7},
+			images:   []metal.Image{i1, i2, i3, i4, i5, i6, i7, i8, i9},
 			machines: []metal.Machine{testdata.M1, testdata.M9},
 			rs:       ds,
-			want:     metal.Images{i6},
+			want:     metal.Images{i6, i8},
 			wantErr:  false,
 		},
 	}
