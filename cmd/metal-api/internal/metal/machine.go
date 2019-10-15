@@ -46,10 +46,13 @@ func MachineStateFrom(name string) (MState, error) {
 	}
 }
 
+// LEDState is the state of the LED of the Machine
 type LEDState string
 
 const (
-	LEDStateOn  LEDState = "LED-ON"
+	// LEDStateOn LED is on
+	LEDStateOn LEDState = "LED-ON"
+	// LEDStateOff LED is off
 	LEDStateOff LEDState = "LED-OFF"
 )
 
@@ -87,6 +90,7 @@ type Machine struct {
 	IPMI        IPMI                    `rethinkdb:"ipmi"`
 }
 
+// Machines is a slice of Machine
 type Machines []Machine
 
 // IsFirewall returns true if this machine is a firewall machine.
@@ -199,6 +203,7 @@ type Fru struct {
 
 // IPMI connection data
 type IPMI struct {
+	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
 	Address    string `rethinkdb:"address"`
 	MacAddress string `rethinkdb:"mac"`
 	User       string `rethinkdb:"user"`
@@ -208,8 +213,8 @@ type IPMI struct {
 }
 
 // HasMAC returns true if this machine has the given MAC.
-func (d *Machine) HasMAC(mac string) bool {
-	for _, nic := range d.Hardware.Nics {
+func (m *Machine) HasMAC(mac string) bool {
+	for _, nic := range m.Hardware.Nics {
 		if string(nic.MacAddress) == mac {
 			return true
 		}

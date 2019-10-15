@@ -695,6 +695,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		Created: v1.Leases{},
 	}
 	// create empty machines for uuids that are not yet known to the metal-api
+	const defaultIPMIPort = "623"
 	for uuid, ip := range requestPayload.Leases {
 		if uuid == "" {
 			continue
@@ -708,7 +709,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			},
 			PartitionID: requestPayload.PartitionID,
 			IPMI: metal.IPMI{
-				Address: ip,
+				Address: ip + ":" + defaultIPMIPort,
 			},
 		}
 		err = r.ds.CreateMachine(m)
@@ -732,7 +733,18 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		}
 		ip := requestPayload.Leases[uuid]
 		n := m
-		n.IPMI.Address = ip
+
+		// Replace host part of ipmi address with the ip from the ipmicatcher
+		hostAndPort := strings.Split(m.IPMI.Address, ":")
+		if len(hostAndPort) == 2 {
+			n.IPMI.Address = ip + ":" + hostAndPort[1]
+		} else if len(hostAndPort) < 2 {
+			n.IPMI.Address = ip + ":" + defaultIPMIPort
+		} else {
+			logger.Errorf("could not update machine, address is garbage", "id", uuid, "ip", ip, "machine", n, "address", n.IPMI.Address)
+			continue
+		}
+
 		err = r.ds.UpdateMachine(&m, &n)
 		if err != nil {
 			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", n, "err", err)
