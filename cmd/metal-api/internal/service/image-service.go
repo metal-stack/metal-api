@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -165,6 +166,11 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		return
 	}
 
+	validTo := time.Now().Add(time.Hour * 24 * 90)
+	if !requestPayload.ValidTo.IsZero() {
+		validTo = requestPayload.ValidTo
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -175,7 +181,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		Features: features,
 		OS:       os,
 		Version:  v.String(),
-		ValidTo:  requestPayload.ValidTo,
+		ValidTo:  validTo,
 	}
 
 	err = ir.ds.CreateImage(img)

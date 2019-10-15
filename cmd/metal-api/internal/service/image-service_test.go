@@ -136,6 +136,7 @@ func TestCreateImage(t *testing.T) {
 	require.Equal(t, testdata.Img1.Name, *result.Name)
 	require.Equal(t, testdata.Img1.Description, *result.Description)
 	require.Equal(t, testdata.Img1.URL, *result.URL)
+	require.False(t, result.ValidTo.IsZero())
 }
 
 func TestUpdateImage(t *testing.T) {

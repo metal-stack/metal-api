@@ -50,6 +50,7 @@ func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image
 }
 
 // DeleteOrphanImages deletes Images which are no longer allocated by a machine and older than allowed.
+// TODO consider keeping at least one image per OS
 func (rs *RethinkStore) DeleteOrphanImages(images *metal.Images, machines *metal.Machines) (metal.Images, error) {
 	if images == nil {
 		is, err := rs.ListImages()
