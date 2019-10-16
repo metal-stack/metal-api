@@ -19,6 +19,7 @@ import (
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"github.com/dustin/go-humanize"
 	"github.com/emicklei/go-restful"
@@ -1612,10 +1613,13 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		return
 	}
 
+	liveliness := make(metrics.PartitionLiveliness)
+
 	unknown := 0
 	alive := 0
 	dead := 0
 	for _, m := range machines {
+		p := liveliness[m.PartitionID]
 		lvlness, err := r.evaluateMachineLiveliness(m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
@@ -1624,11 +1628,15 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
+			p.Alive++
 		case metal.MachineLivelinessDead:
 			dead++
+			p.Dead++
 		default:
 			unknown++
+			p.Unknown++
 		}
+		liveliness[m.PartitionID] = p
 	}
 
 	report := v1.MachineLivelinessReport{
@@ -1637,6 +1645,7 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		UnknownCount: unknown,
 	}
 
+	metrics.ProvideLiveliness(liveliness)
 	response.WriteHeaderAndEntity(http.StatusOK, report)
 }
 
