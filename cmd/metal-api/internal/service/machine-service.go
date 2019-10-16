@@ -1144,7 +1144,12 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allo
 		if !ok {
 			return nil, fmt.Errorf("given ip %q is not in any of the given networks, which is required", ip.IPAddress)
 		}
+		s := ip.GetScope()
+		if s != metal.ScopeMachine && s != metal.ScopeProject {
+			return nil, fmt.Errorf("given ip %q is not available for direct attachment to machine because it is already in use", ip.IPAddress)
+		}
 
+		network.auto = false
 		network.ips = append(network.ips, *ip)
 	}
 
@@ -1183,27 +1188,31 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", n.network.ID, err)
 		}
-
 		ip := &metal.IP{
 			IPAddress:        ipAddress,
 			ParentPrefixCidr: ipParentCidr,
 			Name:             allocationSpec.Name,
 			Description:      "autoassigned",
 			NetworkID:        n.network.ID,
-			MachineID:        allocationSpec.UUID,
+			Type:             metal.Ephemeral,
 			ProjectID:        allocationSpec.ProjectID,
 		}
-
+		ip.AddMachineId(allocationSpec.UUID)
 		err = ds.CreateIP(ip)
 		if err != nil {
 			return nil, err
 		}
-
 		n.ips = append(n.ips, *ip)
 	}
 
 	ipAddresses := []string{}
 	for _, ip := range n.ips {
+		new := ip
+		new.AddMachineId(allocationSpec.UUID)
+		err := ds.UpdateIP(&ip, &new)
+		if err != nil {
+			return nil, err
+		}
 		ipAddresses = append(ipAddresses, ip.IPAddress)
 	}
 
@@ -1455,6 +1464,18 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 			ip, err := r.ds.FindIPByID(ipString)
 			if err != nil {
 				return err
+			}
+			if !ip.HasMachineId(machine.GetID()) {
+				continue
+			}
+			new := *ip
+			new.RemoveMachineId(machine.GetID())
+			err = r.ds.UpdateIP(ip, &new)
+			if err != nil {
+				return err
+			}
+			if ip.Type == metal.Static {
+				continue
 			}
 			err = r.ipamer.ReleaseIP(*ip)
 			if err != nil {

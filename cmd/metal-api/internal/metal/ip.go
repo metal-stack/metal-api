@@ -1,10 +1,35 @@
 package metal
 
 import (
+	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+)
+
+// IPType is the type of an ip.
+type IPType string
+
+type IPScope string
+
+const (
+	// TagIpMachineId is used to tag ips for the usage by machines
+	TagIPMachineID = "metal.metal-pod.io/machineid"
+	// TagIpClusterId is used to tag ips for the usage for cluster services
+	TagIPClusterID = "cluster.metal-pod.io/clusterid"
+
+	// Ephemeral IPs will be cleaned up automatically on machine, network, project deletion
+	Ephemeral IPType = "ephemeral"
+	// Static IPs will not be cleaned up and can be re-used for machines, networks within a project
+	Static IPType = "static"
+	// ScopeProject IPs can be assigned to machines or used by cluster services
+	ScopeProject IPScope = "project"
+	// ScopeMachine IPs are bound to the usage directly at machines
+	ScopeMachine IPScope = "machine"
+	// ScopeCluster IPs are bound to the usage for cluster services
+	ScopeCluster IPScope = "cluster"
 )
 
 // IP of a machine/firewall.
@@ -13,11 +38,12 @@ type IP struct {
 	ParentPrefixCidr string    `rethinkdb:"prefix"`
 	Name             string    `rethinkdb:"name"`
 	Description      string    `rethinkdb:"description"`
+	ProjectID        string    `rethinkdb:"projectid"`
+	NetworkID        string    `rethinkdb:"networkid"`
+	Type             IPType    `rethinkdb:"type"`
+	Tags             []string  `rethinkdb:"tags"`
 	Created          time.Time `rethinkdb:"created"`
 	Changed          time.Time `rethinkdb:"changed"`
-	MachineID        string    `rethinkdb:"machineid"`
-	NetworkID        string    `rethinkdb:"networkid"`
-	ProjectID        string    `rethinkdb:"projectid"`
 }
 
 // GetID returns the ID of the entity
@@ -65,6 +91,59 @@ func (ip *IP) ASN() (int64, error) {
 	}
 	asn := ASNBase + int64(i[14])*256 + int64(i[15])
 	return asn, nil
+}
+
+func (ip *IP) GetScope() IPScope {
+	for _, t := range ip.Tags {
+		if strings.HasPrefix(t, TagIPMachineID) {
+			return ScopeMachine
+		}
+		if strings.HasPrefix(t, TagIPClusterID) {
+			return ScopeCluster
+		}
+	}
+	return ScopeProject
+}
+
+func (ip *IP) HasMachineId(id string) bool {
+	return ip.hasTag(fmt.Sprintf("%s=%s", TagIPMachineID, id))
+}
+
+func (ip *IP) AddMachineId(id string) {
+	r := []string{}
+	for _, t := range ip.Tags {
+		if t == TagIPMachineID {
+			continue
+		}
+		r = append(r, t)
+	}
+	ip.Tags = append(r, fmt.Sprintf("%s=%s", TagIPMachineID, id))
+}
+
+func (ip *IP) RemoveMachineId(id string) {
+	ip.clearTag(fmt.Sprintf("%s=%s", TagIPMachineID, id))
+}
+
+func (ip *IP) hasTag(tag string) bool {
+	for _, t := range ip.Tags {
+		if t == tag {
+			return true
+		}
+	}
+	return false
+}
+
+func (ip *IP) clearTag(tag string) {
+	r := []string{}
+	for _, t := range ip.Tags {
+		if t == tag {
+			s := strings.Split(t, "=")
+			r = append(r, s[0])
+			continue
+		}
+		r = append(r, t)
+	}
+	ip.Tags = r
 }
 
 type IPs []IP
