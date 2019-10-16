@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	runtimedebug "runtime/debug"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -14,11 +16,13 @@ import (
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/metal-pod/v"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
@@ -54,6 +58,7 @@ var (
 		Version: v.V.String(),
 		Run: func(cmd *cobra.Command, args []string) {
 			initLogging()
+			initMetrics()
 			initDataStore()
 			initEventBus()
 			initIpam()
@@ -193,6 +198,27 @@ func initLogging() {
 	debug = logger.Desugar().Core().Enabled(zap.DebugLevel)
 }
 
+func initMetrics() {
+	logger.Info("starting metrics endpoint")
+	metricsServer := http.NewServeMux()
+	metricsServer.Handle("/metrics", promhttp.Handler())
+	metricsServer.HandleFunc("/_stack", getStackTraceHandler)
+	go func() {
+		err := http.ListenAndServe(":2112", metricsServer)
+		if err != nil {
+			logger.Errorw("failed to start metrics endpoint", "error", err)
+		}
+		logger.Info("metrics endpoint started")
+		os.Exit(1)
+	}()
+}
+
+func getStackTraceHandler(w http.ResponseWriter, r *http.Request) {
+	stack := runtimedebug.Stack()
+	w.Write(stack)
+	pprof.Lookup("goroutine").WriteTo(w, 2)
+}
+
 func initSignalHandlers() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -213,8 +239,8 @@ func initSignalHandlers() {
 
 func initEventBus() {
 	publisherCfg := &bus.PublisherConfig{
-		TCPAddress:     viper.GetString("nsqd-tcp-addr"),
-		RESTEndpoint:   viper.GetString("nsqd-rest-endpoint"),
+		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
+		RESTEndpoint: viper.GetString("nsqd-rest-endpoint"),
 		TLS: &bus.TLSConfig{
 			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
@@ -339,6 +365,8 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
+	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
+
 	if withauth {
 		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
 	}

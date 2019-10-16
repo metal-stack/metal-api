@@ -19,6 +19,7 @@ import (
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"github.com/dustin/go-humanize"
 	"github.com/emicklei/go-restful"
@@ -695,6 +696,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		Created: v1.Leases{},
 	}
 	// create empty machines for uuids that are not yet known to the metal-api
+	const defaultIPMIPort = "623"
 	for uuid, ip := range requestPayload.Leases {
 		if uuid == "" {
 			continue
@@ -708,7 +710,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			},
 			PartitionID: requestPayload.PartitionID,
 			IPMI: metal.IPMI{
-				Address: ip,
+				Address: ip + ":" + defaultIPMIPort,
 			},
 		}
 		err = r.ds.CreateMachine(m)
@@ -719,23 +721,36 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		resp.Created[uuid] = ip
 	}
 	// update machine ipmi data if ipmi ip changed
-	for _, m := range ms {
-		uuid := m.ID
+	for _, oldMachine := range ms {
+		uuid := oldMachine.ID
 		if uuid == "" {
 			continue
 		}
 		if _, ok := requestPayload.Leases[uuid]; !ok {
 			continue
 		}
-		if m.IPMI.Address == requestPayload.Leases[uuid] {
+
+		ip := requestPayload.Leases[uuid]
+		newMachine := oldMachine
+
+		// Replace host part of ipmi address with the ip from the ipmicatcher
+		hostAndPort := strings.Split(oldMachine.IPMI.Address, ":")
+		if len(hostAndPort) == 2 {
+			newMachine.IPMI.Address = ip + ":" + hostAndPort[1]
+		} else if len(hostAndPort) < 2 {
+			newMachine.IPMI.Address = ip + ":" + defaultIPMIPort
+		} else {
+			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", ip, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
-		ip := requestPayload.Leases[uuid]
-		n := m
-		n.IPMI.Address = ip
-		err = r.ds.UpdateMachine(&m, &n)
+
+		if newMachine.IPMI.Address == oldMachine.IPMI.Address {
+			continue
+		}
+
+		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", n, "err", err)
+			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", newMachine, "err", err)
 			continue
 		}
 		resp.Updated[uuid] = ip
@@ -1601,10 +1616,13 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		return
 	}
 
+	liveliness := make(metrics.PartitionLiveliness)
+
 	unknown := 0
 	alive := 0
 	dead := 0
 	for _, m := range machines {
+		p := liveliness[m.PartitionID]
 		lvlness, err := r.evaluateMachineLiveliness(m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
@@ -1613,11 +1631,15 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
+			p.Alive++
 		case metal.MachineLivelinessDead:
 			dead++
+			p.Dead++
 		default:
 			unknown++
+			p.Unknown++
 		}
+		liveliness[m.PartitionID] = p
 	}
 
 	report := v1.MachineLivelinessReport{
@@ -1626,6 +1648,7 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		UnknownCount: unknown,
 	}
 
+	metrics.ProvideLiveliness(liveliness)
 	response.WriteHeaderAndEntity(http.StatusOK, report)
 }
 
