@@ -236,6 +236,9 @@ func (ir imageResource) deleteImages(request *restful.Request, response *restful
 	}
 
 	deletedImages, err := ir.ds.DeleteOrphanImages(&images, &machines)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 
 	result := []*v1.ImageResponse{}
 	for _, image := range deletedImages {

@@ -38,8 +38,6 @@ var (
 		TopicMachine,
 		TopicSwitch,
 	}
-
-	getNow = time.Now
 )
 
 // GetFQN gets the fully qualified name of a NSQTopic

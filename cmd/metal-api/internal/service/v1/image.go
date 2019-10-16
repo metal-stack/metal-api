@@ -36,7 +36,7 @@ func NewImageResponse(img *metal.Image) *ImageResponse {
 	}
 	features := []string{}
 	for k, v := range img.Features {
-		if v == true {
+		if v {
 			features = append(features, string(k))
 		}
 	}
