@@ -305,6 +305,16 @@ func TestUpdateIP(t *testing.T) {
 			},
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
+		{
+			name: "mixing cluster and machine tags is not allowed",
+			updateRequest: v1.IPUpdateRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP2.IPAddress,
+				},
+				Tags: []string{machineIDTag1, clusterIDTag1},
+			},
+			wantedStatus: http.StatusUnprocessableEntity,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
