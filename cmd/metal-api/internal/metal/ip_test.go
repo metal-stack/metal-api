@@ -15,21 +15,21 @@ func TestAddMachineId(t *testing.T) {
 		{
 			name:         "ip without machine tag",
 			ip:           IP{},
-			expectedTags: []string{TagIPMachineID + "=123"},
+			expectedTags: []string{ipTag(TagIPMachineID, "123")},
 		},
 		{
 			name: "ip with empty machine tag",
 			ip: IP{
 				Tags: []string{TagIPMachineID},
 			},
-			expectedTags: []string{TagIPMachineID + "=123"},
+			expectedTags: []string{ipTag(TagIPMachineID, "123")},
 		},
 		{
 			name: "ip with other machine tag",
 			ip: IP{
-				Tags: []string{TagIPMachineID + "=1"},
+				Tags: []string{ipTag(TagIPMachineID, "1")},
 			},
-			expectedTags: []string{TagIPMachineID + "=1", TagIPMachineID + "=123"},
+			expectedTags: []string{ipTag(TagIPMachineID, "1"), ipTag(TagIPMachineID, "123")},
 		},
 	}
 	for _, tt := range tests {
@@ -62,14 +62,14 @@ func TestRemoveMachineId(t *testing.T) {
 		{
 			name: "ip with machine tag",
 			ip: IP{
-				Tags: []string{TagIPMachineID + "=1"},
+				Tags: []string{ipTag(TagIPMachineID, "1")},
 			},
-			expectedTags: []string{TagIPMachineID + "=1"},
+			expectedTags: []string{ipTag(TagIPMachineID, "1")},
 		},
 		{
 			name: "ip with matching machine tag",
 			ip: IP{
-				Tags: []string{TagIPMachineID + "=123"},
+				Tags: []string{ipTag(TagIPMachineID, "123")},
 			},
 			expectedTags: []string{TagIPMachineID},
 		},
@@ -93,14 +93,14 @@ func TestGetScope(t *testing.T) {
 		{
 			name: "machine ip",
 			ip: IP{
-				Tags: []string{TagIPMachineID + "=102"},
+				Tags: []string{ipTag(TagIPMachineID, "102")},
 			},
 			expectedScope: ScopeMachine,
 		},
 		{
 			name: "cluster ip",
 			ip: IP{
-				Tags: []string{TagIPClusterID + "=102"},
+				Tags: []string{ipTag(TagIPClusterID, "102")},
 			},
 			expectedScope: ScopeCluster,
 		},

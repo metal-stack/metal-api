@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/tags"
 	"github.com/pkg/errors"
 )
 
@@ -19,6 +20,7 @@ const (
 	TagIPMachineID = "metal.metal-pod.io/machineid"
 	// TagIpClusterId is used to tag ips for the usage for cluster services
 	TagIPClusterID = "cluster.metal-pod.io/clusterid"
+	TagIPSeperator = "="
 
 	// Ephemeral IPs will be cleaned up automatically on machine, network, project deletion
 	Ephemeral IPType = "ephemeral"
@@ -84,7 +86,6 @@ const ASNBase = int64(4200000000)
 // add the last 2 octets of the ip of the machine to achieve unique ASNs per vrf
 // TODO consider using IntegerPool here as well to calculate the addition to ASNBase
 func (ip *IP) ASN() (int64, error) {
-
 	i := net.ParseIP(ip.IPAddress)
 	if i == nil {
 		return int64(-1), errors.Errorf("unable to parse ip %s", ip.IPAddress)
@@ -106,44 +107,32 @@ func (ip *IP) GetScope() IPScope {
 }
 
 func (ip *IP) HasMachineId(id string) bool {
-	return ip.hasTag(fmt.Sprintf("%s=%s", TagIPMachineID, id))
+	t := tags.New(ip.Tags)
+	return t.Has(ipTag(TagIPMachineID, id))
+}
+
+func (ip *IP) GetMachineIds() []string {
+	ts := tags.New(ip.Tags)
+	return ts.Values(TagIPMachineID + TagIPSeperator)
 }
 
 func (ip *IP) AddMachineId(id string) {
-	r := []string{}
-	for _, t := range ip.Tags {
-		if t == TagIPMachineID {
-			continue
-		}
-		r = append(r, t)
-	}
-	ip.Tags = append(r, fmt.Sprintf("%s=%s", TagIPMachineID, id))
+	ts := tags.New(ip.Tags)
+	t := ipTag(TagIPMachineID, id)
+	ts.Remove(TagIPMachineID)
+	ts.Add(t)
+	ip.Tags = ts.Unique()
 }
 
 func (ip *IP) RemoveMachineId(id string) {
-	ip.clearTag(fmt.Sprintf("%s=%s", TagIPMachineID, id))
+	ts := tags.New(ip.Tags)
+	t := ipTag(TagIPMachineID, id)
+	ts.ClearValue(t, TagIPSeperator)
+	ip.Tags = ts.Unique()
 }
 
-func (ip *IP) hasTag(tag string) bool {
-	for _, t := range ip.Tags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
-}
-
-func (ip *IP) clearTag(tag string) {
-	r := []string{}
-	for _, t := range ip.Tags {
-		if t == tag {
-			s := strings.Split(t, "=")
-			r = append(r, s[0])
-			continue
-		}
-		r = append(r, t)
-	}
-	ip.Tags = r
+func ipTag(key, value string) string {
+	return fmt.Sprintf("%s%s%s", key, TagIPSeperator, value)
 }
 
 type IPs []IP

@@ -1474,7 +1474,7 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 			if err != nil {
 				return err
 			}
-			if ip.Type == metal.Static {
+			if ip.Type == metal.Static || len(ip.GetMachineIds()) > 0 {
 				continue
 			}
 			err = r.ipamer.ReleaseIP(*ip)
