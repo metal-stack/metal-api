@@ -6,9 +6,9 @@ metadata:
     app: {{ template "metal-api.fullname" . }}
   name: {{ template "metal-api.fullname" . }}
 spec:
-    selector:
-        matchLabels:
-            app: {{ template "metal-api.fullname" . }}
+  selector:
+    matchLabels:
+      app: {{ template "metal-api.fullname" . }}
   replicas: {{ .Values.metal_api.replicas }}
   strategy: {}
   template:
