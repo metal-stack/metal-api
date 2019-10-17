@@ -361,16 +361,21 @@ var (
 		IPAddress:   "1.2.3.4",
 		Name:        "Image 1",
 		Description: "description 1",
+		Type:        "ephemeral",
 	}
 	IP2 = metal.IP{
 		IPAddress:   "2.3.4.5",
 		Name:        "Image 2",
 		Description: "description 2",
+		Type:        "static",
+		Tags:        []string{metal.TagIPClusterID},
 	}
 	IP3 = metal.IP{
 		IPAddress:   "3.4.5.6",
 		Name:        "Image 3",
 		Description: "description 3",
+		Type:        "static",
+		Tags:        []string{metal.TagIPMachineID},
 	}
 	IPAMIP = metal.IP{
 		Name:        "IPAM IP",

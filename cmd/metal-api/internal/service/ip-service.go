@@ -201,7 +201,10 @@ func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	if old.Type == metal.Static && new.Type == metal.Ephemeral {
 		return fmt.Errorf("cannot change type of ip address from static to ephemeral")
 	}
-	if new.GetScope() != metal.ScopeProject && new.GetScope() != old.GetScope() {
+
+	os := old.GetScope()
+	ns := new.GetScope()
+	if os != metal.ScopeProject && ns != metal.ScopeProject && os != ns {
 		return fmt.Errorf("check ip tags - cannot transition btw. scopes other than project")
 	}
 	return nil
@@ -326,8 +329,12 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 		return
 	}
 	newIP.Tags = tags
-	newIP.Type = requestPayload.Type
 
+	ipType := metal.Static
+	if requestPayload.Type == "ephemeral" {
+		ipType = metal.Ephemeral
+	}
+	newIP.Type = ipType
 	err = validateIPUpdate(oldIP, &newIP)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return

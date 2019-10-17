@@ -182,32 +182,134 @@ func TestUpdateIP(t *testing.T) {
 
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
-
-	updateRequest := v1.IPUpdateRequest{
-		Describable: v1.Describable{
-			Name:        &testdata.IP2.Name,
-			Description: &testdata.IP2.Description,
+	machineIDTag1 := metal.TagIPMachineID + "=" + "1"
+	machineIDTag2 := metal.TagIPMachineID + "=" + "2"
+	clusterIDTag1 := metal.TagIPClusterID + "=" + "1"
+	tests := []struct {
+		name                 string
+		updateRequest        v1.IPUpdateRequest
+		wantedStatus         int
+		wantedIPIdentifiable *v1.IPIdentifiable
+		wantedIPBase         *v1.IPBase
+		wantedDescribable    *v1.Describable
+	}{
+		{
+			name: "update ip name",
+			updateRequest: v1.IPUpdateRequest{
+				Describable: v1.Describable{
+					Name:        &testdata.IP2.Name,
+					Description: &testdata.IP2.Description,
+				},
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP1.IPAddress,
+				},
+			},
+			wantedStatus: http.StatusOK,
+			wantedDescribable: &v1.Describable{
+				Name:        &testdata.IP2.Name,
+				Description: &testdata.IP2.Description,
+			},
 		},
-		IPIdentifiable: v1.IPIdentifiable{
-			IPAddress: testdata.IP1.IPAddress,
+		{
+			name: "moving from ephemeral to static",
+			updateRequest: v1.IPUpdateRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP1.IPAddress,
+				},
+				Type: "static",
+			},
+			wantedStatus: http.StatusOK,
+			wantedIPBase: &v1.IPBase{
+				Type: "static",
+				Tags: []string{},
+			},
+		},
+		{
+			name: "moving from static to ephemeral must not be allowed",
+			updateRequest: v1.IPUpdateRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP2.IPAddress,
+				},
+				Type: "ephemeral",
+			},
+			wantedStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name: "use static ip for machine",
+			updateRequest: v1.IPUpdateRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP3.IPAddress,
+				},
+				Tags: []string{machineIDTag1},
+			},
+			wantedStatus: http.StatusOK,
+			wantedIPBase: &v1.IPBase{
+				Type: "static",
+				Tags: []string{machineIDTag1},
+			},
+		},
+		{
+			name: "use static ip for multiple machines",
+			updateRequest: v1.IPUpdateRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP3.IPAddress,
+				},
+				Tags: []string{machineIDTag1, machineIDTag2},
+			},
+			wantedStatus: http.StatusOK,
+			wantedIPBase: &v1.IPBase{
+				Type: "static",
+				Tags: []string{machineIDTag1, machineIDTag2},
+			},
+		},
+		{
+			name: "using a machine ip as cluster ip is not allowed",
+			updateRequest: v1.IPUpdateRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP3.IPAddress,
+				},
+				Tags: []string{clusterIDTag1},
+			},
+			wantedStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name: "using a cluster ip as machine ip is not allowed",
+			updateRequest: v1.IPUpdateRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP2.IPAddress,
+				},
+				Tags: []string{machineIDTag1},
+			},
+			wantedStatus: http.StatusUnprocessableEntity,
 		},
 	}
-	js, _ := json.Marshal(updateRequest)
-	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/ip", body)
-	container = injectEditor(container, req)
-	req.Header.Add("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			js, _ := json.Marshal(tt.updateRequest)
+			body := bytes.NewBuffer(js)
+			req := httptest.NewRequest("POST", "/v1/ip", body)
+			container = injectEditor(container, req)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
 
-	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.IPResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+			resp := w.Result()
+			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
+			var result v1.IPResponse
+			err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
-	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
-	require.Equal(t, testdata.IP2.Name, *result.Name)
+			require.Nil(t, err)
+			if tt.wantedIPIdentifiable != nil {
+				require.Equal(t, *tt.wantedIPIdentifiable, result.IPIdentifiable)
+			}
+			if tt.wantedIPBase != nil {
+				require.Equal(t, *tt.wantedIPBase, result.IPBase)
+			}
+			if tt.wantedDescribable != nil {
+				require.Equal(t, *tt.wantedDescribable, result.Describable)
+			}
+		})
+	}
 }
 
 func TestProcessTags(t *testing.T) {
