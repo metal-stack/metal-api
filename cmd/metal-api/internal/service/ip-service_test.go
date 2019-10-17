@@ -99,20 +99,43 @@ func TestDeleteIP(t *testing.T) {
 	ipservice := NewIP(ds, ipamer)
 	container := restful.NewContainer().Add(ipservice)
 
-	req := httptest.NewRequest("POST", "/v1/ip/release/"+testdata.IPAMIP.IPAddress, nil)
-	container = injectEditor(container, req)
-	req.Header.Add("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
+	tests := []struct {
+		name         string
+		ip           string
+		wantedStatus int
+	}{
+		{
+			name:         "release an ip",
+			ip:           testdata.IPAMIP.IPAddress,
+			wantedStatus: http.StatusOK,
+		},
+		{
+			name:         "release an machine-ip should fail",
+			ip:           testdata.IP3.IPAddress,
+			wantedStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name:         "release an cluster-ip should fail",
+			ip:           testdata.IP2.IPAddress,
+			wantedStatus: http.StatusUnprocessableEntity,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("POST", "/v1/ip/release/"+testdata.IPAMIP.IPAddress, nil)
+			container = injectEditor(container, req)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
 
-	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.IPResponse
-	err = json.NewDecoder(resp.Body).Decode(&result)
+			resp := w.Result()
+			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
+			var result v1.IPResponse
+			err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
-	require.Equal(t, testdata.IPAMIP.IPAddress, result.IPAddress)
-	require.Equal(t, testdata.IPAMIP.Name, *result.Name)
+			require.Nil(t, err)
+		})
+	}
 }
 
 func TestAllocateIP(t *testing.T) {
