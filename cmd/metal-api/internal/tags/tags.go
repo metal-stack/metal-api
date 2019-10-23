@@ -5,16 +5,19 @@ import (
 	"strings"
 )
 
+// Tags holds tags.
 type Tags struct {
 	tags []string
 }
 
+// New creates a new Tag instance.
 func New(tags []string) *Tags {
 	return &Tags{
 		tags: tags,
 	}
 }
 
+// Has checks whether the given tag is contained in the tags.
 func (t *Tags) Has(tag string) bool {
 	for _, t := range t.tags {
 		if t == tag {
@@ -24,6 +27,7 @@ func (t *Tags) Has(tag string) bool {
 	return false
 }
 
+// HasPrefix checks whether the given prefix is contained in the tags.
 func (t *Tags) HasPrefix(prefix string) bool {
 	for _, t := range t.tags {
 		if strings.HasPrefix(t, prefix) {
@@ -33,10 +37,12 @@ func (t *Tags) HasPrefix(prefix string) bool {
 	return false
 }
 
+// Add adds a tag
 func (t *Tags) Add(tag string) {
 	t.tags = append(t.tags, tag)
 }
 
+// Remove removes a tag
 func (t *Tags) Remove(tag string) bool {
 	tags := []string{}
 	removed := false
@@ -53,6 +59,7 @@ func (t *Tags) Remove(tag string) bool {
 	return removed
 }
 
+// Values collects all the values that are contained with the given prefix.
 func (t *Tags) Values(prefix string) []string {
 	values := []string{}
 	for _, t := range t.tags {
@@ -63,6 +70,7 @@ func (t *Tags) Values(prefix string) []string {
 	return values
 }
 
+// ClearValue clears the value for the given the full tag.
 func (t *Tags) ClearValue(tag, seperator string) {
 	r := []string{}
 	for _, t := range t.tags {
@@ -76,6 +84,7 @@ func (t *Tags) ClearValue(tag, seperator string) {
 	t.tags = r
 }
 
+// Unique returns the distinct tag values as sorted slice.
 func (t *Tags) Unique() []string {
 	tagSet := make(map[string]bool)
 	for _, t := range t.tags {

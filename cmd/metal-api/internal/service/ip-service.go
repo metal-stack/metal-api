@@ -197,25 +197,23 @@ func validateIPDelete(ip *metal.IP) error {
 	return nil
 }
 
-/*
- * Constraints:
- * - only allow update of ephemeral to static
- * - allow update within a scope
- * - allow update from and to scope project
- */
+// Checks whether an ip update is allowed:
+// (1) allow update of ephemeral to static
+// (2) allow update within a scope
+// (3) allow update from and to scope project
+// (4) deny all other updates
 func validateIPUpdate(old *metal.IP, new *metal.IP) error {
+	// constraint 1
 	if old.Type == metal.Static && new.Type == metal.Ephemeral {
 		return fmt.Errorf("cannot change type of ip address from static to ephemeral")
 	}
-
 	os := old.GetScope()
 	ns := new.GetScope()
-
-	// scope is not changed
+	// constraint 2
 	if os == ns {
 		return nil
 	}
-
+	// constraint 3
 	if os == metal.ScopeProject || ns == metal.ScopeProject {
 		return nil
 	}
@@ -342,9 +340,9 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	}
 	newIP.Tags = tags
 
-	ipType := metal.Static
-	if requestPayload.Type == "ephemeral" {
-		ipType = metal.Ephemeral
+	ipType := metal.Ephemeral
+	if requestPayload.Type == "static" {
+		ipType = metal.Static
 	}
 	newIP.Type = ipType
 	err = validateIPUpdate(oldIP, &newIP)

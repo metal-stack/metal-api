@@ -1,10 +1,25 @@
 package tags
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
+
+func Example() {
+	t := New(nil)
+	t.Add("k=1")
+	t.Add("k=2")
+	fmt.Println(t.Unique())
+	fmt.Println(t.Values("k="))
+	t.ClearValue("k=1", "=")
+	fmt.Println(t.Unique())
+	// Output:
+	// [k=1 k=2]
+	// [1 2]
+	// [k k=2]
+}
 
 func TestHas(t *testing.T) {
 	tests := []struct {

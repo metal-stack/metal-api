@@ -1465,18 +1465,26 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 			if err != nil {
 				return err
 			}
+			// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip
 			if !ip.HasMachineId(machine.GetID()) {
 				continue
 			}
+			// disassociate machine from ip
 			new := *ip
 			new.RemoveMachineId(machine.GetID())
 			err = r.ds.UpdateIP(ip, &new)
 			if err != nil {
 				return err
 			}
-			if ip.Type == metal.Static || len(ip.GetMachineIds()) > 0 {
+			// static ips should not be released automatically
+			if ip.Type == metal.Static {
 				continue
 			}
+			// ips that are associated to other machines will should not be released automatically
+			if len(new.GetMachineIds()) > 0 {
+				continue
+			}
+			// release and delete
 			err = r.ipamer.ReleaseIP(*ip)
 			if err != nil {
 				return err

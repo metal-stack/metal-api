@@ -60,7 +60,7 @@ func TestRemoveMachineId(t *testing.T) {
 			expectedTags: []string{TagIPMachineID},
 		},
 		{
-			name: "ip with machine tag",
+			name: "ip with other machine tag",
 			ip: IP{
 				Tags: []string{ipTag(TagIPMachineID, "1")},
 			},
@@ -91,23 +91,33 @@ func TestGetScope(t *testing.T) {
 		expectedScope IPScope
 	}{
 		{
-			name: "machine ip",
+			name: "empty scope ip",
 			ip: IP{
 				Tags: []string{ipTag(TagIPMachineID, "102")},
+			},
+			expectedScope: ScopeEmpty,
+		},
+		{
+			name: "machine ip",
+			ip: IP{
+				ProjectID: "1",
+				Tags:      []string{ipTag(TagIPMachineID, "102")},
 			},
 			expectedScope: ScopeMachine,
 		},
 		{
 			name: "cluster ip",
 			ip: IP{
-				Tags: []string{ipTag(TagIPClusterID, "102")},
+				ProjectID: "1",
+				Tags:      []string{ipTag(TagIPClusterID, "102")},
 			},
 			expectedScope: ScopeCluster,
 		},
 		{
 			name: "project ip",
 			ip: IP{
-				Tags: []string{},
+				ProjectID: "1",
+				Tags:      []string{},
 			},
 			expectedScope: ScopeProject,
 		},

@@ -13,19 +13,24 @@ import (
 // IPType is the type of an ip.
 type IPType string
 
+// IPScope is the scope of an ip.
 type IPScope string
 
 const (
-	// TagIpMachineId is used to tag ips for the usage by machines
+	// TagIPMachineID is used to tag ips for the usage by machines
 	TagIPMachineID = "metal.metal-pod.io/machineid"
-	// TagIpClusterId is used to tag ips for the usage for cluster services
+	// TagIPClusterID is used to tag ips for the usage for cluster services
 	TagIPClusterID = "cluster.metal-pod.io/clusterid"
+	// TagIPSeperator is the seperator character for key and values in IP-Tags
 	TagIPSeperator = "="
 
 	// Ephemeral IPs will be cleaned up automatically on machine, network, project deletion
 	Ephemeral IPType = "ephemeral"
 	// Static IPs will not be cleaned up and can be re-used for machines, networks within a project
 	Static IPType = "static"
+
+	// ScopeEmpty IPs are not bound to a project, machine or cluster
+	ScopeEmpty IPScope = ""
 	// ScopeProject IPs can be assigned to machines or used by cluster services
 	ScopeProject IPScope = "project"
 	// ScopeMachine IPs are bound to the usage directly at machines
@@ -94,7 +99,11 @@ func (ip *IP) ASN() (int64, error) {
 	return asn, nil
 }
 
+// GetScope determines the scope of an ip address
 func (ip *IP) GetScope() IPScope {
+	if ip.ProjectID == "" {
+		return ""
+	}
 	for _, t := range ip.Tags {
 		if strings.HasPrefix(t, TagIPMachineID) {
 			return ScopeMachine
