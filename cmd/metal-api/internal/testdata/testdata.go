@@ -362,6 +362,7 @@ var (
 		Name:        "Image 1",
 		Description: "description 1",
 		Type:        "ephemeral",
+		ProjectID:   "1",
 	}
 	IP2 = metal.IP{
 		IPAddress:   "2.3.4.5",
@@ -369,6 +370,7 @@ var (
 		Description: "description 2",
 		Type:        "static",
 		Tags:        []string{metal.TagIPClusterID},
+		ProjectID:   "1",
 	}
 	IP3 = metal.IP{
 		IPAddress:   "3.4.5.6",
@@ -376,10 +378,12 @@ var (
 		Description: "description 3",
 		Type:        "static",
 		Tags:        []string{metal.TagIPMachineID},
+		ProjectID:   "1",
 	}
 	IPAMIP = metal.IP{
 		Name:        "IPAM IP",
 		Description: "description IPAM",
+		ProjectID:   "1",
 	}
 	Partition1InternetIP = metal.IP{
 		IPAddress: "212.34.0.1",

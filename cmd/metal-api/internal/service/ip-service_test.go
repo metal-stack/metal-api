@@ -243,8 +243,9 @@ func TestUpdateIP(t *testing.T) {
 			},
 			wantedStatus: http.StatusOK,
 			wantedIPBase: &v1.IPBase{
-				Type: "static",
-				Tags: []string{},
+				ProjectID: testdata.IP1.ProjectID,
+				Type:      "static",
+				Tags:      []string{},
 			},
 		},
 		{
@@ -263,12 +264,14 @@ func TestUpdateIP(t *testing.T) {
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
 				},
+				Type: "static",
 				Tags: []string{machineIDTag1},
 			},
 			wantedStatus: http.StatusOK,
 			wantedIPBase: &v1.IPBase{
-				Type: "static",
-				Tags: []string{machineIDTag1},
+				ProjectID: testdata.IP3.ProjectID,
+				Type:      "static",
+				Tags:      []string{machineIDTag1},
 			},
 		},
 		{
@@ -277,12 +280,14 @@ func TestUpdateIP(t *testing.T) {
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
 				},
+				Type: "static",
 				Tags: []string{machineIDTag1, machineIDTag2},
 			},
 			wantedStatus: http.StatusOK,
 			wantedIPBase: &v1.IPBase{
-				Type: "static",
-				Tags: []string{machineIDTag1, machineIDTag2},
+				ProjectID: testdata.IP3.ProjectID,
+				Type:      "static",
+				Tags:      []string{machineIDTag1, machineIDTag2},
 			},
 		},
 		{
