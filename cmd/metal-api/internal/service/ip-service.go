@@ -197,6 +197,12 @@ func validateIPDelete(ip *metal.IP) error {
 	return nil
 }
 
+/*
+ * Constraints:
+ * - only allow update of ephemeral to static
+ * - allow update within a scope
+ * - allow update from and to scope project
+ */
 func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	if old.Type == metal.Static && new.Type == metal.Ephemeral {
 		return fmt.Errorf("cannot change type of ip address from static to ephemeral")
@@ -204,10 +210,16 @@ func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 
 	os := old.GetScope()
 	ns := new.GetScope()
-	if os != metal.ScopeProject && ns != metal.ScopeProject && os != ns {
-		return fmt.Errorf("check ip tags - cannot transition btw. scopes other than project")
+
+	// scope is not changed
+	if os == ns {
+		return nil
 	}
-	return nil
+
+	if os == metal.ScopeProject || ns == metal.ScopeProject {
+		return nil
+	}
+	return fmt.Errorf("check ip tags - cannot transition btw. scopes; old: %v, new: %v", os, ns)
 }
 
 func processTags(tags []string) ([]string, error) {
