@@ -19,6 +19,8 @@ type IPIdentifiable struct {
 type IPAllocateRequest struct {
 	Describable
 	IPBase
+	MachineID *string `json:"machineid" description:"the machine id this ip should be associated with"`
+	ClusterID *string `json:"clusterid" description:"the cluster id this ip should be associated with"`
 }
 
 type IPUpdateRequest struct {

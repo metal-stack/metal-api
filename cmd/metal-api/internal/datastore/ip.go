@@ -13,6 +13,8 @@ type IPSearchQuery struct {
 	Tags             []string `json:"tags" description:"the tags that are assigned to this ip address"`
 	ProjectID        *string  `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled"`
 	Type             *string  `json:"type" description:"the type of the ip address, ephemeral or static"`
+	MachineID        *string  `json:"machineid" description:"the machine an ip address is associated to"`
+	ClusterID        *string  `json:"clusterid" description:"the cluster an ip address is associated to"`
 }
 
 // GenerateTerm generates the project search query term.
@@ -41,6 +43,14 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("networkprefix").Eq(*p.ParentPrefixCidr)
 		})
+	}
+
+	if p.MachineID != nil {
+		p.Tags = append(p.Tags, metal.IpTag(metal.TagIPMachineID, *p.MachineID))
+	}
+
+	if p.ClusterID != nil {
+		p.Tags = append(p.Tags, metal.IpTag(metal.TagIPClusterID, *p.ClusterID))
 	}
 
 	for _, tag := range p.Tags {

@@ -282,6 +282,14 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	if requestPayload.MachineID != nil {
+		requestPayload.Tags = append(requestPayload.Tags, metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID))
+	}
+
+	if requestPayload.ClusterID != nil {
+		requestPayload.Tags = append(requestPayload.Tags, metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID))
+	}
+
 	tags, err := processTags(requestPayload.Tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
