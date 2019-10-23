@@ -12,6 +12,7 @@ type IPSearchQuery struct {
 	NetworkID        *string  `json:"networkid" description:"the network this ip allocate request address belongs to"`
 	Tags             []string `json:"tags" description:"the tags that are assigned to this ip address"`
 	ProjectID        *string  `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled"`
+	Type             *string  `json:"type" description:"the type of the ip address, ephemeral or static"`
 }
 
 // GenerateTerm generates the project search query term.
@@ -45,6 +46,12 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	for _, tag := range p.Tags {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tags").Contains(r.Expr(tag))
+		})
+	}
+
+	if p.Type != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("type").Eq(*p.Type)
 		})
 	}
 
