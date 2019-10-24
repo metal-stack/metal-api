@@ -1,7 +1,9 @@
 package service
 
 import (
+	"github.com/stretchr/testify/require"
 	"net/http"
+	"testing"
 	"time"
 
 	"io/ioutil"
@@ -9,19 +11,21 @@ import (
 	"bytes"
 
 	"git.f-i-ts.de/cloud-native/metallib/rest"
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 	"github.com/metal-pod/security"
 )
 
+var testUserDirectory = NewUserDirectory("")
+
 func injectViewer(container *restful.Container, rq *http.Request) *restful.Container {
-	return injectUser(Viewer, container, rq)
+	return injectUser(testUserDirectory.viewer, container, rq)
 }
 
 func injectEditor(container *restful.Container, rq *http.Request) *restful.Container {
-	return injectUser(Editor, container, rq)
+	return injectUser(testUserDirectory.edit, container, rq)
 }
 func injectAdmin(container *restful.Container, rq *http.Request) *restful.Container {
-	return injectUser(Admin, container, rq)
+	return injectUser(testUserDirectory.admin, container, rq)
 }
 
 func injectUser(u security.User, container *restful.Container, rq *http.Request) *restful.Container {
@@ -37,4 +41,17 @@ func injectUser(u security.User, container *restful.Container, rq *http.Request)
 	}
 	hma.AddAuth(rq, time.Now(), body)
 	return container
+}
+
+func TestTenantEnsurer(t *testing.T) {
+
+	e := NewTenantEnsurer([]string{"pvdr", "Pv", "pv-DR"})
+	require.True(t, e.allowed("pvdr"))
+	require.True(t, e.allowed("Pv"))
+	require.True(t, e.allowed("pv"))
+	require.True(t, e.allowed("pv-DR"))
+	require.True(t, e.allowed("PV-DR"))
+	require.True(t, e.allowed("PV-dr"))
+	require.False(t, e.allowed(""))
+	require.False(t, e.allowed("abc"))
 }
