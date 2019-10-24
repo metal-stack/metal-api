@@ -94,7 +94,7 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/use/{ip}/cluster/{cluster}").
+	ws.Route(ws.POST("/use").
 		To(editor(ir.useIPInCluster)).
 		Operation("useIPInCluster").
 		Doc("updates an ip and marks it as used in the given cluster.").
@@ -104,7 +104,7 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/release/{ip}/cluster/{cluster}").
+	ws.Route(ws.POST("/release").
 		To(editor(ir.releaseIPFromCluster)).
 		Operation("releaseIPFromCluster").
 		Doc("updates an ip and marks it as unused in the given cluster.").
