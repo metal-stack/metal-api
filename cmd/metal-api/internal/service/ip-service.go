@@ -9,6 +9,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/tags"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
@@ -91,6 +92,26 @@ func (ir ipResource) webService() *restful.WebService {
 		Writes(v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/use/{ip}/cluster/{cluster}").
+		To(editor(ir.useIPInCluster)).
+		Operation("useIPInCluster").
+		Doc("updates an ip and marks it as used in the given cluster.").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.IPUseInClusterRequest{}).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", v1.IPResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/release/{ip}/cluster/{cluster}").
+		To(editor(ir.releaseIPFromCluster)).
+		Operation("releaseIPFromCluster").
+		Doc("updates an ip and marks it as unused in the given cluster.").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.IPReleaseFromClusterRequest{}).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").
@@ -198,11 +219,16 @@ func validateIPDelete(ip *metal.IP) error {
 }
 
 // Checks whether an ip update is allowed:
+// (0) internal tags may only be set for internal calls
 // (1) allow update of ephemeral to static
 // (2) allow update within a scope
 // (3) allow update from and to scope project
 // (4) deny all other updates
-func validateIPUpdate(old *metal.IP, new *metal.IP) error {
+func validateIPUpdate(old *metal.IP, new *metal.IP, allowInternalTags bool) error {
+	if !allowInternalTags && containsClusterOrMachineTags(new.Tags) {
+		return fmt.Errorf("tags specified in request must not contain internal tags like %v", []string{metal.TagIPClusterID, metal.TagIPMachineID})
+	}
+
 	// constraint 1
 	if old.Type == metal.Static && new.Type == metal.Ephemeral {
 		return fmt.Errorf("cannot change type of ip address from static to ephemeral")
@@ -335,35 +361,128 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	}
 
 	newIP := *oldIP
-
 	if requestPayload.Name != nil {
 		newIP.Name = *requestPayload.Name
 	}
 	if requestPayload.Description != nil {
 		newIP.Description = *requestPayload.Description
 	}
-	tags, err := processTags(requestPayload.Tags)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	newIP.Tags = tags
 
 	ipType := metal.Ephemeral
 	if requestPayload.Type == "static" {
 		ipType = metal.Static
 	}
 	newIP.Type = ipType
-	err = validateIPUpdate(oldIP, &newIP)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
 
-	err = ir.ds.UpdateIP(oldIP, &newIP)
+	err = ir.validateAndUpateIP(oldIP, &newIP, false)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
+}
+
+func (ir ipResource) validateIPUseOrRelease(requestPayload v1.IPUseInClusterRequest) (*metal.IP, error) {
+	oldIP, err := ir.ds.FindIPByID(requestPayload.IPAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	if requestPayload.ProjectID != oldIP.ProjectID {
+		return nil, fmt.Errorf("ip not found or does not belong to project")
+
+	}
+	if containsClusterOrMachineTags(requestPayload.Tags) {
+		return nil, fmt.Errorf("tags specified in request must not contain internal tags like %v", []string{metal.TagIPClusterID, metal.TagIPMachineID})
+	}
+	return oldIP, nil
+}
+
+func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP, allowInternalTags bool) error {
+	tags, err := processTags(newIP.Tags)
+	if err != nil {
+		return err
+	}
+	newIP.Tags = tags
+	err = validateIPUpdate(oldIP, newIP, allowInternalTags)
+	if err != nil {
+		return err
+	}
+
+	err = ir.ds.UpdateIP(oldIP, newIP)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ir ipResource) useIPInCluster(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.IPUseInClusterRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	tags := append(oldIP.Tags, metal.IpTag(metal.TagIPClusterID, requestPayload.ClusterID))
+	tags = append(tags, requestPayload.Tags...)
+	newIP := *oldIP
+	newIP.Tags = tags
+
+	err = ir.validateAndUpateIP(oldIP, &newIP, true)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
+}
+
+func (ir ipResource) releaseIPFromCluster(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.IPReleaseFromClusterRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPUseInClusterRequest)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	ct := metal.IpTag(metal.TagIPClusterID, requestPayload.ClusterID)
+	tagsToRemove := map[string]interface{}{ct: nil}
+	for _, t := range requestPayload.Tags {
+		tagsToRemove[t] = nil
+	}
+
+	newTags := []string{}
+	for _, t := range oldIP.Tags {
+		if _, ok := tagsToRemove[t]; ok {
+			continue
+		}
+		newTags = append(newTags, t)
+	}
+
+	newIP := *oldIP
+	newIP.Tags = newTags
+	err = ir.validateAndUpateIP(oldIP, &newIP, true)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
+}
+
+func containsClusterOrMachineTags(inTags []string) bool {
+	t := tags.New(inTags)
+	if t.HasPrefix(metal.TagIPClusterID) || t.HasPrefix(metal.TagIPMachineID) {
+		return true
+	}
+	return false
 }
 
 func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
