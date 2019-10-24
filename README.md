@@ -34,6 +34,8 @@ make local-forward
 
 Test with HMAC
 
+Hint: metalctl always uses the admin-HMAC.
+
 ```
 METALCTL_URL=http://metal-api:8080 METALCTL_HMAC=must-be-changed metalctl machine ls
 ```

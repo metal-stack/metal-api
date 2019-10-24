@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,7 +28,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
 	goipam "github.com/metal-pod/go-ipam"
@@ -128,6 +129,8 @@ func init() {
 
 	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
+
+	rootCmd.Flags().StringP("provider-tenant", "", "fits", "the tenant of the maas-provider who operates the whole thing")
 
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
@@ -291,26 +294,42 @@ func initIpam() {
 }
 
 func initAuth(lg *zap.SugaredLogger) security.UserGetter {
+	var auths []security.CredsOpt
+
 	dx, err := security.NewDex(viper.GetString("dex-addr"))
 	if err != nil {
 		logger.Warnw("dex not reachable", "error", err)
 	}
-	auths := []security.CredsOpt{security.WithDex(dx)}
-	for r, u := range service.MetalUsers {
-		lfkey := fmt.Sprintf("hmac-%s-lifetime", r)
-		mackey := viper.GetString(fmt.Sprintf("hmac-%s-key", r))
+	if dx != nil {
+		// use custom user extractor and group processor
+		dx.With(security.UserExtractor(sec.ExtractUserProcessGroups))
+		auths = append(auths, security.WithDex(dx))
+		logger.Info("dex successfully configured")
+	} else {
+		logger.Warnw("dex is not configured")
+	}
+
+	providerTenant := viper.GetString("provider-tenant")
+	defaultUsers := service.NewUserDirectory(providerTenant)
+	for _, u := range defaultUsers.UserNames() {
+		lfkey := fmt.Sprintf("hmac-%s-lifetime", u)
+		mackey := viper.GetString(fmt.Sprintf("hmac-%s-key", u))
 		lf, err := time.ParseDuration(viper.GetString(lfkey))
 		if err != nil {
-			lg.Warnw("illgal value for hmac lifetime, use 30secs as default", "error", err, "val", lfkey)
+			lg.Warnw("illegal value for hmac lifetime, use 30secs as default", "error", err, "val", lfkey)
 			lf = 30 * time.Second
 		}
-		lg.Infow("add hmac user", "name", r, "lifetime", lf, "mac", mackey)
+
+		user := defaultUsers.Get(u)
+		lg.Infow("add hmac user", "name", user.Name, "lifetime", lf, "mac", mackey)
+
 		auths = append(auths, security.WithHMAC(security.NewHMACAuth(
-			u.Name,
+			user.Name,
 			[]byte(mackey),
 			security.WithLifetime(lf),
-			security.WithUser(service.MetalUsers[r]))))
+			security.WithUser(user))))
 	}
+
 	return security.NewCreds(auths...)
 }
 
@@ -341,6 +360,9 @@ func initRestServices(withauth bool) *restfulspec.Config {
 
 	if withauth {
 		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
+		providerTenant := viper.GetString("provider-tenant")
+		ensurer := service.NewTenantEnsurer([]string{providerTenant})
+		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 
 	config := restfulspec.Config{
