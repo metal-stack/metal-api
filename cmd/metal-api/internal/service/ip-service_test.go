@@ -206,7 +206,6 @@ func TestUpdateIP(t *testing.T) {
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := metal.TagIPMachineID + "=" + "1"
-	machineIDTag2 := metal.TagIPMachineID + "=" + "2"
 	clusterIDTag1 := metal.TagIPClusterID + "=" + "1"
 	tests := []struct {
 		name                 string
@@ -259,7 +258,7 @@ func TestUpdateIP(t *testing.T) {
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
 		{
-			name: "use static ip for machine",
+			name: "internal tag machine is not allowed",
 			updateRequest: v1.IPUpdateRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
@@ -267,28 +266,18 @@ func TestUpdateIP(t *testing.T) {
 				Type: "static",
 				Tags: []string{machineIDTag1},
 			},
-			wantedStatus: http.StatusOK,
-			wantedIPBase: &v1.IPBase{
-				ProjectID: testdata.IP3.ProjectID,
-				Type:      "static",
-				Tags:      []string{machineIDTag1},
-			},
+			wantedStatus: http.StatusUnprocessableEntity,
 		},
 		{
-			name: "use static ip for multiple machines",
+			name: "internal tag cluster is not allowed",
 			updateRequest: v1.IPUpdateRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
 				},
 				Type: "static",
-				Tags: []string{machineIDTag1, machineIDTag2},
+				Tags: []string{clusterIDTag1},
 			},
-			wantedStatus: http.StatusOK,
-			wantedIPBase: &v1.IPBase{
-				ProjectID: testdata.IP3.ProjectID,
-				Type:      "static",
-				Tags:      []string{machineIDTag1, machineIDTag2},
-			},
+			wantedStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name: "using a machine ip as cluster ip is not allowed",
