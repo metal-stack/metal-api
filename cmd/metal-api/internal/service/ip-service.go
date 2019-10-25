@@ -3,8 +3,6 @@ package service
 import (
 	"fmt"
 	"net/http"
-	"sort"
-	"strings"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -246,28 +244,20 @@ func validateIPUpdate(old *metal.IP, new *metal.IP, allowInternalTags bool) erro
 	return fmt.Errorf("check ip tags - cannot transition btw. scopes; old: %v, new: %v", os, ns)
 }
 
-func processTags(tags []string) ([]string, error) {
-	machineScope := false
-	clusterScope := false
-	m := map[string]interface{}{}
-	res := []string{}
-	for _, t := range tags {
-		if strings.HasPrefix(t, metal.TagIPMachineID) {
-			machineScope = true
-		}
-		if strings.HasPrefix(t, metal.TagIPClusterID) {
-			clusterScope = true
-		}
-		m[t] = nil
-	}
+func processTags(ts []string) ([]string, error) {
+	t := tags.New(ts)
+	machineScope := t.HasPrefix(metal.TagIPMachineID)
+	clusterScope := t.HasPrefix(metal.TagIPClusterID)
 	if clusterScope && machineScope {
 		return nil, fmt.Errorf("tags must not contain multiple scopes")
 	}
-	for t := range m {
-		res = append(res, t)
+	if machineScope && len(t.Values(metal.TagIPMachineID)) > 1 {
+		t.Remove(metal.TagIPMachineID)
 	}
-	sort.Strings(res)
-	return res, nil
+	if clusterScope && len(t.Values(metal.TagIPClusterID)) > 1 {
+		t.Remove(metal.TagIPClusterID)
+	}
+	return t.Unique(), nil
 }
 
 func (ir ipResource) allocateIP(request *restful.Request, response *restful.Response) {
@@ -308,15 +298,16 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	tags := requestPayload.Tags
 	if requestPayload.MachineID != nil {
-		requestPayload.Tags = append(requestPayload.Tags, metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID))
+		tags = append(tags, metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID))
 	}
 
 	if requestPayload.ClusterID != nil {
-		requestPayload.Tags = append(requestPayload.Tags, metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID))
+		tags = append(tags, metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID))
 	}
 
-	tags, err := processTags(requestPayload.Tags)
+	tags, err = processTags(tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -428,9 +419,9 @@ func (ir ipResource) useIPInCluster(request *restful.Request, response *restful.
 		return
 	}
 
-	tags := append(oldIP.Tags, metal.IpTag(metal.TagIPClusterID, requestPayload.ClusterID))
-	tags = append(tags, requestPayload.Tags...)
 	newIP := *oldIP
+	tags := append(newIP.Tags, metal.IpTag(metal.TagIPClusterID, requestPayload.ClusterID))
+	tags = append(tags, requestPayload.Tags...)
 	newIP.Tags = tags
 
 	err = ir.validateAndUpateIP(oldIP, &newIP, true)
