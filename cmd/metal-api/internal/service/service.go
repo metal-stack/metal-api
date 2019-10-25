@@ -174,12 +174,17 @@ func NewTenantEnsurer(tenants []string) TenantEnsurer {
 
 // EnsureAllowedTenantFilter checks if the tenant of the user is allowed.
 func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
-	tenantId := tenant(req)
+	p := req.Request.URL.Path
 
-	if !e.allowed(tenantId) {
-		err := fmt.Errorf("tenant %s not allowed", tenantId)
-		resp.WriteHeaderAndEntity(http.StatusForbidden, httperrors.NewHTTPError(http.StatusForbidden, err))
-		return
+	// securing health checks would break monitoring tools
+	if !strings.HasSuffix(p, "health") {
+		tenantId := tenant(req)
+
+		if !e.allowed(tenantId) {
+			err := fmt.Errorf("tenant %s not allowed", tenantId)
+			resp.WriteHeaderAndEntity(http.StatusForbidden, httperrors.NewHTTPError(http.StatusForbidden, err))
+			return
+		}
 	}
 	chain.ProcessFilter(req, resp)
 }
