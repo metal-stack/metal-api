@@ -30,7 +30,7 @@ type IPUpdateRequest struct {
 	Tags []string     `json:"tags" description:"free tags that you associate with this ip."`
 }
 
-type IPTakeRequest struct {
+type IPTagRequest struct {
 	IPIdentifiable
 	// the cluster id to associate the ip address with.
 	ClusterID *string `json:"clusterid,omitempty"`
@@ -40,7 +40,7 @@ type IPTakeRequest struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
-type IPReturnRequest struct {
+type IPUntagRequest struct {
 	IPIdentifiable
 	// the cluster id to associate the ip address with.
 	ClusterID *string `json:"clusterid,omitempty"`

@@ -348,13 +348,13 @@ func TestTakeIP(t *testing.T) {
 	customTag1 := "tag1=1"
 	tests := []struct {
 		name         string
-		request      v1.IPTakeRequest
+		request      v1.IPTagRequest
 		wantedStatus int
 		wantedIPBase *v1.IPBase
 	}{
 		{
 			name: "use available project ip in cluster",
-			request: v1.IPTakeRequest{
+			request: v1.IPTagRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP1.IPAddress,
 				},
@@ -370,7 +370,7 @@ func TestTakeIP(t *testing.T) {
 		},
 		{
 			name: "reuse a cluster ip",
-			request: v1.IPTakeRequest{
+			request: v1.IPTagRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP2.IPAddress,
 				},
@@ -385,7 +385,7 @@ func TestTakeIP(t *testing.T) {
 		},
 		{
 			name: "using a machine ip must not be useable for a cluster",
-			request: v1.IPTakeRequest{
+			request: v1.IPTagRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
 				},
@@ -398,7 +398,7 @@ func TestTakeIP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			js, _ := json.Marshal(tt.request)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/take", body)
+			req := httptest.NewRequest("POST", "/v1/ip/tag", body)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -425,7 +425,7 @@ func TestReleaseIPFromCluster(t *testing.T) {
 	clusterID := "1"
 	customTag1 := "tag1=1"
 
-	use := v1.IPTakeRequest{
+	use := v1.IPTagRequest{
 		IPIdentifiable: v1.IPIdentifiable{
 			IPAddress: testdata.IP2.IPAddress,
 		},
@@ -434,7 +434,7 @@ func TestReleaseIPFromCluster(t *testing.T) {
 	}
 	js, _ := json.Marshal(use)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/ip/take", body)
+	req := httptest.NewRequest("POST", "/v1/ip/tag", body)
 	container = injectEditor(container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -447,13 +447,13 @@ func TestReleaseIPFromCluster(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		request      v1.IPReturnRequest
+		request      v1.IPUntagRequest
 		wantedStatus int
 		wantedIPBase *v1.IPBase
 	}{
 		{
 			name: "release ip from cluster should release custom tags for this cluster but leave empty cluster id tag",
-			request: v1.IPReturnRequest{
+			request: v1.IPUntagRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP2.IPAddress,
 				},
@@ -472,7 +472,7 @@ func TestReleaseIPFromCluster(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			js, _ := json.Marshal(tt.request)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/return", body)
+			req := httptest.NewRequest("POST", "/v1/ip/untag", body)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()

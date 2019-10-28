@@ -92,22 +92,22 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/take").
-		To(editor(ir.takeIP)).
-		Operation("takeIP").
-		Doc("updates an ip and marks it as used.").
+	ws.Route(ws.POST("/tag").
+		To(editor(ir.tagIP)).
+		Operation("tagIP").
+		Doc("updates an ip and marks it as used by a cluster or machine.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.IPTakeRequest{}).
+		Reads(v1.IPTagRequest{}).
 		Writes(v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/return").
-		To(editor(ir.returnIP)).
-		Operation("returnIP").
-		Doc("updates an ip and marks it as unused.").
+	ws.Route(ws.POST("/untag").
+		To(editor(ir.untagIP)).
+		Operation("untagIP").
+		Doc("updates an ip and marks it as unused by a cluster or machine.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.IPReturnRequest{}).
+		Reads(v1.IPUntagRequest{}).
 		Writes(v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -417,8 +417,8 @@ func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
 	return nil
 }
 
-func (ir ipResource) takeIP(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.IPTakeRequest
+func (ir ipResource) tagIP(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.IPTagRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -450,8 +450,8 @@ func (ir ipResource) takeIP(request *restful.Request, response *restful.Response
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func (ir ipResource) returnIP(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.IPReturnRequest
+func (ir ipResource) untagIP(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.IPUntagRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
