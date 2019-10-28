@@ -32,8 +32,6 @@ type IPUpdateRequest struct {
 
 type IPUseInClusterRequest struct {
 	IPIdentifiable
-	// the project id this ip belongs to.
-	ProjectID string `json:"projectid"`
 	// the cluster id to associate the ip address with.
 	ClusterID string `json:"clusterid"`
 	// tags to add to the ip
@@ -42,8 +40,6 @@ type IPUseInClusterRequest struct {
 
 type IPReleaseFromClusterRequest struct {
 	IPIdentifiable
-	// the project id this ip belongs to.
-	ProjectID string `json:"projectid"`
 	// the cluster id to associate the ip address with.
 	ClusterID string `json:"clusterid"`
 	// tags to add to the ip

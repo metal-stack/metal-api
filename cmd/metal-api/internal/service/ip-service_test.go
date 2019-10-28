@@ -258,7 +258,7 @@ func TestUpdateIP(t *testing.T) {
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
 		{
-			name: "internal tag machine is not allowed",
+			name: "internal tag machine is allowed",
 			updateRequest: v1.IPUpdateRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
@@ -266,10 +266,10 @@ func TestUpdateIP(t *testing.T) {
 				Type: "static",
 				Tags: []string{machineIDTag1},
 			},
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusOK,
 		},
 		{
-			name: "internal tag cluster is not allowed",
+			name: "internal tag cluster is allowed",
 			updateRequest: v1.IPUpdateRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
@@ -277,7 +277,7 @@ func TestUpdateIP(t *testing.T) {
 				Type: "static",
 				Tags: []string{clusterIDTag1},
 			},
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusOK,
 		},
 		{
 			name: "using a machine ip as cluster ip is not allowed",
@@ -357,7 +357,6 @@ func TestUseIPInCluster(t *testing.T) {
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP1.IPAddress,
 				},
-				ProjectID: testdata.IP1.ProjectID,
 				ClusterID: "1",
 				Tags:      []string{customTag1},
 			},
@@ -374,7 +373,6 @@ func TestUseIPInCluster(t *testing.T) {
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP2.IPAddress,
 				},
-				ProjectID: testdata.IP2.ProjectID,
 				ClusterID: "1",
 			},
 			wantedStatus: http.StatusOK,
@@ -390,7 +388,6 @@ func TestUseIPInCluster(t *testing.T) {
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
 				},
-				ProjectID: testdata.IP3.ProjectID,
 				ClusterID: "1",
 			},
 			wantedStatus: http.StatusUnprocessableEntity,
@@ -430,7 +427,6 @@ func TestReleaseIPFromCluster(t *testing.T) {
 		IPIdentifiable: v1.IPIdentifiable{
 			IPAddress: testdata.IP2.IPAddress,
 		},
-		ProjectID: testdata.IP2.ProjectID,
 		ClusterID: "1",
 		Tags:      []string{customTag1},
 	}
@@ -459,7 +455,6 @@ func TestReleaseIPFromCluster(t *testing.T) {
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP2.IPAddress,
 				},
-				ProjectID: testdata.IP2.ProjectID,
 				ClusterID: "1",
 				Tags:      []string{customTag1},
 			},

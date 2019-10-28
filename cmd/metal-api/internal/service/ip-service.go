@@ -217,16 +217,11 @@ func validateIPDelete(ip *metal.IP) error {
 }
 
 // Checks whether an ip update is allowed:
-// (0) internal tags may only be set for internal calls
 // (1) allow update of ephemeral to static
 // (2) allow update within a scope
 // (3) allow update from and to scope project
 // (4) deny all other updates
-func validateIPUpdate(old *metal.IP, new *metal.IP, allowInternalTags bool) error {
-	if !allowInternalTags && containsClusterOrMachineTags(new.Tags) {
-		return fmt.Errorf("tags specified in request must not contain internal tags like %v", []string{metal.TagIPClusterID, metal.TagIPMachineID})
-	}
-
+func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	// constraint 1
 	if old.Type == metal.Static && new.Type == metal.Ephemeral {
 		return fmt.Errorf("cannot change type of ip address from static to ephemeral")
@@ -376,7 +371,7 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	}
 	newIP.Type = ipType
 
-	err = ir.validateAndUpateIP(oldIP, &newIP, false)
+	err = ir.validateAndUpateIP(oldIP, &newIP)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -384,14 +379,10 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func (ir ipResource) validateIPUseOrRelease(ip, projectID string, tags []string) (*metal.IP, error) {
+func (ir ipResource) validateIPUseOrRelease(ip string, tags []string) (*metal.IP, error) {
 	oldIP, err := ir.ds.FindIPByID(ip)
 	if err != nil {
 		return nil, err
-	}
-	if projectID != oldIP.ProjectID {
-		return nil, fmt.Errorf("ip not found or does not belong to project")
-
 	}
 	if containsClusterOrMachineTags(tags) {
 		return nil, fmt.Errorf("tags specified in request must not contain internal tags like %v", []string{metal.TagIPClusterID, metal.TagIPMachineID})
@@ -399,16 +390,16 @@ func (ir ipResource) validateIPUseOrRelease(ip, projectID string, tags []string)
 	return oldIP, nil
 }
 
-func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP, allowInternalTags bool) error {
+func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
+	err := validateIPUpdate(oldIP, newIP)
+	if err != nil {
+		return err
+	}
 	tags, err := processTags(newIP.Tags)
 	if err != nil {
 		return err
 	}
 	newIP.Tags = tags
-	err = validateIPUpdate(oldIP, newIP, allowInternalTags)
-	if err != nil {
-		return err
-	}
 
 	err = ir.ds.UpdateIP(oldIP, newIP)
 	if err != nil {
@@ -424,7 +415,7 @@ func (ir ipResource) useIPInCluster(request *restful.Request, response *restful.
 		return
 	}
 
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ProjectID, requestPayload.Tags)
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.Tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -434,7 +425,7 @@ func (ir ipResource) useIPInCluster(request *restful.Request, response *restful.
 	tags = append(tags, requestPayload.Tags...)
 	newIP.Tags = tags
 
-	err = ir.validateAndUpateIP(oldIP, &newIP, true)
+	err = ir.validateAndUpateIP(oldIP, &newIP)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -449,7 +440,7 @@ func (ir ipResource) releaseIPFromCluster(request *restful.Request, response *re
 		return
 	}
 
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ProjectID, requestPayload.Tags)
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.Tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -470,7 +461,7 @@ func (ir ipResource) releaseIPFromCluster(request *restful.Request, response *re
 
 	newIP := *oldIP
 	newIP.Tags = newTags
-	err = ir.validateAndUpateIP(oldIP, &newIP, true)
+	err = ir.validateAndUpateIP(oldIP, &newIP)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
