@@ -11,7 +11,7 @@ require (
 	github.com/go-openapi/spec v0.19.3
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
+	github.com/google/go-cmp v0.3.1
 	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.2.0 // indirect
@@ -20,6 +20,8 @@ require (
 	github.com/metal-pod/go-ipam v1.3.0
 	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b
 	github.com/metal-pod/v v0.0.2
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1

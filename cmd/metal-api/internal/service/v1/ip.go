@@ -41,7 +41,13 @@ type IPUseInClusterRequest struct {
 }
 
 type IPReleaseFromClusterRequest struct {
-	IPUseInClusterRequest
+	IPIdentifiable
+	// the project id this ip belongs to.
+	ProjectID string `json:"projectid"`
+	// the cluster id to associate the ip address with.
+	ClusterID string `json:"clusterid"`
+	// tags to add to the ip
+	Tags []string `json:"tags,omitempty"`
 }
 
 type IPFindRequest struct {

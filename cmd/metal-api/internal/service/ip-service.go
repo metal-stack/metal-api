@@ -373,17 +373,16 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func (ir ipResource) validateIPUseOrRelease(requestPayload v1.IPUseInClusterRequest) (*metal.IP, error) {
-	oldIP, err := ir.ds.FindIPByID(requestPayload.IPAddress)
+func (ir ipResource) validateIPUseOrRelease(ip, projectID string, tags []string) (*metal.IP, error) {
+	oldIP, err := ir.ds.FindIPByID(ip)
 	if err != nil {
 		return nil, err
 	}
-
-	if requestPayload.ProjectID != oldIP.ProjectID {
+	if projectID != oldIP.ProjectID {
 		return nil, fmt.Errorf("ip not found or does not belong to project")
 
 	}
-	if containsClusterOrMachineTags(requestPayload.Tags) {
+	if containsClusterOrMachineTags(tags) {
 		return nil, fmt.Errorf("tags specified in request must not contain internal tags like %v", []string{metal.TagIPClusterID, metal.TagIPMachineID})
 	}
 	return oldIP, nil
@@ -414,7 +413,7 @@ func (ir ipResource) useIPInCluster(request *restful.Request, response *restful.
 		return
 	}
 
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload)
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ProjectID, requestPayload.Tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -439,7 +438,7 @@ func (ir ipResource) releaseIPFromCluster(request *restful.Request, response *re
 		return
 	}
 
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPUseInClusterRequest)
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ProjectID, requestPayload.Tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

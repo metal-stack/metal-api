@@ -419,6 +419,81 @@ func TestUseIPInCluster(t *testing.T) {
 	}
 }
 
+func TestReleaseIPFromCluster(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+	ipservice := NewIP(ds, ipam.New(goipam.New()))
+	container := restful.NewContainer().Add(ipservice)
+	customTag1 := "tag1=1"
+
+	use := v1.IPUseInClusterRequest{
+		IPIdentifiable: v1.IPIdentifiable{
+			IPAddress: testdata.IP2.IPAddress,
+		},
+		ProjectID: testdata.IP2.ProjectID,
+		ClusterID: "1",
+		Tags:      []string{customTag1},
+	}
+	js, _ := json.Marshal(use)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/ip/use", body)
+	container = injectEditor(container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.IPResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	require.Nil(t, err)
+
+	tests := []struct {
+		name         string
+		request      v1.IPReleaseFromClusterRequest
+		wantedStatus int
+		wantedIPBase *v1.IPBase
+	}{
+		{
+			name: "release ip from cluster should release custom tags for this cluster but leave empty cluster id tag",
+			request: v1.IPReleaseFromClusterRequest{
+				IPIdentifiable: v1.IPIdentifiable{
+					IPAddress: testdata.IP2.IPAddress,
+				},
+				ProjectID: testdata.IP2.ProjectID,
+				ClusterID: "1",
+				Tags:      []string{customTag1},
+			},
+			wantedStatus: http.StatusOK,
+			wantedIPBase: &v1.IPBase{
+				ProjectID: testdata.IP2.ProjectID,
+				Type:      testdata.IP2.Type,
+				Tags:      []string{metal.TagIPClusterID},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			js, _ := json.Marshal(tt.request)
+			body := bytes.NewBuffer(js)
+			req := httptest.NewRequest("POST", "/v1/ip/release", body)
+			container = injectEditor(container, req)
+			req.Header.Add("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			container.ServeHTTP(w, req)
+
+			resp := w.Result()
+			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
+			var result v1.IPResponse
+			err := json.NewDecoder(resp.Body).Decode(&result)
+
+			require.Nil(t, err)
+			if tt.wantedIPBase != nil {
+				require.Equal(t, *tt.wantedIPBase, result.IPBase)
+			}
+		})
+	}
+}
+
 func TestProcessTags(t *testing.T) {
 	tests := []struct {
 		name    string
