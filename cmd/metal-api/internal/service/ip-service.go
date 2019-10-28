@@ -320,6 +320,11 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	}
 	utils.Logger(request).Sugar().Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
 
+	ipType := metal.Ephemeral
+	if requestPayload.Type == metal.Static {
+		ipType = metal.Static
+	}
+
 	ip := &metal.IP{
 		IPAddress:        ipAddress,
 		ParentPrefixCidr: ipParentCidr,
@@ -327,7 +332,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		Description:      description,
 		NetworkID:        nw.ID,
 		ProjectID:        p.ID,
-		Type:             requestPayload.Type,
+		Type:             ipType,
 		Tags:             tags,
 	}
 
