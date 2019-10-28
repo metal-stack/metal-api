@@ -3,15 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 	"net/http"
+	httppproff "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime/pprof"
 	runtimedebug "runtime/debug"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
+
+	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
 
@@ -178,6 +180,9 @@ func initMetrics() {
 	metricsServer := http.NewServeMux()
 	metricsServer.Handle("/metrics", promhttp.Handler())
 	metricsServer.HandleFunc("/_stack", getStackTraceHandler)
+	// see: https://dev.to/davidsbond/golang-debugging-memory-leaks-using-pprof-5di8
+	metricsServer.Handle("/pprof/heap", httppproff.Handler("heap"))
+
 	go func() {
 		err := http.ListenAndServe(":2112", metricsServer)
 		if err != nil {
