@@ -102,7 +102,7 @@ func (ip *IP) ASN() (int64, error) {
 // GetScope determines the scope of an ip address
 func (ip *IP) GetScope() IPScope {
 	if ip.ProjectID == "" {
-		return ""
+		return ScopeEmpty
 	}
 	for _, t := range ip.Tags {
 		if strings.HasPrefix(t, TagIPMachineID) {
