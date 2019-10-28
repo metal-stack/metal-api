@@ -338,26 +338,27 @@ func TestUpdateIP(t *testing.T) {
 		})
 	}
 }
-func TestUseIPInCluster(t *testing.T) {
+func TestTakeIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
+	clusterID := "1"
 	clusterIDTag1 := metal.TagIPClusterID + "=" + "1"
 	customTag1 := "tag1=1"
 	tests := []struct {
 		name         string
-		request      v1.IPUseInClusterRequest
+		request      v1.IPTakeRequest
 		wantedStatus int
 		wantedIPBase *v1.IPBase
 	}{
 		{
 			name: "use available project ip in cluster",
-			request: v1.IPUseInClusterRequest{
+			request: v1.IPTakeRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP1.IPAddress,
 				},
-				ClusterID: "1",
+				ClusterID: &clusterID,
 				Tags:      []string{customTag1},
 			},
 			wantedStatus: http.StatusOK,
@@ -369,11 +370,11 @@ func TestUseIPInCluster(t *testing.T) {
 		},
 		{
 			name: "reuse a cluster ip",
-			request: v1.IPUseInClusterRequest{
+			request: v1.IPTakeRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP2.IPAddress,
 				},
-				ClusterID: "1",
+				ClusterID: &clusterID,
 			},
 			wantedStatus: http.StatusOK,
 			wantedIPBase: &v1.IPBase{
@@ -384,11 +385,11 @@ func TestUseIPInCluster(t *testing.T) {
 		},
 		{
 			name: "using a machine ip must not be useable for a cluster",
-			request: v1.IPUseInClusterRequest{
+			request: v1.IPTakeRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
 				},
-				ClusterID: "1",
+				ClusterID: &clusterID,
 			},
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
@@ -397,7 +398,7 @@ func TestUseIPInCluster(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			js, _ := json.Marshal(tt.request)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/use", body)
+			req := httptest.NewRequest("POST", "/v1/ip/take", body)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -421,18 +422,19 @@ func TestReleaseIPFromCluster(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
+	clusterID := "1"
 	customTag1 := "tag1=1"
 
-	use := v1.IPUseInClusterRequest{
+	use := v1.IPTakeRequest{
 		IPIdentifiable: v1.IPIdentifiable{
 			IPAddress: testdata.IP2.IPAddress,
 		},
-		ClusterID: "1",
+		ClusterID: &clusterID,
 		Tags:      []string{customTag1},
 	}
 	js, _ := json.Marshal(use)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/ip/use", body)
+	req := httptest.NewRequest("POST", "/v1/ip/take", body)
 	container = injectEditor(container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -445,17 +447,17 @@ func TestReleaseIPFromCluster(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		request      v1.IPReleaseFromClusterRequest
+		request      v1.IPReturnRequest
 		wantedStatus int
 		wantedIPBase *v1.IPBase
 	}{
 		{
 			name: "release ip from cluster should release custom tags for this cluster but leave empty cluster id tag",
-			request: v1.IPReleaseFromClusterRequest{
+			request: v1.IPReturnRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP2.IPAddress,
 				},
-				ClusterID: "1",
+				ClusterID: &clusterID,
 				Tags:      []string{customTag1},
 			},
 			wantedStatus: http.StatusOK,
@@ -470,7 +472,7 @@ func TestReleaseIPFromCluster(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			js, _ := json.Marshal(tt.request)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/release", body)
+			req := httptest.NewRequest("POST", "/v1/ip/return", body)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()

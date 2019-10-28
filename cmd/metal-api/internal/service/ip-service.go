@@ -92,22 +92,22 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/use").
-		To(editor(ir.useIPInCluster)).
-		Operation("useIPInCluster").
-		Doc("updates an ip and marks it as used in the given cluster.").
+	ws.Route(ws.POST("/take").
+		To(editor(ir.takeIP)).
+		Operation("takeIP").
+		Doc("updates an ip and marks it as used.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.IPUseInClusterRequest{}).
+		Reads(v1.IPTakeRequest{}).
 		Writes(v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/release").
-		To(editor(ir.releaseIPFromCluster)).
-		Operation("releaseIPFromCluster").
-		Doc("updates an ip and marks it as unused in the given cluster.").
+	ws.Route(ws.POST("/return").
+		To(editor(ir.returnIP)).
+		Operation("returnIP").
+		Doc("updates an ip and marks it as unused.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.IPReleaseFromClusterRequest{}).
+		Reads(v1.IPReturnRequest{}).
 		Writes(v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -379,7 +379,16 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func (ir ipResource) validateIPUseOrRelease(ip string, tags []string) (*metal.IP, error) {
+func (ir ipResource) validateIPUseOrRelease(ip string, clusterID, machineID *string, tags []string) (*metal.IP, error) {
+	if clusterID == nil && machineID == nil {
+		return nil, fmt.Errorf("need to specify either clusterId or machineId for the ip")
+	}
+	if machineID != nil {
+		_, err := ir.ds.FindMachineByID(*machineID)
+		if err != nil {
+			return nil, fmt.Errorf("could not find machine with id %v", *machineID)
+		}
+	}
 	oldIP, err := ir.ds.FindIPByID(ip)
 	if err != nil {
 		return nil, err
@@ -408,20 +417,28 @@ func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
 	return nil
 }
 
-func (ir ipResource) useIPInCluster(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.IPUseInClusterRequest
+func (ir ipResource) takeIP(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.IPTakeRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.Tags)
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ClusterID, requestPayload.MachineID, requestPayload.Tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	newIP := *oldIP
-	tags := append(newIP.Tags, metal.IpTag(metal.TagIPClusterID, requestPayload.ClusterID))
+	tags := oldIP.Tags
+	var t string
+	if requestPayload.ClusterID != nil {
+		t = metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID)
+	}
+	if requestPayload.MachineID != nil {
+		t = metal.IpTag(metal.TagIPClusterID, *requestPayload.MachineID)
+	}
+	tags = append(tags, t)
 	tags = append(tags, requestPayload.Tags...)
 	newIP.Tags = tags
 
@@ -433,19 +450,25 @@ func (ir ipResource) useIPInCluster(request *restful.Request, response *restful.
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func (ir ipResource) releaseIPFromCluster(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.IPReleaseFromClusterRequest
+func (ir ipResource) returnIP(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.IPReturnRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.Tags)
+	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ClusterID, requestPayload.MachineID, requestPayload.Tags)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	ct := metal.IpTag(metal.TagIPClusterID, requestPayload.ClusterID)
+	var ct string
+	if requestPayload.ClusterID != nil {
+		ct = metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID)
+	}
+	if requestPayload.MachineID != nil {
+		ct = metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID)
+	}
 	tagsToRemove := map[string]interface{}{ct: nil}
 	for _, t := range requestPayload.Tags {
 		tagsToRemove[t] = nil

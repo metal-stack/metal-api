@@ -30,18 +30,22 @@ type IPUpdateRequest struct {
 	Tags []string     `json:"tags" description:"free tags that you associate with this ip."`
 }
 
-type IPUseInClusterRequest struct {
+type IPTakeRequest struct {
 	IPIdentifiable
 	// the cluster id to associate the ip address with.
-	ClusterID string `json:"clusterid"`
+	ClusterID *string `json:"clusterid,omitempty"`
+	// the machine id to associate the ip address with.
+	MachineID *string `json:"machineid,omitempty"`
 	// tags to add to the ip
 	Tags []string `json:"tags,omitempty"`
 }
 
-type IPReleaseFromClusterRequest struct {
+type IPReturnRequest struct {
 	IPIdentifiable
 	// the cluster id to associate the ip address with.
-	ClusterID string `json:"clusterid"`
+	ClusterID *string `json:"clusterid,omitempty"`
+	// the machine id to associate the ip address with.
+	MachineID *string `json:"machineid,omitempty"`
 	// tags to add to the ip
 	Tags []string `json:"tags,omitempty"`
 }

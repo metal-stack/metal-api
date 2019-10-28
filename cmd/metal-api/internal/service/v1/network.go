@@ -36,7 +36,7 @@ type NetworkCreateRequest struct {
 	NetworkImmutable
 }
 
-type NetworkAcquireRequest struct {
+type NetworkAllocateRequest struct {
 	Describable
 	NetworkBase
 }

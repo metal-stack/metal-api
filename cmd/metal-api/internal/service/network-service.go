@@ -99,20 +99,20 @@ func (r networkResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/acquire").
-		To(editor(r.acquireChildNetwork)).
-		Operation("acquireChildNetwork").
-		Doc("acquires a child network from a partition's private super network").
+	ws.Route(ws.POST("/allocate").
+		To(editor(r.allocateNetwork)).
+		Operation("allocateNetwork").
+		Doc("allocates a child network from a partition's private super network").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.NetworkAcquireRequest{}).
+		Reads(v1.NetworkAllocateRequest{}).
 		Returns(http.StatusCreated, "Created", v1.NetworkResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/release/{id}").
-		To(editor(r.releaseChildNetwork)).
-		Operation("releaseChildNetwork").
-		Doc("releases a child network").
+	ws.Route(ws.POST("/free/{id}").
+		To(editor(r.freeNetwork)).
+		Operation("freeNetwork").
+		Doc("free a network").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
 		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
@@ -358,8 +358,8 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
-func (r networkResource) acquireChildNetwork(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.NetworkAcquireRequest
+func (r networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.NetworkAllocateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -470,7 +470,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 	return nw, nil
 }
 
-func (r networkResource) releaseChildNetwork(request *restful.Request, response *restful.Response) {
+func (r networkResource) freeNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	nw, err := r.ds.FindNetworkByID(id)
