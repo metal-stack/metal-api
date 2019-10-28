@@ -241,7 +241,13 @@ func validateIPUpdate(old *metal.IP, new *metal.IP, allowInternalTags bool) erro
 	if os == metal.ScopeProject || ns == metal.ScopeProject {
 		return nil
 	}
-	return fmt.Errorf("check ip tags - cannot transition btw. scopes; old: %v, new: %v", os, ns)
+	if os == metal.ScopeMachine && ns == metal.ScopeCluster {
+		return fmt.Errorf("can not use machine ip for a cluster")
+	}
+	if os == metal.ScopeCluster && ns == metal.ScopeMachine {
+		return fmt.Errorf("can not use cluster ip for a machine")
+	}
+	return fmt.Errorf("can not use ip of scope %v with scope %v", os, ns)
 }
 
 func processTags(ts []string) ([]string, error) {
