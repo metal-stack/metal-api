@@ -360,7 +360,7 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	}
 
 	ipType := metal.Ephemeral
-	if requestPayload.Type == "static" {
+	if requestPayload.Type == metal.Static {
 		ipType = metal.Static
 	}
 	newIP.Type = ipType
