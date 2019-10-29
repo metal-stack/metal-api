@@ -71,10 +71,10 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/release/{id}").
-		To(editor(ir.releaseIP)).
-		Operation("releaseIP").
-		Doc("releases an ip").
+	ws.Route(ws.POST("/free/{id}").
+		To(editor(ir.freeIP)).
+		Operation("freeIP").
+		Doc("frees an ip").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.IPResponse{}).
@@ -182,7 +182,7 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 	response.WriteHeaderAndEntity(http.StatusOK, result)
 }
 
-func (ir ipResource) releaseIP(request *restful.Request, response *restful.Response) {
+func (ir ipResource) freeIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	ip, err := ir.ds.FindIPByID(id)

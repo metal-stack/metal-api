@@ -105,24 +105,24 @@ func TestDeleteIP(t *testing.T) {
 		wantedStatus int
 	}{
 		{
-			name:         "release an ip",
+			name:         "free an ip",
 			ip:           testdata.IPAMIP.IPAddress,
 			wantedStatus: http.StatusOK,
 		},
 		{
-			name:         "release an machine-ip should fail",
+			name:         "free an machine-ip should fail",
 			ip:           testdata.IP3.IPAddress,
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
 		{
-			name:         "release an cluster-ip should fail",
+			name:         "free an cluster-ip should fail",
 			ip:           testdata.IP2.IPAddress,
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/v1/ip/release/"+testdata.IPAMIP.IPAddress, nil)
+			req := httptest.NewRequest("POST", "/v1/ip/free/"+testdata.IPAMIP.IPAddress, nil)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -452,7 +452,7 @@ func TestReleaseIPFromCluster(t *testing.T) {
 		wantedIPBase *v1.IPBase
 	}{
 		{
-			name: "release ip from cluster should release custom tags for this cluster but leave empty cluster id tag",
+			name: "free ip from cluster should free custom tags for this cluster but leave empty cluster id tag",
 			request: v1.IPUntagRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP2.IPAddress,
