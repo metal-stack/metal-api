@@ -33,9 +33,9 @@ type IPUpdateRequest struct {
 type IPTagRequest struct {
 	IPIdentifiable
 	// the cluster id to associate the ip address with.
-	ClusterID *string `json:"clusterid,omitempty"`
+	ClusterID *string `json:"clusterid"`
 	// the machine id to associate the ip address with.
-	MachineID *string `json:"machineid,omitempty"`
+	MachineID *string `json:"machineid"`
 	// tags to add to the ip
 	Tags []string `json:"tags,omitempty"`
 }
@@ -43,9 +43,9 @@ type IPTagRequest struct {
 type IPUntagRequest struct {
 	IPIdentifiable
 	// the cluster id to associate the ip address with.
-	ClusterID *string `json:"clusterid,omitempty"`
+	ClusterID *string `json:"clusterid"`
 	// the machine id to associate the ip address with.
-	MachineID *string `json:"machineid,omitempty"`
+	MachineID *string `json:"machineid"`
 	// tags to add to the ip
 	Tags []string `json:"tags,omitempty"`
 }
