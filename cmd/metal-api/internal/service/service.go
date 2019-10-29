@@ -3,10 +3,11 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -147,7 +148,7 @@ func oneOf(rf restful.RouteFunction, acc ...security.RessourceAccess) restful.Ro
 		if !usr.HasGroup(acc...) {
 			err := fmt.Errorf("you are not member in one of %+v", acc)
 			lg.Infow("missing group", "user", usr, "required-group", acc)
-			response.WriteHeaderAndEntity(http.StatusForbidden, httperrors.NewHTTPError(http.StatusForbidden, err))
+			sendError(log, response, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusForbidden, err))
 			return
 		}
 		rf(request, response)
@@ -159,13 +160,16 @@ func tenant(request *restful.Request) string {
 }
 
 type TenantEnsurer struct {
-	allowedTenants map[string]bool
+	allowedTenants       map[string]bool
+	excludedPathSuffixes []string
 }
 
 // NewTenantEnsurer creates a new ensurer with the given tenants.
-func NewTenantEnsurer(tenants []string) TenantEnsurer {
-	result := TenantEnsurer{}
-	result.allowedTenants = make(map[string]bool)
+func NewTenantEnsurer(tenants, excludedPathSuffixes []string) TenantEnsurer {
+	result := TenantEnsurer{
+		allowedTenants:       make(map[string]bool),
+		excludedPathSuffixes: excludedPathSuffixes,
+	}
 	for _, t := range tenants {
 		result.allowedTenants[strings.ToLower(t)] = true
 	}
@@ -177,14 +181,20 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	p := req.Request.URL.Path
 
 	// securing health checks would break monitoring tools
-	if !strings.HasSuffix(p, "health") {
-		tenantId := tenant(req)
-
-		if !e.allowed(tenantId) {
-			err := fmt.Errorf("tenant %s not allowed", tenantId)
-			resp.WriteHeaderAndEntity(http.StatusForbidden, httperrors.NewHTTPError(http.StatusForbidden, err))
+	// preventing liveliness would break status of machines
+	for _, suffix := range e.excludedPathSuffixes {
+		if strings.HasSuffix(p, suffix) {
+			chain.ProcessFilter(req, resp)
 			return
 		}
+	}
+
+	// enforce tenant check otherwise
+	tenantID := tenant(req)
+	if !e.allowed(tenantID) {
+		err := fmt.Errorf("tenant %s not allowed", tenantID)
+		sendError(utils.Logger(req), resp, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusForbidden, err))
+		return
 	}
 	chain.ProcessFilter(req, resp)
 }

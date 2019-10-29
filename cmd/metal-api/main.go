@@ -366,7 +366,8 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if withauth {
 		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
 		providerTenant := viper.GetString("provider-tenant")
-		ensurer := service.NewTenantEnsurer([]string{providerTenant})
+		excludedPathSuffixes := []string{"liveliness", "health"}
+		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 
