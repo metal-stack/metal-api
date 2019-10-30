@@ -8,7 +8,7 @@ import (
 type IPBase struct {
 	ProjectID string       `json:"projectid" description:"the project this ip address belongs to"`
 	NetworkID string       `json:"networkid" description:"the network this ip allocate request address belongs to"`
-	Type      metal.IPType `json:"iptype" default:"static" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
+	Type      metal.IPType `json:"type" default:"static" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
 	Tags      []string     `json:"tags" description:"free tags that you associate with this ip."`
 }
 
@@ -26,7 +26,7 @@ type IPAllocateRequest struct {
 type IPUpdateRequest struct {
 	IPIdentifiable
 	Describable
-	Type metal.IPType `json:"iptype" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
+	Type metal.IPType `json:"type" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
 	Tags []string     `json:"tags" description:"free tags that you associate with this ip."`
 }
 

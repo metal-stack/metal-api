@@ -92,26 +92,6 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/tag").
-		To(editor(ir.tagIP)).
-		Operation("tagIP").
-		Doc("updates an ip and marks it as used by a cluster or machine.").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.IPTagRequest{}).
-		Writes(v1.IPResponse{}).
-		Returns(http.StatusOK, "OK", v1.IPResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/untag").
-		To(editor(ir.untagIP)).
-		Operation("untagIP").
-		Doc("updates an ip and marks it as unused by a cluster or machine.").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.IPUntagRequest{}).
-		Writes(v1.IPResponse{}).
-		Returns(http.StatusOK, "OK", v1.IPResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	ws.Route(ws.POST("/allocate").
 		To(editor(ir.allocateIP)).
 		Operation("allocateIP").
@@ -210,7 +190,7 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 
 func validateIPDelete(ip *metal.IP) error {
 	s := ip.GetScope()
-	if s != metal.ScopeProject {
+	if s != metal.ScopeProject && ip.Type == metal.Static {
 		return fmt.Errorf("ip with scope %s can not be deleted", ip.GetScope())
 	}
 	return nil
@@ -364,12 +344,12 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	if requestPayload.Description != nil {
 		newIP.Description = *requestPayload.Description
 	}
-
-	ipType := metal.Ephemeral
-	if requestPayload.Type == metal.Static {
-		ipType = metal.Static
+	if requestPayload.Tags != nil {
+		newIP.Tags = requestPayload.Tags
 	}
-	newIP.Type = ipType
+	if requestPayload.Type == metal.Static || requestPayload.Type == metal.Ephemeral {
+		newIP.Type = requestPayload.Type
+	}
 
 	err = ir.validateAndUpateIP(oldIP, &newIP)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -377,26 +357,6 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
-}
-
-func (ir ipResource) validateIPUseOrRelease(ip string, clusterID, machineID *string, tags []string) (*metal.IP, error) {
-	if clusterID == nil && machineID == nil {
-		return nil, fmt.Errorf("need to specify either clusterId or machineId for the ip")
-	}
-	if machineID != nil {
-		_, err := ir.ds.FindMachineByID(*machineID)
-		if err != nil {
-			return nil, fmt.Errorf("could not find machine with id %v", *machineID)
-		}
-	}
-	oldIP, err := ir.ds.FindIPByID(ip)
-	if err != nil {
-		return nil, err
-	}
-	if containsClusterOrMachineTags(tags) {
-		return nil, fmt.Errorf("tags specified in request must not contain internal tags like %v", []string{metal.TagIPClusterID, metal.TagIPMachineID})
-	}
-	return oldIP, nil
 }
 
 func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
@@ -415,89 +375,6 @@ func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
 		return err
 	}
 	return nil
-}
-
-func (ir ipResource) tagIP(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.IPTagRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ClusterID, requestPayload.MachineID, requestPayload.Tags)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	newIP := *oldIP
-	tags := oldIP.Tags
-	var t string
-	if requestPayload.ClusterID != nil {
-		t = metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID)
-	}
-	if requestPayload.MachineID != nil {
-		t = metal.IpTag(metal.TagIPClusterID, *requestPayload.MachineID)
-	}
-	tags = append(tags, t)
-	tags = append(tags, requestPayload.Tags...)
-	newIP.Tags = tags
-
-	err = ir.validateAndUpateIP(oldIP, &newIP)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
-}
-
-func (ir ipResource) untagIP(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.IPUntagRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	oldIP, err := ir.validateIPUseOrRelease(requestPayload.IPAddress, requestPayload.ClusterID, requestPayload.MachineID, requestPayload.Tags)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	var ct string
-	if requestPayload.ClusterID != nil {
-		ct = metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID)
-	}
-	if requestPayload.MachineID != nil {
-		ct = metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID)
-	}
-	tagsToRemove := map[string]interface{}{ct: nil}
-	for _, t := range requestPayload.Tags {
-		tagsToRemove[t] = nil
-	}
-
-	newTags := []string{}
-	for _, t := range oldIP.Tags {
-		if _, ok := tagsToRemove[t]; ok {
-			continue
-		}
-		newTags = append(newTags, t)
-	}
-
-	newIP := *oldIP
-	newIP.Tags = newTags
-	err = ir.validateAndUpateIP(oldIP, &newIP)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
-}
-
-func containsClusterOrMachineTags(inTags []string) bool {
-	t := tags.New(inTags)
-	if t.HasPrefix(metal.TagIPClusterID) || t.HasPrefix(metal.TagIPMachineID) {
-		return true
-	}
-	return false
 }
 
 func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {

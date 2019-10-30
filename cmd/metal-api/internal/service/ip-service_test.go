@@ -269,7 +269,7 @@ func TestUpdateIP(t *testing.T) {
 			wantedStatus: http.StatusOK,
 		},
 		{
-			name: "internal tag cluster is allowed",
+			name: "internal tag cluster should not be allowed for machine ips",
 			updateRequest: v1.IPUpdateRequest{
 				IPIdentifiable: v1.IPIdentifiable{
 					IPAddress: testdata.IP3.IPAddress,
@@ -277,7 +277,7 @@ func TestUpdateIP(t *testing.T) {
 				Type: "static",
 				Tags: []string{clusterIDTag1},
 			},
-			wantedStatus: http.StatusOK,
+			wantedStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name: "using a machine ip as cluster ip is not allowed",
@@ -334,158 +334,6 @@ func TestUpdateIP(t *testing.T) {
 			}
 			if tt.wantedDescribable != nil {
 				require.Equal(t, *tt.wantedDescribable, result.Describable)
-			}
-		})
-	}
-}
-func TestTakeIP(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	testdata.InitMockDBData(mock)
-	ipservice := NewIP(ds, ipam.New(goipam.New()))
-	container := restful.NewContainer().Add(ipservice)
-	clusterID := "1"
-	clusterIDTag1 := metal.TagIPClusterID + "=" + "1"
-	customTag1 := "tag1=1"
-	tests := []struct {
-		name         string
-		request      v1.IPTagRequest
-		wantedStatus int
-		wantedIPBase *v1.IPBase
-	}{
-		{
-			name: "use available project ip in cluster",
-			request: v1.IPTagRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP1.IPAddress,
-				},
-				ClusterID: &clusterID,
-				Tags:      []string{customTag1},
-			},
-			wantedStatus: http.StatusOK,
-			wantedIPBase: &v1.IPBase{
-				ProjectID: testdata.IP1.ProjectID,
-				Type:      testdata.IP1.Type,
-				Tags:      []string{clusterIDTag1, customTag1},
-			},
-		},
-		{
-			name: "reuse a cluster ip",
-			request: v1.IPTagRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP2.IPAddress,
-				},
-				ClusterID: &clusterID,
-			},
-			wantedStatus: http.StatusOK,
-			wantedIPBase: &v1.IPBase{
-				ProjectID: testdata.IP3.ProjectID,
-				Type:      testdata.IP3.Type,
-				Tags:      []string{clusterIDTag1},
-			},
-		},
-		{
-			name: "using a machine ip must not be useable for a cluster",
-			request: v1.IPTagRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP3.IPAddress,
-				},
-				ClusterID: &clusterID,
-			},
-			wantedStatus: http.StatusUnprocessableEntity,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			js, _ := json.Marshal(tt.request)
-			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/tag", body)
-			container = injectEditor(container, req)
-			req.Header.Add("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			container.ServeHTTP(w, req)
-
-			resp := w.Result()
-			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
-			var result v1.IPResponse
-			err := json.NewDecoder(resp.Body).Decode(&result)
-
-			require.Nil(t, err)
-			if tt.wantedIPBase != nil {
-				require.Equal(t, *tt.wantedIPBase, result.IPBase)
-			}
-		})
-	}
-}
-
-func TestReleaseIPFromCluster(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	testdata.InitMockDBData(mock)
-	ipservice := NewIP(ds, ipam.New(goipam.New()))
-	container := restful.NewContainer().Add(ipservice)
-	clusterID := "1"
-	customTag1 := "tag1=1"
-
-	use := v1.IPTagRequest{
-		IPIdentifiable: v1.IPIdentifiable{
-			IPAddress: testdata.IP2.IPAddress,
-		},
-		ClusterID: &clusterID,
-		Tags:      []string{customTag1},
-	}
-	js, _ := json.Marshal(use)
-	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/ip/tag", body)
-	container = injectEditor(container, req)
-	req.Header.Add("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-	resp := w.Result()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.IPResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
-	require.Nil(t, err)
-
-	tests := []struct {
-		name         string
-		request      v1.IPUntagRequest
-		wantedStatus int
-		wantedIPBase *v1.IPBase
-	}{
-		{
-			name: "free ip from cluster should free custom tags for this cluster but leave empty cluster id tag",
-			request: v1.IPUntagRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP2.IPAddress,
-				},
-				ClusterID: &clusterID,
-				Tags:      []string{customTag1},
-			},
-			wantedStatus: http.StatusOK,
-			wantedIPBase: &v1.IPBase{
-				ProjectID: testdata.IP2.ProjectID,
-				Type:      testdata.IP2.Type,
-				Tags:      []string{metal.TagIPClusterID},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			js, _ := json.Marshal(tt.request)
-			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/untag", body)
-			container = injectEditor(container, req)
-			req.Header.Add("Content-Type", "application/json")
-			w := httptest.NewRecorder()
-			container.ServeHTTP(w, req)
-
-			resp := w.Result()
-			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
-			var result v1.IPResponse
-			err := json.NewDecoder(resp.Body).Decode(&result)
-
-			require.Nil(t, err)
-			if tt.wantedIPBase != nil {
-				require.Equal(t, *tt.wantedIPBase, result.IPBase)
 			}
 		})
 	}
