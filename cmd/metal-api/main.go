@@ -4,26 +4,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	httppproff "net/http/pprof"
 	"os"
 	"os/signal"
+	runtimedebug "runtime/debug"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
+
+	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/metal-pod/v"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
 	goipam "github.com/metal-pod/go-ipam"
@@ -53,6 +60,7 @@ var rootCmd = &cobra.Command{
 	Version: v.V.String(),
 	Run: func(cmd *cobra.Command, args []string) {
 		initLogging()
+		initMetrics()
 		initDataStore()
 		initEventBus()
 		initIpam()
@@ -124,6 +132,8 @@ func init() {
 	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
+	rootCmd.Flags().StringP("provider-tenant", "", "fits", "the tenant of the maas-provider who operates the whole thing")
+
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
 		logger.Error("unable to construct root command:%v", err)
@@ -165,6 +175,30 @@ func initLogging() {
 	debug = logger.Desugar().Core().Enabled(zap.DebugLevel)
 }
 
+func initMetrics() {
+	logger.Info("starting metrics endpoint")
+	metricsServer := http.NewServeMux()
+	metricsServer.Handle("/metrics", promhttp.Handler())
+	metricsServer.HandleFunc("/_stack", getStackTraceHandler)
+	// see: https://dev.to/davidsbond/golang-debugging-memory-leaks-using-pprof-5di8
+	metricsServer.Handle("/pprof/heap", httppproff.Handler("heap"))
+
+	go func() {
+		err := http.ListenAndServe(":2112", metricsServer)
+		if err != nil {
+			logger.Errorw("failed to start metrics endpoint", "error", err)
+		}
+		logger.Info("metrics endpoint started")
+		os.Exit(1)
+	}()
+}
+
+func getStackTraceHandler(w http.ResponseWriter, r *http.Request) {
+	stack := runtimedebug.Stack()
+	w.Write(stack)
+	pprof.Lookup("goroutine").WriteTo(w, 2)
+}
+
 func initSignalHandlers() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -185,8 +219,8 @@ func initSignalHandlers() {
 
 func initEventBus() {
 	publisherCfg := &bus.PublisherConfig{
-		TCPAddress:     viper.GetString("nsqd-tcp-addr"),
-		RESTEndpoint:   viper.GetString("nsqd-rest-endpoint"),
+		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
+		RESTEndpoint: viper.GetString("nsqd-rest-endpoint"),
 		TLS: &bus.TLSConfig{
 			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
@@ -265,26 +299,42 @@ func initIpam() {
 }
 
 func initAuth(lg *zap.SugaredLogger) security.UserGetter {
+	var auths []security.CredsOpt
+
 	dx, err := security.NewDex(viper.GetString("dex-addr"))
 	if err != nil {
 		logger.Warnw("dex not reachable", "error", err)
 	}
-	auths := []security.CredsOpt{security.WithDex(dx)}
-	for r, u := range service.MetalUsers {
-		lfkey := fmt.Sprintf("hmac-%s-lifetime", r)
-		mackey := viper.GetString(fmt.Sprintf("hmac-%s-key", r))
+	if dx != nil {
+		// use custom user extractor and group processor
+		dx.With(security.UserExtractor(sec.ExtractUserProcessGroups))
+		auths = append(auths, security.WithDex(dx))
+		logger.Info("dex successfully configured")
+	} else {
+		logger.Warnw("dex is not configured")
+	}
+
+	providerTenant := viper.GetString("provider-tenant")
+	defaultUsers := service.NewUserDirectory(providerTenant)
+	for _, u := range defaultUsers.UserNames() {
+		lfkey := fmt.Sprintf("hmac-%s-lifetime", u)
+		mackey := viper.GetString(fmt.Sprintf("hmac-%s-key", u))
 		lf, err := time.ParseDuration(viper.GetString(lfkey))
 		if err != nil {
-			lg.Warnw("illgal value for hmac lifetime, use 30secs as default", "error", err, "val", lfkey)
+			lg.Warnw("illegal value for hmac lifetime, use 30secs as default", "error", err, "val", lfkey)
 			lf = 30 * time.Second
 		}
-		lg.Infow("add hmac user", "name", r, "lifetime", lf, "mac", mackey)
+
+		user := defaultUsers.Get(u)
+		lg.Infow("add hmac user", "name", user.Name, "lifetime", lf, "mac", mackey)
+
 		auths = append(auths, security.WithHMAC(security.NewHMACAuth(
-			u.Name,
+			user.Name,
 			[]byte(mackey),
 			security.WithLifetime(lf),
-			security.WithUser(service.MetalUsers[r]))))
+			security.WithUser(user))))
 	}
+
 	return security.NewCreds(auths...)
 }
 
@@ -311,8 +361,14 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
+	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
+
 	if withauth {
 		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
+		providerTenant := viper.GetString("provider-tenant")
+		excludedPathSuffixes := []string{"liveliness", "health"}
+		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
+		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 
 	config := restfulspec.Config{

@@ -19,6 +19,7 @@ import (
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
 	"github.com/dustin/go-humanize"
 	"github.com/emicklei/go-restful"
@@ -423,19 +424,19 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 // channel to get a result. Using a channel allows the caller of this
 // function to implement timeouts to not wait forever.
 // The user of this function will block until this machine is allocated.
-func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Allocator) error {
+func (r machineResource) wait(id string, logger *zap.SugaredLogger, allocator Allocator) error {
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
 		return err
 	}
-	a := make(chan MachineAllocation)
+	a := make(chan MachineAllocation, 1)
 
 	// the machine IS already allocated, so notify this allocation back.
 	if m.Allocation != nil {
 		go func() {
 			a <- MachineAllocation{Machine: m}
 		}()
-		return alloc(a)
+		return allocator(a)
 	}
 
 	err = r.ds.InsertWaitingMachine(m)
@@ -452,6 +453,7 @@ func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Alloca
 	go func() {
 		changedMachine, err := r.ds.WaitForMachineAllocation(m)
 		if err != nil {
+			logger.Errorw("WaitForMachineAllocation returned an error", "error", err)
 			a <- MachineAllocation{Err: err}
 		} else {
 			a <- MachineAllocation{Machine: changedMachine}
@@ -459,7 +461,7 @@ func (r machineResource) wait(id string, logger *zap.SugaredLogger, alloc Alloca
 		close(a)
 	}()
 
-	return alloc(a)
+	return allocator(a)
 }
 
 func (r machineResource) setMachineState(request *restful.Request, response *restful.Response) {
@@ -1641,10 +1643,13 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		return
 	}
 
+	liveliness := make(metrics.PartitionLiveliness)
+
 	unknown := 0
 	alive := 0
 	dead := 0
 	for _, m := range machines {
+		p := liveliness[m.PartitionID]
 		lvlness, err := r.evaluateMachineLiveliness(m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
@@ -1653,11 +1658,15 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
+			p.Alive++
 		case metal.MachineLivelinessDead:
 			dead++
+			p.Dead++
 		default:
 			unknown++
+			p.Unknown++
 		}
+		liveliness[m.PartitionID] = p
 	}
 
 	report := v1.MachineLivelinessReport{
@@ -1666,6 +1675,7 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 		UnknownCount: unknown,
 	}
 
+	metrics.ProvideLiveliness(liveliness)
 	response.WriteHeaderAndEntity(http.StatusOK, report)
 }
 
