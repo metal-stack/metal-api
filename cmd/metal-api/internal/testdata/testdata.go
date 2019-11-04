@@ -369,7 +369,6 @@ var (
 		Name:        "Image 2",
 		Description: "description 2",
 		Type:        "static",
-		Tags:        []string{metal.TagIPClusterID},
 		ProjectID:   "1",
 	}
 	IP3 = metal.IP{

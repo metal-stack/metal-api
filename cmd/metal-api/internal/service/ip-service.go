@@ -216,28 +216,11 @@ func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	if os == metal.ScopeProject || ns == metal.ScopeProject {
 		return nil
 	}
-	if os == metal.ScopeMachine && ns == metal.ScopeCluster {
-		return fmt.Errorf("can not use machine ip for a cluster")
-	}
-	if os == metal.ScopeCluster && ns == metal.ScopeMachine {
-		return fmt.Errorf("can not use cluster ip for a machine")
-	}
 	return fmt.Errorf("can not use ip of scope %v with scope %v", os, ns)
 }
 
 func processTags(ts []string) ([]string, error) {
 	t := tags.New(ts)
-	machineScope := t.HasPrefix(metal.TagIPMachineID)
-	clusterScope := t.HasPrefix(metal.TagIPClusterID)
-	if clusterScope && machineScope {
-		return nil, fmt.Errorf("tags must not contain multiple scopes")
-	}
-	if machineScope && len(t.Values(metal.TagIPMachineID)) > 1 {
-		t.Remove(metal.TagIPMachineID)
-	}
-	if clusterScope && len(t.Values(metal.TagIPClusterID)) > 1 {
-		t.Remove(metal.TagIPClusterID)
-	}
 	return t.Unique(), nil
 }
 
@@ -282,10 +265,6 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	tags := requestPayload.Tags
 	if requestPayload.MachineID != nil {
 		tags = append(tags, metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID))
-	}
-
-	if requestPayload.ClusterID != nil {
-		tags = append(tags, metal.IpTag(metal.TagIPClusterID, *requestPayload.ClusterID))
 	}
 
 	tags, err = processTags(tags)

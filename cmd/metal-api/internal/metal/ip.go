@@ -19,8 +19,6 @@ type IPScope string
 const (
 	// TagIPMachineID is used to tag ips for the usage by machines
 	TagIPMachineID = "metal.metal-pod.io/machineid"
-	// TagIPClusterID is used to tag ips for the usage for cluster services
-	TagIPClusterID = "cluster.metal-pod.io/clusterid"
 	// TagIPSeperator is the seperator character for key and values in IP-Tags
 	TagIPSeperator = "="
 
@@ -35,8 +33,6 @@ const (
 	ScopeProject IPScope = "project"
 	// ScopeMachine IPs are bound to the usage directly at machines
 	ScopeMachine IPScope = "machine"
-	// ScopeCluster IPs are bound to the usage for cluster services
-	ScopeCluster IPScope = "cluster"
 )
 
 // IP of a machine/firewall.
@@ -108,9 +104,6 @@ func (ip *IP) GetScope() IPScope {
 		if strings.HasPrefix(t, TagIPMachineID) {
 			return ScopeMachine
 		}
-		if strings.HasPrefix(t, TagIPClusterID) {
-			return ScopeCluster
-		}
 	}
 	return ScopeProject
 }
@@ -136,7 +129,7 @@ func (ip *IP) AddMachineId(id string) {
 func (ip *IP) RemoveMachineId(id string) {
 	ts := tags.New(ip.Tags)
 	t := IpTag(TagIPMachineID, id)
-	ts.ClearValue(t, TagIPSeperator)
+	ts.Remove(t)
 	ip.Tags = ts.Unique()
 }
 

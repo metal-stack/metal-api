@@ -20,7 +20,6 @@ type IPAllocateRequest struct {
 	Describable
 	IPBase
 	MachineID *string `json:"machineid" description:"the machine id this ip should be associated with"`
-	ClusterID *string `json:"clusterid" description:"the cluster id this ip should be associated with"`
 }
 
 type IPUpdateRequest struct {
@@ -28,26 +27,6 @@ type IPUpdateRequest struct {
 	Describable
 	Type metal.IPType `json:"type" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
 	Tags []string     `json:"tags" description:"free tags that you associate with this ip."`
-}
-
-type IPTagRequest struct {
-	IPIdentifiable
-	// the cluster id to associate the ip address with.
-	ClusterID *string `json:"clusterid"`
-	// the machine id to associate the ip address with.
-	MachineID *string `json:"machineid"`
-	// tags to add to the ip
-	Tags []string `json:"tags,omitempty"`
-}
-
-type IPUntagRequest struct {
-	IPIdentifiable
-	// the cluster id to associate the ip address with.
-	ClusterID *string `json:"clusterid"`
-	// the machine id to associate the ip address with.
-	MachineID *string `json:"machineid"`
-	// tags to add to the ip
-	Tags []string `json:"tags,omitempty"`
 }
 
 type IPFindRequest struct {

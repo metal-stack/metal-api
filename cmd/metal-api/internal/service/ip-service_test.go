@@ -206,7 +206,6 @@ func TestUpdateIP(t *testing.T) {
 	ipservice := NewIP(ds, ipam.New(goipam.New()))
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := metal.TagIPMachineID + "=" + "1"
-	clusterIDTag1 := metal.TagIPClusterID + "=" + "1"
 	tests := []struct {
 		name                 string
 		updateRequest        v1.IPUpdateRequest
@@ -268,47 +267,6 @@ func TestUpdateIP(t *testing.T) {
 			},
 			wantedStatus: http.StatusOK,
 		},
-		{
-			name: "internal tag cluster should not be allowed for machine ips",
-			updateRequest: v1.IPUpdateRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP3.IPAddress,
-				},
-				Type: "static",
-				Tags: []string{clusterIDTag1},
-			},
-			wantedStatus: http.StatusUnprocessableEntity,
-		},
-		{
-			name: "using a machine ip as cluster ip is not allowed",
-			updateRequest: v1.IPUpdateRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP3.IPAddress,
-				},
-				Tags: []string{clusterIDTag1},
-			},
-			wantedStatus: http.StatusUnprocessableEntity,
-		},
-		{
-			name: "using a cluster ip as machine ip is not allowed",
-			updateRequest: v1.IPUpdateRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP2.IPAddress,
-				},
-				Tags: []string{machineIDTag1},
-			},
-			wantedStatus: http.StatusUnprocessableEntity,
-		},
-		{
-			name: "mixing cluster and machine tags is not allowed",
-			updateRequest: v1.IPUpdateRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP2.IPAddress,
-				},
-				Tags: []string{machineIDTag1, clusterIDTag1},
-			},
-			wantedStatus: http.StatusUnprocessableEntity,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -346,11 +304,6 @@ func TestProcessTags(t *testing.T) {
 		wanted  []string
 		wantErr bool
 	}{
-		{
-			name:    "tags with multiple scopes",
-			tags:    []string{metal.TagIPMachineID, metal.TagIPClusterID},
-			wantErr: true,
-		},
 		{
 			name:   "distinct and sorted",
 			tags:   []string{"2", "1", "2"},

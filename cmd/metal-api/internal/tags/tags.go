@@ -70,20 +70,6 @@ func (t *Tags) Values(prefix string) []string {
 	return values
 }
 
-// ClearValue clears the value for the given the full tag.
-func (t *Tags) ClearValue(tag, seperator string) {
-	r := []string{}
-	for _, t := range t.tags {
-		if t == tag {
-			s := strings.Split(t, seperator)
-			r = append(r, s[0])
-			continue
-		}
-		r = append(r, t)
-	}
-	t.tags = r
-}
-
 // Unique returns the distinct tag values as sorted slice.
 func (t *Tags) Unique() []string {
 	tagSet := make(map[string]bool)
