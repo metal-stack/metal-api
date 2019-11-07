@@ -6,23 +6,27 @@ import (
 )
 
 type IPBase struct {
-	ProjectID string `json:"projectid" description:"the project this ip address belongs to"`
-	NetworkID string `json:"networkid" description:"the network this ip allocate request address belongs to"`
+	ProjectID string       `json:"projectid" description:"the project this ip address belongs to"`
+	NetworkID string       `json:"networkid" description:"the network this ip allocate request address belongs to"`
+	Type      metal.IPType `json:"type" default:"static" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
+	Tags      []string     `json:"tags" description:"free tags that you associate with this ip."`
 }
 
 type IPIdentifiable struct {
 	IPAddress string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" unique:"true" readonly:"true"`
-	MachineID string `json:"machineid" description:"the machine this ip address belongs to, empty if not strong coupled"`
 }
 
 type IPAllocateRequest struct {
 	Describable
 	IPBase
+	MachineID *string `json:"machineid" description:"the machine id this ip should be associated with"`
 }
 
 type IPUpdateRequest struct {
 	IPIdentifiable
 	Describable
+	Type metal.IPType `json:"type" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
+	Tags []string     `json:"tags" description:"free tags that you associate with this ip."`
 }
 
 type IPFindRequest struct {
@@ -45,10 +49,11 @@ func NewIPResponse(ip *metal.IP) *IPResponse {
 		IPBase: IPBase{
 			NetworkID: ip.NetworkID,
 			ProjectID: ip.ProjectID,
+			Type:      ip.Type,
+			Tags:      ip.Tags,
 		},
 		IPIdentifiable: IPIdentifiable{
 			IPAddress: ip.IPAddress,
-			MachineID: ip.MachineID,
 		},
 		Timestamps: Timestamps{
 			Created: ip.Created,

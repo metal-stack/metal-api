@@ -7,6 +7,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/tags"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
@@ -70,10 +71,10 @@ func (ir ipResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/release/{id}").
-		To(editor(ir.releaseIP)).
-		Operation("releaseIP").
-		Doc("releases an ip").
+	ws.Route(ws.POST("/free/{id}").
+		To(editor(ir.freeIP)).
+		Operation("freeIP").
+		Doc("frees an ip").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.IPResponse{}).
@@ -161,10 +162,15 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 	response.WriteHeaderAndEntity(http.StatusOK, result)
 }
 
-func (ir ipResource) releaseIP(request *restful.Request, response *restful.Response) {
+func (ir ipResource) freeIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	ip, err := ir.ds.FindIPByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = validateIPDelete(ip)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -180,6 +186,42 @@ func (ir ipResource) releaseIP(request *restful.Request, response *restful.Respo
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
+}
+
+func validateIPDelete(ip *metal.IP) error {
+	s := ip.GetScope()
+	if s != metal.ScopeProject && ip.Type == metal.Static {
+		return fmt.Errorf("ip with scope %s can not be deleted", ip.GetScope())
+	}
+	return nil
+}
+
+// Checks whether an ip update is allowed:
+// (1) allow update of ephemeral to static
+// (2) allow update within a scope
+// (3) allow update from and to scope project
+// (4) deny all other updates
+func validateIPUpdate(old *metal.IP, new *metal.IP) error {
+	// constraint 1
+	if old.Type == metal.Static && new.Type == metal.Ephemeral {
+		return fmt.Errorf("cannot change type of ip address from static to ephemeral")
+	}
+	os := old.GetScope()
+	ns := new.GetScope()
+	// constraint 2
+	if os == ns {
+		return nil
+	}
+	// constraint 3
+	if os == metal.ScopeProject || ns == metal.ScopeProject {
+		return nil
+	}
+	return fmt.Errorf("can not use ip of scope %v with scope %v", os, ns)
+}
+
+func processTags(ts []string) ([]string, error) {
+	t := tags.New(ts)
+	return t.Unique(), nil
 }
 
 func (ir ipResource) allocateIP(request *restful.Request, response *restful.Response) {
@@ -220,6 +262,16 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	tags := requestPayload.Tags
+	if requestPayload.MachineID != nil {
+		tags = append(tags, metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID))
+	}
+
+	tags, err = processTags(tags)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	// TODO: Following operations should span a database transaction if possible
 
 	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, ir.ipamer)
@@ -228,6 +280,11 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	}
 	utils.Logger(request).Sugar().Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
 
+	ipType := metal.Ephemeral
+	if requestPayload.Type == metal.Static {
+		ipType = metal.Static
+	}
+
 	ip := &metal.IP{
 		IPAddress:        ipAddress,
 		ParentPrefixCidr: ipParentCidr,
@@ -235,6 +292,8 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		Description:      description,
 		NetworkID:        nw.ID,
 		ProjectID:        p.ID,
+		Type:             ipType,
+		Tags:             tags,
 	}
 
 	err = ir.ds.CreateIP(ip)
@@ -258,20 +317,43 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	}
 
 	newIP := *oldIP
-
 	if requestPayload.Name != nil {
 		newIP.Name = *requestPayload.Name
 	}
 	if requestPayload.Description != nil {
 		newIP.Description = *requestPayload.Description
 	}
+	if requestPayload.Tags != nil {
+		newIP.Tags = requestPayload.Tags
+	}
+	if requestPayload.Type == metal.Static || requestPayload.Type == metal.Ephemeral {
+		newIP.Type = requestPayload.Type
+	}
 
-	err = ir.ds.UpdateIP(oldIP, &newIP)
+	err = ir.validateAndUpateIP(oldIP, &newIP)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
+}
+
+func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
+	err := validateIPUpdate(oldIP, newIP)
+	if err != nil {
+		return err
+	}
+	tags, err := processTags(newIP.Tags)
+	if err != nil {
+		return err
+	}
+	newIP.Tags = tags
+
+	err = ir.ds.UpdateIP(oldIP, newIP)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {

@@ -7,11 +7,13 @@ import (
 
 // IPSearchQuery can be used to search networks.
 type IPSearchQuery struct {
-	IPAddress        *string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip"`
-	ParentPrefixCidr *string `json:"networkprefix" description:"the prefix of the network this ip address belongs to"`
-	NetworkID        *string `json:"networkid" description:"the network this ip allocate request address belongs to"`
-	MachineID        *string `json:"machineid" description:"the machine this ip address belongs to, empty if not strong coupled"`
-	ProjectID        *string `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled"`
+	IPAddress        *string  `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip"`
+	ParentPrefixCidr *string  `json:"networkprefix" description:"the prefix of the network this ip address belongs to"`
+	NetworkID        *string  `json:"networkid" description:"the network this ip allocate request address belongs to"`
+	Tags             []string `json:"tags" description:"the tags that are assigned to this ip address"`
+	ProjectID        *string  `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled"`
+	Type             *string  `json:"type" description:"the type of the ip address, ephemeral or static"`
+	MachineID        *string  `json:"machineid" description:"the machine an ip address is associated to"`
 }
 
 // GenerateTerm generates the project search query term.
@@ -43,8 +45,18 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	if p.MachineID != nil {
+		p.Tags = append(p.Tags, metal.IpTag(metal.TagIPMachineID, *p.MachineID))
+	}
+
+	for _, tag := range p.Tags {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("machineid").Eq(*p.MachineID)
+			return row.Field("tags").Contains(r.Expr(tag))
+		})
+	}
+
+	if p.Type != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("type").Eq(*p.Type)
 		})
 	}
 

@@ -228,7 +228,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	var acquiredPrivateNetwork v1.NetworkResponse
 	privateNetworkName := "test-private-network"
 	privateNetworkDesc := "Test Private Network"
-	nar := v1.NetworkAcquireRequest{
+	nar := v1.NetworkAllocateRequest{
 		Describable: v1.Describable{
 			Name:        &privateNetworkName,
 			Description: &privateNetworkDesc,
@@ -274,8 +274,8 @@ func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
 	return webRequestPut(t, te.networkService, icr, "/v1/network/", response)
 }
-func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAcquireRequest, response interface{}) int {
-	return webRequestPost(t, te.networkService, nar, "/v1/network/acquire", response)
+func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, response interface{}) int {
+	return webRequestPost(t, te.networkService, nar, "/v1/network/allocate", response)
 }
 
 func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, response interface{}) int {

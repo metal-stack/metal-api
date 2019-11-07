@@ -590,7 +590,7 @@
         }
       }
     },
-    "/v1/ip/release/{id}": {
+    "/v1/ip/free/{id}": {
       "post": {
         "consumes": [
           "application/json"
@@ -601,8 +601,8 @@
         "tags": [
           "ip"
         ],
-        "summary": "releases an ip",
-        "operationId": "releaseIP",
+        "summary": "frees an ip",
+        "operationId": "freeIP",
         "parameters": [
           {
             "type": "string",
@@ -1734,7 +1734,7 @@
         }
       }
     },
-    "/v1/network/acquire": {
+    "/v1/network/allocate": {
       "post": {
         "consumes": [
           "application/json"
@@ -1745,15 +1745,15 @@
         "tags": [
           "network"
         ],
-        "summary": "acquires a child network from a partition's private super network",
-        "operationId": "acquireChildNetwork",
+        "summary": "allocates a child network from a partition's private super network",
+        "operationId": "allocateNetwork",
         "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.NetworkAcquireRequest"
+              "$ref": "#/definitions/v1.NetworkAllocateRequest"
             }
           }
         ],
@@ -1821,7 +1821,7 @@
         }
       }
     },
-    "/v1/network/release/{id}": {
+    "/v1/network/free/{id}": {
       "post": {
         "consumes": [
           "application/json"
@@ -1832,8 +1832,8 @@
         "tags": [
           "network"
         ],
-        "summary": "releases a child network",
-        "operationId": "releaseChildNetwork",
+        "summary": "free a network",
+        "operationId": "freeNetwork",
         "parameters": [
           {
             "type": "string",
@@ -2898,9 +2898,9 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "partitionid",
+        "imageid",
         "projectid",
         "sizeid",
-        "imageid",
         "ssh_pub_keys"
       ],
       "properties": {
@@ -2976,50 +2976,50 @@
     },
     "v1.FirewallFindRequest": {
       "required": [
-        "hardware_cpu_cores",
-        "fru_board_mfg",
-        "rackid",
-        "tags",
-        "network_destination_prefixes",
-        "nics_names",
-        "nics_neighbor_names",
+        "fru_board_part_number",
+        "state_value",
+        "ipmi_user",
+        "network_underlay",
+        "nics_vrfs",
         "nics_neighbor_vrfs",
         "allocation_succeeded",
-        "disk_sizes",
-        "allocation_hostname",
-        "partition_id",
-        "sizeid",
-        "liveliness",
-        "network_private",
-        "fru_board_mfg_serial",
-        "fru_product_part_number",
-        "disk_names",
-        "allocation_name",
-        "ipmi_interface",
-        "nics_neighbor_mac_addresses",
-        "hardware_memory",
-        "network_vrfs",
-        "network_nat",
-        "nics_vrfs",
-        "ipmi_user",
-        "ipmi_address",
-        "fru_board_part_number",
         "name",
-        "network_underlay",
-        "nics_mac_addresses",
-        "fru_product_manufacturer",
-        "id",
-        "network_ids",
+        "hardware_cpu_cores",
+        "nics_names",
+        "network_private",
+        "tags",
+        "network_ips",
+        "partition_id",
+        "allocation_project",
         "fru_chassis_part_serial",
         "fru_chassis_part_number",
-        "allocation_project",
+        "fru_board_mfg_serial",
+        "network_ids",
+        "liveliness",
+        "nics_neighbor_mac_addresses",
+        "fru_product_part_number",
+        "allocation_name",
+        "ipmi_interface",
+        "network_vrfs",
+        "rackid",
+        "disk_sizes",
+        "network_destination_prefixes",
+        "network_asns",
+        "hardware_memory",
         "fru_product_serial",
+        "fru_board_mfg",
+        "fru_product_manufacturer",
+        "id",
+        "disk_names",
         "network_prefixes",
-        "state_value",
-        "network_ips",
+        "nics_neighbor_names",
+        "ipmi_address",
+        "allocation_hostname",
+        "nics_mac_addresses",
         "ipmi_mac_address",
-        "allocation_image_id",
-        "network_asns"
+        "sizeid",
+        "network_nat",
+        "allocation_image_id"
       ],
       "properties": {
         "allocation_hostname": {
@@ -3205,19 +3205,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
+        "hardware",
+        "size",
         "created",
         "allocation",
         "events",
-        "size",
-        "liveliness",
-        "tags",
-        "rackid",
-        "partition",
-        "ledstate",
         "changed",
-        "id",
-        "hardware",
-        "state"
+        "ledstate",
+        "partition",
+        "rackid",
+        "tags",
+        "liveliness",
+        "state",
+        "id"
       ],
       "properties": {
         "allocation": {
@@ -3295,12 +3295,19 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
+        "projectid",
         "networkid",
-        "projectid"
+        "type",
+        "tags",
+        "machineid"
       ],
       "properties": {
         "description": {
           "description": "a description for this entity",
+          "type": "string"
+        },
+        "machineid": {
+          "description": "the machine id this ip should be associated with",
           "type": "string"
         },
         "name": {
@@ -3314,15 +3321,33 @@
         "projectid": {
           "description": "the project this ip address belongs to",
           "type": "string"
+        },
+        "tags": {
+          "description": "free tags that you associate with this ip.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
+          "type": "string",
+          "default": "static",
+          "enum": [
+            "static",
+            "ephemeral"
+          ]
         }
       }
     },
     "v1.IPFindRequest": {
       "required": [
+        "type",
+        "machineid",
         "ipaddress",
         "networkprefix",
         "networkid",
-        "machineid",
+        "tags",
         "projectid"
       ],
       "properties": {
@@ -3331,7 +3356,7 @@
           "type": "string"
         },
         "machineid": {
-          "description": "the machine this ip address belongs to, empty if not strong coupled",
+          "description": "the machine an ip address is associated to",
           "type": "string"
         },
         "networkid": {
@@ -3345,17 +3370,29 @@
         "projectid": {
           "description": "the project this ip address belongs to, empty if not strong coupled",
           "type": "string"
+        },
+        "tags": {
+          "description": "the tags that are assigned to this ip address",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "the type of the ip address, ephemeral or static",
+          "type": "string"
         }
       }
     },
     "v1.IPResponse": {
       "required": [
-        "projectid",
         "networkid",
+        "type",
+        "tags",
+        "projectid",
         "ipaddress",
-        "machineid",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3379,10 +3416,6 @@
           "type": "string",
           "uniqueItems": true
         },
-        "machineid": {
-          "description": "the machine this ip address belongs to, empty if not strong coupled",
-          "type": "string"
-        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -3394,13 +3427,30 @@
         "projectid": {
           "description": "the project this ip address belongs to",
           "type": "string"
+        },
+        "tags": {
+          "description": "free tags that you associate with this ip.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
+          "type": "string",
+          "default": "static",
+          "enum": [
+            "static",
+            "ephemeral"
+          ]
         }
       }
     },
     "v1.IPUpdateRequest": {
       "required": [
         "ipaddress",
-        "machineid"
+        "type",
+        "tags"
       ],
       "properties": {
         "description": {
@@ -3412,13 +3462,24 @@
           "type": "string",
           "uniqueItems": true
         },
-        "machineid": {
-          "description": "the machine this ip address belongs to, empty if not strong coupled",
-          "type": "string"
-        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "tags": {
+          "description": "free tags that you associate with this ip.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
+          "type": "string",
+          "enum": [
+            "static",
+            "ephemeral"
+          ]
         }
       }
     },
@@ -3457,8 +3518,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
@@ -3715,50 +3776,50 @@
     },
     "v1.MachineFindRequest": {
       "required": [
-        "network_ids",
-        "disk_names",
-        "fru_board_mfg",
-        "fru_product_serial",
-        "allocation_name",
-        "nics_neighbor_mac_addresses",
-        "nics_neighbor_vrfs",
-        "ipmi_address",
-        "fru_board_mfg_serial",
-        "allocation_project",
-        "network_underlay",
-        "hardware_cpu_cores",
-        "nics_vrfs",
-        "fru_board_part_number",
-        "sizeid",
         "allocation_hostname",
-        "network_destination_prefixes",
-        "liveliness",
-        "tags",
-        "network_vrfs",
-        "network_asns",
-        "nics_mac_addresses",
-        "state_value",
-        "ipmi_user",
-        "fru_chassis_part_serial",
+        "network_nat",
+        "nics_neighbor_names",
+        "fru_board_mfg_serial",
+        "fru_product_serial",
         "partition_id",
-        "network_ips",
-        "network_private",
-        "ipmi_interface",
+        "nics_vrfs",
         "fru_product_manufacturer",
+        "sizeid",
+        "allocation_project",
+        "allocation_succeeded",
         "network_prefixes",
-        "disk_sizes",
+        "network_vrfs",
+        "allocation_name",
+        "network_ids",
+        "nics_mac_addresses",
+        "disk_names",
         "ipmi_mac_address",
         "fru_chassis_part_number",
-        "fru_product_part_number",
-        "id",
-        "rackid",
-        "allocation_image_id",
-        "allocation_succeeded",
-        "network_nat",
+        "name",
+        "network_private",
+        "network_underlay",
+        "nics_neighbor_mac_addresses",
+        "disk_sizes",
+        "state_value",
+        "liveliness",
+        "network_ips",
         "hardware_memory",
+        "nics_neighbor_vrfs",
+        "ipmi_interface",
+        "fru_chassis_part_serial",
+        "rackid",
+        "tags",
+        "hardware_cpu_cores",
         "nics_names",
-        "nics_neighbor_names",
-        "name"
+        "ipmi_address",
+        "ipmi_user",
+        "fru_board_mfg",
+        "id",
+        "allocation_image_id",
+        "network_destination_prefixes",
+        "network_asns",
+        "fru_board_part_number",
+        "fru_product_part_number"
       ],
       "properties": {
         "allocation_hostname": {
@@ -4332,18 +4393,18 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "ledstate",
         "partition",
         "rackid",
+        "liveliness",
+        "events",
+        "tags",
         "size",
         "hardware",
         "allocation",
         "state",
-        "liveliness",
-        "events",
-        "tags",
-        "changed",
-        "created"
+        "ledstate",
+        "created",
+        "changed"
       ],
       "properties": {
         "allocation": {
@@ -4435,7 +4496,7 @@
         }
       }
     },
-    "v1.NetworkAcquireRequest": {
+    "v1.NetworkAllocateRequest": {
       "required": [
         "labels"
       ],
@@ -4469,12 +4530,12 @@
       "required": [
         "id",
         "labels",
-        "privatesuper",
-        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
-        "nat"
+        "nat",
+        "privatesuper",
+        "underlay"
       ],
       "properties": {
         "description": {
@@ -4548,18 +4609,18 @@
     },
     "v1.NetworkFindRequest": {
       "required": [
-        "prefixes",
-        "destinationprefixes",
-        "parentnetworkid",
-        "labels",
         "name",
         "partitionid",
         "projectid",
+        "prefixes",
         "nat",
         "privatesuper",
         "underlay",
         "vrf",
-        "id"
+        "parentnetworkid",
+        "labels",
+        "id",
+        "destinationprefixes"
       ],
       "properties": {
         "destinationprefixes": {
@@ -4614,12 +4675,12 @@
       "required": [
         "id",
         "labels",
+        "privatesuper",
+        "underlay",
         "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
-        "privatesuper",
-        "underlay",
         "usage",
         "created",
         "changed"
@@ -4949,9 +5010,9 @@
     },
     "v1.ProjectFindRequest": {
       "required": [
+        "tenant",
         "id",
-        "name",
-        "tenant"
+        "name"
       ],
       "properties": {
         "id": {
