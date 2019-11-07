@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -390,10 +391,13 @@ func (r machineResource) findMachines(request *restful.Request, response *restfu
 
 func (r machineResource) waitForAllocation(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
-	ctx := request.Request.Context()
+	ctx, cancel := context.WithCancel(request.Request.Context())
 	log := utils.Logger(request)
 
-	err := r.wait(id, log.Sugar(), func(alloc Allocation) error {
+	// after leaving waiting, stop listening for machine table changes in the background
+	defer cancel()
+
+	err := r.wait(ctx, id, log.Sugar(), func(alloc Allocation) error {
 		select {
 		case <-time.After(waitForServerTimeout):
 			response.WriteHeaderAndEntity(http.StatusGatewayTimeout, httperrors.NewHTTPError(http.StatusGatewayTimeout, fmt.Errorf("server timeout")))
@@ -424,7 +428,7 @@ func (r machineResource) waitForAllocation(request *restful.Request, response *r
 // channel to get a result. Using a channel allows the caller of this
 // function to implement timeouts to not wait forever.
 // The user of this function will block until this machine is allocated.
-func (r machineResource) wait(id string, logger *zap.SugaredLogger, allocator Allocator) error {
+func (r machineResource) wait(ctx context.Context, id string, logger *zap.SugaredLogger, allocator Allocator) error {
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
 		return err
@@ -451,7 +455,7 @@ func (r machineResource) wait(id string, logger *zap.SugaredLogger, allocator Al
 	}()
 
 	go func() {
-		changedMachine, err := r.ds.WaitForMachineAllocation(m)
+		changedMachine, err := r.ds.WaitForMachineAllocation(ctx, m)
 		if err != nil {
 			logger.Errorw("WaitForMachineAllocation returned an error", "error", err)
 			a <- MachineAllocation{Err: err}

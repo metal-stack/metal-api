@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -450,13 +451,13 @@ func (rs *RethinkStore) UpdateWaitingMachine(m *metal.Machine) error {
 }
 
 // WaitForMachineAllocation listens on changes on the wait table for a given machine and returns the changed machine.
-func (rs *RethinkStore) WaitForMachineAllocation(m *metal.Machine) (*metal.Machine, error) {
+func (rs *RethinkStore) WaitForMachineAllocation(ctx context.Context, m *metal.Machine) (*metal.Machine, error) {
 	type responseType struct {
 		NewVal metal.Machine `rethinkdb:"new_val"`
 		OldVal metal.Machine `rethinkdb:"old_val"`
 	}
 	var response responseType
-	err := rs.listenForEntityChange(rs.waitTable(), m, response)
+	err := rs.listenForEntityChange(ctx, rs.waitTable(), m, response)
 	if err != nil {
 		return nil, err
 	}
