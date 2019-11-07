@@ -13,7 +13,7 @@ default-build-args:
 builds:
   - name: "metal-api-slug"
     tags:
-      - ${CI_COMMIT_REF_SLUG}
+      - ${CI_COMMIT_REF_NAME}
   - name: "metal-api-master"
     tags:
       - latest
