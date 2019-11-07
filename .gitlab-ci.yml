@@ -1,10 +1,11 @@
 ---
 image: registry.cloud.fits/fits/buildtools:dev
 
-merge-request:
-  script: docker-make -x rule2,rule3 --summary --build-only metal-api-merge-request
+with-slug:
+  script: docker-make -x rule2,rule3 --summary --build-only metal-api-slug
   only:
     - merge_requests
+    - tags
 
 master:
     script: docker-make -x rule2,rule3 --summary --build-only metal-api-master
