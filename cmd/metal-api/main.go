@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	httppproff "net/http/pprof"
+	httppprof "net/http/pprof"
 	"os"
 	"os/signal"
-	runtimedebug "runtime/debug"
-	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -179,9 +177,12 @@ func initMetrics() {
 	logger.Info("starting metrics endpoint")
 	metricsServer := http.NewServeMux()
 	metricsServer.Handle("/metrics", promhttp.Handler())
-	metricsServer.HandleFunc("/_stack", getStackTraceHandler)
 	// see: https://dev.to/davidsbond/golang-debugging-memory-leaks-using-pprof-5di8
-	metricsServer.Handle("/pprof/heap", httppproff.Handler("heap"))
+	// inspect via
+	// go tool pprof -http :8080 localhost:2112/pprof/heap
+	// go tool pprof -http :8080 localhost:2112/pprof/goroutine
+	metricsServer.Handle("/pprof/heap", httppprof.Handler("heap"))
+	metricsServer.Handle("/pprof/goroutine", httppprof.Handler("goroutine"))
 
 	go func() {
 		err := http.ListenAndServe(":2112", metricsServer)
@@ -191,12 +192,6 @@ func initMetrics() {
 		logger.Info("metrics endpoint started")
 		os.Exit(1)
 	}()
-}
-
-func getStackTraceHandler(w http.ResponseWriter, r *http.Request) {
-	stack := runtimedebug.Stack()
-	w.Write(stack)
-	pprof.Lookup("goroutine").WriteTo(w, 2)
 }
 
 func initSignalHandlers() {

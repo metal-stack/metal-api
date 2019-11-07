@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -353,8 +354,8 @@ func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldE
 	return nil
 }
 
-func (rs *RethinkStore) listenForEntityChange(table *r.Term, entity metal.Entity, response interface{}) error {
-	res, err := table.Get(entity.GetID()).Changes().Run(rs.session)
+func (rs *RethinkStore) listenForEntityChange(ctx context.Context, table *r.Term, entity metal.Entity, response interface{}) error {
+	res, err := table.Get(entity.GetID()).Changes().Run(rs.session, r.RunOpts{Context: ctx})
 	if err != nil {
 		return fmt.Errorf("cannot listen for %v change with id %q in database", getEntityName(entity), entity.GetID())
 	}
