@@ -116,10 +116,10 @@ func init() {
 	rootCmd.Flags().StringP("ipam-db-password", "", "", "the database password to use")
 
 	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "nsqd:4150", "the TCP address of the nsqd")
-	rootCmd.Flags().StringP("nsqd-rest-endpoint", "", "nsqd:4151", "the address of the nsqd rest endpoint")
+	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
-	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the address of the nsqlookupd as a commalist")
+	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the http address of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -215,7 +215,7 @@ func initSignalHandlers() {
 func initEventBus() {
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
-		RESTEndpoint: viper.GetString("nsqd-rest-endpoint"),
+		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
 		TLS: &bus.TLSConfig{
 			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 			ClientCertFile: viper.GetString("nsqd-client-cert-file"),

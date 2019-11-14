@@ -11,7 +11,7 @@ import (
 func TestNewNSQ(t *testing.T) {
 	cfg := &bus.PublisherConfig{
 		TCPAddress:   "addr",
-		RESTEndpoint: "rest",
+		HTTPEndpoint: "rest",
 	}
 	publisher := bus.NewPublisher
 	logger := zap.NewNop()
@@ -21,21 +21,21 @@ func TestNewNSQ(t *testing.T) {
 	assert := assert.New(t)
 	assert.NotNil(actual)
 	assert.Equal(cfg.TCPAddress, actual.config.TCPAddress)
-	assert.Equal(cfg.RESTEndpoint, actual.config.RESTEndpoint)
+	assert.Equal(cfg.HTTPEndpoint, actual.config.HTTPEndpoint)
 	assert.Nil(actual.Publisher)
 }
 
 func TestNSQ_WaitForPublisher(t *testing.T) {
 	cfg := &bus.PublisherConfig{
 		TCPAddress:   "addr",
-		RESTEndpoint: "rest",
+		HTTPEndpoint: "rest",
 	}
 	publisher := NopPublisher{}
 	assert := assert.New(t)
 
 	nsq := NewNSQ(cfg, zap.NewNop(), func(logger *zap.Logger, config *bus.PublisherConfig) (bus.Publisher, error) {
 		assert.Equal(cfg.TCPAddress, config.TCPAddress)
-		assert.Equal(cfg.RESTEndpoint, config.RESTEndpoint)
+		assert.Equal(cfg.HTTPEndpoint, config.HTTPEndpoint)
 		return publisher, nil
 	})
 	assert.NotNil(nsq)

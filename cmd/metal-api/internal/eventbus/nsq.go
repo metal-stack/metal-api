@@ -64,6 +64,7 @@ func (n NSQClient) CreateTopic(partitionID, topicFQN string) error {
 		n.logger.Sugar().Errorw("cannot create topic", "topic", topicFQN, "partition", partitionID)
 		return err
 	}
+	n.logger.Sugar().Infow("topic created", "partition", partitionID, "topic", topicFQN)
 	return nil
 }
 
