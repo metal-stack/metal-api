@@ -1,5 +1,5 @@
 ---
-image: registry.cloud.fits/fits/buildtools:dev
+image: registry.cloud.fits/fits/buildtools:1
 
 with-slug:
   script: docker-make -x rule2,rule3 --summary --build-only metal-api-slug
