@@ -2,8 +2,8 @@ bitbucket.org/liamstask/goose v0.0.0-20150115234039-8488cc47d90c/go.mod h1:hSVuE
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0 h1:eOI3/cP2VTU6uZLDYAoic+eyzzB9YyGmJ7eIjl8rOPg=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-git.f-i-ts.de/cloud-native/metallib v0.2.2 h1:tYIR+HTUlDCDQjQkduXWKITTtwLoxDqcA+XTPyqb+Nw=
-git.f-i-ts.de/cloud-native/metallib v0.2.2/go.mod h1:+0B2B4+nVW+U9o9VsqE0JCo271Fhih8taqCm/SFwg1c=
+git.f-i-ts.de/cloud-native/metallib v0.2.3 h1:sOWH4YvdtBPgwqn/lG10HF3GQ2U9jgZ00NN95offj74=
+git.f-i-ts.de/cloud-native/metallib v0.2.3/go.mod h1:+0B2B4+nVW+U9o9VsqE0JCo271Fhih8taqCm/SFwg1c=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 h1:w+iIsaOQNcT7OZ575w+acHgRric5iCyQh+xv+KJ4HB8=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78/go.mod h1:LmzpDX56iTiv29bbRTIsUNlaFfuhWRQBWjQdVyAevI8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
