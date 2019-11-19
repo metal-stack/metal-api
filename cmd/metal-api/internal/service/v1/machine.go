@@ -309,9 +309,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		networks := []MachineNetwork{}
 		for i := range m.Allocation.MachineNetworks {
 			ips := []string{}
-			for _, ip := range m.Allocation.MachineNetworks[i].IPs {
-				ips = append(ips, ip)
-			}
+			ips = append(ips, m.Allocation.MachineNetworks[i].IPs...)
 			network := MachineNetwork{
 				NetworkID:           m.Allocation.MachineNetworks[i].NetworkID,
 				IPs:                 ips,
