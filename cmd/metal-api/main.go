@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	nsq2 "github.com/nsqio/go-nsq"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -119,6 +120,7 @@ func init() {
 	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
+	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
 	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the http address of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
@@ -213,12 +215,19 @@ func initSignalHandlers() {
 }
 
 func initEventBus() {
+	writeTimeout, err := time.ParseDuration(viper.GetString("nsqd-write-timeout"))
+	if err != nil {
+		writeTimeout = 0
+	}
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
 		TLS: &bus.TLSConfig{
 			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+		},
+		NSQ: &nsq2.Config{
+			WriteTimeout: writeTimeout,
 		},
 	}
 	partitions := waitForPartitions()
