@@ -5,16 +5,10 @@ import (
 )
 
 func TestMachine_HasMAC(t *testing.T) {
-	type args struct {
-		mac string
-	}
-
 	tests := []struct {
 		name string
 		d    *Machine
-		args struct {
-			mac string
-		}
+		mac  string
 		want bool
 	}{
 		{
@@ -48,9 +42,7 @@ func TestMachine_HasMAC(t *testing.T) {
 					},
 				},
 			},
-			args: args{
-				mac: "11:11:11:11:11:11",
-			},
+			mac:  "11:11:11:11:11:11",
 			want: true,
 		},
 		{
@@ -64,16 +56,14 @@ func TestMachine_HasMAC(t *testing.T) {
 					ImageID: "1",
 				},
 			},
-			args: args{
-				mac: "11:11:11:11:11:11",
-			},
+			mac:  "11:11:11:11:11:11",
 			want: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.d.HasMAC(tt.args.mac); got != tt.want {
+			if got := tt.d.HasMAC(tt.mac); got != tt.want {
 				t.Errorf("Machine.HasMAC() = %v, want %v", got, tt.want)
 			}
 		})
