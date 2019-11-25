@@ -424,7 +424,11 @@ func run() {
 	restful.DefaultContainer.ServiceErrorHandler(func(serviceErr restful.ServiceError, request *restful.Request, response *restful.Response) {
 		response.Header().Set("Content-Type", "application/json")
 		response.WriteHeader(serviceErr.Code)
-		response.WriteAsJson(httperrors.NewHTTPError(serviceErr.Code, fmt.Errorf(serviceErr.Message)))
+		err := response.WriteAsJson(httperrors.NewHTTPError(serviceErr.Code, fmt.Errorf(serviceErr.Message)))
+		if err != nil {
+			logger.Error("Failed to send response", zap.Error(err))
+			return
+		}
 	})
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))

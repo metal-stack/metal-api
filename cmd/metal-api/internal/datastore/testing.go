@@ -67,13 +67,3 @@ func InitTestDB(t *testing.T) (*RethinkStore, testcontainers.Container, context.
 	assert.NoError(t, err)
 	return rs, c, ctx
 }
-
-var (
-	rethinkStore1 = RethinkStore{
-		SugaredLogger: zapup.MustRootLogger().Sugar(),
-		dbhost:        "dbhost",
-		dbname:        "dbname",
-		dbuser:        "dbuser",
-		dbpass:        "password",
-	}
-)

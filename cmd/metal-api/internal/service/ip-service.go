@@ -9,10 +9,12 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/tags"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"go.uber.org/zap"
 
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -123,8 +125,11 @@ func (ir ipResource) findIP(request *restful.Request, response *restful.Response
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir ipResource) listIPs(request *restful.Request, response *restful.Response) {
@@ -137,8 +142,11 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir ipResource) findIPs(request *restful.Request, response *restful.Response) {
@@ -158,8 +166,11 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir ipResource) freeIP(request *restful.Request, response *restful.Response) {
@@ -184,8 +195,11 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func validateIPDelete(ip *metal.IP) error {
@@ -300,8 +314,11 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewIPResponse(ip))
+	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewIPResponse(ip))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir ipResource) updateIP(request *restful.Request, response *restful.Response) {
@@ -334,8 +351,11 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
