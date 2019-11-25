@@ -226,10 +226,10 @@ func initEventBus() {
 			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
 		},
-		NSQ: &nsq2.Config{
-			WriteTimeout: writeTimeout,
-		},
+		NSQ: nsq2.NewConfig(),
 	}
+	publisherCfg.NSQ.WriteTimeout = writeTimeout
+
 	partitions := waitForPartitions()
 
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
