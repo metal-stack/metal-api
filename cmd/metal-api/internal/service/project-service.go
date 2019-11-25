@@ -12,6 +12,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -108,8 +109,11 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r projectResource) listProjects(request *restful.Request, response *restful.Response) {
@@ -117,8 +121,11 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponseList(ps, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponseList(ps, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r projectResource) findProjects(request *restful.Request, response *restful.Response) {
@@ -133,8 +140,11 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponseList(ps, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponseList(ps, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r projectResource) createProject(request *restful.Request, response *restful.Response) {
@@ -177,7 +187,11 @@ func (r projectResource) createProject(request *restful.Request, response *restf
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusCreated, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusCreated, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r projectResource) deleteProject(request *restful.Request, response *restful.Response) {
@@ -214,8 +228,11 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r projectResource) updateProject(request *restful.Request, response *restful.Response) {
@@ -243,8 +260,11 @@ func (r projectResource) updateProject(request *restful.Request, response *restf
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(&newProject, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(&newProject, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func makeProjectResponse(p *metal.Project, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.ProjectResponse {

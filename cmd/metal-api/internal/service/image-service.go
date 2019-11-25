@@ -8,8 +8,10 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -96,8 +98,11 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
@@ -110,8 +115,11 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 	for i := range imgs {
 		result = append(result, v1.NewImageResponse(&imgs[i]))
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
@@ -165,8 +173,11 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageResponse(img))
+	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageResponse(img))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
@@ -196,8 +207,11 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
@@ -239,6 +253,9 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(&newImage))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(&newImage))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }

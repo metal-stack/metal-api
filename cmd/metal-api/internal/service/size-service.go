@@ -8,8 +8,10 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"go.uber.org/zap"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -105,8 +107,11 @@ func (r sizeResource) findSize(request *restful.Request, response *restful.Respo
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r sizeResource) listSizes(request *restful.Request, response *restful.Response) {
@@ -119,8 +124,11 @@ func (r sizeResource) listSizes(request *restful.Request, response *restful.Resp
 	for i := range ss {
 		result = append(result, v1.NewSizeResponse(&ss[i]))
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r sizeResource) createSize(request *restful.Request, response *restful.Response) {
@@ -173,8 +181,11 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewSizeResponse(s))
+	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewSizeResponse(s))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
@@ -189,8 +200,11 @@ func (r sizeResource) deleteSize(request *restful.Request, response *restful.Res
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r sizeResource) updateSize(request *restful.Request, response *restful.Response) {
@@ -231,8 +245,11 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(&newSize))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(&newSize))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
@@ -254,5 +271,9 @@ func (r sizeResource) fromHardware(request *restful.Request, response *restful.R
 		}
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }

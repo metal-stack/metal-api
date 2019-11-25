@@ -79,18 +79,16 @@ type ProvisioningEvents []ProvisioningEvent
 
 // Is return true if given event is equal to specific EventType
 func (p ProvisioningEventType) Is(event string) bool {
-	if string(p) == event {
-		return true
-	}
-	return false
+	return string(p) == event
 }
 
-func (p provisioningEventSequence) firstEvent() *ProvisioningEventType {
-	if len(p) == 0 {
-		return nil
-	}
-	return &p[0]
-}
+// FIXME @gerrit this method is unused
+// func (p provisioningEventSequence) firstEvent() *ProvisioningEventType {
+// 	if len(p) == 0 {
+// 		return nil
+// 	}
+// 	return &p[0]
+// }
 
 func (p provisioningEventSequence) lastEvent() *ProvisioningEventType {
 	if len(p) == 0 {

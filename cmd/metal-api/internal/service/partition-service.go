@@ -6,12 +6,14 @@ import (
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"go.uber.org/zap"
 
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 
 	"fmt"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
@@ -113,8 +115,11 @@ func (r partitionResource) findPartition(request *restful.Request, response *res
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
@@ -127,8 +132,11 @@ func (r partitionResource) listPartitions(request *restful.Request, response *re
 	for i := range ps {
 		result = append(result, v1.NewPartitionResponse(&ps[i]))
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r partitionResource) createPartition(request *restful.Request, response *restful.Response) {
@@ -206,8 +214,11 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 			}
 		}
 	}
-
-	response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
+	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
@@ -222,8 +233,11 @@ func (r partitionResource) deletePartition(request *restful.Request, response *r
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
@@ -263,8 +277,11 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(&newPartition))
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(&newPartition))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
@@ -337,6 +354,9 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 		}
 		partitionCapacities = append(partitionCapacities, pc)
 	}
-
-	response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
+	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }

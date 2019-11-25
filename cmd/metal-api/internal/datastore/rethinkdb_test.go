@@ -10,6 +10,16 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
+var (
+	rethinkStore1 = RethinkStore{
+		SugaredLogger: zapup.MustRootLogger().Sugar(),
+		dbhost:        "dbhost",
+		dbname:        "dbname",
+		dbuser:        "dbuser",
+		dbpass:        "password",
+	}
+)
+
 func TestNew(t *testing.T) {
 	type args struct {
 		log    *zap.Logger

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
@@ -89,10 +88,18 @@ func sendErrorImpl(log *zap.Logger, rsp *restful.Response, opname string, errRsp
 	response, merr := json.Marshal(errRsp)
 	log.Error("service error", zap.String("operation", opname), zap.Int("status", errRsp.StatusCode), zap.String("error", errRsp.Message), zap.Stringer("service-caller", s), zap.String("resp", string(response)))
 	if merr != nil {
-		rsp.WriteError(http.StatusInternalServerError, fmt.Errorf("unable to format error string: %v", merr))
+		err := rsp.WriteError(http.StatusInternalServerError, fmt.Errorf("unable to format error string: %v", merr))
+		if err != nil {
+			log.Error("Failed to send response", zap.Error(err))
+			return
+		}
 		return
 	}
-	rsp.WriteErrorString(errRsp.StatusCode, string(response))
+	err := rsp.WriteErrorString(errRsp.StatusCode, string(response))
+	if err != nil {
+		log.Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func checkError(rq *restful.Request, rsp *restful.Response, opname string, err error) bool {
@@ -114,18 +121,6 @@ func checkError(rq *restful.Request, rsp *restful.Response, opname string, err e
 		return true
 	}
 	return false
-}
-
-func (wr *webResource) handleReflectResponse(opname string, req *restful.Request, response *restful.Response, res []reflect.Value) {
-	data := res[0].Interface()
-	var err error
-	if !res[1].IsNil() {
-		err = res[1].Elem().Interface().(error)
-	}
-	if checkError(req, response, opname, err) {
-		return
-	}
-	response.WriteEntity(data)
 }
 
 func viewer(rf restful.RouteFunction) restful.RouteFunction {
