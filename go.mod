@@ -1,7 +1,7 @@
 module git.f-i-ts.de/cloud-native/metal/metal-api
 
 require (
-	git.f-i-ts.de/cloud-native/metallib v0.2.3
+	git.f-i-ts.de/cloud-native/metallib v0.2.4
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -19,6 +19,7 @@ require (
 	github.com/metal-pod/go-ipam v1.3.0
 	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b
 	github.com/metal-pod/v v0.0.2
+	github.com/nsqio/go-nsq v1.0.7
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
