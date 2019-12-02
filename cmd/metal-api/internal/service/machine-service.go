@@ -648,7 +648,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		m.PartitionID = partition.ID
 		m.RackID = requestPayload.RackID
 		m.Hardware = machineHardware
-		m.Tags = requestPayload.Tags
 		m.IPMI = v1.NewMetalIPMI(&requestPayload.IPMI)
 
 		err = r.ds.UpdateMachine(&old, m)
