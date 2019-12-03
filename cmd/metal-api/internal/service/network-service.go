@@ -1,11 +1,15 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
+
+	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -20,15 +24,17 @@ import (
 type networkResource struct {
 	webResource
 	ipamer ipam.IPAMer
+	mdc    mdm.Client
 }
 
 // NewNetwork returns a webservice for network specific endpoints.
-func NewNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer) *restful.WebService {
+func NewNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
 	r := networkResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		ipamer: ipamer,
+		mdc:    mdc,
 	}
 	return r.webService()
 }
@@ -219,7 +225,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	nat := requestPayload.Nat
 
 	if projectID != "" {
-		_, err = r.ds.FindProjectByID(*requestPayload.ProjectID)
+		_, err = r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -408,7 +414,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		}
 	}
 
-	project, err := r.ds.FindProjectByID(projectID)
+	project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -431,7 +437,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 			Description: description,
 		},
 		PartitionID: partition.ID,
-		ProjectID:   project.ID,
+		ProjectID:   project.GetProject().GetMeta().GetId(),
 		Labels:      requestPayload.Labels,
 	}
 

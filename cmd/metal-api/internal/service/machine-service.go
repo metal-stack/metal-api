@@ -15,6 +15,9 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
 
+	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -37,6 +40,7 @@ type machineResource struct {
 	webResource
 	bus.Publisher
 	ipamer ipam.IPAMer
+	mdc    mdm.Client
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -112,13 +116,15 @@ type Allocator func(Allocation) error
 func NewMachine(
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
-	ipamer ipam.IPAMer) *restful.WebService {
+	ipamer ipam.IPAMer,
+	mdc mdm.Client) *restful.WebService {
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		Publisher: pub,
 		ipamer:    ipamer,
+		mdc:       mdc,
 	}
 	return r.webService()
 }
@@ -855,7 +861,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		IsFirewall:  false,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec)
+	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		// TODO: Trigger network garbage collection
 		utils.Logger(request).Sugar().Errorf("machine allocation went wrong, triggered network garbage collection", "error", err)
@@ -868,13 +874,13 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 }
 
-func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
+func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = ds.FindProjectByID(allocationSpec.ProjectID)
+	_, err = mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: allocationSpec.ProjectID})
 	if err != nil {
 		return nil, err
 	}

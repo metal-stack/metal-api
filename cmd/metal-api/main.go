@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	nsq2 "github.com/nsqio/go-nsq"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -12,21 +11,21 @@ import (
 	"syscall"
 	"time"
 
+	nsq2 "github.com/nsqio/go-nsq"
+
 	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
 
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"github.com/metal-pod/v"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.uber.org/zap"
-
+	"git.f-i-ts.de/cloud-native/masterdata-api/pkg/auth"
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
 	"git.f-i-ts.de/cloud-native/metallib/bus"
+	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"github.com/emicklei/go-restful"
@@ -34,8 +33,11 @@ import (
 	"github.com/go-openapi/spec"
 	goipam "github.com/metal-pod/go-ipam"
 	"github.com/metal-pod/security"
+	"github.com/metal-pod/v"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const (
@@ -50,7 +52,9 @@ var (
 	ipamer  *ipam.Ipam
 	nsqer   *eventbus.NSQClient
 	logger  = zapup.MustRootLogger().Sugar()
+	log     = zapup.MustRootLogger()
 	debug   = false
+	mdc     mdm.Client
 )
 
 var rootCmd = &cobra.Command{
@@ -63,6 +67,7 @@ var rootCmd = &cobra.Command{
 		initDataStore()
 		initEventBus()
 		initIpam()
+		initMasterData()
 		initSignalHandlers()
 		run()
 	},
@@ -132,7 +137,11 @@ func init() {
 	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
-	rootCmd.Flags().StringP("provider-tenant", "", "fits", "the tenant of the maas-provider who operates the whole thing")
+	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
+
+	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-addr", "", "masterdata:8443", "the address of masterdata-api in the form of host:port")
+	rootCmd.Flags().StringP("masterdata-certpath", "", "certs/server.pem", "the tls certificate to talk to the masterdata-api")
 
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
@@ -276,6 +285,27 @@ func initDataStore() {
 
 }
 
+func initMasterData() {
+	hmacKey := viper.GetString("masterdata-hmac")
+	addr := viper.GetString("masterdata-addr")
+	certpath := viper.GetString("masterdata-certpath")
+	if hmacKey == "" {
+		hmacKey = auth.HmacDefaultKey
+	}
+	if certpath == "" {
+		logger.Fatal("no certpath given")
+	}
+	if addr == "" {
+		logger.Fatal("no addr given")
+	}
+
+	var err error
+	mdc, err = mdm.NewClient(addr, certpath, hmacKey, log)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+}
+
 func initIpam() {
 	dbAdapter := viper.GetString("ipam-db")
 	if dbAdapter == "postgres" {
@@ -352,16 +382,15 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
-	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer))
-	restful.DefaultContainer.Add(service.NewIP(ds, ipamer))
+	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
+	restful.DefaultContainer.Add(service.NewIP(ds, ipamer, mdc))
 	var p bus.Publisher
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
-	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer))
-	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer))
+	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer, mdc))
+	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
-	restful.DefaultContainer.Add(service.NewProject(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
