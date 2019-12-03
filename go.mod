@@ -1,7 +1,9 @@
 module git.f-i-ts.de/cloud-native/metal/metal-api
 
+go 1.13
+
 require (
-	git.f-i-ts.de/cloud-native/masterdata-api v0.0.0
+	git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191203090425-ca071512c1d4
 	git.f-i-ts.de/cloud-native/metallib v0.2.5
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
@@ -36,9 +38,5 @@ require (
 
 exclude github.com/emicklei/go-restful-openapi v1.0.0
 
-replace git.f-i-ts.de/cloud-native/masterdata-api => ../../masterdata-api
-
 // required because by default viper depends on etcd v3.3.10 which has a corrupt sum
 replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.15+incompatible
-
-go 1.13
