@@ -2163,240 +2163,6 @@
         }
       }
     },
-    "/v1/project": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "project"
-        ],
-        "summary": "get all projects",
-        "operationId": "listProjects",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/v1.ProjectResponse"
-              }
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      },
-      "put": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "project"
-        ],
-        "summary": "create a project. if the given ID already exists a conflict is returned",
-        "operationId": "createProject",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.ProjectCreateRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/v1.ProjectResponse"
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "project"
-        ],
-        "summary": "updates a project. if the project was changed since this one was read, a conflict is returned",
-        "operationId": "updateProject",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.ProjectUpdateRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.ProjectResponse"
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/v1/project/find": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "project"
-        ],
-        "summary": "get all projects that match given properties",
-        "operationId": "findProjects",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.ProjectFindRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/v1.ProjectResponse"
-              }
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/v1/project/{id}": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "project"
-        ],
-        "summary": "get project by id",
-        "operationId": "findProject",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the project",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.ProjectResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      },
-      "delete": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "project"
-        ],
-        "summary": "deletes a project and returns the deleted entity",
-        "operationId": "deleteProject",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "identifier of the project",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.ProjectResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        }
-      }
-    },
     "/v1/size": {
       "get": {
         "consumes": [
@@ -2897,11 +2663,11 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
+        "ssh_pub_keys",
         "partitionid",
-        "imageid",
-        "projectid",
         "sizeid",
-        "ssh_pub_keys"
+        "imageid",
+        "projectid"
       ],
       "properties": {
         "description": {
@@ -2976,50 +2742,50 @@
     },
     "v1.FirewallFindRequest": {
       "required": [
-        "fru_board_part_number",
-        "state_value",
-        "ipmi_user",
+        "fru_chassis_part_serial",
+        "fru_product_part_number",
+        "nics_mac_addresses",
+        "tags",
         "network_underlay",
+        "network_prefixes",
+        "network_vrfs",
+        "allocation_hostname",
+        "network_ips",
+        "fru_product_manufacturer",
+        "fru_product_serial",
+        "state_value",
+        "ipmi_interface",
+        "fru_chassis_part_number",
+        "partition_id",
+        "allocation_succeeded",
+        "allocation_image_id",
+        "disk_names",
+        "id",
+        "fru_board_mfg",
+        "hardware_memory",
+        "nics_names",
+        "disk_sizes",
+        "hardware_cpu_cores",
         "nics_vrfs",
         "nics_neighbor_vrfs",
-        "allocation_succeeded",
-        "name",
-        "hardware_cpu_cores",
-        "nics_names",
-        "network_private",
-        "tags",
-        "network_ips",
-        "partition_id",
-        "allocation_project",
-        "fru_chassis_part_serial",
-        "fru_chassis_part_number",
-        "fru_board_mfg_serial",
         "network_ids",
-        "liveliness",
-        "nics_neighbor_mac_addresses",
-        "fru_product_part_number",
-        "allocation_name",
-        "ipmi_interface",
-        "network_vrfs",
-        "rackid",
-        "disk_sizes",
-        "network_destination_prefixes",
-        "network_asns",
-        "hardware_memory",
-        "fru_product_serial",
-        "fru_board_mfg",
-        "fru_product_manufacturer",
-        "id",
-        "disk_names",
-        "network_prefixes",
-        "nics_neighbor_names",
         "ipmi_address",
-        "allocation_hostname",
-        "nics_mac_addresses",
-        "ipmi_mac_address",
-        "sizeid",
+        "liveliness",
+        "network_destination_prefixes",
+        "allocation_name",
         "network_nat",
-        "allocation_image_id"
+        "rackid",
+        "fru_board_part_number",
+        "ipmi_user",
+        "fru_board_mfg_serial",
+        "sizeid",
+        "network_private",
+        "nics_neighbor_mac_addresses",
+        "allocation_project",
+        "nics_neighbor_names",
+        "network_asns",
+        "ipmi_mac_address",
+        "name"
       ],
       "properties": {
         "allocation_hostname": {
@@ -3205,19 +2971,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "hardware",
-        "size",
-        "created",
-        "allocation",
-        "events",
-        "changed",
-        "ledstate",
         "partition",
         "rackid",
+        "created",
+        "changed",
         "tags",
-        "liveliness",
+        "hardware",
         "state",
-        "id"
+        "liveliness",
+        "ledstate",
+        "allocation",
+        "events",
+        "id",
+        "size"
       ],
       "properties": {
         "allocation": {
@@ -3342,13 +3108,13 @@
     },
     "v1.IPFindRequest": {
       "required": [
+        "projectid",
         "type",
         "machineid",
         "ipaddress",
         "networkprefix",
         "networkid",
-        "tags",
-        "projectid"
+        "tags"
       ],
       "properties": {
         "ipaddress": {
@@ -3386,13 +3152,13 @@
     },
     "v1.IPResponse": {
       "required": [
+        "projectid",
         "networkid",
         "type",
         "tags",
-        "projectid",
         "ipaddress",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3518,8 +3284,8 @@
     "v1.ImageResponse": {
       "required": [
         "id",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -3776,50 +3542,50 @@
     },
     "v1.MachineFindRequest": {
       "required": [
-        "allocation_hostname",
-        "network_nat",
-        "nics_neighbor_names",
-        "fru_board_mfg_serial",
-        "fru_product_serial",
-        "partition_id",
-        "nics_vrfs",
-        "fru_product_manufacturer",
-        "sizeid",
-        "allocation_project",
-        "allocation_succeeded",
-        "network_prefixes",
-        "network_vrfs",
-        "allocation_name",
-        "network_ids",
-        "nics_mac_addresses",
+        "liveliness",
+        "hardware_memory",
         "disk_names",
         "ipmi_mac_address",
-        "fru_chassis_part_number",
-        "name",
-        "network_private",
-        "network_underlay",
-        "nics_neighbor_mac_addresses",
-        "disk_sizes",
-        "state_value",
-        "liveliness",
-        "network_ips",
-        "hardware_memory",
-        "nics_neighbor_vrfs",
-        "ipmi_interface",
-        "fru_chassis_part_serial",
-        "rackid",
-        "tags",
-        "hardware_cpu_cores",
-        "nics_names",
-        "ipmi_address",
-        "ipmi_user",
-        "fru_board_mfg",
+        "fru_board_part_number",
         "id",
         "allocation_image_id",
+        "allocation_hostname",
+        "network_ips",
+        "nics_names",
+        "ipmi_address",
+        "fru_product_manufacturer",
+        "allocation_name",
+        "allocation_project",
+        "network_underlay",
+        "state_value",
+        "fru_product_serial",
+        "network_nat",
+        "nics_mac_addresses",
+        "partition_id",
+        "sizeid",
+        "allocation_succeeded",
+        "network_prefixes",
         "network_destination_prefixes",
+        "network_vrfs",
+        "disk_sizes",
+        "fru_chassis_part_serial",
+        "fru_board_mfg",
+        "tags",
+        "network_private",
+        "ipmi_interface",
+        "name",
+        "nics_neighbor_names",
+        "nics_neighbor_vrfs",
+        "fru_board_mfg_serial",
+        "fru_product_part_number",
+        "rackid",
+        "network_ids",
         "network_asns",
-        "fru_board_part_number",
-        "fru_product_part_number"
+        "nics_neighbor_mac_addresses",
+        "ipmi_user",
+        "fru_chassis_part_number",
+        "hardware_cpu_cores",
+        "nics_vrfs"
       ],
       "properties": {
         "allocation_hostname": {
@@ -4393,16 +4159,16 @@
     "v1.MachineResponse": {
       "required": [
         "id",
-        "partition",
-        "rackid",
+        "size",
         "liveliness",
+        "ledstate",
         "events",
         "tags",
-        "size",
+        "partition",
+        "rackid",
         "hardware",
         "allocation",
         "state",
-        "ledstate",
         "created",
         "changed"
       ],
@@ -4530,12 +4296,12 @@
       "required": [
         "id",
         "labels",
-        "parentnetworkid",
         "prefixes",
         "destinationprefixes",
         "nat",
         "privatesuper",
-        "underlay"
+        "underlay",
+        "parentnetworkid"
       ],
       "properties": {
         "description": {
@@ -4609,18 +4375,18 @@
     },
     "v1.NetworkFindRequest": {
       "required": [
-        "name",
-        "partitionid",
-        "projectid",
-        "prefixes",
-        "nat",
-        "privatesuper",
-        "underlay",
-        "vrf",
         "parentnetworkid",
         "labels",
+        "partitionid",
+        "projectid",
+        "destinationprefixes",
+        "nat",
+        "privatesuper",
+        "vrf",
         "id",
-        "destinationprefixes"
+        "name",
+        "prefixes",
+        "underlay"
       ],
       "properties": {
         "destinationprefixes": {
@@ -4675,12 +4441,12 @@
       "required": [
         "id",
         "labels",
+        "destinationprefixes",
+        "nat",
         "privatesuper",
         "underlay",
         "parentnetworkid",
         "prefixes",
-        "destinationprefixes",
-        "nat",
         "usage",
         "created",
         "changed"
@@ -4979,113 +4745,6 @@
         },
         "name": {
           "description": "a readable name for this entity",
-          "type": "string"
-        }
-      }
-    },
-    "v1.ProjectCreateRequest": {
-      "required": [
-        "id",
-        "tenant"
-      ],
-      "properties": {
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "tenant": {
-          "description": "the tenant of this project.",
-          "type": "string"
-        }
-      }
-    },
-    "v1.ProjectFindRequest": {
-      "required": [
-        "tenant",
-        "id",
-        "name"
-      ],
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "tenant": {
-          "type": "string"
-        }
-      }
-    },
-    "v1.ProjectResponse": {
-      "required": [
-        "id",
-        "tenant",
-        "created",
-        "changed"
-      ],
-      "properties": {
-        "changed": {
-          "description": "the last changed timestamp of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "type": "string",
-          "format": "date-time",
-          "readOnly": true
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "tenant": {
-          "description": "the tenant of this project.",
-          "type": "string"
-        }
-      }
-    },
-    "v1.ProjectUpdateRequest": {
-      "required": [
-        "id",
-        "tenant"
-      ],
-      "properties": {
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
-        "tenant": {
-          "description": "the tenant of this project.",
           "type": "string"
         }
       }
