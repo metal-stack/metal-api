@@ -3,7 +3,7 @@ module git.f-i-ts.de/cloud-native/metal/metal-api
 go 1.13
 
 require (
-	git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191203090425-ca071512c1d4
+	git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191204093856-1ac0f2651279
 	git.f-i-ts.de/cloud-native/metallib v0.2.5
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
@@ -21,13 +21,9 @@ require (
 	github.com/metal-pod/security v0.0.0-20191127130239-3547755283e3
 	github.com/metal-pod/v v0.0.2
 	github.com/nsqio/go-nsq v1.0.7
-	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.2.1
-	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.5.0
 	github.com/stretchr/testify v1.4.0
 	github.com/testcontainers/testcontainers-go v0.0.8
