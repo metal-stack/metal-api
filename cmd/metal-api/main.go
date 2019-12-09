@@ -332,7 +332,6 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		}
 
 		user := defaultUsers.Get(u)
-		lg.Infow("add hmac user", "name", user.Name, "lifetime", lf, "mac", mackey)
 
 		auths = append(auths, security.WithHMAC(security.NewHMACAuth(
 			user.Name,
