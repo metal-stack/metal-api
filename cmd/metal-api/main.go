@@ -116,6 +116,8 @@ func init() {
 	rootCmd.Flags().StringP("ipam-db-user", "", "", "the database user to use")
 	rootCmd.Flags().StringP("ipam-db-password", "", "", "the database password to use")
 
+	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
+
 	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "nsqd:4150", "the TCP address of the nsqd")
 	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
@@ -187,7 +189,7 @@ func initMetrics() {
 	metricsServer.Handle("/pprof/goroutine", httppprof.Handler("goroutine"))
 
 	go func() {
-		err := http.ListenAndServe(":2112", metricsServer)
+		err := http.ListenAndServe(viper.GetString("metrics-server-bind-addr"), metricsServer)
 		if err != nil {
 			logger.Errorw("failed to start metrics endpoint", "error", err)
 		}
