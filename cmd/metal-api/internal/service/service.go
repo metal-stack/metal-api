@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
 	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
@@ -114,6 +115,18 @@ func checkError(rq *restful.Request, rsp *restful.Response, opname string, err e
 			return true
 		}
 		if metal.IsInternal(err) {
+			sendErrorImpl(log, rsp, opname, httperrors.InternalServerError(err), 2)
+			return true
+		}
+		if mdmv1.IsNotFound(err) {
+			sendErrorImpl(log, rsp, opname, httperrors.NotFound(err), 2)
+			return true
+		}
+		if mdmv1.IsConflict(err) {
+			sendErrorImpl(log, rsp, opname, httperrors.Conflict(err), 2)
+			return true
+		}
+		if mdmv1.IsInternal(err) {
 			sendErrorImpl(log, rsp, opname, httperrors.InternalServerError(err), 2)
 			return true
 		}
