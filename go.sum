@@ -17,6 +17,8 @@ git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191204093856-1ac0f2651279 h1:
 git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191204093856-1ac0f2651279/go.mod h1:fcHIEnWapQWB5HrAlbUdYSQW11b4XIJ0QeP1r1aDIIU=
 git.f-i-ts.de/cloud-native/metallib v0.2.5 h1:idBFjOypj7F4QfeXWEROPzSGG+z+SUkkYYN8WRjBs00=
 git.f-i-ts.de/cloud-native/metallib v0.2.5/go.mod h1:+0B2B4+nVW+U9o9VsqE0JCo271Fhih8taqCm/SFwg1c=
+git.f-i-ts.de/cloud-native/metallib v0.2.6 h1:LUxyUU1MrzDdPdBNUmULRIX37ByyZo35eItdUzaYdpw=
+git.f-i-ts.de/cloud-native/metallib v0.2.6/go.mod h1:+0B2B4+nVW+U9o9VsqE0JCo271Fhih8taqCm/SFwg1c=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 h1:w+iIsaOQNcT7OZ575w+acHgRric5iCyQh+xv+KJ4HB8=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78/go.mod h1:LmzpDX56iTiv29bbRTIsUNlaFfuhWRQBWjQdVyAevI8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=

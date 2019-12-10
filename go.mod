@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191204093856-1ac0f2651279
-	git.f-i-ts.de/cloud-native/metallib v0.2.5
+	git.f-i-ts.de/cloud-native/metallib v0.2.6
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
