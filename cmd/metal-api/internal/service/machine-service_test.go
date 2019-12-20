@@ -995,79 +995,14 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		errRegex               string
 	}{
 		{
-			name: "no networks and ips given (implicit private network creation)",
+			name: "no networks given",
 			allocationSpec: &machineAllocationSpec{
 				Networks: v1.MachineAllocationNetworks{},
 			},
 			partition:              &testdata.Partition1,
 			partitionSuperNetworks: partitionSuperNetworks,
-			mocks: []mock{
-				mock{
-					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
-					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
-					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
-				},
-			},
-			wantErr: false,
-			want: allocationNetworkMap{
-				"implicitly-acquired-network": &allocationNetwork{
-					network:        &metal.Network{},
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
-				},
-			},
-		},
-		{
-			name: "no networks but existing ip given",
-			allocationSpec: &machineAllocationSpec{
-				Networks:  v1.MachineAllocationNetworks{},
-				IPs:       []string{testdata.IP1.IPAddress},
-				ProjectID: testdata.IP1.ProjectID,
-			},
-			partition:              &testdata.Partition1,
-			partitionSuperNetworks: partitionSuperNetworks,
-			mocks: []mock{
-				mock{
-					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
-					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
-					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
-				},
-			},
-			wantErr:  true,
-			errRegex: "given ip .* is not in any of the given networks",
-		},
-		{
-			name: "no networks and no existing ip given",
-			allocationSpec: &machineAllocationSpec{
-				Networks: v1.MachineAllocationNetworks{},
-				IPs:      []string{"127.0.0.1"},
-			},
-			partition:              &testdata.Partition1,
-			partitionSuperNetworks: partitionSuperNetworks,
-			mocks: []mock{
-				mock{
-					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
-					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
-					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("ip").Get("127.0.0.1"),
-					response: nil,
-				},
-			},
-			wantErr:  true,
-			errRegex: "NotFound",
+			wantErr:                true,
+			errRegex:               "no private network given",
 		},
 		{
 			name: "private network given",
@@ -1143,6 +1078,23 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 					isPrivate:      false,
 				},
 			},
+		},
+		{
+			name: "ip which does not belong to any related network given",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+				IPs:       []string{testdata.Partition2InternetIP.IPAddress},
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "given ip .* is not in any of the given networks",
 		},
 		{
 			name: "private network and internet network with no auto acquired internet ip",
@@ -1286,12 +1238,10 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			for _, testMock := range tt.mocks {
 				mock.On(testMock.term).Return(testMock.response, testMock.err)
 			}
-			ipamer, err := testdata.InitMockIpamData(mock, false)
-			require.Nil(t, err)
 			testdata.InitMockDBData(mock)
 
 			// run
-			got, err := gatherNetworksFromSpec(ds, ipamer, tt.allocationSpec, tt.partition, tt.partitionSuperNetworks)
+			got, err := gatherNetworksFromSpec(ds, tt.allocationSpec, tt.partition, tt.partitionSuperNetworks)
 
 			// verify
 			if err != nil {
