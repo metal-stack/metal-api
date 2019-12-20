@@ -178,7 +178,7 @@
         "tags": [
           "health"
         ],
-        "summary": "perform a healtcheck",
+        "summary": "perform a healthcheck",
         "operationId": "health",
         "responses": {
           "200": {
@@ -818,6 +818,48 @@
         }
       }
     },
+    "/v1/machine/ipmi/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "machine"
+        ],
+        "summary": "returns machines including the ipmi connection data",
+        "operationId": "findIPMIMachines",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineFindRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.MachineIPMIResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/machine/liveliness": {
       "post": {
         "consumes": [
@@ -1163,8 +1205,8 @@
         "tags": [
           "machine"
         ],
-        "summary": "returns the IPMI connection data for a machine",
-        "operationId": "ipmiData",
+        "summary": "returns a machine including the ipmi connection data",
+        "operationId": "findIPMIMachine",
         "parameters": [
           {
             "type": "string",
@@ -1178,7 +1220,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineIPMI"
+              "$ref": "#/definitions/v1.MachineIPMIResponse"
             }
           },
           "default": {
@@ -2589,10 +2631,14 @@
     },
     "rest.status": {
       "required": [
+        "status",
         "message"
       ],
       "properties": {
         "message": {
+          "type": "string"
+        },
+        "status": {
           "type": "string"
         }
       }
@@ -2663,11 +2709,11 @@
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
       "required": [
-        "ssh_pub_keys",
+        "projectid",
         "partitionid",
         "sizeid",
         "imageid",
-        "projectid"
+        "ssh_pub_keys"
       ],
       "properties": {
         "description": {
@@ -2742,50 +2788,50 @@
     },
     "v1.FirewallFindRequest": {
       "required": [
-        "fru_chassis_part_serial",
-        "fru_product_part_number",
-        "nics_mac_addresses",
-        "tags",
-        "network_underlay",
-        "network_prefixes",
-        "network_vrfs",
-        "allocation_hostname",
-        "network_ips",
-        "fru_product_manufacturer",
-        "fru_product_serial",
-        "state_value",
-        "ipmi_interface",
-        "fru_chassis_part_number",
-        "partition_id",
-        "allocation_succeeded",
-        "allocation_image_id",
-        "disk_names",
-        "id",
-        "fru_board_mfg",
         "hardware_memory",
-        "nics_names",
-        "disk_sizes",
-        "hardware_cpu_cores",
-        "nics_vrfs",
-        "nics_neighbor_vrfs",
-        "network_ids",
+        "network_asns",
+        "nics_mac_addresses",
         "ipmi_address",
-        "liveliness",
+        "partition_id",
+        "fru_chassis_part_serial",
+        "nics_neighbor_names",
+        "network_vrfs",
+        "state_value",
+        "fru_board_part_number",
+        "name",
+        "fru_board_mfg",
+        "nics_neighbor_vrfs",
+        "fru_product_part_number",
+        "allocation_project",
+        "ipmi_interface",
+        "nics_names",
+        "id",
+        "sizeid",
+        "allocation_image_id",
+        "network_ids",
+        "fru_product_manufacturer",
+        "rackid",
+        "network_prefixes",
+        "nics_vrfs",
+        "fru_chassis_part_number",
+        "allocation_hostname",
+        "network_underlay",
         "network_destination_prefixes",
+        "liveliness",
+        "tags",
+        "fru_board_mfg_serial",
+        "ipmi_mac_address",
+        "nics_neighbor_mac_addresses",
+        "disk_sizes",
+        "network_private",
         "allocation_name",
         "network_nat",
-        "rackid",
-        "fru_board_part_number",
         "ipmi_user",
-        "fru_board_mfg_serial",
-        "sizeid",
-        "network_private",
-        "nics_neighbor_mac_addresses",
-        "allocation_project",
-        "nics_neighbor_names",
-        "network_asns",
-        "ipmi_mac_address",
-        "name"
+        "hardware_cpu_cores",
+        "disk_names",
+        "network_ips",
+        "allocation_succeeded",
+        "fru_product_serial"
       ],
       "properties": {
         "allocation_hostname": {
@@ -2971,24 +3017,29 @@
     },
     "v1.FirewallResponse": {
       "required": [
-        "partition",
-        "rackid",
-        "created",
-        "changed",
         "tags",
         "hardware",
-        "state",
-        "liveliness",
-        "ledstate",
-        "allocation",
         "events",
+        "partition",
+        "rackid",
+        "size",
+        "ledstate",
+        "bios",
+        "state",
+        "created",
+        "changed",
         "id",
-        "size"
+        "liveliness",
+        "allocation"
       ],
       "properties": {
         "allocation": {
           "description": "the allocation data of an allocated machine",
           "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "bios": {
+          "description": "bios information of this machine",
+          "$ref": "#/definitions/v1.MachineBIOS"
         },
         "changed": {
           "description": "the last changed timestamp of this entity",
@@ -3108,13 +3159,13 @@
     },
     "v1.IPFindRequest": {
       "required": [
-        "projectid",
-        "type",
-        "machineid",
         "ipaddress",
         "networkprefix",
         "networkid",
-        "tags"
+        "tags",
+        "projectid",
+        "type",
+        "machineid"
       ],
       "properties": {
         "ipaddress": {
@@ -3513,6 +3564,28 @@
         }
       }
     },
+    "v1.MachineBIOS": {
+      "description": "The bios version",
+      "required": [
+        "version",
+        "vendor",
+        "date"
+      ],
+      "properties": {
+        "date": {
+          "description": "the bios date",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "the bios vendor",
+          "type": "string"
+        },
+        "version": {
+          "description": "the bios version",
+          "type": "string"
+        }
+      }
+    },
     "v1.MachineBlockDevice": {
       "required": [
         "name",
@@ -3542,50 +3615,50 @@
     },
     "v1.MachineFindRequest": {
       "required": [
-        "liveliness",
-        "hardware_memory",
-        "disk_names",
-        "ipmi_mac_address",
-        "fru_board_part_number",
-        "id",
-        "allocation_image_id",
-        "allocation_hostname",
-        "network_ips",
-        "nics_names",
-        "ipmi_address",
-        "fru_product_manufacturer",
-        "allocation_name",
-        "allocation_project",
         "network_underlay",
-        "state_value",
+        "fru_board_mfg_serial",
         "fru_product_serial",
-        "network_nat",
-        "nics_mac_addresses",
-        "partition_id",
-        "sizeid",
-        "allocation_succeeded",
-        "network_prefixes",
-        "network_destination_prefixes",
-        "network_vrfs",
-        "disk_sizes",
-        "fru_chassis_part_serial",
-        "fru_board_mfg",
+        "allocation_image_id",
         "tags",
         "network_private",
-        "ipmi_interface",
-        "name",
+        "hardware_memory",
+        "nics_names",
         "nics_neighbor_names",
         "nics_neighbor_vrfs",
-        "fru_board_mfg_serial",
-        "fru_product_part_number",
-        "rackid",
-        "network_ids",
-        "network_asns",
-        "nics_neighbor_mac_addresses",
-        "ipmi_user",
         "fru_chassis_part_number",
+        "liveliness",
+        "fru_board_mfg",
+        "allocation_name",
+        "allocation_hostname",
+        "network_asns",
+        "network_nat",
         "hardware_cpu_cores",
-        "nics_vrfs"
+        "disk_names",
+        "disk_sizes",
+        "rackid",
+        "fru_chassis_part_serial",
+        "ipmi_address",
+        "network_ids",
+        "network_ips",
+        "network_vrfs",
+        "nics_vrfs",
+        "partition_id",
+        "sizeid",
+        "allocation_project",
+        "nics_neighbor_mac_addresses",
+        "fru_board_part_number",
+        "fru_product_part_number",
+        "id",
+        "network_prefixes",
+        "network_destination_prefixes",
+        "nics_mac_addresses",
+        "ipmi_user",
+        "ipmi_interface",
+        "name",
+        "state_value",
+        "ipmi_mac_address",
+        "fru_product_manufacturer",
+        "allocation_succeeded"
       ],
       "properties": {
         "allocation_hostname": {
@@ -3841,9 +3914,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
+        "disks",
         "memory",
         "cpu_cores",
-        "disks",
         "nics"
       ],
       "properties": {
@@ -3880,10 +3953,14 @@
         "user",
         "password",
         "interface",
-        "fru"
+        "fru",
+        "bmcversion"
       ],
       "properties": {
         "address": {
+          "type": "string"
+        },
+        "bmcversion": {
           "type": "string"
         },
         "fru": {
@@ -3900,6 +3977,106 @@
         },
         "user": {
           "type": "string"
+        }
+      }
+    },
+    "v1.MachineIPMIResponse": {
+      "required": [
+        "id",
+        "size",
+        "allocation",
+        "ledstate",
+        "liveliness",
+        "events",
+        "partition",
+        "rackid",
+        "hardware",
+        "bios",
+        "state",
+        "tags",
+        "ipmi",
+        "created",
+        "changed"
+      ],
+      "properties": {
+        "allocation": {
+          "description": "the allocation data of an allocated machine",
+          "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "bios": {
+          "description": "bios information of this machine",
+          "$ref": "#/definitions/v1.MachineBIOS"
+        },
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "events": {
+          "description": "recent events of this machine during provisioning",
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+        },
+        "hardware": {
+          "description": "the hardware of this machine",
+          "$ref": "#/definitions/v1.MachineHardware"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "ipmi": {
+          "description": "ipmi information of this machine",
+          "$ref": "#/definitions/v1.MachineIPMI"
+        },
+        "ledstate": {
+          "description": "the state of this chassis identify LED",
+          "$ref": "#/definitions/v1.ChassisIdentifyLEDState"
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "partition": {
+          "description": "the partition assigned to this machine",
+          "$ref": "#/definitions/v1.PartitionResponse",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "type": "string",
+          "readOnly": true
+        },
+        "size": {
+          "description": "the size of this machine",
+          "$ref": "#/definitions/v1.SizeResponse",
+          "readOnly": true
+        },
+        "state": {
+          "description": "the state of this machine",
+          "$ref": "#/definitions/v1.MachineState"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -4123,10 +4300,15 @@
         "partitionid",
         "rackid",
         "hardware",
+        "bios",
         "ipmi",
         "tags"
       ],
       "properties": {
+        "bios": {
+          "description": "bios information of this machine",
+          "$ref": "#/definitions/v1.MachineBIOS"
+        },
         "hardware": {
           "description": "the hardware of this machine",
           "$ref": "#/definitions/v1.MachineHardwareExtended"
@@ -4159,16 +4341,17 @@
     "v1.MachineResponse": {
       "required": [
         "id",
+        "tags",
         "size",
-        "liveliness",
+        "hardware",
+        "bios",
+        "allocation",
         "ledstate",
         "events",
-        "tags",
         "partition",
         "rackid",
-        "hardware",
-        "allocation",
         "state",
+        "liveliness",
         "created",
         "changed"
       ],
@@ -4176,6 +4359,10 @@
         "allocation": {
           "description": "the allocation data of an allocated machine",
           "$ref": "#/definitions/v1.MachineAllocation"
+        },
+        "bios": {
+          "description": "bios information of this machine",
+          "$ref": "#/definitions/v1.MachineBIOS"
         },
         "changed": {
           "description": "the last changed timestamp of this entity",
@@ -4296,12 +4483,12 @@
       "required": [
         "id",
         "labels",
-        "prefixes",
         "destinationprefixes",
         "nat",
         "privatesuper",
         "underlay",
-        "parentnetworkid"
+        "parentnetworkid",
+        "prefixes"
       ],
       "properties": {
         "description": {
@@ -4375,18 +4562,18 @@
     },
     "v1.NetworkFindRequest": {
       "required": [
-        "parentnetworkid",
-        "labels",
-        "partitionid",
-        "projectid",
         "destinationprefixes",
         "nat",
         "privatesuper",
+        "underlay",
         "vrf",
-        "id",
         "name",
+        "partitionid",
         "prefixes",
-        "underlay"
+        "parentnetworkid",
+        "labels",
+        "id",
+        "projectid"
       ],
       "properties": {
         "destinationprefixes": {
@@ -4441,12 +4628,12 @@
       "required": [
         "id",
         "labels",
+        "prefixes",
         "destinationprefixes",
         "nat",
         "privatesuper",
         "underlay",
         "parentnetworkid",
-        "prefixes",
         "usage",
         "created",
         "changed"
@@ -4675,8 +4862,8 @@
       "required": [
         "id",
         "bootconfig",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "bootconfig": {
@@ -4877,8 +5064,8 @@
       "required": [
         "id",
         "constraints",
-        "created",
-        "changed"
+        "changed",
+        "created"
       ],
       "properties": {
         "changed": {
