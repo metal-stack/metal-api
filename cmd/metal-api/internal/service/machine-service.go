@@ -878,10 +878,35 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if err != nil {
 		return nil, err
 	}
-
-	_, err = mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: allocationSpec.ProjectID})
+	projectID := allocationSpec.ProjectID
+	p, err := mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if more machine would be allocated than project quota permits
+	if p.GetProject() != nil && p.GetProject().GetQuotas() != nil && p.GetProject().GetQuotas().GetMachine() != nil {
+		mq := p.GetProject().GetQuotas().GetMachine()
+		maxMachines := mq.GetQuota().GetValue()
+		var actualMachines *metal.Machines
+		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, actualMachines)
+		if err != nil {
+			return nil, err
+		}
+		machineCount := int32(-1)
+		imageMap, err := ds.ListImages()
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range *actualMachines {
+			if m.IsFirewall(imageMap.ByID()) {
+				continue
+			}
+			machineCount++
+		}
+		if machineCount >= maxMachines {
+			return nil, fmt.Errorf("project quota for machines reached max:%d", maxMachines)
+		}
 	}
 
 	machineCandidate, err := findMachineCandidate(ds, allocationSpec)
@@ -903,7 +928,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		Name:            allocationSpec.Name,
 		Description:     allocationSpec.Description,
 		Hostname:        allocationSpec.Hostname,
-		Project:         allocationSpec.ProjectID,
+		Project:         projectID,
 		ImageID:         allocationSpec.Image.ID,
 		UserData:        allocationSpec.UserData,
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
