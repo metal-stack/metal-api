@@ -80,7 +80,7 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, p)
+	response.WriteHeaderAndEntity(http.StatusOK, p.Project)
 }
 
 func (r projectResource) listProjects(request *restful.Request, response *restful.Response) {
@@ -89,7 +89,7 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, ps)
+	response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
 }
 
 func (r projectResource) findProjects(request *restful.Request, response *restful.Response) {
@@ -104,5 +104,5 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, ps)
+	response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
 }
