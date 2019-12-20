@@ -390,6 +390,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		p = nsqer.Publisher
 	}
 	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer, mdc))
+	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))

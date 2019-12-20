@@ -2205,6 +2205,118 @@
         }
       }
     },
+    "/v1/project": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "get all projects",
+        "operationId": "listProjects",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.ProjectResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "get all projects that match given properties",
+        "operationId": "findProjects",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.ProjectFindRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/v1.ProjectResponse"
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "project"
+        ],
+        "summary": "get project by id",
+        "operationId": "findProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "identifier of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.ProjectResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/size": {
       "get": {
         "consumes": [
@@ -2669,6 +2781,18 @@
         }
       }
     },
+    "timestamp.Timestamp": {
+      "properties": {
+        "nanos": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "seconds": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
     "v1.BGPFilter": {
       "required": [
         "cidrs"
@@ -2710,9 +2834,9 @@
     "v1.FirewallCreateRequest": {
       "required": [
         "projectid",
-        "partitionid",
         "sizeid",
         "imageid",
+        "partitionid",
         "ssh_pub_keys"
       ],
       "properties": {
@@ -2788,50 +2912,50 @@
     },
     "v1.FirewallFindRequest": {
       "required": [
-        "hardware_memory",
-        "network_asns",
-        "nics_mac_addresses",
-        "ipmi_address",
-        "partition_id",
-        "fru_chassis_part_serial",
-        "nics_neighbor_names",
-        "network_vrfs",
-        "state_value",
-        "fru_board_part_number",
+        "fru_product_serial",
+        "network_ips",
+        "nics_names",
+        "ipmi_mac_address",
+        "rackid",
         "name",
+        "network_ids",
+        "allocation_hostname",
+        "network_prefixes",
+        "network_private",
+        "ipmi_address",
+        "fru_product_manufacturer",
+        "network_asns",
+        "partition_id",
+        "allocation_succeeded",
+        "allocation_image_id",
+        "nics_neighbor_names",
+        "ipmi_interface",
+        "fru_board_mfg_serial",
+        "nics_vrfs",
+        "fru_chassis_part_serial",
         "fru_board_mfg",
+        "tags",
         "nics_neighbor_vrfs",
+        "id",
+        "fru_chassis_part_number",
+        "nics_mac_addresses",
+        "allocation_name",
+        "nics_neighbor_mac_addresses",
+        "fru_board_part_number",
+        "hardware_memory",
+        "disk_names",
+        "network_destination_prefixes",
+        "network_underlay",
+        "network_nat",
+        "network_vrfs",
         "fru_product_part_number",
         "allocation_project",
-        "ipmi_interface",
-        "nics_names",
-        "id",
-        "sizeid",
-        "allocation_image_id",
-        "network_ids",
-        "fru_product_manufacturer",
-        "rackid",
-        "network_prefixes",
-        "nics_vrfs",
-        "fru_chassis_part_number",
-        "allocation_hostname",
-        "network_underlay",
-        "network_destination_prefixes",
-        "liveliness",
-        "tags",
-        "fru_board_mfg_serial",
-        "ipmi_mac_address",
-        "nics_neighbor_mac_addresses",
-        "disk_sizes",
-        "network_private",
-        "allocation_name",
-        "network_nat",
-        "ipmi_user",
         "hardware_cpu_cores",
-        "disk_names",
-        "network_ips",
-        "allocation_succeeded",
-        "fru_product_serial"
+        "liveliness",
+        "disk_sizes",
+        "ipmi_user",
+        "state_value",
+        "sizeid"
       ],
       "properties": {
         "allocation_hostname": {
@@ -3017,19 +3141,19 @@
     },
     "v1.FirewallResponse": {
       "required": [
+        "size",
+        "id",
+        "ledstate",
         "tags",
-        "hardware",
-        "events",
         "partition",
         "rackid",
-        "size",
-        "ledstate",
-        "bios",
-        "state",
+        "liveliness",
         "created",
         "changed",
-        "id",
-        "liveliness",
+        "events",
+        "hardware",
+        "bios",
+        "state",
         "allocation"
       ],
       "properties": {
@@ -3112,10 +3236,10 @@
     },
     "v1.IPAllocateRequest": {
       "required": [
+        "tags",
         "projectid",
         "networkid",
         "type",
-        "tags",
         "machineid"
       ],
       "properties": {
@@ -3159,13 +3283,13 @@
     },
     "v1.IPFindRequest": {
       "required": [
-        "ipaddress",
-        "networkprefix",
-        "networkid",
         "tags",
         "projectid",
         "type",
-        "machineid"
+        "machineid",
+        "ipaddress",
+        "networkprefix",
+        "networkid"
       ],
       "properties": {
         "ipaddress": {
@@ -3615,50 +3739,50 @@
     },
     "v1.MachineFindRequest": {
       "required": [
-        "network_underlay",
-        "fru_board_mfg_serial",
-        "fru_product_serial",
-        "allocation_image_id",
-        "tags",
-        "network_private",
-        "hardware_memory",
-        "nics_names",
-        "nics_neighbor_names",
-        "nics_neighbor_vrfs",
-        "fru_chassis_part_number",
-        "liveliness",
-        "fru_board_mfg",
-        "allocation_name",
         "allocation_hostname",
-        "network_asns",
+        "network_private",
         "network_nat",
-        "hardware_cpu_cores",
-        "disk_names",
         "disk_sizes",
-        "rackid",
-        "fru_chassis_part_serial",
-        "ipmi_address",
+        "fru_board_part_number",
         "network_ids",
-        "network_ips",
-        "network_vrfs",
-        "nics_vrfs",
-        "partition_id",
+        "hardware_memory",
+        "nics_neighbor_vrfs",
+        "disk_names",
+        "state_value",
         "sizeid",
         "allocation_project",
-        "nics_neighbor_mac_addresses",
-        "fru_board_part_number",
+        "allocation_succeeded",
+        "network_underlay",
+        "nics_names",
+        "fru_chassis_part_serial",
         "fru_product_part_number",
         "id",
+        "network_ips",
+        "nics_neighbor_mac_addresses",
+        "ipmi_interface",
+        "fru_chassis_part_number",
+        "fru_product_serial",
+        "liveliness",
+        "nics_mac_addresses",
+        "ipmi_address",
+        "fru_board_mfg",
+        "fru_product_manufacturer",
+        "name",
+        "rackid",
+        "tags",
+        "nics_vrfs",
+        "nics_neighbor_names",
+        "fru_board_mfg_serial",
+        "partition_id",
+        "allocation_name",
+        "allocation_image_id",
+        "ipmi_mac_address",
+        "ipmi_user",
         "network_prefixes",
         "network_destination_prefixes",
-        "nics_mac_addresses",
-        "ipmi_user",
-        "ipmi_interface",
-        "name",
-        "state_value",
-        "ipmi_mac_address",
-        "fru_product_manufacturer",
-        "allocation_succeeded"
+        "network_vrfs",
+        "network_asns",
+        "hardware_cpu_cores"
       ],
       "properties": {
         "allocation_hostname": {
@@ -3914,9 +4038,9 @@
     },
     "v1.MachineHardwareExtended": {
       "required": [
-        "disks",
         "memory",
         "cpu_cores",
+        "disks",
         "nics"
       ],
       "properties": {
@@ -3983,17 +4107,17 @@
     "v1.MachineIPMIResponse": {
       "required": [
         "id",
-        "size",
-        "allocation",
+        "state",
         "ledstate",
         "liveliness",
-        "events",
+        "tags",
         "partition",
+        "size",
+        "bios",
+        "allocation",
+        "events",
         "rackid",
         "hardware",
-        "bios",
-        "state",
-        "tags",
         "ipmi",
         "created",
         "changed"
@@ -4342,16 +4466,16 @@
       "required": [
         "id",
         "tags",
+        "partition",
+        "rackid",
         "size",
         "hardware",
+        "state",
+        "liveliness",
         "bios",
         "allocation",
         "ledstate",
         "events",
-        "partition",
-        "rackid",
-        "state",
-        "liveliness",
         "created",
         "changed"
       ],
@@ -4449,6 +4573,29 @@
         }
       }
     },
+    "v1.Meta": {
+      "properties": {
+        "apiversion": {
+          "type": "string"
+        },
+        "created_time": {
+          "$ref": "#/definitions/timestamp.Timestamp"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "updated_time": {
+          "$ref": "#/definitions/timestamp.Timestamp"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
     "v1.NetworkAllocateRequest": {
       "required": [
         "labels"
@@ -4483,12 +4630,12 @@
       "required": [
         "id",
         "labels",
-        "destinationprefixes",
-        "nat",
-        "privatesuper",
         "underlay",
         "parentnetworkid",
-        "prefixes"
+        "prefixes",
+        "destinationprefixes",
+        "nat",
+        "privatesuper"
       ],
       "properties": {
         "description": {
@@ -4562,18 +4709,18 @@
     },
     "v1.NetworkFindRequest": {
       "required": [
-        "destinationprefixes",
+        "id",
         "nat",
         "privatesuper",
+        "labels",
+        "destinationprefixes",
         "underlay",
         "vrf",
+        "parentnetworkid",
         "name",
         "partitionid",
-        "prefixes",
-        "parentnetworkid",
-        "labels",
-        "id",
-        "projectid"
+        "projectid",
+        "prefixes"
       ],
       "properties": {
         "destinationprefixes": {
@@ -4862,8 +5009,8 @@
       "required": [
         "id",
         "bootconfig",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "bootconfig": {
@@ -4933,6 +5080,61 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        }
+      }
+    },
+    "v1.ProjectFindRequest": {
+      "properties": {
+        "description": {
+          "$ref": "#/definitions/wrappers.StringValue"
+        },
+        "id": {
+          "$ref": "#/definitions/wrappers.StringValue"
+        },
+        "name": {
+          "$ref": "#/definitions/wrappers.StringValue"
+        },
+        "tenant_id": {
+          "$ref": "#/definitions/wrappers.StringValue"
+        }
+      }
+    },
+    "v1.ProjectResponse": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.Quota": {
+      "properties": {
+        "quota": {
+          "$ref": "#/definitions/wrappers.Int32Value"
+        }
+      }
+    },
+    "v1.QuotaSet": {
+      "properties": {
+        "cluster": {
+          "$ref": "#/definitions/v1.Quota"
+        },
+        "ip": {
+          "$ref": "#/definitions/v1.Quota"
+        },
+        "machine": {
+          "$ref": "#/definitions/v1.Quota"
         }
       }
     },
@@ -5064,8 +5266,8 @@
       "required": [
         "id",
         "constraints",
-        "changed",
-        "created"
+        "created",
+        "changed"
       ],
       "properties": {
         "changed": {
@@ -5262,6 +5464,21 @@
         },
         "rack_id": {
           "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        }
+      }
+    },
+    "wrappers.Int32Value": {
+      "properties": {
+        "value": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "wrappers.StringValue": {
+      "properties": {
+        "value": {
           "type": "string"
         }
       }

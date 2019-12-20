@@ -13,8 +13,6 @@ cloud.google.com/go/datastore v1.0.0/go.mod h1:LXYbyblFSglQ5pkeyhO+Qmw7ukd3C+pD7
 cloud.google.com/go/pubsub v1.0.1/go.mod h1:R0Gpsv3s54REJCy4fxDixWD93lHJMoZTyQ2kNxGRt3I=
 cloud.google.com/go/storage v1.0.0/go.mod h1:IhtSnM/ZTZV8YYJWCY8RULGVqBDmpoyjwiyrjsg+URw=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191210123635-369ca5ba87ba h1:fgMKoqp2ZyS5iNV+V5TVufQ4CjuBEMKtIadFy9ZvW84=
-git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191210123635-369ca5ba87ba/go.mod h1:rxUhPENSAp2UfrNfVvqzWOfxKAl1bEbXqOo2HDDhkAY=
 git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191210183105-f59535bc5f7a h1:exyjwZ3ZmaxEtDp8/06M+2C/FUWpcPtwnDRChS8N48k=
 git.f-i-ts.de/cloud-native/masterdata-api v0.0.0-20191210183105-f59535bc5f7a/go.mod h1:GkuSi3OrJfXDzpGje2bzEc9wyD5RakixkkC2xoFQYm4=
 git.f-i-ts.de/cloud-native/metallib v0.2.5 h1:idBFjOypj7F4QfeXWEROPzSGG+z+SUkkYYN8WRjBs00=
