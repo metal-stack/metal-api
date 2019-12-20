@@ -229,15 +229,6 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/ipmi").
-		To(viewer(r.ipmiData)).
-		Operation("ipmiData").
-		Doc("returns the IPMI connection data for a machine").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Returns(http.StatusOK, "OK", v1.MachineIPMI{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	ws.Route(ws.POST("/ipmi").
 		To(editor(r.ipmiReport)).
 		Operation("ipmiReport").
@@ -245,6 +236,26 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineIpmiReport{}).
 		Returns(http.StatusOK, "OK", v1.MachineIpmiReportResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/{id}/ipmi").
+		To(viewer(r.findIPMIMachine)).
+		Operation("findIPMIMachine").
+		Doc("returns a machine including the ipmi connection data").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineIPMIResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineIPMIResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/ipmi/find").
+		To(viewer(r.findIPMIMachines)).
+		Operation("findIPMIMachines").
+		Doc("returns machines including the ipmi connection data").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineFindRequest{}).
+		Writes([]v1.MachineIPMIResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineIPMIResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/wait").
@@ -628,6 +639,11 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			PartitionID: partition.ID,
 			RackID:      requestPayload.RackID,
 			Hardware:    machineHardware,
+			BIOS: metal.BIOS{
+				Version: requestPayload.BIOS.Version,
+				Vendor:  requestPayload.BIOS.Vendor,
+				Date:    requestPayload.BIOS.Date,
+			},
 			State: metal.MachineState{
 				Value: metal.AvailableState,
 			},
@@ -654,6 +670,9 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		m.PartitionID = partition.ID
 		m.RackID = requestPayload.RackID
 		m.Hardware = machineHardware
+		m.BIOS.Version = requestPayload.BIOS.Version
+		m.BIOS.Vendor = requestPayload.BIOS.Vendor
+		m.BIOS.Date = requestPayload.BIOS.Date
 		m.IPMI = v1.NewMetalIPMI(&requestPayload.IPMI)
 
 		err = r.ds.UpdateMachine(&old, m)
@@ -691,14 +710,33 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	}
 }
 
-func (r machineResource) ipmiData(request *restful.Request, response *restful.Response) {
+func (r machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineIPMI(&m.IPMI))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineIPMIResponse(m, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r machineResource) findIPMIMachines(request *restful.Request, response *restful.Response) {
+	var requestPayload datastore.MachineSearchQuery
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	ms := metal.Machines{}
+	err = r.ds.SearchMachines(&requestPayload, &ms)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineIPMIResponseList(ms, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -1855,6 +1893,41 @@ func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore, logg
 		}
 		ec := ecMap[ms[index].ID]
 		result = append(result, v1.NewMachineResponse(&ms[index], s, p, i, &ec))
+	}
+
+	return result
+}
+
+func makeMachineIPMIResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineIPMIResponse {
+	s, p, i, ec := findMachineReferencedEntities(m, ds, logger)
+	return v1.NewMachineIPMIResponse(m, s, p, i, ec)
+}
+
+func makeMachineIPMIResponseList(ms metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineIPMIResponse {
+	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
+
+	result := []*v1.MachineIPMIResponse{}
+
+	for index := range ms {
+		var s *metal.Size
+		if ms[index].SizeID != "" {
+			sizeEntity := sMap[ms[index].SizeID]
+			s = &sizeEntity
+		}
+		var p *metal.Partition
+		if ms[index].PartitionID != "" {
+			partitionEntity := pMap[ms[index].PartitionID]
+			p = &partitionEntity
+		}
+		var i *metal.Image
+		if ms[index].Allocation != nil {
+			if ms[index].Allocation.ImageID != "" {
+				imageEntity := iMap[ms[index].Allocation.ImageID]
+				i = &imageEntity
+			}
+		}
+		ec := ecMap[ms[index].ID]
+		result = append(result, v1.NewMachineIPMIResponse(&ms[index], s, p, i, &ec))
 	}
 
 	return result

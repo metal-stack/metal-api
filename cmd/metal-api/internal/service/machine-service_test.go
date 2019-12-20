@@ -273,16 +273,11 @@ func TestMachineIPMIReport(t *testing.T) {
 	}
 }
 
-func TestMachineIPMI(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	testdata.InitMockDBData(mock)
-
+func TestMachineFindIPMI(t *testing.T) {
 	data := []struct {
 		name           string
 		machine        *metal.Machine
 		wantStatusCode int
-		wantErr        bool
-		wantErrMessage string
 	}{
 		{
 			name:           "retrieve machine1 ipmi",
@@ -294,21 +289,23 @@ func TestMachineIPMI(t *testing.T) {
 			machine:        &testdata.M2,
 			wantStatusCode: http.StatusOK,
 		},
-		{
-			name:           "retrieve unknown machine ipmi",
-			machine:        &metal.Machine{Base: metal.Base{ID: "999"}},
-			wantStatusCode: http.StatusNotFound,
-			wantErr:        true,
-		},
 	}
 
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
+			ds, mock := datastore.InitMockDB()
+			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*test.machine}, nil)
+			testdata.InitMockDBData(mock)
 
 			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 
-			req := httptest.NewRequest("GET", fmt.Sprintf("/v1/machine/%s/ipmi", test.machine.ID), nil)
+			query := datastore.MachineSearchQuery{
+				ID: &test.machine.ID,
+			}
+			js, _ := json.Marshal(query)
+			body := bytes.NewBuffer(js)
+			req := httptest.NewRequest("POST", "/v1/machine/ipmi/find", body)
 			req.Header.Add("Content-Type", "application/json")
 			container = injectViewer(container, req)
 			w := httptest.NewRecorder()
@@ -317,35 +314,28 @@ func TestMachineIPMI(t *testing.T) {
 			resp := w.Result()
 			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
 
-			if test.wantErr {
-				var result httperrors.HTTPErrorResponse
-				err := json.NewDecoder(resp.Body).Decode(&result)
+			var results []*v1.MachineIPMIResponse
+			err := json.NewDecoder(resp.Body).Decode(&results)
 
-				require.Nil(t, err)
-				require.Equal(t, test.wantStatusCode, result.StatusCode)
-				if test.wantErrMessage != "" {
-					require.Regexp(t, test.wantErrMessage, result.Message)
-				}
-			} else {
-				var result v1.MachineIPMI
-				err := json.NewDecoder(resp.Body).Decode(&result)
+			require.Nil(t, err)
+			require.Len(t, results, 1)
 
-				require.Nil(t, err)
-				require.Equal(t, test.machine.IPMI.Address, result.Address)
-				require.Equal(t, test.machine.IPMI.Interface, result.Interface)
-				require.Equal(t, test.machine.IPMI.User, result.User)
-				require.Equal(t, test.machine.IPMI.Password, result.Password)
-				require.Equal(t, test.machine.IPMI.MacAddress, result.MacAddress)
+			result := results[0]
 
-				require.Equal(t, test.machine.IPMI.Fru.ChassisPartNumber, *result.Fru.ChassisPartNumber)
-				require.Equal(t, test.machine.IPMI.Fru.ChassisPartSerial, *result.Fru.ChassisPartSerial)
-				require.Equal(t, test.machine.IPMI.Fru.BoardMfg, *result.Fru.BoardMfg)
-				require.Equal(t, test.machine.IPMI.Fru.BoardMfgSerial, *result.Fru.BoardMfgSerial)
-				require.Equal(t, test.machine.IPMI.Fru.BoardPartNumber, *result.Fru.BoardPartNumber)
-				require.Equal(t, test.machine.IPMI.Fru.ProductManufacturer, *result.Fru.ProductManufacturer)
-				require.Equal(t, test.machine.IPMI.Fru.ProductPartNumber, *result.Fru.ProductPartNumber)
-				require.Equal(t, test.machine.IPMI.Fru.ProductSerial, *result.Fru.ProductSerial)
-			}
+			require.Equal(t, test.machine.IPMI.Address, result.IPMI.Address)
+			require.Equal(t, test.machine.IPMI.Interface, result.IPMI.Interface)
+			require.Equal(t, test.machine.IPMI.User, result.IPMI.User)
+			require.Equal(t, test.machine.IPMI.Password, result.IPMI.Password)
+			require.Equal(t, test.machine.IPMI.MacAddress, result.IPMI.MacAddress)
+
+			require.Equal(t, test.machine.IPMI.Fru.ChassisPartNumber, *result.IPMI.Fru.ChassisPartNumber)
+			require.Equal(t, test.machine.IPMI.Fru.ChassisPartSerial, *result.IPMI.Fru.ChassisPartSerial)
+			require.Equal(t, test.machine.IPMI.Fru.BoardMfg, *result.IPMI.Fru.BoardMfg)
+			require.Equal(t, test.machine.IPMI.Fru.BoardMfgSerial, *result.IPMI.Fru.BoardMfgSerial)
+			require.Equal(t, test.machine.IPMI.Fru.BoardPartNumber, *result.IPMI.Fru.BoardPartNumber)
+			require.Equal(t, test.machine.IPMI.Fru.ProductManufacturer, *result.IPMI.Fru.ProductManufacturer)
+			require.Equal(t, test.machine.IPMI.Fru.ProductPartNumber, *result.IPMI.Fru.ProductPartNumber)
+			require.Equal(t, test.machine.IPMI.Fru.ProductSerial, *result.IPMI.Fru.ProductSerial)
 		})
 	}
 }

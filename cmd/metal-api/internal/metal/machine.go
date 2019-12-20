@@ -88,6 +88,7 @@ type Machine struct {
 	LEDState    ChassisIdentifyLEDState `rethinkdb:"ledstate"`
 	Tags        []string                `rethinkdb:"tags"`
 	IPMI        IPMI                    `rethinkdb:"ipmi"`
+	BIOS        BIOS                    `rethinkdb:"bios"`
 }
 
 // Machines is a slice of Machine
@@ -210,6 +211,14 @@ type IPMI struct {
 	Password   string `rethinkdb:"password"`
 	Interface  string `rethinkdb:"interface"`
 	Fru        Fru    `rethinkdb:"fru"`
+	BMCVersion string `rethinkdb:"bmcversion"`
+}
+
+// BIOS contains machine bios information
+type BIOS struct {
+	Version string `rethinkdb:"version"`
+	Vendor  string `rethinkdb:"vendor"`
+	Date    string `rethinkdb:"date"`
 }
 
 // HasMAC returns true if this machine has the given MAC.
