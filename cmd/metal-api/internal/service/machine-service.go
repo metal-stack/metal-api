@@ -1128,7 +1128,7 @@ func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSp
 		return nil, errors.Wrap(err, "partition has no private super network")
 	}
 
-	specNetworks, err := gatherNetworksFromSpec(ds, ipamer, allocationSpec, partition, privateSuperNetworks)
+	specNetworks, err := gatherNetworksFromSpec(ds, allocationSpec, partition, privateSuperNetworks)
 	if err != nil {
 		return nil, err
 	}
@@ -1150,7 +1150,7 @@ func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSp
 	return result, nil
 }
 
-func gatherNetworksFromSpec(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, partition *metal.Partition, privateSuperNetworks metal.Networks) (allocationNetworkMap, error) {
+func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition, privateSuperNetworks metal.Networks) (allocationNetworkMap, error) {
 	var partitionPrivateSuperNetwork *metal.Network
 	for _, privateSuperNetwork := range privateSuperNetworks {
 		if partition.ID == privateSuperNetwork.PartitionID {
@@ -1164,8 +1164,9 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allo
 
 	// what do we have to prevent:
 	// - user wants to place his machine in a network that does not belong to the project in which the machine is being placed
-	// - user wants a machine with an private network that is not in the partition of the machine
+	// - user wants a machine with a private network that is not in the partition of the machine
 	// - user wants to define multiple private networks for his machine
+	// - user must define one private network
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
 	// - user's private network is specified with noauto, which would make the machine have no ip address
 
@@ -1220,27 +1221,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allo
 	}
 
 	if privateNetwork == nil {
-		nwSpec := &metal.Network{
-			Base: metal.Base{
-				Name:        "implicitly generated",
-				Description: "implicitly generated",
-			},
-			PartitionID: partitionPrivateSuperNetwork.PartitionID,
-			ProjectID:   allocationSpec.ProjectID,
-		}
-		nw, err := createChildNetwork(ds, ipamer, nwSpec, partitionPrivateSuperNetwork, partition.PrivateNetworkPrefixLength)
-		if err != nil {
-			return nil, err
-		}
-
-		privateNetwork = &allocationNetwork{
-			network:   nw,
-			auto:      true,
-			ips:       []metal.IP{},
-			isPrivate: true,
-		}
-
-		specNetworks[nw.ID] = privateNetwork
+		return nil, fmt.Errorf("no private network given")
 	}
 
 	if privateNetwork.network.ProjectID != allocationSpec.ProjectID {
