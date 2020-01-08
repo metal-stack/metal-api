@@ -200,10 +200,10 @@ func initMetrics() {
 	go func() {
 		err := http.ListenAndServe(viper.GetString("metrics-server-bind-addr"), metricsServer)
 		if err != nil {
-			logger.Errorw("failed to start metrics endpoint", "error", err)
+			logger.Errorw("failed to start metrics endpoint, exiting...", "error", err)
+			os.Exit(1)
 		}
-		logger.Info("metrics endpoint started")
-		os.Exit(1)
+		logger.Errorw("metrics server has stopped unexpectedly without an error")
 	}()
 }
 
