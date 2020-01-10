@@ -321,17 +321,28 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 			oldCap, ok := capacities[size]
 			total := 1
 			free := 0
+			allocated := 0
+			faulty := 0
 			if ok {
 				total = oldCap.Total + 1
 			}
-			if available {
+
+			if m.Allocation != nil {
+				allocated = 1
+			}
+			if machineHasIssues(m) {
+				faulty = 1
+			}
+			if available && allocated != 1 && faulty != 1 {
 				free = 1
 			}
 
 			cap := v1.ServerCapacity{
-				Size:  size,
-				Total: total,
-				Free:  oldCap.Free + free,
+				Size:      size,
+				Total:     total,
+				Free:      oldCap.Free + free,
+				Allocated: oldCap.Allocated + allocated,
+				Faulty:    oldCap.Faulty + faulty,
 			}
 			capacities[size] = cap
 		}
