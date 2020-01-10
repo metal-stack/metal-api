@@ -301,6 +301,10 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 }
 
 func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, error) {
+	// FIXME bad workaround to be able to run make spec
+	if r.ds == nil {
+		return nil, nil
+	}
 	ps, err := r.ds.ListPartitions()
 	ms, err := r.ds.ListMachines()
 	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
