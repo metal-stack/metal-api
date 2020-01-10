@@ -1844,6 +1844,24 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 	}
 }
 
+func machineHasIssues(m *v1.MachineResponse) bool {
+	if m.Partition == nil {
+		return true
+	}
+	if m.Liveliness != "Alive" {
+		return true
+	}
+	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && m.RecentProvisioningEvents.Events[0].Event == "Phoned Home" {
+		// not allocated, but phones home
+		return true
+	}
+	if m.RecentProvisioningEvents.IncompleteProvisioningCycles != "" && m.RecentProvisioningEvents.IncompleteProvisioningCycles != "0" {
+		return true
+	}
+
+	return false
+}
+
 func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineResponse {
 	s, p, i, ec := findMachineReferencedEntities(m, ds, logger)
 	return v1.NewMachineResponse(m, s, p, i, ec)
