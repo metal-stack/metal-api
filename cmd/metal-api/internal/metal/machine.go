@@ -167,7 +167,8 @@ const (
 	MachineLivelinessAlive   MachineLiveliness = "Alive"
 	MachineLivelinessDead    MachineLiveliness = "Dead"
 	MachineLivelinessUnknown MachineLiveliness = "Unknown"
-	MachineDeadAfter         time.Duration     = (5 * time.Minute)
+	MachineDeadAfter         time.Duration     = 5 * time.Minute
+	MachineResurrectAfter    time.Duration     = time.Hour
 )
 
 // DiskCapacity calculates the capacity of all disks.
