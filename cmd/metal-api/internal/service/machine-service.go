@@ -1786,6 +1786,48 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 	}
 }
 
+func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, logger *zap.SugaredLogger) error {
+	logger.Info("machine resurrection was requested")
+
+	machines, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	for _, m := range machines {
+		if m.Allocation != nil {
+			continue
+		}
+
+		provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
+		if err != nil {
+			// we have no provisioning events... we cannot tell
+			logger.Debugw("no provisioningEvents found for resurrection", "machineID", m.ID, "error", err)
+			continue
+		}
+
+		if provisioningEvents.Liveliness != metal.MachineLivelinessDead {
+			continue
+		}
+
+		if provisioningEvents.LastEventTime == nil {
+			continue
+		}
+
+		if time.Since(*provisioningEvents.LastEventTime) < metal.MachineResurrectAfter {
+			continue
+		}
+
+		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+		err = publishMachineCmd(logger, &m, publisher, metal.MachineResetCmd)
+		if err != nil {
+			logger.Errorw("error during machine resurrection when trying to publish machine reset cmd", "machineID", m.ID, "error", err)
+		}
+	}
+
+	return nil
+}
+
 func (r machineResource) machineOn(request *restful.Request, response *restful.Response) {
 	r.machineCmd("machineOn", metal.MachineOnCmd, request, response)
 }
@@ -1811,12 +1853,27 @@ func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, respons
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
+	logger := utils.Logger(request).Sugar()
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, op, err) {
 		return
 	}
+
+	err = publishMachineCmd(logger, m, r, cmd, params...)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand, params ...string) error {
 	pp := []string{}
 	for _, p := range params {
 		if len(p) > 0 {
@@ -1832,16 +1889,13 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		},
 	}
 
-	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
-	utils.Logger(request).Sugar().Infow("publish event", "event", evt, "command", *evt.Cmd, "error", err)
-	if checkError(request, response, op, err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return err
 	}
+
+	return nil
 }
 
 func machineHasIssues(m *v1.MachineResponse) bool {

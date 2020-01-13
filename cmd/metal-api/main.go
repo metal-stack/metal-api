@@ -91,8 +91,17 @@ var initDatabase = &cobra.Command{
 	},
 }
 
+var resurrectMachines = &cobra.Command{
+	Use:     "resurrect-machines",
+	Short:   "resurrect dead machines",
+	Version: v.V.String(),
+	Run: func(cmd *cobra.Command, args []string) {
+		resurrectDeadMachines()
+	},
+}
+
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase)
+	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -427,6 +436,19 @@ func dumpSwaggerJSON() {
 func initializeDatabase() {
 	initDataStore()
 	logger.Info("Database initialized")
+}
+
+func resurrectDeadMachines() {
+	initDataStore()
+	initEventBus()
+	var p bus.Publisher
+	if nsqer != nil {
+		p = nsqer.Publisher
+	}
+	err := service.ResurrectMachines(ds, p, logger)
+	if err != nil {
+		logger.Errorw("unable to resurrect machines", "error", err)
+	}
 }
 
 func run() {
