@@ -125,6 +125,7 @@ type MachineAllocation struct {
 	UserData        string            `rethinkdb:"userdata"`
 	ConsolePassword string            `rethinkdb:"console_password"`
 	Succeeded       bool              `rethinkdb:"succeeded"`
+	Reinstall       bool              `rethinkdb:"reinstall"`
 }
 
 // ByProjectID creates a map of machines with the project id as the index.

@@ -268,6 +268,17 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.GET("/{id}/reinstall/{image}").
+		To(editor(r.reinstallMachine)).
+		Operation("reinstallMachine").
+		Doc("reinstall this machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.PathParameter("image", "id of the new image").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/{id}/event").
 		To(viewer(r.getProvisioningEventContainer)).
 		Operation("getProvisioningEventContainer").
@@ -501,6 +512,15 @@ func (r machineResource) wait(ctx context.Context, id string, logger *zap.Sugare
 	}()
 
 	return allocator(a)
+}
+
+func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
+	imageID := request.PathParameter("image")
+	err := r.reinstallOrDeleteMachine(request, response, &imageID)
+	if err != nil {
+		log := utils.Logger(request)
+		sendError(log, response, utils.CurrentFuncName(), httperrors.InternalServerError(err))
+	}
 }
 
 func (r machineResource) setMachineState(request *restful.Request, response *restful.Response) {
@@ -1453,6 +1473,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	old := *m
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
+	m.Allocation.Reinstall = false
 
 	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1501,17 +1522,26 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 }
 
 func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
+	err := r.reinstallOrDeleteMachine(request, response, nil)
+	checkError(request, response, utils.CurrentFuncName(), err)
+}
+
+// reinstallOrDeleteMachine (re)installs the requested machine with given image by either allocating
+// the machine if not yet allocated or not modifying any other allocation parameter than 'ImageID'
+// and 'Reinstall' set to true.
+// If the given image ID is nil, it deletes the machine instead.
+func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, response *restful.Response, imageID *string) error {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	if err != nil {
+		return err
 	}
 
 	if m.State.Value == metal.LockedState {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine is locked")) {
-			return
-		}
+		return fmt.Errorf("machine is locked")
 	}
+
+	log := utils.Logger(request)
 
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
@@ -1520,45 +1550,57 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 			// TODO: Trigger network garbage collection
 			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
 			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			utils.Logger(request).Sugar().Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+			log.Sugar().Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+			return err
 		}
 
 		old := *m
-		m.Allocation = nil
-		err = r.ds.UpdateMachine(&old, m)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if imageID != nil {
+			m.Allocation.ImageID = *imageID
+			m.Allocation.Reinstall = true
+		} else {
+			m.Allocation = nil
 		}
-		utils.Logger(request).Sugar().Infow("freed machine", "machineID", id)
+
+		err = r.ds.UpdateMachine(&old, m)
+		if err != nil {
+			return err
+		}
+
+		log.Sugar().Infow("freed machine", "machineID", id)
+	} else if imageID != nil {
+		r.allocateMachine(request, response)
+		return nil
 	}
 
 	// do the next steps in any case, so a client can call this function multiple times to
 	// fire of the needed events
 
 	sw, err := setVrfAtSwitches(r.ds, m, "")
-	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	log.Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
+	if err != nil {
+		return err
 	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
 	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	utils.Logger(request).Sugar().Infow("published machine delete event", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	log.Sugar().Infow("published machine delete event", "machineID", id, "error", err)
+	if err != nil {
+		return err
 	}
 
 	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
 	err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
-	utils.Logger(request).Sugar().Infow("published switch update event", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	log.Sugar().Infow("published switch update event", "machineID", id, "error", err)
+	if err != nil {
+		return err
 	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		log.Error("Failed to send response", zap.Error(err))
 	}
+	return err
 }
 
 func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []*metal.MachineNetwork) error {
