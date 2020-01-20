@@ -1439,9 +1439,8 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		// Push out events to signal switch configuration change
 		evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
 		err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), evt)
-		utils.Logger(request).Sugar().Infow("published switch update event", "event", evt, "error", err)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if err != nil {
+			utils.Logger(request).Sugar().Infow("switch update event could not be published", "event", evt, "error", err)
 		}
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
