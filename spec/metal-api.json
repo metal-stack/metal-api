@@ -1746,12 +1746,26 @@
         }, 
         "v1.MachineReinstallRequest": {
             "properties": {
+                "description": {
+                    "description": "a description for this entity", 
+                    "type": "string"
+                }, 
+                "id": {
+                    "description": "the unique ID of this entity", 
+                    "type": "string", 
+                    "uniqueItems": true
+                }, 
                 "imageid": {
                     "description": "the image id to be installed", 
+                    "type": "string"
+                }, 
+                "name": {
+                    "description": "a readable name for this entity", 
                     "type": "string"
                 }
             }, 
             "required": [
+                "id", 
                 "imageid"
             ]
         }, 
@@ -4363,13 +4377,6 @@
                 ], 
                 "operationId": "reinstallMachine", 
                 "parameters": [
-                    {
-                        "description": "id of the new image", 
-                        "in": "path", 
-                        "name": "image", 
-                        "required": true, 
-                        "type": "string"
-                    }, 
                     {
                         "description": "identifier of the machine", 
                         "in": "path", 

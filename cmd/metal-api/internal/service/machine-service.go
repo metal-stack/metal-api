@@ -273,7 +273,6 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("reinstallMachine").
 		Doc("reinstall this machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("image", "id of the new image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineReinstallRequest{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).

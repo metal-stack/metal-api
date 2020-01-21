@@ -207,6 +207,7 @@ type MachineIpmiReportResponse struct {
 }
 
 type MachineReinstallRequest struct {
+	Common
 	ImageID string `json:"imageid" description:"the image id to be installed"`
 }
 
