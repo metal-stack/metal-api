@@ -1569,9 +1569,10 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 		}
 
 		log.Sugar().Infow("freed machine", "machineID", id)
-	} else if imageID != nil {
-		r.allocateMachine(request, response)
+	} else if imageID == nil {
 		return nil
+	} else {
+		return fmt.Errorf("unable to reinstall unallocated machine %s", id)
 	}
 
 	// do the next steps in any case, so a client can call this function multiple times to
