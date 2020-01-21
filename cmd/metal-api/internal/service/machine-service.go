@@ -268,13 +268,14 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/reinstall/{image}").
+	ws.Route(ws.POST("/{id}/reinstall/{image}").
 		To(editor(r.reinstallMachine)).
 		Operation("reinstallMachine").
 		Doc("reinstall this machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Param(ws.PathParameter("image", "id of the new image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
