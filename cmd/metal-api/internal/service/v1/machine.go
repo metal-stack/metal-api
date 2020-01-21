@@ -206,6 +206,10 @@ type MachineIpmiReportResponse struct {
 	Created Leases `json:"created" description:"the leases that triggered a creation of a machine entity"`
 }
 
+type MachineReinstallRequest struct {
+	ImageID string `json:"imageid" description:"the image id to be installed"`
+}
+
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 	nics := metal.Nics{}
 	for i := range r.Nics {

@@ -1744,6 +1744,17 @@
                 "uuid"
             ]
         }, 
+        "v1.MachineReinstallRequest": {
+            "properties": {
+                "imageid": {
+                    "description": "the image id to be installed", 
+                    "type": "string"
+                }
+            }, 
+            "required": [
+                "imageid"
+            ]
+        }, 
         "v1.MachineResponse": {
             "properties": {
                 "allocation": {
@@ -4345,7 +4356,7 @@
                 ]
             }
         }, 
-        "/v1/machine/{id}/reinstall/{image}": {
+        "/v1/machine/{id}/reinstall": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -4371,7 +4382,7 @@
                         "name": "body", 
                         "required": true, 
                         "schema": {
-                            "$ref": "#/definitions/v1.EmptyBody"
+                            "$ref": "#/definitions/v1.MachineReinstallRequest"
                         }
                     }
                 ], 

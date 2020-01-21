@@ -268,14 +268,14 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/reinstall/{image}").
+	ws.Route(ws.POST("/{id}/reinstall").
 		To(editor(r.reinstallMachine)).
 		Operation("reinstallMachine").
 		Doc("reinstall this machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Param(ws.PathParameter("image", "id of the new image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.EmptyBody{}).
+		Reads(v1.MachineReinstallRequest{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -516,8 +516,13 @@ func (r machineResource) wait(ctx context.Context, id string, logger *zap.Sugare
 }
 
 func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
-	imageID := request.PathParameter("image")
-	err := r.reinstallOrDeleteMachine(request, response, &imageID)
+	var requestPayload v1.MachineReinstallRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = r.reinstallOrDeleteMachine(request, response, &requestPayload.ImageID)
 	if err != nil {
 		log := utils.Logger(request)
 		sendError(log, response, utils.CurrentFuncName(), httperrors.InternalServerError(err))
