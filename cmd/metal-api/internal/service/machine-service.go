@@ -521,6 +521,8 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		return
 	}
 
+	// TODO: Add guessed primary device to machine reinstall response
+
 	err = r.reinstallOrDeleteMachine(request, response, &requestPayload.ImageID)
 	if err != nil {
 		log := utils.Logger(request)
@@ -1477,8 +1479,17 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	}
 
 	old := *m
+
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
-	m.Allocation.Reinstall = false
+	if m.Allocation.Reinstall {
+		m.Allocation.Reinstall = false
+		for _, d := range m.Disks {
+			d.Primary = d.Name == requestPayload.PrimaryDisk
+			for _, p := range d.Partitions {
+				p.ContainsOS = p.Device == requestPayload.OSPartition
+			}
+		}
+	}
 
 	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {

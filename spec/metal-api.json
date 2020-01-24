@@ -923,9 +923,9 @@
                     "description": "the project id that this machine is assigned to", 
                     "type": "string"
                 }, 
-                "reinstall": {
-                    "description": "indicates whether to reinstall the machine or not", 
-                    "type": "boolean"
+                "reinstallation": {
+                    "$ref": "#/definitions/v1.MachineReinstallation", 
+                    "description": "indicates whether to reinstall the machine (if not nil)"
                 }, 
                 "ssh_pub_keys": {
                     "description": "the public ssh keys to access the machine with", 
@@ -949,7 +949,7 @@
                 "name", 
                 "networks", 
                 "project", 
-                "reinstall", 
+                "reinstallation", 
                 "ssh_pub_keys", 
                 "succeeded"
             ]
@@ -998,6 +998,17 @@
                     "description": "the name of this block device", 
                     "type": "string"
                 }, 
+                "partitions": {
+                    "description": "the partitions of this disk", 
+                    "items": {
+                        "$ref": "#/definitions/v1.MachineDiskPartition"
+                    }, 
+                    "type": "array"
+                }, 
+                "primary": {
+                    "description": "whether this disk has the OS installed", 
+                    "type": "boolean"
+                }, 
                 "size": {
                     "description": "the size of this block device", 
                     "type": "integer"
@@ -1005,6 +1016,77 @@
             }, 
             "required": [
                 "name", 
+                "partitions", 
+                "primary", 
+                "size"
+            ]
+        }, 
+        "v1.MachineDiskPartition": {
+            "properties": {
+                "containsos": {
+                    "description": "whether the OS is installed on this partition or not", 
+                    "type": "boolean"
+                }, 
+                "device": {
+                    "description": "the partition device name, e.g. sda1", 
+                    "type": "string"
+                }, 
+                "filesystem": {
+                    "description": "the partition filesystem", 
+                    "type": "string"
+                }, 
+                "gptguid": {
+                    "description": "the partition GPT guid", 
+                    "type": "string"
+                }, 
+                "gpttyoe": {
+                    "description": "the partition GPT type", 
+                    "type": "string"
+                }, 
+                "label": {
+                    "description": "the partition label", 
+                    "type": "string"
+                }, 
+                "mountoptions": {
+                    "description": "the partition mount options", 
+                    "items": {
+                        "type": "string"
+                    }, 
+                    "type": "array"
+                }, 
+                "mountpoint": {
+                    "description": "the partition mount point", 
+                    "type": "string"
+                }, 
+                "number": {
+                    "description": "the partition number", 
+                    "format": "integer", 
+                    "type": "integer"
+                }, 
+                "properties": {
+                    "additionalProperties": {
+                        "type": "string"
+                    }, 
+                    "description": "the partition properties", 
+                    "type": "object"
+                }, 
+                "size": {
+                    "description": "the partition size", 
+                    "format": "int64", 
+                    "type": "integer"
+                }
+            }, 
+            "required": [
+                "containsos", 
+                "device", 
+                "filesystem", 
+                "gptguid", 
+                "gpttyoe", 
+                "label", 
+                "mountoptions", 
+                "mountpoint", 
+                "number", 
+                "properties", 
                 "size"
             ]
         }, 
@@ -1013,10 +1095,28 @@
                 "console_password": {
                     "description": "the console password which was generated while provisioning", 
                     "type": "string"
+                }, 
+                "disks": {
+                    "description": "the disks of the machine", 
+                    "items": {
+                        "$ref": "#/definitions/v1.MachineBlockDevice"
+                    }, 
+                    "type": "array"
+                }, 
+                "ospartition": {
+                    "description": "the partition that has the OS installed", 
+                    "type": "string"
+                }, 
+                "primarydisk": {
+                    "description": "the device name of the primary disk", 
+                    "type": "string"
                 }
             }, 
             "required": [
-                "console_password"
+                "console_password", 
+                "disks", 
+                "ospartition", 
+                "primarydisk"
             ]
         }, 
         "v1.MachineFindRequest": {
@@ -1767,6 +1867,22 @@
             "required": [
                 "id", 
                 "imageid"
+            ]
+        }, 
+        "v1.MachineReinstallation": {
+            "properties": {
+                "os_partition": {
+                    "description": "device name of disk partition that has the OS installed", 
+                    "type": "string"
+                }, 
+                "primary_disk": {
+                    "description": "device name of the disk that contains the partition on which the OS is installed", 
+                    "type": "string"
+                }
+            }, 
+            "required": [
+                "os_partition", 
+                "primary_disk"
             ]
         }, 
         "v1.MachineResponse": {

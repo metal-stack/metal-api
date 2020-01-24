@@ -89,6 +89,7 @@ type Machine struct {
 	Tags        []string                `rethinkdb:"tags"`
 	IPMI        IPMI                    `rethinkdb:"ipmi"`
 	BIOS        BIOS                    `rethinkdb:"bios"`
+	Disks       []BlockDevice           `rethinkdb:"disks"`
 }
 
 // Machines is a slice of Machine
@@ -188,8 +189,25 @@ func (hw *MachineHardware) ReadableSpec() string {
 
 // BlockDevice information.
 type BlockDevice struct {
-	Name string `rethinkdb:"name"`
-	Size uint64 `rethinkdb:"size"`
+	Name       string           `rethinkdb:"name"`
+	Size       uint64           `rethinkdb:"size"`
+	Partitions []*DiskPartition `rethinkdb:"partitions"`
+	Primary    bool             `rethinkdb:"primary"`
+}
+
+// DiskPartition defines a disk partition
+type DiskPartition struct {
+	Label        string            `rethinkdb:"label"`
+	Device       string            `rethinkdb:"device"`
+	Number       uint              `rethinkdb:"number"`
+	MountPoint   string            `rethinkdb:"mountpoint"`
+	MountOptions []string          `rethinkdb:"mountoptions"`
+	Size         int64             `rethinkdb:"size"`
+	Filesystem   string            `rethinkdb:"filesystem"`
+	GPTType      string            `rethinkdb:"gpttyoe"`
+	GPTGuid      string            `rethinkdb:"gptguid"`
+	Properties   map[string]string `rethinkdb:"properties"`
+	ContainsOS   bool              `rethinkdb:"containsos"`
 }
 
 // Fru (Field Replaceable Unit) data

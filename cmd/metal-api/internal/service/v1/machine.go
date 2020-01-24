@@ -25,18 +25,23 @@ type MachineBase struct {
 }
 
 type MachineAllocation struct {
-	Created         time.Time        `json:"created" description:"the time when the machine was created"`
-	Name            string           `json:"name" description:"the name of the machine"`
-	Description     string           `json:"description,omitempty" description:"a description for this machine" optional:"true"`
-	Project         string           `json:"project" description:"the project id that this machine is assigned to" `
-	Image           *ImageResponse   `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
-	MachineNetworks []MachineNetwork `json:"networks" description:"the networks of this machine"`
-	Hostname        string           `json:"hostname" description:"the hostname which will be used when creating the machine"`
-	SSHPubKeys      []string         `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
-	ConsolePassword *string          `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
-	Succeeded       bool             `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
-	Reinstall       bool             `json:"reinstall" description:"indicates whether to reinstall the machine or not"`
+	Created         time.Time              `json:"created" description:"the time when the machine was created"`
+	Name            string                 `json:"name" description:"the name of the machine"`
+	Description     string                 `json:"description,omitempty" description:"a description for this machine" optional:"true"`
+	Project         string                 `json:"project" description:"the project id that this machine is assigned to" `
+	Image           *ImageResponse         `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
+	MachineNetworks []MachineNetwork       `json:"networks" description:"the networks of this machine"`
+	Hostname        string                 `json:"hostname" description:"the hostname which will be used when creating the machine"`
+	SSHPubKeys      []string               `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	UserData        string                 `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
+	ConsolePassword *string                `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
+	Succeeded       bool                   `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
+	Reinstallation  *MachineReinstallation `json:"reinstallation" description:"indicates whether to reinstall the machine (if not nil)"`
+}
+
+type MachineReinstallation struct {
+	PrimaryDisk string `json:"primary_disk" description:"device name of the disk that contains the partition on which the OS is installed"`
+	OSPartition string `json:"os_partition" description:"device name of disk partition that has the OS installed"`
 }
 
 type MachineNetwork struct {
@@ -78,8 +83,10 @@ type ChassisIdentifyLEDState struct {
 }
 
 type MachineBlockDevice struct {
-	Name string `json:"name" description:"the name of this block device"`
-	Size uint64 `json:"size" description:"the size of this block device"`
+	Name       string                `json:"name" description:"the name of this block device"`
+	Size       uint64                `json:"size" description:"the size of this block device"`
+	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk"`
+	Primary    bool                  `json:"primary" description:"whether this disk has the OS installed"`
 }
 
 type MachineRecentProvisioningEvents struct {
@@ -173,8 +180,27 @@ type MachineAllocationNetwork struct {
 	AutoAcquireIP *bool  `json:"autoacquire" description:"will automatically acquire an ip in this network if set to true, default is true"`
 }
 
+type MachineDiskPartitions []MachineDiskPartition
+
+type MachineDiskPartition struct {
+	Label        string            `json:"label" description:"the partition label"`
+	Device       string            `json:"device" description:"the partition device name, e.g. sda1"`
+	Number       uint              `json:"number" description:"the partition number"`
+	MountPoint   string            `json:"mountpoint" description:"the partition mount point"`
+	MountOptions []string          `json:"mountoptions" description:"the partition mount options"`
+	Size         int64             `json:"size" description:"the partition size"`
+	Filesystem   string            `json:"filesystem" description:"the partition filesystem"`
+	GPTType      string            `json:"gpttyoe" description:"the partition GPT type"`
+	GPTGuid      string            `json:"gptguid" description:"the partition GPT guid"`
+	Properties   map[string]string `json:"properties" description:"the partition properties"`
+	ContainsOS   bool              `json:"containsos" description:"whether the OS is installed on this partition or not"`
+}
+
 type MachineFinalizeAllocationRequest struct {
-	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
+	ConsolePassword string               `json:"console_password" description:"the console password which was generated while provisioning"`
+	Disks           []MachineBlockDevice `json:"disks" description:"the disks of the machine"` //FIXME: Only the primary disk and correct partition is required
+	PrimaryDisk     string               `json:"primarydisk" description:"the device name of the primary disk"`
+	OSPartition     string               `json:"ospartition" description:"the partition that has the OS installed"`
 }
 
 type MachineFindRequest struct {
@@ -230,10 +256,26 @@ func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 		nics = append(nics, nic)
 	}
 	var disks []metal.BlockDevice
-	for i := range r.Disks {
+	for _, d := range r.Disks {
 		disk := metal.BlockDevice{
-			Name: r.Disks[i].Name,
-			Size: r.Disks[i].Size,
+			Name:    d.Name,
+			Size:    d.Size,
+			Primary: d.Primary,
+		}
+		for _, p := range d.Partitions {
+			disk.Partitions = append(disk.Partitions, &metal.DiskPartition{
+				Label:        p.Label,
+				Device:       p.Device,
+				Number:       p.Number,
+				MountPoint:   p.MountPoint,
+				MountOptions: p.MountOptions,
+				Size:         p.Size,
+				Filesystem:   p.Filesystem,
+				GPTType:      p.GPTType,
+				GPTGuid:      p.GPTGuid,
+				Properties:   p.Properties,
+				ContainsOS:   p.ContainsOS,
+			})
 		}
 		disks = append(disks, disk)
 	}
@@ -391,7 +433,25 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			ConsolePassword: consolePassword,
 			MachineNetworks: networks,
 			Succeeded:       m.Allocation.Succeeded,
-			Reinstall:       m.Allocation.Reinstall,
+		}
+
+		if m.Allocation.Reinstall {
+			for _, d := range m.Disks {
+				if !d.Primary {
+					continue
+				}
+				for _, p := range d.Partitions {
+					if !p.ContainsOS {
+						continue
+					}
+					allocation.Reinstallation = &MachineReinstallation{
+						PrimaryDisk: d.Name,
+						OSPartition: p.Device,
+					}
+					break
+				}
+				break
+			}
 		}
 	}
 
