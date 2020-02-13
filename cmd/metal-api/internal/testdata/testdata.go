@@ -40,6 +40,7 @@ var (
 			Project: "p1",
 		},
 		IPMI: IPMI1,
+		Tags: []string{"1"},
 	}
 	M2 = metal.Machine{
 		Base:        metal.Base{ID: "2"},
@@ -389,6 +390,11 @@ var (
 		ProjectID: Partition1ExistingPrivateNetwork.ProjectID,
 		NetworkID: Partition1InternetNetwork.ID,
 	}
+	Partition2InternetIP = metal.IP{
+		IPAddress: "212.34.0.2",
+		ProjectID: Partition1ExistingPrivateNetwork.ProjectID,
+		NetworkID: Partition2InternetNetwork.ID,
+	}
 
 	// partitions
 	Partition1 = metal.Partition{
@@ -678,6 +684,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip").Get("8.8.8.8")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("ip").Get("9.9.9.9")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(Partition1InternetIP.IPAddress)).Return(Partition1InternetIP, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(Partition2InternetIP.IPAddress)).Return(Partition2InternetIP, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("1")).Return(M1, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("2")).Return(M2, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("3")).Return(M3, nil)

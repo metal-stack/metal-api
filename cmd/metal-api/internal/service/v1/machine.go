@@ -15,6 +15,7 @@ type MachineBase struct {
 	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true"`
 	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true"`
 	Hardware                 MachineHardware                 `json:"hardware" description:"the hardware of this machine"`
+	BIOS                     MachineBIOS                     `json:"bios" description:"bios information of this machine"`
 	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine"`
 	State                    MachineState                    `json:"state" rethinkdb:"state" description:"the state of this machine"`
 	LEDState                 ChassisIdentifyLEDState         `json:"ledstate" rethinkdb:"ledstate" description:"the state of this chassis identify LED"`
@@ -112,13 +113,20 @@ type MachineLivelinessReport struct {
 	UnknownCount int `json:"unknown_count" description:"the number of machines with unknown liveliness"`
 }
 
+type MachineBIOS struct {
+	Version string `json:"version" modelDescription:"The bios version" description:"the bios version"`
+	Vendor  string `json:"vendor" description:"the bios vendor"`
+	Date    string `json:"date" description:"the bios date"`
+}
+
 type MachineIPMI struct {
 	Address    string     `json:"address" modelDescription:"The IPMI connection data"`
 	MacAddress string     `json:"mac"`
 	User       string     `json:"user"`
 	Password   string     `json:"password"`
 	Interface  string     `json:"interface"`
-	Fru        MachineFru `json:"fru" `
+	Fru        MachineFru `json:"fru"`
+	BMCVersion string     `json:"bmcversion"`
 }
 
 type MachineFru struct {
@@ -137,6 +145,7 @@ type MachineRegisterRequest struct {
 	PartitionID string                  `json:"partitionid" description:"the partition id to register this machine with"`
 	RackID      string                  `json:"rackid" description:"the rack id where this machine is connected to"`
 	Hardware    MachineHardwareExtended `json:"hardware" description:"the hardware of this machine"`
+	BIOS        MachineBIOS             `json:"bios" description:"bios information of this machine"`
 	IPMI        MachineIPMI             `json:"ipmi" description:"the ipmi access infos"`
 	Tags        []string                `json:"tags" description:"tags for this machine"`
 }
@@ -174,6 +183,13 @@ type MachineFindRequest struct {
 type MachineResponse struct {
 	Common
 	MachineBase
+	Timestamps
+}
+
+type MachineIPMIResponse struct {
+	Common
+	MachineBase
+	IPMI MachineIPMI `json:"ipmi" description:"ipmi information of this machine"`
 	Timestamps
 }
 
@@ -263,6 +279,7 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 		User:       r.User,
 		Password:   r.Password,
 		Interface:  r.Interface,
+		BMCVersion: r.BMCVersion,
 		Fru: metal.Fru{
 			ChassisPartNumber:   chassisPartNumber,
 			ChassisPartSerial:   chassisPartSerial,
@@ -273,6 +290,33 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 			ProductPartNumber:   productPartNumber,
 			ProductSerial:       productSerial,
 		},
+	}
+}
+
+func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineIPMIResponse {
+	machineResponse := NewMachineResponse(m, s, p, i, ec)
+	return &MachineIPMIResponse{
+		Common:      machineResponse.Common,
+		MachineBase: machineResponse.MachineBase,
+		IPMI: MachineIPMI{
+			Address:    m.IPMI.Address,
+			MacAddress: m.IPMI.MacAddress,
+			User:       m.IPMI.User,
+			Password:   m.IPMI.Password,
+			Interface:  m.IPMI.Interface,
+			BMCVersion: m.IPMI.BMCVersion,
+			Fru: MachineFru{
+				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
+				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,
+				BoardMfg:            &m.IPMI.Fru.BoardMfg,
+				BoardMfgSerial:      &m.IPMI.Fru.BoardMfgSerial,
+				BoardPartNumber:     &m.IPMI.Fru.BoardPartNumber,
+				ProductManufacturer: &m.IPMI.Fru.ProductManufacturer,
+				ProductPartNumber:   &m.IPMI.Fru.ProductPartNumber,
+				ProductSerial:       &m.IPMI.Fru.ProductSerial,
+			},
+		},
+		Timestamps: machineResponse.Timestamps,
 	}
 }
 
@@ -348,6 +392,10 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	if len(m.Tags) > 0 {
 		tags = m.Tags
 	}
+	liveliness := ""
+	if ec != nil {
+		liveliness = string(ec.Liveliness)
+	}
 
 	return &MachineResponse{
 		Common: Common{
@@ -365,6 +413,11 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Allocation: allocation,
 			RackID:     m.RackID,
 			Hardware:   hardware,
+			BIOS: MachineBIOS{
+				Version: m.BIOS.Version,
+				Vendor:  m.BIOS.Vendor,
+				Date:    m.BIOS.Date,
+			},
 			State: MachineState{
 				Value:       string(m.State.Value),
 				Description: m.State.Description,
@@ -373,7 +426,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Value:       string(m.LEDState.Value),
 				Description: m.LEDState.Description,
 			},
-			Liveliness:               string(ec.Liveliness),
+			Liveliness:               liveliness,
 			RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
 			Tags:                     tags,
 		},
@@ -409,28 +462,5 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		Events:                       es,
 		IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
 		LastEventTime:                ec.LastEventTime,
-	}
-}
-
-func NewMachineIPMI(m *metal.IPMI) *MachineIPMI {
-	if m == nil {
-		return &MachineIPMI{}
-	}
-	return &MachineIPMI{
-		Address:    m.Address,
-		MacAddress: m.MacAddress,
-		User:       m.User,
-		Password:   m.Password,
-		Interface:  m.Interface,
-		Fru: MachineFru{
-			ChassisPartNumber:   &m.Fru.ChassisPartNumber,
-			ChassisPartSerial:   &m.Fru.ChassisPartSerial,
-			BoardMfg:            &m.Fru.BoardMfg,
-			BoardMfgSerial:      &m.Fru.BoardMfgSerial,
-			BoardPartNumber:     &m.Fru.BoardPartNumber,
-			ProductManufacturer: &m.Fru.ProductManufacturer,
-			ProductPartNumber:   &m.Fru.ProductPartNumber,
-			ProductSerial:       &m.Fru.ProductSerial,
-		},
 	}
 }

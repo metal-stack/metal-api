@@ -8,6 +8,8 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"go.uber.org/zap"
 
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
@@ -23,17 +25,20 @@ type firewallResource struct {
 	webResource
 	bus.Publisher
 	ipamer ipam.IPAMer
+	mdc    mdm.Client
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
 	ds *datastore.RethinkStore,
-	ipamer ipam.IPAMer) *restful.WebService {
+	ipamer ipam.IPAMer,
+	mdc mdm.Client) *restful.WebService {
 	r := firewallResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		ipamer: ipamer,
+		mdc:    mdc,
 	}
 	return r.webService()
 }
@@ -245,7 +250,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		IsFirewall:  true,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec)
+	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

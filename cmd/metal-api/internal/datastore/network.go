@@ -82,8 +82,10 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		})
 	}
 
-	if p.Labels != nil {
-		q = q.Filter(map[string]interface{}{"labels": p.Labels})
+	for k, v := range p.Labels {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("labels").Field(k).Eq(v)
+		})
 	}
 
 	for _, prefix := range p.Prefixes {

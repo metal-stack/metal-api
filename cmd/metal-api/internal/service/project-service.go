@@ -1,32 +1,32 @@
 package service
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 
-	"go.uber.org/zap"
-
+	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
 	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
 
 	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 )
 
 type projectResource struct {
 	webResource
+	mdc mdm.Client
 }
 
 // NewProject returns a webservice for project specific endpoints.
-func NewProject(ds *datastore.RethinkStore) *restful.WebService {
+func NewProject(ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := projectResource{
 		webResource: webResource{
 			ds: ds,
 		},
+		mdc: mdc,
 	}
 	return r.webService()
 }
@@ -69,214 +69,40 @@ func (r projectResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.ProjectResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.DELETE("/{id}").
-		To(editor(r.deleteProject)).
-		Operation("deleteProject").
-		Doc("deletes a project and returns the deleted entity").
-		Param(ws.PathParameter("id", "identifier of the project").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ProjectResponse{}).
-		Returns(http.StatusOK, "OK", v1.ProjectResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.PUT("/").
-		To(editor(r.createProject)).
-		Operation("createProject").
-		Doc("create a project. if the given ID already exists a conflict is returned").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.ProjectCreateRequest{}).
-		Returns(http.StatusCreated, "Created", v1.ProjectResponse{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/").
-		To(editor(r.updateProject)).
-		Operation("updateProject").
-		Doc("updates a project. if the project was changed since this one was read, a conflict is returned").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.ProjectUpdateRequest{}).
-		Returns(http.StatusOK, "OK", v1.ProjectResponse{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	return ws
 }
 
 func (r projectResource) findProject(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	p, err := r.ds.FindProjectByID(id)
+	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: id})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, p.Project)
 }
 
 func (r projectResource) listProjects(request *restful.Request, response *restful.Response) {
-	ps, err := r.ds.ListProjects()
+	ps, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponseList(ps, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
 }
 
 func (r projectResource) findProjects(request *restful.Request, response *restful.Response) {
-	var requestPayload datastore.ProjectSearchQuery
+	var requestPayload mdmv1.ProjectFindRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	ps := metal.Projects{}
-	err = r.ds.SearchProjects(&requestPayload, &ps)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponseList(ps, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func (r projectResource) createProject(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.ProjectCreateRequest
-	err := request.ReadEntity(&requestPayload)
+	ps, err := r.mdc.Project().Find(context.Background(), &requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
-	}
-	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
-	}
-
-	if name == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("name should not be empty")) {
-			return
-		}
-	}
-	if requestPayload.Tenant == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("tenant should not be empty")) {
-			return
-		}
-	}
-
-	p := &metal.Project{
-		Base: metal.Base{
-			Name:        name,
-			Description: description,
-		},
-		Tenant: requestPayload.Tenant,
-	}
-
-	err = r.ds.CreateProject(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = response.WriteHeaderAndEntity(http.StatusCreated, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func (r projectResource) deleteProject(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
-	p, err := r.ds.FindProjectByID(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	ms, err := r.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	_, ok := ms.ByProjectID()[p.ID]
-	if ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("project still has machines contained")) {
-			return
-		}
-	}
-
-	ips, err := r.ds.ListIPs()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	_, ok = ips.ByProjectID()[p.ID]
-	if ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("project still has ips assigned")) {
-			return
-		}
-	}
-
-	err = r.ds.DeleteProject(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(p, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func (r projectResource) updateProject(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.ProjectUpdateRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	oldProject, err := r.ds.FindProjectByID(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	newProject := *oldProject
-
-	if requestPayload.Name != nil {
-		newProject.Name = *requestPayload.Name
-	}
-	if requestPayload.Description != nil {
-		newProject.Description = *requestPayload.Description
-	}
-
-	err = r.ds.UpdateProject(oldProject, &newProject)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeProjectResponse(&newProject, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func makeProjectResponse(p *metal.Project, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.ProjectResponse {
-	return v1.NewProjectResponse(p)
-}
-
-func makeProjectResponseList(ps metal.Projects, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.ProjectResponse {
-	result := []*v1.ProjectResponse{}
-
-	for index := range ps {
-		result = append(result, v1.NewProjectResponse(&ps[index]))
-	}
-
-	return result
+	response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
 }

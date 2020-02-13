@@ -88,6 +88,7 @@ type Machine struct {
 	LEDState    ChassisIdentifyLEDState `rethinkdb:"ledstate"`
 	Tags        []string                `rethinkdb:"tags"`
 	IPMI        IPMI                    `rethinkdb:"ipmi"`
+	BIOS        BIOS                    `rethinkdb:"bios"`
 }
 
 // Machines is a slice of Machine
@@ -166,8 +167,14 @@ const (
 	MachineLivelinessAlive   MachineLiveliness = "Alive"
 	MachineLivelinessDead    MachineLiveliness = "Dead"
 	MachineLivelinessUnknown MachineLiveliness = "Unknown"
-	MachineDeadAfter         time.Duration     = (5 * time.Minute)
+	MachineDeadAfter         time.Duration     = 5 * time.Minute
+	MachineResurrectAfter    time.Duration     = time.Hour
 )
+
+// Is return true if given liveliness is equal to specific Liveliness
+func (l MachineLiveliness) Is(liveliness string) bool {
+	return string(l) == liveliness
+}
 
 // DiskCapacity calculates the capacity of all disks.
 func (hw *MachineHardware) DiskCapacity() uint64 {
@@ -210,6 +217,14 @@ type IPMI struct {
 	Password   string `rethinkdb:"password"`
 	Interface  string `rethinkdb:"interface"`
 	Fru        Fru    `rethinkdb:"fru"`
+	BMCVersion string `rethinkdb:"bmcversion"`
+}
+
+// BIOS contains machine bios information
+type BIOS struct {
+	Version string `rethinkdb:"version"`
+	Vendor  string `rethinkdb:"vendor"`
+	Date    string `rethinkdb:"date"`
 }
 
 // HasMAC returns true if this machine has the given MAC.
