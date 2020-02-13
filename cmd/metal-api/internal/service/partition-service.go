@@ -16,6 +16,7 @@ import (
 	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type TopicCreater interface {
@@ -35,6 +36,12 @@ func NewPartition(ds *datastore.RethinkStore, tc TopicCreater) *restful.WebServi
 		},
 		topicCreater: tc,
 	}
+	pcc := partitionCapacityCollector{r: &r}
+	err := prometheus.Register(pcc)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to register prometheus", zap.Error(err))
+	}
+
 	return r.webService()
 }
 
@@ -201,11 +208,6 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		},
 	}
 
-	err = r.ds.CreatePartition(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	fqns := []string{metal.TopicMachine.GetFQN(p.GetID()), metal.TopicSwitch.GetFQN(p.GetID())}
 	for _, fqn := range fqns {
 		if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
@@ -214,6 +216,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 			}
 		}
 	}
+
+	err = r.ds.CreatePartition(p)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -285,16 +293,32 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 }
 
 func (r partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
-	ps, err := r.ds.ListPartitions()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
+	partitionCapacities, err := r.calcPartitionCapacity()
 
-	ms, err := r.ds.ListMachines()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	machines := makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar())
+	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, error) {
+	// FIXME bad workaround to be able to run make spec
+	if r.ds == nil {
+		return nil, nil
+	}
+	ps, err := r.ds.ListPartitions()
+	if err != nil {
+		return nil, err
+	}
+	ms, err := r.ds.ListMachines()
+	if err != nil {
+		return nil, err
+	}
+	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
 
 	partitionCapacities := []v1.PartitionCapacity{}
 	for _, p := range ps {
@@ -321,17 +345,28 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 			oldCap, ok := capacities[size]
 			total := 1
 			free := 0
+			allocated := 0
+			faulty := 0
 			if ok {
 				total = oldCap.Total + 1
 			}
-			if available {
+
+			if m.Allocation != nil {
+				allocated = 1
+			}
+			if machineHasIssues(m) {
+				faulty = 1
+			}
+			if available && allocated != 1 && faulty != 1 {
 				free = 1
 			}
 
 			cap := v1.ServerCapacity{
-				Size:  size,
-				Total: total,
-				Free:  oldCap.Free + free,
+				Size:      size,
+				Total:     total,
+				Free:      oldCap.Free + free,
+				Allocated: oldCap.Allocated + allocated,
+				Faulty:    oldCap.Faulty + faulty,
 			}
 			capacities[size] = cap
 		}
@@ -354,9 +389,99 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 		}
 		partitionCapacities = append(partitionCapacities, pc)
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
+	return partitionCapacities, err
+}
+
+// partitionCapacityCollector implements the Collector interface.
+type partitionCapacityCollector struct {
+	r *partitionResource
+}
+
+var (
+	capacityTotalDesc = prometheus.NewDesc(
+		"metal_partition_capacity_total",
+		"The total capacity of machines in the partition",
+		[]string{"partition", "size"}, nil,
+	)
+	capacityFreeDesc = prometheus.NewDesc(
+		"metal_partition_capacity_free",
+		"The capacity of free machines in the partition",
+		[]string{"partition", "size"}, nil,
+	)
+	capacityAllocatedDesc = prometheus.NewDesc(
+		"metal_partition_capacity_allocated",
+		"The capacity of allocated machines in the partition",
+		[]string{"partition", "size"}, nil,
+	)
+	capacityFaultyDesc = prometheus.NewDesc(
+		"metal_partition_capacity_faulty",
+		"The capacity of faulty machines in the partition",
+		[]string{"partition", "size"}, nil,
+	)
+)
+
+func (pcc partitionCapacityCollector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(pcc, ch)
+}
+
+func (pcc partitionCapacityCollector) Collect(ch chan<- prometheus.Metric) {
+	pcs, err := pcc.r.calcPartitionCapacity()
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		zapup.MustRootLogger().Error("Failed to get partition capacity", zap.Error(err))
 		return
+	}
+
+	for _, pc := range pcs {
+		for _, sc := range pc.ServerCapacities {
+			metric, err := prometheus.NewConstMetric(
+				capacityTotalDesc,
+				prometheus.CounterValue,
+				float64(sc.Total),
+				pc.ID,
+				sc.Size,
+			)
+			if err != nil {
+				zapup.MustRootLogger().Error("Failed to create metric for totalCapacity", zap.Error(err))
+				return
+			}
+			ch <- metric
+
+			metric, err = prometheus.NewConstMetric(
+				capacityFreeDesc,
+				prometheus.CounterValue,
+				float64(sc.Free),
+				pc.ID,
+				sc.Size,
+			)
+			if err != nil {
+				zapup.MustRootLogger().Error("Failed to create metric for freeCapacity", zap.Error(err))
+				return
+			}
+			ch <- metric
+			metric, err = prometheus.NewConstMetric(
+				capacityAllocatedDesc,
+				prometheus.CounterValue,
+				float64(sc.Allocated),
+				pc.ID,
+				sc.Size,
+			)
+			if err != nil {
+				zapup.MustRootLogger().Error("Failed to create metric for allocatedCapacity", zap.Error(err))
+				return
+			}
+			ch <- metric
+			metric, err = prometheus.NewConstMetric(
+				capacityFaultyDesc,
+				prometheus.CounterValue,
+				float64(sc.Faulty),
+				pc.ID,
+				sc.Size,
+			)
+			if err != nil {
+				zapup.MustRootLogger().Error("Failed to create metric for faultyCapacity", zap.Error(err))
+				return
+			}
+			ch <- metric
+		}
 	}
 }

@@ -87,26 +87,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	// this is a default project, which is used for metal internal entities
-	// (like internet IPs that we immediately reserve after initial deployment)
-	// this will be possibly be removed when factoring out the project entity to another microservice
-	_, err = rs.FindProjectByID("00000000-0000-0000-0000-000000000000")
-	if err == nil {
-		return nil
-	}
-
-	if metal.IsNotFound(err) {
-		p := &metal.Project{
-			Base: metal.Base{
-				ID:          "00000000-0000-0000-0000-000000000000",
-				Name:        "metal-system",
-				Description: "internal administrative project",
-			},
-			Tenant: "metal-system",
-		}
-		err = rs.CreateProject(p)
-	}
-	return err
+	return nil
 }
 
 func (rs *RethinkStore) sizeTable() *r.Term {

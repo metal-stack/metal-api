@@ -1,8 +1,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+
+	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -22,15 +26,17 @@ import (
 type ipResource struct {
 	webResource
 	ipamer ipam.IPAMer
+	mdc    mdm.Client
 }
 
 // NewIP returns a webservice for ip specific endpoints.
-func NewIP(ds *datastore.RethinkStore, ipamer ipam.IPAMer) *restful.WebService {
+func NewIP(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
 	ir := ipResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		ipamer: ipamer,
+		mdc:    mdc,
 	}
 	return ir.webService()
 }
@@ -271,7 +277,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	p, err := ir.ds.FindProjectByID(requestPayload.ProjectID)
+	p, err := ir.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -305,7 +311,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		Name:             name,
 		Description:      description,
 		NetworkID:        nw.ID,
-		ProjectID:        p.ID,
+		ProjectID:        p.GetProject().GetMeta().GetId(),
 		Type:             ipType,
 		Tags:             tags,
 	}

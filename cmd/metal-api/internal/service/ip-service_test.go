@@ -2,10 +2,15 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
+	mdmock "git.f-i-ts.de/cloud-native/masterdata-api/api/v1/mocks"
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
 
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -26,7 +31,7 @@ func TestGetIPs(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()))
+	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip", nil)
 	container = injectViewer(container, req)
@@ -52,7 +57,7 @@ func TestGetIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()))
+	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
 	container = injectViewer(container, req)
@@ -73,7 +78,7 @@ func TestGetIPNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()))
+	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
 	container = injectViewer(container, req)
@@ -96,7 +101,7 @@ func TestDeleteIP(t *testing.T) {
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipamer)
+	ipservice := NewIP(ds, ipamer, nil)
 	container := restful.NewContainer().Add(ipservice)
 
 	tests := []struct {
@@ -144,7 +149,18 @@ func TestAllocateIP(t *testing.T) {
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipamer)
+	psc := mdmock.ProjectServiceClient{}
+	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
+		Project: &mdmv1.Project{
+			Meta: &mdmv1.Meta{Id: "project-1"},
+		},
+	}, nil,
+	)
+	tsc := mdmock.TenantServiceClient{}
+
+	mdc := mdm.NewMock(&psc, &tsc)
+
+	ipservice := NewIP(ds, ipamer, mdc)
 	container := restful.NewContainer().Add(ipservice)
 
 	tests := []struct {
@@ -203,7 +219,7 @@ func TestUpdateIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()))
+	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := metal.TagIPMachineID + "=" + "1"
 	tests := []struct {

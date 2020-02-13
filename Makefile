@@ -14,7 +14,7 @@ release:: all;
 
 .PHONY: spec
 spec: all
-	bin/metal-api dump-swagger >spec/metal-api.json
+	bin/metal-api dump-swagger | python -c "$$PYTHON_DEEP_SORT" >spec/metal-api.json
 
 .PHONY: createmasterdata
 createmasterdata:

@@ -41,7 +41,7 @@ func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
 	container = injectViewer(container, req)
@@ -179,7 +179,7 @@ func TestRegisterMachine(t *testing.T) {
 
 			js, _ := json.Marshal(registerRequest)
 			body := bytes.NewBuffer(js)
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -252,7 +252,7 @@ func TestMachineIPMIReport(t *testing.T) {
 
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
 			body := bytes.NewBuffer(js)
@@ -273,16 +273,11 @@ func TestMachineIPMIReport(t *testing.T) {
 	}
 }
 
-func TestMachineIPMI(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	testdata.InitMockDBData(mock)
-
+func TestMachineFindIPMI(t *testing.T) {
 	data := []struct {
 		name           string
 		machine        *metal.Machine
 		wantStatusCode int
-		wantErr        bool
-		wantErrMessage string
 	}{
 		{
 			name:           "retrieve machine1 ipmi",
@@ -294,21 +289,23 @@ func TestMachineIPMI(t *testing.T) {
 			machine:        &testdata.M2,
 			wantStatusCode: http.StatusOK,
 		},
-		{
-			name:           "retrieve unknown machine ipmi",
-			machine:        &metal.Machine{Base: metal.Base{ID: "999"}},
-			wantStatusCode: http.StatusNotFound,
-			wantErr:        true,
-		},
 	}
 
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
+			ds, mock := datastore.InitMockDB()
+			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*test.machine}, nil)
+			testdata.InitMockDBData(mock)
 
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 
-			req := httptest.NewRequest("GET", fmt.Sprintf("/v1/machine/%s/ipmi", test.machine.ID), nil)
+			query := datastore.MachineSearchQuery{
+				ID: &test.machine.ID,
+			}
+			js, _ := json.Marshal(query)
+			body := bytes.NewBuffer(js)
+			req := httptest.NewRequest("POST", "/v1/machine/ipmi/find", body)
 			req.Header.Add("Content-Type", "application/json")
 			container = injectViewer(container, req)
 			w := httptest.NewRecorder()
@@ -317,35 +314,28 @@ func TestMachineIPMI(t *testing.T) {
 			resp := w.Result()
 			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
 
-			if test.wantErr {
-				var result httperrors.HTTPErrorResponse
-				err := json.NewDecoder(resp.Body).Decode(&result)
+			var results []*v1.MachineIPMIResponse
+			err := json.NewDecoder(resp.Body).Decode(&results)
 
-				require.Nil(t, err)
-				require.Equal(t, test.wantStatusCode, result.StatusCode)
-				if test.wantErrMessage != "" {
-					require.Regexp(t, test.wantErrMessage, result.Message)
-				}
-			} else {
-				var result v1.MachineIPMI
-				err := json.NewDecoder(resp.Body).Decode(&result)
+			require.Nil(t, err)
+			require.Len(t, results, 1)
 
-				require.Nil(t, err)
-				require.Equal(t, test.machine.IPMI.Address, result.Address)
-				require.Equal(t, test.machine.IPMI.Interface, result.Interface)
-				require.Equal(t, test.machine.IPMI.User, result.User)
-				require.Equal(t, test.machine.IPMI.Password, result.Password)
-				require.Equal(t, test.machine.IPMI.MacAddress, result.MacAddress)
+			result := results[0]
 
-				require.Equal(t, test.machine.IPMI.Fru.ChassisPartNumber, *result.Fru.ChassisPartNumber)
-				require.Equal(t, test.machine.IPMI.Fru.ChassisPartSerial, *result.Fru.ChassisPartSerial)
-				require.Equal(t, test.machine.IPMI.Fru.BoardMfg, *result.Fru.BoardMfg)
-				require.Equal(t, test.machine.IPMI.Fru.BoardMfgSerial, *result.Fru.BoardMfgSerial)
-				require.Equal(t, test.machine.IPMI.Fru.BoardPartNumber, *result.Fru.BoardPartNumber)
-				require.Equal(t, test.machine.IPMI.Fru.ProductManufacturer, *result.Fru.ProductManufacturer)
-				require.Equal(t, test.machine.IPMI.Fru.ProductPartNumber, *result.Fru.ProductPartNumber)
-				require.Equal(t, test.machine.IPMI.Fru.ProductSerial, *result.Fru.ProductSerial)
-			}
+			require.Equal(t, test.machine.IPMI.Address, result.IPMI.Address)
+			require.Equal(t, test.machine.IPMI.Interface, result.IPMI.Interface)
+			require.Equal(t, test.machine.IPMI.User, result.IPMI.User)
+			require.Equal(t, test.machine.IPMI.Password, result.IPMI.Password)
+			require.Equal(t, test.machine.IPMI.MacAddress, result.IPMI.MacAddress)
+
+			require.Equal(t, test.machine.IPMI.Fru.ChassisPartNumber, *result.IPMI.Fru.ChassisPartNumber)
+			require.Equal(t, test.machine.IPMI.Fru.ChassisPartSerial, *result.IPMI.Fru.ChassisPartSerial)
+			require.Equal(t, test.machine.IPMI.Fru.BoardMfg, *result.IPMI.Fru.BoardMfg)
+			require.Equal(t, test.machine.IPMI.Fru.BoardMfgSerial, *result.IPMI.Fru.BoardMfgSerial)
+			require.Equal(t, test.machine.IPMI.Fru.BoardPartNumber, *result.IPMI.Fru.BoardPartNumber)
+			require.Equal(t, test.machine.IPMI.Fru.ProductManufacturer, *result.IPMI.Fru.ProductManufacturer)
+			require.Equal(t, test.machine.IPMI.Fru.ProductPartNumber, *result.IPMI.Fru.ProductPartNumber)
+			require.Equal(t, test.machine.IPMI.Fru.ProductSerial, *result.IPMI.Fru.ProductSerial)
 		})
 	}
 }
@@ -384,7 +374,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
 
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 
 			finalizeRequest := v1.MachineFinalizeAllocationRequest{
@@ -426,7 +416,7 @@ func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 
 	stateRequest := v1.MachineState{
@@ -456,7 +446,7 @@ func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
 	container = injectViewer(container, req)
@@ -480,7 +470,7 @@ func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
 	container = injectEditor(container, req)
@@ -510,7 +500,7 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice := NewMachine(ds, pub, ipam.New(goipam.New()))
+	machineservice := NewMachine(ds, pub, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
 	container = injectEditor(container, req)
@@ -525,6 +515,7 @@ func TestFreeMachine(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
 	require.Nil(t, result.Allocation)
+	require.Empty(t, result.Tags)
 }
 
 func TestSearchMachine(t *testing.T) {
@@ -532,7 +523,7 @@ func TestSearchMachine(t *testing.T) {
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	requestJSON := fmt.Sprintf("{%q:[%q]}", "nics_mac_addresses", "1")
 	req := httptest.NewRequest("POST", "/v1/machine/find", bytes.NewBufferString(requestJSON))
@@ -560,7 +551,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()))
+	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	event := &metal.ProvisioningEvent{
 		Event:   metal.ProvisioningEventPreparing,
@@ -639,7 +630,7 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice := NewMachine(ds, pub, ipam.New(goipam.New()))
+			machineservice := NewMachine(ds, pub, ipam.New(goipam.New()), nil)
 
 			js, _ := json.Marshal([]string{d.param})
 			body := bytes.NewBuffer(js)
@@ -1005,79 +996,14 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		errRegex               string
 	}{
 		{
-			name: "no networks and ips given (implicit private network creation)",
+			name: "no networks given",
 			allocationSpec: &machineAllocationSpec{
 				Networks: v1.MachineAllocationNetworks{},
 			},
 			partition:              &testdata.Partition1,
 			partitionSuperNetworks: partitionSuperNetworks,
-			mocks: []mock{
-				mock{
-					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
-					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
-					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
-				},
-			},
-			wantErr: false,
-			want: allocationNetworkMap{
-				"implicitly-acquired-network": &allocationNetwork{
-					network:        &metal.Network{},
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
-				},
-			},
-		},
-		{
-			name: "no networks but existing ip given",
-			allocationSpec: &machineAllocationSpec{
-				Networks:  v1.MachineAllocationNetworks{},
-				IPs:       []string{testdata.IP1.IPAddress},
-				ProjectID: testdata.IP1.ProjectID,
-			},
-			partition:              &testdata.Partition1,
-			partitionSuperNetworks: partitionSuperNetworks,
-			mocks: []mock{
-				mock{
-					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
-					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
-					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
-				},
-			},
-			wantErr:  true,
-			errRegex: "given ip .* is not in any of the given networks",
-		},
-		{
-			name: "no networks and no existing ip given",
-			allocationSpec: &machineAllocationSpec{
-				Networks: v1.MachineAllocationNetworks{},
-				IPs:      []string{"127.0.0.1"},
-			},
-			partition:              &testdata.Partition1,
-			partitionSuperNetworks: partitionSuperNetworks,
-			mocks: []mock{
-				mock{
-					term:     r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.DeleteOpts{ReturnChanges: true}),
-					response: r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("network").Insert(r.MockAnything(), r.InsertOpts{}),
-					response: r.WriteResponse{GeneratedKeys: []string{"implicitly-acquired-network"}},
-				},
-				mock{
-					term:     r.DB("mockdb").Table("ip").Get("127.0.0.1"),
-					response: nil,
-				},
-			},
-			wantErr:  true,
-			errRegex: "NotFound",
+			wantErr:                true,
+			errRegex:               "no private network given",
 		},
 		{
 			name: "private network given",
@@ -1153,6 +1079,23 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 					isPrivate:      false,
 				},
 			},
+		},
+		{
+			name: "ip which does not belong to any related network given",
+			allocationSpec: &machineAllocationSpec{
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID:     testdata.Partition1ExistingPrivateNetwork.ID,
+						AutoAcquireIP: &boolTrue,
+					},
+				},
+				IPs:       []string{testdata.Partition2InternetIP.IPAddress},
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			wantErr:                true,
+			errRegex:               "given ip .* is not in any of the given networks",
 		},
 		{
 			name: "private network and internet network with no auto acquired internet ip",
@@ -1296,12 +1239,10 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			for _, testMock := range tt.mocks {
 				mock.On(testMock.term).Return(testMock.response, testMock.err)
 			}
-			ipamer, err := testdata.InitMockIpamData(mock, false)
-			require.Nil(t, err)
 			testdata.InitMockDBData(mock)
 
 			// run
-			got, err := gatherNetworksFromSpec(ds, ipamer, tt.allocationSpec, tt.partition, tt.partitionSuperNetworks)
+			got, err := gatherNetworksFromSpec(ds, tt.allocationSpec, tt.partition, tt.partitionSuperNetworks)
 
 			// verify
 			if err != nil {

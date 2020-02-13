@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
+	"go.uber.org/zap"
+
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
 	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
@@ -29,7 +32,6 @@ type testEnv struct {
 	partitionService    *restful.WebService
 	machineService      *restful.WebService
 	ipService           *restful.WebService
-	project             *v1.ProjectResponse
 	privateSuperNetwork *v1.NetworkResponse
 	privateNetwork      *v1.NetworkResponse
 	rethingContainer    testcontainers.Container
@@ -42,26 +44,28 @@ func (te *testEnv) teardown() {
 
 func createTestEnvironment(t *testing.T) testEnv {
 	require := require.New(t)
+	log, err := zap.NewDevelopment()
+	require.NoError(err)
 
 	ipamer := ipam.InitTestIpam(t)
 	nsq := eventbus.InitTestPublisher(t)
 	ds, rc, ctx := datastore.InitTestDB(t)
+	mdc, err := mdm.NewClient(":50051", "certs/server.pem", "hmac", log)
+	require.NoError(err)
 
-	machineService := NewMachine(ds, nsq.Publisher, ipamer)
+	machineService := NewMachine(ds, nsq.Publisher, ipamer, mdc)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
 	sizeService := NewSize(ds)
-	networkService := NewNetwork(ds, ipamer)
-	projectService := NewProject(ds)
+	networkService := NewNetwork(ds, ipamer, mdc)
 	partitionService := NewPartition(ds, nsq)
-	ipService := NewIP(ds, ipamer)
+	ipService := NewIP(ds, ipamer, mdc)
 
 	te := testEnv{
 		imageService:     imageService,
 		switchService:    switchService,
 		sizeService:      sizeService,
 		networkService:   networkService,
-		projectService:   projectService,
 		partitionService: partitionService,
 		machineService:   machineService,
 		ipService:        ipService,
@@ -127,29 +131,6 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.Equal(http.StatusCreated, status)
 	require.NotNil(createdSize)
 	require.Equal(size.ID, createdSize.ID)
-
-	projectName := "test-project"
-	projectDesc := "Test Project"
-	project := v1.ProjectCreateRequest{
-		Common: v1.Common{
-			Describable: v1.Describable{
-				Name:        &projectName,
-				Description: &projectDesc,
-			},
-		},
-		ProjectBase: v1.ProjectBase{
-			Tenant: "Test Tenant",
-		},
-	}
-
-	var createdProject v1.ProjectResponse
-	status = te.projectCreate(t, project, &createdProject)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdProject)
-	require.Equal(project.Name, createdProject.Name)
-	require.NotEmpty(createdProject.ID)
-	require.Len(createdProject.ID, 36)
-	te.project = &createdProject
 
 	partitionName := "test-partition"
 	partitionDesc := "Test Partition"
@@ -228,13 +209,14 @@ func createTestEnvironment(t *testing.T) testEnv {
 	var acquiredPrivateNetwork v1.NetworkResponse
 	privateNetworkName := "test-private-network"
 	privateNetworkDesc := "Test Private Network"
+	projectID := "test-project-1"
 	nar := v1.NetworkAllocateRequest{
 		Describable: v1.Describable{
 			Name:        &privateNetworkName,
 			Description: &privateNetworkDesc,
 		},
 		NetworkBase: v1.NetworkBase{
-			ProjectID:   &createdProject.ID,
+			ProjectID:   &projectID,
 			PartitionID: &partition.ID,
 		},
 	}
@@ -257,9 +239,6 @@ func (te *testEnv) sizeCreate(t *testing.T, icr v1.SizeCreateRequest, response i
 
 func (te *testEnv) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, response interface{}) int {
 	return webRequestPut(t, te.partitionService, icr, "/v1/partition/", response)
-}
-func (te *testEnv) projectCreate(t *testing.T, icr v1.ProjectCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.projectService, icr, "/v1/project/", response)
 }
 
 func (te *testEnv) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
