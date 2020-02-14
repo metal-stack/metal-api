@@ -173,6 +173,11 @@ const (
 	MachineResurrectAfter    time.Duration     = time.Hour
 )
 
+// Is return true if given liveliness is equal to specific Liveliness
+func (l MachineLiveliness) Is(liveliness string) bool {
+	return string(l) == liveliness
+}
+
 // DiskCapacity calculates the capacity of all disks.
 func (hw *MachineHardware) DiskCapacity() uint64 {
 	var c uint64

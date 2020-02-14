@@ -19,7 +19,7 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/metal-pod/go-ipam v1.3.0
 	github.com/metal-pod/security v0.0.0-20191127130239-3547755283e3
-	github.com/metal-pod/v v0.0.2
+	github.com/metal-pod/v v1.0.0
 	github.com/nsqio/go-nsq v1.0.7
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.2.1

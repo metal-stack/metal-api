@@ -785,7 +785,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	}
 
 	var ms metal.Machines
-	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &requestPayload.PartitionID}, &ms)
+	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{}, &ms)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -832,11 +832,11 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		if uuid == "" {
 			continue
 		}
-		if _, ok := requestPayload.Leases[uuid]; !ok {
+		// if oldmachine.uuid is not part of this update cycle skip it
+		ip, ok := requestPayload.Leases[uuid]
+		if !ok {
 			continue
 		}
-
-		ip := requestPayload.Leases[uuid]
 		newMachine := oldMachine
 
 		// Replace host part of ipmi address with the ip from the ipmicatcher
@@ -851,6 +851,15 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		}
 
 		if newMachine.IPMI.Address == oldMachine.IPMI.Address {
+			continue
+		}
+		// machine was created by a PXE boot event and has no partition set.
+		if oldMachine.PartitionID == "" {
+			newMachine.PartitionID = requestPayload.PartitionID
+		}
+
+		if newMachine.PartitionID != requestPayload.PartitionID {
+			logger.Errorf("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
 			continue
 		}
 
@@ -1576,10 +1585,11 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 			m.Allocation.Reinstall = true
 		} else {
 			m.Allocation = nil
+			m.Tags = nil
 		}
 
 		err = r.ds.UpdateMachine(&old, m)
-		if err != nil {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return err
 		}
 
@@ -1715,53 +1725,55 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		}
 	}
 
-	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
-	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
-	if ec == nil {
-		ec = &metal.ProvisioningEventContainer{
-			Base: metal.Base{
-				ID: m.ID,
-			},
-			Liveliness: metal.MachineLivelinessAlive,
-		}
-	}
-
-	now := time.Now()
-
-	ec.LastEventTime = &now
-
-	event := metal.ProvisioningEvent{
-		Time:    now,
-		Event:   metal.ProvisioningEventType(requestPayload.Event),
-		Message: requestPayload.Message,
-	}
-	if event.Event == metal.ProvisioningEventAlive {
-		utils.Logger(request).Sugar().Debugw("received provisioning alive event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
-		utils.Logger(request).Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else {
-		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
-		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(utils.Logger(request).Sugar())
-		ec.Liveliness = metal.MachineLivelinessAlive
-	}
-	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
-
-	err = r.ds.UpsertProvisioningEventContainer(ec)
+	ec, err := r.provisioningEventForMachine(id, requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func (r machineResource) provisioningEventForMachine(machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
+	ec, err := r.ds.FindProvisioningEventContainer(machineID)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, err
+	}
+
+	if ec == nil {
+		ec = &metal.ProvisioningEventContainer{
+			Base: metal.Base{
+				ID: machineID,
+			},
+			Liveliness: metal.MachineLivelinessAlive,
+		}
+	}
+	now := time.Now()
+	ec.LastEventTime = &now
+
+	event := metal.ProvisioningEvent{
+		Time:    now,
+		Event:   metal.ProvisioningEventType(e.Event),
+		Message: e.Message,
+	}
+	if event.Event == metal.ProvisioningEventAlive {
+		zapup.MustRootLogger().Sugar().Debugw("received provisioning alive event", "id", ec.ID)
+		ec.Liveliness = metal.MachineLivelinessAlive
+	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
+		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
+		ec.Liveliness = metal.MachineLivelinessAlive
+	} else {
+		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
+		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
+		ec.Liveliness = metal.MachineLivelinessAlive
+	}
+	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
+
+	err = r.ds.UpsertProvisioningEventContainer(ec)
+	return ec, err
 }
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine
@@ -1919,6 +1931,15 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		return
 	}
 
+	switch op {
+	case "machineReset", "machineOff":
+		event := string(metal.ProvisioningEventPlannedReboot)
+		_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: op})
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
 	err = publishMachineCmd(logger, m, r, cmd, params...)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -1960,15 +1981,18 @@ func machineHasIssues(m *v1.MachineResponse) bool {
 	if m.Partition == nil {
 		return true
 	}
-	if m.Liveliness != "Alive" {
+	if !metal.MachineLivelinessAlive.Is(m.Liveliness) {
 		return true
 	}
-	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && m.RecentProvisioningEvents.Events[0].Event == "Phoned Home" {
+	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventPhonedHome.Is(m.RecentProvisioningEvents.Events[0].Event) {
 		// not allocated, but phones home
 		return true
 	}
 	if m.RecentProvisioningEvents.IncompleteProvisioningCycles != "" && m.RecentProvisioningEvents.IncompleteProvisioningCycles != "0" {
-		return true
+		// Machines with incomplete cycles but in "Waiting" state are considered available
+		if len(m.RecentProvisioningEvents.Events) > 0 && !metal.ProvisioningEventWaiting.Is(m.RecentProvisioningEvents.Events[0].Event) {
+			return true
+		}
 	}
 
 	return false

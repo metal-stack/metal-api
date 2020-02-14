@@ -515,6 +515,7 @@ func TestFreeMachine(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
 	require.Nil(t, result.Allocation)
+	require.Empty(t, result.Tags)
 }
 
 func TestSearchMachine(t *testing.T) {

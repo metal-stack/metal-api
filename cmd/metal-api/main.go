@@ -311,7 +311,7 @@ func initMasterData() {
 	}
 
 	var err error
-	mdc, err = mdm.NewClient(addr, certpath, hmacKey, log)
+	mdc, err = mdm.NewClient(addr, certpath, hmacKey, logger.Desugar())
 	if err != nil {
 		logger.Fatal(err.Error())
 	}

@@ -37,7 +37,11 @@ func NewPartition(ds *datastore.RethinkStore, tc TopicCreater) *restful.WebServi
 		topicCreater: tc,
 	}
 	pcc := partitionCapacityCollector{r: &r}
-	prometheus.Register(pcc)
+	err := prometheus.Register(pcc)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to register prometheus", zap.Error(err))
+	}
+
 	return r.webService()
 }
 
@@ -204,11 +208,6 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		},
 	}
 
-	err = r.ds.CreatePartition(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	fqns := []string{metal.TopicMachine.GetFQN(p.GetID()), metal.TopicSwitch.GetFQN(p.GetID())}
 	for _, fqn := range fqns {
 		if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
@@ -217,6 +216,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 			}
 		}
 	}
+
+	err = r.ds.CreatePartition(p)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -306,7 +311,13 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 		return nil, nil
 	}
 	ps, err := r.ds.ListPartitions()
+	if err != nil {
+		return nil, err
+	}
 	ms, err := r.ds.ListMachines()
+	if err != nil {
+		return nil, err
+	}
 	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
 
 	partitionCapacities := []v1.PartitionCapacity{}

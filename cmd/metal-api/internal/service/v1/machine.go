@@ -459,6 +459,10 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	if len(m.Tags) > 0 {
 		tags = m.Tags
 	}
+	liveliness := ""
+	if ec != nil {
+		liveliness = string(ec.Liveliness)
+	}
 
 	return &MachineResponse{
 		Common: Common{
@@ -489,7 +493,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Value:       string(m.LEDState.Value),
 				Description: m.LEDState.Description,
 			},
-			Liveliness:               string(ec.Liveliness),
+			Liveliness:               liveliness,
 			RecentProvisioningEvents: *NewMachineRecentProvisioningEvents(ec),
 			Tags:                     tags,
 		},

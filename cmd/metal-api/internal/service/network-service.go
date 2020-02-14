@@ -40,7 +40,10 @@ func NewNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) 
 		mdc:    mdc,
 	}
 	nuc := networkUsageCollector{r: &r}
-	prometheus.Register(nuc)
+	err := prometheus.Register(nuc)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to register prometheus", zap.Error(err))
+	}
 	return r.webService()
 }
 

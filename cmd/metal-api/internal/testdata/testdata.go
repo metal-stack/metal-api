@@ -40,6 +40,7 @@ var (
 			Project: "p1",
 		},
 		IPMI: IPMI1,
+		Tags: []string{"1"},
 	}
 	M2 = metal.Machine{
 		Base:        metal.Base{ID: "2"},
