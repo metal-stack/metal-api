@@ -2412,6 +2412,9 @@
                 },
                 "machine": {
                     "$ref": "#/definitions/v1.Quota"
+                },
+                "project": {
+                    "$ref": "#/definitions/v1.Quota"
                 }
             }
         },
@@ -2775,9 +2778,8 @@
     },
     "info": {
         "contact": {
-            "email": "devops@f-i-ts.de",
-            "name": "Devops Team",
-            "url": "http://www.f-i-ts.de"
+            "name": "Metal Stack",
+            "url": "https://metal-stack.io"
         },
         "description": "Resource for managing pure metal",
         "license": {
