@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "project", "event", "network", "ip",
+	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
 		"integerpool", "integerpoolinfo"}
 )
 
@@ -124,10 +124,6 @@ func (rs *RethinkStore) networkTable() *r.Term {
 }
 func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
-	return &res
-}
-func (rs *RethinkStore) projectTable() *r.Term {
-	res := r.DB(rs.dbname).Table("project")
 	return &res
 }
 func (rs *RethinkStore) integerTable() *r.Term {

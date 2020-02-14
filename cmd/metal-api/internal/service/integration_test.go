@@ -23,25 +23,26 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
+//nolint:golint,unused
 type testEnv struct {
 	imageService        *restful.WebService
 	switchService       *restful.WebService
 	sizeService         *restful.WebService
 	networkService      *restful.WebService
-	projectService      *restful.WebService
 	partitionService    *restful.WebService
 	machineService      *restful.WebService
 	ipService           *restful.WebService
 	privateSuperNetwork *v1.NetworkResponse
 	privateNetwork      *v1.NetworkResponse
-	rethingContainer    testcontainers.Container
+	rethinkContainer    testcontainers.Container
 	ctx                 context.Context
 }
 
 func (te *testEnv) teardown() {
-	te.rethingContainer.Terminate(te.ctx)
+	_ = te.rethinkContainer.Terminate(te.ctx)
 }
 
+//nolint:golint,unused,deadcode
 func createTestEnvironment(t *testing.T) testEnv {
 	require := require.New(t)
 	log, err := zap.NewDevelopment()
@@ -69,7 +70,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 		partitionService: partitionService,
 		machineService:   machineService,
 		ipService:        ipService,
-		rethingContainer: rc,
+		rethinkContainer: rc,
 		ctx:              ctx,
 	}
 
@@ -277,7 +278,10 @@ func (te *testEnv) machineWait(uuid string) {
 		container.ServeHTTP(w, createReq)
 		resp := w.Result()
 		var response map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&response)
+		err := json.NewDecoder(resp.Body).Decode(&response)
+		if err != nil {
+			panic(err)
+		}
 		if resp.StatusCode == http.StatusOK {
 			break
 		}
@@ -287,20 +291,30 @@ func (te *testEnv) machineWait(uuid string) {
 	}
 }
 
+//nolint:golint,unused
 type emptyBody struct{}
 
+//nolint:golint,unused
 func webRequestPut(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodPut, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequestPost(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodPost, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequestDelete(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodDelete, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequestGet(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodGet, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequest(t *testing.T, method string, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	container := restful.NewContainer().Add(service)
 

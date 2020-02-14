@@ -59,7 +59,7 @@ func TestTenantEnsurer(t *testing.T) {
 }
 
 func foo(req *restful.Request, resp *restful.Response) {
-	io.WriteString(resp.ResponseWriter, "foo")
+	_, _ = io.WriteString(resp.ResponseWriter, "foo")
 }
 
 func TestAllowedPathSuffixes(t *testing.T) {
