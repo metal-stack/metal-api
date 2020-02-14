@@ -1,7 +1,7 @@
 package v1
 
 import (
-	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 )
 
 type ProjectResponse struct {

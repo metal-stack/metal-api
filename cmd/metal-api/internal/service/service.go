@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"strings"
 
-	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
-	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-lib/jwt/sec"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/go-stack/stack"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	"github.com/metal-stack/metal-lib/httperrors"
 
 	"github.com/emicklei/go-restful"
-	"github.com/metal-pod/security"
+	"github.com/metal-stack/security"
 	"go.uber.org/zap"
 )
 
@@ -44,19 +44,19 @@ func NewUserDirectory(providerTenant string) *UserDirectory {
 	ud.viewer = security.User{
 		EMail:  "metal-view@metal-pod.io",
 		Name:   "Metal-View",
-		Groups: sec.MergeRessourceAccess(metal.ViewGroups),
+		Groups: sec.MergeResourceAccess(metal.ViewGroups),
 		Tenant: providerTenant,
 	}
 	ud.edit = security.User{
 		EMail:  "metal-edit@metal-pod.io",
 		Name:   "Metal-Edit",
-		Groups: sec.MergeRessourceAccess(metal.EditGroups),
+		Groups: sec.MergeResourceAccess(metal.EditGroups),
 		Tenant: providerTenant,
 	}
 	ud.admin = security.User{
 		EMail:  "metal-admin@metal-pod.io",
 		Name:   "Metal-Admin",
-		Groups: sec.MergeRessourceAccess(metal.AdminGroups),
+		Groups: sec.MergeResourceAccess(metal.AdminGroups),
 		Tenant: providerTenant,
 	}
 	ud.metalUsers = map[string]security.User{
@@ -148,7 +148,7 @@ func admin(rf restful.RouteFunction) restful.RouteFunction {
 	return oneOf(rf, metal.AdminAccess...)
 }
 
-func oneOf(rf restful.RouteFunction, acc ...security.RessourceAccess) restful.RouteFunction {
+func oneOf(rf restful.RouteFunction, acc ...security.ResourceAccess) restful.RouteFunction {
 	return func(request *restful.Request, response *restful.Response) {
 		log := utils.Logger(request)
 		lg := log.Sugar()

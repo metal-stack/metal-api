@@ -4,15 +4,15 @@ import (
 	"context"
 	"net/http"
 
-	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
-	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/metal-stack/metal-lib/httperrors"
 )
 
 type projectResource struct {

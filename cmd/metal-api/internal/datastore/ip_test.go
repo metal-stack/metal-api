@@ -1,11 +1,11 @@
 package datastore
 
 import (
-	"reflect"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 )
 
 func TestRethinkStore_FindIPByID(t *testing.T) {
@@ -51,8 +51,8 @@ func TestRethinkStore_FindIPByID(t *testing.T) {
 				t.Errorf("RethinkStore.FindIP() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindIP() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindIP() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -85,8 +85,8 @@ func TestRethinkStore_ListIPs(t *testing.T) {
 				t.Errorf("RethinkStore.ListIPs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.ListIPs() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.ListIPs() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

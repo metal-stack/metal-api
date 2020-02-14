@@ -2,36 +2,37 @@ package metal
 
 import (
 	"fmt"
-	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
 	"time"
 
-	"github.com/metal-pod/security"
+	"github.com/metal-stack/metal-lib/jwt/sec"
+
+	"github.com/metal-stack/security"
 )
 
 // These are our supported groups.
 var (
 	// View Groupname
-	ViewGroups = []security.RessourceAccess{
-		security.RessourceAccess("k8s_kaas-view"), // FIXME remove legacy, only for compatibility
-		security.RessourceAccess("maas-all-all-view"),
+	ViewGroups = []security.ResourceAccess{
+		security.ResourceAccess("k8s_kaas-view"), // FIXME remove legacy, only for compatibility
+		security.ResourceAccess("maas-all-all-view"),
 	}
 
 	// Edit Groupname
-	EditGroups = []security.RessourceAccess{
-		security.RessourceAccess("k8s_kaas-edit"), // FIXME remove legacy, only for compatibility
-		security.RessourceAccess("maas-all-all-edit"),
+	EditGroups = []security.ResourceAccess{
+		security.ResourceAccess("k8s_kaas-edit"), // FIXME remove legacy, only for compatibility
+		security.ResourceAccess("maas-all-all-edit"),
 	}
 
 	// Admin Groupname
-	AdminGroups = []security.RessourceAccess{
-		security.RessourceAccess("k8s_kaas-admin"), // FIXME remove legacy, only for compatibility
-		security.RessourceAccess("maas-all-all-admin"),
+	AdminGroups = []security.ResourceAccess{
+		security.ResourceAccess("k8s_kaas-admin"), // FIXME remove legacy, only for compatibility
+		security.ResourceAccess("maas-all-all-admin"),
 	}
 
 	// Groups that have view permission
-	ViewAccess = sec.MergeRessourceAccess(ViewGroups, EditGroups, AdminGroups)
+	ViewAccess = sec.MergeResourceAccess(ViewGroups, EditGroups, AdminGroups)
 	// Groups that have edit permission
-	EditAccess = sec.MergeRessourceAccess(EditGroups, AdminGroups)
+	EditAccess = sec.MergeResourceAccess(EditGroups, AdminGroups)
 	// Groups that have admin permission
 	AdminAccess = AdminGroups
 )

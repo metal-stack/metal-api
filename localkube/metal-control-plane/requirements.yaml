@@ -1,4 +1,0 @@
----
-# dependencies:
-#   - name: stable/rethinkdb
-#     version: 0.1.4

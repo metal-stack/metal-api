@@ -13,27 +13,28 @@ import (
 
 	nsq2 "github.com/nsqio/go-nsq"
 
-	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
+	"github.com/metal-stack/metal-lib/jwt/grp"
+	"github.com/metal-stack/metal-lib/jwt/sec"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 
-	"git.f-i-ts.de/cloud-native/masterdata-api/pkg/auth"
-	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
-	"git.f-i-ts.de/cloud-native/metallib/bus"
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"git.f-i-ts.de/cloud-native/metallib/rest"
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
-	goipam "github.com/metal-pod/go-ipam"
-	"github.com/metal-pod/security"
-	"github.com/metal-pod/v"
+	goipam "github.com/metal-stack/go-ipam"
+	"github.com/metal-stack/masterdata-api/pkg/auth"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
+	bus "github.com/metal-stack/metal-lib/bus"
+	httperrors "github.com/metal-stack/metal-lib/httperrors"
+	rest "github.com/metal-stack/metal-lib/rest"
+	zapup "github.com/metal-stack/metal-lib/zapup"
+	"github.com/metal-stack/security"
+	"github.com/metal-stack/v"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -345,20 +346,22 @@ func initIpam() {
 func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	var auths []security.CredsOpt
 
+	providerTenant := viper.GetString("provider-tenant")
+
 	dx, err := security.NewDex(viper.GetString("dex-addr"))
 	if err != nil {
 		logger.Warnw("dex not reachable", "error", err)
 	}
 	if dx != nil {
 		// use custom user extractor and group processor
-		dx.With(security.UserExtractor(sec.ExtractUserProcessGroups))
+		plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
+		dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
 		auths = append(auths, security.WithDex(dx))
 		logger.Info("dex successfully configured")
 	} else {
 		logger.Warnw("dex is not configured")
 	}
 
-	providerTenant := viper.GetString("provider-tenant")
 	defaultUsers := service.NewUserDirectory(providerTenant)
 	for _, u := range defaultUsers.UserNames() {
 		lfkey := fmt.Sprintf("hmac-%s-lifetime", u)
@@ -497,13 +500,16 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Title:       moduleName,
 			Description: "Resource for managing pure metal",
 			Contact: &spec.ContactInfo{
-				Name:  "Devops Team",
-				Email: "devops@f-i-ts.de",
-				URL:   "http://www.f-i-ts.de",
+				ContactInfoProps: spec.ContactInfoProps{
+					Name: "Metal Stack",
+					URL:  "https://metal-stack.io",
+				},
 			},
 			License: &spec.License{
-				Name: "MIT",
-				URL:  "http://mit.org",
+				LicenseProps: spec.LicenseProps{
+					Name: "MIT",
+					URL:  "http://mit.org",
+				},
 			},
 			Version: "1.0.0",
 		},

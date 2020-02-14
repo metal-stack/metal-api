@@ -8,20 +8,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
-	mdmock "git.f-i-ts.de/cloud-native/masterdata-api/api/v1/mocks"
-	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdmock "github.com/metal-stack/masterdata-api/api/v1/mocks"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"github.com/metal-stack/metal-lib/httperrors"
 
 	"github.com/google/go-cmp/cmp"
-	goipam "github.com/metal-pod/go-ipam"
+	goipam "github.com/metal-stack/go-ipam"
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful"

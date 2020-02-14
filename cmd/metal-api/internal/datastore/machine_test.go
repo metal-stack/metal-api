@@ -1,12 +1,12 @@
 package datastore
 
 import (
-	"reflect"
 	"testing"
 	"testing/quick"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -92,8 +92,8 @@ func TestRethinkStore_FindMachineByID(t *testing.T) {
 				return
 			}
 			if tt.want != nil {
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("RethinkStore.FindMachine() = %v, want %v", got, tt.want)
+				if diff := cmp.Diff(got, tt.want); diff != "" {
+					t.Errorf("RethinkStore.FindMachine() mismatch (-want +got):\n%s", diff)
 				}
 			}
 		})
@@ -145,8 +145,8 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindMachines() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -197,8 +197,8 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindMachines() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -249,8 +249,8 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindMachines() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -301,8 +301,8 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindMachines() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -353,8 +353,8 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindMachines() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -407,8 +407,8 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindMachines() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindMachines() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -441,8 +441,8 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 				t.Errorf("RethinkStore.ListMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.ListMachines() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindMachines() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -1,7 +1,7 @@
 package ipam
 
 import (
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 // A IPAMer is responsible to allocate a IP for a given purpose

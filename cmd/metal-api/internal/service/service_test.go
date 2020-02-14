@@ -13,9 +13,9 @@ import (
 
 	"bytes"
 
-	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"github.com/emicklei/go-restful"
-	"github.com/metal-pod/security"
+	"github.com/metal-stack/metal-lib/rest"
+	"github.com/metal-stack/security"
 )
 
 var testUserDirectory = NewUserDirectory("")

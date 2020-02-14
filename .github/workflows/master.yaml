@@ -1,0 +1,22 @@
+name: Build from master
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Lint
+      uses: actions-contrib/golangci-lint@master
+      with:
+        args: run
+    - name: Docker Image
+      run: |
+        docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
+        docker build -t metalstack/metal-api .
+        docker push metalstack/metal-api

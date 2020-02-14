@@ -3,9 +3,9 @@ package ipam
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
-	ipam "github.com/metal-pod/go-ipam"
+	ipam "github.com/metal-stack/go-ipam"
 )
 
 type Ipam struct {

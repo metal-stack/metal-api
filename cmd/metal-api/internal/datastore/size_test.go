@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 )
 
 func TestRethinkStore_FindSize(t *testing.T) {
@@ -44,8 +45,8 @@ func TestRethinkStore_FindSize(t *testing.T) {
 				t.Errorf("RethinkStore.FindSize() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindSize() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindSize() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -78,8 +79,8 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 				t.Errorf("RethinkStore.ListSizes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.ListSizes() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.ListSizes() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

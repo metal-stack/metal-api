@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/tags"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
 	"github.com/pkg/errors"
 )
 

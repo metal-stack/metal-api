@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"

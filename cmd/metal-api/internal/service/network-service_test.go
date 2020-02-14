@@ -8,18 +8,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
+	"github.com/metal-stack/metal-lib/httperrors"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
 	restful "github.com/emicklei/go-restful"
-	goipam "github.com/metal-pod/go-ipam"
+	goipam "github.com/metal-stack/go-ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/require"
 )
 

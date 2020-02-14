@@ -3,8 +3,8 @@ package v1
 import (
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 // RecentProvisioningEventsLimit defines how many recent events are added to the MachineRecentProvisioningEvents struct
