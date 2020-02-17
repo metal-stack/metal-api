@@ -132,12 +132,12 @@ func init() {
 
 	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
 
-	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "nsqd:4150", "the TCP address of the nsqd")
+	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "", "the TCP address of the nsqd")
 	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
 	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
-	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the http address of the nsqlookupd as a commalist")
+	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http address of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -151,7 +151,7 @@ func init() {
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
 
 	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
-	rootCmd.Flags().StringP("masterdata-addr", "", "masterdata:8443", "the address of masterdata-api in the form of host:port")
+	rootCmd.Flags().StringP("masterdata-addr", "", "", "the address of masterdata-api in the form of host:port")
 	rootCmd.Flags().StringP("masterdata-certpath", "", "certs/server.pem", "the tls certificate to talk to the masterdata-api")
 
 	err := viper.BindPFlags(rootCmd.Flags())
@@ -293,7 +293,6 @@ func initDataStore() {
 		logger.Errorw("cannot connect to db in root command metal-api/internal/main.initDatastore()", "error", err)
 		panic(err)
 	}
-
 }
 
 func initMasterData() {
@@ -315,6 +314,8 @@ func initMasterData() {
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
+
+	logger.Info("masterdata client initialized")
 }
 
 func initIpam() {
@@ -341,6 +342,7 @@ func initIpam() {
 	} else {
 		logger.Errorw("database not supported", "db", dbAdapter)
 	}
+	logger.Info("ipam initialized")
 }
 
 func initAuth(lg *zap.SugaredLogger) security.UserGetter {
