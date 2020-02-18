@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"go.uber.org/zap"
@@ -51,7 +52,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 	ipamer := ipam.InitTestIpam(t)
 	nsq := eventbus.InitTestPublisher(t)
 	ds, rc, ctx := datastore.InitTestDB(t)
-	mdc, err := mdm.NewClient(":50051", "certs/server.pem", "hmac", log)
+	timeoutCtx, _ := context.WithTimeout(context.Background(), 3*time.Second)
+	mdc, err := mdm.NewClient(timeoutCtx, "localhost", 50051, "certs/client.pem", "certs/client-key.pem", "certs/ca.pem", "hmac", log)
 	require.NoError(err)
 
 	machineService := NewMachine(ds, nsq.Publisher, ipamer, mdc)

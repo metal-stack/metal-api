@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -151,8 +152,11 @@ func init() {
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
 
 	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
-	rootCmd.Flags().StringP("masterdata-addr", "", "", "the address of masterdata-api in the form of host:port")
-	rootCmd.Flags().StringP("masterdata-certpath", "", "certs/server.pem", "the tls certificate to talk to the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
+	rootCmd.Flags().IntP("masterdata-port", "", 8443, "the port of the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-capath", "", "", "the tls ca certificate to talk to the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
@@ -297,22 +301,45 @@ func initDataStore() {
 
 func initMasterData() {
 	hmacKey := viper.GetString("masterdata-hmac")
-	addr := viper.GetString("masterdata-addr")
-	certpath := viper.GetString("masterdata-certpath")
 	if hmacKey == "" {
 		hmacKey = auth.HmacDefaultKey
 	}
-	if certpath == "" {
-		logger.Fatal("no certpath given")
+
+	ca := viper.GetString("masterdata-capath")
+	if ca == "" {
+		logger.Fatal("no masterdata-api capath given")
 	}
-	if addr == "" {
-		logger.Fatal("no addr given")
+
+	certpath := viper.GetString("masterdata-certpath")
+	if certpath == "" {
+		logger.Fatal("no masterdata-api certpath given")
+	}
+
+	certkeypath := viper.GetString("masterdata-certkeypath")
+	if certkeypath == "" {
+		logger.Fatal("no masterdata-api certkeypath given")
+	}
+
+	hostname := viper.GetString("masterdata-hostname")
+	if hostname == "" {
+		logger.Fatal("no masterdata-hostname given")
+	}
+
+	port := viper.GetInt("masterdata-port")
+	if port == 0 {
+		logger.Fatal("no masterdata-port given")
 	}
 
 	var err error
-	mdc, err = mdm.NewClient(addr, certpath, hmacKey, logger.Desugar())
-	if err != nil {
-		logger.Fatal(err.Error())
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
+		if err == nil {
+			break
+		}
+		logger.Errorw("unable to initialize masterdata-api client, retrying...", "error", err)
+		time.Sleep(3 * time.Second)
 	}
 
 	logger.Info("masterdata client initialized")
