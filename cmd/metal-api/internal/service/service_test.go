@@ -13,9 +13,9 @@ import (
 
 	"bytes"
 
-	"git.f-i-ts.de/cloud-native/metallib/rest"
 	"github.com/emicklei/go-restful"
-	"github.com/metal-pod/security"
+	"github.com/metal-stack/metal-lib/rest"
+	"github.com/metal-stack/security"
 )
 
 var testUserDirectory = NewUserDirectory("")
@@ -59,7 +59,7 @@ func TestTenantEnsurer(t *testing.T) {
 }
 
 func foo(req *restful.Request, resp *restful.Response) {
-	io.WriteString(resp.ResponseWriter, "foo")
+	_, _ = io.WriteString(resp.ResponseWriter, "foo")
 }
 
 func TestAllowedPathSuffixes(t *testing.T) {

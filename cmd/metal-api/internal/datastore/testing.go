@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
+	"github.com/metal-stack/metal-lib/zapup"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/testcontainers/testcontainers-go"

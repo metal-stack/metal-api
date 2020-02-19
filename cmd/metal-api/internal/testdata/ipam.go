@@ -3,11 +3,11 @@ package testdata
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 
-	goipam "github.com/metal-pod/go-ipam"
+	goipam "github.com/metal-stack/go-ipam"
 )
 
 // InitMockIpamData initializes mock data to be stored in the IPAM module

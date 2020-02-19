@@ -8,14 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	"github.com/emicklei/go-restful"
-	goipam "github.com/metal-pod/go-ipam"
+	goipam "github.com/metal-stack/go-ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
@@ -1263,8 +1263,13 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 				require.Equal(t, wantNetwork.isPrivate, gotNetwork.isPrivate)
 				require.Equal(t, wantNetwork.auto, gotNetwork.auto)
 
+				var gotIPs []string
+				for _, gotIP := range gotNetwork.ips {
+					gotIPs = append(gotIPs, gotIP.IPAddress)
+				}
+
 				for _, wantIP := range wantNetwork.ips {
-					require.Contains(t, gotNetwork.ips, wantIP)
+					require.Contains(t, gotIPs, wantIP.IPAddress)
 				}
 			}
 		})

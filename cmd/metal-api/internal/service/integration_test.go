@@ -9,39 +9,41 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
-	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"go.uber.org/zap"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
 	restful "github.com/emicklei/go-restful"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 )
 
+//nolint:golint,unused
 type testEnv struct {
 	imageService        *restful.WebService
 	switchService       *restful.WebService
 	sizeService         *restful.WebService
 	networkService      *restful.WebService
-	projectService      *restful.WebService
 	partitionService    *restful.WebService
 	machineService      *restful.WebService
 	ipService           *restful.WebService
 	privateSuperNetwork *v1.NetworkResponse
 	privateNetwork      *v1.NetworkResponse
-	rethingContainer    testcontainers.Container
+	rethinkContainer    testcontainers.Container
 	ctx                 context.Context
 }
 
 func (te *testEnv) teardown() {
-	te.rethingContainer.Terminate(te.ctx)
+	_ = te.rethinkContainer.Terminate(te.ctx)
 }
 
+//nolint:golint,unused,deadcode
 func createTestEnvironment(t *testing.T) testEnv {
 	require := require.New(t)
 	log, err := zap.NewDevelopment()
@@ -50,7 +52,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 	ipamer := ipam.InitTestIpam(t)
 	nsq := eventbus.InitTestPublisher(t)
 	ds, rc, ctx := datastore.InitTestDB(t)
-	mdc, err := mdm.NewClient(":50051", "certs/server.pem", "hmac", log)
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	mdc, err := mdm.NewClient(timeoutCtx, "localhost", 50051, "certs/client.pem", "certs/client-key.pem", "certs/ca.pem", "hmac", log)
 	require.NoError(err)
 
 	machineService := NewMachine(ds, nsq.Publisher, ipamer, mdc)
@@ -69,7 +73,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 		partitionService: partitionService,
 		machineService:   machineService,
 		ipService:        ipService,
-		rethingContainer: rc,
+		rethinkContainer: rc,
 		ctx:              ctx,
 	}
 
@@ -277,7 +281,10 @@ func (te *testEnv) machineWait(uuid string) {
 		container.ServeHTTP(w, createReq)
 		resp := w.Result()
 		var response map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&response)
+		err := json.NewDecoder(resp.Body).Decode(&response)
+		if err != nil {
+			panic(err)
+		}
 		if resp.StatusCode == http.StatusOK {
 			break
 		}
@@ -287,20 +294,30 @@ func (te *testEnv) machineWait(uuid string) {
 	}
 }
 
+//nolint:golint,unused
 type emptyBody struct{}
 
+//nolint:golint,unused
 func webRequestPut(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodPut, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequestPost(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodPost, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequestDelete(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodDelete, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequestGet(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodGet, service, request, path, response)
 }
+
+//nolint:golint,unused
 func webRequest(t *testing.T, method string, service *restful.WebService, request interface{}, path string, response interface{}) int {
 	container := restful.NewContainer().Add(service)
 

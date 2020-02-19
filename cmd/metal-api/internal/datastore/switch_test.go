@@ -1,11 +1,12 @@
 package datastore
 
 import (
-	"reflect"
 	"testing"
+	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/require"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
@@ -51,8 +52,8 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 				t.Errorf("RethinkStore.FindSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindSwitch() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindSwitch() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -297,6 +298,12 @@ func TestRethinkStore_FindSwitchByMac(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
+	// TODO: for some reason the monotonic clock reading gets lost somewhere and a special comparer is required. find out why.
+	timeComparer := cmp.Comparer(func(x, y time.Time) bool {
+		return x.Unix() == y.Unix()
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ds, mock := InitMockDB()
@@ -309,8 +316,8 @@ func TestRethinkStore_FindSwitchByMac(t *testing.T) {
 				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.SearchSwitches() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want, timeComparer); diff != "" {
+				t.Errorf("RethinkStore.SearchSwitches() mismatch (-want +got):\n%s", diff)
 			}
 			mock.AssertExpectations(t)
 		})

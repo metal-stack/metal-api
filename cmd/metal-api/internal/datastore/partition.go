@@ -1,7 +1,7 @@
 package datastore
 
 import (
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 // FindPartition return a partition for the given id.

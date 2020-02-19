@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,27 +14,28 @@ import (
 
 	nsq2 "github.com/nsqio/go-nsq"
 
-	"git.f-i-ts.de/cloud-native/metallib/jwt/sec"
+	"github.com/metal-stack/metal-lib/jwt/grp"
+	"github.com/metal-stack/metal-lib/jwt/sec"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/eventbus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 
-	"git.f-i-ts.de/cloud-native/masterdata-api/pkg/auth"
-	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metrics"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service"
-	"git.f-i-ts.de/cloud-native/metallib/bus"
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"git.f-i-ts.de/cloud-native/metallib/rest"
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/spec"
-	goipam "github.com/metal-pod/go-ipam"
-	"github.com/metal-pod/security"
-	"github.com/metal-pod/v"
+	goipam "github.com/metal-stack/go-ipam"
+	"github.com/metal-stack/masterdata-api/pkg/auth"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
+	bus "github.com/metal-stack/metal-lib/bus"
+	httperrors "github.com/metal-stack/metal-lib/httperrors"
+	rest "github.com/metal-stack/metal-lib/rest"
+	zapup "github.com/metal-stack/metal-lib/zapup"
+	"github.com/metal-stack/security"
+	"github.com/metal-stack/v"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -52,7 +54,6 @@ var (
 	ipamer  *ipam.Ipam
 	nsqer   *eventbus.NSQClient
 	logger  = zapup.MustRootLogger().Sugar()
-	log     = zapup.MustRootLogger()
 	debug   = false
 	mdc     mdm.Client
 )
@@ -132,12 +133,12 @@ func init() {
 
 	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
 
-	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "nsqd:4150", "the TCP address of the nsqd")
+	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "", "the TCP address of the nsqd")
 	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
 	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
-	rootCmd.Flags().StringP("nsqlookupd-addr", "", "nsqlookupd:4160", "the http address of the nsqlookupd as a commalist")
+	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http address of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -151,8 +152,11 @@ func init() {
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
 
 	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
-	rootCmd.Flags().StringP("masterdata-addr", "", "masterdata:8443", "the address of masterdata-api in the form of host:port")
-	rootCmd.Flags().StringP("masterdata-certpath", "", "certs/server.pem", "the tls certificate to talk to the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
+	rootCmd.Flags().IntP("masterdata-port", "", 8443, "the port of the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-capath", "", "", "the tls ca certificate to talk to the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
+	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
@@ -293,28 +297,52 @@ func initDataStore() {
 		logger.Errorw("cannot connect to db in root command metal-api/internal/main.initDatastore()", "error", err)
 		panic(err)
 	}
-
 }
 
 func initMasterData() {
 	hmacKey := viper.GetString("masterdata-hmac")
-	addr := viper.GetString("masterdata-addr")
-	certpath := viper.GetString("masterdata-certpath")
 	if hmacKey == "" {
 		hmacKey = auth.HmacDefaultKey
 	}
-	if certpath == "" {
-		logger.Fatal("no certpath given")
+
+	ca := viper.GetString("masterdata-capath")
+	if ca == "" {
+		logger.Fatal("no masterdata-api capath given")
 	}
-	if addr == "" {
-		logger.Fatal("no addr given")
+
+	certpath := viper.GetString("masterdata-certpath")
+	if certpath == "" {
+		logger.Fatal("no masterdata-api certpath given")
+	}
+
+	certkeypath := viper.GetString("masterdata-certkeypath")
+	if certkeypath == "" {
+		logger.Fatal("no masterdata-api certkeypath given")
+	}
+
+	hostname := viper.GetString("masterdata-hostname")
+	if hostname == "" {
+		logger.Fatal("no masterdata-hostname given")
+	}
+
+	port := viper.GetInt("masterdata-port")
+	if port == 0 {
+		logger.Fatal("no masterdata-port given")
 	}
 
 	var err error
-	mdc, err = mdm.NewClient(addr, certpath, hmacKey, logger.Desugar())
-	if err != nil {
-		logger.Fatal(err.Error())
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
+		if err == nil {
+			break
+		}
+		logger.Errorw("unable to initialize masterdata-api client, retrying...", "error", err)
+		time.Sleep(3 * time.Second)
 	}
+
+	logger.Info("masterdata client initialized")
 }
 
 func initIpam() {
@@ -341,10 +369,13 @@ func initIpam() {
 	} else {
 		logger.Errorw("database not supported", "db", dbAdapter)
 	}
+	logger.Info("ipam initialized")
 }
 
 func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	var auths []security.CredsOpt
+
+	providerTenant := viper.GetString("provider-tenant")
 
 	dx, err := security.NewDex(viper.GetString("dex-addr"))
 	if err != nil {
@@ -352,14 +383,14 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 	if dx != nil {
 		// use custom user extractor and group processor
-		dx.With(security.UserExtractor(sec.ExtractUserProcessGroups))
+		plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
+		dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
 		auths = append(auths, security.WithDex(dx))
 		logger.Info("dex successfully configured")
 	} else {
 		logger.Warnw("dex is not configured")
 	}
 
-	providerTenant := viper.GetString("provider-tenant")
 	defaultUsers := service.NewUserDirectory(providerTenant)
 	for _, u := range defaultUsers.UserNames() {
 		lfkey := fmt.Sprintf("hmac-%s-lifetime", u)
@@ -498,13 +529,16 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Title:       moduleName,
 			Description: "Resource for managing pure metal",
 			Contact: &spec.ContactInfo{
-				Name:  "Devops Team",
-				Email: "devops@f-i-ts.de",
-				URL:   "http://www.f-i-ts.de",
+				ContactInfoProps: spec.ContactInfoProps{
+					Name: "Metal Stack",
+					URL:  "https://metal-stack.io",
+				},
 			},
 			License: &spec.License{
-				Name: "MIT",
-				URL:  "http://mit.org",
+				LicenseProps: spec.LicenseProps{
+					Name: "MIT",
+					URL:  "http://mit.org",
+				},
 			},
 			Version: "1.0.0",
 		},

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metallib/bus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
 )
 

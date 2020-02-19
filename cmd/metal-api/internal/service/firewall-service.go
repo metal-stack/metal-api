@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"net/http"
 
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
+	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 
-	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/ipam"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
-	"git.f-i-ts.de/cloud-native/metallib/bus"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/metal-stack/metal-lib/bus"
 )
 
 type firewallResource struct {

@@ -4,15 +4,17 @@ import (
 	"context"
 	"net/http"
 
-	mdmv1 "git.f-i-ts.de/cloud-native/masterdata-api/api/v1"
-	mdm "git.f-i-ts.de/cloud-native/masterdata-api/pkg/client"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	"go.uber.org/zap"
 
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type projectResource struct {
@@ -80,7 +82,11 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, p.Project)
+	err = response.WriteHeaderAndEntity(http.StatusOK, p.Project)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r projectResource) listProjects(request *restful.Request, response *restful.Response) {
@@ -89,7 +95,11 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	err = response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (r projectResource) findProjects(request *restful.Request, response *restful.Response) {
@@ -104,5 +114,9 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	err = response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }

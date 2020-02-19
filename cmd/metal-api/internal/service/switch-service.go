@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 )
 
@@ -168,7 +168,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 
 		// TODO: Broken switch: A machine was registered before this new switch is getting registered
 		// It needs to take over the existing connections from the broken switch or something?
-		// https://git.f-i-ts.de/cloud-native/metal/metal/issues/28
+		// metal/metal#28
 
 		returnCode = http.StatusCreated
 	} else {
@@ -214,7 +214,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 
 func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnections metal.ConnectionMap) (metal.Nics, error) {
 	// TODO: Broken switch would change nics, but if this happens we would need to repair broken connections:
-	// https://git.f-i-ts.de/cloud-native/metal/metal/issues/28
+	// metal/metal#28
 
 	// To start off we just prevent basic things that can go wrong
 	nicsThatGetLost := metal.Nics{}

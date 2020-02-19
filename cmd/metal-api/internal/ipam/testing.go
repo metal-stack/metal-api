@@ -3,7 +3,7 @@ package ipam
 import (
 	"testing"
 
-	goipam "github.com/metal-pod/go-ipam"
+	goipam "github.com/metal-stack/go-ipam"
 )
 
 func InitTestIpam(t *testing.T) *Ipam {

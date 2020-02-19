@@ -1,11 +1,11 @@
 package datastore
 
 import (
-	"reflect"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -52,8 +52,8 @@ func TestRethinkStore_FindImage(t *testing.T) {
 				t.Errorf("RethinkStore.FindImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindImage() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindImage() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -86,8 +86,8 @@ func TestRethinkStore_ListImages(t *testing.T) {
 				t.Errorf("RethinkStore.ListImages() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.ListImages() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.ListImages() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

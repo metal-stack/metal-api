@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 var (
-	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "project", "event", "network", "ip",
+	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
 		"integerpool", "integerpoolinfo"}
 )
 
@@ -124,10 +124,6 @@ func (rs *RethinkStore) networkTable() *r.Term {
 }
 func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
-	return &res
-}
-func (rs *RethinkStore) projectTable() *r.Term {
-	res := r.DB(rs.dbname).Table("project")
 	return &res
 }
 func (rs *RethinkStore) integerTable() *r.Term {

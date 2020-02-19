@@ -1,11 +1,11 @@
 package datastore
 
 import (
-	"reflect"
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 )
 
 func TestRethinkStore_FindNetworkByID(t *testing.T) {
@@ -51,8 +51,8 @@ func TestRethinkStore_FindNetworkByID(t *testing.T) {
 				t.Errorf("RethinkStore.FindNetworkByID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.FindNetworkByID() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.FindNetworkByID() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -85,8 +85,8 @@ func TestRethinkStore_ListNetworks(t *testing.T) {
 				t.Errorf("RethinkStore.ListNetworks() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.ListNetworks() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("RethinkStore.ListNetworks() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

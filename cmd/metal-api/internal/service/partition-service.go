@@ -3,19 +3,19 @@ package service
 import (
 	"net/http"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/datastore"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/utils"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
 
-	v1 "git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/service/v1"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/metallib/httperrors"
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/zapup"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

@@ -3,7 +3,7 @@ package v1
 import (
 	"sort"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 type SwitchBase struct {

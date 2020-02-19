@@ -3,7 +3,7 @@ package datastore
 import (
 	"fmt"
 
-	"git.f-i-ts.de/cloud-native/metal/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 // FindSize return a size for a given id.

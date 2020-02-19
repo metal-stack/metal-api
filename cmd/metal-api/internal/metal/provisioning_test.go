@@ -3,7 +3,7 @@ package metal
 import (
 	"testing"
 
-	"git.f-i-ts.de/cloud-native/metallib/zapup"
+	"github.com/metal-stack/metal-lib/zapup"
 )
 
 var (
