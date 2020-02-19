@@ -1,4 +1,4 @@
-name: Build from master
+name: Build from branches except master
 
 on:
   push:
