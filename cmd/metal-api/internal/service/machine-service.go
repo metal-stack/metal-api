@@ -963,8 +963,8 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if p.GetProject() != nil && p.GetProject().GetQuotas() != nil && p.GetProject().GetQuotas().GetMachine() != nil {
 		mq := p.GetProject().GetQuotas().GetMachine()
 		maxMachines := mq.GetQuota().GetValue()
-		var actualMachines *metal.Machines
-		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, actualMachines)
+		var actualMachines metal.Machines
+		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, &actualMachines)
 		if err != nil {
 			return nil, err
 		}
@@ -973,7 +973,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		if err != nil {
 			return nil, err
 		}
-		for _, m := range *actualMachines {
+		for _, m := range actualMachines {
 			if m.IsFirewall(imageMap.ByID()) {
 				continue
 			}
@@ -1778,9 +1778,11 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 }
 
 func (r machineResource) machineAbortReinstall(machineID string) {
+	log := zapup.MustRootLogger().Sugar()
+
 	m, err := r.ds.FindMachineByID(machineID)
 	if err != nil {
-		zapup.MustRootLogger().Sugar().Errorw("unable to find machine", "machineID", machineID, "error", err)
+		log.Errorw("unable to find machine", "machineID", machineID, "error", err)
 		return
 	}
 
@@ -1789,11 +1791,14 @@ func (r machineResource) machineAbortReinstall(machineID string) {
 		m.Allocation.Reinstall = false
 		err = r.ds.UpdateMachine(&old, m)
 		if err != nil {
-			zapup.MustRootLogger().Sugar().Errorw("unable to find machine", "machineID", machineID, "error", err)
+			log.Errorw("unable to find machine", "machineID", machineID, "error", err)
 		}
 	}
 
-	err = publishMachineCmd(zapup.MustRootLogger().Sugar(), m, r, metal.MachineAbortReinstall)
+	err = publishMachineCmd(log, m, r, metal.MachineAbortReinstall)
+	if err != nil {
+		log.Errorw("unable to publish ’Abort Reinstall' command", "machineID", machineID, "error", err)
+	}
 }
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine
