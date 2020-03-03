@@ -144,7 +144,7 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 		return
 	}
 
-	result := []*v1.IPResponse{}
+	var result []*v1.IPResponse
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
@@ -168,7 +168,7 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 		return
 	}
 
-	result := []*v1.IPResponse{}
+	var result []*v1.IPResponse
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}

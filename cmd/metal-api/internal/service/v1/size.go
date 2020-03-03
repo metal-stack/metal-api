@@ -40,7 +40,7 @@ type SizeMatchingLog struct {
 }
 
 func NewSizeMatchingLog(m *metal.SizeMatchingLog) *SizeMatchingLog {
-	constraints := []SizeConstraintMatchingLog{}
+	var constraints []SizeConstraintMatchingLog
 	for i := range m.Constraints {
 		constraint := SizeConstraintMatchingLog{
 			Constraint: SizeConstraint{

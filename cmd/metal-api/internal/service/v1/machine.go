@@ -246,7 +246,7 @@ type MachineReinstallRequest struct {
 }
 
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
-	nics := metal.Nics{}
+	var nics metal.Nics
 	for i := range r.Nics {
 		var neighbors metal.Nics
 		for i2 := range r.Nics[i].Neighbors {
@@ -378,7 +378,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
-	nics := MachineNics{}
+	var nics MachineNics
 	for i := range m.Hardware.Nics {
 		nic := MachineNic{
 			MacAddress: string(m.Hardware.Nics[i].MacAddress),
@@ -406,20 +406,19 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 
 	var allocation *MachineAllocation
 	if m.Allocation != nil {
-		networks := []MachineNetwork{}
-		for i := range m.Allocation.MachineNetworks {
-			ips := []string{}
-			ips = append(ips, m.Allocation.MachineNetworks[i].IPs...)
+		var networks []MachineNetwork
+		for _, nw := range m.Allocation.MachineNetworks {
+			ips := append([]string{}, nw.IPs...)
 			network := MachineNetwork{
-				NetworkID:           m.Allocation.MachineNetworks[i].NetworkID,
+				NetworkID:           nw.NetworkID,
 				IPs:                 ips,
-				Vrf:                 m.Allocation.MachineNetworks[i].Vrf,
-				ASN:                 m.Allocation.MachineNetworks[i].ASN,
-				Private:             m.Allocation.MachineNetworks[i].Private,
-				Nat:                 m.Allocation.MachineNetworks[i].Nat,
-				Underlay:            m.Allocation.MachineNetworks[i].Underlay,
-				DestinationPrefixes: m.Allocation.MachineNetworks[i].DestinationPrefixes,
-				Prefixes:            m.Allocation.MachineNetworks[i].Prefixes,
+				Vrf:                 nw.Vrf,
+				ASN:                 nw.ASN,
+				Private:             nw.Private,
+				Nat:                 nw.Nat,
+				Underlay:            nw.Underlay,
+				DestinationPrefixes: nw.DestinationPrefixes,
+				Prefixes:            nw.Prefixes,
 			}
 			networks = append(networks, network)
 		}
@@ -456,7 +455,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 	}
 
-	tags := []string{}
+	var tags []string
 	if len(m.Tags) > 0 {
 		tags = m.Tags
 	}
@@ -506,7 +505,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 }
 
 func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *MachineRecentProvisioningEvents {
-	es := []MachineProvisioningEvent{}
+	var es []MachineProvisioningEvent
 	if ec == nil {
 		return &MachineRecentProvisioningEvents{
 			Events:                       es,

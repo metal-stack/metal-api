@@ -135,7 +135,7 @@ func (r partitionResource) listPartitions(request *restful.Request, response *re
 		return
 	}
 
-	result := []*v1.PartitionResponse{}
+	var result []*v1.PartitionResponse
 	for i := range ps {
 		result = append(result, v1.NewPartitionResponse(&ps[i]))
 	}
@@ -320,9 +320,8 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 	}
 	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
 
-	partitionCapacities := []v1.PartitionCapacity{}
+	var partitionCapacities []v1.PartitionCapacity
 	for _, p := range ps {
-
 		capacities := make(map[string]v1.ServerCapacity)
 		for _, m := range machines {
 			if m.Partition == nil {
@@ -370,7 +369,7 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 			}
 			capacities[size] = cap
 		}
-		sc := []v1.ServerCapacity{}
+		var sc []v1.ServerCapacity
 		for _, c := range capacities {
 			sc = append(sc, c)
 		}

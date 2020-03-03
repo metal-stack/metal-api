@@ -336,8 +336,7 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore, logger *zap
 }
 
 func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
-	vnis := []string{}
-	cidrs := []string{}
+	var vnis, cidrs []string
 	for _, net := range m.Allocation.MachineNetworks {
 		if net.Underlay {
 			for _, ip := range net.IPs {
@@ -352,8 +351,7 @@ func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 }
 
 func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
-	vnis := []string{}
-	cidrs := []string{}
+	var vnis, cidrs []string
 
 	var private *metal.MachineNetwork
 	var underlay *metal.MachineNetwork
@@ -432,7 +430,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, mach
 }
 
 func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
-	cons := []v1.SwitchConnection{}
+	var cons []v1.SwitchConnection
 	for _, metalConnections := range s.MachineConnections {
 		for _, mc := range metalConnections {
 			nic := v1.SwitchNic{
@@ -482,7 +480,7 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, lo
 
 func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.SwitchResponse {
 	pMap, ips, iMap := getSwitchReferencedEntityMaps(ds, logger)
-	result := []*v1.SwitchResponse{}
+	var result []*v1.SwitchResponse
 	m, err := ds.ListMachines()
 	if err != nil {
 		logger.Errorw("could not find machines")

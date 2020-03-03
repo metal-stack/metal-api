@@ -231,7 +231,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
 							&metal.MachineNetwork{
-								IPs: []string{},
+								IPs: nil,
 								Vrf: 104010,
 							},
 							&metal.MachineNetwork{
@@ -266,7 +266,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 			},
 			want: v1.BGPFilter{
 				VNIs:  []string{"104010"},
-				CIDRs: []string{},
+				CIDRs: nil,
 			},
 		},
 		{
@@ -279,8 +279,8 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 				},
 			},
 			want: v1.BGPFilter{
-				VNIs:  []string{},
-				CIDRs: []string{},
+				VNIs:  nil,
+				CIDRs: nil,
 			},
 		},
 	}
@@ -344,7 +344,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 					},
 				},
 			},
-			want: v1.NewBGPFilter([]string{}, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "212.89.42.1/32", "212.89.42.2/32"}),
+			want: v1.NewBGPFilter(nil, []string{"10.1.0.0/22", "10.2.0.0/22", "100.127.1.1/32", "212.89.42.1/32", "212.89.42.2/32"}),
 		},
 		{
 			name: "allow only allocated ips",
@@ -366,7 +366,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 					},
 				},
 			},
-			want: v1.NewBGPFilter([]string{}, []string{"212.89.42.1/32"}),
+			want: v1.NewBGPFilter(nil, []string{"212.89.42.1/32"}),
 		},
 	}
 	for _, tt := range tests {
@@ -462,14 +462,14 @@ func TestMakeSwitchNics(t *testing.T) {
 					Vrf:  "vrf1",
 					BGPFilter: &v1.BGPFilter{
 						CIDRs: []string{"212.89.1.1/32"},
-						VNIs:  []string{},
+						VNIs:  nil,
 					},
 				},
 				v1.SwitchNic{
 					Name: "swp2",
 					Vrf:  "default",
 					BGPFilter: &v1.BGPFilter{
-						CIDRs: []string{},
+						CIDRs: nil,
 						VNIs:  []string{"1", "2"},
 					},
 				},

@@ -71,7 +71,7 @@ func (rs *RethinkStore) SearchSwitchesConnectedToMachine(m *metal.Machine) ([]me
 		return nil, err
 	}
 
-	res := []metal.Switch{}
+	var res []metal.Switch
 	for _, sw := range switches {
 		if _, has := sw.MachineConnections[m.ID]; has {
 			res = append(res, sw)
