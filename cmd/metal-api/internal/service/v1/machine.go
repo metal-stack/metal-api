@@ -25,23 +25,28 @@ type MachineBase struct {
 }
 
 type MachineAllocation struct {
-	Created         time.Time              `json:"created" description:"the time when the machine was created"`
-	Name            string                 `json:"name" description:"the name of the machine"`
-	Description     string                 `json:"description,omitempty" description:"a description for this machine" optional:"true"`
-	Project         string                 `json:"project" description:"the project id that this machine is assigned to" `
-	Image           *ImageResponse         `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
-	MachineNetworks []MachineNetwork       `json:"networks" description:"the networks of this machine"`
-	Hostname        string                 `json:"hostname" description:"the hostname which will be used when creating the machine"`
-	SSHPubKeys      []string               `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-	UserData        string                 `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
-	ConsolePassword *string                `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
-	Succeeded       bool                   `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
-	Reinstallation  *MachineReinstallation `json:"reinstallation" description:"indicates whether to reinstall the machine (if not nil)"`
+	Created         time.Time         `json:"created" description:"the time when the machine was created"`
+	Name            string            `json:"name" description:"the name of the machine"`
+	Description     string            `json:"description,omitempty" description:"a description for this machine" optional:"true"`
+	Project         string            `json:"project" description:"the project id that this machine is assigned to" `
+	Image           *ImageResponse    `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
+	MachineNetworks []MachineNetwork  `json:"networks" description:"the networks of this machine"`
+	Hostname        string            `json:"hostname" description:"the hostname which will be used when creating the machine"`
+	SSHPubKeys      []string          `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	UserData        string            `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
+	ConsolePassword *string           `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
+	Succeeded       bool              `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
+	Reinstall       *MachineReinstall `json:"reinstall" description:"indicates whether to reinstall the machine (if not nil)"`
 }
 
-type MachineReinstallation struct {
-	PrimaryDisk string `json:"primary_disk" description:"device name of the disk that contains the partition on which the OS is installed"`
-	OSPartition string `json:"os_partition" description:"device name of disk partition that has the OS installed"`
+type MachineReinstall struct {
+	OldImageID   string `json:"old_image_id" description:"the ID of the already existing OS image"`
+	PrimaryDisk  string `json:"primary_disk" description:"device name of the disk that contains the partition on which the OS is installed"`
+	OSPartition  string `json:"os_partition" description:"device name of disk partition that has the OS installed"`
+	Initrd       string `json:"initrd" description:"the initrd image"`
+	Cmdline      string `json:"cmdline" description:"the cmdline"`
+	Kernel       string `json:"kernel" description:"the kernel"`
+	BootloaderID string `json:"bootloaderid" description:"the bootloader ID"`
 }
 
 type MachineNetwork struct {
@@ -197,10 +202,13 @@ type MachineDiskPartition struct {
 }
 
 type MachineFinalizeAllocationRequest struct {
-	ConsolePassword string               `json:"console_password" description:"the console password which was generated while provisioning"`
-	Disks           []MachineBlockDevice `json:"disks" description:"the disks of the machine"` //FIXME: Only the primary disk and correct partition is required
-	PrimaryDisk     string               `json:"primarydisk" description:"the device name of the primary disk"`
-	OSPartition     string               `json:"ospartition" description:"the partition that has the OS installed"`
+	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
+	PrimaryDisk     string `json:"primarydisk" description:"the device name of the primary disk"`
+	OSPartition     string `json:"ospartition" description:"the partition that has the OS installed"`
+	Initrd          string `json:"initrd" description:"the initrd image"`
+	Cmdline         string `json:"cmdline" description:"the cmdline"`
+	Kernel          string `json:"kernel" description:"the kernel"`
+	BootloaderID    string `json:"bootloaderid" description:"the bootloader ID"`
 }
 
 type MachineFindRequest struct {
@@ -436,21 +444,14 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 
 		if m.Allocation.Reinstall {
-			for _, d := range m.Disks {
-				if !d.Primary {
-					continue
-				}
-				for _, p := range d.Partitions {
-					if !p.ContainsOS {
-						continue
-					}
-					allocation.Reinstallation = &MachineReinstallation{
-						PrimaryDisk: d.Name,
-						OSPartition: p.Device,
-					}
-					break
-				}
-				break
+			allocation.Reinstall = &MachineReinstall{
+				OldImageID:   m.Allocation.ImageID,
+				PrimaryDisk:  m.Allocation.PrimaryDisk,
+				OSPartition:  m.Allocation.OSPartition,
+				Initrd:       m.Allocation.Initrd,
+				Cmdline:      m.Allocation.Cmdline,
+				Kernel:       m.Allocation.Kernel,
+				BootloaderID: m.Allocation.BootloaderID,
 			}
 		}
 	}

@@ -23,6 +23,7 @@ const (
 	ProvisioningEventInstalling       ProvisioningEventType = "Installing"
 	ProvisioningEventBootingNewKernel ProvisioningEventType = "Booting New Kernel"
 	ProvisioningEventPhonedHome       ProvisioningEventType = "Phoned Home"
+	ProvisioningEventReinstallAborted ProvisioningEventType = "Reinstall Aborted"
 )
 
 type provisioningEventSequence []ProvisioningEventType
@@ -41,6 +42,7 @@ var (
 		ProvisioningEventInstalling:       true,
 		ProvisioningEventBootingNewKernel: true,
 		ProvisioningEventPhonedHome:       true,
+		ProvisioningEventReinstallAborted: true,
 	}
 	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
 	ProvisioningEventsInspectionLimit = 2 * len(expectedProvisioningEventSequence) // only saved events count

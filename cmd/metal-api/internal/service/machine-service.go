@@ -401,7 +401,8 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	resp := makeMachineResponse(m, r.ds, utils.Logger(request).Sugar())
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -515,8 +516,10 @@ func (r machineResource) wait(ctx context.Context, id string, logger *zap.Sugare
 }
 
 func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
+	log := utils.Logger(request).Sugar()
 	var requestPayload v1.MachineReinstallRequest
 	err := request.ReadEntity(&requestPayload)
+	log.Infow("AWIA", "error", err)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -525,8 +528,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 
 	err = r.reinstallOrDeleteMachine(request, response, &requestPayload.ImageID)
 	if err != nil {
-		log := utils.Logger(request)
-		sendError(log, response, utils.CurrentFuncName(), httperrors.InternalServerError(err))
+		sendError(log.Desugar(), response, utils.CurrentFuncName(), httperrors.InternalServerError(err))
 	}
 }
 
@@ -688,7 +690,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		}
 
 		returnCode = http.StatusCreated
-
 	} else {
 		// machine has already registered, update it
 		old := *m
@@ -1490,15 +1491,13 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	old := *m
 
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
-	if m.Allocation.Reinstall {
-		m.Allocation.Reinstall = false
-		for _, d := range m.Disks {
-			d.Primary = d.Name == requestPayload.PrimaryDisk
-			for _, p := range d.Partitions {
-				p.ContainsOS = p.Device == requestPayload.OSPartition
-			}
-		}
-	}
+	m.Allocation.PrimaryDisk = requestPayload.PrimaryDisk
+	m.Allocation.OSPartition = requestPayload.OSPartition
+	m.Allocation.Initrd = requestPayload.Initrd
+	m.Allocation.Cmdline = requestPayload.Cmdline
+	m.Allocation.Kernel = requestPayload.Kernel
+	m.Allocation.BootloaderID = requestPayload.BootloaderID
+	m.Allocation.Reinstall = false // just for safety
 
 	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1566,18 +1565,19 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 		return fmt.Errorf("machine is locked")
 	}
 
-	log := utils.Logger(request)
+	log := utils.Logger(request).Sugar()
 
 	if m.Allocation != nil {
-		// if the machine is allocated, we free it in our database
+		// we drop networks of allocated machines from our database
 		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
 		if err != nil {
 			// TODO: Trigger network garbage collection
 			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
 			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			log.Sugar().Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+			log.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
 			return err
 		}
+		m.Allocation.MachineNetworks = nil
 
 		old := *m
 		if imageID != nil {
@@ -1593,7 +1593,7 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 			return err
 		}
 
-		log.Sugar().Infow("freed machine", "machineID", id)
+		log.Infow("freed machine", "machineID", id)
 	} else if imageID == nil {
 		return nil
 	} else {
@@ -1604,21 +1604,21 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 	// fire of the needed events
 
 	sw, err := setVrfAtSwitches(r.ds, m, "")
-	log.Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
+	log.Infow("set VRF at switch", "machineID", id, "error", err)
 	if err != nil {
 		return err
 	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
 	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	log.Sugar().Infow("published machine delete event", "machineID", id, "error", err)
+	log.Infow("published machine delete event", "machineID", id, "error", err)
 	if err != nil {
 		return err
 	}
 
 	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
 	err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
-	log.Sugar().Infow("published switch update event", "machineID", id, "error", err)
+	log.Infow("published switch update event", "machineID", id, "error", err)
 	if err != nil {
 		return err
 	}
@@ -1642,9 +1642,9 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				continue
 			}
 			// disassociate machine from ip
-			new := *ip
-			new.RemoveMachineId(machine.GetID())
-			err = r.ds.UpdateIP(ip, &new)
+			newIP := *ip
+			newIP.RemoveMachineId(machine.GetID())
+			err = r.ds.UpdateIP(ip, &newIP)
 			if err != nil {
 				return err
 			}
@@ -1653,7 +1653,7 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				continue
 			}
 			// ips that are associated to other machines will should not be released automatically
-			if len(new.GetMachineIds()) > 0 {
+			if len(newIP.GetMachineIds()) > 0 {
 				continue
 			}
 			// release and delete
@@ -1765,6 +1765,8 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
 		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
 		ec.Liveliness = metal.MachineLivelinessAlive
+	} else if event.Event == metal.ProvisioningEventReinstallAborted {
+		r.machineAbortReinstall(machineID)
 	} else {
 		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
 		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
@@ -1774,6 +1776,25 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 
 	err = r.ds.UpsertProvisioningEventContainer(ec)
 	return ec, err
+}
+
+func (r machineResource) machineAbortReinstall(machineID string) {
+	m, err := r.ds.FindMachineByID(machineID)
+	if err != nil {
+		zapup.MustRootLogger().Sugar().Errorw("unable to find machine", "machineID", machineID, "error", err)
+		return
+	}
+
+	if m.Allocation != nil && m.Allocation.Reinstall {
+		old := *m
+		m.Allocation.Reinstall = false
+		err = r.ds.UpdateMachine(&old, m)
+		if err != nil {
+			zapup.MustRootLogger().Sugar().Errorw("unable to find machine", "machineID", machineID, "error", err)
+		}
+	}
+
+	err = publishMachineCmd(zapup.MustRootLogger().Sugar(), m, r, metal.MachineAbortReinstall)
 }
 
 // EvaluateMachineLiveliness evaluates the liveliness of a given machine
