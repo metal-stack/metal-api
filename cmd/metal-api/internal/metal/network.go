@@ -12,10 +12,10 @@ type MacAddress string
 
 // Nic information.
 type Nic struct {
-	MacAddress MacAddress `rethinkdb:"macAddress"`
-	Name       string     `rethinkdb:"name"`
-	Vrf        string     `rethinkdb:"vrf"`
-	Neighbors  Nics       `rethinkdb:"neighbors"`
+	MacAddress MacAddress `rethinkdb:"macAddress" json:"macAddress"`
+	Name       string     `rethinkdb:"name" json:"name"`
+	Vrf        string     `rethinkdb:"vrf" json:"vrf"`
+	Neighbors  Nics       `rethinkdb:"neighbors" json:"neighbors"`
 }
 
 // Nics is a list of nics.
@@ -23,8 +23,8 @@ type Nics []Nic
 
 // Prefix is a ip with mask, either ipv4/ipv6
 type Prefix struct {
-	IP     string `rethinkdb:"ip"`
-	Length string `rethinkdb:"length"`
+	IP     string `rethinkdb:"ip" json:"ip"`
+	Length string `rethinkdb:"length" json:"length"`
 }
 
 // Prefixes is an array of prefixes
@@ -66,16 +66,16 @@ func (p *Prefix) Equals(other *Prefix) bool {
 // TODO specify rethinkdb restrictions.
 type Network struct {
 	Base
-	Prefixes            Prefixes          `rethinkdb:"prefixes"`
-	DestinationPrefixes Prefixes          `rethinkdb:"destinationprefixes"`
-	PartitionID         string            `rethinkdb:"partitionid"`
-	ProjectID           string            `rethinkdb:"projectid"`
-	ParentNetworkID     string            `rethinkdb:"parentnetworkid"`
-	Vrf                 uint              `rethinkdb:"vrf"`
-	PrivateSuper        bool              `rethinkdb:"privatesuper"`
-	Nat                 bool              `rethinkdb:"nat"`
-	Underlay            bool              `rethinkdb:"underlay"`
-	Labels              map[string]string `rethinkdb:"labels"`
+	Prefixes            Prefixes          `rethinkdb:"prefixes" json:"prefixes"`
+	DestinationPrefixes Prefixes          `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	PartitionID         string            `rethinkdb:"partitionid" json:"partitionid"`
+	ProjectID           string            `rethinkdb:"projectid" json:"projectid"`
+	ParentNetworkID     string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
+	Vrf                 uint              `rethinkdb:"vrf" json:"vrf"`
+	PrivateSuper        bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	Nat                 bool              `rethinkdb:"nat" json:"nat"`
+	Underlay            bool              `rethinkdb:"underlay" json:"underlay"`
+	Labels              map[string]string `rethinkdb:"labels" json:"labels"`
 }
 
 // Networks is a list of networks.

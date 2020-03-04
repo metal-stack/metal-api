@@ -523,8 +523,6 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		return
 	}
 
-	// TODO: Add guessed primary device to machine reinstall response
-
 	err = r.reinstallOrDeleteMachine(request, response, &requestPayload.ImageID)
 	if err != nil {
 		sendError(log.Desugar(), response, utils.CurrentFuncName(), httperrors.InternalServerError(err))
