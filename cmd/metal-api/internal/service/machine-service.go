@@ -519,7 +519,6 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 	log := utils.Logger(request).Sugar()
 	var requestPayload v1.MachineReinstallRequest
 	err := request.ReadEntity(&requestPayload)
-	log.Infow("AWIA", "error", err)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1568,35 +1567,34 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 	log := utils.Logger(request).Sugar()
 
 	if m.Allocation != nil {
-		// we drop networks of allocated machines from our database
-		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
-		if err != nil {
-			// TODO: Trigger network garbage collection
-			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
-			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			log.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
-			return err
-		}
-
 		old := *m
-		if imageID != nil {
-			m.Allocation.ImageID = *imageID
-			m.Allocation.Reinstall = true
-		} else {
+
+		if imageID == nil {
+			// we drop networks of allocated machines from our database
+			err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
+			if err != nil {
+				// TODO: Trigger network garbage collection
+				// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
+				// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
+				log.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+				return err
+			}
+
 			m.Allocation = nil
 			m.Tags = nil
+
+			log.Infow("free machine", "machineID", id)
+		} else {
+			m.Allocation.ImageID = *imageID
+			m.Allocation.Reinstall = true
+
+			log.Infow("reinstall machine", "machineID", id, "imageID", *imageID)
 		}
 
 		err = r.ds.UpdateMachine(&old, m)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return err
 		}
-
-		log.Infow("freed machine", "machineID", id)
-	} else if imageID == nil {
-		return nil
-	} else {
-		return fmt.Errorf("unable to reinstall unallocated machine %s", id)
 	}
 
 	// do the next steps in any case, so a client can call this function multiple times to
