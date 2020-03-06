@@ -285,7 +285,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	tags := requestPayload.Tags
 	if requestPayload.MachineID != nil {
-		tags = append(tags, metal.IpTag(tag.MetalPrefix, *requestPayload.MachineID))
+		tags = append(tags, metal.IpTag(tag.MachineID, *requestPayload.MachineID))
 	}
 
 	tags, err = processTags(tags)

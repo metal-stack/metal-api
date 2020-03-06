@@ -378,7 +378,7 @@ var (
 		Name:        "Image 3",
 		Description: "description 3",
 		Type:        "static",
-		Tags:        []string{tag.MetalPrefix},
+		Tags:        []string{tag.MachineID},
 		ProjectID:   "1",
 	}
 	IPAMIP = metal.IP{

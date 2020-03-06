@@ -222,7 +222,7 @@ func TestUpdateIP(t *testing.T) {
 
 	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
-	machineIDTag1 := tag.MetalPrefix + "=" + "1"
+	machineIDTag1 := tag.MachineID + "=" + "1"
 	tests := []struct {
 		name                 string
 		updateRequest        v1.IPUpdateRequest

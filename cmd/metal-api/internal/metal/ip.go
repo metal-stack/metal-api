@@ -100,7 +100,7 @@ func (ip *IP) GetScope() IPScope {
 		return ScopeEmpty
 	}
 	for _, t := range ip.Tags {
-		if strings.HasPrefix(t, tag.MetalPrefix) {
+		if strings.HasPrefix(t, tag.MachineID) {
 			return ScopeMachine
 		}
 	}
@@ -109,25 +109,25 @@ func (ip *IP) GetScope() IPScope {
 
 func (ip *IP) HasMachineId(id string) bool {
 	t := tags.New(ip.Tags)
-	return t.Has(IpTag(tag.MetalPrefix, id))
+	return t.Has(IpTag(tag.MachineID, id))
 }
 
 func (ip *IP) GetMachineIds() []string {
 	ts := tags.New(ip.Tags)
-	return ts.Values(tag.MetalPrefix + TagIPSeperator)
+	return ts.Values(tag.MachineID + TagIPSeperator)
 }
 
 func (ip *IP) AddMachineId(id string) {
 	ts := tags.New(ip.Tags)
-	t := IpTag(tag.MetalPrefix, id)
-	ts.Remove(tag.MetalPrefix)
+	t := IpTag(tag.MachineID, id)
+	ts.Remove(tag.MachineID)
 	ts.Add(t)
 	ip.Tags = ts.Unique()
 }
 
 func (ip *IP) RemoveMachineId(id string) {
 	ts := tags.New(ip.Tags)
-	t := IpTag(tag.MetalPrefix, id)
+	t := IpTag(tag.MachineID, id)
 	ts.Remove(t)
 	ip.Tags = ts.Unique()
 }

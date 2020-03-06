@@ -16,21 +16,21 @@ func TestAddMachineId(t *testing.T) {
 		{
 			name:         "ip without machine tag",
 			ip:           IP{},
-			expectedTags: []string{IpTag(tag.MetalPrefix, "123")},
+			expectedTags: []string{IpTag(tag.MachineID, "123")},
 		},
 		{
 			name: "ip with empty machine tag",
 			ip: IP{
-				Tags: []string{tag.MetalPrefix},
+				Tags: []string{tag.MachineID},
 			},
-			expectedTags: []string{IpTag(tag.MetalPrefix, "123")},
+			expectedTags: []string{IpTag(tag.MachineID, "123")},
 		},
 		{
 			name: "ip with other machine tag",
 			ip: IP{
-				Tags: []string{IpTag(tag.MetalPrefix, "1")},
+				Tags: []string{IpTag(tag.MachineID, "1")},
 			},
-			expectedTags: []string{IpTag(tag.MetalPrefix, "1"), IpTag(tag.MetalPrefix, "123")},
+			expectedTags: []string{IpTag(tag.MachineID, "1"), IpTag(tag.MachineID, "123")},
 		},
 	}
 	for _, tt := range tests {
@@ -56,21 +56,21 @@ func TestRemoveMachineId(t *testing.T) {
 		{
 			name: "ip with empty machine tag",
 			ip: IP{
-				Tags: []string{tag.MetalPrefix},
+				Tags: []string{tag.MachineID},
 			},
-			expectedTags: []string{tag.MetalPrefix},
+			expectedTags: []string{tag.MachineID},
 		},
 		{
 			name: "ip with other machine tag",
 			ip: IP{
-				Tags: []string{IpTag(tag.MetalPrefix, "1")},
+				Tags: []string{IpTag(tag.MachineID, "1")},
 			},
-			expectedTags: []string{IpTag(tag.MetalPrefix, "1")},
+			expectedTags: []string{IpTag(tag.MachineID, "1")},
 		},
 		{
 			name: "ip with matching machine tag",
 			ip: IP{
-				Tags: []string{IpTag(tag.MetalPrefix, "123")},
+				Tags: []string{IpTag(tag.MachineID, "123")},
 			},
 			expectedTags: []string{},
 		},
@@ -94,7 +94,7 @@ func TestGetScope(t *testing.T) {
 		{
 			name: "empty scope ip",
 			ip: IP{
-				Tags: []string{IpTag(tag.MetalPrefix, "102")},
+				Tags: []string{IpTag(tag.MachineID, "102")},
 			},
 			expectedScope: ScopeEmpty,
 		},
@@ -102,7 +102,7 @@ func TestGetScope(t *testing.T) {
 			name: "machine ip",
 			ip: IP{
 				ProjectID: "1",
-				Tags:      []string{IpTag(tag.MetalPrefix, "102")},
+				Tags:      []string{IpTag(tag.MachineID, "102")},
 			},
 			expectedScope: ScopeMachine,
 		},

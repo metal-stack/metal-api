@@ -46,7 +46,7 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	if p.MachineID != nil {
-		p.Tags = append(p.Tags, metal.IpTag(tag.MetalPrefix, *p.MachineID))
+		p.Tags = append(p.Tags, metal.IpTag(tag.MachineID, *p.MachineID))
 	}
 
 	for _, tag := range p.Tags {

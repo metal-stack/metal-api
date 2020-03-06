@@ -935,8 +935,8 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if p.GetProject() != nil && p.GetProject().GetQuotas() != nil && p.GetProject().GetQuotas().GetMachine() != nil {
 		mq := p.GetProject().GetQuotas().GetMachine()
 		maxMachines := mq.GetQuota().GetValue()
-		var actualMachines *metal.Machines
-		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, actualMachines)
+		var actualMachines metal.Machines
+		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, &actualMachines)
 		if err != nil {
 			return nil, err
 		}
@@ -945,7 +945,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		if err != nil {
 			return nil, err
 		}
-		for _, m := range *actualMachines {
+		for _, m := range actualMachines {
 			if m.IsFirewall(imageMap.ByID()) {
 				continue
 			}
