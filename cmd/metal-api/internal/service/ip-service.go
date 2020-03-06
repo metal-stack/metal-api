@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"net/http"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -284,7 +285,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	tags := requestPayload.Tags
 	if requestPayload.MachineID != nil {
-		tags = append(tags, metal.IpTag(metal.TagIPMachineID, *requestPayload.MachineID))
+		tags = append(tags, metal.IpTag(tag.MachineID, *requestPayload.MachineID))
 	}
 
 	tags, err = processTags(tags)

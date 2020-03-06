@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"net"
 	"strings"
 	"time"
@@ -17,8 +18,6 @@ type IPType string
 type IPScope string
 
 const (
-	// TagIPMachineID is used to tag ips for the usage by machines
-	TagIPMachineID = "metal.metal-pod.io/machineid"
 	// TagIPSeperator is the seperator character for key and values in IP-Tags
 	TagIPSeperator = "="
 
@@ -101,7 +100,7 @@ func (ip *IP) GetScope() IPScope {
 		return ScopeEmpty
 	}
 	for _, t := range ip.Tags {
-		if strings.HasPrefix(t, TagIPMachineID) {
+		if strings.HasPrefix(t, tag.MachineID) {
 			return ScopeMachine
 		}
 	}
@@ -110,25 +109,25 @@ func (ip *IP) GetScope() IPScope {
 
 func (ip *IP) HasMachineId(id string) bool {
 	t := tags.New(ip.Tags)
-	return t.Has(IpTag(TagIPMachineID, id))
+	return t.Has(IpTag(tag.MachineID, id))
 }
 
 func (ip *IP) GetMachineIds() []string {
 	ts := tags.New(ip.Tags)
-	return ts.Values(TagIPMachineID + TagIPSeperator)
+	return ts.Values(tag.MachineID + TagIPSeperator)
 }
 
 func (ip *IP) AddMachineId(id string) {
 	ts := tags.New(ip.Tags)
-	t := IpTag(TagIPMachineID, id)
-	ts.Remove(TagIPMachineID)
+	t := IpTag(tag.MachineID, id)
+	ts.Remove(tag.MachineID)
 	ts.Add(t)
 	ip.Tags = ts.Unique()
 }
 
 func (ip *IP) RemoveMachineId(id string) {
 	ts := tags.New(ip.Tags)
-	t := IpTag(TagIPMachineID, id)
+	t := IpTag(tag.MachineID, id)
 	ts.Remove(t)
 	ip.Tags = ts.Unique()
 }

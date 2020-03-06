@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/zapup"
@@ -377,7 +378,7 @@ var (
 		Name:        "Image 3",
 		Description: "description 3",
 		Type:        "static",
-		Tags:        []string{metal.TagIPMachineID},
+		Tags:        []string{tag.MachineID},
 		ProjectID:   "1",
 	}
 	IPAMIP = metal.IP{
