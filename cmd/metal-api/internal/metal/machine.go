@@ -15,8 +15,6 @@ const (
 	AvailableState MState = ""
 	ReservedState  MState = "RESERVED"
 	LockedState    MState = "LOCKED"
-
-	MachineLabelPrefix = "machine.metal-pod.io"
 )
 
 var (
