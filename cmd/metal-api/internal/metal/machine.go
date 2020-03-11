@@ -270,6 +270,7 @@ const (
 	MachineOffCmd            MachineCommand = "OFF"
 	MachineResetCmd          MachineCommand = "RESET"
 	MachineBiosCmd           MachineCommand = "BIOS"
+	MachineReinstall         MachineCommand = "REINSTALL"
 	MachineAbortReinstall    MachineCommand = "ABORT-REINSTALL"
 	ChassisIdentifyLEDOnCmd  MachineCommand = "LED-ON"
 	ChassisIdentifyLEDOffCmd MachineCommand = "LED-OFF"
