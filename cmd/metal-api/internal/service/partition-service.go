@@ -347,7 +347,6 @@ func (r partitionResource) calcPartitionCapacity() ([]*v1.PartitionCapacity, err
 
 			cap, ok := capacities[size]
 			if !ok {
-				fmt.Println("new cap container")
 				cap = &v1.ServerCapacity{Size: size}
 				capacities[size] = cap
 			}
