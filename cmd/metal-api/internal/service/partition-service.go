@@ -305,7 +305,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 	}
 }
 
-func (r partitionResource) calcPartitionCapacity() ([]*v1.PartitionCapacity, error) {
+func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, error) {
 	// FIXME bad workaround to be able to run make spec
 	if r.ds == nil {
 		return nil, nil
@@ -320,7 +320,7 @@ func (r partitionResource) calcPartitionCapacity() ([]*v1.PartitionCapacity, err
 	}
 	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
 
-	partitionCapacities := []*v1.PartitionCapacity{}
+	partitionCapacities := []v1.PartitionCapacity{}
 	for _, p := range ps {
 
 		capacities := make(map[string]*v1.ServerCapacity)
@@ -367,7 +367,7 @@ func (r partitionResource) calcPartitionCapacity() ([]*v1.PartitionCapacity, err
 			sc = append(sc, *capacities[i])
 		}
 
-		pc := &v1.PartitionCapacity{
+		pc := v1.PartitionCapacity{
 			Common: v1.Common{
 				Identifiable: v1.Identifiable{
 					ID: p.ID,
