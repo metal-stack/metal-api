@@ -305,7 +305,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 	}
 }
 
-func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, error) {
+func (r partitionResource) calcPartitionCapacity() ([]*v1.PartitionCapacity, error) {
 	// FIXME bad workaround to be able to run make spec
 	if r.ds == nil {
 		return nil, nil
@@ -320,10 +320,10 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 	}
 	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
 
-	partitionCapacities := []v1.PartitionCapacity{}
+	partitionCapacities := []*v1.PartitionCapacity{}
 	for _, p := range ps {
 
-		capacities := make(map[string]v1.ServerCapacity)
+		capacities := make(map[string]*v1.ServerCapacity)
 		for _, m := range machines {
 			if m.Partition == nil {
 				continue
@@ -331,10 +331,12 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 			if m.Partition.ID != p.ID {
 				continue
 			}
-			size := "unknown"
+
+			size := metal.UnknownSize.ID
 			if m.Size != nil {
 				size = m.Size.ID
 			}
+
 			available := false
 			if len(m.RecentProvisioningEvents.Events) > 0 {
 				events := m.RecentProvisioningEvents.Events
@@ -342,40 +344,31 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 					available = true
 				}
 			}
-			oldCap, ok := capacities[size]
-			total := 1
-			free := 0
-			allocated := 0
-			faulty := 0
-			if ok {
-				total = oldCap.Total + 1
+
+			cap, ok := capacities[size]
+			if !ok {
+				fmt.Println("new cap container")
+				cap = &v1.ServerCapacity{Size: size}
+				capacities[size] = cap
 			}
 
 			if m.Allocation != nil {
-				allocated = 1
-			}
-			if machineHasIssues(m) {
-				faulty = 1
-			}
-			if available && allocated != 1 && faulty != 1 {
-				free = 1
+				cap.Allocated++
+			} else if machineHasIssues(m) {
+				cap.Faulty++
+			} else if available {
+				cap.Free++
 			}
 
-			cap := v1.ServerCapacity{
-				Size:      size,
-				Total:     total,
-				Free:      oldCap.Free + free,
-				Allocated: oldCap.Allocated + allocated,
-				Faulty:    oldCap.Faulty + faulty,
-			}
-			capacities[size] = cap
+			cap.Total++
 		}
+
 		sc := []v1.ServerCapacity{}
-		for _, c := range capacities {
-			sc = append(sc, c)
+		for i := range capacities {
+			sc = append(sc, *capacities[i])
 		}
 
-		pc := v1.PartitionCapacity{
+		pc := &v1.PartitionCapacity{
 			Common: v1.Common{
 				Identifiable: v1.Identifiable{
 					ID: p.ID,
@@ -387,8 +380,10 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 			},
 			ServerCapacities: sc,
 		}
+
 		partitionCapacities = append(partitionCapacities, pc)
 	}
+
 	return partitionCapacities, err
 }
 
