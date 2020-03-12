@@ -8,7 +8,7 @@ Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "rackid": "Vagrant Rack 1",
   "hardware": {
     "cpu_cores": 1,
@@ -68,7 +68,7 @@ POST {{baseurl}}/register
 Content-Type: application/json
 
 {
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "rackid": "Vagrant Rack 1",
   "hardware": {
     "cpu_cores": 8,
@@ -107,7 +107,7 @@ Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "partition_id": "vagrant-lab"
+  "partition_id": "vagrant"
 }
 
 ### find all
@@ -130,16 +130,17 @@ X-Date: 1985-04-12T23:20:50.52Z
 
 {
   "description": "My first metal host",
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "hostname": "metal-test-1",
-  "imageid": "ubuntu-19.04",
+  "imageid": "ubuntu-19.10",
   "name": "Metal Host 1",
-  "projectid": "cada86ca-af5c-4358-b222-a2a09652f269",
+  "projectid": "00000000-0000-0000-0000-000000000001",
   "sizeid": "v1-small-x86",
   "ssh_pub_keys": [],
   "ips": [],
   "networks": [
-    {"networkid": "internet-vagrant-lab"}
+    {"networkid": "internet-vagrant"},
+    {"networkid": "9df96f13-054e-4686-b436-aa154b6318d4"}
   ]
 }
 
@@ -166,7 +167,7 @@ Content-Type: application/json
 {
   "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873",
   "description": "My first metal host",
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "hostname": "metal-test-1",
   "imageid": "1",
   "name": "Metal Host 1",
@@ -223,7 +224,7 @@ POST {{baseurl}}/register
 Content-Type: application/json
 
 {
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "rackid": "Vagrant Rack 1",
   "hardware": {
     "cpu_cores": 1,
