@@ -1523,6 +1523,12 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		}
 	}
 
+	sw, err := setVrfAtSwitches(r.ds, m, "")
+	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
 		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
@@ -1545,12 +1551,6 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	// do the next steps in any case, so a client can call this function multiple times to
 	// fire of the needed events
-
-	sw, err := setVrfAtSwitches(r.ds, m, "")
-	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
 	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
