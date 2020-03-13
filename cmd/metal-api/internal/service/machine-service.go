@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 
@@ -1439,16 +1440,16 @@ func makeMachineSystemLabels(m *metal.Machine) map[string]string {
 	for _, n := range m.Allocation.MachineNetworks {
 		if n.Private {
 			if n.ASN != 0 {
-				labels[fmt.Sprintf("%s/%s", metal.MachineLabelPrefix, "network.primary.asn")] = strconv.FormatInt(n.ASN, 10)
+				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(n.ASN, 10)
 				break
 			}
 		}
 	}
 	if m.RackID != "" {
-		labels[fmt.Sprintf("%s/%s", metal.MachineLabelPrefix, "rack")] = m.RackID
+		labels[tag.MachineRack] = m.RackID
 	}
 	if m.IPMI.Fru.ChassisPartSerial != "" {
-		labels[fmt.Sprintf("%s/%s", metal.MachineLabelPrefix, "chassis")] = m.IPMI.Fru.ChassisPartSerial
+		labels[tag.MachineChassis] = m.IPMI.Fru.ChassisPartSerial
 	}
 	return labels
 }

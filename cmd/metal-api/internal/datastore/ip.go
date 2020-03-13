@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -45,7 +46,7 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	if p.MachineID != nil {
-		p.Tags = append(p.Tags, metal.IpTag(metal.TagIPMachineID, *p.MachineID))
+		p.Tags = append(p.Tags, metal.IpTag(tag.MachineID, *p.MachineID))
 	}
 
 	for _, tag := range p.Tags {

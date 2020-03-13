@@ -481,7 +481,7 @@ func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
-	})
+	}).Sample(1)
 
 	var available metal.Machines
 	err := rs.searchEntities(&q, &available)

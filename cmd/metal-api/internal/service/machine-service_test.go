@@ -876,9 +876,9 @@ func Test_makeMachineTags(t *testing.T) {
 				"external-network-label=1",
 				"private-network-label=1",
 				"usertag=something",
-				"machine.metal-pod.io/network.primary.asn=1203874",
-				"machine.metal-pod.io/rack=rack01",
-				"machine.metal-pod.io/chassis=chassis123",
+				"machine.metal-stack.io/network.primary.asn=1203874",
+				"machine.metal-stack.io/rack=rack01",
+				"machine.metal-stack.io/chassis=chassis123",
 			},
 		},
 		{
@@ -956,10 +956,10 @@ func Test_makeMachineTags(t *testing.T) {
 					},
 				},
 				networks: allocationNetworkMap{},
-				userTags: []string{"machine.metal-pod.io/network.primary.asn=iamdoingsomethingevil"},
+				userTags: []string{"machine.metal-stack.io/network.primary.asn=iamdoingsomethingevil"},
 			},
 			want: []string{
-				"machine.metal-pod.io/network.primary.asn=1203874",
+				"machine.metal-stack.io/network.primary.asn=1203874",
 			},
 		},
 	}

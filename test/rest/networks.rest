@@ -13,7 +13,7 @@ Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "partitionid": "vagrant-lab"
+  "partitionid": "vagrant"
 }
 
 ### create project super network
@@ -24,11 +24,11 @@ Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "id": "tenant-super-network-vagrant-lab",
+  "id": "tenant-super-network-vagrant",
   "description": "Project Super Network",
   "name": "projects",
   "nat": false,
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "prefixes": [
     "10.0.0.0/16"
   ],
@@ -43,11 +43,11 @@ Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "id": "internet-vagrant-lab",
+  "id": "internet-vagrant",
   "description": "Internet in Vagrant",
   "name": "vagrant internet",
   "nat": false,
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "prefixes": [
     "185.24.0.0/16",
     "185.27.0.0/16"
@@ -63,12 +63,12 @@ Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "id": "underlay-vagrant-lab",
+  "id": "underlay-vagrant",
   "description": "Underlay in Vagrant",
   "name": "vagrant underlay",
   "nat": false,
   "underlay": true,
-  "partitionid": "vagrant-lab",
+  "partitionid": "vagrant",
   "vrf": 10000,
   "prefixes": [
     "10.1.0.0/24"
@@ -76,16 +76,16 @@ X-Date: 1985-04-12T23:20:50.52Z
   "privatesuper": false
 }
 
-### acquire network
-# @name acquireNetwork
-POST {{baseurl}}/acquire
+### allocate network
+# @name allocateNetwork
+POST {{baseurl}}/allocate
 Content-Type: application/json
 Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
 X-Date: 1985-04-12T23:20:50.52Z
 
 {
-  "projectid": "cada86ca-af5c-4358-b222-a2a09652f269",
-  "partitionid": "vagrant-lab"
+  "projectid": "00000000-0000-0000-0000-000000000001",
+  "partitionid": "vagrant"
 }
 
 ### release network
@@ -98,7 +98,7 @@ X-Date: 1985-04-12T23:20:50.52Z
 
 ### delete network
 # @name deleteNetwork
-DELETE {{baseurl}}/tenant-super-network-vagrant-lab
+DELETE {{baseurl}}/tenant-super-network-vagrant
 Content-Type: application/json
 Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
 X-Date: 1985-04-12T23:20:50.52Z
