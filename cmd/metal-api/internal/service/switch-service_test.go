@@ -139,6 +139,45 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 	require.Regexp(t, "nic with mac address 11:11:11:11:11:11 gets removed but the machine with id \"1\" is already connected to this nic", result.Message)
 }
 
+func TestReplaceSwitch(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	switchservice := NewSwitch(ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	createRequest := v1.SwitchRegisterRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Switch2.ID,
+			},
+		},
+		PartitionID: testdata.Switch2.PartitionID,
+		SwitchBase: v1.SwitchBase{
+			RackID: testdata.Switch2.RackID,
+		},
+	}
+	js, _ := json.Marshal(createRequest)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/switch/register", body)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectEditor(container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Equal(t, testdata.Switch2.ID, result.ID)
+	require.Equal(t, testdata.Switch2.Name, *result.Name)
+	require.Equal(t, testdata.Switch2.RackID, result.RackID)
+	require.Equal(t, testdata.Switch2.PartitionID, result.Partition.ID)
+	require.Len(t, result.Connections, 0)
+}
+
 func TestConnectMachineWithSwitches(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -481,6 +520,421 @@ func TestMakeSwitchNics(t *testing.T) {
 			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.images, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_adoptFromTwin(t *testing.T) {
+	type args struct {
+		old       *metal.Switch
+		twin      *metal.Switch
+		newSwitch *metal.Switch
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *metal.Switch
+		wantErr bool
+	}{
+		{
+			name: "adopt machine connections and nic configuration from twin",
+			args: args{
+				old: &metal.Switch{
+					Mode: metal.SwitchReplace,
+				},
+				twin: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "aa:aa:aa:aa:aa:a1",
+							Vrf:        "1",
+						},
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "aa:aa:aa:aa:aa:a2",
+						},
+						metal.Nic{
+							Name:       "swp1s2",
+							MacAddress: "aa:aa:aa:aa:aa:a3",
+						},
+					},
+					MachineConnections: metal.ConnectionMap{
+						"m1": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s0",
+									MacAddress: "aa:aa:aa:aa:aa:a1",
+								},
+							},
+						},
+						"fw1": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s1",
+									MacAddress: "aa:aa:aa:aa:aa:a2",
+								},
+							},
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "bb:bb:bb:bb:bb:b1",
+						},
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+						metal.Nic{
+							Name:       "swp1s2",
+							MacAddress: "bb:bb:bb:bb:bb:b3",
+						},
+						metal.Nic{
+							Name:       "swp1s3",
+							MacAddress: "bb:bb:bb:bb:bb:b4",
+						},
+					},
+				},
+			},
+			want: &metal.Switch{
+				Mode: metal.SwitchOperational,
+				Nics: metal.Nics{
+					metal.Nic{
+						Name:       "swp1s0",
+						MacAddress: "bb:bb:bb:bb:bb:b1",
+						Vrf:        "1",
+					},
+					metal.Nic{
+						Name:       "swp1s1",
+						MacAddress: "bb:bb:bb:bb:bb:b2",
+					},
+					metal.Nic{
+						Name:       "swp1s2",
+						MacAddress: "bb:bb:bb:bb:bb:b3",
+					},
+					metal.Nic{
+						Name:       "swp1s3",
+						MacAddress: "bb:bb:bb:bb:bb:b4",
+					},
+				},
+				MachineConnections: metal.ConnectionMap{
+					"m1": metal.Connections{
+						metal.Connection{
+							Nic: metal.Nic{
+								Name:       "swp1s0",
+								MacAddress: "bb:bb:bb:bb:bb:b1",
+							},
+						},
+					},
+					"fw1": metal.Connections{
+						metal.Connection{
+							Nic: metal.Nic{
+								Name:       "swp1s1",
+								MacAddress: "bb:bb:bb:bb:bb:b2",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "fail if partition differs",
+			args: args{
+				old: &metal.Switch{
+					Mode:        metal.SwitchReplace,
+					PartitionID: "1",
+				},
+				newSwitch: &metal.Switch{
+					PartitionID: "2",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail if rack differs",
+			args: args{
+				old: &metal.Switch{
+					Mode:        metal.SwitchReplace,
+					PartitionID: "1",
+					RackID:      "1",
+				},
+				newSwitch: &metal.Switch{
+					PartitionID: "1",
+					RackID:      "2",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail if twin switch is also in replace mode",
+			args: args{
+				old: &metal.Switch{
+					Mode:        metal.SwitchReplace,
+					PartitionID: "1",
+					RackID:      "1",
+				},
+				twin: &metal.Switch{
+					Mode:        metal.SwitchReplace,
+					PartitionID: "1",
+					RackID:      "1",
+				},
+				newSwitch: &metal.Switch{
+					PartitionID: "1",
+					RackID:      "1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "new switch is directly useable if twin has no machine connections",
+			args: args{
+				old: &metal.Switch{
+					Mode:        metal.SwitchReplace,
+					PartitionID: "1",
+					RackID:      "1",
+				},
+				twin: &metal.Switch{
+					PartitionID: "1",
+					RackID:      "1",
+				},
+				newSwitch: &metal.Switch{
+					PartitionID: "1",
+					RackID:      "1",
+				},
+			},
+			want: &metal.Switch{
+				PartitionID: "1",
+				RackID:      "1",
+				Mode:        metal.SwitchOperational,
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := adoptFromTwin(tt.args.old, tt.args.twin, tt.args.newSwitch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("adoptFromTwin() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("adoptFromTwin() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_adoptNicsFromTwin(t *testing.T) {
+	type args struct {
+		twin      *metal.Switch
+		newSwitch *metal.Switch
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    metal.Nics
+		wantErr bool
+	}{
+		{
+			name: "adopt vrf configuration, leaf underlay ports untouched, newSwitch might have additional ports",
+			args: args{
+				twin: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "aa:aa:aa:aa:aa:a1",
+							Vrf:        "vrf1",
+						},
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "aa:aa:aa:aa:aa:a2",
+							Vrf:        "",
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "bb:bb:bb:bb:bb:b1",
+						},
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+						metal.Nic{
+							Name:       "swp99",
+							MacAddress: "bb:bb:bb:bb:bb:b3",
+						},
+					},
+				},
+			},
+			want: metal.Nics{
+				metal.Nic{
+					Name:       "swp1s0",
+					MacAddress: "bb:bb:bb:bb:bb:b1",
+					Vrf:        "vrf1",
+				},
+				metal.Nic{
+					Name:       "swp1s1",
+					MacAddress: "bb:bb:bb:bb:bb:b2",
+					Vrf:        "",
+				},
+				metal.Nic{
+					Name:       "swp99",
+					MacAddress: "bb:bb:bb:bb:bb:b3",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "new switch misses nic",
+			args: args{
+				twin: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "aa:aa:aa:aa:aa:a1",
+							Vrf:        "vrf1",
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := adoptNics(tt.args.twin, tt.args.newSwitch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("adoptNics() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got.ByMac(), tt.want.ByMac()) {
+				t.Errorf("adoptNics() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_adoptMachineConnections(t *testing.T) {
+	type args struct {
+		twin      *metal.Switch
+		newSwitch *metal.Switch
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    metal.ConnectionMap
+		wantErr bool
+	}{
+		{
+			name: "adopt machine connections from twin",
+			args: args{
+				twin: &metal.Switch{
+					MachineConnections: metal.ConnectionMap{
+						"m1": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s0",
+									MacAddress: "aa:aa:aa:aa:aa:a1",
+								},
+							},
+						},
+						"m2": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s1",
+									MacAddress: "aa:aa:aa:aa:aa:a2",
+								},
+							},
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "bb:bb:bb:bb:bb:b1",
+						},
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+					},
+				},
+			},
+			want: metal.ConnectionMap{
+				"m1": metal.Connections{
+					metal.Connection{
+						Nic: metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "bb:bb:bb:bb:bb:b1",
+						},
+					},
+				},
+				"m2": metal.Connections{
+					metal.Connection{
+						Nic: metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "new switch misses nic for existing machine connection at twin",
+			args: args{
+				twin: &metal.Switch{
+					MachineConnections: metal.ConnectionMap{
+						"m1": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s0",
+									MacAddress: "aa:aa:aa:aa:aa:a1",
+								},
+							},
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := adoptMachineConnections(tt.args.twin, tt.args.newSwitch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("adoptMachineConnections() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("adoptMachineConnections() = %v, want %v", got, tt.want)
 			}
 		})
 	}

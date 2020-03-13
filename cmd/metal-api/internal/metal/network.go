@@ -156,3 +156,12 @@ func (nics Nics) ByMac() NicMap {
 	}
 	return res
 }
+
+// ByName creates a indexed map from a nic list.
+func (nics Nics) ByName() map[string]*Nic {
+	res := make(map[string]*Nic)
+	for i, n := range nics {
+		res[n.Name] = &nics[i]
+	}
+	return res
+}

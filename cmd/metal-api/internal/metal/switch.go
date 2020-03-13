@@ -9,6 +9,7 @@ type Switch struct {
 	MachineConnections ConnectionMap `rethinkdb:"machineconnections"`
 	PartitionID        string        `rethinkdb:"partitionid"`
 	RackID             string        `rethinkdb:"rackid"`
+	Mode               SwitchMode    `rethinkdb:"mode"`
 }
 
 // Connection between switch port and machine.
@@ -22,6 +23,15 @@ type Connections []Connection
 
 // ConnectionMap is an indexed map of connection-lists
 type ConnectionMap map[string]Connections
+
+// A SwitchMode is an enum which indicates the mode of a switch
+type SwitchMode string
+
+// The enums for the switch modes.
+const (
+	SwitchOperational SwitchMode = ""
+	SwitchReplace     SwitchMode = "REPLACE"
+)
 
 // SwitchEvent is propagated when a switch needs to update its configuration.
 type SwitchEvent struct {

@@ -166,16 +166,17 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 			return
 		}
 
-		// TODO: Broken switch: A machine was registered before this new switch is getting registered
-		// It needs to take over the existing connections from the broken switch or something?
-		// metal/metal#28
-
 		returnCode = http.StatusCreated
+	} else if s.Mode == metal.SwitchReplace {
+		spec := v1.NewSwitch(requestPayload)
+		err = r.replaceSwitch(s, spec)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		s = spec
 	} else {
 		old := *s
-
 		spec := v1.NewSwitch(requestPayload)
-
 		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("duplicate mac addresses found in nics")) {
 				return
@@ -212,10 +213,136 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	}
 }
 
-func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnections metal.ConnectionMap) (metal.Nics, error) {
-	// TODO: Broken switch would change nics, but if this happens we would need to repair broken connections:
-	// metal/metal#28
+func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
+	twin, err := r.findTwinSwitch(new)
+	if err != nil {
+		return fmt.Errorf("could not determine twin brother for switch %s, err: %w", new.Name, err)
+	}
+	s, err := adoptFromTwin(old, twin, new)
+	if err != nil {
+		return err
+	}
+	return r.ds.UpdateSwitch(old, s)
+}
 
+// findTwinSwitch finds the neighboring twin of a switch for the given partition and rack
+func (r switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, error) {
+	rackSwitches, err := r.ds.SearchSwitches(newSwitch.RackID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not search switches in rack: %v", newSwitch.RackID)
+	}
+	if len(rackSwitches) == 0 {
+		return nil, fmt.Errorf("could not find any switch in rack: %v", newSwitch.RackID)
+	}
+	var twin *metal.Switch
+	for _, s := range rackSwitches {
+		if s.PartitionID != newSwitch.PartitionID {
+			continue
+		}
+		if twin == nil {
+			twin = &s
+		} else {
+			return nil, fmt.Errorf("found multiple twin switches for %v (%v and %v)", newSwitch.ID, twin.ID, s.ID)
+		}
+	}
+	if twin == nil {
+		return nil, fmt.Errorf("no twin brother found for switch %s, partition: %v, rack: %v", newSwitch.ID, newSwitch.PartitionID, newSwitch.RackID)
+	}
+	return twin, nil
+}
+
+// adoptFromTwin adopts the switch configuration found at the neighboring twin switch to a replacement switch.
+func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
+	s := *new
+	if new.PartitionID != old.PartitionID {
+		return nil, fmt.Errorf("old and new switch belong to different partitions, old: %v, new: %v", old.PartitionID, new.PartitionID)
+	}
+	if new.RackID != old.RackID {
+		return nil, fmt.Errorf("old and new switch belong to different racks, old: %v, new: %v", old.RackID, new.RackID)
+	}
+	if twin.Mode == metal.SwitchReplace {
+		return nil, fmt.Errorf("twin switch must not be in replace mode")
+	}
+	if len(twin.MachineConnections) == 0 {
+		// twin switch has no machine connections, switch may be used immediately, replace mode is unnecessary
+		s.Mode = metal.SwitchOperational
+		return &s, nil
+	}
+
+	newNics, err := adoptNics(twin, new)
+	if err != nil {
+		return nil, fmt.Errorf("could not adopt nic configuration from twin, err: %w", err)
+	}
+
+	newMachineConnections, err := adoptMachineConnections(twin, new)
+	if err != nil {
+		return nil, err
+	}
+
+	s.MachineConnections = newMachineConnections
+	s.Nics = newNics
+	s.Mode = metal.SwitchOperational
+
+	return &s, nil
+}
+
+// adoptNics checks whether new switch has all nics of its twin switch
+// copies vrf configuration and returns the new nics for the replacement switch
+func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
+	newNics := metal.Nics{}
+	newNicMap := newSwitch.Nics.ByName()
+	missingNics := []string{}
+	twinNicsByName := twin.Nics.ByName()
+	for name := range twinNicsByName {
+		if _, ok := newNicMap[name]; !ok {
+			missingNics = append(missingNics, name)
+		}
+	}
+	if len(missingNics) > 0 {
+		return nil, fmt.Errorf("new switch misses the nics %v - check the breakout configuration of the switch ports of switch %s", missingNics, newSwitch.Name)
+	}
+
+	for name, nic := range newNicMap {
+		// check for configuration at twin
+		if twinNic, ok := twinNicsByName[name]; ok {
+			newNic := *nic
+			newNic.Vrf = twinNic.Vrf
+			newNics = append(newNics, newNic)
+		} else {
+			// leave unchanged
+			newNics = append(newNics, *nic)
+		}
+	}
+
+	return newNics, nil
+}
+
+// adoptMachineConnections copies machine connections from twin and maps mac addresses based on the nic name
+func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap, error) {
+	newNicMap := newSwitch.Nics.ByName()
+	newConnectionMap := metal.ConnectionMap{}
+	missingNics := []string{}
+	for mid, cons := range twin.MachineConnections {
+		newConnections := metal.Connections{}
+		for _, con := range cons {
+			if n, ok := newNicMap[con.Nic.Name]; ok {
+				newCon := con
+				newCon.Nic.MacAddress = n.MacAddress
+				newConnections = append(newConnections, newCon)
+			} else {
+				// this should never happen! it means that we have machine connections with nic names that are not present anymore at the twin or the new switch
+				missingNics = append(missingNics, con.Nic.Name)
+			}
+		}
+		newConnectionMap[mid] = newConnections
+	}
+	if len(missingNics) > 0 {
+		return nil, fmt.Errorf("twin switch has machine connections with switch ports that are not present at the new switch %v", missingNics)
+	}
+	return newConnectionMap, nil
+}
+
+func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnections metal.ConnectionMap) (metal.Nics, error) {
 	// To start off we just prevent basic things that can go wrong
 	nicsThatGetLost := metal.Nics{}
 	for mac, nic := range oldNics {

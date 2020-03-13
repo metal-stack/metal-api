@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -468,6 +469,28 @@ var (
 		RackID:             "3",
 		MachineConnections: metal.ConnectionMap{},
 	}
+	SwitchReplaceFor1 = metal.Switch{
+		Base: metal.Base{
+			ID: "switch1",
+		},
+		PartitionID: "1",
+		RackID:      "1",
+		Nics: []metal.Nic{
+			metal.Nic{
+				Name:       Nic1.Name,
+				MacAddress: "98:98:98:98:98:91",
+			},
+			metal.Nic{
+				Name:       Nic2.Name,
+				MacAddress: "98:98:98:98:98:92",
+			},
+			metal.Nic{
+				Name:       Nic3.Name,
+				MacAddress: "98:98:98:98:98:93",
+			},
+		},
+		MachineConnections: metal.ConnectionMap{},
+	}
 
 	// Nics
 	Nic1 = metal.Nic{
@@ -590,7 +613,7 @@ var (
 
 	// All Switches
 	TestSwitches = []metal.Switch{
-		Switch1, Switch2, Switch3,
+		Switch1, Switch2, Switch3, SwitchReplaceFor1,
 	}
 	TestMacs = []string{
 		"11:11:11:11:11:11",
