@@ -1748,7 +1748,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 
 	metrics.ProvideLiveliness(liveliness)
 
-	logger.Info("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errors)
+	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errors)
 
 	return nil
 }
