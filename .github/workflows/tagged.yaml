@@ -1,9 +1,12 @@
-name: Build and Test
+name: Build tagged image
 
 on:
   push:
     tags:
       - "v*"
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
