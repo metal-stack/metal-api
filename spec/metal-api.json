@@ -1522,30 +1522,6 @@
                 "updated"
             ]
         },
-        "v1.MachineLivelinessReport": {
-            "properties": {
-                "alive_count": {
-                    "description": "the number of machines alive",
-                    "format": "int32",
-                    "type": "integer"
-                },
-                "dead_count": {
-                    "description": "the number of dead machines",
-                    "format": "int32",
-                    "type": "integer"
-                },
-                "unknown_count": {
-                    "description": "the number of machines with unknown liveliness",
-                    "format": "int32",
-                    "type": "integer"
-                }
-            },
-            "required": [
-                "alive_count",
-                "dead_count",
-                "unknown_count"
-            ]
-        },
         "v1.MachineNetwork": {
             "description": "prefixes that are reachable within this network",
             "properties": {
@@ -3629,45 +3605,6 @@
                     }
                 },
                 "summary": "returns machines including the ipmi connection data",
-                "tags": [
-                    "machine"
-                ]
-            }
-        },
-        "/v1/machine/liveliness": {
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "operationId": "checkMachineLiveliness",
-                "parameters": [
-                    {
-                        "in": "body",
-                        "name": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.EmptyBody"
-                        }
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/v1.MachineLivelinessReport"
-                        }
-                    },
-                    "default": {
-                        "description": "Error",
-                        "schema": {
-                            "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-                        }
-                    }
-                },
-                "summary": "external trigger for evaluating machine liveliness",
                 "tags": [
                     "machine"
                 ]

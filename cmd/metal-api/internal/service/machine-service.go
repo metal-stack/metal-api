@@ -288,15 +288,6 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/liveliness").
-		To(r.checkMachineLiveliness).
-		Operation("checkMachineLiveliness").
-		Doc("external trigger for evaluating machine liveliness").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.EmptyBody{}).
-		Returns(http.StatusOK, "OK", v1.MachineLivelinessReport{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	ws.Route(ws.POST("/{id}/power/on").
 		To(editor(r.machineOn)).
 		Operation("machineOn").
@@ -1718,9 +1709,52 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 	return ec, err
 }
 
-// EvaluateMachineLiveliness evaluates the liveliness of a given machine
-func (r machineResource) evaluateMachineLiveliness(m metal.Machine) (metal.MachineLiveliness, error) {
-	provisioningEvents, err := r.ds.FindProvisioningEventContainer(m.ID)
+// MachineLiveliness evaluates whether machines are still alive or if they have died
+func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) error {
+	logger.Info("machine liveliness was requested")
+
+	machines, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	liveliness := make(metrics.PartitionLiveliness)
+
+	unknown := 0
+	alive := 0
+	dead := 0
+	errors := 0
+	for _, m := range machines {
+		p := liveliness[m.PartitionID]
+		lvlness, err := evaluateMachineLiveliness(ds, m)
+		if err != nil {
+			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
+			errors++
+			// fall through, so the rest of the machines is getting evaluated
+		}
+		switch lvlness {
+		case metal.MachineLivelinessAlive:
+			alive++
+			p.Alive++
+		case metal.MachineLivelinessDead:
+			dead++
+			p.Dead++
+		default:
+			unknown++
+			p.Unknown++
+		}
+		liveliness[m.PartitionID] = p
+	}
+
+	metrics.ProvideLiveliness(liveliness)
+
+	logger.Info("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errors)
+
+	return nil
+}
+
+func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
+	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
 		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
@@ -1740,7 +1774,7 @@ func (r machineResource) evaluateMachineLiveliness(m metal.Machine) (metal.Machi
 		} else {
 			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
 		}
-		err = r.ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
+		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
 		if err != nil {
 			return provisioningEvents.Liveliness, err
 		}
@@ -1749,55 +1783,7 @@ func (r machineResource) evaluateMachineLiveliness(m metal.Machine) (metal.Machi
 	return provisioningEvents.Liveliness, nil
 }
 
-func (r machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
-	logger := utils.Logger(request).Sugar()
-	logger.Info("liveliness report was requested")
-
-	machines, err := r.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	liveliness := make(metrics.PartitionLiveliness)
-
-	unknown := 0
-	alive := 0
-	dead := 0
-	for _, m := range machines {
-		p := liveliness[m.PartitionID]
-		lvlness, err := r.evaluateMachineLiveliness(m)
-		if err != nil {
-			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
-			// fall through, so the caller should get the evaulated state, although it is not persistet
-		}
-		switch lvlness {
-		case metal.MachineLivelinessAlive:
-			alive++
-			p.Alive++
-		case metal.MachineLivelinessDead:
-			dead++
-			p.Dead++
-		default:
-			unknown++
-			p.Unknown++
-		}
-		liveliness[m.PartitionID] = p
-	}
-
-	report := v1.MachineLivelinessReport{
-		AliveCount:   alive,
-		DeadCount:    dead,
-		UnknownCount: unknown,
-	}
-
-	metrics.ProvideLiveliness(liveliness)
-	err = response.WriteHeaderAndEntity(http.StatusOK, report)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
+// ResurrectMachines attempts to resurrect machines that are obviously dead
 func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
