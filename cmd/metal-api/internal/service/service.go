@@ -20,7 +20,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Some predefined users
 var (
 	BasePath = "/"
 )
@@ -42,19 +41,19 @@ func NewUserDirectory(providerTenant string) *UserDirectory {
 
 	// User.Name is used as AuthType for HMAC
 	ud.viewer = security.User{
-		EMail:  "metal-view@metal-pod.io",
+		EMail:  "metal-view@metal-stack.io",
 		Name:   "Metal-View",
 		Groups: sec.MergeResourceAccess(metal.ViewGroups),
 		Tenant: providerTenant,
 	}
 	ud.edit = security.User{
-		EMail:  "metal-edit@metal-pod.io",
+		EMail:  "metal-edit@metal-stack.io",
 		Name:   "Metal-Edit",
 		Groups: sec.MergeResourceAccess(metal.EditGroups),
 		Tenant: providerTenant,
 	}
 	ud.admin = security.User{
-		EMail:  "metal-admin@metal-pod.io",
+		EMail:  "metal-admin@metal-stack.io",
 		Name:   "Metal-Admin",
 		Groups: sec.MergeResourceAccess(metal.AdminGroups),
 		Tenant: providerTenant,

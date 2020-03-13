@@ -1382,8 +1382,8 @@ func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags [
 
 	// as user labels are given as an array, we need to figure out if label-like tags were provided.
 	// otherwise the user could provide confusing information like:
-	// - machine.metal-pod.io/chassis=123
-	// - machine.metal-pod.io/chassis=789
+	// - machine.metal-stack.io/chassis=123
+	// - machine.metal-stack.io/chassis=789
 	userLabels := make(map[string]string)
 	actualUserTags := []string{}
 	for _, tag := range userTags {
