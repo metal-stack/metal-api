@@ -472,11 +472,13 @@ func initializeDatabase() {
 func resurrectDeadMachines() {
 	initDataStore()
 	initEventBus()
+	initIpam()
+
 	var p bus.Publisher
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
-	err := service.ResurrectMachines(ds, p, logger)
+	err := service.ResurrectMachines(ds, p, ipamer, logger)
 	if err != nil {
 		logger.Errorw("unable to resurrect machines", "error", err)
 	}

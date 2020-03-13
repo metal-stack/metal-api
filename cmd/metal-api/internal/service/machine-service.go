@@ -1516,66 +1516,74 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	logger := utils.Logger(request).Sugar()
 
-	if m.State.Value == metal.LockedState {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine is locked")) {
-			return
-		}
-	}
-
-	// do the next steps in any case, so a client can call this function multiple times to
-	// fire the events
-
-	sw, err := setVrfAtSwitches(r.ds, m, "")
-	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
+	err = freeMachine(r.ds, r, r.ipamer, m, logger)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, m *metal.Machine, logger *zap.SugaredLogger) error {
+	if m.State.Value == metal.LockedState {
+		return fmt.Errorf("machine is locked")
+	}
+
+	// free machine should be callable even many times in a row (such that events can be fired multiple times if necessary)
+
+	sw, err := setVrfAtSwitches(ds, m, "")
+	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
+	if err != nil {
+		return err
 	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	utils.Logger(request).Sugar().Infow("published machine delete event", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	err = publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
+	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
+	if err != nil {
+		return err
 	}
 
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
-		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
+		err = releaseMachineNetworks(ds, ipamer, m, m.Allocation.MachineNetworks)
 		if err != nil {
 			// TODO: Trigger network garbage collection
 			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
 			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			utils.Logger(request).Sugar().Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+			logger.Errorw("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
 		}
 	}
 
 	old := *m
 	m.Allocation = nil
 	m.Tags = nil
-	err = r.ds.UpdateMachine(&old, m)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	err = ds.UpdateMachine(&old, m)
+	if err != nil {
+		return err
 	}
-	utils.Logger(request).Sugar().Infow("freed machine", "machineID", id)
+	logger.Infow("freed machine", "machineID", m.ID)
 
 	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
-	utils.Logger(request).Sugar().Infow("published switch update event", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	err = publisher.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
+	logger.Infow("published switch update event", "machineID", m.ID, "error", err)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return err
 	}
+
+	return nil
 }
 
-func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []*metal.MachineNetwork) error {
+func releaseMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, machine *metal.Machine, machineNetworks []*metal.MachineNetwork) error {
 	for _, machineNetwork := range machineNetworks {
 		for _, ipString := range machineNetwork.IPs {
-			ip, err := r.ds.FindIPByID(ipString)
+			ip, err := ds.FindIPByID(ipString)
 			if err != nil {
 				return err
 			}
@@ -1586,7 +1594,7 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 			// disassociate machine from ip
 			new := *ip
 			new.RemoveMachineId(machine.GetID())
-			err = r.ds.UpdateIP(ip, &new)
+			err = ds.UpdateIP(ip, &new)
 			if err != nil {
 				return err
 			}
@@ -1599,11 +1607,11 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				continue
 			}
 			// release and delete
-			err = r.ipamer.ReleaseIP(*ip)
+			err = ipamer.ReleaseIP(*ip)
 			if err != nil {
 				return err
 			}
-			err = r.ds.DeleteIP(ip)
+			err = ds.DeleteIP(ip)
 			if err != nil {
 				return err
 			}
@@ -1798,7 +1806,7 @@ func (r machineResource) checkMachineLiveliness(request *restful.Request, respon
 	}
 }
 
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1831,9 +1839,9 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, logg
 		}
 
 		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = publishMachineCmd(logger, &m, publisher, metal.MachineResetCmd)
+		err = freeMachine(ds, publisher, ipamer, &m, logger)
 		if err != nil {
-			logger.Errorw("error during machine resurrection when trying to publish machine reset cmd", "machineID", m.ID, "error", err)
+			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 		}
 	}
 
