@@ -1,18 +1,24 @@
 package v1
 
 import (
+	"time"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 type ImageBase struct {
-	URL      *string  `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
-	Features []string `json:"features" description:"features of this image" optional:"true"`
+	URL            *string   `json:"url" modelDescription:"an image that can be attached to a machine" description:"the url of this image" optional:"true"`
+	Features       []string  `json:"features" description:"features of this image" optional:"true"`
+	ExpirationDate time.Time `json:"expirationDate" description:"expirationDate of this image" optional:"false"`
+	Classification string    `json:"classification" description:"clasification of this image" optional:"true"`
 }
 
 type ImageCreateRequest struct {
 	Common
-	URL      string   `json:"url" description:"the url of this image"`
-	Features []string `json:"features" description:"features of this image" optional:"true"`
+	URL            string    `json:"url" description:"the url of this image"`
+	Features       []string  `json:"features" description:"features of this image" optional:"true"`
+	ExpirationDate time.Time `json:"expirationDate" description:"expirationDate of this image" optional:"false"`
+	Classification *string   `json:"classification" description:"clasification of this image" optional:"true"`
 }
 
 type ImageUpdateRequest struct {
@@ -47,8 +53,10 @@ func NewImageResponse(img *metal.Image) *ImageResponse {
 			},
 		},
 		ImageBase: ImageBase{
-			URL:      &img.URL,
-			Features: features,
+			URL:            &img.URL,
+			Features:       features,
+			ExpirationDate: img.ExpirationDate,
+			Classification: string(img.Classification),
 		},
 		Timestamps: Timestamps{
 			Created: img.Created,

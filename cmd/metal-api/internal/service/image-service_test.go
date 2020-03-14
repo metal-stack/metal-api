@@ -47,7 +47,7 @@ func TestGetImage(t *testing.T) {
 
 	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/v1/image/1", nil)
+	req := httptest.NewRequest("GET", "/v1/image/image-1", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -67,7 +67,7 @@ func TestGetImageNotFound(t *testing.T) {
 
 	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("GET", "/v1/image/999", nil)
+	req := httptest.NewRequest("GET", "/v1/image/image-999", nil)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -87,7 +87,7 @@ func TestDeleteImage(t *testing.T) {
 
 	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
-	req := httptest.NewRequest("DELETE", "/v1/image/3", nil)
+	req := httptest.NewRequest("DELETE", "/v1/image/image-3", nil)
 	container = injectAdmin(container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -136,6 +136,8 @@ func TestCreateImage(t *testing.T) {
 	require.Equal(t, testdata.Img1.Name, *result.Name)
 	require.Equal(t, testdata.Img1.Description, *result.Description)
 	require.Equal(t, testdata.Img1.URL, *result.URL)
+	require.False(t, result.ExpirationDate.IsZero())
+
 }
 
 func TestUpdateImage(t *testing.T) {

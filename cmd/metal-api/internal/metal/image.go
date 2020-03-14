@@ -3,15 +3,42 @@ package metal
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // An Image describes an image which could be used for provisioning.
 type Image struct {
 	Base
-	URL      string                    `rethinkdb:"url"`
-	Features map[ImageFeatureType]bool `rethinkdb:"features"`
+	URL            string                    `rethinkdb:"url"`
+	Features       map[ImageFeatureType]bool `rethinkdb:"features"`
+	OS             string                    `rethinkdb:"os"`
+	Version        string                    `rethinkdb:"version"`
+	ExpirationDate time.Time                 `rethinkdb:"expirationDate"`
+	// Classification defines the state of a version (preview, supported, deprecated)
+	// FIXME implement validation
+	Classification VersionClassification `rethinkdb:"classification"`
 }
 
+// VersionClassification is the logical state of a version according to
+// https://github.wdf.sap.corp/kubernetes/kube-docs/wiki/Versioning-Policy
+type VersionClassification string
+
+const (
+	// ClassificationPreview indicates that a version has recently been added and not promoted to "Supported" yet.
+	// ClassificationPreview versions will not be considered for automatic OperatingSystem patch version updates.
+	ClassificationPreview VersionClassification = "preview"
+	// ClassificationSupported indicates that a patch version is the default version for the particular minor version.
+	// There is always exactly one supported OperatingSystem patch version for every still maintained OperatingSystem minor version.
+	// Supported versions are eligible for the automated OperatingSystem patch version update machines.
+	ClassificationSupported VersionClassification = "supported"
+	// ClassificationDeprecated indicates that a patch version should not be used anymore, should be updated to a new version
+	// and will eventually expire.
+	// Every version that is neither in preview nor supported is deprecated.
+	// All patch versions of not supported minor versions are deprecated.
+	ClassificationDeprecated VersionClassification = "deprecated"
+)
+
+// ImageFeatureType specifies the features of a images
 type ImageFeatureType string
 
 // ImageFeatureString returns the features of an image as a string.
@@ -24,8 +51,10 @@ func (i *Image) ImageFeatureString() string {
 }
 
 const (
+	// ImageFeatureFirewall from this image only a firewall can created
 	ImageFeatureFirewall ImageFeatureType = "firewall"
-	ImageFeatureMachine  ImageFeatureType = "machine"
+	// ImageFeatureMachine from this image only a machine can created
+	ImageFeatureMachine ImageFeatureType = "machine"
 )
 
 // Images is a collection of images.

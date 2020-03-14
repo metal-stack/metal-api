@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -88,6 +89,15 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.DELETE("/").
+		To(admin(ir.deleteImages)).
+		Operation("deleteImages").
+		Doc("deletes all images which are older than ExpirationDate and not used by a machine").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
 }
 
@@ -159,14 +169,27 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		features[ft] = true
 	}
 
+	os, v, err := ir.ds.GetOsAndSemver(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	expirationDate := time.Now().Add(time.Hour * 24 * 90)
+	if !requestPayload.ExpirationDate.IsZero() {
+		expirationDate = requestPayload.ExpirationDate
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		URL:      requestPayload.URL,
-		Features: features,
+		URL:            requestPayload.URL,
+		Features:       features,
+		OS:             os,
+		Version:        v.String(),
+		ExpirationDate: expirationDate,
 	}
 
 	err = ir.ds.CreateImage(img)
@@ -212,6 +235,31 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func (ir imageResource) deleteImages(request *restful.Request, response *restful.Response) {
+
+	images, err := ir.ds.ListImages()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	machines, err := ir.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	deletedImages, err := ir.ds.DeleteOrphanImages(&images, &machines)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	result := []*v1.ImageResponse{}
+	for _, image := range deletedImages {
+		result = append(result, v1.NewImageResponse(&image))
+	}
+
+	response.WriteHeaderAndEntity(http.StatusOK, result)
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {

@@ -101,8 +101,19 @@ var resurrectMachines = &cobra.Command{
 	},
 }
 
+var deleteOrphanImagesCmd = &cobra.Command{
+	Use:     "delete-orphan-images",
+	Short:   "delete orphan images",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+		initDataStore()
+		return deleteOrphanImages()
+	},
+}
+
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines)
+	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, deleteOrphanImagesCmd)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -480,6 +491,13 @@ func resurrectDeadMachines() {
 	if err != nil {
 		logger.Errorw("unable to resurrect machines", "error", err)
 	}
+}
+
+func deleteOrphanImages() error {
+	initDataStore()
+	initEventBus()
+	_, err := ds.DeleteOrphanImages(nil, nil)
+	return err
 }
 
 func run() {
