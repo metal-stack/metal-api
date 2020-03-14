@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
