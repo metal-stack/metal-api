@@ -213,6 +213,18 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	}
 }
 
+// replaceSwitch replaces a broken switch
+//
+// assumptions:
+//  - cabling btw. old, new and twin-brother switch in the same rack is "the same" (m1 is connected to swp1s0 at every switch)
+//
+// constraints:
+//  - old, new and twin-brother switch must have the same partition and rack
+//  - old switch needs to be marked for replacement
+//  - twin-brother switch must not be marked for replacement (otherwise there would be no valid source of truth)
+//  - new switch needs all the nics of the twin-brother switch
+//  - new switch gets the same vrf configuration as the twin-brother switch based on the switch port name
+//  - new switch gets the same machine connections as the twin-brother switch based on the switch port name
 func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
 	twin, err := r.findTwinSwitch(new)
 	if err != nil {
