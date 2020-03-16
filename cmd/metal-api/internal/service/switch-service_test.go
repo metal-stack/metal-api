@@ -231,7 +231,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
 							&metal.MachineNetwork{
-								IPs: nil,
+								IPs: []string{},
 								Vrf: 104010,
 							},
 							&metal.MachineNetwork{
