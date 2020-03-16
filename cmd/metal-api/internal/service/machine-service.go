@@ -1469,7 +1469,6 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		return
 	}
 
-	var sws []metal.Switch
 	var vrf = ""
 	imgs, err := r.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1488,21 +1487,13 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		}
 	}
 
-	sws, err = setVrfAtSwitches(r.ds, m, vrf)
+	_, err = setVrfAtSwitches(r.ds, m, vrf)
 	if err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s", id, vrf)) {
 			return
 		}
 	}
 
-	if len(sws) > 0 {
-		// Push out events to signal switch configuration change
-		evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
-		err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), evt)
-		if err != nil {
-			utils.Logger(request).Sugar().Infow("switch update event could not be published", "event", evt, "error", err)
-		}
-	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -1537,10 +1528,10 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 
 	// free machine should be callable even many times in a row (such that events can be fired multiple times if necessary)
 
-	sw, err := setVrfAtSwitches(ds, m, "")
-	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
-	if err != nil {
-		return err
+	_, err = setVrfAtSwitches(r.ds, m, "")
+	logger.Infow("set VRF at switch", "machineID", id, "error", err)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
@@ -1570,9 +1561,7 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 	}
 	logger.Infow("freed machine", "machineID", m.ID)
 
-	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = publisher.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
-	logger.Infow("published switch update event", "machineID", m.ID, "error", err)
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		return err
 	}
