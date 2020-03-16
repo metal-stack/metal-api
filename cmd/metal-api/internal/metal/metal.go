@@ -51,7 +51,6 @@ const (
 	COMMAND EventType = "command"
 
 	TopicMachine NSQTopic = "machine"
-	TopicSwitch  NSQTopic = "switch"
 )
 
 var (
@@ -59,7 +58,6 @@ var (
 	// metal-api will make sure these topics exist when it is started.
 	Topics = []NSQTopic{
 		TopicMachine,
-		TopicSwitch,
 	}
 )
 
