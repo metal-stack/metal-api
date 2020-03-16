@@ -123,13 +123,6 @@ type MachineAllocation struct {
 	UserData        string            `rethinkdb:"userdata"`
 	ConsolePassword string            `rethinkdb:"console_password"`
 	Succeeded       bool              `rethinkdb:"succeeded"`
-	Reinstall       bool              `rethinkdb:"reinstall"`
-	PrimaryDisk     string            `rethinkdb:"primarydisk"`
-	OSPartition     string            `rethinkdb:"ospartition"`
-	Initrd          string            `rethinkdb:"initrd"`
-	Cmdline         string            `rethinkdb:"cmdline"`
-	Kernel          string            `rethinkdb:"kernel"`
-	BootloaderID    string            `rethinkdb:"bootloaderid"`
 }
 
 // ByProjectID creates a map of machines with the project id as the index.
@@ -199,23 +192,6 @@ func (hw *MachineHardware) ReadableSpec() string {
 type BlockDevice struct {
 	Name       string           `rethinkdb:"name"`
 	Size       uint64           `rethinkdb:"size"`
-	Partitions []*DiskPartition `rethinkdb:"partitions"`
-	Primary    bool             `rethinkdb:"primary"`
-}
-
-// DiskPartition defines a disk partition
-type DiskPartition struct {
-	Label        string            `rethinkdb:"label"`
-	Device       string            `rethinkdb:"device"`
-	Number       uint              `rethinkdb:"number"`
-	MountPoint   string            `rethinkdb:"mountpoint"`
-	MountOptions []string          `rethinkdb:"mountoptions"`
-	Size         int64             `rethinkdb:"size"`
-	Filesystem   string            `rethinkdb:"filesystem"`
-	GPTType      string            `rethinkdb:"gpttyoe"`
-	GPTGuid      string            `rethinkdb:"gptguid"`
-	Properties   map[string]string `rethinkdb:"properties"`
-	ContainsOS   bool              `rethinkdb:"containsos"`
 }
 
 // Fru (Field Replaceable Unit) data
@@ -268,7 +244,6 @@ const (
 	MachineOffCmd            MachineCommand = "OFF"
 	MachineResetCmd          MachineCommand = "RESET"
 	MachineBiosCmd           MachineCommand = "BIOS"
-	MachineAbortReinstall    MachineCommand = "ABORT-REINSTALL"
 	ChassisIdentifyLEDOnCmd  MachineCommand = "LED-ON"
 	ChassisIdentifyLEDOffCmd MachineCommand = "LED-OFF"
 )
