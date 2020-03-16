@@ -5,16 +5,16 @@ package metal
 // switch configuration.
 type Switch struct {
 	Base
-	Nics               Nics          `rethinkdb:"network_interfaces"`
-	MachineConnections ConnectionMap `rethinkdb:"machineconnections"`
-	PartitionID        string        `rethinkdb:"partitionid"`
-	RackID             string        `rethinkdb:"rackid"`
+	Nics               Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
+	MachineConnections ConnectionMap `rethinkdb:"machineconnections" json:"machineconnections"`
+	PartitionID        string        `rethinkdb:"partitionid" json:"partitionid"`
+	RackID             string        `rethinkdb:"rackid" json:"rackid"`
 }
 
 // Connection between switch port and machine.
 type Connection struct {
-	Nic       Nic    `rethinkdb:"nic"`
-	MachineID string `rethinkdb:"machineid"`
+	Nic       Nic    `rethinkdb:"nic" json:"nic"`
+	MachineID string `rethinkdb:"machineid" json:"machineid"`
 }
 
 // Connections is a list of connections.

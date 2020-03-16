@@ -70,11 +70,11 @@ func (t NSQTopic) GetFQN(partitionID string) string {
 
 // Base implements common fields for most basic entity types (not all).
 type Base struct {
-	ID          string    `rethinkdb:"id,omitempty"`
-	Name        string    `rethinkdb:"name"`
-	Description string    `rethinkdb:"description"`
-	Created     time.Time `rethinkdb:"created"`
-	Changed     time.Time `rethinkdb:"changed"`
+	ID          string    `rethinkdb:"id,omitempty" json:"id,omitempty"`
+	Name        string    `rethinkdb:"name" json:"name"`
+	Description string    `rethinkdb:"description" json:"description"`
+	Created     time.Time `rethinkdb:"created" json:"created"`
+	Changed     time.Time `rethinkdb:"changed" json:"changed"`
 }
 
 // Entity is an interface that allows metal entities to be created and stored into the database with the generic creation and update functions.
