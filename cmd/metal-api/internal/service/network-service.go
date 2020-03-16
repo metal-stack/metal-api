@@ -184,7 +184,7 @@ func (r networkResource) findNetworks(request *restful.Request, response *restfu
 		return
 	}
 
-	var result []*v1.NetworkResponse
+	result := []*v1.NetworkResponse{}
 	for i := range nws {
 		usage := getNetworkUsage(&nws[i], r.ipamer)
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))

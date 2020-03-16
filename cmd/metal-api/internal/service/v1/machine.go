@@ -246,7 +246,7 @@ type MachineReinstallRequest struct {
 }
 
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
-	var nics metal.Nics
+	nics := metal.Nics{}
 	for i := range r.Nics {
 		var neighbors metal.Nics
 		for i2 := range r.Nics[i].Neighbors {
@@ -378,7 +378,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
-	var nics MachineNics
+	nics := MachineNics{}
 	for i := range m.Hardware.Nics {
 		nic := MachineNic{
 			MacAddress: string(m.Hardware.Nics[i].MacAddress),
@@ -455,7 +455,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 	}
 
-	var tags []string
+	tags := []string{}
 	if len(m.Tags) > 0 {
 		tags = m.Tags
 	}
@@ -505,7 +505,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 }
 
 func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *MachineRecentProvisioningEvents {
-	var es []MachineProvisioningEvent
+	es := []MachineProvisioningEvent{}
 	if ec == nil {
 		return &MachineRecentProvisioningEvents{
 			Events:                       es,

@@ -92,7 +92,7 @@ func getPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error
 
 // getMachineNetworks extracts the machines networks from an allocationNetworkMap
 func getMachineNetworks(networks allocationNetworkMap) []*metal.MachineNetwork {
-	var machineNetworks []*metal.MachineNetwork
+	machineNetworks := []*metal.MachineNetwork{}
 	for _, n := range networks {
 		machineNetworks = append(machineNetworks, n.machineNetwork)
 	}
@@ -1336,7 +1336,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		n.ips = append(n.ips, *ip)
 	}
 
-	var ipAddresses []string
+	ipAddresses := []string{}
 	for _, ip := range n.ips {
 		new := ip
 		new.AddMachineId(allocationSpec.UUID)
@@ -1407,10 +1407,10 @@ func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags [
 
 	// as user labels are given as an array, we need to figure out if label-like tags were provided.
 	// otherwise the user could provide confusing information like:
-	// - machine.metal-pod.io/chassis=123
-	// - machine.metal-pod.io/chassis=789
+	// - machine.metal-stack.io/chassis=123
+	// - machine.metal-stack.io/chassis=789
 	userLabels := make(map[string]string)
-	var actualUserTags []string
+	actualUserTags := []string{}
 	for _, tag := range userTags {
 		if strings.Contains(tag, "=") {
 			parts := strings.SplitN(tag, "=", 2)
@@ -1460,7 +1460,7 @@ func uniqueTags(tags []string) []string {
 	for _, t := range tags {
 		tagSet[t] = true
 	}
-	var uniqueTags []string
+	uniqueTags := []string{}
 	for k := range tagSet {
 		uniqueTags = append(uniqueTags, k)
 	}
@@ -1982,7 +1982,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 }
 
 func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand, params ...string) error {
-	var pp []string
+	pp := []string{}
 	for _, p := range params {
 		if len(p) > 0 {
 			pp = append(pp, p)
@@ -2035,7 +2035,7 @@ func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *z
 func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineResponse {
 	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
 
-	var result []*v1.MachineResponse
+	result := []*v1.MachineResponse{}
 
 	for index := range ms {
 		var s *metal.Size
@@ -2070,7 +2070,7 @@ func makeMachineIPMIResponse(m *metal.Machine, ds *datastore.RethinkStore, logge
 func makeMachineIPMIResponseList(ms metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineIPMIResponse {
 	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
 
-	var result []*v1.MachineIPMIResponse
+	result := []*v1.MachineIPMIResponse{}
 
 	for index := range ms {
 		var s *metal.Size

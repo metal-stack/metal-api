@@ -51,7 +51,7 @@ func TestRemoveMachineId(t *testing.T) {
 		{
 			name:         "ip without machine tag",
 			ip:           IP{},
-			expectedTags: nil,
+			expectedTags: []string{},
 		},
 		{
 			name: "ip with empty machine tag",
@@ -72,7 +72,7 @@ func TestRemoveMachineId(t *testing.T) {
 			ip: IP{
 				Tags: []string{IpTag(tag.MachineID, "123")},
 			},
-			expectedTags: nil,
+			expectedTags: []string{},
 		},
 	}
 	for _, tt := range tests {
@@ -110,7 +110,7 @@ func TestGetScope(t *testing.T) {
 			name: "project ip",
 			ip: IP{
 				ProjectID: "1",
-				Tags:      nil,
+				Tags:      []string{},
 			},
 			expectedScope: ScopeProject,
 		},

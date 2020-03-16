@@ -50,7 +50,7 @@ func (p *Prefix) String() string {
 }
 
 func (p Prefixes) String() []string {
-	var result []string
+	result := []string{}
 	for _, element := range p {
 		result = append(result, element.String())
 	}

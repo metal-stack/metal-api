@@ -44,7 +44,7 @@ func (t *Tags) Add(tag string) {
 
 // Remove removes a tag
 func (t *Tags) Remove(tag string) bool {
-	var tags []string
+	tags := []string{}
 	removed := false
 	for _, t := range t.tags {
 		if t == tag {
@@ -61,7 +61,7 @@ func (t *Tags) Remove(tag string) bool {
 
 // Values collects all the values that are contained with the given prefix.
 func (t *Tags) Values(prefix string) []string {
-	var values []string
+	values := []string{}
 	for _, t := range t.tags {
 		if strings.HasPrefix(t, prefix) {
 			values = append(values, strings.TrimPrefix(t, prefix))
@@ -76,7 +76,7 @@ func (t *Tags) Unique() []string {
 	for _, t := range t.tags {
 		tagSet[t] = true
 	}
-	var uniqueTags []string
+	uniqueTags := []string{}
 	for k := range tagSet {
 		uniqueTags = append(uniqueTags, k)
 	}

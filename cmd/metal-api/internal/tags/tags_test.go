@@ -27,7 +27,7 @@ func TestHas(t *testing.T) {
 	}{
 		{
 			name:   "empty",
-			tags:   nil,
+			tags:   []string{},
 			tag:    "",
 			wanted: false,
 		},
@@ -63,7 +63,7 @@ func TestHasPrefix(t *testing.T) {
 	}{
 		{
 			name:   "empty tags",
-			tags:   nil,
+			tags:   []string{},
 			prefix: "",
 			wanted: false,
 		},
@@ -136,8 +136,8 @@ func TestUnique(t *testing.T) {
 	}{
 		{
 			name:   "empty",
-			tags:   nil,
-			wanted: nil,
+			tags:   []string{},
+			wanted: []string{},
 		},
 		{
 			name:   "some tags",

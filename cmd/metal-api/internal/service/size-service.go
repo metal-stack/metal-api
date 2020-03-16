@@ -120,7 +120,7 @@ func (r sizeResource) listSizes(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	var result []*v1.SizeResponse
+	result := []*v1.SizeResponse{}
 	for i := range ss {
 		result = append(result, v1.NewSizeResponse(&ss[i]))
 	}
