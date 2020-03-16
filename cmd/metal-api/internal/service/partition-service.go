@@ -342,6 +342,9 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 					available = true
 				}
 			}
+			if m.State.Value == string(metal.LockedState) {
+				available = false
+			}
 
 			cap, ok := capacities[size]
 			if !ok {
