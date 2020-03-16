@@ -190,8 +190,8 @@ func (hw *MachineHardware) ReadableSpec() string {
 
 // BlockDevice information.
 type BlockDevice struct {
-	Name       string           `rethinkdb:"name"`
-	Size       uint64           `rethinkdb:"size"`
+	Name string `rethinkdb:"name"`
+	Size uint64 `rethinkdb:"size"`
 }
 
 // Fru (Field Replaceable Unit) data
