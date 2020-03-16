@@ -1528,10 +1528,10 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 
 	// free machine should be callable even many times in a row (such that events can be fired multiple times if necessary)
 
-	_, err = setVrfAtSwitches(r.ds, m, "")
-	logger.Infow("set VRF at switch", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	_, err := setVrfAtSwitches(ds, m, "")
+	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
+	if err != nil {
+		return err
 	}
 
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
@@ -1560,11 +1560,6 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 		return err
 	}
 	logger.Infow("freed machine", "machineID", m.ID)
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
