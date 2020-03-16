@@ -1565,6 +1565,22 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 
 	log := utils.Logger(request).Sugar()
 
+	// do the next steps in any case, so a client can call this function multiple times to
+	// fire of the needed events
+
+	sw, err := setVrfAtSwitches(r.ds, m, "")
+	log.Infow("set VRF at switch", "machineID", id, "error", err)
+	if err != nil {
+		return err
+	}
+
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
+	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
+	log.Infow("published machine delete event", "machineID", id, "error", err)
+	if err != nil {
+		return err
+	}
+
 	if m.Allocation != nil {
 		old := *m
 
@@ -1601,22 +1617,6 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 				log.Errorw("unable to publish ’Reinstall' command", "machineID", m.ID, "error", err)
 			}
 		}
-	}
-
-	// do the next steps in any case, so a client can call this function multiple times to
-	// fire of the needed events
-
-	sw, err := setVrfAtSwitches(r.ds, m, "")
-	log.Infow("set VRF at switch", "machineID", id, "error", err)
-	if err != nil {
-		return err
-	}
-
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	log.Infow("published machine delete event", "machineID", id, "error", err)
-	if err != nil {
-		return err
 	}
 
 	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
