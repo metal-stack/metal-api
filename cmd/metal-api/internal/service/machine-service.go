@@ -1469,7 +1469,6 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		return
 	}
 
-	var sws []metal.Switch
 	var vrf = ""
 	imgs, err := r.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1488,21 +1487,13 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		}
 	}
 
-	sws, err = setVrfAtSwitches(r.ds, m, vrf)
+	_, err = setVrfAtSwitches(r.ds, m, vrf)
 	if err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s", id, vrf)) {
 			return
 		}
 	}
 
-	if len(sws) > 0 {
-		// Push out events to signal switch configuration change
-		evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
-		err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), evt)
-		if err != nil {
-			utils.Logger(request).Sugar().Infow("switch update event could not be published", "event", evt, "error", err)
-		}
-	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -1526,7 +1517,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	// do the next steps in any case, so a client can call this function multiple times to
 	// fire the events
 
-	sw, err := setVrfAtSwitches(r.ds, m, "")
+	_, err = setVrfAtSwitches(r.ds, m, "")
 	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -1559,12 +1550,6 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 	utils.Logger(request).Sugar().Infow("freed machine", "machineID", id)
 
-	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
-	utils.Logger(request).Sugar().Infow("published switch update event", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
