@@ -1552,7 +1552,7 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 
 	if m.Allocation != nil {
 		// if the machine is allocated, we free it in our database
-		err = releaseMachineNetworks(ds, ipamer, m, m.Allocation.MachineNetworks)
+		err = releaseMachineNetworks(ds, ipamer, m)
 		if err != nil {
 			// TODO: Trigger network garbage collection
 			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
@@ -1580,8 +1580,8 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 	return nil
 }
 
-func releaseMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, machine *metal.Machine, machineNetworks []*metal.MachineNetwork) error {
-	for _, machineNetwork := range machineNetworks {
+func releaseMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, machine *metal.Machine) error {
+	for _, machineNetwork := range machine.Allocation.MachineNetworks {
 		for _, ipString := range machineNetwork.IPs {
 			ip, err := ds.FindIPByID(ipString)
 			if err != nil {
