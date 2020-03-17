@@ -1489,12 +1489,14 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	old := *m
 
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
-	m.Allocation.PrimaryDisk = requestPayload.PrimaryDisk
-	m.Allocation.OSPartition = requestPayload.OSPartition
-	m.Allocation.Initrd = requestPayload.Initrd
-	m.Allocation.Cmdline = requestPayload.Cmdline
-	m.Allocation.Kernel = requestPayload.Kernel
-	m.Allocation.BootloaderID = requestPayload.BootloaderID
+	m.Allocation.BootInfo = &metal.BootInfo{
+		PrimaryDisk:  requestPayload.PrimaryDisk,
+		OSPartition:  requestPayload.OSPartition,
+		Initrd:       requestPayload.Initrd,
+		Cmdline:      requestPayload.Cmdline,
+		Kernel:       requestPayload.Kernel,
+		BootloaderID: requestPayload.BootloaderID,
+	}
 	m.Allocation.Reinstall = false // just for safety
 
 	err = r.ds.UpdateMachine(&old, m)

@@ -124,12 +124,17 @@ type MachineAllocation struct {
 	ConsolePassword string            `rethinkdb:"console_password" json:"console_password"`
 	Succeeded       bool              `rethinkdb:"succeeded" json:"succeeded"`
 	Reinstall       bool              `rethinkdb:"reinstall" json:"reinstall"`
-	PrimaryDisk     string            `rethinkdb:"primarydisk" json:"primarydisk"`
-	OSPartition     string            `rethinkdb:"ospartition" json:"ospartition"`
-	Initrd          string            `rethinkdb:"initrd" json:"initrd"`
-	Cmdline         string            `rethinkdb:"cmdline" json:"cmdline"`
-	Kernel          string            `rethinkdb:"kernel" json:"kernel"`
-	BootloaderID    string            `rethinkdb:"bootloaderid" json:"bootloaderid"`
+	BootInfo        *BootInfo         `rethinkdb:"bootinfo" json:"bootinfo"`
+}
+
+// A BootInfo stores the data used for machine reinstallations.
+type BootInfo struct {
+	PrimaryDisk  string `rethinkdb:"primarydisk" json:"primarydisk"`
+	OSPartition  string `rethinkdb:"ospartition" json:"ospartition"`
+	Initrd       string `rethinkdb:"initrd" json:"initrd"`
+	Cmdline      string `rethinkdb:"cmdline" json:"cmdline"`
+	Kernel       string `rethinkdb:"kernel" json:"kernel"`
+	BootloaderID string `rethinkdb:"bootloaderid" json:"bootloaderid"`
 }
 
 // ByProjectID creates a map of machines with the project id as the index.
