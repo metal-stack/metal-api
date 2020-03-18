@@ -477,12 +477,13 @@ func dumpSwaggerJSON() {
 func resurrectDeadMachines() error {
 	initDataStore()
 	initEventBus()
+	initIpam()
+
 	var p bus.Publisher
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
-
-	err := service.ResurrectMachines(ds, p, logger)
+	err := service.ResurrectMachines(ds, p, ipamer, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to resurrect machines")
 	}

@@ -26,8 +26,8 @@ var (
 // the machine will be available for allocation. In all other cases the allocation
 // must explicitly point to this machine.
 type MachineState struct {
-	Value       MState `rethinkdb:"value"`
-	Description string `rethinkdb:"description"`
+	Value       MState `rethinkdb:"value" json:"value"`
+	Description string `rethinkdb:"description" json:"description"`
 }
 
 // MachineStateFrom converts a machineState string to the type
@@ -68,8 +68,8 @@ func LEDStateFrom(name string) (LEDState, error) {
 
 // A ChassisIdentifyLEDState describes the state of a chassis identify LED, i.e. LED-ON/LED-OFF.
 type ChassisIdentifyLEDState struct {
-	Value       LEDState `rethinkdb:"value"`
-	Description string   `rethinkdb:"description"`
+	Value       LEDState `rethinkdb:"value" json:"value"`
+	Description string   `rethinkdb:"description" json:"description"`
 }
 
 // A Machine is a piece of metal which is under the control of our system. It registers itself
@@ -77,16 +77,16 @@ type ChassisIdentifyLEDState struct {
 // be filled. Any unallocated (free) machine won't have such values.
 type Machine struct {
 	Base
-	Allocation  *MachineAllocation      `rethinkdb:"allocation"`
-	PartitionID string                  `rethinkdb:"partitionid"`
-	SizeID      string                  `rethinkdb:"sizeid"`
-	RackID      string                  `rethinkdb:"rackid"`
-	Hardware    MachineHardware         `rethinkdb:"hardware"`
-	State       MachineState            `rethinkdb:"state"`
-	LEDState    ChassisIdentifyLEDState `rethinkdb:"ledstate"`
-	Tags        []string                `rethinkdb:"tags"`
-	IPMI        IPMI                    `rethinkdb:"ipmi"`
-	BIOS        BIOS                    `rethinkdb:"bios"`
+	Allocation  *MachineAllocation      `rethinkdb:"allocation" json:"allocation"`
+	PartitionID string                  `rethinkdb:"partitionid" json:"partitionid"`
+	SizeID      string                  `rethinkdb:"sizeid" json:"sizeid"`
+	RackID      string                  `rethinkdb:"rackid" json:"rackid"`
+	Hardware    MachineHardware         `rethinkdb:"hardware" json:"hardware"`
+	State       MachineState            `rethinkdb:"state" json:"state"`
+	LEDState    ChassisIdentifyLEDState `rethinkdb:"ledstate" json:"ledstate"`
+	Tags        []string                `rethinkdb:"tags" json:"tags"`
+	IPMI        IPMI                    `rethinkdb:"ipmi" json:"ipmi"`
+	BIOS        BIOS                    `rethinkdb:"bios" json:"bios"`
 }
 
 // Machines is a slice of Machine
@@ -138,23 +138,23 @@ func (ms Machines) ByProjectID() map[string]Machines {
 
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
-	NetworkID           string   `rethinkdb:"networkid"`
-	Prefixes            []string `rethinkdb:"prefixes"`
-	IPs                 []string `rethinkdb:"ips"`
-	DestinationPrefixes []string `rethinkdb:"destinationprefixes"`
-	Vrf                 uint     `rethinkdb:"vrf"`
-	Private             bool     `rethinkdb:"private"`
-	ASN                 int64    `rethinkdb:"asn"`
-	Nat                 bool     `rethinkdb:"nat"`
-	Underlay            bool     `rethinkdb:"underlay"`
+	NetworkID           string   `rethinkdb:"networkid" json:"networkid"`
+	Prefixes            []string `rethinkdb:"prefixes" json:"prefixes"`
+	IPs                 []string `rethinkdb:"ips" json:"ips"`
+	DestinationPrefixes []string `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
+	Vrf                 uint     `rethinkdb:"vrf" json:"vrf"`
+	Private             bool     `rethinkdb:"private" json:"private"`
+	ASN                 int64    `rethinkdb:"asn" json:"asn"`
+	Nat                 bool     `rethinkdb:"nat" json:"nat"`
+	Underlay            bool     `rethinkdb:"underlay" json:"underlay"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
-	Memory   uint64        `rethinkdb:"memory"`
-	CPUCores int           `rethinkdb:"cpu_cores"`
-	Nics     Nics          `rethinkdb:"network_interfaces"`
-	Disks    []BlockDevice `rethinkdb:"block_devices"`
+	Memory   uint64        `rethinkdb:"memory" json:"memory"`
+	CPUCores int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
+	Nics     Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
+	Disks    []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
 }
 
 // MachineLiveliness indicates the liveliness of a machine
@@ -196,33 +196,33 @@ type BlockDevice struct {
 
 // Fru (Field Replaceable Unit) data
 type Fru struct {
-	ChassisPartNumber   string `rethinkdb:"chassis_part_number"`
-	ChassisPartSerial   string `rethinkdb:"chassis_part_serial"`
-	BoardMfg            string `rethinkdb:"board_mfg"`
-	BoardMfgSerial      string `rethinkdb:"board_mfg_serial"`
-	BoardPartNumber     string `rethinkdb:"board_part_number"`
-	ProductManufacturer string `rethinkdb:"product_manufacturer"`
-	ProductPartNumber   string `rethinkdb:"product_part_number"`
-	ProductSerial       string `rethinkdb:"product_serial"`
+	ChassisPartNumber   string `rethinkdb:"chassis_part_number" json:"chassis_part_number"`
+	ChassisPartSerial   string `rethinkdb:"chassis_part_serial" json:"chassis_part_serial"`
+	BoardMfg            string `rethinkdb:"board_mfg" json:"board_mfg"`
+	BoardMfgSerial      string `rethinkdb:"board_mfg_serial" json:"board_mfg_serial"`
+	BoardPartNumber     string `rethinkdb:"board_part_number" json:"board_part_number"`
+	ProductManufacturer string `rethinkdb:"product_manufacturer" json:"product_manufacturer"`
+	ProductPartNumber   string `rethinkdb:"product_part_number" json:"product_part_number"`
+	ProductSerial       string `rethinkdb:"product_serial" json:"product_serial"`
 }
 
 // IPMI connection data
 type IPMI struct {
 	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
-	Address    string `rethinkdb:"address"`
-	MacAddress string `rethinkdb:"mac"`
-	User       string `rethinkdb:"user"`
-	Password   string `rethinkdb:"password"`
-	Interface  string `rethinkdb:"interface"`
-	Fru        Fru    `rethinkdb:"fru"`
-	BMCVersion string `rethinkdb:"bmcversion"`
+	Address    string `rethinkdb:"address" json:"address"`
+	MacAddress string `rethinkdb:"mac" json:"mac"`
+	User       string `rethinkdb:"user" json:"user"`
+	Password   string `rethinkdb:"password" json:"password"`
+	Interface  string `rethinkdb:"interface" json:"interface"`
+	Fru        Fru    `rethinkdb:"fru" json:"fru"`
+	BMCVersion string `rethinkdb:"bmcversion" json:"bmcversion"`
 }
 
 // BIOS contains machine bios information
 type BIOS struct {
-	Version string `rethinkdb:"version"`
-	Vendor  string `rethinkdb:"vendor"`
-	Date    string `rethinkdb:"date"`
+	Version string `rethinkdb:"version" json:"version"`
+	Vendor  string `rethinkdb:"vendor" json:"vendor"`
+	Date    string `rethinkdb:"date" json:"date"`
 }
 
 // HasMAC returns true if this machine has the given MAC.
