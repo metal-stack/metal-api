@@ -107,12 +107,6 @@ type MachineNicExtended struct {
 	Neighbors MachineNicsExtended `json:"neighbors" description:"the neighbors visible to this network interface"`
 }
 
-type MachineLivelinessReport struct {
-	AliveCount   int `json:"alive_count" description:"the number of machines alive"`
-	DeadCount    int `json:"dead_count" description:"the number of dead machines"`
-	UnknownCount int `json:"unknown_count" description:"the number of machines with unknown liveliness"`
-}
-
 type MachineBIOS struct {
 	Version string `json:"version" modelDescription:"The bios version" description:"the bios version"`
 	Vendor  string `json:"vendor" description:"the bios vendor"`
