@@ -124,11 +124,11 @@ type MachineAllocation struct {
 	ConsolePassword string            `rethinkdb:"console_password" json:"console_password"`
 	Succeeded       bool              `rethinkdb:"succeeded" json:"succeeded"`
 	Reinstall       bool              `rethinkdb:"reinstall" json:"reinstall"`
-	BootInfo        *BootInfo         `rethinkdb:"bootinfo" json:"bootinfo"`
+	MachineSetup    *MachineSetup     `rethinkdb:"setup" json:"setup"`
 }
 
-// A BootInfo stores the data used for machine reinstallations.
-type BootInfo struct {
+// A MachineSetup stores the data used for machine reinstallations.
+type MachineSetup struct {
 	PrimaryDisk  string `rethinkdb:"primarydisk" json:"primarydisk"`
 	OSPartition  string `rethinkdb:"ospartition" json:"ospartition"`
 	Initrd       string `rethinkdb:"initrd" json:"initrd"`

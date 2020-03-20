@@ -1489,7 +1489,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	old := *m
 
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
-	m.Allocation.BootInfo = &metal.BootInfo{
+	m.Allocation.MachineSetup = &metal.MachineSetup{
 		PrimaryDisk:  requestPayload.PrimaryDisk,
 		OSPartition:  requestPayload.OSPartition,
 		Initrd:       requestPayload.Initrd,

@@ -446,13 +446,13 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			allocation.Reinstall = &MachineReinstall{
 				OldImageID:   m.Allocation.ImageID,
  			}
- 			if m.Allocation.BootInfo != nil {
- 				allocation.Reinstall.PrimaryDisk = m.Allocation.BootInfo.PrimaryDisk
- 				allocation.Reinstall.OSPartition = m.Allocation.BootInfo.OSPartition
- 				allocation.Reinstall.Initrd = m.Allocation.BootInfo.Initrd
- 				allocation.Reinstall.Cmdline = m.Allocation.BootInfo.Cmdline
- 				allocation.Reinstall.Kernel = m.Allocation.BootInfo.Kernel
- 				allocation.Reinstall.BootloaderID = m.Allocation.BootInfo.BootloaderID
+ 			if m.Allocation.MachineSetup != nil {
+ 				allocation.Reinstall.PrimaryDisk = m.Allocation.MachineSetup.PrimaryDisk
+ 				allocation.Reinstall.OSPartition = m.Allocation.MachineSetup.OSPartition
+ 				allocation.Reinstall.Initrd = m.Allocation.MachineSetup.Initrd
+ 				allocation.Reinstall.Cmdline = m.Allocation.MachineSetup.Cmdline
+ 				allocation.Reinstall.Kernel = m.Allocation.MachineSetup.Kernel
+ 				allocation.Reinstall.BootloaderID = m.Allocation.MachineSetup.BootloaderID
 			}
 		}
 	}
