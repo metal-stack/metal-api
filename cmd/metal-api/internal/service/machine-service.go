@@ -1815,6 +1815,8 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipam
 		}
 	}
 
+	logger.Info("finished machine resurrection")
+
 	return nil
 }
 
