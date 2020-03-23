@@ -18,19 +18,16 @@ jobs:
       uses: actions-contrib/golangci-lint@master
       with:
         args: run
+    - name: Export tag on pull request
+      run: | 
+        echo "::set-env name=TAG_NAME::${GITHUB_HEAD_REF##*/}"
+      if: github.event_name == 'pull_request'
+    - name: Export tag on release
+      run: | 
+        echo "::set-env name=TAG_NAME::${GITHUB_REF##*/}"
+      if: github.event_name != 'pull_request'
     - name: Build and push pull request
       run: |
         docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
-        docker build -t metalstack/metal-api:${TAG_NAME##*/} .
-        docker push metalstack/metal-api:${TAG_NAME##*/}
-      env:
-        TAG_NAME: ${{ github.head_ref }}
-      if: github.event_name == 'pull_request'
-    - name: Build and push release
-      run: |
-        docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
-        docker build -t metalstack/metal-api:${TAG_NAME##*/} .
-        docker push metalstack/metal-api:${TAG_NAME##*/}
-      env:
-        TAG_NAME: ${{ github.ref }}
-      if: github.event_name != 'pull_request'
+        docker build -t metalstack/metal-api:${TAG_NAME} .
+        docker push metalstack/metal-api:${TAG_NAME}
