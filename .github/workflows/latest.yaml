@@ -17,6 +17,6 @@ jobs:
         args: run
     - name: Build and push Docker image
       run: |
-      docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
-      docker build -t metalstack/metal-api .
-      docker push metalstack/metal-api
+        docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
+        docker build -t metalstack/metal-api .
+        docker push metalstack/metal-api
