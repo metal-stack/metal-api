@@ -1,0 +1,23 @@
+name: Build image from pull request
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Lint
+      uses: actions-contrib/golangci-lint@master
+      with:
+        args: run
+    - name: Build and push pull request
+      run: |
+        docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
+        # pull request images are prefixed with 'pr' to prevent them from overriding released images
+        docker build -t metalstack/metal-api:pr-${GITHUB_HEAD_REF##*/} .
+        docker push metalstack/metal-api:pr-${GITHUB_HEAD_REF##*/}
