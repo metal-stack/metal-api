@@ -120,12 +120,6 @@ type MachineNicExtended struct {
 	Neighbors MachineNicsExtended `json:"neighbors" description:"the neighbors visible to this network interface"`
 }
 
-type MachineLivelinessReport struct {
-	AliveCount   int `json:"alive_count" description:"the number of machines alive"`
-	DeadCount    int `json:"dead_count" description:"the number of dead machines"`
-	UnknownCount int `json:"unknown_count" description:"the number of machines with unknown liveliness"`
-}
-
 type MachineBIOS struct {
 	Version string `json:"version" modelDescription:"The bios version" description:"the bios version"`
 	Vendor  string `json:"vendor" description:"the bios vendor"`
@@ -444,15 +438,15 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 
 		if m.Allocation.Reinstall {
 			allocation.Reinstall = &MachineReinstall{
-				OldImageID:   m.Allocation.ImageID,
- 			}
- 			if m.Allocation.MachineSetup != nil {
- 				allocation.Reinstall.PrimaryDisk = m.Allocation.MachineSetup.PrimaryDisk
- 				allocation.Reinstall.OSPartition = m.Allocation.MachineSetup.OSPartition
- 				allocation.Reinstall.Initrd = m.Allocation.MachineSetup.Initrd
- 				allocation.Reinstall.Cmdline = m.Allocation.MachineSetup.Cmdline
- 				allocation.Reinstall.Kernel = m.Allocation.MachineSetup.Kernel
- 				allocation.Reinstall.BootloaderID = m.Allocation.MachineSetup.BootloaderID
+				OldImageID: m.Allocation.ImageID,
+			}
+			if m.Allocation.MachineSetup != nil {
+				allocation.Reinstall.PrimaryDisk = m.Allocation.MachineSetup.PrimaryDisk
+				allocation.Reinstall.OSPartition = m.Allocation.MachineSetup.OSPartition
+				allocation.Reinstall.Initrd = m.Allocation.MachineSetup.Initrd
+				allocation.Reinstall.Cmdline = m.Allocation.MachineSetup.Cmdline
+				allocation.Reinstall.Kernel = m.Allocation.MachineSetup.Kernel
+				allocation.Reinstall.BootloaderID = m.Allocation.MachineSetup.BootloaderID
 			}
 		}
 	}

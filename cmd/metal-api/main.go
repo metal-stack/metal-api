@@ -13,6 +13,7 @@ import (
 	"time"
 
 	nsq2 "github.com/nsqio/go-nsq"
+	"github.com/pkg/errors"
 
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
@@ -88,7 +89,7 @@ var initDatabase = &cobra.Command{
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
 	Run: func(cmd *cobra.Command, args []string) {
-		initializeDatabase()
+		initDataStore()
 	},
 }
 
@@ -96,13 +97,22 @@ var resurrectMachines = &cobra.Command{
 	Use:     "resurrect-machines",
 	Short:   "resurrect dead machines",
 	Version: v.V.String(),
-	Run: func(cmd *cobra.Command, args []string) {
-		resurrectDeadMachines()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return resurrectDeadMachines()
+	},
+}
+
+var machineLiveliness = &cobra.Command{
+	Use:     "machine-liveliness",
+	Short:   "evaluates whether machines are still alive or if they have died",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return evaluateLiveliness()
 	},
 }
 
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines)
+	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, machineLiveliness)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -294,7 +304,7 @@ func initDataStore() {
 	err := ds.Connect()
 
 	if err != nil {
-		logger.Errorw("cannot connect to db in root command metal-api/internal/main.initDatastore()", "error", err)
+		logger.Errorw("cannot connect to data store", "error", err)
 		panic(err)
 	}
 }
@@ -464,22 +474,32 @@ func dumpSwaggerJSON() {
 	fmt.Printf("%s\n", js)
 }
 
-func initializeDatabase() {
-	initDataStore()
-	logger.Info("Database initialized")
-}
-
-func resurrectDeadMachines() {
+func resurrectDeadMachines() error {
 	initDataStore()
 	initEventBus()
+	initIpam()
+
 	var p bus.Publisher
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
-	err := service.ResurrectMachines(ds, p, logger)
+	err := service.ResurrectMachines(ds, p, ipamer, logger)
 	if err != nil {
-		logger.Errorw("unable to resurrect machines", "error", err)
+		return errors.Wrap(err, "unable to resurrect machines")
 	}
+
+	return nil
+}
+
+func evaluateLiveliness() error {
+	initDataStore()
+
+	err := service.MachineLiveliness(ds, logger)
+	if err != nil {
+		return errors.Wrap(err, "unable to evaluate machine liveliness")
+	}
+
+	return nil
 }
 
 func run() {
