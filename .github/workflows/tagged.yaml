@@ -14,15 +14,23 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Branch name
-      run: echo running on branch ${GITHUB_REF##*/}
     - name: Lint
       uses: actions-contrib/golangci-lint@master
       with:
         args: run
-    - name: Build the Docker images
+    - name: Build and push pull request
       run: |
-        export GITHUB_TAG_NAME=${GITHUB_REF##*/}
         docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
-        docker build -t metalstack/metal-api:${GITHUB_TAG_NAME} .
-        docker push metalstack/metal-api:${GITHUB_TAG_NAME}
+        docker build -t metalstack/metal-api:${TAG_NAME##*/} .
+        docker push metalstack/metal-api:${TAG_NAME##*/}
+      env:
+        TAG_NAME: ${{ github.head_ref }}
+      if: github.event_name == 'pull_request'
+    - name: Build and push release
+      run: |
+        docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
+        docker build -t metalstack/metal-api:${TAG_NAME##*/} .
+        docker push metalstack/metal-api:${TAG_NAME##*/}
+      env:
+        TAG_NAME: ${{ github.ref }}
+      if: github.event_name != 'pull_request'
