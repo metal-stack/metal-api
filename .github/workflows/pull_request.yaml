@@ -1,7 +1,7 @@
-name: Build latest image
+name: Build image from pull request
 
 on:
-  push:
+  pull_request:
     branches:
       - master
 
@@ -18,5 +18,6 @@ jobs:
     - name: Build and push Docker image
       run: |
         docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
-        docker build -t metalstack/metal-api .
-        docker push metalstack/metal-api
+        # pull request images are prefixed with 'pr' to prevent them from overriding released images
+        docker build -t metalstack/metal-api:pr-${GITHUB_HEAD_REF##*/} .
+        docker push metalstack/metal-api:pr-${GITHUB_HEAD_REF##*/}
