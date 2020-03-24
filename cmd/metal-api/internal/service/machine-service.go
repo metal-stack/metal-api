@@ -1750,9 +1750,10 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
 		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
 		ec.Liveliness = metal.MachineLivelinessAlive
-	} else if event.Event == metal.ProvisioningEventReinstallAborted {
-		r.machineAbortReinstall(machineID)
 	} else {
+		if event.Event == metal.ProvisioningEventReinstallAborted {
+			r.machineAbortReinstall(machineID)
+		}
 		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
 		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
 		ec.Liveliness = metal.MachineLivelinessAlive
