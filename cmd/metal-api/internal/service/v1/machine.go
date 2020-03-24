@@ -25,21 +25,21 @@ type MachineBase struct {
 }
 
 type MachineAllocation struct {
-	Created         time.Time         `json:"created" description:"the time when the machine was created"`
-	Name            string            `json:"name" description:"the name of the machine"`
-	Description     string            `json:"description,omitempty" description:"a description for this machine" optional:"true"`
-	Project         string            `json:"project" description:"the project id that this machine is assigned to" `
-	Image           *ImageResponse    `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
-	MachineNetworks []MachineNetwork  `json:"networks" description:"the networks of this machine"`
-	Hostname        string            `json:"hostname" description:"the hostname which will be used when creating the machine"`
-	SSHPubKeys      []string          `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-	UserData        string            `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
-	ConsolePassword *string           `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
-	Succeeded       bool              `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
-	Reinstall       *MachineReinstall `json:"reinstall" description:"indicates whether to reinstall the machine (if not nil)"`
+	Created         time.Time        `json:"created" description:"the time when the machine was created"`
+	Name            string           `json:"name" description:"the name of the machine"`
+	Description     string           `json:"description,omitempty" description:"a description for this machine" optional:"true"`
+	Project         string           `json:"project" description:"the project id that this machine is assigned to" `
+	Image           *ImageResponse   `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
+	MachineNetworks []MachineNetwork `json:"networks" description:"the networks of this machine"`
+	Hostname        string           `json:"hostname" description:"the hostname which will be used when creating the machine"`
+	SSHPubKeys      []string         `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
+	ConsolePassword *string          `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
+	Succeeded       bool             `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
+	MachineSetup    *MachineSetup    `json:"reinstall" description:"indicates whether to reinstall the machine (if not nil)"`
 }
 
-type MachineReinstall struct {
+type MachineSetup struct {
 	OldImageID   string `json:"old_image_id" description:"the ID of the already existing OS image"`
 	PrimaryDisk  string `json:"primary_disk" description:"device name of the disk that contains the partition on which the OS is installed"`
 	OSPartition  string `json:"os_partition" description:"device name of disk partition that has the OS installed"`
@@ -436,18 +436,13 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Succeeded:       m.Allocation.Succeeded,
 		}
 
-		if m.Allocation.Reinstall {
-			allocation.Reinstall = &MachineReinstall{
-				OldImageID: m.Allocation.ImageID,
-			}
-			if m.Allocation.MachineSetup != nil {
-				allocation.Reinstall.PrimaryDisk = m.Allocation.MachineSetup.PrimaryDisk
-				allocation.Reinstall.OSPartition = m.Allocation.MachineSetup.OSPartition
-				allocation.Reinstall.Initrd = m.Allocation.MachineSetup.Initrd
-				allocation.Reinstall.Cmdline = m.Allocation.MachineSetup.Cmdline
-				allocation.Reinstall.Kernel = m.Allocation.MachineSetup.Kernel
-				allocation.Reinstall.BootloaderID = m.Allocation.MachineSetup.BootloaderID
-			}
+		if m.Allocation.Reinstall && m.Allocation.MachineSetup != nil {
+			allocation.MachineSetup.PrimaryDisk = m.Allocation.MachineSetup.PrimaryDisk
+			allocation.MachineSetup.OSPartition = m.Allocation.MachineSetup.OSPartition
+			allocation.MachineSetup.Initrd = m.Allocation.MachineSetup.Initrd
+			allocation.MachineSetup.Cmdline = m.Allocation.MachineSetup.Cmdline
+			allocation.MachineSetup.Kernel = m.Allocation.MachineSetup.Kernel
+			allocation.MachineSetup.BootloaderID = m.Allocation.MachineSetup.BootloaderID
 		}
 	}
 
