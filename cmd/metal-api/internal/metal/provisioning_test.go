@@ -216,9 +216,29 @@ var (
 			Event: ProvisioningEventPXEBooting,
 		},
 	}
-	ErroneousReinstallAbortionEventCycle = ProvisioningEvents{
+	IncompleteReinstallAbortionEventCycle = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventPXEBooting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventReinstallAborted,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPhonedHome,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventBootingNewKernel,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventInstalling,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+	}
+	ErroneousReinstallAbortionEventCycle = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventBootingNewKernel,
 		},
 		ProvisioningEvent{
 			Event: ProvisioningEventReinstallAborted,
@@ -317,6 +337,13 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 		},
 		{
 			name: "TestProvisioning_IncompleteCycles Test 11",
+			eventContainer: ProvisioningEventContainer{
+				Events: IncompleteReinstallAbortionEventCycle,
+			},
+			want: "1",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 12",
 			eventContainer: ProvisioningEventContainer{
 				Events: ErroneousReinstallAbortionEventCycle,
 			},

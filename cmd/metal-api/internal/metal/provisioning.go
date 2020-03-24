@@ -66,7 +66,7 @@ var (
 		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
 		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventReinstallAborted: {ProvisioningEventPhonedHome},
+		ProvisioningEventReinstallAborted: {ProvisioningEventPXEBooting},
 		ProvisioningEventResetFailCount:   expectedProvisioningEventSequence,
 	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{
