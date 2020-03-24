@@ -4495,12 +4495,6 @@
               "$ref": "#/definitions/v1.MachineResponse"
             }
           },
-          "504": {
-            "description": "Timeout",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
           "default": {
             "description": "Error",
             "schema": {
