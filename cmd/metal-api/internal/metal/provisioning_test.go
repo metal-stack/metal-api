@@ -187,6 +187,55 @@ var (
 			Event: ProvisioningEventPXEBooting,
 		},
 	}
+	SuccessfulReinstallAbortionEventCycle = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventPhonedHome,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventReinstallAborted,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPhonedHome,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventBootingNewKernel,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventInstalling,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
+		},
+	}
+	ErroneousReinstallAbortionEventCycle = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventReinstallAborted,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPhonedHome,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventBootingNewKernel,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventInstalling,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+	}
 )
 
 func TestProvisioning_IncompleteCycles(t *testing.T) {
@@ -258,6 +307,20 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 				Events: MultipleTimesPXEBootingIsNoIncompleteCycle,
 			},
 			want: "0",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 10",
+			eventContainer: ProvisioningEventContainer{
+				Events: SuccessfulReinstallAbortionEventCycle,
+			},
+			want: "0",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 11",
+			eventContainer: ProvisioningEventContainer{
+				Events: ErroneousReinstallAbortionEventCycle,
+			},
+			want: "2",
 		},
 	}
 	for _, tt := range tests {

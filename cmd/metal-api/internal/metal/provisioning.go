@@ -42,7 +42,6 @@ var (
 		ProvisioningEventInstalling:       true,
 		ProvisioningEventBootingNewKernel: true,
 		ProvisioningEventPhonedHome:       true,
-		ProvisioningEventReinstallAborted: true,
 	}
 	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
 	ProvisioningEventsInspectionLimit = 2 * len(expectedProvisioningEventSequence) // only saved events count
@@ -67,6 +66,7 @@ var (
 		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
 		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventReinstallAborted: {ProvisioningEventPhonedHome},
 		ProvisioningEventResetFailCount:   expectedProvisioningEventSequence,
 	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{

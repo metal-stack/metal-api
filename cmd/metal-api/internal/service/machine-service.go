@@ -277,7 +277,6 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineReinstallRequest{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/event").
@@ -1609,7 +1608,7 @@ func reinstallOrDeleteMachine(ds *datastore.RethinkStore, publisher bus.Publishe
 	if imageID != nil {
 		err = publishMachineCmd(logger, m, publisher, metal.MachineReinstall)
 		if err != nil {
-			logger.Errorw("unable to publish ’Reinstall' command", "machineID", m.ID, "error", err)
+			logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
 		}
 	}
 
@@ -1784,7 +1783,7 @@ func (r machineResource) machineAbortReinstall(machineID string) {
 
 	err = publishMachineCmd(log, m, r, metal.MachineAbortReinstall)
 	if err != nil {
-		log.Errorw("unable to publish ’Abort Reinstall' command", "machineID", machineID, "error", err)
+		log.Errorw("unable to publish machine command", "command", metal.MachineAbortReinstall, "machineID", machineID, "error", err)
 	}
 }
 
