@@ -48,3 +48,5 @@ require (
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v5 v5.1.0
 )
+
+replace github.com/metal-stack/metal-lib v0.3.4 => ../metal-lib

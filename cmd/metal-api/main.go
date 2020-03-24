@@ -269,6 +269,7 @@ func initEventBus() {
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
+	nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr"))
 	nsqer = &nsq
 }
 
@@ -436,10 +437,12 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewIP(ds, ipamer, mdc))
 	var p bus.Publisher
+	ep := bus.DirectEndpoints()
 	if nsqer != nil {
 		p = nsqer.Publisher
+		ep = nsqer.Endpoints
 	}
-	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer, mdc))
+	restful.DefaultContainer.Add(service.NewMachine(ds, p, ep, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
@@ -480,10 +483,12 @@ func resurrectDeadMachines() error {
 	initIpam()
 
 	var p bus.Publisher
+	ep := bus.DirectEndpoints()
 	if nsqer != nil {
 		p = nsqer.Publisher
+		ep = nsqer.Endpoints
 	}
-	err := service.ResurrectMachines(ds, p, ipamer, logger)
+	err := service.ResurrectMachines(ds, p, ep, ipamer, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to resurrect machines")
 	}

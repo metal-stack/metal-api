@@ -3,15 +3,21 @@
 ### get all switches
 # @name getAll
 GET {{baseurl}}
+Authorization: Metal-View 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### get first size
 @sizeid = {{getAll.response.body.$[0].id}}
 # @name getFirstSize
 GET {{baseurl}}/{{sizeid}}
+Authorization: Metal-View 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### check if a size is found (success)
 POST {{baseurl}}/from-hardware
 Content-Type: application/json
+Authorization: Metal-View bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
 
 {
     "cpu_cores": 1,

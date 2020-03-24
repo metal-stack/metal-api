@@ -20,6 +20,7 @@ type NSQClient struct {
 	config            *bus.PublisherConfig
 	publisherProvider PublisherProvider
 	Publisher         bus.Publisher
+	Endpoints         *bus.Endpoints
 }
 
 // NewNSQ create a new NSQClient.
@@ -44,6 +45,15 @@ func (n *NSQClient) WaitForPublisher() {
 		n.Publisher = publisher
 		break
 	}
+}
+
+func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
+	c, err := bus.NewConsumer(n.logger, n.config.TLS, lookupds...)
+	if err != nil {
+		return fmt.Errorf("cannot create consumer for endpoints: %w", err)
+	}
+	n.Endpoints = bus.NewEndpoints(c, n.Publisher)
+	return nil
 }
 
 //WaitForTopicsCreated blocks until the topices are created within the given partitions.

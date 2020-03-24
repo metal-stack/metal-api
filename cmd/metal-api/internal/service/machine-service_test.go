@@ -15,6 +15,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
 	container = injectViewer(container, req)
@@ -179,7 +180,7 @@ func TestRegisterMachine(t *testing.T) {
 
 			js, _ := json.Marshal(registerRequest)
 			body := bytes.NewBuffer(js)
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -252,7 +253,7 @@ func TestMachineIPMIReport(t *testing.T) {
 
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
 			body := bytes.NewBuffer(js)
@@ -297,7 +298,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*test.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 
 			query := datastore.MachineSearchQuery{
@@ -374,7 +375,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
 
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 			container := restful.NewContainer().Add(machineservice)
 
 			finalizeRequest := v1.MachineFinalizeAllocationRequest{
@@ -416,7 +417,7 @@ func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 
 	stateRequest := v1.MachineState{
@@ -446,7 +447,7 @@ func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
 	container = injectViewer(container, req)
@@ -470,7 +471,7 @@ func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
 	container = injectEditor(container, req)
@@ -500,7 +501,7 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice := NewMachine(ds, pub, ipam.New(goipam.New()), nil)
+	machineservice := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
 	container = injectEditor(container, req)
@@ -523,7 +524,7 @@ func TestSearchMachine(t *testing.T) {
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	requestJSON := fmt.Sprintf("{%q:[%q]}", "nics_mac_addresses", "1")
 	req := httptest.NewRequest("POST", "/v1/machine/find", bytes.NewBufferString(requestJSON))
@@ -551,7 +552,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(machineservice)
 	event := &metal.ProvisioningEvent{
 		Event:   metal.ProvisioningEventPreparing,
@@ -630,7 +631,7 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice := NewMachine(ds, pub, ipam.New(goipam.New()), nil)
+			machineservice := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 
 			js, _ := json.Marshal([]string{d.param})
 			body := bytes.NewBuffer(js)

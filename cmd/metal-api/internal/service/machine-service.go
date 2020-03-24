@@ -42,6 +42,7 @@ type machineResource struct {
 	bus.Publisher
 	ipamer ipam.IPAMer
 	mdc    mdm.Client
+	actor  *machineActor
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -117,8 +118,10 @@ type Allocator func(Allocation) error
 func NewMachine(
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
+	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client) *restful.WebService {
+
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
@@ -127,6 +130,12 @@ func NewMachine(
 		ipamer:    ipamer,
 		mdc:       mdc,
 	}
+	var err error
+	r.actor, err = newMachineActor(zapup.MustRootLogger(), ep, pub, ds, ipamer)
+	if err != nil {
+		panic(err)
+	}
+
 	return r.webService()
 }
 
@@ -1500,7 +1509,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 	logger := utils.Logger(request).Sugar()
 
-	err = freeMachine(r.ds, r, r.ipamer, m, logger)
+	err = r.actor.freeMachine(m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1510,89 +1519,6 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("Failed to send response", zap.Error(err))
 		return
 	}
-}
-
-func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, m *metal.Machine, logger *zap.SugaredLogger) error {
-	if m.State.Value == metal.LockedState {
-		return fmt.Errorf("machine is locked")
-	}
-
-	// free machine should be callable even many times in a row (such that events can be fired multiple times if necessary)
-
-	_, err := setVrfAtSwitches(ds, m, "")
-	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
-	if err != nil {
-		return err
-	}
-
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
-	if err != nil {
-		return err
-	}
-
-	if m.Allocation != nil {
-		// if the machine is allocated, we free it in our database
-		err = releaseMachineNetworks(ds, ipamer, m)
-		if err != nil {
-			// TODO: Trigger network garbage collection
-			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
-			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			logger.Errorw("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
-		}
-	}
-
-	old := *m
-	m.Allocation = nil
-	m.Tags = nil
-	err = ds.UpdateMachine(&old, m)
-	if err != nil {
-		return err
-	}
-	logger.Infow("freed machine", "machineID", m.ID)
-
-	return nil
-}
-
-func releaseMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, machine *metal.Machine) error {
-	for _, machineNetwork := range machine.Allocation.MachineNetworks {
-		for _, ipString := range machineNetwork.IPs {
-			ip, err := ds.FindIPByID(ipString)
-			if err != nil {
-				return err
-			}
-			// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip
-			if !ip.HasMachineId(machine.GetID()) {
-				continue
-			}
-			// disassociate machine from ip
-			new := *ip
-			new.RemoveMachineId(machine.GetID())
-			err = ds.UpdateIP(ip, &new)
-			if err != nil {
-				return err
-			}
-			// static ips should not be released automatically
-			if ip.Type == metal.Static {
-				continue
-			}
-			// ips that are associated to other machines will should not be released automatically
-			if len(new.GetMachineIds()) > 0 {
-				continue
-			}
-			// release and delete
-			err = ipamer.ReleaseIP(*ip)
-			if err != nil {
-				return err
-			}
-			err = ds.DeleteIP(ip)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
@@ -1776,10 +1702,15 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	act, err := newMachineActor(logger.Desugar(), ep, publisher, ds, ipamer)
 	if err != nil {
 		return err
 	}
@@ -1809,7 +1740,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipam
 		}
 
 		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = freeMachine(ds, publisher, ipamer, &m, logger)
+		err = act.freeMachine(&m)
 		if err != nil {
 			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 		}
@@ -2070,4 +2001,127 @@ func (s machineAllocationSpec) noautoNetworkN() int {
 
 func (s machineAllocationSpec) autoNetworkN() int {
 	return len(s.Networks) - s.noautoNetworkN()
+}
+
+type machineActor struct {
+	*zap.SugaredLogger
+	ipam.IPAMer
+	*datastore.RethinkStore
+	bus.Publisher
+	machineReleaser *bus.Function
+	ipReleaser      *bus.Function
+}
+
+func newMachineActor(l *zap.Logger, ep *bus.Endpoints, pub bus.Publisher, ds *datastore.RethinkStore, ip ipam.IPAMer) (*machineActor, error) {
+	actor := &machineActor{
+		SugaredLogger: l.Sugar(),
+		IPAMer:        ip,
+		RethinkStore:  ds,
+		Publisher:     pub,
+	}
+	var err error
+	actor.machineReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create async bus function for machine releasing: %w", err)
+	}
+	actor.ipReleaser, err = ep.Function("releaseIP", actor.releaseIP)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create bus function for ip releasing: %w", err)
+	}
+	return actor, nil
+}
+
+func (a *machineActor) freeMachine(m *metal.Machine) error {
+	if m.State.Value == metal.LockedState {
+		return fmt.Errorf("machine is locked")
+	}
+
+	// free machine should be callable even many times in a row (such that events can be fired multiple times if necessary)
+
+	_, err := setVrfAtSwitches(a.RethinkStore, m, "")
+	a.Infow("set VRF at switch", "machineID", m.ID, "error", err)
+	if err != nil {
+		return err
+	}
+
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
+	err = a.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
+	a.Infow("published machine delete event", "machineID", m.ID, "error", err)
+	if err != nil {
+		return err
+	}
+
+	// call the releaser async
+	err = a.machineReleaser.Must(m)
+	if err != nil {
+		a.Error("cannot call async machine cleanup", zap.Error(err))
+	}
+
+	old := *m
+	m.Allocation = nil
+	m.Tags = nil
+	err = a.UpdateMachine(&old, m)
+	if err != nil {
+		return err
+	}
+	a.Infow("freed machine", "machineID", m.ID)
+
+	return nil
+}
+
+func (a *machineActor) releaseMachineNetworks(machine *metal.Machine) error {
+	if machine.Allocation == nil {
+		return nil
+	}
+	for _, machineNetwork := range machine.Allocation.MachineNetworks {
+		for _, ipString := range machineNetwork.IPs {
+			ip, err := a.FindIPByID(ipString)
+			if err != nil {
+				return err
+			}
+			// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip
+			if !ip.HasMachineId(machine.GetID()) {
+				continue
+			}
+			// disassociate machine from ip
+			new := *ip
+			new.RemoveMachineId(machine.GetID())
+			err = a.UpdateIP(ip, &new)
+			if err != nil {
+				return err
+			}
+			// static ips should not be released automatically
+			if ip.Type == metal.Static {
+				continue
+			}
+			// ips that are associated to other machines will should not be released automatically
+			if len(new.GetMachineIds()) > 0 {
+				continue
+			}
+			// at this point the machine is removed from the IP, so the release of the
+			// IP must not fail, because this loop will never come to this point again because the
+			// begin of this loop checks if the IP contains the machine.
+			// if any of the two branches fail .... well then ("houston we have a problem") we
+			// do not report the error to the caller, because this whole function cannot be
+			// re-do'ed.
+			if err := a.ipReleaser.Must(ip); err != nil {
+				// what should we do here? this error shows a problem with the nsq-bus system
+				a.Error("cannot call ip releaser", zap.Error(err))
+			}
+		}
+	}
+	return nil
+}
+
+func (a *machineActor) releaseIP(ip *metal.IP) error {
+	// release and delete
+	err := a.ReleaseIP(*ip)
+	if err != nil {
+		return fmt.Errorf("cannot release IP %q: %w", ip.IPAddress, err)
+	}
+	err = a.DeleteIP(ip)
+	if err != nil {
+		return fmt.Errorf("cannot delete IP %q: %w", ip.IPAddress, err)
+	}
+	return nil
 }
