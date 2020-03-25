@@ -91,6 +91,32 @@
         "cidrs"
       ]
     },
+    "v1.BootInfo": {
+      "properties": {
+        "bootloaderid": {
+          "description": "the bootloader ID",
+          "type": "string"
+        },
+        "cmdline": {
+          "description": "the cmdline",
+          "type": "string"
+        },
+        "initrd": {
+          "description": "the initrd image",
+          "type": "string"
+        },
+        "kernel": {
+          "description": "the kernel",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bootloaderid",
+        "cmdline",
+        "initrd",
+        "kernel"
+      ]
+    },
     "v1.ChassisIdentifyLEDState": {
       "properties": {
         "description": {
@@ -886,6 +912,10 @@
     },
     "v1.MachineAllocation": {
       "properties": {
+        "boot_info": {
+          "$ref": "#/definitions/v1.BootInfo",
+          "description": "the boot info"
+        },
         "console_password": {
           "description": "the console password which was generated while provisioning",
           "type": "string"
@@ -924,8 +954,8 @@
           "type": "string"
         },
         "reinstall": {
-          "$ref": "#/definitions/v1.MachineSetup",
-          "description": "indicates whether to reinstall the machine (if not nil)"
+          "description": "indicates whether to reinstall the machine",
+          "type": "boolean"
         },
         "ssh_pub_keys": {
           "description": "the public ssh keys to access the machine with",
@@ -944,6 +974,7 @@
         }
       },
       "required": [
+        "boot_info",
         "created",
         "hostname",
         "name",
@@ -1950,47 +1981,6 @@
         "size",
         "state",
         "tags"
-      ]
-    },
-    "v1.MachineSetup": {
-      "properties": {
-        "bootloaderid": {
-          "description": "the bootloader ID",
-          "type": "string"
-        },
-        "cmdline": {
-          "description": "the cmdline",
-          "type": "string"
-        },
-        "initrd": {
-          "description": "the initrd image",
-          "type": "string"
-        },
-        "kernel": {
-          "description": "the kernel",
-          "type": "string"
-        },
-        "old_image_id": {
-          "description": "the ID of the already existing OS image",
-          "type": "string"
-        },
-        "os_partition": {
-          "description": "device name of disk partition that has the OS installed",
-          "type": "string"
-        },
-        "primary_disk": {
-          "description": "device name of the disk that contains the partition on which the OS is installed",
-          "type": "string"
-        }
-      },
-      "required": [
-        "bootloaderid",
-        "cmdline",
-        "initrd",
-        "kernel",
-        "old_image_id",
-        "os_partition",
-        "primary_disk"
       ]
     },
     "v1.MachineState": {

@@ -36,13 +36,11 @@ type MachineAllocation struct {
 	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
 	ConsolePassword *string          `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
 	Succeeded       bool             `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
-	MachineSetup    *MachineSetup    `json:"reinstall" description:"indicates whether to reinstall the machine (if not nil)"`
+	Reinstall       bool             `json:"reinstall" description:"indicates whether to reinstall the machine"`
+	BootInfo        *BootInfo        `json:"boot_info" description:"the boot info"`
 }
 
-type MachineSetup struct {
-	OldImageID   string `json:"old_image_id" description:"the ID of the already existing OS image"`
-	PrimaryDisk  string `json:"primary_disk" description:"device name of the disk that contains the partition on which the OS is installed"`
-	OSPartition  string `json:"os_partition" description:"device name of disk partition that has the OS installed"`
+type BootInfo struct {
 	Initrd       string `json:"initrd" description:"the initrd image"`
 	Cmdline      string `json:"cmdline" description:"the cmdline"`
 	Kernel       string `json:"kernel" description:"the kernel"`
@@ -436,22 +434,14 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Succeeded:       m.Allocation.Succeeded,
 		}
 
+		allocation.Reinstall = m.Allocation.Reinstall
 		if m.Allocation.Reinstall && m.Allocation.MachineSetup != nil {
-			allocation.MachineSetup = &MachineSetup{
-				OldImageID:   m.Allocation.ImageID,
-				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
-				OSPartition:  m.Allocation.MachineSetup.OSPartition,
+			allocation.BootInfo = &BootInfo{
 				Initrd:       m.Allocation.MachineSetup.Initrd,
 				Cmdline:      m.Allocation.MachineSetup.Cmdline,
 				Kernel:       m.Allocation.MachineSetup.Kernel,
 				BootloaderID: m.Allocation.MachineSetup.BootloaderID,
 			}
-			allocation.MachineSetup.PrimaryDisk = m.Allocation.MachineSetup.PrimaryDisk
-			allocation.MachineSetup.OSPartition = m.Allocation.MachineSetup.OSPartition
-			allocation.MachineSetup.Initrd = m.Allocation.MachineSetup.Initrd
-			allocation.MachineSetup.Cmdline = m.Allocation.MachineSetup.Cmdline
-			allocation.MachineSetup.Kernel = m.Allocation.MachineSetup.Kernel
-			allocation.MachineSetup.BootloaderID = m.Allocation.MachineSetup.BootloaderID
 		}
 	}
 
