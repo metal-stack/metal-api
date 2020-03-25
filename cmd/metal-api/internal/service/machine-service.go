@@ -1483,7 +1483,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		Kernel:       requestPayload.Kernel,
 		BootloaderID: requestPayload.BootloaderID,
 	}
-	m.Allocation.Reinstall = false // just for safety
+	m.Allocation.Reinstall = false
 
 	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1771,15 +1771,6 @@ func (r machineResource) machineAbortReinstall(machineID string) {
 	if err != nil {
 		log.Errorw("unable to find machine", "machineID", machineID, "error", err)
 		return
-	}
-
-	if m.Allocation != nil && m.Allocation.Reinstall {
-		old := *m
-		m.Allocation.Reinstall = false
-		err = r.ds.UpdateMachine(&old, m)
-		if err != nil {
-			log.Errorw("unable to find machine", "machineID", machineID, "error", err)
-		}
 	}
 
 	err = publishMachineCmd(log, m, r, metal.MachineAbortReinstall)
