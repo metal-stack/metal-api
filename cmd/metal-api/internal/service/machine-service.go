@@ -1535,7 +1535,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 // the machine if not yet allocated or not modifying any other allocation parameter than 'ImageID'
 // and 'Reinstall' set to true.
 // If the given image ID is nil, it deletes the machine instead.
-func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response, imageID string) {
+func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineReinstallRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1551,7 +1551,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 
 	currImageID := m.Allocation.ImageID
 
-	err = reinstallOrDeleteMachine(r.ds, r, r.ipamer, m, imageID, logger)
+	err = reinstallOrDeleteMachine(r.ds, r, r.ipamer, m, &requestPayload.ImageID, logger)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
