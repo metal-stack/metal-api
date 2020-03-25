@@ -41,10 +41,11 @@ type MachineAllocation struct {
 }
 
 type BootInfo struct {
-	Initrd       string `json:"initrd" description:"the initrd image"`
-	Cmdline      string `json:"cmdline" description:"the cmdline"`
-	Kernel       string `json:"kernel" description:"the kernel"`
-	BootloaderID string `json:"bootloaderid" description:"the bootloader ID"`
+	CurrentImageID string `json:"currentimageid" description:"the ID of the current image"`
+	Initrd         string `json:"initrd" description:"the initrd image"`
+	Cmdline        string `json:"cmdline" description:"the cmdline"`
+	Kernel         string `json:"kernel" description:"the kernel"`
+	BootloaderID   string `json:"bootloaderid" description:"the bootloader ID"`
 }
 
 type MachineNetwork struct {
@@ -437,10 +438,11 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		allocation.Reinstall = m.Allocation.Reinstall
 		if m.Allocation.Reinstall && m.Allocation.MachineSetup != nil {
 			allocation.BootInfo = &BootInfo{
-				Initrd:       m.Allocation.MachineSetup.Initrd,
-				Cmdline:      m.Allocation.MachineSetup.Cmdline,
-				Kernel:       m.Allocation.MachineSetup.Kernel,
-				BootloaderID: m.Allocation.MachineSetup.BootloaderID,
+				CurrentImageID: m.Allocation.ImageID,
+				Initrd:         m.Allocation.MachineSetup.Initrd,
+				Cmdline:        m.Allocation.MachineSetup.Cmdline,
+				Kernel:         m.Allocation.MachineSetup.Kernel,
+				BootloaderID:   m.Allocation.MachineSetup.BootloaderID,
 			}
 		}
 	}

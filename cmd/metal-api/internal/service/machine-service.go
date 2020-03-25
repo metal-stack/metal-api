@@ -1543,6 +1543,10 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 		return
 	}
 
+	if m.Allocation != nil {
+		m.Allocation.ImageID = *imageID
+	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
@@ -1592,7 +1596,6 @@ func reinstallOrDeleteMachine(ds *datastore.RethinkStore, publisher bus.Publishe
 
 		action = "freed machine"
 	} else {
-		m.Allocation.ImageID = *imageID
 		m.Allocation.Reinstall = true
 
 		action = "reinstalled machine"

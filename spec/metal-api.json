@@ -101,6 +101,10 @@
           "description": "the cmdline",
           "type": "string"
         },
+        "currentimageid": {
+          "description": "the ID of the current image",
+          "type": "string"
+        },
         "initrd": {
           "description": "the initrd image",
           "type": "string"
@@ -113,6 +117,7 @@
       "required": [
         "bootloaderid",
         "cmdline",
+        "currentimageid",
         "initrd",
         "kernel"
       ]
