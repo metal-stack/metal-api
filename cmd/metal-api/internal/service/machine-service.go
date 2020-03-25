@@ -1562,7 +1562,7 @@ func reinstallOrDeleteMachine(ds *datastore.RethinkStore, publisher bus.Publishe
 		return err
 	}
 
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID}
 	err = publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
 	if err != nil {
@@ -1971,9 +1971,9 @@ func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
-			Command: cmd,
-			Params:  pp,
-			Target:  m,
+			Command:         cmd,
+			Params:          pp,
+			TargetMachineID: m.ID,
 		},
 	}
 

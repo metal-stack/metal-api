@@ -285,15 +285,15 @@ const (
 // is an optional array of strings which are implementation specific
 // and dependent of the command.
 type MachineExecCommand struct {
-	Target  *Machine       `json:"target,omitempty"`
-	Command MachineCommand `json:"cmd,omitempty"`
-	Params  []string       `json:"params,omitempty"`
+	TargetMachineID string         `json:"target,omitempty"`
+	Command         MachineCommand `json:"cmd,omitempty"`
+	Params          []string       `json:"params,omitempty"`
 }
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
 type MachineEvent struct {
-	Type EventType           `json:"type,omitempty"`
-	Old  *Machine            `json:"old,omitempty"`
-	New  *Machine            `json:"new,omitempty"`
-	Cmd  *MachineExecCommand `json:"cmd,omitempty"`
+	Type         EventType           `json:"type,omitempty"`
+	OldMachineID string              `json:"old,omitempty"`
+	NewMachineID string              `json:"new,omitempty"`
+	Cmd          *MachineExecCommand `json:"cmd,omitempty"`
 }
