@@ -506,16 +506,6 @@ func (r machineResource) wait(ctx context.Context, id string, logger *zap.Sugare
 	return allocator(a)
 }
 
-func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineReinstallRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	r.reinstallOrDeleteMachine(request, response, &requestPayload.ImageID)
-}
-
 func (r machineResource) setMachineState(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineState
 	err := request.ReadEntity(&requestPayload)
@@ -1523,14 +1513,6 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 }
 
 func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
-	r.reinstallOrDeleteMachine(request, response, nil)
-}
-
-// reinstallOrDeleteMachine (re)installs the requested machine with given image by either allocating
-// the machine if not yet allocated or not modifying any other allocation parameter than 'ImageID'
-// and 'Reinstall' set to true.
-// If the given image ID is nil, it deletes the machine instead.
-func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, response *restful.Response, imageID *string) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
@@ -1538,13 +1520,44 @@ func (r machineResource) reinstallOrDeleteMachine(request *restful.Request, resp
 	}
 	logger := utils.Logger(request).Sugar()
 
+	err = reinstallOrDeleteMachine(r.ds, r, r.ipamer, m, nil, logger)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
+}
+
+// reinstallMachine reinstalls the requested machine with given image by either allocating
+// the machine if not yet allocated or not modifying any other allocation parameter than 'ImageID'
+// and 'Reinstall' set to true.
+// If the given image ID is nil, it deletes the machine instead.
+func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response, imageID string) {
+	var requestPayload v1.MachineReinstallRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if err != nil {
+		return
+	}
+	logger := utils.Logger(request).Sugar()
+
+	currImageID := m.Allocation.ImageID
+
 	err = reinstallOrDeleteMachine(r.ds, r, r.ipamer, m, imageID, logger)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	if m.Allocation != nil {
-		m.Allocation.ImageID = *imageID
+		m.Allocation.ImageID = currImageID
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
@@ -1597,8 +1610,8 @@ func reinstallOrDeleteMachine(ds *datastore.RethinkStore, publisher bus.Publishe
 		action = "freed machine"
 	} else {
 		m.Allocation.Reinstall = true
-
-		action = "reinstalled machine"
+		m.Allocation.ImageID = *imageID
+		action = "marked machine to be reinstalled"
 	}
 
 	err = ds.UpdateMachine(&old, m)
