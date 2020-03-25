@@ -336,7 +336,7 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 			}
 
 			available := false
-			if m.State.Value != string(metal.LockedState) && len(m.RecentProvisioningEvents.Events) > 0 {
+			if m.State.Value != string(metal.ReservedState) && len(m.RecentProvisioningEvents.Events) > 0 {
 				events := m.RecentProvisioningEvents.Events
 				if metal.ProvisioningEventWaiting.Is(events[0].Event) && metal.ProvisioningEventAlive.Is(m.Liveliness) {
 					available = true
