@@ -1601,7 +1601,6 @@ func reinstallOrDeleteMachine(ds *datastore.RethinkStore, publisher bus.Publishe
 			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
 			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
 			logger.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
-			return err
 		}
 
 		m.Allocation = nil
