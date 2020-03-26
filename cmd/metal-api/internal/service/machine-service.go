@@ -2098,13 +2098,14 @@ func (a *machineActor) releaseMachineNetworks(machine *metal.Machine) error {
 			if len(new.GetMachineIds()) > 0 {
 				continue
 			}
+
 			// at this point the machine is removed from the IP, so the release of the
 			// IP must not fail, because this loop will never come to this point again because the
 			// begin of this loop checks if the IP contains the machine.
-			// if any of the two branches fail .... well then ("houston we have a problem") we
-			// do not report the error to the caller, because this whole function cannot be
-			// re-do'ed.
-			if err := a.ipReleaser.Must(ip); err != nil {
+			// so we fork a new job to delete the IP. if this fails .... well then ("houston we have a problem")
+			// we do not report the error to the caller, because this whole function cannot be re-do'ed.
+			a.Infow("async release IP", "ip", *ip)
+			if err := a.ipReleaser.Must(*ip); err != nil {
 				// what should we do here? this error shows a problem with the nsq-bus system
 				a.Error("cannot call ip releaser", zap.Error(err))
 			}
@@ -2113,15 +2114,39 @@ func (a *machineActor) releaseMachineNetworks(machine *metal.Machine) error {
 	return nil
 }
 
-func (a *machineActor) releaseIP(ip *metal.IP) error {
-	// release and delete
-	err := a.ReleaseIP(*ip)
-	if err != nil {
-		return fmt.Errorf("cannot release IP %q: %w", ip.IPAddress, err)
+func (a *machineActor) releaseIP(ip metal.IP) error {
+	a.Infow("release IP", "ip", ip)
+
+	dbip, err := a.FindIPByID(ip.IPAddress)
+	if err != nil && !metal.IsNotFound(err) {
+		// some unknown error, we will let nsq resend the command
+		a.Errorw("cannot find IP", "ip", ip, "error", err)
+		return err
 	}
-	err = a.DeleteIP(ip)
+
+	if err == nil {
+		// if someone calls freeMachine for the same machine multiple times at the same
+		// moment it can happen that we already deleted and released the IP in the ipam
+		// so make sure that this IP is not already connected to a new machine
+		if len(dbip.GetMachineIds()) > 0 {
+			a.Infow("do not delete IP, it is connected to a machine", "ip", ip)
+			return nil
+		}
+
+		// the ip is in our database and is not connected to a machine so cleanup
+		err = a.DeleteIP(&ip)
+		if err != nil {
+			a.Errorw("cannot delete IP in datastore", "ip", ip, "error", err)
+			return err
+		}
+	}
+
+	// now the IP should not exist any more in our datastore
+	// so cleanup the ipam
+
+	err = a.ReleaseIP(ip)
 	if err != nil {
-		return fmt.Errorf("cannot delete IP %q: %w", ip.IPAddress, err)
+		return fmt.Errorf("cannot release IP %q: %w", ip, err)
 	}
 	return nil
 }
