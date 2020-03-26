@@ -1515,20 +1515,55 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
-	if err != nil {
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 	logger := utils.Logger(request).Sugar()
 
-	err = reinstallOrDeleteMachine(r.ds, r, r.ipamer, m, nil, logger)
+	err = freeMachine(r.ds, r, r.ipamer, m, logger)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
+}
+
+func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, m *metal.Machine, logger *zap.SugaredLogger) error {
+	err := deleteVRFSwitches(ds, m, logger)
+	if err != nil {
+		return err
+	}
+	err = publishDeleteEvent(publisher, m, logger)
+	if err != nil {
+		return err
+	}
+
+	// if the machine is allocated, we free it in our database
+	if m.Allocation != nil {
+		err = releaseMachineNetworks(ds, ipamer, m)
+		if err != nil {
+			// TODO: Trigger network garbage collection
+			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
+			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
+			logger.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+		}
+
+		old := *m
+
+		m.Allocation = nil
+		m.Tags = nil
+
+		err = ds.UpdateMachine(&old, m)
+		if err != nil {
+			return err
+		}
+		logger.Infow("freed machine", "machineID", m.ID)
+	}
+
+	return nil
 }
 
 // reinstallMachine reinstalls the requested machine with given image by either allocating
@@ -1544,20 +1579,44 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
-	if err != nil {
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
 	logger := utils.Logger(request).Sugar()
 
-	currImageID := m.Allocation.ImageID
+	err = deleteVRFSwitches(r.ds, m, logger)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 
-	err = reinstallOrDeleteMachine(r.ds, r, r.ipamer, m, &requestPayload.ImageID, logger)
+	err = publishDeleteEvent(r, m, logger)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	if m.Allocation != nil {
+		old := *m
+
+		m.Allocation.Reinstall = true
+
+		currImageID := m.Allocation.ImageID
+		m.Allocation.ImageID = requestPayload.ImageID
+
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
+
+		// this is needed since we need makeMachineResponse to set this as CurrentImageID in BootInfo.
+		// note that the new image ID to be installed is already stored in DS
 		m.Allocation.ImageID = currImageID
+	}
+
+	err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
+	if err != nil {
+		logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
@@ -1566,67 +1625,20 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 	}
 }
 
-func reinstallOrDeleteMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, m *metal.Machine, imageID *string, logger *zap.SugaredLogger) error {
+func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.SugaredLogger) error {
 	if m.State.Value == metal.LockedState {
 		return fmt.Errorf("machine is locked")
 	}
 
-	// reinstallOrDeleteMachine should be callable even many times in a row (such that events can be fired multiple times if necessary)
-
 	_, err := setVrfAtSwitches(ds, m, "")
 	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
-	if err != nil {
-		return err
-	}
+	return err
+}
 
+func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.SugaredLogger) error {
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID}
-	err = publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
+	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
-	if err != nil {
-		return err
-	}
-
-	if m.Allocation == nil {
-		return nil
-	}
-
-	old := *m
-
-	var action string
-	if imageID == nil {
-		// if the machine is allocated, we free it in our database
-		err = releaseMachineNetworks(ds, ipamer, m)
-		if err != nil {
-			// TODO: Trigger network garbage collection
-			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
-			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			logger.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
-		}
-
-		m.Allocation = nil
-		m.Tags = nil
-
-		action = "freed machine"
-	} else {
-		m.Allocation.Reinstall = true
-		m.Allocation.ImageID = *imageID
-		action = "marked machine to be reinstalled"
-	}
-
-	err = ds.UpdateMachine(&old, m)
-	if err != nil {
-		return err
-	}
-
-	logger.Infow(action, "machineID", m.ID)
-
-	if imageID != nil {
-		err = publishMachineCmd(logger, m, publisher, metal.MachineReinstall)
-		if err != nil {
-			logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
-		}
-	}
-
 	return err
 }
 
@@ -1902,7 +1914,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipam
 		}
 
 		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = reinstallOrDeleteMachine(ds, publisher, ipamer, &m, nil, logger)
+		err = freeMachine(ds, publisher, ipamer, &m, logger)
 		if err != nil {
 			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 		}
