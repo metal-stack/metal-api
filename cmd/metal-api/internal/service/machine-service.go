@@ -1596,39 +1596,41 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 
 	logger := utils.Logger(request).Sugar()
 
+	var resp *v1.MachineResponse
 	if m.Allocation != nil {
 		old := *m
 
 		m.Allocation.Reinstall = true
 		m.Allocation.ImageID = requestPayload.ImageID
 
-		err = r.ds.UpdateMachine(&old, m)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
+		resp = makeMachineResponse(m, r.ds, logger)
+		if resp.Allocation.Image != nil {
+			err = r.ds.UpdateMachine(&old, m)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+			logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
 
-		err = deleteVRFSwitches(r.ds, m, logger)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+			err = deleteVRFSwitches(r.ds, m, logger)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
 
-		err = publishDeleteEvent(r, m, logger)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+			err = publishDeleteEvent(r, m, logger)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
 
-		err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
-		if err != nil {
-			logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
+			err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
+			if err != nil {
+				logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
+			}
 		}
-
-		// this is needed since we need makeMachineResponse to set this as CurrentImageID in BootInfo.
-		// note that the new image ID to be installed is already stored in DS
-		m.Allocation.ImageID = old.Allocation.ImageID
+	} else {
+		resp = makeMachineResponse(m, r.ds, logger)
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
