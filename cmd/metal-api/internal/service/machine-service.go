@@ -1477,6 +1477,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
 	m.Allocation.MachineSetup = &metal.MachineSetup{
+		ImageID:      m.Allocation.ImageID,
 		PrimaryDisk:  requestPayload.PrimaryDisk,
 		OSPartition:  requestPayload.OSPartition,
 		Initrd:       requestPayload.Initrd,
@@ -1666,7 +1667,7 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 
 		if m.Allocation.MachineSetup != nil {
 			bootInfo = &v1.BootInfo{
-				ImageID:      m.Allocation.ImageID,
+				ImageID:      m.Allocation.MachineSetup.ImageID,
 				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
 				OSPartition:  m.Allocation.MachineSetup.OSPartition,
 				Initrd:       m.Allocation.MachineSetup.Initrd,

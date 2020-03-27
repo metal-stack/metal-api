@@ -129,6 +129,7 @@ type MachineAllocation struct {
 
 // A MachineSetup stores the data used for machine reinstallations.
 type MachineSetup struct {
+	ImageID      string `rethinkdb:"imageid" json:"imageid"`
 	PrimaryDisk  string `rethinkdb:"primarydisk" json:"primarydisk"`
 	OSPartition  string `rethinkdb:"ospartition" json:"ospartition"`
 	Initrd       string `rethinkdb:"initrd" json:"initrd"`

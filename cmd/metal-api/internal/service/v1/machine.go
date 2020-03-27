@@ -444,7 +444,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		allocation.Reinstall = m.Allocation.Reinstall
 		if m.Allocation.MachineSetup != nil {
 			allocation.BootInfo = &BootInfo{
-				ImageID:      m.Allocation.ImageID,
+				ImageID:      m.Allocation.MachineSetup.ImageID,
 				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
 				OSPartition:  m.Allocation.MachineSetup.OSPartition,
 				Initrd:       m.Allocation.MachineSetup.Initrd,
