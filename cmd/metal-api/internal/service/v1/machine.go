@@ -36,6 +36,18 @@ type MachineAllocation struct {
 	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
 	ConsolePassword *string          `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
 	Succeeded       bool             `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
+	Reinstall       bool             `json:"reinstall" description:"indicates whether to reinstall the machine"`
+	BootInfo        *BootInfo        `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
+}
+
+type BootInfo struct {
+	ImageID      string `json:"image_id" description:"the ID of the current image"`
+	PrimaryDisk  string `json:"primary_disk" description:"the primary disk"`
+	OSPartition  string `json:"os_partition" description:"the partition containing the OS"`
+	Initrd       string `json:"initrd" description:"the initrd image"`
+	Cmdline      string `json:"cmdline" description:"the cmdline"`
+	Kernel       string `json:"kernel" description:"the kernel"`
+	BootloaderID string `json:"bootloaderid" description:"the bootloader ID"`
 }
 
 type MachineNetwork struct {
@@ -77,8 +89,10 @@ type ChassisIdentifyLEDState struct {
 }
 
 type MachineBlockDevice struct {
-	Name string `json:"name" description:"the name of this block device"`
-	Size uint64 `json:"size" description:"the size of this block device"`
+	Name       string                `json:"name" description:"the name of this block device"`
+	Size       uint64                `json:"size" description:"the size of this block device"`
+	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk"`
+	Primary    bool                  `json:"primary" description:"whether this disk has the OS installed"`
 }
 
 type MachineRecentProvisioningEvents struct {
@@ -166,8 +180,29 @@ type MachineAllocationNetwork struct {
 	AutoAcquireIP *bool  `json:"autoacquire" description:"will automatically acquire an ip in this network if set to true, default is true"`
 }
 
+type MachineDiskPartitions []MachineDiskPartition
+
+type MachineDiskPartition struct {
+	Label        string            `json:"label" description:"the partition label"`
+	Device       string            `json:"device" description:"the partition device name, e.g. sda1"`
+	Number       uint              `json:"number" description:"the partition number"`
+	MountPoint   string            `json:"mountpoint" description:"the partition mount point"`
+	MountOptions []string          `json:"mountoptions" description:"the partition mount options"`
+	Size         int64             `json:"size" description:"the partition size"`
+	Filesystem   string            `json:"filesystem" description:"the partition filesystem"`
+	GPTType      string            `json:"gpttyoe" description:"the partition GPT type"`
+	GPTGuid      string            `json:"gptguid" description:"the partition GPT guid"`
+	Properties   map[string]string `json:"properties" description:"the partition properties"`
+}
+
 type MachineFinalizeAllocationRequest struct {
 	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
+	PrimaryDisk     string `json:"primarydisk" description:"the device name of the primary disk"`
+	OSPartition     string `json:"ospartition" description:"the partition that has the OS installed"`
+	Initrd          string `json:"initrd" description:"the initrd image"`
+	Cmdline         string `json:"cmdline" description:"the cmdline"`
+	Kernel          string `json:"kernel" description:"the kernel"`
+	BootloaderID    string `json:"bootloaderid" description:"the bootloader ID"`
 }
 
 type MachineFindRequest struct {
@@ -199,6 +234,15 @@ type MachineIpmiReportResponse struct {
 	Created Leases `json:"created" description:"the leases that triggered a creation of a machine entity"`
 }
 
+type MachineReinstallRequest struct {
+	Common
+	ImageID string `json:"imageid" description:"the image id to be installed"`
+}
+
+type MachineAbortReinstallRequest struct {
+	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
+}
+
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 	nics := metal.Nics{}
 	for i := range r.Nics {
@@ -218,10 +262,25 @@ func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 		nics = append(nics, nic)
 	}
 	var disks []metal.BlockDevice
-	for i := range r.Disks {
+	for _, d := range r.Disks {
 		disk := metal.BlockDevice{
-			Name: r.Disks[i].Name,
-			Size: r.Disks[i].Size,
+			Name:    d.Name,
+			Size:    d.Size,
+			Primary: d.Primary,
+		}
+		for _, p := range d.Partitions {
+			disk.Partitions = append(disk.Partitions, &metal.DiskPartition{
+				Label:        p.Label,
+				Device:       p.Device,
+				Number:       p.Number,
+				MountPoint:   p.MountPoint,
+				MountOptions: p.MountOptions,
+				Size:         p.Size,
+				Filesystem:   p.Filesystem,
+				GPTType:      p.GPTType,
+				GPTGuid:      p.GPTGuid,
+				Properties:   p.Properties,
+			})
 		}
 		disks = append(disks, disk)
 	}
@@ -344,20 +403,19 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 
 	var allocation *MachineAllocation
 	if m.Allocation != nil {
-		networks := []MachineNetwork{}
-		for i := range m.Allocation.MachineNetworks {
-			ips := []string{}
-			ips = append(ips, m.Allocation.MachineNetworks[i].IPs...)
+		var networks []MachineNetwork
+		for _, nw := range m.Allocation.MachineNetworks {
+			ips := append([]string{}, nw.IPs...)
 			network := MachineNetwork{
-				NetworkID:           m.Allocation.MachineNetworks[i].NetworkID,
+				NetworkID:           nw.NetworkID,
 				IPs:                 ips,
-				Vrf:                 m.Allocation.MachineNetworks[i].Vrf,
-				ASN:                 m.Allocation.MachineNetworks[i].ASN,
-				Private:             m.Allocation.MachineNetworks[i].Private,
-				Nat:                 m.Allocation.MachineNetworks[i].Nat,
-				Underlay:            m.Allocation.MachineNetworks[i].Underlay,
-				DestinationPrefixes: m.Allocation.MachineNetworks[i].DestinationPrefixes,
-				Prefixes:            m.Allocation.MachineNetworks[i].Prefixes,
+				Vrf:                 nw.Vrf,
+				ASN:                 nw.ASN,
+				Private:             nw.Private,
+				Nat:                 nw.Nat,
+				Underlay:            nw.Underlay,
+				DestinationPrefixes: nw.DestinationPrefixes,
+				Prefixes:            nw.Prefixes,
 			}
 			networks = append(networks, network)
 		}
@@ -379,6 +437,19 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			ConsolePassword: consolePassword,
 			MachineNetworks: networks,
 			Succeeded:       m.Allocation.Succeeded,
+		}
+
+		allocation.Reinstall = m.Allocation.Reinstall
+		if m.Allocation.MachineSetup != nil {
+			allocation.BootInfo = &BootInfo{
+				ImageID:      m.Allocation.MachineSetup.ImageID,
+				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
+				OSPartition:  m.Allocation.MachineSetup.OSPartition,
+				Initrd:       m.Allocation.MachineSetup.Initrd,
+				Cmdline:      m.Allocation.MachineSetup.Cmdline,
+				Kernel:       m.Allocation.MachineSetup.Kernel,
+				BootloaderID: m.Allocation.MachineSetup.BootloaderID,
+			}
 		}
 	}
 

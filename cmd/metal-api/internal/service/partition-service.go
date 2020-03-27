@@ -320,7 +320,6 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 
 	partitionCapacities := []v1.PartitionCapacity{}
 	for _, p := range ps {
-
 		capacities := make(map[string]*v1.ServerCapacity)
 		for _, m := range machines {
 			if m.Partition == nil {
@@ -359,9 +358,11 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 
 			cap.Total++
 		}
-
 		sc := []v1.ServerCapacity{}
 		for i := range capacities {
+			if capacities[i] == nil {
+				continue
+			}
 			sc = append(sc, *capacities[i])
 		}
 

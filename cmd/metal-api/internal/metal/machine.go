@@ -112,17 +112,30 @@ func (m *Machine) IsFirewall(iMap ImageMap) bool {
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
-	Created         time.Time         `rethinkdb:"created"`
-	Name            string            `rethinkdb:"name"`
-	Description     string            `rethinkdb:"description"`
-	Project         string            `rethinkdb:"project"`
-	ImageID         string            `rethinkdb:"imageid"`
-	MachineNetworks []*MachineNetwork `rethinkdb:"networks"`
-	Hostname        string            `rethinkdb:"hostname"`
-	SSHPubKeys      []string          `rethinkdb:"sshPubKeys"`
-	UserData        string            `rethinkdb:"userdata"`
-	ConsolePassword string            `rethinkdb:"console_password"`
-	Succeeded       bool              `rethinkdb:"succeeded"`
+	Created         time.Time         `rethinkdb:"created" json:"created"`
+	Name            string            `rethinkdb:"name" json:"name"`
+	Description     string            `rethinkdb:"description" json:"description"`
+	Project         string            `rethinkdb:"project" json:"project"`
+	ImageID         string            `rethinkdb:"imageid" json:"imageid"`
+	MachineNetworks []*MachineNetwork `rethinkdb:"networks" json:"networks"`
+	Hostname        string            `rethinkdb:"hostname" json:"hostname"`
+	SSHPubKeys      []string          `rethinkdb:"sshPubKeys" json:"sshPubKeys"`
+	UserData        string            `rethinkdb:"userdata" json:"userdata"`
+	ConsolePassword string            `rethinkdb:"console_password" json:"console_password"`
+	Succeeded       bool              `rethinkdb:"succeeded" json:"succeeded"`
+	Reinstall       bool              `rethinkdb:"reinstall" json:"reinstall"`
+	MachineSetup    *MachineSetup     `rethinkdb:"setup" json:"setup"`
+}
+
+// A MachineSetup stores the data used for machine reinstallations.
+type MachineSetup struct {
+	ImageID      string `rethinkdb:"imageid" json:"imageid"`
+	PrimaryDisk  string `rethinkdb:"primarydisk" json:"primarydisk"`
+	OSPartition  string `rethinkdb:"ospartition" json:"ospartition"`
+	Initrd       string `rethinkdb:"initrd" json:"initrd"`
+	Cmdline      string `rethinkdb:"cmdline" json:"cmdline"`
+	Kernel       string `rethinkdb:"kernel" json:"kernel"`
+	BootloaderID string `rethinkdb:"bootloaderid" json:"bootloaderid"`
 }
 
 // ByProjectID creates a map of machines with the project id as the index.
@@ -190,8 +203,24 @@ func (hw *MachineHardware) ReadableSpec() string {
 
 // BlockDevice information.
 type BlockDevice struct {
-	Name string `rethinkdb:"name"`
-	Size uint64 `rethinkdb:"size"`
+	Name       string           `rethinkdb:"name" json:"name"`
+	Size       uint64           `rethinkdb:"size" json:"size"`
+	Partitions []*DiskPartition `rethinkdb:"partitions" json:"partitions"`
+	Primary    bool             `rethinkdb:"primary" json:"primary"`
+}
+
+// DiskPartition defines a disk partition
+type DiskPartition struct {
+	Label        string            `rethinkdb:"label" json:"label"`
+	Device       string            `rethinkdb:"device" json:"device"`
+	Number       uint              `rethinkdb:"number" json:"number"`
+	MountPoint   string            `rethinkdb:"mountpoint" json:"mountpoint"`
+	MountOptions []string          `rethinkdb:"mountoptions" json:"mountoptions"`
+	Size         int64             `rethinkdb:"size" json:"size"`
+	Filesystem   string            `rethinkdb:"filesystem" json:"filesystem"`
+	GPTType      string            `rethinkdb:"gpttyoe" json:"gpttyoe"`
+	GPTGuid      string            `rethinkdb:"gptguid" json:"gptguid"`
+	Properties   map[string]string `rethinkdb:"properties" json:"properties"`
 }
 
 // Fru (Field Replaceable Unit) data
@@ -244,6 +273,7 @@ const (
 	MachineOffCmd            MachineCommand = "OFF"
 	MachineResetCmd          MachineCommand = "RESET"
 	MachineBiosCmd           MachineCommand = "BIOS"
+	MachineReinstall         MachineCommand = "REINSTALL"
 	ChassisIdentifyLEDOnCmd  MachineCommand = "LED-ON"
 	ChassisIdentifyLEDOffCmd MachineCommand = "LED-OFF"
 )
