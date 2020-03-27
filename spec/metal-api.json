@@ -852,31 +852,12 @@
     },
     "v1.MachineAbortReinstallRequest": {
       "properties": {
-        "boot_info": {
-          "$ref": "#/definitions/v1.BootInfo",
-          "description": "information about the previous boot setup of the machine"
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        },
         "primary_disk_wiped": {
           "description": "indicates whether the primary disk is already wiped",
           "type": "boolean"
         }
       },
       "required": [
-        "boot_info",
-        "id",
         "primary_disk_wiped"
       ]
     },

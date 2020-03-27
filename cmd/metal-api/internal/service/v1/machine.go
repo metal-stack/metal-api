@@ -241,9 +241,7 @@ type MachineReinstallRequest struct {
 }
 
 type MachineAbortReinstallRequest struct {
-	Common
-	PrimaryDiskWiped bool     `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
-	BootInfo         BootInfo `json:"boot_info" description:"information about the previous boot setup of the machine"`
+	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
 }
 
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
