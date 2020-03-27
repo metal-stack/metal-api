@@ -1596,22 +1596,10 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 
 	logger := utils.Logger(request).Sugar()
 
-	err = deleteVRFSwitches(r.ds, m, logger)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = publishDeleteEvent(r, m, logger)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	if m.Allocation != nil {
 		old := *m
 
 		m.Allocation.Reinstall = true
-
-		currImageID := m.Allocation.ImageID
 		m.Allocation.ImageID = requestPayload.ImageID
 
 		err = r.ds.UpdateMachine(&old, m)
@@ -1620,14 +1608,24 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		}
 		logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
 
+		err = deleteVRFSwitches(r.ds, m, logger)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+
+		err = publishDeleteEvent(r, m, logger)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+
+		err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
+		if err != nil {
+			logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
+		}
+
 		// this is needed since we need makeMachineResponse to set this as CurrentImageID in BootInfo.
 		// note that the new image ID to be installed is already stored in DS
-		m.Allocation.ImageID = currImageID
-	}
-
-	err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
-	if err != nil {
-		logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
+		m.Allocation.ImageID = old.Allocation.ImageID
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
