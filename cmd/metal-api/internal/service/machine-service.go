@@ -287,7 +287,7 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineAbortReinstallRequest{}).
 		Writes(v1.BootInfo{}).
-		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.BootInfo{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/event").

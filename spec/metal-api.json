@@ -3921,7 +3921,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
+              "$ref": "#/definitions/v1.BootInfo"
             }
           },
           "default": {
