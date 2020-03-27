@@ -221,7 +221,6 @@ type DiskPartition struct {
 	GPTType      string            `rethinkdb:"gpttyoe" json:"gpttyoe"`
 	GPTGuid      string            `rethinkdb:"gptguid" json:"gptguid"`
 	Properties   map[string]string `rethinkdb:"properties" json:"properties"`
-	ContainsOS   bool              `rethinkdb:"containsos" json:"containsos"`
 }
 
 // Fru (Field Replaceable Unit) data

@@ -1079,10 +1079,6 @@
     },
     "v1.MachineDiskPartition": {
       "properties": {
-        "containsos": {
-          "description": "whether the OS is installed on this partition or not",
-          "type": "boolean"
-        },
         "device": {
           "description": "the partition device name, e.g. sda1",
           "type": "string"
@@ -1133,7 +1129,6 @@
         }
       },
       "required": [
-        "containsos",
         "device",
         "filesystem",
         "gptguid",

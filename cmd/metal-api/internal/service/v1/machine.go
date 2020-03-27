@@ -193,7 +193,6 @@ type MachineDiskPartition struct {
 	GPTType      string            `json:"gpttyoe" description:"the partition GPT type"`
 	GPTGuid      string            `json:"gptguid" description:"the partition GPT guid"`
 	Properties   map[string]string `json:"properties" description:"the partition properties"`
-	ContainsOS   bool              `json:"containsos" description:"whether the OS is installed on this partition or not"`
 }
 
 type MachineFinalizeAllocationRequest struct {
@@ -281,7 +280,6 @@ func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 				GPTType:      p.GPTType,
 				GPTGuid:      p.GPTGuid,
 				Properties:   p.Properties,
-				ContainsOS:   p.ContainsOS,
 			})
 		}
 		disks = append(disks, disk)
