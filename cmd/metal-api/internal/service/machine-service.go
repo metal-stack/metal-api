@@ -286,6 +286,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineAbortReinstallRequest{}).
+		Writes(v1.BootInfo{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -1650,15 +1651,10 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 
 	logger := utils.Logger(request).Sugar()
 
-	if m.Allocation != nil && m.Allocation.MachineSetup != nil && !requestPayload.PrimaryDiskWiped {
-		old := *m
+	var bootInfo *v1.BootInfo
 
-		m.Allocation.MachineSetup.PrimaryDisk = requestPayload.BootInfo.PrimaryDisk
-		m.Allocation.MachineSetup.OSPartition = requestPayload.BootInfo.OSPartition
-		m.Allocation.MachineSetup.Initrd = requestPayload.BootInfo.Initrd
-		m.Allocation.MachineSetup.Cmdline = requestPayload.BootInfo.Cmdline
-		m.Allocation.MachineSetup.Kernel = requestPayload.BootInfo.Kernel
-		m.Allocation.MachineSetup.BootloaderID = requestPayload.BootInfo.BootloaderID
+	if m.Allocation != nil && !requestPayload.PrimaryDiskWiped {
+		old := *m
 
 		m.Allocation.Reinstall = false
 
@@ -1666,10 +1662,22 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
-		logger.Infow("rolled back machine setup and removed reinstall mark", "machineID", m.ID)
+		logger.Infow("removed reinstall mark", "machineID", m.ID)
+
+		if m.Allocation.MachineSetup != nil {
+			bootInfo = &v1.BootInfo{
+				ImageID:      m.Allocation.ImageID,
+				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
+				OSPartition:  m.Allocation.MachineSetup.OSPartition,
+				Initrd:       m.Allocation.MachineSetup.Initrd,
+				Cmdline:      m.Allocation.MachineSetup.Cmdline,
+				Kernel:       m.Allocation.MachineSetup.Kernel,
+				BootloaderID: m.Allocation.MachineSetup.BootloaderID,
+			}
+		}
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	err = response.WriteHeaderAndEntity(http.StatusOK, bootInfo)
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}

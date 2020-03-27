@@ -5,7 +5,7 @@ COMMONDIR := $(or ${COMMONDIR},../builder)
 include $(COMMONDIR)/Makefile.inc
 
 .PHONY: all
-all::
+all:: gofmt
 	go mod tidy
 
 release:: all;
