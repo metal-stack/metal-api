@@ -4551,6 +4551,12 @@
               "$ref": "#/definitions/v1.MachineResponse"
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
           "default": {
             "description": "Error",
             "schema": {

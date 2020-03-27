@@ -277,6 +277,7 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineReinstallRequest{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusBadRequest, "Bad Request", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/abort-reinstall").
@@ -1560,7 +1561,7 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 			// TODO: Trigger network garbage collection
 			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
 			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			logger.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+			logger.Errorw("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
 		}
 	}
 
@@ -1597,14 +1598,13 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 
 	logger := utils.Logger(request).Sugar()
 
-	var resp *v1.MachineResponse
 	if m.Allocation != nil {
 		old := *m
 
 		m.Allocation.Reinstall = true
 		m.Allocation.ImageID = requestPayload.ImageID
 
-		resp = makeMachineResponse(m, r.ds, logger)
+		resp := makeMachineResponse(m, r.ds, logger)
 		if resp.Allocation.Image != nil {
 			err = r.ds.UpdateMachine(&old, m)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1626,12 +1626,17 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 			if err != nil {
 				logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
 			}
+
+			err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+			if err != nil {
+				logger.Error("Failed to send response", zap.Error(err))
+			}
+
+			return
 		}
-	} else {
-		resp = makeMachineResponse(m, r.ds, logger)
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, fmt.Errorf("machine either not allocated yet or invalid image ID specified")))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
