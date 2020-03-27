@@ -13,7 +13,7 @@ release:: all;
 .PHONY: spec
 spec: all
 	@$(info spec=$$(bin/metal-api dump-swagger | jq -S 'walk(if type == "array" then sort_by(strings) else . end)' 2>/dev/null) && echo "$${spec}" > spec/metal-api.json)
-	@spec=`bin/metal-api dump-swagger | jq -S 'walk(if type == "array" then sort_by(strings) else . end)' 2>/dev/null` && echo "$${spec}" > spec/metal-api.json || { echo "jq >1.6 required"; exit 1; }
+	@spec=`bin/metal-api dump-swagger | jq -S 'walk(if type == "array" then sort_by(strings) else . end)' 2>/dev/null` && echo "$${spec}" > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
 
 .PHONY: redoc
 redoc:

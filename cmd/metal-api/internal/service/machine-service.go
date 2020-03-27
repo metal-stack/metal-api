@@ -1561,18 +1561,18 @@ func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipa
 			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
 			logger.Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
 		}
-
-		old := *m
-
-		m.Allocation = nil
-		m.Tags = nil
-
-		err = ds.UpdateMachine(&old, m)
-		if err != nil {
-			return err
-		}
-		logger.Infow("freed machine", "machineID", m.ID)
 	}
+
+	old := *m
+
+	m.Allocation = nil
+	m.Tags = nil
+
+	err = ds.UpdateMachine(&old, m)
+	if err != nil {
+		return err
+	}
+	logger.Infow("freed machine", "machineID", m.ID)
 
 	return nil
 }
