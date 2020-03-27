@@ -101,7 +101,7 @@
           "description": "the cmdline",
           "type": "string"
         },
-        "currentimageid": {
+        "image_id": {
           "description": "the ID of the current image",
           "type": "string"
         },
@@ -112,14 +112,24 @@
         "kernel": {
           "description": "the kernel",
           "type": "string"
+        },
+        "os_partition": {
+          "description": "the partition containing the OS",
+          "type": "string"
+        },
+        "primary_disk": {
+          "description": "the primary disk",
+          "type": "string"
         }
       },
       "required": [
         "bootloaderid",
         "cmdline",
-        "currentimageid",
+        "image_id",
         "initrd",
-        "kernel"
+        "kernel",
+        "os_partition",
+        "primary_disk"
       ]
     },
     "v1.ChassisIdentifyLEDState": {
@@ -840,6 +850,36 @@
         "id"
       ]
     },
+    "v1.MachineAbortReinstallRequest": {
+      "properties": {
+        "boot_info": {
+          "$ref": "#/definitions/v1.BootInfo",
+          "description": "information about the previous boot setup of the machine"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "primary_disk_wiped": {
+          "description": "indicates whether the primary disk is already wiped",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "boot_info",
+        "id",
+        "primary_disk_wiped"
+      ]
+    },
     "v1.MachineAllocateRequest": {
       "properties": {
         "description": {
@@ -919,7 +959,7 @@
       "properties": {
         "boot_info": {
           "$ref": "#/definitions/v1.BootInfo",
-          "description": "the boot info"
+          "description": "information required for booting the machine from HD"
         },
         "console_password": {
           "description": "the console password which was generated while provisioning",
@@ -979,7 +1019,6 @@
         }
       },
       "required": [
-        "boot_info",
         "created",
         "hostname",
         "name",
@@ -3866,6 +3905,52 @@
           }
         },
         "summary": "get machine by id",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/{id}/abort-reinstall": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "abortReinstallMachine",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineAbortReinstallRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "abort reinstall this machine",
         "tags": [
           "machine"
         ]

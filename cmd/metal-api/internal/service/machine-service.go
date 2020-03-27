@@ -279,6 +279,16 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/abort-reinstall").
+		To(editor(r.abortReinstallMachine)).
+		Operation("abortReinstallMachine").
+		Doc("abort reinstall this machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineAbortReinstallRequest{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/{id}/event").
 		To(viewer(r.getProvisioningEventContainer)).
 		Operation("getProvisioningEventContainer").
@@ -1619,7 +1629,47 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
+}
+
+func (r machineResource) abortReinstallMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineAbortReinstallRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	logger := utils.Logger(request).Sugar()
+
+	if m.Allocation != nil && m.Allocation.MachineSetup != nil && !requestPayload.PrimaryDiskWiped {
+		old := *m
+
+		m.Allocation.MachineSetup.PrimaryDisk = requestPayload.BootInfo.PrimaryDisk
+		m.Allocation.MachineSetup.OSPartition = requestPayload.BootInfo.OSPartition
+		m.Allocation.MachineSetup.Initrd = requestPayload.BootInfo.Initrd
+		m.Allocation.MachineSetup.Cmdline = requestPayload.BootInfo.Cmdline
+		m.Allocation.MachineSetup.Kernel = requestPayload.BootInfo.Kernel
+		m.Allocation.MachineSetup.BootloaderID = requestPayload.BootInfo.BootloaderID
+
+		m.Allocation.Reinstall = false
+
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		logger.Infow("rolled back machine setup and removed reinstall mark", "machineID", m.ID)
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
@@ -1778,9 +1828,6 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
 		ec.Liveliness = metal.MachineLivelinessAlive
 	} else {
-		if event.Event == metal.ProvisioningEventReinstallAborted {
-			r.machineAbortReinstall(machineID)
-		}
 		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
 		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
 		ec.Liveliness = metal.MachineLivelinessAlive
@@ -1789,21 +1836,6 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 
 	err = r.ds.UpsertProvisioningEventContainer(ec)
 	return ec, err
-}
-
-func (r machineResource) machineAbortReinstall(machineID string) {
-	log := zapup.MustRootLogger().Sugar()
-
-	m, err := r.ds.FindMachineByID(machineID)
-	if err != nil {
-		log.Errorw("unable to find machine", "machineID", machineID, "error", err)
-		return
-	}
-
-	err = publishMachineCmd(log, m, r, metal.MachineAbortReinstall)
-	if err != nil {
-		log.Errorw("unable to publish machine command", "command", metal.MachineAbortReinstall, "machineID", machineID, "error", err)
-	}
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died

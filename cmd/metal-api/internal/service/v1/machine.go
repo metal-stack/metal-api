@@ -37,15 +37,17 @@ type MachineAllocation struct {
 	ConsolePassword *string          `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
 	Succeeded       bool             `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
 	Reinstall       bool             `json:"reinstall" description:"indicates whether to reinstall the machine"`
-	BootInfo        *BootInfo        `json:"boot_info" description:"the boot info"`
+	BootInfo        *BootInfo        `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
 }
 
 type BootInfo struct {
-	CurrentImageID string `json:"currentimageid" description:"the ID of the current image"`
-	Initrd         string `json:"initrd" description:"the initrd image"`
-	Cmdline        string `json:"cmdline" description:"the cmdline"`
-	Kernel         string `json:"kernel" description:"the kernel"`
-	BootloaderID   string `json:"bootloaderid" description:"the bootloader ID"`
+	ImageID      string `json:"image_id" description:"the ID of the current image"`
+	PrimaryDisk  string `json:"primary_disk" description:"the primary disk"`
+	OSPartition  string `json:"os_partition" description:"the partition containing the OS"`
+	Initrd       string `json:"initrd" description:"the initrd image"`
+	Cmdline      string `json:"cmdline" description:"the cmdline"`
+	Kernel       string `json:"kernel" description:"the kernel"`
+	BootloaderID string `json:"bootloaderid" description:"the bootloader ID"`
 }
 
 type MachineNetwork struct {
@@ -236,6 +238,12 @@ type MachineIpmiReportResponse struct {
 type MachineReinstallRequest struct {
 	Common
 	ImageID string `json:"imageid" description:"the image id to be installed"`
+}
+
+type MachineAbortReinstallRequest struct {
+	Common
+	PrimaryDiskWiped bool     `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
+	BootInfo         BootInfo `json:"boot_info" description:"information about the previous boot setup of the machine"`
 }
 
 func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
@@ -438,11 +446,13 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		allocation.Reinstall = m.Allocation.Reinstall
 		if m.Allocation.MachineSetup != nil {
 			allocation.BootInfo = &BootInfo{
-				CurrentImageID: m.Allocation.ImageID,
-				Initrd:         m.Allocation.MachineSetup.Initrd,
-				Cmdline:        m.Allocation.MachineSetup.Cmdline,
-				Kernel:         m.Allocation.MachineSetup.Kernel,
-				BootloaderID:   m.Allocation.MachineSetup.BootloaderID,
+				ImageID:      m.Allocation.ImageID,
+				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
+				OSPartition:  m.Allocation.MachineSetup.OSPartition,
+				Initrd:       m.Allocation.MachineSetup.Initrd,
+				Cmdline:      m.Allocation.MachineSetup.Cmdline,
+				Kernel:       m.Allocation.MachineSetup.Kernel,
+				BootloaderID: m.Allocation.MachineSetup.BootloaderID,
 			}
 		}
 	}

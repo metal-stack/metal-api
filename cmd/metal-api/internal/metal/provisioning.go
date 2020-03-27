@@ -23,7 +23,6 @@ const (
 	ProvisioningEventInstalling       ProvisioningEventType = "Installing"
 	ProvisioningEventBootingNewKernel ProvisioningEventType = "Booting New Kernel"
 	ProvisioningEventPhonedHome       ProvisioningEventType = "Phoned Home"
-	ProvisioningEventReinstallAborted ProvisioningEventType = "Reinstall Aborted"
 )
 
 type provisioningEventSequence []ProvisioningEventType
@@ -35,7 +34,6 @@ var (
 		ProvisioningEventCrashed:          true,
 		ProvisioningEventResetFailCount:   true,
 		ProvisioningEventPlannedReboot:    true,
-		ProvisioningEventReinstallAborted: true,
 		ProvisioningEventPXEBooting:       true,
 		ProvisioningEventPreparing:        true,
 		ProvisioningEventRegistering:      true,
@@ -67,7 +65,6 @@ var (
 		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
 		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventReinstallAborted: {ProvisioningEventPXEBooting},
 		ProvisioningEventResetFailCount:   expectedBootSequence,
 	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{
