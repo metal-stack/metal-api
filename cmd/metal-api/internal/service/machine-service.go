@@ -1545,6 +1545,10 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 }
 
 func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, m *metal.Machine, logger *zap.SugaredLogger) error {
+	if m.State.Value == metal.LockedState {
+		return fmt.Errorf("machine is locked")
+	}
+
 	err := deleteVRFSwitches(ds, m, logger)
 	if err != nil {
 		return err
@@ -1598,7 +1602,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 
 	logger := utils.Logger(request).Sugar()
 
-	if m.Allocation != nil {
+	if m.Allocation != nil && m.State.Value != metal.LockedState {
 		old := *m
 
 		m.Allocation.Reinstall = true
@@ -1636,7 +1640,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		}
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, fmt.Errorf("machine either not allocated yet or invalid image ID specified")))
+	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, fmt.Errorf("machine either locked, not allocated yet or invalid image ID specified")))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
@@ -1690,10 +1694,6 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 }
 
 func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.SugaredLogger) error {
-	if m.State.Value == metal.LockedState {
-		return fmt.Errorf("machine is locked")
-	}
-
 	_, err := setVrfAtSwitches(ds, m, "")
 	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
 	return err
