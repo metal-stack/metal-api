@@ -1667,6 +1667,9 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 		old := *m
 
 		m.Allocation.Reinstall = false
+		if m.Allocation.MachineSetup != nil {
+			m.Allocation.ImageID = m.Allocation.MachineSetup.ImageID
+		}
 
 		err = r.ds.UpdateMachine(&old, m)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
