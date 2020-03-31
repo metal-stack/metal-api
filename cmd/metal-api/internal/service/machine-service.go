@@ -1666,17 +1666,25 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 	}
 }
 
-func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.SugaredLogger) error {
+func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.Logger) error {
+	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
 	_, err := setVrfAtSwitches(ds, m, "")
-	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
-	return err
+	if err != nil {
+		logger.Error("cannot delete vrf switches", zap.String("machineID", m.ID), zap.Error(err))
+		return fmt.Errorf("cannot delete vrf switches: %w", err)
+	}
+	return nil
 }
 
-func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.SugaredLogger) error {
+func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
+	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
-	return err
+	if err != nil {
+		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
+		return fmt.Errorf("cannot publish delete event: %w", err)
+	}
+	return nil
 }
 
 func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {

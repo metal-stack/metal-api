@@ -52,6 +52,8 @@ func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
 	if err != nil {
 		return fmt.Errorf("cannot create consumer for endpoints: %w", err)
 	}
+	// change loglevel to warning, because nsq is very noisy
+	c.With(bus.LogLevel(bus.Warning))
 	n.Endpoints = bus.NewEndpoints(c, n.Publisher)
 	return nil
 }
