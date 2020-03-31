@@ -1,0 +1,132 @@
+@networkbaseurl = {{scheme}}://{{host}}/v1/network
+@machinebaseurl = {{scheme}}://{{host}}/v1/machine
+
+
+### create internet network
+# @name createInternetNetwork
+PUT {{networkbaseurl}}/
+Content-Type: application/json
+Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "id": "internet-vagrant",
+  "description": "Internet in Vagrant",
+  "name": "vagrant internet",
+  "nat": false,
+  "partitionid": "vagrant",
+  "prefixes": [
+    "185.24.0.0/16",
+    "185.27.0.0/16"
+  ],
+  "privatesuper": false
+}
+
+### allocate network
+# @name allocateNetwork
+POST {{networkbaseurl}}/allocate
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "projectid": "00000000-0000-0000-0000-000000000001",
+  "partitionid": "vagrant"
+}
+
+### register a machine
+# @name register
+POST {{machinebaseurl}}/register
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "partitionid": "vagrant",
+  "rackid": "Vagrant Rack 1",
+  "hardware": {
+    "cpu_cores": 1,
+    "disks": [
+      {
+        "name": "sda",
+        "size": 2147483648
+      }
+    ],
+    "memory": 536870912,
+    "nics": [
+      {
+        "features": [
+        ],
+        "mac": "aa:aa:aa:aa:aa:aa",
+        "name": "eth0",
+        "vendor": "Dell",
+        "neighbors": [
+        	{
+        		"mac":"11:11:11:11:11:11",
+        		"name":"switch"
+        	}
+        ]
+      },
+      {
+        "features": [
+        ],
+        "mac": "00:00:00:00:00:00",
+        "name": "lo",
+        "vendor": "Dell"
+      }
+    ]
+  },
+  "ipmi": {
+    "address": "address",
+    "fru": {
+      "board_mfg": "board_mfg",
+      "board_mfg_serial": "board_mfg_serial",
+      "board_part_number": "board_part_number",
+      "chassis_part_number": "chassis_part_number",
+      "chassis_part_serial": "chassis_part_serial",
+      "product_manufacturer": "product_manufacturer",
+      "product_part_number": "product_part_number",
+      "product_serial": "product_serial"
+    },
+    "interface": "interface",
+    "mac": "mac",
+    "password": "password",
+    "user": "user"
+  },
+  "uuid": "ae671b8b-a158-52c2-8c22-985ca0503873"
+}
+
+### wait for a machine
+# @name wait
+GET {{machinebaseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/wait
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### allocate a machine
+# @name allocate
+POST {{machinebaseurl}}/allocate
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "description": "My first metal host",
+  "partitionid": "vagrant",
+  "hostname": "metal-test-1",
+  "imageid": "ubuntu-19.10",
+  "name": "Metal Host 1",
+  "projectid": "00000000-0000-0000-0000-000000000001",
+  "sizeid": "v1-small-x86",
+  "ssh_pub_keys": [],
+  "ips": [],
+  "networks": [
+    {"networkid": "internet-vagrant"},
+    {"networkid": "{{allocateNetwork.response.body.id}}"}
+  ]
+}
+
+### free a machine
+# @name free
+DELETE {{machinebaseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
+Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z
