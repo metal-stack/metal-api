@@ -43,9 +43,9 @@ var (
 		ProvisioningEventPhonedHome:       true,
 	}
 	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
-	ProvisioningEventsInspectionLimit = 2 * len(expectedProvisioningEventSequence) // only saved events count
-	// ExpectedProvisioningEventSequence is the expected sequence in which
-	expectedProvisioningEventSequence = provisioningEventSequence{
+	ProvisioningEventsInspectionLimit = 2 * len(expectedBootSequence) // only saved events count
+	// expectedBootSequence is the expected provisioning event sequence of an expected machine boot from PXE up to a running OS
+	expectedBootSequence = provisioningEventSequence{
 		ProvisioningEventPXEBooting,
 		ProvisioningEventPreparing,
 		ProvisioningEventRegistering,
@@ -65,12 +65,12 @@ var (
 		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
 		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventResetFailCount:   expectedProvisioningEventSequence,
+		ProvisioningEventResetFailCount:   expectedBootSequence,
 	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{
 		ProvisioningEventPlannedReboot,
 		ProvisioningEventResetFailCount,
-		*expectedProvisioningEventSequence.lastEvent(),
+		*expectedBootSequence.lastEvent(),
 	}
 )
 

@@ -278,6 +278,28 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/reinstall").
+		To(editor(r.reinstallMachine)).
+		Operation("reinstallMachine").
+		Doc("reinstall this machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineReinstallRequest{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusBadRequest, "Bad Request", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/abort-reinstall").
+		To(editor(r.abortReinstallMachine)).
+		Operation("abortReinstallMachine").
+		Doc("abort reinstall this machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineAbortReinstallRequest{}).
+		Writes(v1.BootInfo{}).
+		Returns(http.StatusOK, "OK", v1.BootInfo{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/{id}/event").
 		To(viewer(r.getProvisioningEventContainer)).
 		Operation("getProvisioningEventContainer").
@@ -391,7 +413,8 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	resp := makeMachineResponse(m, r.ds, utils.Logger(request).Sugar())
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -662,7 +685,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		}
 
 		returnCode = http.StatusCreated
-
 	} else {
 		// machine has already registered, update it
 		old := *m
@@ -1462,7 +1484,18 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	}
 
 	old := *m
+
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
+	m.Allocation.MachineSetup = &metal.MachineSetup{
+		ImageID:      m.Allocation.ImageID,
+		PrimaryDisk:  requestPayload.PrimaryDisk,
+		OSPartition:  requestPayload.OSPartition,
+		Initrd:       requestPayload.Initrd,
+		Cmdline:      requestPayload.Cmdline,
+		Kernel:       requestPayload.Kernel,
+		BootloaderID: requestPayload.BootloaderID,
+	}
+	m.Allocation.Reinstall = false
 
 	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1517,8 +1550,133 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
+	}
+}
+
+// reinstallMachine reinstalls the requested machine with given image by either allocating
+// the machine if not yet allocated or not modifying any other allocation parameter than 'ImageID'
+// and 'Reinstall' set to true.
+// If the given image ID is nil, it deletes the machine instead.
+func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineReinstallRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	logger := utils.Logger(request).Sugar()
+
+	if m.Allocation != nil && m.State.Value != metal.LockedState {
+		old := *m
+
+		m.Allocation.Reinstall = true
+		m.Allocation.ImageID = requestPayload.ImageID
+
+		resp := makeMachineResponse(m, r.ds, logger)
+		if resp.Allocation.Image != nil {
+			err = r.ds.UpdateMachine(&old, m)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+			logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
+
+			err = deleteVRFSwitches(r.ds, m, logger)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+
+			err = publishDeleteEvent(r, m, logger)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+
+			err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
+			if err != nil {
+				logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
+			}
+
+			err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+			if err != nil {
+				logger.Error("Failed to send response", zap.Error(err))
+			}
+
+			return
+		}
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, fmt.Errorf("machine either locked, not allocated yet or invalid image ID specified")))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
+}
+
+func (r machineResource) abortReinstallMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineAbortReinstallRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	logger := utils.Logger(request).Sugar()
+
+	var bootInfo *v1.BootInfo
+
+	if m.Allocation != nil && !requestPayload.PrimaryDiskWiped {
+		old := *m
+
+		m.Allocation.Reinstall = false
+		if m.Allocation.MachineSetup != nil {
+			m.Allocation.ImageID = m.Allocation.MachineSetup.ImageID
+		}
+
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		logger.Infow("removed reinstall mark", "machineID", m.ID)
+
+		if m.Allocation.MachineSetup != nil {
+			bootInfo = &v1.BootInfo{
+				ImageID:      m.Allocation.MachineSetup.ImageID,
+				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
+				OSPartition:  m.Allocation.MachineSetup.OSPartition,
+				Initrd:       m.Allocation.MachineSetup.Initrd,
+				Cmdline:      m.Allocation.MachineSetup.Cmdline,
+				Kernel:       m.Allocation.MachineSetup.Kernel,
+				BootloaderID: m.Allocation.MachineSetup.BootloaderID,
+			}
+		}
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, bootInfo)
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
+}
+
+func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.SugaredLogger) error {
+	_, err := setVrfAtSwitches(ds, m, "")
+	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
+	return err
+}
+
+func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.SugaredLogger) error {
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID}
+	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
+	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
+	return err
 }
 
 func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
@@ -1815,9 +1973,9 @@ func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
-			Command: cmd,
-			Params:  pp,
-			Target:  m,
+			Command:         cmd,
+			Params:          pp,
+			TargetMachineID: m.ID,
 		},
 	}
 
@@ -2008,8 +2166,8 @@ type machineActor struct {
 	ipam.IPAMer
 	*datastore.RethinkStore
 	bus.Publisher
-	machineReleaser *bus.Function
-	ipReleaser      *bus.Function
+	machineReleaser bus.Func
+	ipReleaser      bus.Func
 }
 
 func newMachineActor(l *zap.Logger, ep *bus.Endpoints, pub bus.Publisher, ds *datastore.RethinkStore, ip ipam.IPAMer) (*machineActor, error) {
@@ -2036,30 +2194,27 @@ func (a *machineActor) freeMachine(m *metal.Machine) error {
 		return fmt.Errorf("machine is locked")
 	}
 
-	// free machine should be callable even many times in a row (such that events can be fired multiple times if necessary)
-
-	_, err := setVrfAtSwitches(a.RethinkStore, m, "")
-	a.Infow("set VRF at switch", "machineID", m.ID, "error", err)
+	err := deleteVRFSwitches(a.RethinkStore, m, a.SugaredLogger)
 	if err != nil {
 		return err
 	}
 
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = a.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	a.Infow("published machine delete event", "machineID", m.ID, "error", err)
+	err = publishDeleteEvent(a, m, a.SugaredLogger)
 	if err != nil {
 		return err
 	}
 
 	// call the releaser async
-	err = a.machineReleaser.Must(m)
+	err = a.machineReleaser(m)
 	if err != nil {
 		a.Error("cannot call async machine cleanup", zap.Error(err))
 	}
 
 	old := *m
+
 	m.Allocation = nil
 	m.Tags = nil
+
 	err = a.UpdateMachine(&old, m)
 	if err != nil {
 		return err
@@ -2105,7 +2260,7 @@ func (a *machineActor) releaseMachineNetworks(machine *metal.Machine) error {
 			// so we fork a new job to delete the IP. if this fails .... well then ("houston we have a problem")
 			// we do not report the error to the caller, because this whole function cannot be re-do'ed.
 			a.Infow("async release IP", "ip", *ip)
-			if err := a.ipReleaser.Must(*ip); err != nil {
+			if err := a.ipReleaser(*ip); err != nil {
 				// what should we do here? this error shows a problem with the nsq-bus system
 				a.Error("cannot call ip releaser", zap.Error(err))
 			}

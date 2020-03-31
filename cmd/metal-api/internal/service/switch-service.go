@@ -335,6 +335,7 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore, logger *zap
 func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 	vnis := []string{}
 	cidrs := []string{}
+
 	for _, net := range m.Allocation.MachineNetworks {
 		if net.Underlay {
 			for _, ip := range net.IPs {
