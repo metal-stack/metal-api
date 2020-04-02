@@ -208,12 +208,10 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		},
 	}
 
-	fqns := []string{metal.TopicMachine.GetFQN(p.GetID()), metal.TopicSwitch.GetFQN(p.GetID())}
-	for _, fqn := range fqns {
-		if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
+	fqn := metal.TopicMachine.GetFQN(p.GetID())
+	if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
 		}
 	}
 
@@ -322,7 +320,6 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 
 	partitionCapacities := []v1.PartitionCapacity{}
 	for _, p := range ps {
-
 		capacities := make(map[string]*v1.ServerCapacity)
 		for _, m := range machines {
 			if m.Partition == nil {
@@ -338,7 +335,7 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 			}
 
 			available := false
-			if len(m.RecentProvisioningEvents.Events) > 0 {
+			if m.State.Value == string(metal.AvailableState) && len(m.RecentProvisioningEvents.Events) > 0 {
 				events := m.RecentProvisioningEvents.Events
 				if metal.ProvisioningEventWaiting.Is(events[0].Event) && metal.ProvisioningEventAlive.Is(m.Liveliness) {
 					available = true
@@ -361,9 +358,11 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 
 			cap.Total++
 		}
-
 		sc := []v1.ServerCapacity{}
 		for i := range capacities {
+			if capacities[i] == nil {
+				continue
+			}
 			sc = append(sc, *capacities[i])
 		}
 

@@ -453,8 +453,8 @@ func (rs *RethinkStore) UpdateWaitingMachine(m *metal.Machine) error {
 // WaitForMachineAllocation listens on changes on the wait table for a given machine and returns the changed machine.
 func (rs *RethinkStore) WaitForMachineAllocation(ctx context.Context, m *metal.Machine) (*metal.Machine, error) {
 	type responseType struct {
-		NewVal metal.Machine `rethinkdb:"new_val"`
-		OldVal metal.Machine `rethinkdb:"old_val"`
+		NewVal metal.Machine `rethinkdb:"new_val" json:"new_val"`
+		OldVal metal.Machine `rethinkdb:"old_val" json:"old_val"`
 	}
 	var response responseType
 	err := rs.listenForEntityChange(ctx, rs.waitTable(), m, response)

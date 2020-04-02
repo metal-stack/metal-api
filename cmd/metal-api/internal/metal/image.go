@@ -8,8 +8,8 @@ import (
 // An Image describes an image which could be used for provisioning.
 type Image struct {
 	Base
-	URL      string                    `rethinkdb:"url"`
-	Features map[ImageFeatureType]bool `rethinkdb:"features"`
+	URL      string                    `rethinkdb:"url" json:"url"`
+	Features map[ImageFeatureType]bool `rethinkdb:"features" json:"features"`
 }
 
 type ImageFeatureType string

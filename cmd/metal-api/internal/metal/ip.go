@@ -36,16 +36,16 @@ const (
 
 // IP of a machine/firewall.
 type IP struct {
-	IPAddress        string    `rethinkdb:"id"`
-	ParentPrefixCidr string    `rethinkdb:"prefix"`
-	Name             string    `rethinkdb:"name"`
-	Description      string    `rethinkdb:"description"`
-	ProjectID        string    `rethinkdb:"projectid"`
-	NetworkID        string    `rethinkdb:"networkid"`
-	Type             IPType    `rethinkdb:"type"`
-	Tags             []string  `rethinkdb:"tags"`
-	Created          time.Time `rethinkdb:"created"`
-	Changed          time.Time `rethinkdb:"changed"`
+	IPAddress        string    `rethinkdb:"id" json:"id"`
+	ParentPrefixCidr string    `rethinkdb:"prefix" json:"prefix"`
+	Name             string    `rethinkdb:"name" json:"name"`
+	Description      string    `rethinkdb:"description" json:"description"`
+	ProjectID        string    `rethinkdb:"projectid" json:"projectid"`
+	NetworkID        string    `rethinkdb:"networkid" json:"networkid"`
+	Type             IPType    `rethinkdb:"type" json:"type"`
+	Tags             []string  `rethinkdb:"tags" json:"tags"`
+	Created          time.Time `rethinkdb:"created" json:"created"`
+	Changed          time.Time `rethinkdb:"changed" json:"changed"`
 }
 
 // GetID returns the ID of the entity

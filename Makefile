@@ -5,14 +5,15 @@ COMMONDIR := $(or ${COMMONDIR},../builder)
 include $(COMMONDIR)/Makefile.inc
 
 .PHONY: all
-all::
+all:: gofmt
 	go mod tidy
 
 release:: all;
 
 .PHONY: spec
 spec: all
-	bin/metal-api dump-swagger | python -c "$$PYTHON_DEEP_SORT" >spec/metal-api.json
+	@$(info spec=$$(bin/metal-api dump-swagger | jq -S 'walk(if type == "array" then sort_by(strings) else . end)' 2>/dev/null) && echo "$${spec}" > spec/metal-api.json)
+	@spec=`bin/metal-api dump-swagger | jq -S 'walk(if type == "array" then sort_by(strings) else . end)' 2>/dev/null` && echo "$${spec}" > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
 
 .PHONY: redoc
 redoc:
