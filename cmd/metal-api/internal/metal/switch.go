@@ -29,8 +29,8 @@ type SwitchMode string
 
 // The enums for the switch modes.
 const (
-	SwitchOperational SwitchMode = ""
-	SwitchReplace     SwitchMode = "REPLACE"
+	SwitchOperational SwitchMode = "operational"
+	SwitchReplace     SwitchMode = "replace"
 )
 
 // SwitchEvent is propagated when a switch needs to update its configuration.
@@ -38,6 +38,16 @@ type SwitchEvent struct {
 	Type     EventType `json:"type"`
 	Machine  Machine   `json:"machine"`
 	Switches []Switch  `json:"switches"`
+}
+
+// SwitchModeFrom converts a switch mode string to the type
+func SwitchModeFrom(name string) SwitchMode {
+	switch name {
+	case string(SwitchReplace):
+		return SwitchReplace
+	default:
+		return SwitchOperational
+	}
 }
 
 // ConnectMachine iterates over all switch nics and machine nic neighbor

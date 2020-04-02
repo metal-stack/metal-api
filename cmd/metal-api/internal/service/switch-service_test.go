@@ -1094,3 +1094,44 @@ func Test_updateSwitchNics(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateSwitch(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	switchservice := NewSwitch(ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	desc := "test"
+	updateRequest := v1.SwitchUpdateRequest{
+		Common: v1.Common{
+			Describable: v1.Describable{
+				Description: &desc,
+			},
+			Identifiable: v1.Identifiable{
+				ID: testdata.Switch1.ID,
+			},
+		},
+		SwitchBase: v1.SwitchBase{
+			Mode: string(metal.SwitchReplace),
+		},
+	}
+	js, _ := json.Marshal(updateRequest)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/switch", body)
+	container = injectAdmin(container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Equal(t, testdata.Switch1.ID, result.ID)
+	require.Equal(t, testdata.Switch1.Name, *result.Name)
+	require.Equal(t, desc, *result.Description)
+	require.Equal(t, string(metal.SwitchReplace), result.Mode)
+}

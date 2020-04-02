@@ -77,6 +77,16 @@ func (r switchResource) webService() *restful.WebService {
 		Returns(http.StatusCreated, "Created", v1.SwitchResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/").
+		To(admin(r.updateSwitch)).
+		Operation("updateSwitch").
+		Doc("updates a switch. if the switch was changed since this one was read, a conflict is returned").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.SwitchUpdateRequest{}).
+		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
 }
 
@@ -119,6 +129,37 @@ func (r switchResource) deleteSwitch(request *restful.Request, response *restful
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SwitchUpdateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	newSwitch := *oldSwitch
+
+	if requestPayload.Description != nil {
+		newSwitch.Description = *requestPayload.Description
+	}
+
+	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
+
+	err = r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(&newSwitch, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
