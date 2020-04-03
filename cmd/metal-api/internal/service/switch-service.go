@@ -505,7 +505,7 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	}
 
 	if len(newSwitches) != 2 {
-		return fmt.Errorf("machine %v is not connected to exactly two switches", m.ID)
+		return fmt.Errorf("machine %v is not connected to exactly two switches, found connections to %d switches", m.ID, len(newSwitches))
 	}
 
 	s1 := newSwitches[0]

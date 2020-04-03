@@ -136,7 +136,7 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 
 	require.Nil(t, err)
 	require.Equal(t, http.StatusUnprocessableEntity, result.StatusCode)
-	require.Regexp(t, "nic with mac address 11:11:11:11:11:11 gets removed but the machine with id \"1\" is already connected to this nic", result.Message)
+	require.Regexp(t, "nic with mac address 21:11:11:11:11:11 gets removed but the machine with id \"1\" is already connected to this nic", result.Message)
 }
 
 func TestReplaceSwitch(t *testing.T) {
@@ -179,30 +179,88 @@ func TestReplaceSwitch(t *testing.T) {
 }
 
 func TestConnectMachineWithSwitches(t *testing.T) {
+	partitionID := "1"
+	s1swp1 := metal.Nic{
+		Name:       "swp1",
+		MacAddress: "11:11:11:11:11:11",
+	}
+	s1 := metal.Switch{
+		Base:               metal.Base{ID: "1"},
+		PartitionID:        partitionID,
+		MachineConnections: metal.ConnectionMap{},
+		Nics: metal.Nics{
+			s1swp1,
+		},
+	}
+	s2swp1 := metal.Nic{
+		Name:       "swp1",
+		MacAddress: "21:11:11:11:11:11",
+	}
+	s2 := metal.Switch{
+		Base:               metal.Base{ID: "2"},
+		PartitionID:        partitionID,
+		MachineConnections: metal.ConnectionMap{},
+		Nics: metal.Nics{
+			s2swp1,
+		},
+	}
+	testSwitches := []metal.Switch{s1, s2}
 	tests := []struct {
 		name    string
 		machine *metal.Machine
 		wantErr bool
 	}{
 		{
-			name: "Test 1",
+			name: "Connect machine with uplinks to two distinct switches",
 			machine: &metal.Machine{
 				Base:        metal.Base{ID: "1"},
-				PartitionID: "1",
+				PartitionID: partitionID,
+				Hardware: metal.MachineHardware{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name: "lan0",
+							Neighbors: metal.Nics{
+								s1swp1,
+							},
+						},
+						metal.Nic{
+							Name: "lan1",
+							Neighbors: metal.Nics{
+								s2swp1,
+							},
+						},
+					},
+				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "Test 2",
+			name: "Connect machine without neighbors on one interface",
 			machine: &metal.Machine{
-				Base:        metal.Base{ID: "1"},
-				PartitionID: "1",
-			}, wantErr: false,
+				Base:        metal.Base{ID: "2"},
+				PartitionID: partitionID,
+				Hardware: metal.MachineHardware{
+					Nics: metal.Nics{
+						metal.Nic{
+							Name: "lan0",
+							Neighbors: metal.Nics{
+								s1swp1,
+							},
+						},
+						metal.Nic{
+							Name:      "lan1",
+							Neighbors: metal.Nics{},
+						},
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		ds, mock := datastore.InitMockDB()
-		mock.On(r.DB("mockdb").Table("switch")).Return(testdata.TestSwitches, nil)
+		mock.On(r.DB("mockdb").Table("switch")).Return(testSwitches, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
 		t.Run(tt.name, func(t *testing.T) {
@@ -210,7 +268,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 				t.Errorf("RethinkStore.connectMachineWithSwitches() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
-		mock.AssertExpectations(t)
+		//mock.AssertExpectations(t)
 	}
 }
 
