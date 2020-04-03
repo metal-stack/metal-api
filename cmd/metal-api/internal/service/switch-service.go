@@ -494,14 +494,50 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	if err != nil {
 		return err
 	}
+	oldSwitches := []metal.Switch{}
+	newSwitches := []metal.Switch{}
 	for _, sw := range switches {
 		oldSwitch := sw
-		sw.ConnectMachine(m)
-		err := ds.UpdateSwitch(&oldSwitch, &sw)
+		if cons := sw.ConnectMachine(m); cons > 0 {
+			oldSwitches = append(oldSwitches, oldSwitch)
+			newSwitches = append(newSwitches, sw)
+		}
+	}
+
+	if len(newSwitches) != 2 {
+		return fmt.Errorf("machine %v is not connected to exactly two switches", m.ID)
+	}
+
+	s1 := newSwitches[0]
+	s2 := newSwitches[1]
+	cons1 := s1.MachineConnections[m.ID]
+	cons2 := s2.MachineConnections[m.ID]
+	connectionMapError := fmt.Errorf("twin-switches do not have a connection map that is mirrored crosswise for machine %v, switch %v (connections: %v), switch %v (connections: %v)", m.ID, s1.Name, cons1, s2.Name, cons2)
+	if len(cons1) != len(cons2) {
+		return connectionMapError
+	}
+
+	byNicName, err := s2.MachineConnections.ByNicName()
+	if err != nil {
+		return err
+	}
+	for _, con := range s1.MachineConnections[m.ID] {
+		if con2, has := byNicName[con.Nic.Name]; has {
+			if con.Nic.Name != con2.Nic.Name {
+				return connectionMapError
+			}
+		} else {
+			return connectionMapError
+		}
+	}
+
+	for i, old := range oldSwitches {
+		err = ds.UpdateSwitch(&old, &newSwitches[i])
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

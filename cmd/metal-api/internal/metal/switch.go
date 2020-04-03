@@ -1,5 +1,7 @@
 package metal
 
+import "fmt"
+
 // Switch have to register at the api. As metal-core is a stateless application running on a switch,
 // the api needs persist all the information such that the core can create or restore a its entire
 // switch configuration.
@@ -50,11 +52,25 @@ func SwitchModeFrom(name string) SwitchMode {
 	}
 }
 
+// ByNicName builds a map of nic names to machine connection
+func (c ConnectionMap) ByNicName() (map[string]Connection, error) {
+	res := make(map[string]Connection)
+	for _, cons := range c {
+		for _, con := range cons {
+			if con2, has := res[con.Nic.Name]; has {
+				return nil, fmt.Errorf("connection map has duplicate connections for nic %s; con1: %v, con2: %v", con.Nic.Name, con, con2)
+			}
+			res[con.Nic.Name] = con
+		}
+	}
+	return res, nil
+}
+
 // ConnectMachine iterates over all switch nics and machine nic neighbor
 // to find existing wire connections.
 // Implementation is very inefficient, will also find all connections,
 // which should not happen in a real environment.
-func (s *Switch) ConnectMachine(machine *Machine) {
+func (s *Switch) ConnectMachine(machine *Machine) int {
 	// first remove all existing connections to this machine.
 	if _, has := s.MachineConnections[machine.ID]; has {
 		delete(s.MachineConnections, machine.ID)
@@ -73,4 +89,5 @@ func (s *Switch) ConnectMachine(machine *Machine) {
 			}
 		}
 	}
+	return len(s.MachineConnections[machine.ID])
 }
