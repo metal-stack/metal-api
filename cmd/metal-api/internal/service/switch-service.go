@@ -84,7 +84,6 @@ func (r switchResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SwitchUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
