@@ -16,12 +16,12 @@ var (
 )
 
 type integer struct {
-	ID uint `rethinkdb:"id"`
+	ID uint `rethinkdb:"id" json:"id"`
 }
 
 // Integerinfo contains information on the integer pool.
 type Integerinfo struct {
-	IsInitialized bool `rethinkdb:"isInitialized"`
+	IsInitialized bool `rethinkdb:"isInitialized" json:"isInitialized"`
 }
 
 // initIntegerPool initializes a pool to acquire unique integers from.

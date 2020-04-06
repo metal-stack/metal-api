@@ -269,6 +269,28 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusGatewayTimeout, "Timeout", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/reinstall").
+		To(editor(r.reinstallMachine)).
+		Operation("reinstallMachine").
+		Doc("reinstall this machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineReinstallRequest{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusBadRequest, "Bad Request", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/abort-reinstall").
+		To(editor(r.abortReinstallMachine)).
+		Operation("abortReinstallMachine").
+		Doc("abort reinstall this machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineAbortReinstallRequest{}).
+		Writes(v1.BootInfo{}).
+		Returns(http.StatusOK, "OK", v1.BootInfo{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/{id}/event").
 		To(viewer(r.getProvisioningEventContainer)).
 		Operation("getProvisioningEventContainer").
@@ -286,15 +308,6 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineProvisioningEvent{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/liveliness").
-		To(r.checkMachineLiveliness).
-		Operation("checkMachineLiveliness").
-		Doc("external trigger for evaluating machine liveliness").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.EmptyBody{}).
-		Returns(http.StatusOK, "OK", v1.MachineLivelinessReport{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/on").
@@ -391,7 +404,8 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	resp := makeMachineResponse(m, r.ds, utils.Logger(request).Sugar())
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -662,7 +676,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		}
 
 		returnCode = http.StatusCreated
-
 	} else {
 		// machine has already registered, update it
 		old := *m
@@ -1462,14 +1475,24 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	}
 
 	old := *m
+
 	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
+	m.Allocation.MachineSetup = &metal.MachineSetup{
+		ImageID:      m.Allocation.ImageID,
+		PrimaryDisk:  requestPayload.PrimaryDisk,
+		OSPartition:  requestPayload.OSPartition,
+		Initrd:       requestPayload.Initrd,
+		Cmdline:      requestPayload.Cmdline,
+		Kernel:       requestPayload.Kernel,
+		BootloaderID: requestPayload.BootloaderID,
+	}
+	m.Allocation.Reinstall = false
 
 	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	var sws []metal.Switch
 	var vrf = ""
 	imgs, err := r.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1488,21 +1511,13 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		}
 	}
 
-	sws, err = setVrfAtSwitches(r.ds, m, vrf)
+	_, err = setVrfAtSwitches(r.ds, m, vrf)
 	if err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s", id, vrf)) {
 			return
 		}
 	}
 
-	if len(sws) > 0 {
-		// Push out events to signal switch configuration change
-		evt := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sws}
-		err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), evt)
-		if err != nil {
-			utils.Logger(request).Sugar().Infow("switch update event could not be published", "event", evt, "error", err)
-		}
-	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -1516,66 +1531,188 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	logger := utils.Logger(request).Sugar()
 
+	err = freeMachine(r.ds, r, r.ipamer, m, logger)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
+}
+
+func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, m *metal.Machine, logger *zap.SugaredLogger) error {
 	if m.State.Value == metal.LockedState {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine is locked")) {
-			return
-		}
+		return fmt.Errorf("machine is locked")
 	}
 
-	// do the next steps in any case, so a client can call this function multiple times to
-	// fire the events
-
-	sw, err := setVrfAtSwitches(r.ds, m, "")
-	utils.Logger(request).Sugar().Infow("set VRF at switch", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	err := deleteVRFSwitches(ds, m, logger)
+	if err != nil {
+		return err
+	}
+	err = publishDeleteEvent(publisher, m, logger)
+	if err != nil {
+		return err
 	}
 
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Old: m}
-	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	utils.Logger(request).Sugar().Infow("published machine delete event", "machineID", id, "error", err)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
+	// if the machine is allocated, we free it in our database
 	if m.Allocation != nil {
-		// if the machine is allocated, we free it in our database
-		err = r.releaseMachineNetworks(m, m.Allocation.MachineNetworks)
+		err = releaseMachineNetworks(ds, ipamer, m)
 		if err != nil {
 			// TODO: Trigger network garbage collection
 			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
 			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			utils.Logger(request).Sugar().Errorf("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
+			logger.Errorw("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
 		}
 	}
 
 	old := *m
+
 	m.Allocation = nil
 	m.Tags = nil
-	err = r.ds.UpdateMachine(&old, m)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	utils.Logger(request).Sugar().Infow("freed machine", "machineID", id)
 
-	switchEvent := metal.SwitchEvent{Type: metal.UPDATE, Machine: *m, Switches: sw}
-	err = r.Publish(metal.TopicSwitch.GetFQN(m.PartitionID), switchEvent)
-	utils.Logger(request).Sugar().Infow("published switch update event", "machineID", id, "error", err)
+	err = ds.UpdateMachine(&old, m)
+	if err != nil {
+		return err
+	}
+	logger.Infow("freed machine", "machineID", m.ID)
+
+	return nil
+}
+
+// reinstallMachine reinstalls the requested machine with given image by either allocating
+// the machine if not yet allocated or not modifying any other allocation parameter than 'ImageID'
+// and 'Reinstall' set to true.
+// If the given image ID is nil, it deletes the machine instead.
+func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineReinstallRequest
+	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	logger := utils.Logger(request).Sugar()
+
+	if m.Allocation != nil && m.State.Value != metal.LockedState {
+		old := *m
+
+		m.Allocation.Reinstall = true
+		m.Allocation.ImageID = requestPayload.ImageID
+
+		resp := makeMachineResponse(m, r.ds, logger)
+		if resp.Allocation.Image != nil {
+			err = r.ds.UpdateMachine(&old, m)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+			logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
+
+			err = deleteVRFSwitches(r.ds, m, logger)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+
+			err = publishDeleteEvent(r, m, logger)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+
+			err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
+			if err != nil {
+				logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
+			}
+
+			err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+			if err != nil {
+				logger.Error("Failed to send response", zap.Error(err))
+			}
+
+			return
+		}
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, fmt.Errorf("machine either locked, not allocated yet or invalid image ID specified")))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
 	}
 }
 
-func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineNetworks []*metal.MachineNetwork) error {
-	for _, machineNetwork := range machineNetworks {
+func (r machineResource) abortReinstallMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineAbortReinstallRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	logger := utils.Logger(request).Sugar()
+
+	var bootInfo *v1.BootInfo
+
+	if m.Allocation != nil && !requestPayload.PrimaryDiskWiped {
+		old := *m
+
+		m.Allocation.Reinstall = false
+		if m.Allocation.MachineSetup != nil {
+			m.Allocation.ImageID = m.Allocation.MachineSetup.ImageID
+		}
+
+		err = r.ds.UpdateMachine(&old, m)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		logger.Infow("removed reinstall mark", "machineID", m.ID)
+
+		if m.Allocation.MachineSetup != nil {
+			bootInfo = &v1.BootInfo{
+				ImageID:      m.Allocation.MachineSetup.ImageID,
+				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
+				OSPartition:  m.Allocation.MachineSetup.OSPartition,
+				Initrd:       m.Allocation.MachineSetup.Initrd,
+				Cmdline:      m.Allocation.MachineSetup.Cmdline,
+				Kernel:       m.Allocation.MachineSetup.Kernel,
+				BootloaderID: m.Allocation.MachineSetup.BootloaderID,
+			}
+		}
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, bootInfo)
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
+}
+
+func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.SugaredLogger) error {
+	_, err := setVrfAtSwitches(ds, m, "")
+	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
+	return err
+}
+
+func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.SugaredLogger) error {
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID}
+	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
+	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
+	return err
+}
+
+func releaseMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, machine *metal.Machine) error {
+	for _, machineNetwork := range machine.Allocation.MachineNetworks {
 		for _, ipString := range machineNetwork.IPs {
-			ip, err := r.ds.FindIPByID(ipString)
+			ip, err := ds.FindIPByID(ipString)
 			if err != nil {
 				return err
 			}
@@ -1584,9 +1721,9 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				continue
 			}
 			// disassociate machine from ip
-			new := *ip
-			new.RemoveMachineId(machine.GetID())
-			err = r.ds.UpdateIP(ip, &new)
+			newIP := *ip
+			newIP.RemoveMachineId(machine.GetID())
+			err = ds.UpdateIP(ip, &newIP)
 			if err != nil {
 				return err
 			}
@@ -1595,15 +1732,15 @@ func (r machineResource) releaseMachineNetworks(machine *metal.Machine, machineN
 				continue
 			}
 			// ips that are associated to other machines will should not be released automatically
-			if len(new.GetMachineIds()) > 0 {
+			if len(newIP.GetMachineIds()) > 0 {
 				continue
 			}
 			// release and delete
-			err = r.ipamer.ReleaseIP(*ip)
+			err = ipamer.ReleaseIP(*ip)
 			if err != nil {
 				return err
 			}
-			err = r.ds.DeleteIP(ip)
+			err = ds.DeleteIP(ip)
 			if err != nil {
 				return err
 			}
@@ -1718,9 +1855,52 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 	return ec, err
 }
 
-// EvaluateMachineLiveliness evaluates the liveliness of a given machine
-func (r machineResource) evaluateMachineLiveliness(m metal.Machine) (metal.MachineLiveliness, error) {
-	provisioningEvents, err := r.ds.FindProvisioningEventContainer(m.ID)
+// MachineLiveliness evaluates whether machines are still alive or if they have died
+func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) error {
+	logger.Info("machine liveliness was requested")
+
+	machines, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	liveliness := make(metrics.PartitionLiveliness)
+
+	unknown := 0
+	alive := 0
+	dead := 0
+	errors := 0
+	for _, m := range machines {
+		p := liveliness[m.PartitionID]
+		lvlness, err := evaluateMachineLiveliness(ds, m)
+		if err != nil {
+			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
+			errors++
+			// fall through, so the rest of the machines is getting evaluated
+		}
+		switch lvlness {
+		case metal.MachineLivelinessAlive:
+			alive++
+			p.Alive++
+		case metal.MachineLivelinessDead:
+			dead++
+			p.Dead++
+		default:
+			unknown++
+			p.Unknown++
+		}
+		liveliness[m.PartitionID] = p
+	}
+
+	metrics.ProvideLiveliness(liveliness)
+
+	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errors)
+
+	return nil
+}
+
+func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
+	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
 		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
@@ -1740,7 +1920,7 @@ func (r machineResource) evaluateMachineLiveliness(m metal.Machine) (metal.Machi
 		} else {
 			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
 		}
-		err = r.ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
+		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
 		if err != nil {
 			return provisioningEvents.Liveliness, err
 		}
@@ -1749,56 +1929,8 @@ func (r machineResource) evaluateMachineLiveliness(m metal.Machine) (metal.Machi
 	return provisioningEvents.Liveliness, nil
 }
 
-func (r machineResource) checkMachineLiveliness(request *restful.Request, response *restful.Response) {
-	logger := utils.Logger(request).Sugar()
-	logger.Info("liveliness report was requested")
-
-	machines, err := r.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	liveliness := make(metrics.PartitionLiveliness)
-
-	unknown := 0
-	alive := 0
-	dead := 0
-	for _, m := range machines {
-		p := liveliness[m.PartitionID]
-		lvlness, err := r.evaluateMachineLiveliness(m)
-		if err != nil {
-			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
-			// fall through, so the caller should get the evaulated state, although it is not persistet
-		}
-		switch lvlness {
-		case metal.MachineLivelinessAlive:
-			alive++
-			p.Alive++
-		case metal.MachineLivelinessDead:
-			dead++
-			p.Dead++
-		default:
-			unknown++
-			p.Unknown++
-		}
-		liveliness[m.PartitionID] = p
-	}
-
-	report := v1.MachineLivelinessReport{
-		AliveCount:   alive,
-		DeadCount:    dead,
-		UnknownCount: unknown,
-	}
-
-	metrics.ProvideLiveliness(liveliness)
-	err = response.WriteHeaderAndEntity(http.StatusOK, report)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, logger *zap.SugaredLogger) error {
+// ResurrectMachines attempts to resurrect machines that are obviously dead
+func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1831,11 +1963,13 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, logg
 		}
 
 		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = publishMachineCmd(logger, &m, publisher, metal.MachineResetCmd)
+		err = freeMachine(ds, publisher, ipamer, &m, logger)
 		if err != nil {
-			logger.Errorw("error during machine resurrection when trying to publish machine reset cmd", "machineID", m.ID, "error", err)
+			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 		}
 	}
+
+	logger.Info("finished machine resurrection")
 
 	return nil
 }
@@ -1904,9 +2038,9 @@ func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
-			Command: cmd,
-			Params:  pp,
-			Target:  m,
+			Command:         cmd,
+			Params:          pp,
+			TargetMachineID: m.ID,
 		},
 	}
 

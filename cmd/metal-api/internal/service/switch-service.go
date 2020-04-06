@@ -288,28 +288,25 @@ func setVrfAtSwitches(ds *datastore.RethinkStore, m *metal.Machine, vrf string) 
 }
 
 func setVrf(s *metal.Switch, mid, vrf string) {
-	// gather nics within MachineConnections
-	changed := metal.Nics{}
+	affectedMacs := map[metal.MacAddress]bool{}
 	for _, c := range s.MachineConnections[mid] {
-		c.Nic.Vrf = vrf
-		changed = append(changed, c.Nic)
+		mac := c.Nic.MacAddress
+		affectedMacs[mac] = true
 	}
 
-	if len(changed) == 0 {
+	if len(affectedMacs) == 0 {
 		return
 	}
 
-	// update sw.Nics
-	currentByMac := s.Nics.ByMac()
-	changedByMac := changed.ByMac()
-	s.Nics = metal.Nics{}
-	for mac, old := range currentByMac {
+	nics := metal.Nics{}
+	for mac, old := range s.Nics.ByMac() {
 		e := old
-		if new, has := changedByMac[mac]; has {
-			e = new
+		if _, ok := affectedMacs[mac]; ok {
+			e.Vrf = vrf
 		}
-		s.Nics = append(s.Nics, *e)
+		nics = append(nics, *e)
 	}
+	s.Nics = nics
 }
 
 func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) error {
@@ -338,6 +335,7 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore, logger *zap
 func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 	vnis := []string{}
 	cidrs := []string{}
+
 	for _, net := range m.Allocation.MachineNetworks {
 		if net.Underlay {
 			for _, ip := range net.IPs {

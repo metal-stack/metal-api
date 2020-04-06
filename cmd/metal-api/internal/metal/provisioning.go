@@ -43,9 +43,9 @@ var (
 		ProvisioningEventPhonedHome:       true,
 	}
 	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
-	ProvisioningEventsInspectionLimit = 2 * len(expectedProvisioningEventSequence) // only saved events count
-	// ExpectedProvisioningEventSequence is the expected sequence in which
-	expectedProvisioningEventSequence = provisioningEventSequence{
+	ProvisioningEventsInspectionLimit = 2 * len(expectedBootSequence) // only saved events count
+	// expectedBootSequence is the expected provisioning event sequence of an expected machine boot from PXE up to a running OS
+	expectedBootSequence = provisioningEventSequence{
 		ProvisioningEventPXEBooting,
 		ProvisioningEventPreparing,
 		ProvisioningEventRegistering,
@@ -65,12 +65,12 @@ var (
 		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
 		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
 		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventResetFailCount:   expectedProvisioningEventSequence,
+		ProvisioningEventResetFailCount:   expectedBootSequence,
 	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{
 		ProvisioningEventPlannedReboot,
 		ProvisioningEventResetFailCount,
-		*expectedProvisioningEventSequence.lastEvent(),
+		*expectedBootSequence.lastEvent(),
 	}
 )
 
@@ -158,18 +158,18 @@ func (p *ProvisioningEventContainer) TrimEvents(maxCount int) {
 
 // ProvisioningEvent is an event emitted by a machine during the provisioning sequence
 type ProvisioningEvent struct {
-	Time    time.Time             `rethinkdb:"time"`
-	Event   ProvisioningEventType `rethinkdb:"event"`
-	Message string                `rethinkdb:"message"`
+	Time    time.Time             `rethinkdb:"time" json:"time"`
+	Event   ProvisioningEventType `rethinkdb:"event" json:"event"`
+	Message string                `rethinkdb:"message" json:"message"`
 }
 
 // ProvisioningEventContainer stores the provisioning events of a machine
 type ProvisioningEventContainer struct {
 	Base
-	Liveliness                   MachineLiveliness  `rethinkdb:"liveliness"`
-	Events                       ProvisioningEvents `rethinkdb:"events"`
-	LastEventTime                *time.Time         `rethinkdb:"last_event_time"`
-	IncompleteProvisioningCycles string             `rethinkdb:"incomplete_cycles"`
+	Liveliness                   MachineLiveliness  `rethinkdb:"liveliness" json:"liveliness"`
+	Events                       ProvisioningEvents `rethinkdb:"events" json:"events"`
+	LastEventTime                *time.Time         `rethinkdb:"last_event_time" json:"last_event_time"`
+	IncompleteProvisioningCycles string             `rethinkdb:"incomplete_cycles" json:"incomplete_cycles"`
 }
 
 // ProvisioningEventContainers is a list of machine provisioning event containers.

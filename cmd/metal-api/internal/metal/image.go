@@ -9,14 +9,14 @@ import (
 // An Image describes an image which could be used for provisioning.
 type Image struct {
 	Base
-	URL            string                    `rethinkdb:"url"`
-	Features       map[ImageFeatureType]bool `rethinkdb:"features"`
-	OS             string                    `rethinkdb:"os"`
-	Version        string                    `rethinkdb:"version"`
-	ExpirationDate time.Time                 `rethinkdb:"expirationDate"`
+	URL            string                    `rethinkdb:"url" json:"url"`
+	Features       map[ImageFeatureType]bool `rethinkdb:"features" json:"features"`
+	OS             string                    `rethinkdb:"os" json:"os"`
+	Version        string                    `rethinkdb:"version" json:"version"`
+	ExpirationDate time.Time                 `rethinkdb:"expirationDate" json:"expirationDate"`
 	// Classification defines the state of a version (preview, supported, deprecated)
 	// FIXME implement validation
-	Classification VersionClassification `rethinkdb:"classification"`
+	Classification VersionClassification `rethinkdb:"classification" json:"classification"`
 }
 
 // VersionClassification is the logical state of a version according to
