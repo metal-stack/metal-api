@@ -197,7 +197,7 @@ var (
 		},
 	}
 
-	exireDate = time.Now().Add(time.Hour)
+	expireDate = time.Now().Add(time.Hour).Truncate(time.Second)
 	// Images
 	Img1 = metal.Image{
 		Base: metal.Base{
@@ -208,7 +208,7 @@ var (
 		URL:            "http://somewhere/image1.zip",
 		OS:             "image",
 		Version:        "1.0.0",
-		ExpirationDate: exireDate,
+		ExpirationDate: expireDate,
 	}
 	Img2 = metal.Image{
 		Base: metal.Base{
@@ -219,7 +219,7 @@ var (
 		URL:            "http://somewhere/image2.zip",
 		OS:             "image",
 		Version:        "2.0.0",
-		ExpirationDate: exireDate,
+		ExpirationDate: expireDate,
 	}
 	Img3 = metal.Image{
 		Base: metal.Base{
@@ -229,7 +229,7 @@ var (
 		},
 		OS:             "image",
 		Version:        "3.0.0",
-		ExpirationDate: exireDate,
+		ExpirationDate: expireDate,
 	}
 
 	// Networks

@@ -19,7 +19,6 @@ func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &img, nil
 	// FIXME consider exposing semver matching to a separate api endpoint
 	i, err := rs.getMostRecentImageFor(id, allImages)
 	if err != nil {
