@@ -51,24 +51,24 @@ func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image
 // DeleteOrphanImages deletes Images which are no longer allocated by a machine and older than allowed.
 // Always at least one image per OS is kept even if no longer valid and not allocated.
 // This ensures to have always at least a usable image left.
-func (rs *RethinkStore) DeleteOrphanImages(images *metal.Images, machines *metal.Machines) (metal.Images, error) {
+func (rs *RethinkStore) DeleteOrphanImages(images metal.Images, machines metal.Machines) (metal.Images, error) {
 	if images == nil {
 		is, err := rs.ListImages()
 		if err != nil {
 			return nil, err
 		}
-		images = &is
+		images = is
 	}
 	if machines == nil {
 		ms, err := rs.ListMachines()
 		if err != nil {
 			return nil, err
 		}
-		machines = &ms
+		machines = ms
 	}
 	firstOSImage := make(map[string]bool)
 	result := metal.Images{}
-	sortedImages := sortImages(*images)
+	sortedImages := sortImages(images)
 	for _, image := range sortedImages {
 		// Always keep the most recent image for one OS even if no machine uses it is not valid anymore
 		// this prevents that there is no image at all left if no new images are pushed.
@@ -90,12 +90,12 @@ func (rs *RethinkStore) DeleteOrphanImages(images *metal.Images, machines *metal
 }
 
 // isOrphanImage check if a image is not allocated and older than allowed.
-func isOrphanImage(image metal.Image, machines *metal.Machines) bool {
+func isOrphanImage(image metal.Image, machines metal.Machines) bool {
 	if time.Since(image.ExpirationDate) < 0 {
 		return false
 	}
 	orphan := true
-	for _, m := range *machines {
+	for _, m := range machines {
 		if m.Allocation == nil {
 			continue
 		}

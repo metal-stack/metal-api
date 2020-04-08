@@ -405,13 +405,13 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 			images:   []metal.Image{i1, i2, i3, i4, i5, i6, i7, i8, i9},
 			machines: []metal.Machine{testdata.M1, testdata.M9},
 			rs:       ds,
-			want:     metal.Images{i6, i8},
+			want:     metal.Images{i8, i6},
 			wantErr:  false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.DeleteOrphanImages(&tt.images, &tt.machines)
+			got, err := tt.rs.DeleteOrphanImages(tt.images, tt.machines)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteOrphanImages() error = %v, wantErr %v", err, tt.wantErr)
 				return
