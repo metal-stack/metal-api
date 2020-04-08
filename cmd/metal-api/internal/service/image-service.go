@@ -179,6 +179,16 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		expirationDate = requestPayload.ExpirationDate
 	}
 
+	vc := metal.ClassificationPreview
+	if requestPayload.Classification != nil {
+		vc, err = metal.VersionClassificationFrom(*requestPayload.Classification)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -190,6 +200,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		OS:             os,
 		Version:        v.String(),
 		ExpirationDate: expirationDate,
+		Classification: vc,
 	}
 
 	err = ir.ds.CreateImage(img)
@@ -295,6 +306,20 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	}
 	if len(features) > 0 {
 		newImage.Features = features
+	}
+
+	if requestPayload.Classification != nil {
+		vc, err := metal.VersionClassificationFrom(*requestPayload.Classification)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
+		newImage.Classification = vc
+	}
+
+	if requestPayload.ExpirationDate != nil {
+		newImage.ExpirationDate = *requestPayload.ExpirationDate
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)

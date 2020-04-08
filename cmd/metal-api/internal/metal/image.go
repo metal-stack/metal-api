@@ -38,6 +38,22 @@ const (
 	ClassificationDeprecated VersionClassification = "deprecated"
 )
 
+var versionClassifications = map[string]VersionClassification{
+	"preview":    ClassificationPreview,
+	"supported":  ClassificationSupported,
+	"deprecated": ClassificationDeprecated,
+}
+
+// VersionClassificationFrom create a VersionClassification from string
+func VersionClassificationFrom(classification string) (VersionClassification, error) {
+	vc, ok := versionClassifications[classification]
+	if !ok {
+		return "", fmt.Errorf("given versionclassification is not valid:%s", classification)
+	}
+	return vc, nil
+
+}
+
 // ImageFeatureType specifies the features of a images
 type ImageFeatureType string
 

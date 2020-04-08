@@ -209,6 +209,7 @@ var (
 		OS:             "image",
 		Version:        "1.0.0",
 		ExpirationDate: expireDate,
+		Classification: metal.ClassificationPreview,
 	}
 	Img2 = metal.Image{
 		Base: metal.Base{
@@ -220,6 +221,7 @@ var (
 		OS:             "image",
 		Version:        "2.0.0",
 		ExpirationDate: expireDate,
+		Classification: metal.ClassificationSupported,
 	}
 	Img3 = metal.Image{
 		Base: metal.Base{
@@ -230,6 +232,7 @@ var (
 		OS:             "image",
 		Version:        "3.0.0",
 		ExpirationDate: expireDate,
+		Classification: metal.ClassificationDeprecated,
 	}
 
 	// Networks

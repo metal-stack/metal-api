@@ -24,6 +24,8 @@ type ImageCreateRequest struct {
 type ImageUpdateRequest struct {
 	Common
 	ImageBase
+	ExpirationDate *time.Time `json:"expirationDate" description:"expirationDate of this image" optional:"true"`
+	Classification *string    `json:"classification" description:"clasification of this image" optional:"true"`
 }
 
 type ImageResponse struct {
