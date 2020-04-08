@@ -89,15 +89,6 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.DELETE("/").
-		To(admin(ir.deleteImages)).
-		Operation("deleteImages").
-		Doc("deletes all images which are older than ExpirationDate and not used by a machine").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.ImageResponse{}).
-		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	return ws
 }
 
@@ -242,35 +233,6 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func (ir imageResource) deleteImages(request *restful.Request, response *restful.Response) {
-
-	images, err := ir.ds.ListImages()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	machines, err := ir.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	deletedImages, err := ir.ds.DeleteOrphanImages(&images, &machines)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	result := []*v1.ImageResponse{}
-	for _, image := range deletedImages {
-		result = append(result, v1.NewImageResponse(&image))
-	}
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
