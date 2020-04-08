@@ -10,7 +10,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
-// FindImage returns an image or a given id.
 // FindImage returns an image for the given image id.
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	var img metal.Image
@@ -22,7 +21,6 @@ func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	// FIXME consider exposing semver matching to a separate api endpoint
 	i, err := rs.getMostRecentImageFor(id, allImages)
 	if err != nil {
 		return nil, metal.NotFound("no image for id:%s found:%v", id, err)
