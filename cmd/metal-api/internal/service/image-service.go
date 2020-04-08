@@ -166,8 +166,8 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	}
 
 	expirationDate := time.Now().Add(metal.DefaultImageExpiration)
-	if !requestPayload.ExpirationDate.IsZero() {
-		expirationDate = requestPayload.ExpirationDate
+	if requestPayload.ExpirationDate != nil && !requestPayload.ExpirationDate.IsZero() {
+		expirationDate = *requestPayload.ExpirationDate
 	}
 
 	vc := metal.ClassificationPreview

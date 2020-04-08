@@ -15,10 +15,10 @@ type ImageBase struct {
 
 type ImageCreateRequest struct {
 	Common
-	URL            string    `json:"url" description:"the url of this image"`
-	Features       []string  `json:"features" description:"features of this image" optional:"true"`
-	ExpirationDate time.Time `json:"expirationDate" description:"expirationDate of this image" optional:"false"`
-	Classification *string   `json:"classification" description:"clasification of this image" optional:"true"`
+	URL            string     `json:"url" description:"the url of this image"`
+	Features       []string   `json:"features" description:"features of this image" optional:"true"`
+	ExpirationDate *time.Time `json:"expirationDate" description:"expirationDate of this image" optional:"true"`
+	Classification *string    `json:"classification" description:"clasification of this image" optional:"true"`
 }
 
 type ImageUpdateRequest struct {
