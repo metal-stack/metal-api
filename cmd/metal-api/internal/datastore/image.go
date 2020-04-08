@@ -118,8 +118,8 @@ func isOrphanImage(image metal.Image, machines *metal.Machines) bool {
 // version must be a semantic version, see https://semver.org/
 // we decided to specify the version in the form of major.minor.patch,
 // where patch is in the form of YYYYMMDD
-// If version is not fully specified, e.g. ubuntu-19.4
-// then the most recent ubuntu image (ubuntu-19.4.20191007) is returned
+// If version is not fully specified, e.g. ubuntu-19.10 or ubuntu-19.10
+// then the most recent ubuntu image (ubuntu-19.10.20200407) is returned
 // If patch is specified e.g. ubuntu-20.04.20200502 then this exact image is searched.
 func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*metal.Image, error) {
 	os, sv, err := rs.GetOsAndSemver(id)

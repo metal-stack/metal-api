@@ -114,6 +114,7 @@ var machineLiveliness = &cobra.Command{
 var deleteOrphanImagesCmd = &cobra.Command{
 	Use:     "delete-orphan-images",
 	Short:   "delete orphan images",
+	Long:    "removes images which are expired and not used by any allocated machine, still one image per operating system is preserved",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		initLogging()
