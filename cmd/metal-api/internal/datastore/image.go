@@ -175,18 +175,19 @@ func (rs *RethinkStore) GetOsAndSemver(id string) (string, *semver.Version, erro
 func sortImages(images []metal.Image) []metal.Image {
 	sort.SliceStable(images, func(i, j int) bool {
 		c := strings.Compare(images[i].OS, images[j].OS)
+		// OS is equal
+		if c == 0 {
+			iv, err := semver.NewVersion(images[i].Version)
+			if err != nil {
+				return false
+			}
+			jv, err := semver.NewVersion(images[j].Version)
+			if err != nil {
+				return true
+			}
+			return iv.GreaterThan(jv)
+		}
 		return c <= 0
-	})
-	sort.SliceStable(images, func(i, j int) bool {
-		iv, err := semver.NewVersion(images[i].Version)
-		if err != nil {
-			return false
-		}
-		jv, err := semver.NewVersion(images[j].Version)
-		if err != nil {
-			return true
-		}
-		return iv.GreaterThan(jv)
 	})
 	return images
 }

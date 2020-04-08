@@ -331,6 +331,9 @@ func Test_sortImages(t *testing.T) {
 	i21 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9"}
 	i22 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10"}
 
+	i31 := metal.Image{Base: metal.Base{ID: "debian-17.04"}, OS: "debian", Version: "17.04"}
+	i32 := metal.Image{Base: metal.Base{ID: "debian-17.10"}, OS: "debian", Version: "17.10"}
+
 	tests := []struct {
 		name   string
 		images []metal.Image
@@ -344,7 +347,12 @@ func Test_sortImages(t *testing.T) {
 		{
 			name:   "ubuntu and alpine versions",
 			images: []metal.Image{i10, i21, i7, i3, i8, i6, i1, i9, i5, i2, i4, i11, i22},
-			want:   []metal.Image{i11, i10, i9, i8, i7, i6, i5, i4, i3, i2, i1, i22, i21},
+			want:   []metal.Image{i22, i21, i11, i10, i9, i8, i7, i6, i5, i4, i3, i2, i1},
+		},
+		{
+			name:   "ubuntu and artificial debian",
+			images: []metal.Image{i10, i7, i3, i8, i6, i1, i9, i32, i5, i2, i4, i11, i31},
+			want:   []metal.Image{i32, i31, i11, i10, i9, i8, i7, i6, i5, i4, i3, i2, i1},
 		},
 	}
 	for _, tt := range tests {
