@@ -12,11 +12,6 @@ import (
 
 // FindImage returns an image for the given image id.
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
-	var img metal.Image
-	err := rs.findEntityByID(rs.imageTable(), &img, id)
-	if err != nil {
-		return nil, err
-	}
 	allImages, err := rs.ListImages()
 	if err != nil {
 		return nil, err
