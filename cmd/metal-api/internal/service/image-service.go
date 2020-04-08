@@ -270,7 +270,11 @@ func (ir imageResource) deleteImages(request *restful.Request, response *restful
 		result = append(result, v1.NewImageResponse(&image))
 	}
 
-	response.WriteHeaderAndEntity(http.StatusOK, result)
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {

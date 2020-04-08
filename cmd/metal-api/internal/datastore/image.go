@@ -15,6 +15,9 @@ import (
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	var img metal.Image
 	err := rs.findEntityByID(rs.imageTable(), &img, id)
+	if err != nil {
+		return nil, err
+	}
 	allImages, err := rs.ListImages()
 	if err != nil {
 		return nil, err
@@ -179,10 +182,7 @@ func (rs *RethinkStore) GetOsAndSemver(id string) (string, *semver.Version, erro
 func sortImages(images []metal.Image) []metal.Image {
 	sort.SliceStable(images, func(i, j int) bool {
 		c := strings.Compare(images[i].OS, images[j].OS)
-		if c <= 0 {
-			return true
-		}
-		return false
+		return c <= 0
 	})
 	sort.SliceStable(images, func(i, j int) bool {
 		iv, err := semver.NewVersion(images[i].Version)
