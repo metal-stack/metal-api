@@ -22,8 +22,10 @@ type Image struct {
 	Classification VersionClassification `rethinkdb:"classification" json:"classification"`
 }
 
-// VersionClassification is the logical state of a version according to
-// https://github.wdf.sap.corp/kubernetes/kube-docs/wiki/Versioning-Policy
+// DefaultImageExpiration if not specified images will last for about 3 month
+var DefaultImageExpiration = time.Hour * 24 * 90
+
+// VersionClassification is the logical state of a version
 type VersionClassification string
 
 const (
@@ -42,9 +44,9 @@ const (
 )
 
 var versionClassifications = map[string]VersionClassification{
-	"preview":    ClassificationPreview,
-	"supported":  ClassificationSupported,
-	"deprecated": ClassificationDeprecated,
+	string(ClassificationPreview):    ClassificationPreview,
+	string(ClassificationSupported):  ClassificationSupported,
+	string(ClassificationDeprecated): ClassificationDeprecated,
 }
 
 // VersionClassificationFrom create a VersionClassification from string

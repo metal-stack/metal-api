@@ -100,8 +100,7 @@ func isOrphanImage(image metal.Image, machines metal.Machines) bool {
 			continue
 		}
 		if image.ID == m.Allocation.ImageID {
-			orphan = false
-			continue
+			return false
 		}
 	}
 	return orphan
@@ -129,7 +128,7 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 	}
 	constraint, err := semver.NewConstraint(matcher + sv.String())
 	if err != nil {
-		return nil, fmt.Errorf("could not create constraint of image version:%s err:%v", sv, err)
+		return nil, fmt.Errorf("could not create constraint of image version:%s err:%w", sv, err)
 	}
 
 	var latestImage *metal.Image

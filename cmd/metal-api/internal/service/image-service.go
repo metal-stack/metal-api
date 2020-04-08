@@ -165,7 +165,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		return
 	}
 
-	expirationDate := time.Now().Add(time.Hour * 24 * 90)
+	expirationDate := time.Now().Add(metal.DefaultImageExpiration)
 	if !requestPayload.ExpirationDate.IsZero() {
 		expirationDate = requestPayload.ExpirationDate
 	}
