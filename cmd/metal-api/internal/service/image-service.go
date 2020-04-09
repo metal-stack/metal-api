@@ -160,7 +160,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		features[ft] = true
 	}
 
-	os, v, err := ir.ds.GetOsAndSemver(requestPayload.ID)
+	os, v, err := datastore.GetOsAndSemver(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

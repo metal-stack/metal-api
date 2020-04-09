@@ -422,3 +422,64 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 		})
 	}
 }
+
+func TestGetOsAndSemver(t *testing.T) {
+	tests := []struct {
+		name    string
+		id      string
+		os      string
+		version *semver.Version
+		wantErr bool
+	}{
+		{
+			name:    "simple",
+			id:      "ubuntu-19.04",
+			os:      "ubuntu",
+			version: semver.MustParse("19.04"),
+			wantErr: false,
+		},
+		{
+			name:    "simple2",
+			id:      "ubuntu-19.04.20200408",
+			os:      "ubuntu",
+			version: semver.MustParse("19.04.20200408"),
+			wantErr: false,
+		},
+		{
+			name:    "twoparts",
+			id:      "ubuntu-small-19.04.20200408",
+			os:      "ubuntu-small",
+			version: semver.MustParse("19.04.20200408"),
+			wantErr: false,
+		},
+		{
+			name:    "fourparts",
+			id:      "ubuntu-is-very-small-19.04.20200408",
+			os:      "ubuntu-is-very-small",
+			version: semver.MustParse("19.04.20200408"),
+			wantErr: false,
+		},
+		{
+			name:    "startswithslash",
+			id:      "-ubuntu-19.04.20200408",
+			os:      "-ubuntu",
+			version: semver.MustParse("19.04.20200408"),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os, version, err := GetOsAndSemver(tt.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetOsAndSemver() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if os != tt.os {
+				t.Errorf("GetOsAndSemver() got = %v, want %v", os, tt.os)
+			}
+			if !reflect.DeepEqual(version, tt.version) {
+				t.Errorf("GetOsAndSemver() got1 = %v, want %v", os, tt.version)
+			}
+		})
+	}
+}
