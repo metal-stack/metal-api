@@ -2,12 +2,13 @@ package testdata
 
 import (
 	"fmt"
+
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 // If you want to add some Test Data, add it also to the following places:
