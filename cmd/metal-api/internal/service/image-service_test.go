@@ -32,7 +32,7 @@ func TestGetImages(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
-	require.Len(t, result, 3)
+	require.Len(t, result, 4)
 	require.Equal(t, testdata.Img1.ID, result[0].ID)
 	require.Equal(t, testdata.Img1.Name, *result[0].Name)
 	require.Equal(t, testdata.Img2.ID, result[1].ID)

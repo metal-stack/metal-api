@@ -319,6 +319,14 @@ func initDataStore() {
 		logger.Errorw("cannot connect to data store", "error", err)
 		panic(err)
 	}
+
+	// Migrate existing Images of allocations to semver images
+	// FIXME remove this after all machines are migrated.
+	_, err = ds.MigrateMachineImages(nil)
+	if err != nil {
+		logger.Errorw("cannot migrate images of machine allocations to semver equivalents", "error", err)
+		panic(err)
+	}
 }
 
 func initMasterData() {

@@ -48,6 +48,65 @@ func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image
 	return rs.updateEntity(rs.imageTable(), newImage, oldImage)
 }
 
+// MigrateMachineImages check images of all machine allocations and migrite them to semver images
+// must be executed only once.
+func (rs *RethinkStore) MigrateMachineImages(machines metal.Machines) (metal.Machines, error) {
+	if machines == nil {
+		ms, err := rs.ListMachines()
+		if err != nil {
+			return nil, err
+		}
+		machines = ms
+	}
+
+	allImages, err := rs.ListImages()
+	if err != nil {
+		return nil, err
+	}
+
+	url2ImageID := make(map[string]string)
+	for _, i := range allImages {
+		// only consider semver images
+		if i.OS == "" || i.Version == "" {
+			continue
+		}
+		url2ImageID[i.URL] = i.ID
+	}
+
+	var newMachines metal.Machines
+	for _, m := range machines {
+		if m.Allocation == nil {
+			continue
+		}
+
+		imageID := m.Allocation.ImageID
+		var i metal.Image
+		err = rs.findEntityByID(rs.imageTable(), &i, imageID)
+		if err != nil {
+			return nil, fmt.Errorf("unable to find image by image ID:%s err:%v", imageID, err)
+		}
+
+		semverImageID, ok := url2ImageID[i.URL]
+		newMachine := m
+		if !ok {
+			// no semver image with url configured, use most recent imageID
+			// check if given imageID is resolvable to a semver image
+			semverImage, err := rs.FindImage(imageID)
+			if err != nil {
+				return nil, fmt.Errorf("image:%s does not have a matching semver image by url err:%v", imageID, err)
+			}
+			semverImageID = semverImage.ID
+		}
+		newMachine.Allocation.ImageID = semverImageID
+		err := rs.UpdateMachine(&m, &newMachine)
+		if err != nil {
+			return nil, err
+		}
+		newMachines = append(newMachines, newMachine)
+	}
+	return newMachines, nil
+}
+
 // DeleteOrphanImages deletes Images which are no longer allocated by a machine and older than allowed.
 // Always at least one image per OS is kept even if no longer valid and not allocated.
 // This ensures to have always at least a usable image left.
