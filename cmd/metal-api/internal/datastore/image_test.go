@@ -224,24 +224,24 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 func Test_getMostRecentImageFor(t *testing.T) {
 	invalid := time.Now().Add(time.Hour * -1)
 	valid := time.Now().Add(time.Hour)
-	i1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
-	i2 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ExpirationDate: valid}
-	i3 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04", ExpirationDate: valid}
-	i4 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
-	i5 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ExpirationDate: valid}
-	i6 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.4", ExpirationDate: valid}
-	i7 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: valid}
-	i8 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200401"}, OS: "ubuntu", Version: "20.04.20200401", ExpirationDate: valid}
-	i9 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501", ExpirationDate: valid}
-	i10 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502", ExpirationDate: valid}
-	i11 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603", ExpirationDate: valid}
-	i12 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200602"}, OS: "ubuntu", Version: "20.10.20200602", ExpirationDate: valid}
-	i13 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200603"}, OS: "ubuntu", Version: "20.10.20200603", ExpirationDate: invalid}
+	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
+	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ExpirationDate: valid}
+	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04", ExpirationDate: valid}
+	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
+	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ExpirationDate: valid}
+	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.4", ExpirationDate: valid}
+	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: valid}
+	ubuntu20_04_20200401 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200401"}, OS: "ubuntu", Version: "20.04.20200401", ExpirationDate: valid}
+	ubuntu20_04_20200501 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501", ExpirationDate: valid}
+	ubuntu20_04_20200502 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502", ExpirationDate: valid}
+	ubuntu20_04_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603", ExpirationDate: valid}
+	ubuntu20_04_20200602 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200602"}, OS: "ubuntu", Version: "20.10.20200602", ExpirationDate: valid}
+	ubuntu20_10_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200603"}, OS: "ubuntu", Version: "20.10.20200603", ExpirationDate: invalid}
 
-	i21 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: valid}
-	i22 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
-	i23 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: valid}
-	i24 := metal.Image{Base: metal.Base{ID: "alpine-3.10.20191012"}, OS: "alpine", Version: "3.10.20191012", ExpirationDate: valid}
+	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: valid}
+	alpine3_9_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
+	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: valid}
+	alpine3_10_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.10.20191012"}, OS: "alpine", Version: "3.10.20191012", ExpirationDate: valid}
 	tests := []struct {
 		name    string
 		id      string
@@ -252,50 +252,50 @@ func Test_getMostRecentImageFor(t *testing.T) {
 		{
 			name:    "simple",
 			id:      "ubuntu-19.04",
-			images:  []metal.Image{i10, i7, i3, i8, i6, i1, i9, i5, i2, i4, i11},
-			want:    &i6,
+			images:  []metal.Image{ubuntu20_04_20200502, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603},
+			want:    &ubuntu19_04,
 			wantErr: false,
 		},
 		{
 			name:    "also simple",
 			id:      "ubuntu-19.10",
-			images:  []metal.Image{i10, i21, i7, i3, i8, i6, i1, i9, i5, i2, i4, i11, i22},
-			want:    &i7,
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    &ubuntu19_10,
 			wantErr: false,
 		},
 		{
 			name:    "patch given with no match",
 			id:      "ubuntu-20.04.2020",
-			images:  []metal.Image{i10, i21, i7, i3, i8, i6, i1, i9, i5, i2, i4, i11, i22},
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "patch given with match",
 			id:      "ubuntu-20.04.20200502",
-			images:  []metal.Image{i10, i21, i7, i3, i8, i6, i1, i9, i5, i2, i4, i11, i22},
-			want:    &i10,
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    &ubuntu20_04_20200502,
 			wantErr: false,
 		},
 		{
 			name:    "alpine",
 			id:      "alpine-3.10",
-			images:  []metal.Image{i10, i21, i7, i3, i24, i8, i6, i1, i9, i5, i23, i2, i4, i11, i22},
-			want:    &i24,
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, alpine3_10_20191012, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, alpine3_10, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    &alpine3_10_20191012,
 			wantErr: false,
 		},
 		{
 			name:    "alpine II",
 			id:      "alpine-3.9",
-			images:  []metal.Image{i10, i21, i7, i3, i24, i8, i6, i1, i9, i5, i23, i2, i4, i11, i22},
-			want:    &i22,
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, alpine3_10_20191012, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, alpine3_10, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    &alpine3_9_20191012,
 			wantErr: false,
 		},
 		{
 			name:    "ubuntu with invalid",
 			id:      "ubuntu-20.10",
-			images:  []metal.Image{i12, i13},
-			want:    &i12,
+			images:  []metal.Image{ubuntu20_04_20200602, ubuntu20_10_20200603},
+			want:    &ubuntu20_04_20200602,
 			wantErr: false,
 		},
 	}
@@ -316,23 +316,23 @@ func Test_getMostRecentImageFor(t *testing.T) {
 }
 
 func Test_sortImages(t *testing.T) {
-	i1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1"}
-	i2 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04"}
-	i3 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04"}
-	i4 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10"}
-	i5 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04"}
-	i6 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.04"}
-	i7 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10"}
-	i8 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200401"}, OS: "ubuntu", Version: "20.04.20200401"}
-	i9 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501"}
-	i10 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502"}
-	i11 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603"}
+	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1"}
+	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04"}
+	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04"}
+	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10"}
+	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04"}
+	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.04"}
+	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10"}
+	ubuntu20_04_20200401 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200401"}, OS: "ubuntu", Version: "20.04.20200401"}
+	ubuntu20_04_20200501 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501"}
+	ubuntu20_04_20200502 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502"}
+	ubuntu20_04_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603"}
 
-	i21 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9"}
-	i22 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10"}
+	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9"}
+	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10"}
 
-	i31 := metal.Image{Base: metal.Base{ID: "debian-17.04"}, OS: "debian", Version: "17.04"}
-	i32 := metal.Image{Base: metal.Base{ID: "debian-17.10"}, OS: "debian", Version: "17.10"}
+	debian17_04 := metal.Image{Base: metal.Base{ID: "debian-17.04"}, OS: "debian", Version: "17.04"}
+	debian17_10 := metal.Image{Base: metal.Base{ID: "debian-17.10"}, OS: "debian", Version: "17.10"}
 
 	tests := []struct {
 		name   string
@@ -341,18 +341,18 @@ func Test_sortImages(t *testing.T) {
 	}{
 		{
 			name:   "ubuntu versions",
-			images: []metal.Image{i10, i7, i3, i8, i6, i1, i9, i5, i2, i4, i11},
-			want:   []metal.Image{i11, i10, i9, i8, i7, i6, i5, i4, i3, i2, i1},
+			images: []metal.Image{ubuntu20_04_20200502, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603},
+			want:   []metal.Image{ubuntu20_04_20200603, ubuntu20_04_20200502, ubuntu20_04_20200501, ubuntu20_04_20200401, ubuntu19_10, ubuntu19_04, ubuntu18_04, ubuntu17_10, ubuntu17_04, ubuntu14_04, ubuntu14_1},
 		},
 		{
 			name:   "ubuntu and alpine versions",
-			images: []metal.Image{i10, i21, i7, i3, i8, i6, i1, i9, i5, i2, i4, i11, i22},
-			want:   []metal.Image{i22, i21, i11, i10, i9, i8, i7, i6, i5, i4, i3, i2, i1},
+			images: []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_10},
+			want:   []metal.Image{alpine3_10, alpine3_9, ubuntu20_04_20200603, ubuntu20_04_20200502, ubuntu20_04_20200501, ubuntu20_04_20200401, ubuntu19_10, ubuntu19_04, ubuntu18_04, ubuntu17_10, ubuntu17_04, ubuntu14_04, ubuntu14_1},
 		},
 		{
 			name:   "ubuntu and artificial debian",
-			images: []metal.Image{i10, i7, i3, i8, i6, i1, i9, i32, i5, i2, i4, i11, i31},
-			want:   []metal.Image{i32, i31, i11, i10, i9, i8, i7, i6, i5, i4, i3, i2, i1},
+			images: []metal.Image{ubuntu20_04_20200502, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, debian17_10, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, debian17_04},
+			want:   []metal.Image{debian17_10, debian17_04, ubuntu20_04_20200603, ubuntu20_04_20200502, ubuntu20_04_20200501, ubuntu20_04_20200401, ubuntu19_10, ubuntu19_04, ubuntu18_04, ubuntu17_10, ubuntu17_04, ubuntu14_04, ubuntu14_1},
 		},
 	}
 	for _, tt := range tests {
@@ -383,15 +383,15 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 
 	invalid := time.Now().Add(time.Hour * -1)
 	valid := time.Now().Add(time.Hour)
-	i1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
-	i2 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ExpirationDate: valid}
-	i3 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04", ExpirationDate: valid}
-	i4 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
-	i5 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ExpirationDate: valid}
-	i6 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.04", ExpirationDate: invalid} // not allocated
-	i7 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: invalid} // allocated
-	i8 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: invalid}     // not allocated
-	i9 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: invalid}   // not allocated but kept because last from that os
+	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
+	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ExpirationDate: valid}
+	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04", ExpirationDate: valid}
+	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
+	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ExpirationDate: valid}
+	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.04", ExpirationDate: invalid} // not allocated
+	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: invalid} // allocated
+	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: invalid}       // not allocated
+	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: invalid}    // not allocated but kept because last from that os
 	tests := []struct {
 		name     string
 		images   metal.Images
@@ -402,10 +402,10 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	}{
 		{
 			name:     "simple",
-			images:   []metal.Image{i1, i2, i3, i4, i5, i6, i7, i8, i9},
+			images:   []metal.Image{ubuntu14_1, ubuntu14_04, ubuntu17_04, ubuntu17_10, ubuntu18_04, ubuntu19_04, ubuntu19_10, alpine3_9, alpine3_10},
 			machines: []metal.Machine{testdata.M1, testdata.M9},
 			rs:       ds,
-			want:     metal.Images{i8, i6},
+			want:     metal.Images{alpine3_9, ubuntu19_04},
 			wantErr:  false,
 		},
 	}

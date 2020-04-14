@@ -48,7 +48,7 @@ func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image
 	return rs.updateEntity(rs.imageTable(), newImage, oldImage)
 }
 
-// MigrateMachineImages check images of all machine allocations and migrite them to semver images
+// MigrateMachineImages check images of all machine allocations and migrate them to semver images
 // must be executed only once.
 func (rs *RethinkStore) MigrateMachineImages(machines metal.Machines) (metal.Machines, error) {
 	if machines == nil {
