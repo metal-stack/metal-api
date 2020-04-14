@@ -10,6 +10,16 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
+// GetImage return a image for a given id without semver matching.
+func (rs *RethinkStore) GetImage(id string) (*metal.Image, error) {
+	var i metal.Image
+	err := rs.findEntityByID(rs.imageTable(), &i, id)
+	if err != nil {
+		return nil, err
+	}
+	return &i, nil
+}
+
 // FindImage returns an image for the given image id.
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	allImages, err := rs.ListImages()

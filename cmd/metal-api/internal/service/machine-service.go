@@ -2170,7 +2170,7 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore,
 	var i *metal.Image
 	if m.Allocation != nil {
 		if m.Allocation.ImageID != "" {
-			i, err = ds.FindImage(m.Allocation.ImageID)
+			i, err = ds.GetImage(m.Allocation.ImageID)
 			if err != nil {
 				logger.Errorw("machine references image, but image cannot be found in database", "machineID", m.ID, "imageID", m.Allocation.ImageID, "error", err)
 			}

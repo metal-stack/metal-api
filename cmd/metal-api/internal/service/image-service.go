@@ -113,7 +113,7 @@ func (ir imageResource) migrateImages(request *restful.Request, response *restfu
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := ir.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -226,7 +226,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := ir.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -264,7 +264,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		return
 	}
 
-	oldImage, err := ir.ds.FindImage(requestPayload.ID)
+	oldImage, err := ir.ds.GetImage(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
