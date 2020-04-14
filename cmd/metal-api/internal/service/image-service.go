@@ -89,7 +89,26 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.GET("/migrate").
+		To(admin(ir.migrateImages)).
+		Operation("migrateImages").
+		Doc("migrate existing machine allocation images to semver equivalents").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
+}
+
+// Migrate existing Images of allocations to semver images
+// FIXME remove this after all machines are migrated.
+func (ir imageResource) migrateImages(request *restful.Request, response *restful.Response) {
+	_, err := ir.ds.MigrateMachineImages(nil)
+	if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot migrate images of machine allocations to semver equivalents, error:%v", err)) {
+		return
+	}
+	return
 }
 
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
