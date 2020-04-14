@@ -108,7 +108,6 @@ func (ir imageResource) migrateImages(request *restful.Request, response *restfu
 	if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot migrate images of machine allocations to semver equivalents, error:%v", err)) {
 		return
 	}
-	return
 }
 
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
