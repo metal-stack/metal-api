@@ -105,7 +105,7 @@ func (ir imageResource) webService() *restful.WebService {
 // FIXME remove this after all machines are migrated.
 func (ir imageResource) migrateImages(request *restful.Request, response *restful.Response) {
 	_, err := ir.ds.MigrateMachineImages(nil)
-	if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot migrate images of machine allocations to semver equivalents, error:%v", err)) {
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 }
