@@ -256,7 +256,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/ipmi"), body)
+			req := httptest.NewRequest("POST", "/v1/machine/ipmi", body)
 			req.Header.Add("Content-Type", "application/json")
 			container = injectEditor(container, req)
 			w := httptest.NewRecorder()

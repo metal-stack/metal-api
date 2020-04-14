@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
@@ -38,7 +39,7 @@ var (
 		SizeID:      "1",
 		Allocation: &metal.MachineAllocation{
 			Name:    "d1",
-			ImageID: "1",
+			ImageID: "image-1",
 			Project: "p1",
 		},
 		IPMI: IPMI1,
@@ -50,7 +51,7 @@ var (
 		SizeID:      "1",
 		Allocation: &metal.MachineAllocation{
 			Name:    "d2",
-			ImageID: "1",
+			ImageID: "image-1",
 			Project: "p2",
 		},
 	}
@@ -88,7 +89,7 @@ var (
 		SizeID:      "1", // No Size
 		Allocation: &metal.MachineAllocation{
 			Name:    "6",
-			ImageID: "999",
+			ImageID: "image-999",
 			Project: "p2",
 		},
 		Hardware: MachineHardware1,
@@ -120,12 +121,43 @@ var (
 		SizeID:      "1", // No Size
 		Allocation: &metal.MachineAllocation{
 			Name:    "8",
-			ImageID: "999",
+			ImageID: "image-999",
 			Project: "p2",
 		},
 		Hardware: MachineHardware1,
 	}
-
+	M9 = metal.Machine{
+		Base: metal.Base{
+			Name:        "1-core/100 B",
+			Description: "a machine with 1 core(s) and 100 B of RAM",
+			ID:          "6",
+		},
+		RackID:      "1",
+		PartitionID: "1",
+		SizeID:      "1", // No Size
+		Allocation: &metal.MachineAllocation{
+			Name:    "8",
+			ImageID: "ubuntu-19.10",
+			Project: "p2",
+		},
+		Hardware: MachineHardware1,
+	}
+	M10 = metal.Machine{
+		Base: metal.Base{
+			Name:        "1-core/100 B",
+			Description: "a machine with 1 core(s) and 100 B of RAM",
+			ID:          "10",
+		},
+		RackID:      "1",
+		PartitionID: "1",
+		SizeID:      "1", // No Size
+		Allocation: &metal.MachineAllocation{
+			Name:    "10",
+			ImageID: "image-4",
+			Project: "p2",
+		},
+		Hardware: MachineHardware1,
+	}
 	// Sizes
 	Sz1 = metal.Size{
 		Base: metal.Base{
@@ -180,31 +212,52 @@ var (
 		},
 	}
 
+	expireDate = time.Now().Add(time.Hour).Truncate(time.Second)
 	// Images
 	Img1 = metal.Image{
 		Base: metal.Base{
-			ID:          "1",
+			ID:          "image-1",
 			Name:        "Image 1",
 			Description: "description 1",
 		},
-		URL: "http://somewhere/image1.zip",
+		URL:            "http://somewhere/image1.zip",
+		OS:             "image",
+		Version:        "1.0.0",
+		ExpirationDate: expireDate,
+		Classification: metal.ClassificationPreview,
 	}
 	Img2 = metal.Image{
 		Base: metal.Base{
-			ID:          "2",
+			ID:          "image-2",
 			Name:        "Image 2",
 			Description: "description 2",
 		},
-		URL: "http://somewhere/image2.zip",
+		URL:            "http://somewhere/image2.zip",
+		OS:             "image",
+		Version:        "2.0.0",
+		ExpirationDate: expireDate,
+		Classification: metal.ClassificationSupported,
 	}
 	Img3 = metal.Image{
 		Base: metal.Base{
-			ID:          "3",
+			ID:          "image-3",
 			Name:        "Image 3",
 			Description: "description 3",
 		},
+		URL:            "http://somewhere/image3.zip",
+		OS:             "image",
+		Version:        "3.0.0",
+		ExpirationDate: expireDate,
+		Classification: metal.ClassificationDeprecated,
 	}
-
+	Img4 = metal.Image{
+		Base: metal.Base{
+			ID:          "image-4",
+			Name:        "Image 4",
+			Description: "description 4",
+		},
+		URL: "http://somewhere/image3.zip",
+	}
 	// Networks
 	prefix1    = metal.Prefix{IP: "185.1.2.0", Length: "26"}
 	prefix2    = metal.Prefix{IP: "100.64.2.0", Length: "16"}
@@ -553,7 +606,7 @@ var (
 
 	// All Images
 	TestImages = []metal.Image{
-		Img1, Img2, Img3,
+		Img1, Img2, Img3, Img4,
 	}
 	// All Networks
 	TestNetworks = []metal.Network{
@@ -659,11 +712,12 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("partition").Get("3")).Return(Partition3, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("partition").Get("999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("1")).Return(Img1, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("2")).Return(Img2, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("3")).Return(Img3, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("image-1")).Return(Img1, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("image-2")).Return(Img2, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("image-3")).Return(Img3, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("image-4")).Return(Img4, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("404")).Return(nil, fmt.Errorf("Test Error"))
-	mock.On(r.DB("mockdb").Table("image").Get("999")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("image").Get("image-999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Nw1.ID)).Return(Nw1, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Nw2.ID)).Return(Nw2, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Nw3.ID)).Return(Nw3, nil)

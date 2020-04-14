@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -88,13 +89,31 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.GET("/migrate").
+		To(admin(ir.migrateImages)).
+		Operation("migrateImages").
+		Doc("migrate existing machine allocation images to semver equivalents").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
+}
+
+// Migrate existing Images of allocations to semver images
+// FIXME remove this after all machines are migrated.
+func (ir imageResource) migrateImages(request *restful.Request, response *restful.Response) {
+	_, err := ir.ds.MigrateMachineImages(nil)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 }
 
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := ir.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -159,14 +178,38 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		features[ft] = true
 	}
 
+	os, v, err := datastore.GetOsAndSemver(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	expirationDate := time.Now().Add(metal.DefaultImageExpiration)
+	if requestPayload.ExpirationDate != nil && !requestPayload.ExpirationDate.IsZero() {
+		expirationDate = *requestPayload.ExpirationDate
+	}
+
+	vc := metal.ClassificationPreview
+	if requestPayload.Classification != nil {
+		vc, err = metal.VersionClassificationFrom(*requestPayload.Classification)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		URL:      requestPayload.URL,
-		Features: features,
+		URL:            requestPayload.URL,
+		Features:       features,
+		OS:             os,
+		Version:        v.String(),
+		ExpirationDate: expirationDate,
+		Classification: vc,
 	}
 
 	err = ir.ds.CreateImage(img)
@@ -183,7 +226,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := ir.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -221,7 +264,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		return
 	}
 
-	oldImage, err := ir.ds.FindImage(requestPayload.ID)
+	oldImage, err := ir.ds.GetImage(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -247,6 +290,20 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	}
 	if len(features) > 0 {
 		newImage.Features = features
+	}
+
+	if requestPayload.Classification != nil {
+		vc, err := metal.VersionClassificationFrom(*requestPayload.Classification)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
+		newImage.Classification = vc
+	}
+
+	if requestPayload.ExpirationDate != nil {
+		newImage.ExpirationDate = *requestPayload.ExpirationDate
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)

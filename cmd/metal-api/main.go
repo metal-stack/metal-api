@@ -111,8 +111,20 @@ var machineLiveliness = &cobra.Command{
 	},
 }
 
+var deleteOrphanImagesCmd = &cobra.Command{
+	Use:     "delete-orphan-images",
+	Short:   "delete orphan images",
+	Long:    "removes images which are expired and not used by any allocated machine, still one image per operating system is preserved",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+		initDataStore()
+		return deleteOrphanImages()
+	},
+}
+
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, machineLiveliness)
+	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, machineLiveliness, deleteOrphanImagesCmd)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -500,6 +512,13 @@ func evaluateLiveliness() error {
 	}
 
 	return nil
+}
+
+func deleteOrphanImages() error {
+	initDataStore()
+	initEventBus()
+	_, err := ds.DeleteOrphanImages(nil, nil)
+	return err
 }
 
 func run() {

@@ -3,6 +3,7 @@ module github.com/metal-stack/metal-api
 go 1.13
 
 require (
+	github.com/Masterminds/semver/v3 v3.0.3
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/avast/retry-go v2.5.0+incompatible // indirect
 	github.com/containerd/continuity v0.0.0-20200107194136-26c1120b8d41 // indirect

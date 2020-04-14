@@ -744,8 +744,17 @@
     },
     "v1.ImageCreateRequest": {
       "properties": {
+        "classification": {
+          "description": "clasification of this image",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
+          "type": "string"
+        },
+        "expirationDate": {
+          "description": "expirationDate of this image",
+          "format": "date-time",
           "type": "string"
         },
         "features": {
@@ -782,6 +791,10 @@
           "readOnly": true,
           "type": "string"
         },
+        "classification": {
+          "description": "clasification of this image",
+          "type": "string"
+        },
         "created": {
           "description": "the creation time of this entity",
           "format": "date-time",
@@ -790,6 +803,11 @@
         },
         "description": {
           "description": "a description for this entity",
+          "type": "string"
+        },
+        "expirationDate": {
+          "description": "expirationDate of this image",
+          "format": "date-time",
           "type": "string"
         },
         "features": {
@@ -816,13 +834,23 @@
       "required": [
         "changed",
         "created",
+        "expirationDate",
         "id"
       ]
     },
     "v1.ImageUpdateRequest": {
       "properties": {
+        "classification": {
+          "description": "clasification of this image",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
+          "type": "string"
+        },
+        "expirationDate": {
+          "description": "expirationDate of this image",
+          "format": "date-time",
           "type": "string"
         },
         "features": {
@@ -847,6 +875,7 @@
         }
       },
       "required": [
+        "expirationDate",
         "id"
       ]
     },
