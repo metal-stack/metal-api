@@ -2,7 +2,7 @@ package datastore
 
 import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 // FindSwitch returns a switch for a given id.
