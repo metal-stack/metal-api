@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmock "github.com/metal-stack/masterdata-api/api/v1/mocks"
@@ -25,7 +26,7 @@ import (
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/stretchr/testify/require"
 
-	restful "github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 )
 
 func TestGetIPs(t *testing.T) {

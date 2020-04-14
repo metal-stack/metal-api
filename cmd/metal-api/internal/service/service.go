@@ -15,7 +15,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/httperrors"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/security"
 	"go.uber.org/zap"
 )

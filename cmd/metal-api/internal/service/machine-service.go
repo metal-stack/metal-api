@@ -26,8 +26,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
 	"github.com/dustin/go-humanize"
-	"github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/pkg/errors"

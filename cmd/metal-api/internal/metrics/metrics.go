@@ -5,7 +5,7 @@ import (
 
 	"time"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

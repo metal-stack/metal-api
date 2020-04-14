@@ -8,9 +8,8 @@ require (
 	github.com/avast/retry-go v2.6.0+incompatible // indirect
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/emicklei/go-restful v2.12.0+incompatible
-	// FIXME need to update to v2
-	github.com/emicklei/go-restful-openapi v1.3.0
+	github.com/emicklei/go-restful-openapi/v2 v2.1.0
+	github.com/emicklei/go-restful/v3 v3.1.0
 	github.com/go-openapi/spec v0.19.7
 	github.com/go-stack/stack v1.8.0
 	github.com/gogo/protobuf v1.3.1 // indirect

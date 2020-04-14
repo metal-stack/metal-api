@@ -13,7 +13,7 @@ import (
 
 	"bytes"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/rest"
 	"github.com/metal-stack/security"
 )
