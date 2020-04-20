@@ -2,7 +2,7 @@ BINARY := metal-api
 MAINMODULE := github.com/metal-stack/metal-api/cmd/metal-api
 COMMONDIR := $(or ${COMMONDIR},../builder)
 
-in-docker: protoc gofmt test all;
+in-docker: gofmt test all;
 
 include $(COMMONDIR)/Makefile.inc
 

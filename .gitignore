@@ -4,6 +4,3 @@ vendor
 .vscode/settings.json
 generate
 coverage.out
-**/*.pb.go
-*.csr
-*.pem
