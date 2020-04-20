@@ -63,7 +63,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	sizeService := NewSize(ds)
 	networkService := NewNetwork(ds, ipamer, mdc)
 	partitionService := NewPartition(ds, nsq)
-	ipService := NewIP(ds, ipamer, mdc)
+	ipService := NewIP(ds, nsq.Endpoints, ipamer, mdc)
 
 	te := testEnv{
 		imageService:     imageService,

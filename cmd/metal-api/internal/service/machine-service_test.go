@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type emptyPublisher struct {
@@ -257,7 +257,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/ipmi"), body)
+			req := httptest.NewRequest("POST", "/v1/machine/ipmi", body)
 			req.Header.Add("Content-Type", "application/json")
 			container = injectEditor(container, req)
 			w := httptest.NewRecorder()

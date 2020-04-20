@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"net/http"
+
+	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -28,16 +30,22 @@ type ipResource struct {
 	webResource
 	ipamer ipam.IPAMer
 	mdc    mdm.Client
+	actor  *asyncActor
 }
 
 // NewIP returns a webservice for ip specific endpoints.
-func NewIP(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
+func NewIP(ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
 	ir := ipResource{
 		webResource: webResource{
 			ds: ds,
 		},
 		ipamer: ipamer,
 		mdc:    mdc,
+	}
+	var err error
+	ir.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	if err != nil {
+		panic(err)
 	}
 	return ir.webService()
 }
@@ -187,21 +195,10 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	err = validateIPDelete(ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if checkError(request, response, utils.CurrentFuncName(), ir.actor.releaseIP(*ip)) {
 		return
 	}
 
-	err = ir.ipamer.ReleaseIP(*ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = ir.ds.DeleteIP(ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))

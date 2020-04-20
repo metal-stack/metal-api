@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmock "github.com/metal-stack/masterdata-api/api/v1/mocks"
@@ -32,7 +34,7 @@ func TestGetIPs(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
+	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip", nil)
 	container = injectViewer(container, req)
@@ -58,7 +60,7 @@ func TestGetIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
+	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
 	container = injectViewer(container, req)
@@ -79,7 +81,7 @@ func TestGetIPNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
+	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
 	container = injectViewer(container, req)
@@ -102,7 +104,7 @@ func TestDeleteIP(t *testing.T) {
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipamer, nil)
+	ipservice := NewIP(ds, bus.DirectEndpoints(), ipamer, nil)
 	container := restful.NewContainer().Add(ipservice)
 
 	tests := []struct {
@@ -161,7 +163,7 @@ func TestAllocateIP(t *testing.T) {
 
 	mdc := mdm.NewMock(&psc, &tsc)
 
-	ipservice := NewIP(ds, ipamer, mdc)
+	ipservice := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
 	container := restful.NewContainer().Add(ipservice)
 
 	tests := []struct {
@@ -220,7 +222,7 @@ func TestUpdateIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, ipam.New(goipam.New()), nil)
+	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"
 	tests := []struct {
