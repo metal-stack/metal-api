@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package v1;
+
+option go_package = "api/v1";
+
+message WaitRequest {
+    string uuid = 1;
+}
+
+message WaitResponse {
+    string uuid = 1;
+    bool allocated = 2;
+}
+
+service Wait {
+    rpc Wait (WaitRequest) returns (stream WaitResponse);
+}

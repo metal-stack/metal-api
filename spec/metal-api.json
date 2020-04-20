@@ -1096,6 +1096,7 @@
         },
         "size": {
           "description": "the size of this block device",
+          "format": "integer",
           "type": "integer"
         }
       },
@@ -1493,6 +1494,7 @@
         },
         "memory": {
           "description": "the total memory of the machine",
+          "format": "integer",
           "type": "integer"
         },
         "nics": {
@@ -1526,6 +1528,7 @@
         },
         "memory": {
           "description": "the total memory of the machine",
+          "format": "integer",
           "type": "integer"
         },
         "nics": {
@@ -2050,6 +2053,12 @@
     },
     "v1.Meta": {
       "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
         "apiversion": {
           "type": "string"
         },
@@ -2061,6 +2070,12 @@
         },
         "kind": {
           "type": "string"
+        },
+        "labels": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "updated_time": {
           "$ref": "#/definitions/timestamp.Timestamp"
@@ -2377,18 +2392,22 @@
       "properties": {
         "available_ips": {
           "description": "the total available IPs",
+          "format": "integer",
           "type": "integer"
         },
         "available_prefixes": {
           "description": "the total available Prefixes",
+          "format": "integer",
           "type": "integer"
         },
         "used_ips": {
           "description": "the total used IPs",
+          "format": "integer",
           "type": "integer"
         },
         "used_prefixes": {
           "description": "the total used Prefixes",
+          "format": "integer",
           "type": "integer"
         }
       },
@@ -2656,10 +2675,12 @@
       "properties": {
         "max": {
           "description": "the maximum value of the constraint",
+          "format": "integer",
           "type": "integer"
         },
         "min": {
           "description": "the minimum value of the constraint",
+          "format": "integer",
           "type": "integer"
         },
         "type": {
@@ -3281,6 +3302,38 @@
           }
         },
         "summary": "create an image. if the given ID already exists a conflict is returned",
+        "tags": [
+          "image"
+        ]
+      }
+    },
+    "/v1/image/migrate": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "migrateImages",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.ImageResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "migrate existing machine allocation images to semver equivalents",
         "tags": [
           "image"
         ]
@@ -4640,50 +4693,6 @@
           }
         },
         "summary": "set the state of a machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/wait": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "waitForAllocation",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "504": {
-            "description": "Timeout",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "wait for an allocation of this machine",
         "tags": [
           "machine"
         ]

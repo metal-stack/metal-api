@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -433,47 +432,9 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 	return rs.updateEntity(rs.machineTable(), newMachine, oldMachine)
 }
 
-// InsertWaitingMachine adds a machine to the wait table.
-func (rs *RethinkStore) InsertWaitingMachine(m *metal.Machine) error {
-	// does not prohibit concurrent wait calls for the same UUID
-	return rs.upsertEntity(rs.waitTable(), m)
-}
-
-// RemoveWaitingMachine removes a machine from the wait table.
-func (rs *RethinkStore) RemoveWaitingMachine(m *metal.Machine) error {
-	return rs.deleteEntity(rs.waitTable(), m)
-}
-
-// UpdateWaitingMachine updates a machine in the wait table with the given machine
-func (rs *RethinkStore) UpdateWaitingMachine(m *metal.Machine) error {
-	_, err := rs.waitTable().Get(m.ID).Update(m).RunWrite(rs.session)
-	return err
-}
-
-// WaitForMachineAllocation listens on changes on the wait table for a given machine and returns the changed machine.
-func (rs *RethinkStore) WaitForMachineAllocation(ctx context.Context, m *metal.Machine) (*metal.Machine, error) {
-	type responseType struct {
-		NewVal metal.Machine `rethinkdb:"new_val" json:"new_val"`
-		OldVal metal.Machine `rethinkdb:"old_val" json:"old_val"`
-	}
-	var response responseType
-	err := rs.listenForEntityChange(ctx, rs.waitTable(), m, response)
-	if err != nil {
-		return nil, err
-	}
-
-	if response.NewVal.ID == "" {
-		// the machine was taken out of the wait table and not allocated
-		return nil, fmt.Errorf("machine %q was taken out of the wait table", m.ID)
-	}
-
-	// the machine was really allocated!
-	return &response.NewVal, nil
-}
-
 // FindAvailableMachine returns an available machine that momentarily also sits in the wait table.
 func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal.Machine, error) {
-	q := *rs.waitTable()
+	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
 		"partitionid": partitionid,

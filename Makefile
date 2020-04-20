@@ -2,13 +2,11 @@ BINARY := metal-api
 MAINMODULE := github.com/metal-stack/metal-api/cmd/metal-api
 COMMONDIR := $(or ${COMMONDIR},../builder)
 
+in-docker: protoc gofmt test all;
+
 include $(COMMONDIR)/Makefile.inc
 
-.PHONY: all
-all:: gofmt
-	go mod tidy
-
-release:: all;
+release:: gofmt test all ;
 
 .PHONY: spec
 spec: all
@@ -19,3 +17,7 @@ spec: all
 redoc:
 	docker run -it --rm -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
 	xdg-open generate/index.html
+
+.PHONY: protoc
+protoc:
+	docker run -it --rm -v $(PWD)/../../..:/work metalstack/builder bash -c "cd github.com/metal-stack/metal-api && protoc -I pkg -I../../.. --go_out plugins=grpc:pkg pkg/api/v1/*.proto"
