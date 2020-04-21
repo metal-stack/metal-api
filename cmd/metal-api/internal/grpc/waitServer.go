@@ -65,7 +65,7 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		s.queueLock.Unlock()
 	}()
 
-	nextResponse := time.Now()
+	nextCheck := time.Now()
 	ctx := srv.Context()
 	for {
 		select {
@@ -76,13 +76,20 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 				return nil
 			}
 		case now := <-time.After(500 * time.Millisecond):
-			if now.After(nextResponse) {
-				err := srv.Send(&v1.WaitResponse{})
+			if now.After(nextCheck) {
+				m, err := s.ds.FindMachineByID(machineID)
 				if err != nil {
-					s.logger.Errorw("failed to respond", "error", err)
 					return err
 				}
-				nextResponse = now.Add(10 * time.Second)
+				allocated := m.Allocation != nil
+				if allocated {
+					return nil
+				}
+				err = srv.Send(&v1.WaitResponse{})
+				if err != nil {
+					return err
+				}
+				nextCheck = now.Add(10 * time.Second)
 			}
 		}
 	}
