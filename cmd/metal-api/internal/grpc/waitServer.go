@@ -13,7 +13,7 @@ type WaitServer struct {
 	ds        *datastore.RethinkStore
 	logger    *zap.SugaredLogger
 	queueLock *sync.RWMutex
-	queue     map[string]bool
+	queue     map[string]chan bool
 }
 
 func NewWaitServer(ds *datastore.RethinkStore) *WaitServer {
@@ -21,15 +21,15 @@ func NewWaitServer(ds *datastore.RethinkStore) *WaitServer {
 		ds:        ds,
 		logger:    zapup.MustRootLogger().Sugar(),
 		queueLock: new(sync.RWMutex),
-		queue:     make(map[string]bool),
+		queue:     make(map[string]chan bool),
 	}
 }
 
 func (s *WaitServer) NotifyAllocated(machineID string) {
 	s.queueLock.Lock()
-	_, ok := s.queue[machineID]
+	can, ok := s.queue[machineID]
 	if ok {
-		s.queue[machineID] = true
+		can <- true
 	}
 	s.queueLock.Unlock()
 }
@@ -39,63 +39,51 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	machineID := req.MachineID
 
 	s.queueLock.RLock()
-	allocated, ok := s.queue[machineID]
+	can, ok := s.queue[machineID]
 	s.queueLock.RUnlock()
 
-	if !ok || !allocated {
+	if !ok {
 		m, err := s.ds.FindMachineByID(machineID)
 		if err != nil {
 			return err
 		}
-		allocated = m.Allocation != nil
-	}
+		allocated := m.Allocation != nil
+		if allocated {
+			return nil
+		}
 
-	if allocated {
+		can = make(chan bool)
 		s.queueLock.Lock()
-		delete(s.queue, machineID)
+		s.queue[machineID] = can
 		s.queueLock.Unlock()
-		return nil
 	}
-
-	s.queueLock.Lock()
-	s.queue[machineID] = false
-	s.queueLock.Unlock()
-
-	ctx := srv.Context()
-	ticker := time.NewTicker(500 * time.Millisecond)
 
 	defer func() {
-		ticker.Stop()
-
 		s.queueLock.Lock()
 		delete(s.queue, machineID)
+		close(can)
 		s.queueLock.Unlock()
 	}()
 
 	nextResponse := time.Now()
-	for now := range ticker.C {
+	ctx := srv.Context()
+	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		default:
-			s.queueLock.RLock()
-			allocated = s.queue[machineID]
-			s.queueLock.RUnlock()
-
+		case allocated := <-can:
 			if allocated {
 				return nil
 			}
-
+		case now := <-time.After(500 * time.Millisecond):
 			if now.After(nextResponse) {
 				err := srv.Send(&v1.WaitResponse{})
 				if err != nil {
 					s.logger.Errorw("failed to respond", "error", err)
 					return err
 				}
-				nextResponse = now.Add(5 * time.Second)
+				nextResponse = now.Add(10 * time.Second)
 			}
 		}
 	}
-
-	return nil
 }
