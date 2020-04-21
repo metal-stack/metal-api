@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/zapup"
 	"github.com/spf13/viper"
@@ -15,7 +14,7 @@ import (
 	"time"
 )
 
-func Serve(ds *datastore.RethinkStore) {
+func Serve(ws *WaitServer) {
 	logger := zapup.MustRootLogger().Sugar()
 
 	grpcPort := viper.GetInt("grpc-port")
@@ -33,7 +32,7 @@ func Serve(ds *datastore.RethinkStore) {
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
 	)
-	v1.RegisterWaitServer(grpcServer, NewWaitServer(ds))
+	v1.RegisterWaitServer(grpcServer, ws)
 
 	tlsConfig := &tls.Config{
 		NextProtos: []string{"h2"},

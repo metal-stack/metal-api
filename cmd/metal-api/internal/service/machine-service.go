@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"net"
 	"net/http"
 	"strconv"
@@ -36,8 +37,9 @@ import (
 type machineResource struct {
 	webResource
 	bus.Publisher
-	ipamer ipam.IPAMer
-	mdc    mdm.Client
+	ipamer     ipam.IPAMer
+	mdc        mdm.Client
+	waitServer *grpc.WaitServer
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -114,14 +116,16 @@ func NewMachine(
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ipamer ipam.IPAMer,
-	mdc mdm.Client) *restful.WebService {
+	mdc mdm.Client,
+	waitServer *grpc.WaitServer) *restful.WebService {
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
 		},
-		Publisher: pub,
-		ipamer:    ipamer,
-		mdc:       mdc,
+		Publisher:  pub,
+		ipamer:     ipamer,
+		mdc:        mdc,
+		waitServer: waitServer,
 	}
 	return r.webService()
 }
@@ -820,12 +824,13 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		IsFirewall:  false,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc)
+	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc, r.waitServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		// TODO: Trigger network garbage collection
 		utils.Logger(request).Sugar().Errorf("machine allocation went wrong, triggered network garbage collection", "error", err)
 		return
 	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -833,7 +838,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 }
 
-func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client) (*metal.Machine, error) {
+func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, ws *grpc.WaitServer) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -912,6 +917,8 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	if err != nil {
 		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
 	}
+
+	ws.NotifyAllocated(machine.ID)
 
 	return machine, nil
 }

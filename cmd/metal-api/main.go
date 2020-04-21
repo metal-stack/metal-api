@@ -51,13 +51,14 @@ const (
 )
 
 var (
-	cfgFile string
-	ds      *datastore.RethinkStore
-	ipamer  *ipam.Ipam
-	nsqer   *eventbus.NSQClient
-	logger  = zapup.MustRootLogger().Sugar()
-	debug   = false
-	mdc     mdm.Client
+	cfgFile    string
+	ds         *datastore.RethinkStore
+	ipamer     *ipam.Ipam
+	nsqer      *eventbus.NSQClient
+	logger     = zapup.MustRootLogger().Sugar()
+	debug      = false
+	mdc        mdm.Client
+	waitServer *grpc.WaitServer
 )
 
 var rootCmd = &cobra.Command{
@@ -72,6 +73,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
+		initWaitServer()
 		run()
 	},
 }
@@ -442,6 +444,10 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
+func initWaitServer() {
+	waitServer = grpc.NewWaitServer(ds)
+}
+
 func initRestServices(withauth bool) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
@@ -458,9 +464,9 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
-	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer, mdc))
+	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer, mdc, waitServer))
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
-	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))
+	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc, waitServer))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
@@ -562,7 +568,7 @@ func run() {
 	})
 
 	go func() {
-		grpc.Serve(ds)
+		grpc.Serve(waitServer)
 	}()
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))

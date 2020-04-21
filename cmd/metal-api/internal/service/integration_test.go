@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -56,8 +57,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 	defer cancel()
 	mdc, err := mdm.NewClient(timeoutCtx, "localhost", 50051, "certs/client.pem", "certs/client-key.pem", "certs/ca.pem", "hmac", log)
 	require.NoError(err)
+	waitServer := grpc.NewWaitServer(ds)
 
-	machineService := NewMachine(ds, nsq.Publisher, ipamer, mdc)
+	machineService := NewMachine(ds, nsq.Publisher, ipamer, mdc, waitServer)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
 	sizeService := NewSize(ds)
