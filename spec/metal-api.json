@@ -18,6 +18,26 @@
         "statuscode"
       ]
     },
+    "metal.SwitchSync": {
+      "properties": {
+        "duration": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "time": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration",
+        "error",
+        "time"
+      ]
+    },
     "rest.status": {
       "properties": {
         "message": {
@@ -1096,6 +1116,7 @@
         },
         "size": {
           "description": "the size of this block device",
+          "format": "integer",
           "type": "integer"
         }
       },
@@ -1493,6 +1514,7 @@
         },
         "memory": {
           "description": "the total memory of the machine",
+          "format": "integer",
           "type": "integer"
         },
         "nics": {
@@ -1526,6 +1548,7 @@
         },
         "memory": {
           "description": "the total memory of the machine",
+          "format": "integer",
           "type": "integer"
         },
         "nics": {
@@ -2050,6 +2073,12 @@
     },
     "v1.Meta": {
       "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
         "apiversion": {
           "type": "string"
         },
@@ -2061,6 +2090,12 @@
         },
         "kind": {
           "type": "string"
+        },
+        "labels": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "updated_time": {
           "$ref": "#/definitions/timestamp.Timestamp"
@@ -2377,18 +2412,22 @@
       "properties": {
         "available_ips": {
           "description": "the total available IPs",
+          "format": "integer",
           "type": "integer"
         },
         "available_prefixes": {
           "description": "the total available Prefixes",
+          "format": "integer",
           "type": "integer"
         },
         "used_ips": {
           "description": "the total used IPs",
+          "format": "integer",
           "type": "integer"
         },
         "used_prefixes": {
           "description": "the total used Prefixes",
+          "format": "integer",
           "type": "integer"
         }
       },
@@ -2656,10 +2695,12 @@
       "properties": {
         "max": {
           "description": "the maximum value of the constraint",
+          "format": "integer",
           "type": "integer"
         },
         "min": {
           "description": "the minimum value of the constraint",
+          "format": "integer",
           "type": "integer"
         },
         "type": {
@@ -2860,6 +2901,22 @@
         "name"
       ]
     },
+    "v1.SwitchNotifyRequest": {
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "sync_duration": {
+          "description": "the duration of the switch synchronization",
+          "format": "integer",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "error",
+        "sync_duration"
+      ]
+    },
     "v1.SwitchRegisterRequest": {
       "properties": {
         "description": {
@@ -2928,6 +2985,14 @@
           "type": "string",
           "uniqueItems": true
         },
+        "last_sync": {
+          "$ref": "#/definitions/metal.SwitchSync",
+          "description": "last successful synchronization to the switch"
+        },
+        "last_sync_error": {
+          "$ref": "#/definitions/metal.SwitchSync",
+          "description": "last synchronization to the switch that was erroneous"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -2953,6 +3018,8 @@
         "connections",
         "created",
         "id",
+        "last_sync",
+        "last_sync_error",
         "nics",
         "partition",
         "rack_id"
@@ -3281,6 +3348,38 @@
           }
         },
         "summary": "create an image. if the given ID already exists a conflict is returned",
+        "tags": [
+          "image"
+        ]
+      }
+    },
+    "/v1/image/migrate": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "migrateImages",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.ImageResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "migrate existing machine allocation images to semver equivalents",
         "tags": [
           "image"
         ]
@@ -5725,6 +5824,52 @@
           }
         },
         "summary": "get switch by id",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
+    "/v1/switch/{id}/notify": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "notifySwitch",
+        "parameters": [
+          {
+            "description": "identifier of the switch",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchNotifyRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "notify the metal-api about a configuration change of a switch",
         "tags": [
           "switch"
         ]
