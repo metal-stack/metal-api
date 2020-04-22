@@ -296,3 +296,8 @@ type MachineEvent struct {
 	NewMachineID string              `json:"new,omitempty"`
 	Cmd          *MachineExecCommand `json:"cmd,omitempty"`
 }
+
+// AllocationEvent is propagated when a machine is allocated.
+type AllocationEvent struct {
+	MachineID string `json:"old,omitempty"`
+}

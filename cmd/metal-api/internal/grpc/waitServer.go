@@ -1,37 +1,93 @@
 package grpc
 
 import (
+	"fmt"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/zapup"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"math/rand"
 	"sync"
 	"time"
 )
 
+const (
+	receiverHandlerTimeout = 15 * time.Second
+	allocationTopicTTL     = time.Duration(30) * time.Second
+)
+
+func timeoutHandler(err bus.TimeoutError) error {
+	zapup.MustRootLogger().Sugar().Error("Timeout processing event", "event", err.Event())
+	return nil
+}
+
 type WaitServer struct {
+	bus.Publisher
 	ds        *datastore.RethinkStore
 	logger    *zap.SugaredLogger
 	queueLock *sync.RWMutex
 	queue     map[string]chan bool
 }
 
-func NewWaitServer(ds *datastore.RethinkStore) *WaitServer {
-	return &WaitServer{
+func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher, partitions metal.Partitions) (*WaitServer, error) {
+	tlsCfg := &bus.TLSConfig{
+		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
+		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+	}
+	c, err := bus.NewConsumer(zapup.MustRootLogger(), tlsCfg, viper.GetString("nsqlookupd-http-addr"))
+	if err != nil {
+		return nil, err
+	}
+
+	s := &WaitServer{
+		Publisher: publisher,
 		ds:        ds,
 		logger:    zapup.MustRootLogger().Sugar(),
 		queueLock: new(sync.RWMutex),
 		queue:     make(map[string]chan bool),
 	}
+
+	r := rand.Int()
+	partIDs := make([]string, len(partitions))
+	for i, p := range partitions {
+		partIDs[i] = p.ID
+	}
+	if len(partIDs) == 0 {
+		partIDs = append(partIDs, "vagrant")
+	}
+	for _, partID := range partIDs {
+		allocationTopic := metal.TopicAllocation.GetFQN(partID)
+		channel := fmt.Sprintf("alloc-channel-%s-%d", partID, r)
+		err = c.With(bus.LogLevel(bus.Debug)).
+			MustRegister(allocationTopic, channel).
+			Consume(metal.AllocationEvent{}, func(message interface{}) error {
+				evt := message.(*metal.AllocationEvent)
+				s.logger.Debugf("Got message", "topic", allocationTopic, "channel", channel, "machineID", evt.MachineID)
+				s.queueLock.Lock()
+				s.queue[evt.MachineID] <- true
+				s.queueLock.Unlock()
+				return nil
+			}, 1, bus.Timeout(receiverHandlerTimeout, timeoutHandler), bus.TTL(allocationTopicTTL))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s, nil
 }
 
-func (s *WaitServer) NotifyAllocated(machineID string) {
-	s.queueLock.Lock()
-	can, ok := s.queue[machineID]
-	if ok {
-		can <- true
+func (s *WaitServer) NotifyAllocated(partitionID, machineID string) error {
+	topic := metal.TopicAllocation.GetFQN(partitionID)
+	err := s.Publish(topic, &metal.AllocationEvent{MachineID: machineID})
+	if err != nil {
+		s.logger.Errorf("failed to publish machine allocation event", "topic", topic, "machineID", machineID, "error", err)
+	} else {
+		s.logger.Debugf("published machine allocation event", "topic", topic, "machineID", machineID)
 	}
-	s.queueLock.Unlock()
+	return err
 }
 
 func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
@@ -58,13 +114,6 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		s.queueLock.Unlock()
 	}
 
-	defer func() {
-		s.queueLock.Lock()
-		delete(s.queue, machineID)
-		close(can)
-		s.queueLock.Unlock()
-	}()
-
 	nextCheck := time.Now()
 	ctx := srv.Context()
 	for {
@@ -72,10 +121,15 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case allocated := <-can:
-			if allocated {
-				return nil
+			if !allocated {
+				continue
 			}
-		case now := <-time.After(500 * time.Millisecond):
+			s.queueLock.Lock()
+			close(can)
+			delete(s.queue, machineID)
+			s.queueLock.Unlock()
+			return nil
+		case now := <-time.After(5 * time.Second):
 			if now.After(nextCheck) {
 				m, err := s.ds.FindMachineByID(machineID)
 				if err != nil {
@@ -85,11 +139,11 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 				if allocated {
 					return nil
 				}
-				err = srv.Send(&v1.WaitResponse{})
-				if err != nil {
-					return err
-				}
-				nextCheck = now.Add(10 * time.Second)
+				nextCheck = now.Add(60 * time.Second)
+			}
+			err := srv.Send(&v1.WaitResponse{})
+			if err != nil {
+				return err
 			}
 		}
 	}

@@ -50,7 +50,8 @@ const (
 	DELETE  EventType = "delete"
 	COMMAND EventType = "command"
 
-	TopicMachine NSQTopic = "machine"
+	TopicMachine    NSQTopic = "machine"
+	TopicAllocation NSQTopic = "allocation"
 )
 
 var (
@@ -58,6 +59,7 @@ var (
 	// metal-api will make sure these topics exist when it is started.
 	Topics = []NSQTopic{
 		TopicMachine,
+		TopicAllocation,
 	}
 )
 

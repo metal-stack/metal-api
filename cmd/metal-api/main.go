@@ -59,6 +59,7 @@ var (
 	debug      = false
 	mdc        mdm.Client
 	waitServer *grpc.WaitServer
+	partitions metal.Partitions
 )
 
 var rootCmd = &cobra.Command{
@@ -160,11 +161,11 @@ func init() {
 	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
 
 	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "", "the TCP address of the nsqd")
-	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
+	rootCmd.Flags().StringP("nsqd-http-addr", "", "", "the HTTP address of the nsqd")
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
 	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
-	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http address of the nsqlookupd as a commalist")
+	rootCmd.Flags().StringP("nsqlookupd-http-addr", "", "", "the http addresses of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("grpc-tls-enabled", "", "false", "indicates whether gRPC TLS is enabled")
 	rootCmd.Flags().StringP("grpc-ca-cert-file", "", "", "the CA certificate file to verify gRPC certificate")
@@ -285,7 +286,7 @@ func initEventBus() {
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
-	partitions := waitForPartitions()
+	partitions = waitForPartitions()
 
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
@@ -445,7 +446,16 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 }
 
 func initWaitServer() {
-	waitServer = grpc.NewWaitServer(ds)
+	var p bus.Publisher
+	if nsqer != nil {
+		p = nsqer.Publisher
+	}
+	var err error
+	waitServer, err = grpc.NewWaitServer(ds, p, partitions)
+	if err != nil {
+		logger.Errorw("cannot connect to NSQ", "error", err)
+		panic(err)
+	}
 }
 
 func initRestServices(withauth bool) *restfulspec.Config {
