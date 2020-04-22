@@ -27,11 +27,11 @@ func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore,
 		RethinkStore: ds,
 	}
 	var err error
-	actor.machineReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
+	_, actor.machineReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async bus function for machine releasing: %w", err)
 	}
-	actor.ipReleaser, err = ep.Function("releaseIP", actor.releaseIP)
+	_, actor.ipReleaser, err = ep.Function("releaseIP", actor.releaseIP)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create bus function for ip releasing: %w", err)
 	}

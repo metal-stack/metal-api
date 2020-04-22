@@ -38,6 +38,8 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 	return nil
 }
 
+func (p *emptyPublisher) Stop() {}
+
 func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -841,7 +843,7 @@ func Test_makeMachineTags(t *testing.T) {
 				m: &metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								Private: true,
 								ASN:     1203874,
 							},
@@ -949,7 +951,7 @@ func Test_makeMachineTags(t *testing.T) {
 				m: &metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								Private: true,
 								ASN:     1203874,
 							},

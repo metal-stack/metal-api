@@ -1,6 +1,6 @@
 @networkbaseurl = {{scheme}}://{{host}}/v1/network
 @machinebaseurl = {{scheme}}://{{host}}/v1/machine
-
+@ipbaseurl = {{scheme}}://{{host}}/v1/ip
 
 ### create internet network
 # @name createInternetNetwork
@@ -129,4 +129,25 @@ X-Date: 1985-04-12T23:20:50.52Z
 # @name free
 DELETE {{machinebaseurl}}/ae671b8b-a158-52c2-8c22-985ca0503873/free
 Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z
+
+### allocate ip
+# @name allocateIP
+POST {{ipbaseurl}}/allocate/185.24.0.5
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+  "description": "an ip",
+  "name": "test-ip1",
+  "networkid": "internet-vagrant",
+  "projectid": "00000000-0000-0000-0000-000000000001"
+}
+
+### release ip
+# @name releaseIP
+POST {{ipbaseurl}}/free/185.24.0.5
+Content-Type: application/json
+Authorization: Metal-Admin bfe5650d0149046959e7e49105134877906ebd6e1be0136dd6c51cb095d4ea8d
 X-Date: 1985-04-12T23:20:50.52Z

@@ -38,9 +38,9 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/testcontainers/testcontainers-go v0.5.1
 	go.uber.org/zap v1.14.1
-	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
+	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
-	golang.org/x/tools v0.0.0-20200420001825-978e26b7c37c // indirect
+	golang.org/x/tools v0.0.0-20200422022333-3d57cf2e726e // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )

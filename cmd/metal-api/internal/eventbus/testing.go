@@ -12,6 +12,8 @@ func (n *noopPublisher) Publish(topic string, data interface{}) error {
 func (n *noopPublisher) CreateTopic(topic string) error {
 	return nil
 }
+func (n *noopPublisher) Stop() {
+}
 
 func InitTestPublisher(t *testing.T) *NSQClient {
 	pub := &noopPublisher{}
