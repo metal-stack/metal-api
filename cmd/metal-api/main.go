@@ -569,7 +569,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Description: "Resource for managing pure metal",
 			Contact: &spec.ContactInfo{
 				ContactInfoProps: spec.ContactInfoProps{
-					Name: "Metal Stack",
+					Name: "metal-stack",
 					URL:  "https://metal-stack.io",
 				},
 			},
