@@ -41,7 +41,10 @@ var (
 type EventType string
 
 // NSQTopic .
-type NSQTopic string
+type NSQTopic struct {
+	Name              string
+	PartitionAgnostic bool
+}
 
 // Some enums.
 const (
@@ -49,9 +52,11 @@ const (
 	UPDATE  EventType = "update"
 	DELETE  EventType = "delete"
 	COMMAND EventType = "command"
+)
 
-	TopicMachine    NSQTopic = "machine"
-	TopicAllocation NSQTopic = "allocation"
+var (
+	TopicMachine    = NSQTopic{Name: "machine", PartitionAgnostic: true}
+	TopicAllocation = NSQTopic{Name: "allocation", PartitionAgnostic: false}
 )
 
 var (
@@ -65,7 +70,10 @@ var (
 
 // GetFQN gets the fully qualified name of a NSQTopic
 func (t NSQTopic) GetFQN(partitionID string) string {
-	return fmt.Sprintf("%s-%s", partitionID, string(t))
+	if !t.PartitionAgnostic {
+		return t.Name
+	}
+	return fmt.Sprintf("%s-%s", partitionID, t.Name)
 }
 
 // Base implements common fields for most basic entity types (not all).

@@ -20,7 +20,7 @@ import (
 )
 
 type TopicCreater interface {
-	CreateTopic(partitionID, topicFQN string) error
+	CreateTopic(topicFQN string) error
 }
 
 type partitionResource struct {
@@ -209,7 +209,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
-	if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
+	if err := r.topicCreater.CreateTopic(fqn); err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
