@@ -51,16 +51,9 @@ func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher, partitio
 	}
 
 	r := rand.Int()
-	partIDs := make([]string, len(partitions))
-	for i, p := range partitions {
-		partIDs[i] = p.ID
-	}
-	if len(partIDs) == 0 {
-		partIDs = append(partIDs, "vagrant")
-	}
-	for _, partID := range partIDs {
-		allocationTopic := metal.TopicAllocation.GetFQN(partID)
-		channel := fmt.Sprintf("alloc-channel-%s-%d", partID, r)
+	for _, p := range partitions {
+		allocationTopic := metal.TopicAllocation.GetFQN(p.ID)
+		channel := fmt.Sprintf("alloc-channel-%s-%d", p.ID, r)
 		err = c.With(bus.LogLevel(bus.Debug)).
 			MustRegister(allocationTopic, channel).
 			Consume(metal.AllocationEvent{}, func(message interface{}) error {
@@ -70,7 +63,7 @@ func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher, partitio
 				s.queue[evt.MachineID] <- true
 				s.queueLock.Unlock()
 				return nil
-			}, 1, bus.Timeout(receiverHandlerTimeout, timeoutHandler), bus.TTL(allocationTopicTTL))
+			}, 5, bus.Timeout(receiverHandlerTimeout, timeoutHandler), bus.TTL(allocationTopicTTL))
 		if err != nil {
 			return nil, err
 		}
