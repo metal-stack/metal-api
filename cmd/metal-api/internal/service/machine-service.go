@@ -918,7 +918,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
 	}
 
-	err = ws.NotifyAllocated(machine.PartitionID, machine.ID)
+	err = ws.NotifyAllocated(machine.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to notify machine allocation %q, %v", machine.ID, err)
 	}

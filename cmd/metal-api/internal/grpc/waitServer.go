@@ -19,6 +19,8 @@ const (
 	allocationTopicTTL     = time.Duration(30) * time.Second
 )
 
+var allocationTopic = metal.TopicAllocation.GetFQN("alloc")
+
 func timeoutHandler(err bus.TimeoutError) error {
 	zapup.MustRootLogger().Sugar().Error("Timeout processing event", "event", err.Event())
 	return nil
@@ -50,35 +52,30 @@ func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher, partitio
 		queue:     make(map[string]chan bool),
 	}
 
-	r := rand.Int()
-	for _, p := range partitions {
-		allocationTopic := metal.TopicAllocation.GetFQN(p.ID)
-		channel := fmt.Sprintf("alloc-channel-%s-%d", p.ID, r)
-		err = c.With(bus.LogLevel(bus.Debug)).
-			MustRegister(allocationTopic, channel).
-			Consume(metal.AllocationEvent{}, func(message interface{}) error {
-				evt := message.(*metal.AllocationEvent)
-				s.logger.Debugf("Got message", "topic", allocationTopic, "channel", channel, "machineID", evt.MachineID)
-				s.queueLock.Lock()
-				s.queue[evt.MachineID] <- true
-				s.queueLock.Unlock()
-				return nil
-			}, 5, bus.Timeout(receiverHandlerTimeout, timeoutHandler), bus.TTL(allocationTopicTTL))
-		if err != nil {
-			return nil, err
-		}
+	channel := fmt.Sprintf("alloc-%d", rand.Int())
+	err = c.With(bus.LogLevel(bus.Debug)).
+		MustRegister(allocationTopic, channel).
+		Consume(metal.AllocationEvent{}, func(message interface{}) error {
+			evt := message.(*metal.AllocationEvent)
+			s.logger.Debugf("Got message", "topic", allocationTopic, "channel", channel, "machineID", evt.MachineID)
+			s.queueLock.Lock()
+			s.queue[evt.MachineID] <- true
+			s.queueLock.Unlock()
+			return nil
+		}, 5, bus.Timeout(receiverHandlerTimeout, timeoutHandler), bus.TTL(allocationTopicTTL))
+	if err != nil {
+		return nil, err
 	}
 
 	return s, nil
 }
 
-func (s *WaitServer) NotifyAllocated(partitionID, machineID string) error {
-	topic := metal.TopicAllocation.GetFQN(partitionID)
-	err := s.Publish(topic, &metal.AllocationEvent{MachineID: machineID})
+func (s *WaitServer) NotifyAllocated(machineID string) error {
+	err := s.Publish(allocationTopic, &metal.AllocationEvent{MachineID: machineID})
 	if err != nil {
-		s.logger.Errorf("failed to publish machine allocation event", "topic", topic, "machineID", machineID, "error", err)
+		s.logger.Errorf("failed to publish machine allocation event", "topic", allocationTopic, "machineID", machineID, "error", err)
 	} else {
-		s.logger.Debugf("published machine allocation event", "topic", topic, "machineID", machineID)
+		s.logger.Debugf("published machine allocation event", "topic", allocationTopic, "machineID", machineID)
 	}
 	return err
 }
