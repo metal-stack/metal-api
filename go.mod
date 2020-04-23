@@ -19,7 +19,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/metal-stack/go-ipam v1.4.1
 	github.com/metal-stack/masterdata-api v0.6.1
-	github.com/metal-stack/metal-lib v0.3.4
+	github.com/metal-stack/metal-lib v0.3.5
 	github.com/metal-stack/security v0.3.0
 	github.com/metal-stack/v v1.0.2
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -44,5 +44,3 @@ require (
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
-
-replace github.com/metal-stack/metal-lib v0.3.4 => ../metal-lib
