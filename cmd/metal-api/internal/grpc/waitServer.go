@@ -34,7 +34,7 @@ type WaitServer struct {
 	queue     map[string]chan bool
 }
 
-func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher, partitions metal.Partitions) (*WaitServer, error) {
+func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher) (*WaitServer, error) {
 	tlsCfg := &bus.TLSConfig{
 		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 		ClientCertFile: viper.GetString("nsqd-client-cert-file"),

@@ -59,7 +59,6 @@ var (
 	debug      = false
 	mdc        mdm.Client
 	waitServer *grpc.WaitServer
-	partitions metal.Partitions
 )
 
 var rootCmd = &cobra.Command{
@@ -286,7 +285,7 @@ func initEventBus() {
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
-	partitions = waitForPartitions()
+	partitions := waitForPartitions()
 
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
@@ -451,7 +450,7 @@ func initWaitServer() {
 		p = nsqer.Publisher
 	}
 	var err error
-	waitServer, err = grpc.NewWaitServer(ds, p, partitions)
+	waitServer, err = grpc.NewWaitServer(ds, p)
 	if err != nil {
 		logger.Errorw("cannot connect to NSQ", "error", err)
 		panic(err)
