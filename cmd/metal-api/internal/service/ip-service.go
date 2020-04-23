@@ -206,14 +206,6 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 	}
 }
 
-func validateIPDelete(ip *metal.IP) error {
-	s := ip.GetScope()
-	if s != metal.ScopeProject && ip.Type == metal.Static {
-		return fmt.Errorf("ip with scope %s can not be deleted", ip.GetScope())
-	}
-	return nil
-}
-
 // Checks whether an ip update is allowed:
 // (1) allow update of ephemeral to static
 // (2) allow update within a scope

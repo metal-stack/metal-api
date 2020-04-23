@@ -281,7 +281,9 @@ func initEventBus() {
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
-	nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr"))
+	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr")); err != nil {
+		panic(err)
+	}
 	nsqer = &nsq
 }
 
