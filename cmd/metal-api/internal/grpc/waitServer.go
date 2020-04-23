@@ -19,8 +19,6 @@ const (
 	allocationTopicTTL     = time.Duration(30) * time.Second
 )
 
-var allocationTopic = metal.TopicAllocation.GetFQN("alloc")
-
 func timeoutHandler(err bus.TimeoutError) error {
 	zapup.MustRootLogger().Sugar().Error("Timeout processing event", "event", err.Event())
 	return nil
@@ -54,10 +52,10 @@ func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher) (*WaitSe
 
 	channel := fmt.Sprintf("alloc-%d", rand.Int())
 	err = c.With(bus.LogLevel(bus.Debug)).
-		MustRegister(allocationTopic, channel).
+		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
 			evt := message.(*metal.AllocationEvent)
-			s.logger.Debugf("Got message", "topic", allocationTopic, "channel", channel, "machineID", evt.MachineID)
+			s.logger.Debugf("Got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
 			s.queueLock.Lock()
 			s.queue[evt.MachineID] <- true
 			s.queueLock.Unlock()
@@ -71,11 +69,11 @@ func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher) (*WaitSe
 }
 
 func (s *WaitServer) NotifyAllocated(machineID string) error {
-	err := s.Publish(allocationTopic, &metal.AllocationEvent{MachineID: machineID})
+	err := s.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machineID})
 	if err != nil {
-		s.logger.Errorf("failed to publish machine allocation event", "topic", allocationTopic, "machineID", machineID, "error", err)
+		s.logger.Errorf("failed to publish machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID, "error", err)
 	} else {
-		s.logger.Debugf("published machine allocation event", "topic", allocationTopic, "machineID", machineID)
+		s.logger.Debugf("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID)
 	}
 	return err
 }
