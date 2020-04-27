@@ -332,7 +332,7 @@ var (
 	usedImageDesc = prometheus.NewDesc(
 		"metal_image_used_total",
 		"The total number of machines using a image",
-		[]string{"imageID"}, nil,
+		[]string{"imageID", "name", "os", "classification", "created", "expirationDate", "base", "features"}, nil,
 	)
 )
 
@@ -348,6 +348,10 @@ func (iuc imageUsageCollector) Collect(ch chan<- prometheus.Metric) {
 	imgs, err := iuc.ir.ds.ListImages()
 	if err != nil {
 		return
+	}
+	images := make(map[string]metal.Image)
+	for _, i := range imgs {
+		images[i.ID] = i
 	}
 	// init with 0
 	usage := make(map[string]int)
@@ -366,13 +370,21 @@ func (iuc imageUsageCollector) Collect(ch chan<- prometheus.Metric) {
 		usage[m.Allocation.ImageID]++
 	}
 
-	for image, count := range usage {
+	for i, count := range usage {
+		image := images[i]
 
 		metric, err := prometheus.NewConstMetric(
 			usedImageDesc,
 			prometheus.CounterValue,
 			float64(count),
-			image,
+			image.ID,
+			image.Name,
+			image.OS,
+			string(image.Classification),
+			fmt.Sprintf("%d", image.Created.Unix()),
+			fmt.Sprintf("%d", image.ExpirationDate.Unix()),
+			string(image.Base.ID),
+			image.ImageFeatureString(),
 		)
 		if err != nil {
 			zapup.MustRootLogger().Error("Failed create metric for UsedImages", zap.Error(err))
