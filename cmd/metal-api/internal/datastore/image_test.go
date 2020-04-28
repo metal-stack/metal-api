@@ -423,46 +423,6 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_MigrateMachineImages(t *testing.T) {
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	tests := []struct {
-		name     string
-		rs       *RethinkStore
-		machines metal.Machines
-		want     string
-		wantErr  bool
-	}{
-		{
-			name:     "simple",
-			rs:       ds,
-			machines: []metal.Machine{testdata.M1},
-			want:     "image-1",
-			wantErr:  false,
-		},
-		{
-			name:     "simple",
-			rs:       ds,
-			machines: []metal.Machine{testdata.M10},
-			// machine 10 has image-4 configured which has same url as image-3.
-			want:    "image-3",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.MigrateMachineImages(tt.machines)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.MigrateMachineImages() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !reflect.DeepEqual(got[0].Allocation.ImageID, tt.want) {
-				t.Errorf("RethinkStore.MigrateMachineImages() = %s", cmp.Diff(got, tt.want))
-			}
-		})
-	}
-}
-
 func TestGetOsAndSemver(t *testing.T) {
 	tests := []struct {
 		name    string
