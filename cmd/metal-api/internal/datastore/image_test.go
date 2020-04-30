@@ -560,6 +560,20 @@ func TestGetOsAndSemver(t *testing.T) {
 			version: semver.MustParse("19.04.20200408"),
 			wantErr: false,
 		},
+		{
+			name:    "firewall",
+			id:      "firewall-2.04.20200408",
+			os:      "firewall",
+			version: semver.MustParse("2.04.20200408"),
+			wantErr: false,
+		},
+		{
+			name:    "firewall-ubuntu",
+			id:      "firewall-ubuntu-2.04.20200408",
+			os:      "firewall-ubuntu",
+			version: semver.MustParse("2.04.20200408"),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
