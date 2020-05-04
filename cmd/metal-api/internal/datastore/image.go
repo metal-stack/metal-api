@@ -203,7 +203,7 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 	var latestImage *metal.Image
 	sortedImages := sortImages(images)
 	for _, image := range sortedImages {
-		if !strings.HasPrefix(id, image.OS) {
+		if os != image.OS {
 			continue
 		}
 		if time.Since(image.ExpirationDate) > 0 {
