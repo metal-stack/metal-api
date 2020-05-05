@@ -71,7 +71,7 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	if err != nil {
 		return err
 	}
-	a.Infow("freed machine", "machineID", m.ID)
+	a.Info("freed machine", zap.String("machineID", m.ID))
 
 	return nil
 }
