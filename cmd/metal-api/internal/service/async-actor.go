@@ -56,6 +56,9 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	// call the releaser async
 	err = a.machineReleaser(m)
 	if err != nil {
+		// log error, but what should we do here? we already called
+		// deleteVRFSwitches and publishDeleteEvent, so should we return
+		// an error or "fall through"?
 		a.Error("cannot call async machine cleanup", zap.Error(err))
 	}
 
