@@ -451,11 +451,15 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
+	ipservice, err := service.NewIP(ds, ep, ipamer, mdc)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
-	restful.DefaultContainer.Add(service.NewIP(ds, ep, ipamer, mdc))
+	restful.DefaultContainer.Add(ipservice)
 	restful.DefaultContainer.Add(service.NewMachine(ds, p, ep, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))

@@ -34,7 +34,7 @@ type ipResource struct {
 }
 
 // NewIP returns a webservice for ip specific endpoints.
-func NewIP(ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
+func NewIP(ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
 	ir := ipResource{
 		webResource: webResource{
 			ds: ds,
@@ -45,9 +45,9 @@ func NewIP(ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, md
 	var err error
 	ir.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}
-	return ir.webService()
+	return ir.webService(), nil
 }
 
 func (ir ipResource) webService() *restful.WebService {

@@ -34,7 +34,9 @@ func TestGetIPs(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip", nil)
 	container = injectViewer(container, req)
@@ -44,7 +46,7 @@ func TestGetIPs(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.IPResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Len(t, result, 3)
@@ -60,7 +62,8 @@ func TestGetIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
 	container = injectViewer(container, req)
@@ -70,7 +73,7 @@ func TestGetIP(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.IPResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
@@ -81,7 +84,8 @@ func TestGetIPNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
 	container = injectViewer(container, req)
@@ -91,7 +95,7 @@ func TestGetIPNotFound(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Contains(t, result.Message, "9.9.9.9")
@@ -104,7 +108,8 @@ func TestDeleteIP(t *testing.T) {
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, bus.DirectEndpoints(), ipamer, nil)
+	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipamer, nil)
+	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
 	tests := []struct {
@@ -163,7 +168,8 @@ func TestAllocateIP(t *testing.T) {
 
 	mdc := mdm.NewMock(&psc, &tsc)
 
-	ipservice := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
+	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
+	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
 	tests := []struct {
@@ -222,7 +228,8 @@ func TestUpdateIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"
 	tests := []struct {
