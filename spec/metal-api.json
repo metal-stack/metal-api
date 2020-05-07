@@ -2673,7 +2673,7 @@
           "type": "integer"
         },
         "other": {
-          "description": "servers neither free,allocated or faulty with this size",
+          "description": "servers neither free, allocated or faulty with this size",
           "format": "int32",
           "type": "integer"
         },
