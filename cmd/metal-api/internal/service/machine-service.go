@@ -119,7 +119,7 @@ func NewMachine(
 	pub bus.Publisher,
 	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
-	mdc mdm.Client) *restful.WebService {
+	mdc mdm.Client) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -132,10 +132,10 @@ func NewMachine(
 	var err error
 	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}
 
-	return r.webService()
+	return r.webService(), nil
 }
 
 // webService creates the webservice endpoint
