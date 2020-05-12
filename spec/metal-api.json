@@ -2672,6 +2672,11 @@
           "format": "int32",
           "type": "integer"
         },
+        "other": {
+          "description": "servers neither free, allocated or faulty with this size",
+          "format": "int32",
+          "type": "integer"
+        },
         "size": {
           "description": "the size of the server",
           "type": "string"
@@ -2686,6 +2691,7 @@
         "allocated",
         "faulty",
         "free",
+        "other",
         "size",
         "total"
       ]

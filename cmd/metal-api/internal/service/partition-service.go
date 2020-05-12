@@ -354,6 +354,8 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 				cap.Faulty++
 			} else if available {
 				cap.Free++
+			} else {
+				cap.Other++
 			}
 
 			cap.Total++
