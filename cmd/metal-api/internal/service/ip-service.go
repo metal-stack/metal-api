@@ -195,6 +195,9 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	if checkError(request, response, utils.CurrentFuncName(), validateIPDelete(ip)) {
+		return
+	}
 	if checkError(request, response, utils.CurrentFuncName(), ir.actor.releaseIP(*ip)) {
 		return
 	}
@@ -204,6 +207,14 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func validateIPDelete(ip *metal.IP) error {
+	s := ip.GetScope()
+	if s == metal.ScopeMachine {
+		return fmt.Errorf("ip with machine scope can not be deleted")
+	}
+	return nil
 }
 
 // Checks whether an ip update is allowed:

@@ -121,6 +121,10 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	return nil
 }
 
+// releaseIP releases the given IP. This function only checks if the given IP is connected
+// to a machine and only deletes the IP if this is not the case. It is the duty of the caller
+// to implement more validations: when a machine is deleted the caller has to check if the IP
+// is static or not. If only an IP is freed, the caller has to check if the IP has machine scope.
 func (a *asyncActor) releaseIP(ip metal.IP) error {
 	a.Info("release IP", zap.Any("ip", ip))
 
@@ -137,11 +141,6 @@ func (a *asyncActor) releaseIP(ip metal.IP) error {
 		// so make sure that this IP is not already connected to a new machine
 		if len(dbip.GetMachineIds()) > 0 {
 			a.Info("do not delete IP, it is connected to a machine", zap.Any("ip", ip))
-			return nil
-		}
-		s := dbip.GetScope()
-		if s != metal.ScopeProject && ip.Type == metal.Static {
-			a.Info("do not delete static IP", zap.String("scope", string(s)))
 			return nil
 		}
 
