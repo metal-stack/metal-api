@@ -40,9 +40,7 @@ type SwitchSync struct {
 // which should not happen in a real environment.
 func (s *Switch) ConnectMachine(machine *Machine) {
 	// first remove all existing connections to this machine.
-	if _, has := s.MachineConnections[machine.ID]; has {
-		delete(s.MachineConnections, machine.ID)
-	}
+	delete(s.MachineConnections, machine.ID)
 
 	// calculate the connections for this machine
 	for _, switchNic := range s.Nics {

@@ -57,13 +57,15 @@ func createTestEnvironment(t *testing.T) testEnv {
 	mdc, err := mdm.NewClient(timeoutCtx, "localhost", 50051, "certs/client.pem", "certs/client-key.pem", "certs/ca.pem", "hmac", log)
 	require.NoError(err)
 
-	machineService := NewMachine(ds, nsq.Publisher, ipamer, mdc)
+	machineService, err := NewMachine(ds, nsq.Publisher, nsq.Endpoints, ipamer, mdc)
+	require.NoError(err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
 	sizeService := NewSize(ds)
 	networkService := NewNetwork(ds, ipamer, mdc)
 	partitionService := NewPartition(ds, nsq)
-	ipService := NewIP(ds, ipamer, mdc)
+	ipService, err := NewIP(ds, nsq.Endpoints, ipamer, mdc)
+	require.NoError(err)
 
 	te := testEnv{
 		imageService:     imageService,

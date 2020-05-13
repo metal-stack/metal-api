@@ -3,9 +3,8 @@ module github.com/metal-stack/metal-api
 go 1.13
 
 require (
-	github.com/Masterminds/semver/v3 v3.0.3
+	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
-	github.com/avast/retry-go v2.6.0+incompatible // indirect
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful v2.12.0+incompatible
@@ -18,9 +17,9 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
-	github.com/metal-stack/go-ipam v1.3.2
+	github.com/metal-stack/go-ipam v1.4.1
 	github.com/metal-stack/masterdata-api v0.6.1
-	github.com/metal-stack/metal-lib v0.3.4
+	github.com/metal-stack/metal-lib v0.3.5
 	github.com/metal-stack/security v0.3.0
 	github.com/metal-stack/v v1.0.2
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -37,11 +36,11 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.3
 	github.com/stretchr/testify v1.5.1
-	github.com/testcontainers/testcontainers-go v0.4.0
+	github.com/testcontainers/testcontainers-go v0.5.1
 	go.uber.org/zap v1.14.1
-	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
-	golang.org/x/tools v0.0.0-20200414032229-332987a829c3 // indirect
+	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
+	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
+	golang.org/x/tools v0.0.0-20200422022333-3d57cf2e726e // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
