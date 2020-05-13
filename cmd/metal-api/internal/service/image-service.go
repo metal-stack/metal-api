@@ -9,6 +9,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	restful "github.com/emicklei/go-restful"
@@ -27,6 +28,11 @@ func NewImage(ds *datastore.RethinkStore) *restful.WebService {
 		webResource: webResource{
 			ds: ds,
 		},
+	}
+	iuc := imageUsageCollector{ir: &ir}
+	err := prometheus.Register(iuc)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to register prometheus", zap.Error(err))
 	}
 	return ir.webService()
 }
@@ -314,5 +320,76 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
+	}
+}
+
+// networkUsageCollector implements the prometheus collector interface.
+type imageUsageCollector struct {
+	ir *imageResource
+}
+
+var (
+	usedImageDesc = prometheus.NewDesc(
+		"metal_image_used_total",
+		"The total number of machines using a image",
+		[]string{"imageID", "name", "os", "classification", "created", "expirationDate", "base", "features"}, nil,
+	)
+)
+
+func (iuc imageUsageCollector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(iuc, ch)
+}
+
+func (iuc imageUsageCollector) Collect(ch chan<- prometheus.Metric) {
+	// FIXME bad workaround to be able to run make spec
+	if iuc.ir == nil || iuc.ir.ds == nil {
+		return
+	}
+	imgs, err := iuc.ir.ds.ListImages()
+	if err != nil {
+		return
+	}
+	images := make(map[string]metal.Image)
+	for _, i := range imgs {
+		images[i.ID] = i
+	}
+	// init with 0
+	usage := make(map[string]int)
+	for _, i := range imgs {
+		usage[i.ID] = 0
+	}
+	// loop over machines and count
+	machines, err := iuc.ir.ds.ListMachines()
+	if err != nil {
+		return
+	}
+	for _, m := range machines {
+		if m.Allocation == nil {
+			continue
+		}
+		usage[m.Allocation.ImageID]++
+	}
+
+	for i, count := range usage {
+		image := images[i]
+
+		metric, err := prometheus.NewConstMetric(
+			usedImageDesc,
+			prometheus.CounterValue,
+			float64(count),
+			image.ID,
+			image.Name,
+			image.OS,
+			string(image.Classification),
+			fmt.Sprintf("%d", image.Created.Unix()),
+			fmt.Sprintf("%d", image.ExpirationDate.Unix()),
+			string(image.Base.ID),
+			image.ImageFeatureString(),
+		)
+		if err != nil {
+			zapup.MustRootLogger().Error("Failed create metric for UsedImages", zap.Error(err))
+			return
+		}
+		ch <- metric
 	}
 }

@@ -18,6 +18,26 @@
         "statuscode"
       ]
     },
+    "metal.SwitchSync": {
+      "properties": {
+        "duration": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "time": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration",
+        "error",
+        "time"
+      ]
+    },
     "rest.status": {
       "properties": {
         "message": {
@@ -2652,6 +2672,11 @@
           "format": "int32",
           "type": "integer"
         },
+        "other": {
+          "description": "servers neither free, allocated or faulty with this size",
+          "format": "int32",
+          "type": "integer"
+        },
         "size": {
           "description": "the size of the server",
           "type": "string"
@@ -2666,6 +2691,7 @@
         "allocated",
         "faulty",
         "free",
+        "other",
         "size",
         "total"
       ]
@@ -2881,6 +2907,22 @@
         "name"
       ]
     },
+    "v1.SwitchNotifyRequest": {
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "sync_duration": {
+          "description": "the duration of the switch synchronization",
+          "format": "integer",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "error",
+        "sync_duration"
+      ]
+    },
     "v1.SwitchRegisterRequest": {
       "properties": {
         "description": {
@@ -2949,6 +2991,14 @@
           "type": "string",
           "uniqueItems": true
         },
+        "last_sync": {
+          "$ref": "#/definitions/metal.SwitchSync",
+          "description": "last successful synchronization to the switch"
+        },
+        "last_sync_error": {
+          "$ref": "#/definitions/metal.SwitchSync",
+          "description": "last synchronization to the switch that was erroneous"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -2974,6 +3024,8 @@
         "connections",
         "created",
         "id",
+        "last_sync",
+        "last_sync_error",
         "nics",
         "partition",
         "rack_id"
@@ -5734,6 +5786,52 @@
           }
         },
         "summary": "get switch by id",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
+    "/v1/switch/{id}/notify": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "notifySwitch",
+        "parameters": [
+          {
+            "description": "identifier of the switch",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchNotifyRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "notify the metal-api about a configuration change of a switch",
         "tags": [
           "switch"
         ]

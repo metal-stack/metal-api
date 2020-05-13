@@ -81,3 +81,5 @@ func (p NopPublisher) CreateTopic(topic string) error {
 	assert.Equal(p.T, p.topic, topic)
 	return nil
 }
+
+func (p NopPublisher) Stop() {}

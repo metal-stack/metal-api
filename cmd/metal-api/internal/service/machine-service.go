@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/pkg/errors"
 	"net"
 	"net/http"
 	"strconv"
@@ -31,7 +32,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/bus"
-	"github.com/pkg/errors"
 )
 
 type machineResource struct {
@@ -39,6 +39,7 @@ type machineResource struct {
 	bus.Publisher
 	ipamer     ipam.IPAMer
 	mdc        mdm.Client
+	actor      *asyncActor
 	waitServer *grpc.WaitServer
 }
 
@@ -115,9 +116,11 @@ type Allocator func(Allocation) error
 func NewMachine(
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
+	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
-	waitServer *grpc.WaitServer) *restful.WebService {
+	waitServer *grpc.WaitServer) (*restful.WebService, error) {
+
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
@@ -127,7 +130,13 @@ func NewMachine(
 		mdc:        mdc,
 		waitServer: waitServer,
 	}
-	return r.webService()
+	var err error
+	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create async actor: %w", err)
+	}
+
+	return r.webService(), nil
 }
 
 // webService creates the webservice endpoint
@@ -1433,7 +1442,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 	logger := utils.Logger(request).Sugar()
 
-	err = freeMachine(r.ds, r, r.ipamer, m, logger)
+	err = r.actor.freeMachine(r, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1442,45 +1451,6 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
-}
-
-func freeMachine(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, m *metal.Machine, logger *zap.SugaredLogger) error {
-	if m.State.Value == metal.LockedState {
-		return fmt.Errorf("machine is locked")
-	}
-
-	err := deleteVRFSwitches(ds, m, logger)
-	if err != nil {
-		return err
-	}
-	err = publishDeleteEvent(publisher, m, logger)
-	if err != nil {
-		return err
-	}
-
-	// if the machine is allocated, we free it in our database
-	if m.Allocation != nil {
-		err = releaseMachineNetworks(ds, ipamer, m)
-		if err != nil {
-			// TODO: Trigger network garbage collection
-			// TODO: Check if all IPs in rethinkdb are in the IPAM and vice versa, cleanup if this is not the case
-			// TODO: Check if there are network prefixes in the IPAM that are not in any of our networks
-			logger.Errorw("an error during releasing machine networks occurred, scheduled network garbage collection", "error", err)
-		}
-	}
-
-	old := *m
-
-	m.Allocation = nil
-	m.Tags = nil
-
-	err = ds.UpdateMachine(&old, m)
-	if err != nil {
-		return err
-	}
-	logger.Infow("freed machine", "machineID", m.ID)
-
-	return nil
 }
 
 // reinstallMachine reinstalls the requested machine with given image by either allocating
@@ -1516,12 +1486,12 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 			}
 			logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
 
-			err = deleteVRFSwitches(r.ds, m, logger)
+			err = deleteVRFSwitches(r.ds, m, logger.Desugar())
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
 
-			err = publishDeleteEvent(r, m, logger)
+			err = publishDeleteEvent(r, m, logger.Desugar())
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
@@ -1596,55 +1566,23 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 	}
 }
 
-func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.SugaredLogger) error {
+func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.Logger) error {
+	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
 	_, err := setVrfAtSwitches(ds, m, "")
-	logger.Infow("set VRF at switch", "machineID", m.ID, "error", err)
-	return err
+	if err != nil {
+		logger.Error("cannot delete vrf switches", zap.String("machineID", m.ID), zap.Error(err))
+		return fmt.Errorf("cannot delete vrf switches: %w", err)
+	}
+	return nil
 }
 
-func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.SugaredLogger) error {
+func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
+	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
-	logger.Infow("published machine delete event", "machineID", m.ID, "error", err)
-	return err
-}
-
-func releaseMachineNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, machine *metal.Machine) error {
-	for _, machineNetwork := range machine.Allocation.MachineNetworks {
-		for _, ipString := range machineNetwork.IPs {
-			ip, err := ds.FindIPByID(ipString)
-			if err != nil {
-				return err
-			}
-			// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip
-			if !ip.HasMachineId(machine.GetID()) {
-				continue
-			}
-			// disassociate machine from ip
-			newIP := *ip
-			newIP.RemoveMachineId(machine.GetID())
-			err = ds.UpdateIP(ip, &newIP)
-			if err != nil {
-				return err
-			}
-			// static ips should not be released automatically
-			if ip.Type == metal.Static {
-				continue
-			}
-			// ips that are associated to other machines will should not be released automatically
-			if len(newIP.GetMachineIds()) > 0 {
-				continue
-			}
-			// release and delete
-			err = ipamer.ReleaseIP(*ip)
-			if err != nil {
-				return err
-			}
-			err = ds.DeleteIP(ip)
-			if err != nil {
-				return err
-			}
-		}
+	if err != nil {
+		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
+		return fmt.Errorf("cannot publish delete event: %w", err)
 	}
 	return nil
 }
@@ -1830,10 +1768,15 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	act, err := newAsyncActor(logger.Desugar(), ep, ds, ipamer)
 	if err != nil {
 		return err
 	}
@@ -1863,7 +1806,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ipam
 		}
 
 		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = freeMachine(ds, publisher, ipamer, &m, logger)
+		err = act.freeMachine(publisher, &m)
 		if err != nil {
 			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 		}

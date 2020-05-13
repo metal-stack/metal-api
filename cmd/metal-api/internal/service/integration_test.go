@@ -60,13 +60,15 @@ func createTestEnvironment(t *testing.T) testEnv {
 	waitServer, err := grpc.NewWaitServer(ds, nsq.Publisher)
 	require.NoError(err)
 
-	machineService := NewMachine(ds, nsq.Publisher, ipamer, mdc, waitServer)
+	machineService, err := NewMachine(ds, nsq.Publisher, nsq.Endpoints, ipamer, mdc, waitServer)
+	require.NoError(err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
 	sizeService := NewSize(ds)
 	networkService := NewNetwork(ds, ipamer, mdc)
 	partitionService := NewPartition(ds, nsq)
-	ipService := NewIP(ds, ipamer, mdc)
+	ipService, err := NewIP(ds, nsq.Endpoints, ipamer, mdc)
+	require.NoError(err)
 
 	te := testEnv{
 		imageService:     imageService,
