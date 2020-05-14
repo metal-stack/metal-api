@@ -143,7 +143,7 @@ func init() {
 	rootCmd.Flags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.Flags().StringP("db-name", "", "metalapi", "the database name to use")
 	rootCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
-	rootCmd.Flags().StringP("db-user", "", "", "the database user to use")
+	rootCmd.Flags().StringP("db-user", "", datastore.MetalUser, "the database user to use")
 	rootCmd.Flags().StringP("db-password", "", "", "the database password to use")
 
 	rootCmd.Flags().StringP("ipam-db", "", "postgres", "the database adapter to use")
@@ -305,11 +305,18 @@ func waitForPartitions() metal.Partitions {
 func initDataStore() {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
+		dbUser := viper.GetString("db-user")
+		if dbUser != datastore.AdminUser && dbUser != datastore.MetalUser {
+			err := fmt.Errorf("for rethinkdb the metal-api must either be started with one of these database users: %v", []string{datastore.AdminUser, datastore.MetalUser})
+			logger.Error(err)
+			panic(err)
+		}
+
 		ds = datastore.New(
 			logger.Desugar(),
 			viper.GetString("db-addr"),
 			viper.GetString("db-name"),
-			viper.GetString("db-user"),
+			dbUser,
 			viper.GetString("db-password"),
 		)
 	} else {

@@ -94,11 +94,27 @@ func (rs *RethinkStore) migrate() error {
 	}
 
 	ms := migrations.NewerThan(current.Version)
-	if len(ms) > 0 {
-		rs.SugaredLogger.Infow("database migration required", "current-version", current.Version, "newer-versions", len(ms), "target-version", ms[len(ms)-1].Version)
-	} else {
+	migrationRequired := len(ms) > 0
+
+	if !migrationRequired {
 		rs.SugaredLogger.Infow("no database migration required", "current-version", current.Version)
+		return nil
 	}
+
+	rs.SugaredLogger.Infow("database migration required", "current-version", current.Version, "newer-versions", len(ms), "target-version", ms[len(ms)-1].Version)
+
+	rs.SugaredLogger.Infow("setting to read only", "user", MetalUser)
+	_, err = rs.db().Grant(MetalUser, map[string]interface{}{"write": false}).RunWrite(rs.session)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		rs.SugaredLogger.Infow("removing read only", "user", MetalUser)
+		_, err = rs.db().Grant(MetalUser, map[string]interface{}{"write": true}).RunWrite(rs.session)
+		if err != nil {
+			rs.SugaredLogger.Errorw("error giving back write permissions", "user", MetalUser)
+		}
+	}()
 
 	for _, m := range ms {
 		rs.SugaredLogger.Infow("running database migration", "version", m.Version, "name", m.Name)
@@ -114,6 +130,8 @@ func (rs *RethinkStore) migrate() error {
 			return errors.Wrap(err, "error updating database migration version")
 		}
 	}
+
+	rs.SugaredLogger.Infow("database migration succeeded")
 
 	return nil
 }
