@@ -70,13 +70,13 @@ func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []me
 	}
 }
 
-//CreateTopic creates a topic for the given partition.
-func (n NSQClient) CreateTopic(topicFQN string) error {
-	if err := n.Publisher.CreateTopic(topicFQN); err != nil {
-		n.logger.Sugar().Errorw("cannot create topic", "topic", topicFQN)
+//CreateTopic creates a topic with given name.
+func (n NSQClient) CreateTopic(name string) error {
+	if err := n.Publisher.CreateTopic(name); err != nil {
+		n.logger.Sugar().Errorw("cannot create topic", "topic", name)
 		return err
 	}
-	n.logger.Sugar().Infow("topic created", "topic", topicFQN)
+	n.logger.Sugar().Infow("topic created", "topic", name)
 	return nil
 }
 

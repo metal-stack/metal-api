@@ -290,7 +290,7 @@ func initEventBus() {
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
-	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr")); err != nil {
+	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-http-addr")); err != nil {
 		panic(err)
 	}
 	nsqer = &nsq
@@ -467,10 +467,6 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 
 	lg := logger.Desugar()
-	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
-	restful.DefaultContainer.Add(service.NewImage(ds))
-	restful.DefaultContainer.Add(service.NewSize(ds))
-	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
 	var p bus.Publisher
 	ep := bus.DirectEndpoints()
 	if nsqer != nil {
@@ -485,6 +481,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
+
+	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
+	restful.DefaultContainer.Add(service.NewImage(ds))
+	restful.DefaultContainer.Add(service.NewSize(ds))
+	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(ipservice)
 	restful.DefaultContainer.Add(mservice)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
