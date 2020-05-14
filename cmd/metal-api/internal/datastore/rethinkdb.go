@@ -15,7 +15,7 @@ import (
 
 var (
 	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
-		"integerpool", "integerpoolinfo"}
+		"integerpool", "integerpoolinfo", "migration"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -82,6 +82,8 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
+	err = rs.migrate()
+
 	err = rs.initIntegerPool()
 	if err != nil {
 		return err
@@ -104,6 +106,10 @@ func (rs *RethinkStore) partitionTable() *r.Term {
 }
 func (rs *RethinkStore) machineTable() *r.Term {
 	res := r.DB(rs.dbname).Table("machine")
+	return &res
+}
+func (rs *RethinkStore) migrationTable() *r.Term {
+	res := r.DB(rs.dbname).Table("migration")
 	return &res
 }
 func (rs *RethinkStore) switchTable() *r.Term {

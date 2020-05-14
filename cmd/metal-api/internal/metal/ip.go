@@ -2,10 +2,11 @@ package metal
 
 import (
 	"fmt"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
 	"github.com/pkg/errors"
@@ -36,7 +37,12 @@ const (
 
 // IP of a machine/firewall.
 type IP struct {
-	IPAddress        string    `rethinkdb:"id" json:"id"`
+	IPAddress string `rethinkdb:"id" json:"id"`
+	// AllocationID will be randomly generated during IP creation and helps identifying the point in time
+	// when an IP was created
+	// without this field it is impossible to distinguish whether an IP address was re-acquired after it
+	// was released or if it is still the same ip address as before. Used for accounting.
+	AllocationUUID   string    `rethinkdb:"allocationuuid" json:"allocationuuid"`
 	ParentPrefixCidr string    `rethinkdb:"prefix" json:"prefix"`
 	Name             string    `rethinkdb:"name" json:"name"`
 	Description      string    `rethinkdb:"description" json:"description"`

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
@@ -306,8 +307,14 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		ipType = metal.Static
 	}
 
+	allocationUUID, err := uuid.NewRandom()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	ip := &metal.IP{
 		IPAddress:        ipAddress,
+		AllocationUUID:   allocationUUID.String(),
 		ParentPrefixCidr: ipParentCidr,
 		Name:             name,
 		Description:      description,

@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/metal-stack/metal-lib/zapup"
@@ -1311,12 +1312,18 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 
 func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
+		allocationUUID, err := uuid.NewRandom()
+		if err != nil {
+			return nil, fmt.Errorf("unable to create uuid for IP allocation: %v", err)
+		}
+
 		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", n.network.ID, err)
 		}
 		ip := &metal.IP{
 			IPAddress:        ipAddress,
+			AllocationUUID:   allocationUUID.String(),
 			ParentPrefixCidr: ipParentCidr,
 			Name:             allocationSpec.Name,
 			Description:      "autoassigned",
