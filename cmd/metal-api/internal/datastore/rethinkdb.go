@@ -83,6 +83,9 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	}
 
 	err = rs.migrate()
+	if err != nil {
+		return err
+	}
 
 	err = rs.initIntegerPool()
 	if err != nil {
