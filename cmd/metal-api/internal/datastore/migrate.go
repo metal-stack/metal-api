@@ -38,17 +38,18 @@ var migrations = Migrations{
 			}
 
 			for _, old := range ips {
-				if old.AllocationUUID == "" {
-					u, err := uuid.NewRandom()
-					if err != nil {
-						return err
-					}
-					new := old
-					new.AllocationUUID = u.String()
-					err = rs.updateEntity(rs.ipTable(), &new, &old)
-					if err != nil {
-						return err
-					}
+				if old.AllocationUUID != "" {
+					continue
+				}
+				u, err := uuid.NewRandom()
+				if err != nil {
+					return err
+				}
+				new := old
+				new.AllocationUUID = u.String()
+				err = rs.updateEntity(rs.ipTable(), &new, &old)
+				if err != nil {
+					return err
 				}
 			}
 			return nil
