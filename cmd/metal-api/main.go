@@ -96,6 +96,16 @@ var initDatabase = &cobra.Command{
 	},
 }
 
+var migrateDatabase = &cobra.Command{
+	Use:     "migrate",
+	Short:   "migrates the database to the latest version",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		connectDatastore()
+		return ds.Migrate()
+	},
+}
+
 var resurrectMachines = &cobra.Command{
 	Use:     "resurrect-machines",
 	Short:   "resurrect dead machines",
@@ -127,7 +137,6 @@ var deleteOrphanImagesCmd = &cobra.Command{
 }
 
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, machineLiveliness, deleteOrphanImagesCmd)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -136,54 +145,63 @@ func main() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
+	rootCmd.AddCommand(
+		dumpSwagger,
+		initDatabase,
+		migrateDatabase,
+		resurrectMachines,
+		machineLiveliness,
+		deleteOrphanImagesCmd,
+	)
 
-	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
-	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
 
-	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
+	rootCmd.PersistentFlags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
+	rootCmd.PersistentFlags().IntP("port", "", 8080, "the port to serve on")
 
-	rootCmd.Flags().StringP("db", "", "rethinkdb", "the database adapter to use")
-	rootCmd.Flags().StringP("db-name", "", "metalapi", "the database name to use")
-	rootCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
-	rootCmd.Flags().StringP("db-user", "", "", "the database user to use")
-	rootCmd.Flags().StringP("db-password", "", "", "the database password to use")
+	rootCmd.PersistentFlags().StringP("base-path", "", "/", "the base path of the api server")
 
-	rootCmd.Flags().StringP("ipam-db", "", "postgres", "the database adapter to use")
-	rootCmd.Flags().StringP("ipam-db-name", "", "metal-ipam", "the database name to use")
-	rootCmd.Flags().StringP("ipam-db-addr", "", "", "the database address string to use")
-	rootCmd.Flags().StringP("ipam-db-port", "", "5432", "the database port string to use")
-	rootCmd.Flags().StringP("ipam-db-user", "", "", "the database user to use")
-	rootCmd.Flags().StringP("ipam-db-password", "", "", "the database password to use")
+	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
+	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
+	rootCmd.PersistentFlags().StringP("db-addr", "", "", "the database address string to use")
+	rootCmd.PersistentFlags().StringP("db-user", "", "", "the database user to use")
+	rootCmd.PersistentFlags().StringP("db-password", "", "", "the database password to use")
 
-	rootCmd.Flags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
+	rootCmd.PersistentFlags().StringP("ipam-db", "", "postgres", "the database adapter to use")
+	rootCmd.PersistentFlags().StringP("ipam-db-name", "", "metal-ipam", "the database name to use")
+	rootCmd.PersistentFlags().StringP("ipam-db-addr", "", "", "the database address string to use")
+	rootCmd.PersistentFlags().StringP("ipam-db-port", "", "5432", "the database port string to use")
+	rootCmd.PersistentFlags().StringP("ipam-db-user", "", "", "the database user to use")
+	rootCmd.PersistentFlags().StringP("ipam-db-password", "", "", "the database password to use")
 
-	rootCmd.Flags().StringP("nsqd-tcp-addr", "", "", "the TCP address of the nsqd")
-	rootCmd.Flags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
-	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
-	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
-	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
-	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http address of the nsqlookupd as a commalist")
+	rootCmd.PersistentFlags().StringP("metrics-server-bind-addr", "", ":2112", "the bind addr of the metrics server")
 
-	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
-	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
+	rootCmd.PersistentFlags().StringP("nsqd-tcp-addr", "", "", "the TCP address of the nsqd")
+	rootCmd.PersistentFlags().StringP("nsqd-http-endpoint", "", "nsqd:4151", "the address of the nsqd http endpoint")
+	rootCmd.PersistentFlags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
+	rootCmd.PersistentFlags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
+	rootCmd.PersistentFlags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
+	rootCmd.PersistentFlags().StringP("nsqlookupd-addr", "", "", "the http address of the nsqlookupd as a commalist")
 
-	rootCmd.Flags().StringP("hmac-edit-key", "", "must-be-changed", "the preshared key for hmac security for a editing user")
-	rootCmd.Flags().StringP("hmac-edit-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
+	rootCmd.PersistentFlags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
+	rootCmd.PersistentFlags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
-	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
-	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
+	rootCmd.PersistentFlags().StringP("hmac-edit-key", "", "must-be-changed", "the preshared key for hmac security for a editing user")
+	rootCmd.PersistentFlags().StringP("hmac-edit-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
-	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
+	rootCmd.PersistentFlags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
+	rootCmd.PersistentFlags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
-	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
-	rootCmd.Flags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
-	rootCmd.Flags().IntP("masterdata-port", "", 8443, "the port of the masterdata-api")
-	rootCmd.Flags().StringP("masterdata-capath", "", "", "the tls ca certificate to talk to the masterdata-api")
-	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
-	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
+	rootCmd.PersistentFlags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
 
-	err := viper.BindPFlags(rootCmd.Flags())
+	rootCmd.PersistentFlags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
+	rootCmd.PersistentFlags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
+	rootCmd.PersistentFlags().IntP("masterdata-port", "", 8443, "the port of the masterdata-api")
+	rootCmd.PersistentFlags().StringP("masterdata-capath", "", "", "the tls ca certificate to talk to the masterdata-api")
+	rootCmd.PersistentFlags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
+	rootCmd.PersistentFlags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
+
+	err := viper.BindPFlags(rootCmd.PersistentFlags())
 	if err != nil {
 		logger.Error("unable to construct root command:%v", err)
 	}
@@ -305,7 +323,7 @@ func waitForPartitions() metal.Partitions {
 	return partitions
 }
 
-func initDataStore() {
+func connectDatastore() {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
 		ds = datastore.New(
@@ -320,9 +338,24 @@ func initDataStore() {
 	}
 
 	err := ds.Connect()
-
 	if err != nil {
 		logger.Errorw("cannot connect to data store", "error", err)
+		panic(err)
+	}
+}
+
+func initDataStore() {
+	connectDatastore()
+
+	err := ds.Initialize()
+	if err != nil {
+		logger.Errorw("error initializing data store tables", "error", err)
+		panic(err)
+	}
+
+	err = ds.Demote()
+	if err != nil {
+		logger.Errorw("error demoting to data store runtime user", "error", err)
 		panic(err)
 	}
 }

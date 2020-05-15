@@ -69,6 +69,12 @@ func (rs *RethinkStore) Health() error {
 	)
 }
 
+// Initialize initializes the database, it should be called every time
+// the application comes up before using the data store
+func (rs *RethinkStore) Initialize() error {
+	return rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+}
+
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	db := rs.db()
 
@@ -89,11 +95,6 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	_, err = rs.userTable().Insert(map[string]interface{}{"id": MetalUser, "password": rs.dbpass}, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
-	if err != nil {
-		return err
-	}
-
-	err = rs.migrate()
 	if err != nil {
 		return err
 	}
@@ -189,19 +190,21 @@ func (rs *RethinkStore) Close() error {
 // a connection.
 func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
-	rs.Info("Rethinkstore connected for table init")
-	rs.session = rs.dbsession
-	err := rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
-	if err != nil {
-		return err
-	}
-	err = rs.Close()
-	if err != nil {
-		return err
-	}
-	rs.Info("Connecting with demoted runtime user")
-	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, MetalUser, rs.dbpass)
 	rs.Info("Rethinkstore connected")
+	rs.session = rs.dbsession
+	return nil
+}
+
+// Demote connects to the database with the demoted metal runtime user. this enables
+// putting the database in read-only mode during database migrations
+func (rs *RethinkStore) Demote() error {
+	rs.Info("Connecting with demoted runtime user")
+	err := rs.Close()
+	if err != nil {
+		return err
+	}
+	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, MetalUser, rs.dbpass)
+	rs.Info("Rethinkstore connected with demoted user")
 	rs.session = rs.dbsession
 	return nil
 }

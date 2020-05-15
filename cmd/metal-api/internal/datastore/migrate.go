@@ -60,7 +60,8 @@ func (ms Migrations) NewerThan(version uint) Migrations {
 	return result
 }
 
-func (rs *RethinkStore) migrate() error {
+// Migrate runs database migrations and puts the database into read only mode for runtime users
+func (rs *RethinkStore) Migrate() error {
 	_, err := rs.migrationTable().Insert(MigrationVersionEntry{Version: 0}, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
