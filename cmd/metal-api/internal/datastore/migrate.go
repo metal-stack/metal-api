@@ -1,8 +1,9 @@
 package datastore
 
 import (
-	"github.com/google/uuid"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"fmt"
+	"sync"
+
 	"github.com/pkg/errors"
 	"go4.org/sort"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -26,35 +27,21 @@ type MigrationVersionEntry struct {
 	Version uint `rethinkdb:"id"`
 }
 
-var migrations = Migrations{
-	{
-		Name:    "generate allocation uuids for new ip address field",
-		Version: 1,
-		Up: func(rs *RethinkStore) error {
-			ips := make(metal.IPs, 0)
-			err := rs.listEntities(rs.ipTable(), &ips)
-			if err != nil {
-				return err
-			}
+var (
+	migrations            Migrations
+	migrationRegisterLock sync.Mutex
+)
 
-			for _, old := range ips {
-				if old.AllocationUUID != "" {
-					continue
-				}
-				u, err := uuid.NewRandom()
-				if err != nil {
-					return err
-				}
-				new := old
-				new.AllocationUUID = u.String()
-				err = rs.updateEntity(rs.ipTable(), &new, &old)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-	},
+// MustRegisterMigration registers a migration and panics when a problem occurs
+func MustRegisterMigration(m Migration) {
+	migrationRegisterLock.Lock()
+	defer migrationRegisterLock.Unlock()
+	for _, migration := range migrations {
+		if migration.Version == m.Version {
+			panic(fmt.Sprintf("migration with version %d is defined multiple times", m.Version))
+		}
+	}
+	migrations = append(migrations, m)
 }
 
 // NewerThan returns a sorted slice of migrations that are newer than the given version
@@ -103,7 +90,7 @@ func (rs *RethinkStore) migrate() error {
 
 	rs.SugaredLogger.Infow("database migration required", "current-version", current.Version, "newer-versions", len(ms), "target-version", ms[len(ms)-1].Version)
 
-	rs.SugaredLogger.Infow("setting to read only", "user", MetalUser)
+	rs.SugaredLogger.Infow("setting demoted runtime user to read only", "user", MetalUser)
 	_, err = rs.db().Grant(MetalUser, map[string]interface{}{"write": false}).RunWrite(rs.session)
 	if err != nil {
 		return err

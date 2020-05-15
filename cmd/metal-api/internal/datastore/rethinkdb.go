@@ -86,24 +86,24 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	if rs.dbuser == AdminUser {
-		_, err := rs.userTable().Insert(map[string]interface{}{"id": MetalUser, "password": rs.dbpass}, r.InsertOpts{
-			Conflict: "replace",
-		}).RunWrite(rs.session)
-		if err != nil {
-			return err
-		}
+	_, err = rs.userTable().Insert(map[string]interface{}{"id": MetalUser, "password": rs.dbpass}, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
+	if err != nil {
+		return err
+	}
 
-		err = rs.migrate()
-		if err != nil {
-			return err
-		}
+	err = rs.migrate()
+	if err != nil {
+		return err
 	}
 
 	err = rs.initIntegerPool()
 	if err != nil {
 		return err
 	}
+
+	rs.SugaredLogger.Infow("tables successfully initialized")
 
 	return nil
 }
@@ -189,9 +189,21 @@ func (rs *RethinkStore) Close() error {
 // a connection.
 func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
+	rs.Info("Rethinkstore connected for table init")
+	rs.session = rs.dbsession
+	err := rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+	if err != nil {
+		return err
+	}
+	err = rs.Close()
+	if err != nil {
+		return err
+	}
+	rs.Info("Connecting with demoted runtime user")
+	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, MetalUser, rs.dbpass)
 	rs.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
-	return rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+	return nil
 }
 
 func connect(hosts []string, dbname, user, pwd string) (*r.Session, error) {
@@ -218,9 +230,9 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Session, error) {
 	return session, nil
 }
 
-// retryConnect versucht endlos eine Verbindung zur DB herzustellen. Wenn
-// die Verbindung nicht klappt wird eine zeit lang gewartet und erneut
-// versucht.
+// retryConnect infinitely tries to establish a database connection.
+// in case a connection could not be established, the function will
+// wait for a short period of time and try again.
 func retryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) *r.Session {
 tryAgain:
 	s, err := connect(hosts, dbname, user, pwd)
