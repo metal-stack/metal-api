@@ -164,10 +164,6 @@ func (rs *RethinkStore) userTable() *r.Term {
 	res := r.DB("rethinkdb").Table("users")
 	return &res
 }
-func (rs *RethinkStore) statsTable() *r.Term {
-	res := r.DB("rethinkdb").Table("stats")
-	return &res
-}
 
 // Mock return the mock from the rethinkdb driver and sets the
 // session to this mock. This MUST NOT be called in productive code.

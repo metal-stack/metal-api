@@ -18,13 +18,13 @@ type Migrations []Migration
 // Migration defines a database migration
 type Migration struct {
 	Name    string
-	Version uint
+	Version int
 	Up      MigrateFunc
 }
 
 // MigrationVersionEntry is a version entry in the migration database
 type MigrationVersionEntry struct {
-	Version uint `rethinkdb:"id"`
+	Version int `rethinkdb:"id"`
 }
 
 var (
@@ -44,24 +44,42 @@ func MustRegisterMigration(m Migration) {
 	migrations = append(migrations, m)
 }
 
-// NewerThan returns a sorted slice of migrations that are newer than the given version
-func (ms Migrations) NewerThan(version uint) Migrations {
+// Between returns a sorted slice of migrations that are between the given current version
+// and target version (target version contained). If target version is nil all newer versions
+// the current are contained in the slice.
+func (ms Migrations) Between(current int, target *int) (Migrations, error) {
 	var result Migrations
+	targetFound := false
 	for _, m := range ms {
-		if m.Version > version {
-			result = append(result, m)
+		if target != nil {
+			if m.Version > *target {
+				continue
+			}
+			if m.Version == *target {
+				targetFound = true
+			}
 		}
+
+		if m.Version <= current {
+			continue
+		}
+
+		result = append(result, m)
 	}
 
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Version < result[j].Version
 	})
 
-	return result
+	if target != nil && !targetFound {
+		return nil, fmt.Errorf("target version not found")
+	}
+
+	return result, nil
 }
 
 // Migrate runs database migrations and puts the database into read only mode for runtime users
-func (rs *RethinkStore) Migrate() error {
+func (rs *RethinkStore) Migrate(targetVersion *int, dry bool) error {
 	_, err := rs.migrationTable().Insert(MigrationVersionEntry{Version: 0}, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
@@ -81,17 +99,27 @@ func (rs *RethinkStore) Migrate() error {
 		return err
 	}
 
-	rs.statsTable()
+	if targetVersion != nil && *targetVersion < current.Version {
+		return fmt.Errorf("target version (=%d) smaller than current version (=%d) and down migrations not supported", *targetVersion, current.Version)
+	}
+	ms, err := migrations.Between(current.Version, targetVersion)
+	if err != nil {
+		return err
+	}
 
-	ms := migrations.NewerThan(current.Version)
-	migrationRequired := len(ms) > 0
-
-	if !migrationRequired {
+	if len(ms) == 0 {
 		rs.SugaredLogger.Infow("no database migration required", "current-version", current.Version)
 		return nil
 	}
 
 	rs.SugaredLogger.Infow("database migration required", "current-version", current.Version, "newer-versions", len(ms), "target-version", ms[len(ms)-1].Version)
+
+	if dry {
+		for _, m := range ms {
+			rs.SugaredLogger.Infow("database migration dry run", "version", m.Version, "name", m.Name)
+		}
+		return nil
+	}
 
 	rs.SugaredLogger.Infow("setting demoted runtime user to read only", "user", DemotedUser)
 	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"write": false}).RunWrite(rs.session)

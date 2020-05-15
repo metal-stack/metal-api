@@ -63,9 +63,11 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     moduleName,
-	Short:   "an api to offer pure metal",
-	Version: v.V.String(),
+	Use:           moduleName,
+	Short:         "an api to offer pure metal",
+	Version:       v.V.String(),
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		initLogging()
 		initMetrics()
@@ -102,7 +104,12 @@ var migrateDatabase = &cobra.Command{
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		connectDatastore()
-		return ds.Migrate()
+		var targetVersion *int
+		specificVersion := viper.GetInt("target-version")
+		if specificVersion != -1 {
+			targetVersion = &specificVersion
+		}
+		return ds.Migrate(targetVersion, viper.GetBool("dry-run"))
 	},
 }
 
@@ -138,7 +145,7 @@ var deleteOrphanImagesCmd = &cobra.Command{
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed executing root command", "error", err)
+		logger.Fatalw("failed executing root command", "error", err)
 	}
 }
 
@@ -153,6 +160,13 @@ func init() {
 		machineLiveliness,
 		deleteOrphanImagesCmd,
 	)
+
+	migrateDatabase.Flags().Int("target-version", -1, "the target version of the migration, when set to -1 will migrate to latest version")
+	migrateDatabase.Flags().Bool("dry-run", false, "only shows which migrations would run, but does not execute them")
+	err := viper.BindPFlags(migrateDatabase.Flags())
+	if err != nil {
+		logger.Error("unable to construct migrate command:%v", err)
+	}
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
 
@@ -201,7 +215,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
 	rootCmd.PersistentFlags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
-	err := viper.BindPFlags(rootCmd.PersistentFlags())
+	err = viper.BindPFlags(rootCmd.PersistentFlags())
 	if err != nil {
 		logger.Error("unable to construct root command:%v", err)
 	}
