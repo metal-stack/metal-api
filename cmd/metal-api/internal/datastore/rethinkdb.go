@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	AdminUser = "admin"
-	MetalUser = "metal"
+	DemotedUser = "metal"
 )
 
 var (
@@ -92,7 +91,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	_, err = rs.userTable().Insert(map[string]interface{}{"id": MetalUser, "password": rs.dbpass}, r.InsertOpts{
+	_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
@@ -165,6 +164,10 @@ func (rs *RethinkStore) userTable() *r.Term {
 	res := r.DB("rethinkdb").Table("users")
 	return &res
 }
+func (rs *RethinkStore) statsTable() *r.Term {
+	res := r.DB("rethinkdb").Table("stats")
+	return &res
+}
 
 // Mock return the mock from the rethinkdb driver and sets the
 // session to this mock. This MUST NOT be called in productive code.
@@ -203,7 +206,7 @@ func (rs *RethinkStore) Demote() error {
 	if err != nil {
 		return err
 	}
-	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, MetalUser, rs.dbpass)
+	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.Info("Rethinkstore connected with demoted user")
 	rs.session = rs.dbsession
 	return nil

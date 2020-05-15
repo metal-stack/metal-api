@@ -81,6 +81,8 @@ func (rs *RethinkStore) Migrate() error {
 		return err
 	}
 
+	rs.statsTable()
+
 	ms := migrations.NewerThan(current.Version)
 	migrationRequired := len(ms) > 0
 
@@ -91,16 +93,16 @@ func (rs *RethinkStore) Migrate() error {
 
 	rs.SugaredLogger.Infow("database migration required", "current-version", current.Version, "newer-versions", len(ms), "target-version", ms[len(ms)-1].Version)
 
-	rs.SugaredLogger.Infow("setting demoted runtime user to read only", "user", MetalUser)
-	_, err = rs.db().Grant(MetalUser, map[string]interface{}{"write": false}).RunWrite(rs.session)
+	rs.SugaredLogger.Infow("setting demoted runtime user to read only", "user", DemotedUser)
+	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"write": false}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		rs.SugaredLogger.Infow("removing read only", "user", MetalUser)
-		_, err = rs.db().Grant(MetalUser, map[string]interface{}{"write": true}).RunWrite(rs.session)
+		rs.SugaredLogger.Infow("removing read only", "user", DemotedUser)
+		_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"write": true}).RunWrite(rs.session)
 		if err != nil {
-			rs.SugaredLogger.Errorw("error giving back write permissions", "user", MetalUser)
+			rs.SugaredLogger.Errorw("error giving back write permissions", "user", DemotedUser)
 		}
 	}()
 
