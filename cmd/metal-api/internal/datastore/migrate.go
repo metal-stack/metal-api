@@ -46,7 +46,7 @@ func MustRegisterMigration(m Migration) {
 
 // Between returns a sorted slice of migrations that are between the given current version
 // and target version (target version contained). If target version is nil all newer versions
-// the current are contained in the slice.
+// than current are contained in the slice.
 func (ms Migrations) Between(current int, target *int) (Migrations, error) {
 	var result Migrations
 	targetFound := false
