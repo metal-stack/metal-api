@@ -402,18 +402,21 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 	providerTenant := viper.GetString("provider-tenant")
 
-	dx, err := security.NewDex(viper.GetString("dex-addr"))
-	if err != nil {
-		logger.Warnw("dex not reachable", "error", err)
-	}
-	if dx != nil {
-		// use custom user extractor and group processor
-		plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
-		dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
-		auths = append(auths, security.WithDex(dx))
-		logger.Info("dex successfully configured")
-	} else {
-		logger.Warnw("dex is not configured")
+	dexAddr := viper.GetString("dex-addr")
+	if dexAddr != "" {
+		dx, err := security.NewDex(dexAddr)
+		if err != nil {
+			logger.Fatalw("dex not reachable", "error", err)
+		}
+		if dx != nil {
+			// use custom user extractor and group processor
+			plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
+			dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
+			auths = append(auths, security.WithDex(dx))
+			logger.Info("dex successfully configured")
+		} else {
+			logger.Fatalw("dex is configured, but not initialized")
+		}
 	}
 
 	defaultUsers := service.NewUserDirectory(providerTenant)
