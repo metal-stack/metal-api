@@ -3465,6 +3465,44 @@
         ]
       }
     },
+    "/v1/image/{id}/latest": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findLatestImage",
+        "parameters": [
+          {
+            "description": "identifier of the image",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.ImageResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "find latest image by id",
+        "tags": [
+          "image"
+        ]
+      }
+    },
     "/v1/ip": {
       "get": {
         "consumes": [
