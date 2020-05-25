@@ -3359,38 +3359,6 @@
         ]
       }
     },
-    "/v1/image/migrate": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "migrateImages",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v1.ImageResponse"
-              },
-              "type": "array"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "migrate existing machine allocation images to semver equivalents",
-        "tags": [
-          "image"
-        ]
-      }
-    },
     "/v1/image/{id}": {
       "delete": {
         "consumes": [
