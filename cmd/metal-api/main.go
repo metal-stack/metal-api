@@ -380,7 +380,7 @@ func initIpam() {
 			viper.GetString("ipam-db-user"),
 			viper.GetString("ipam-db-password"),
 			viper.GetString("ipam-db-name"),
-			"disable")
+			goipam.SSLModeDisable)
 		if err != nil {
 			logger.Errorw("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
 			time.Sleep(3 * time.Second)
