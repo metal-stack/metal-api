@@ -9,11 +9,11 @@ import (
 )
 
 type Ipam struct {
-	ip *ipam.Ipamer
+	ip ipam.Ipamer
 }
 
 // New creates a new IPAM module.
-func New(ip *ipam.Ipamer) *Ipam {
+func New(ip ipam.Ipamer) *Ipam {
 	return &Ipam{
 		ip: ip,
 	}
