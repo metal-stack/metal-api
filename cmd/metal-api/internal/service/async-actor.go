@@ -84,6 +84,11 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 		for _, ipString := range machineNetwork.IPs {
 			ip, err := a.FindIPByID(ipString)
 			if err != nil {
+				if metal.IsNotFound(err) {
+					// if we do not skip here we will always fail releasing the next ip addresses
+					// after the first ip was released
+					continue
+				}
 				return err
 			}
 			// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip

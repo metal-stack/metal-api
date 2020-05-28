@@ -677,9 +677,15 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
 	if requestPayload.PartitionID == "" {
-		err := fmt.Errorf("given partition id was not found")
+		err := fmt.Errorf("partition id is empty")
 		checkError(request, response, utils.CurrentFuncName(), err)
+		return
+	}
+
+	p, err := r.ds.FindPartition(requestPayload.PartitionID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
@@ -713,7 +719,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			Base: metal.Base{
 				ID: uuid,
 			},
-			PartitionID: requestPayload.PartitionID,
+			PartitionID: p.ID,
 			IPMI: metal.IPMI{
 				Address: ip + ":" + defaultIPMIPort,
 			},
@@ -754,10 +760,10 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		}
 		// machine was created by a PXE boot event and has no partition set.
 		if oldMachine.PartitionID == "" {
-			newMachine.PartitionID = requestPayload.PartitionID
+			newMachine.PartitionID = p.ID
 		}
 
-		if newMachine.PartitionID != requestPayload.PartitionID {
+		if newMachine.PartitionID != p.ID {
 			logger.Errorf("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
 			continue
 		}
