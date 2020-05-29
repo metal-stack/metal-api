@@ -1044,7 +1044,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return machine, rollbackOnError(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
+		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
 	}
 
 	err = ds.UpdateWaitingMachine(machine)
