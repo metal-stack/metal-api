@@ -1008,7 +1008,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		MachineNetworks: getMachineNetworks(networks),
 	}
-	networkRollbackFunc := func(err error) error {
+	rollbackOnError := func(err error) error {
 		if err != nil {
 			cleanupMachine := &metal.Machine{
 				Base: metal.Base{
@@ -1023,16 +1023,16 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	err = makeNetworks(ds, ipamer, allocationSpec, networks)
 	if err != nil {
-		return nil, networkRollbackFunc(err)
+		return nil, rollbackOnError(err)
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
 	machine, err := ds.FindMachineByID(machineCandidate.ID)
 	if err != nil {
-		return nil, networkRollbackFunc(err)
+		return nil, rollbackOnError(err)
 	}
 	if machine.Allocation != nil {
-		return nil, networkRollbackFunc(fmt.Errorf("machine %q already allocated", machine.ID))
+		return nil, rollbackOnError(fmt.Errorf("machine %q already allocated", machine.ID))
 	}
 
 	old := *machine
@@ -1041,16 +1041,16 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return machine, networkRollbackFunc(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
+		return machine, rollbackOnError(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
 	}
 
 	err = ds.UpdateWaitingMachine(machine)
 	if err != nil {
 		updateErr := ds.UpdateMachine(machine, &old) // try rollback allocation
 		if updateErr != nil {
-			return nil, networkRollbackFunc(fmt.Errorf("during update rollback due to an error (%v), another error occurred: %v", err, updateErr))
+			return nil, rollbackOnError(fmt.Errorf("during update rollback due to an error (%v), another error occurred: %v", err, updateErr))
 		}
-		return nil, networkRollbackFunc(fmt.Errorf("cannot allocate machine in DB: %v", err))
+		return nil, rollbackOnError(fmt.Errorf("cannot allocate machine in DB: %v", err))
 	}
 
 	return machine, nil
