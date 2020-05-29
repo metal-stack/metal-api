@@ -1004,28 +1004,29 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		MachineNetworks: getMachineNetworks(networks),
 	}
-	defer func() {
+	cleaner := func(err error) error {
 		if err != nil {
-			cleanup := &metal.Machine{
+			failedMachine := &metal.Machine{
 				Base: metal.Base{
 					ID: allocationSpec.UUID,
 				},
 				Allocation: alloc,
 			}
-			actor.machineReleaser(cleanup)
+			actor.machineReleaser(failedMachine)
 		}
-	}()
+		return err
+	}
 	if err != nil {
-		return nil, err
+		return nil, cleaner(err)
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
 	machine, err := ds.FindMachineByID(machineCandidate.ID)
 	if err != nil {
-		return nil, err
+		return nil, cleaner(err)
 	}
 	if machine.Allocation != nil {
-		return nil, fmt.Errorf("machine %q already allocated", machine.ID)
+		return nil, cleaner(fmt.Errorf("machine %q already allocated", machine.ID))
 	}
 
 	old := *machine
@@ -1034,16 +1035,16 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return machine, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
+		return machine, cleaner(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
 	}
 
 	err = ds.UpdateWaitingMachine(machine)
 	if err != nil {
 		updateErr := ds.UpdateMachine(machine, &old) // try rollback allocation
 		if updateErr != nil {
-			return nil, fmt.Errorf("during update rollback due to an error (%v), another error occurred: %v", err, updateErr)
+			return nil, cleaner(fmt.Errorf("during update rollback due to an error (%v), another error occurred: %v", err, updateErr))
 		}
-		return nil, fmt.Errorf("cannot allocate machine in DB: %v", err)
+		return nil, cleaner(fmt.Errorf("cannot allocate machine in DB: %v", err))
 	}
 
 	return machine, nil
