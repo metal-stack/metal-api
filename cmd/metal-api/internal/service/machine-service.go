@@ -1145,7 +1145,7 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	for _, n := range networks {
 		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
 		if err != nil {
-			return nil, err
+			return networks, err
 		}
 		n.machineNetwork = machineNetwork
 	}
@@ -1153,7 +1153,7 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
 	asn, err := makeASN(networks)
 	if err != nil {
-		return nil, err
+		return networks, err
 	}
 	for _, n := range networks {
 		n.machineNetwork.ASN = asn
