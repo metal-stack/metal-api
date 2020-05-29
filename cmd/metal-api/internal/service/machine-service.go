@@ -935,10 +935,9 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		IsFirewall:  false,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc)
+	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc, r.actor)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
-		// TODO: Trigger network garbage collection
-		utils.Logger(request).Sugar().Errorf("machine allocation went wrong, triggered network garbage collection", "error", err)
+		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "error", err)
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
@@ -948,7 +947,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 }
 
-func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client) (*metal.Machine, error) {
+func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -994,10 +993,6 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	allocationSpec.SizeID = machineCandidate.SizeID
 
 	networks, err := makeNetworks(ds, ipamer, allocationSpec)
-	if err != nil {
-		return nil, err
-	}
-
 	alloc := &metal.MachineAllocation{
 		Created:         time.Now(),
 		Name:            allocationSpec.Name,
@@ -1008,6 +1003,20 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		UserData:        allocationSpec.UserData,
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		MachineNetworks: getMachineNetworks(networks),
+	}
+	defer func() {
+		if err != nil {
+			cleanup := &metal.Machine{
+				Base: metal.Base{
+					ID: allocationSpec.UUID,
+				},
+				Allocation: alloc,
+			}
+			actor.machineReleaser(cleanup)
+		}
+	}()
+	if err != nil {
+		return nil, err
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
@@ -1025,7 +1034,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
+		return machine, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
 	}
 
 	err = ds.UpdateWaitingMachine(machine)
