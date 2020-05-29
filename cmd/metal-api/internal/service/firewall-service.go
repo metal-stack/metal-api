@@ -259,7 +259,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		IsFirewall:  true,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc, r.actor)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
