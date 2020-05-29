@@ -7,9 +7,8 @@ require (
 	github.com/Microsoft/hcsshim v0.8.9 // indirect
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/emicklei/go-restful v2.12.0+incompatible
-	// FIXME need to update to v2
-	github.com/emicklei/go-restful-openapi v1.3.0
+	github.com/emicklei/go-restful-openapi/v2 v2.1.0
+	github.com/emicklei/go-restful/v3 v3.1.0
 	github.com/go-openapi/spec v0.19.8
 	github.com/go-stack/stack v1.8.0
 	github.com/google/go-cmp v0.4.0
@@ -38,7 +37,6 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
-	golang.org/x/tools v0.0.0-20200526224456-8b020aee10d2 // indirect
 	gopkg.in/ini.v1 v1.56.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
@@ -47,5 +45,6 @@ replace (
 	// FIXME updating prometheus client leads to stack overflow on make spec
 	// the newer prometheus client comes with protobuf 1.4.x which creates a recursion somehow.
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
+	github.com/metal-stack/metal-lib => ../metal-lib
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.5.1
 )
