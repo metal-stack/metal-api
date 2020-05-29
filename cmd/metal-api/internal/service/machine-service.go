@@ -992,7 +992,11 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
 
-	networks, err := makeNetworks(ds, ipamer, allocationSpec)
+	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
+	if err != nil {
+		return nil, err
+	}
+
 	alloc := &metal.MachineAllocation{
 		Created:         time.Now(),
 		Name:            allocationSpec.Name,
@@ -1004,29 +1008,31 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		MachineNetworks: getMachineNetworks(networks),
 	}
-	cleaner := func(err error) error {
+	networkRollbackFunc := func(err error) error {
 		if err != nil {
-			failedMachine := &metal.Machine{
+			cleanupMachine := &metal.Machine{
 				Base: metal.Base{
 					ID: allocationSpec.UUID,
 				},
 				Allocation: alloc,
 			}
-			actor.machineReleaser(failedMachine)
+			actor.machineReleaser(cleanupMachine)
 		}
 		return err
 	}
+
+	err = makeNetworks(ds, ipamer, allocationSpec, networks)
 	if err != nil {
-		return nil, cleaner(err)
+		return nil, networkRollbackFunc(err)
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
 	machine, err := ds.FindMachineByID(machineCandidate.ID)
 	if err != nil {
-		return nil, cleaner(err)
+		return nil, networkRollbackFunc(err)
 	}
 	if machine.Allocation != nil {
-		return nil, cleaner(fmt.Errorf("machine %q already allocated", machine.ID))
+		return nil, networkRollbackFunc(fmt.Errorf("machine %q already allocated", machine.ID))
 	}
 
 	old := *machine
@@ -1035,16 +1041,16 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return machine, cleaner(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
+		return machine, networkRollbackFunc(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
 	}
 
 	err = ds.UpdateWaitingMachine(machine)
 	if err != nil {
 		updateErr := ds.UpdateMachine(machine, &old) // try rollback allocation
 		if updateErr != nil {
-			return nil, cleaner(fmt.Errorf("during update rollback due to an error (%v), another error occurred: %v", err, updateErr))
+			return nil, networkRollbackFunc(fmt.Errorf("during update rollback due to an error (%v), another error occurred: %v", err, updateErr))
 		}
-		return nil, cleaner(fmt.Errorf("cannot allocate machine in DB: %v", err))
+		return nil, networkRollbackFunc(fmt.Errorf("cannot allocate machine in DB: %v", err))
 	}
 
 	return machine, nil
@@ -1136,16 +1142,11 @@ func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string
 	return machine, nil
 }
 
-func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
-	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
-	if err != nil {
-		return nil, err
-	}
-
+func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap) error {
 	for _, n := range networks {
 		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
 		if err != nil {
-			return networks, err
+			return err
 		}
 		n.machineNetwork = machineNetwork
 	}
@@ -1153,13 +1154,13 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
 	asn, err := makeASN(networks)
 	if err != nil {
-		return networks, err
+		return err
 	}
 	for _, n := range networks {
 		n.machineNetwork.ASN = asn
 	}
 
-	return networks, nil
+	return nil
 }
 
 func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
