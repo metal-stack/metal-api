@@ -1135,9 +1135,9 @@ func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string
 	return machine, nil
 }
 
-// makeNetworks creates network entities and ip addresses as specified in the allocation network map. 
+// makeNetworks creates network entities and ip addresses as specified in the allocation network map.
 // created networks are added to the machine allocation directly after their creation. This way, the rollback mechanism
-// is enabled to 
+// is enabled to clean up networks that were already created.
 func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
 		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
