@@ -9,6 +9,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"go.uber.org/zap"
 )
 
@@ -91,38 +92,67 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 				}
 				return err
 			}
-			// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip
-			if !ip.HasMachineId(machine.GetID()) {
-				continue
-			}
-			// disassociate machine from ip
-			new := *ip
-			new.RemoveMachineId(machine.GetID())
-			err = a.UpdateIP(ip, &new)
+
+			err = a.disassociateIP(ip, machine)
 			if err != nil {
 				return err
 			}
-			// static ips should not be released automatically
-			if ip.Type == metal.Static {
-				continue
-			}
-			// ips that are associated to other machines will should not be released automatically
-			if len(new.GetMachineIds()) > 0 {
-				continue
-			}
-
-			// at this point the machine is removed from the IP, so the release of the
-			// IP must not fail, because this loop will never come to this point again because the
-			// begin of this loop checks if the IP contains the machine.
-			// so we fork a new job to delete the IP. if this fails .... well then ("houston we have a problem")
-			// we do not report the error to the caller, because this whole function cannot be re-do'ed.
-			a.Infow("async release IP", "ip", *ip)
-			if err := a.ipReleaser(*ip); err != nil {
-				// what should we do here? this error shows a problem with the nsq-bus system
-				a.Error("cannot call ip releaser", zap.Error(err))
-			}
 		}
 	}
+
+	// it can happen that an IP gets properly allocated for a machine but
+	// the machine was not added to the machine network. We call these
+	// IPs "dangling".
+	var danglingIPs metal.IPs
+	err := a.SearchIPs(&datastore.IPSearchQuery{
+		Tags: []string{metal.IpTag(tag.MachineID, machine.ID)},
+	}, &danglingIPs)
+	if err != nil {
+		return err
+	}
+	for _, ip := range danglingIPs {
+		err = a.disassociateIP(&ip, machine)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error {
+	// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip
+	if !ip.HasMachineId(machine.GetID()) {
+		return nil
+	}
+
+	// disassociate machine from ip
+	new := *ip
+	new.RemoveMachineId(machine.GetID())
+	err := a.UpdateIP(ip, &new)
+	if err != nil {
+		return err
+	}
+	// static ips should not be released automatically
+	if ip.Type == metal.Static {
+		return nil
+	}
+	// ips that are associated to other machines will should not be released automatically
+	if len(new.GetMachineIds()) > 0 {
+		return nil
+	}
+
+	// at this point the machine is removed from the IP, so the release of the
+	// IP must not fail, because this loop will never come to this point again because the
+	// begin of this loop checks if the IP contains the machine.
+	// so we fork a new job to delete the IP. if this fails .... well then ("houston we have a problem")
+	// we do not report the error to the caller, because this whole function cannot be re-do'ed.
+	a.Infow("async release IP", "ip", *ip)
+	if err := a.ipReleaser(*ip); err != nil {
+		// what should we do here? this error shows a problem with the nsq-bus system
+		a.Error("cannot call ip releaser", zap.Error(err))
+	}
+
 	return nil
 }
 

@@ -65,11 +65,10 @@ type machineAllocationSpec struct {
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
 type allocationNetwork struct {
-	network        *metal.Network
-	machineNetwork *metal.MachineNetwork
-	ips            []metal.IP
-	auto           bool
-	isPrivate      bool
+	network   *metal.Network
+	ips       []metal.IP
+	auto      bool
+	isPrivate bool
 }
 
 // allocationNetworkMap is a map of allocationNetworks with the network id as the key
@@ -88,15 +87,6 @@ func getPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error
 		return nil, fmt.Errorf("no private network contained")
 	}
 	return privateNetwork, nil
-}
-
-// getMachineNetworks extracts the machines networks from an allocationNetworkMap
-func getMachineNetworks(networks allocationNetworkMap) []*metal.MachineNetwork {
-	machineNetworks := []*metal.MachineNetwork{}
-	for _, n := range networks {
-		machineNetworks = append(machineNetworks, n.machineNetwork)
-	}
-	return machineNetworks
 }
 
 // The MachineAllocation contains the allocated machine or an error.
@@ -1006,7 +996,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		ImageID:         allocationSpec.Image.ID,
 		UserData:        allocationSpec.UserData,
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
-		MachineNetworks: getMachineNetworks(networks),
+		MachineNetworks: []*metal.MachineNetwork{},
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
@@ -1024,7 +1014,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		return err
 	}
 
-	err = makeNetworks(ds, ipamer, allocationSpec, networks)
+	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(err)
 	}
@@ -1145,13 +1135,16 @@ func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string
 	return machine, nil
 }
 
-func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap) error {
+// makeNetworks creates network entities and ip addresses as specified in the allocation network map.
+// created networks are added to the machine allocation directly after their creation. This way, the rollback mechanism
+// is enabled to clean up networks that were already created.
+func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
 		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
 		}
-		n.machineNetwork = machineNetwork
+		alloc.MachineNetworks = append(alloc.MachineNetworks, machineNetwork)
 	}
 
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
@@ -1159,8 +1152,8 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	if err != nil {
 		return err
 	}
-	for _, n := range networks {
-		n.machineNetwork.ASN = asn
+	for _, n := range alloc.MachineNetworks {
+		n.ASN = asn
 	}
 
 	return nil

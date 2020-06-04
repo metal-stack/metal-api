@@ -74,11 +74,6 @@ func (rs *RethinkStore) FindIPByID(id string) (*metal.IP, error) {
 	return &ip, nil
 }
 
-// FindIPs returns an IP by the given query, fails if there is no record or multiple records found.
-func (rs *RethinkStore) FindIPs(q *IPSearchQuery, ip *metal.IP) error {
-	return rs.findEntity(q.generateTerm(rs), &ip)
-}
-
 // SearchIPs returns the result of the ips search request query.
 func (rs *RethinkStore) SearchIPs(q *IPSearchQuery, ips *metal.IPs) error {
 	return rs.searchEntities(q.generateTerm(rs), ips)
