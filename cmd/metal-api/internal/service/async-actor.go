@@ -82,6 +82,9 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 		return nil
 	}
 	for _, machineNetwork := range machine.Allocation.MachineNetworks {
+		if machineNetwork.IPs == nil {
+			continue
+		}
 		for _, ipString := range machineNetwork.IPs {
 			ip, err := a.FindIPByID(ipString)
 			if err != nil {
