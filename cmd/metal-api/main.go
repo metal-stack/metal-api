@@ -268,11 +268,14 @@ func initEventBus() {
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
-		TLS: &bus.TLSConfig{
-			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
-		},
-		NSQ: nsq2.NewConfig(),
+		NSQ:          nsq2.NewConfig(),
+	}
+	tlsConfig := &bus.TLSConfig{
+		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
+		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+	}
+	if tlsConfig.CACertFile != "" && tlsConfig.ClientCertFile != "" {
+		publisherCfg.TLS = tlsConfig
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
