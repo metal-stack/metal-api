@@ -14,7 +14,7 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/require"
 
-	restful "github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 )
 
 func TestGetSizes(t *testing.T) {

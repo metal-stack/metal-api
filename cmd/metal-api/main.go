@@ -20,8 +20,8 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 
-	"github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/masterdata-api/pkg/auth"

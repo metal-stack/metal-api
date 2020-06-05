@@ -107,6 +107,11 @@ github.com/emicklei/go-restful v2.12.0+incompatible h1:SIvoTSbsMEwuM3dzFirLwKc4B
 github.com/emicklei/go-restful v2.12.0+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/emicklei/go-restful-openapi v1.3.0 h1:/C0BEqHLcNJ/757GDo/yjSA6hQ7BgMC4YHRGxfc8LTg=
 github.com/emicklei/go-restful-openapi v1.3.0/go.mod h1:cy7o3Ge8ZWZ5E90mpEY81sJZZFs2pkuYcLvfngYy1l0=
+github.com/emicklei/go-restful-openapi/v2 v2.1.0 h1:rCNxdqvdmxkieYGGzqtOi4UPLfl6JkAN3Wm6Fy9RMkw=
+github.com/emicklei/go-restful-openapi/v2 v2.1.0/go.mod h1:bs67E3SEVgSmB3qDuRLqpS0NcpheqtsCCMhW2/jml1E=
+github.com/emicklei/go-restful/v3 v3.0.0-rc2/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
+github.com/emicklei/go-restful/v3 v3.1.0 h1:1fG5HXJ8OamNzYojuXeuF+jcaoHgttJVoEuLRilT7SQ=
+github.com/emicklei/go-restful/v3 v3.1.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
@@ -160,7 +165,7 @@ github.com/go-openapi/spec v0.17.0/go.mod h1:XkF/MOi14NmjsfZ8VtAKf8pIlbZzyoTvZsd
 github.com/go-openapi/spec v0.18.0/go.mod h1:XkF/MOi14NmjsfZ8VtAKf8pIlbZzyoTvZsdfssdxcBI=
 github.com/go-openapi/spec v0.19.2/go.mod h1:sCxk3jxKgioEJikev4fgkNmwS+3kuYdJtcsZsD5zxMY=
 github.com/go-openapi/spec v0.19.3/go.mod h1:FpwSN1ksY1eteniUU7X0N/BgJ7a4WvBFVA8Lj9mJglo=
-github.com/go-openapi/spec v0.19.7 h1:0xWSeMd35y5avQAThZR2PkEuqSosoS5t6gDH4L8n11M=
+github.com/go-openapi/spec v0.19.5/go.mod h1:Hm2Jr4jv8G1ciIAo+frC/Ft+rR2kQDh8JHKHb3gWUSk=
 github.com/go-openapi/spec v0.19.7/go.mod h1:Hm2Jr4jv8G1ciIAo+frC/Ft+rR2kQDh8JHKHb3gWUSk=
 github.com/go-openapi/spec v0.19.8 h1:qAdZLh1r6QF/hI/gTq+TJTvsQUodZsM7KLqkAJdiJNg=
 github.com/go-openapi/spec v0.19.8/go.mod h1:Hm2Jr4jv8G1ciIAo+frC/Ft+rR2kQDh8JHKHb3gWUSk=
@@ -176,8 +181,10 @@ github.com/go-openapi/swag v0.17.0/go.mod h1:AByQ+nYG6gQg71GINrmuDXCPWdL640yX49/
 github.com/go-openapi/swag v0.18.0/go.mod h1:AByQ+nYG6gQg71GINrmuDXCPWdL640yX49/kXLo40Tg=
 github.com/go-openapi/swag v0.19.2/go.mod h1:POnQmlKehdgb5mhVOsnJFsivZCEZ/vjK9gh66Z9tfKk=
 github.com/go-openapi/swag v0.19.5/go.mod h1:POnQmlKehdgb5mhVOsnJFsivZCEZ/vjK9gh66Z9tfKk=
-github.com/go-openapi/swag v0.19.8 h1:vfK6jLhs7OI4tAXkvkooviaE1JEPcw3mutyegLHHjmk=
+github.com/go-openapi/swag v0.19.6/go.mod h1:ao+8BpOPyKdpQz3AOJfbeEVpLmWAvlT1IfTe5McPyhY=
 github.com/go-openapi/swag v0.19.8/go.mod h1:ao+8BpOPyKdpQz3AOJfbeEVpLmWAvlT1IfTe5McPyhY=
+github.com/go-openapi/swag v0.19.9 h1:1IxuqvBUU3S2Bi4YC7tlP9SJF1gVpCvqN0T2Qof4azE=
+github.com/go-openapi/swag v0.19.9/go.mod h1:ao+8BpOPyKdpQz3AOJfbeEVpLmWAvlT1IfTe5McPyhY=
 github.com/go-openapi/validate v0.18.0/go.mod h1:Uh4HdOzKt19xGIGm1qHf/ofbX1YQ4Y+MYsct2VUrAJ4=
 github.com/go-openapi/validate v0.19.2/go.mod h1:1tRCw7m3jtI8eNWEEliiAqUIcBztB2KDnRCRMUi7GTA=
 github.com/go-openapi/validate v0.19.3/go.mod h1:90Vh6jjkTn+OT1Eefm0ZixWNFjhtOH7vS9k0lo6zwJo=
@@ -300,6 +307,7 @@ github.com/jmoiron/sqlx v1.2.0/go.mod h1:1FEQNm3xlJgrMD+FBdI9+xvCksHtbpVBBw5dYhB
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
+github.com/json-iterator/go v1.1.8/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/json-iterator/go v1.1.9 h1:9yzud/Ht36ygwatGx56VwCZtlI/2AD15T1X2sjSuGns=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
@@ -366,8 +374,8 @@ github.com/metal-stack/go-ipam v1.5.0/go.mod h1:gVOpQvJYqWc+dmn78ftsDiOpvEBmBvF5
 github.com/metal-stack/masterdata-api v0.7.1 h1:gbOMmPqSdzH1bu4euCYPUtssJUt6KAPA2n6mp6VXvfQ=
 github.com/metal-stack/masterdata-api v0.7.1/go.mod h1:550IydxBT8YCEuBJEa2N9xUXYp3njHK45+lnOPabBWE=
 github.com/metal-stack/metal-lib v0.3.5/go.mod h1:KPSjh6x9PaLqn9el1p3/Z5NGK5IsX9lDbRrEUNvgj3E=
-github.com/metal-stack/metal-lib v0.4.0 h1:rSvunSurQuxBxQMXaDhm1aNvI2nKwG8wLYyGwB73WS0=
-github.com/metal-stack/metal-lib v0.4.0/go.mod h1:KPSjh6x9PaLqn9el1p3/Z5NGK5IsX9lDbRrEUNvgj3E=
+github.com/metal-stack/metal-lib v0.5.0 h1:C3QScS7+wNWMiERB+j0x06WpRuTHW6A3rpuILMOAgss=
+github.com/metal-stack/metal-lib v0.5.0/go.mod h1:Vxr1OwM8fef1gtIv9fUiVU4Gq5mkd4ElHMpTjfuuSFQ=
 github.com/metal-stack/security v0.3.0 h1:YJL0qlsXlvA9O3iIWuk5YqF02IX9f6I60n93FkQpV4k=
 github.com/metal-stack/security v0.3.0/go.mod h1:xa0eka4HttrfhDTJPzcSDBGgaFyNBGXhz0B5YGqtKuU=
 github.com/metal-stack/v v1.0.2 h1:IGtLAGtazQd8r0i/5+YNjBJUEIZYrbVxynY9EXrlTV4=
@@ -538,7 +546,6 @@ go.uber.org/multierr v1.5.0/go.mod h1:FeouvMocqHpRaaGuG9EjoKcStLC43Zu/fmqdUMPcKY
 go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee h1:0mgffUl7nfd+FpvXMVz4IDEaUSmT1ysygQC7qYo7sG4=
 go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee/go.mod h1:vJERXedbb3MVM5f9Ejo0C68/HhF8uaILCdgjnY+goOA=
 go.uber.org/zap v1.10.0/go.mod h1:vwi/ZaCAaUcBkycHslxD9B2zi4UTXhF60s6SWpuDF0Q=
-go.uber.org/zap v1.14.1 h1:nYDKopTbvAPq/NrUVZwT15y2lpROBiLLyoRTbXOYWOo=
 go.uber.org/zap v1.14.1/go.mod h1:Mb2vm2krFEG5DV0W9qcHBYFtp/Wku1cvYaqPsS/WYfc=
 go.uber.org/zap v1.15.0 h1:ZZCA22JRF2gQE5FoNmhmrf7jeJJ2uhqDUNRYKm8dvmM=
 go.uber.org/zap v1.15.0/go.mod h1:Mb2vm2krFEG5DV0W9qcHBYFtp/Wku1cvYaqPsS/WYfc=
@@ -605,10 +612,11 @@ golang.org/x/net v0.0.0-20190620200207-3b0461eec859/go.mod h1:z5CRVTTTmAJ677TzLL
 golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20191004110552-13f9640d40b9/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20200226121028-0de0cce0169b/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
-golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e h1:3G+cUijn7XD+S4eJFddp53Pv7+slrESplyjG25HgL+k=
 golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
 golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5 h1:WQ8q63x+f/zpC8Ac1s9wLElVoHhm32p6tudrU72n1QA=
 golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
+golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 h1:eDrdRpKgkcCqKZQwyZRyeFZgfqt37SL7Kv3tok06cKE=
+golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2/go.mod h1:qpuaurCH72eLCgpAm/N6yyVIVM9cpaDIP3A8BGJEC5A=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
@@ -689,8 +697,8 @@ golang.org/x/tools v0.0.0-20191119224855-298f0cb1881e/go.mod h1:b+2E5dAYhXwXZwtn
 golang.org/x/tools v0.0.0-20191130070609-6e064ea0cf2d/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20200130002326-2f3ba24bd6e7/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
 golang.org/x/tools v0.0.0-20200331025713-a30bf2db82d4/go.mod h1:Sl4aGygMT6LrqrWclx+PTx3U+LnKx/seiNR+3G19Ar8=
-golang.org/x/tools v0.0.0-20200526224456-8b020aee10d2 h1:21BqcH/onxtGHn1A2GDOJjZnbt4Nlez629S3eaR+eYs=
-golang.org/x/tools v0.0.0-20200526224456-8b020aee10d2/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
+golang.org/x/tools v0.0.0-20200528153144-693125cf9467 h1:ZKlF89m7NxKLJ4H95sYtYeN/plDVxmwgTbkcnTr88a0=
+golang.org/x/tools v0.0.0-20200528153144-693125cf9467/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
