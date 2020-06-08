@@ -315,7 +315,51 @@ func Test_getMostRecentImageFor(t *testing.T) {
 	}
 }
 
+func Test_getMostRecentImageForFirewall(t *testing.T) {
+	valid := time.Now().Add(time.Hour)
+	firewall2 := metal.Image{Base: metal.Base{ID: "firewall-2.0.20200331"}, OS: "firewall", Version: "2.0.20200331", ExpirationDate: valid}
+	firewallubuntu2 := metal.Image{Base: metal.Base{ID: "firewall-ubuntu-2.0.20200331"}, OS: "firewall-ubuntu", Version: "2.0.20200331", ExpirationDate: valid}
+	tests := []struct {
+		name    string
+		id      string
+		images  []metal.Image
+		want    *metal.Image
+		wantErr bool
+	}{
+		{
+			name:    "reverse",
+			id:      "firewall-2",
+			images:  []metal.Image{firewallubuntu2, firewall2},
+			want:    &firewall2,
+			wantErr: false,
+		},
+		{
+			name:    "simple",
+			id:      "firewall-ubuntu-2",
+			images:  []metal.Image{firewall2, firewallubuntu2},
+			want:    &firewallubuntu2,
+			wantErr: false,
+		},
+	}
+	rs := &RethinkStore{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := rs.getMostRecentImageFor(tt.id, tt.images)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getMostRecentImageFor() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getMostRecentImageFor() %s\n", cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
 func Test_sortImages(t *testing.T) {
+	firewall2 := metal.Image{Base: metal.Base{ID: "firewall-2.0.20200331"}, OS: "firewall", Version: "2.0.20200331"}
+	firewallubuntu2 := metal.Image{Base: metal.Base{ID: "firewall-ubuntu-2.0.20200331"}, OS: "firewall-ubuntu", Version: "2.0.20200331"}
 	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1"}
 	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04"}
 	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04"}
@@ -353,6 +397,16 @@ func Test_sortImages(t *testing.T) {
 			name:   "ubuntu and artificial debian",
 			images: []metal.Image{ubuntu20_04_20200502, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, debian17_10, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, debian17_04},
 			want:   []metal.Image{debian17_10, debian17_04, ubuntu20_04_20200603, ubuntu20_04_20200502, ubuntu20_04_20200501, ubuntu20_04_20200401, ubuntu19_10, ubuntu19_04, ubuntu18_04, ubuntu17_10, ubuntu17_04, ubuntu14_04, ubuntu14_1},
+		},
+		{
+			name:   "firewall",
+			images: []metal.Image{firewall2, firewallubuntu2},
+			want:   []metal.Image{firewall2, firewallubuntu2},
+		},
+		{
+			name:   "firewall reverse",
+			images: []metal.Image{firewallubuntu2, firewall2},
+			want:   []metal.Image{firewall2, firewallubuntu2},
 		},
 	}
 	for _, tt := range tests {
@@ -423,46 +477,6 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_MigrateMachineImages(t *testing.T) {
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	tests := []struct {
-		name     string
-		rs       *RethinkStore
-		machines metal.Machines
-		want     string
-		wantErr  bool
-	}{
-		{
-			name:     "simple",
-			rs:       ds,
-			machines: []metal.Machine{testdata.M1},
-			want:     "image-1",
-			wantErr:  false,
-		},
-		{
-			name:     "simple",
-			rs:       ds,
-			machines: []metal.Machine{testdata.M10},
-			// machine 10 has image-4 configured which has same url as image-3.
-			want:    "image-3",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.MigrateMachineImages(tt.machines)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.MigrateMachineImages() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !reflect.DeepEqual(got[0].Allocation.ImageID, tt.want) {
-				t.Errorf("RethinkStore.MigrateMachineImages() = %s", cmp.Diff(got, tt.want))
-			}
-		})
-	}
-}
-
 func TestGetOsAndSemver(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -504,6 +518,20 @@ func TestGetOsAndSemver(t *testing.T) {
 			id:      "-ubuntu-19.04.20200408",
 			os:      "-ubuntu",
 			version: semver.MustParse("19.04.20200408"),
+			wantErr: false,
+		},
+		{
+			name:    "firewall",
+			id:      "firewall-2.04.20200408",
+			os:      "firewall",
+			version: semver.MustParse("2.04.20200408"),
+			wantErr: false,
+		},
+		{
+			name:    "firewall-ubuntu",
+			id:      "firewall-ubuntu-2.04.20200408",
+			os:      "firewall-ubuntu",
+			version: semver.MustParse("2.04.20200408"),
 			wantErr: false,
 		},
 	}

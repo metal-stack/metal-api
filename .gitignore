@@ -4,3 +4,4 @@ vendor
 .vscode/settings.json
 generate
 coverage.out
+__debug_bin

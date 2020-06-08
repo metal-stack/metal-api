@@ -268,11 +268,14 @@ func initEventBus() {
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
-		TLS: &bus.TLSConfig{
-			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
-		},
-		NSQ: nsq2.NewConfig(),
+		NSQ:          nsq2.NewConfig(),
+	}
+	tlsConfig := &bus.TLSConfig{
+		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
+		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+	}
+	if tlsConfig.CACertFile != "" && tlsConfig.ClientCertFile != "" {
+		publisherCfg.TLS = tlsConfig
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
@@ -281,6 +284,9 @@ func initEventBus() {
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
+	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr")); err != nil {
+		panic(err)
+	}
 	nsqer = &nsq
 }
 
@@ -377,7 +383,7 @@ func initIpam() {
 			viper.GetString("ipam-db-user"),
 			viper.GetString("ipam-db-password"),
 			viper.GetString("ipam-db-name"),
-			"disable")
+			goipam.SSLModeDisable)
 		if err != nil {
 			logger.Errorw("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
 			time.Sleep(3 * time.Second)
@@ -399,18 +405,21 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 	providerTenant := viper.GetString("provider-tenant")
 
-	dx, err := security.NewDex(viper.GetString("dex-addr"))
-	if err != nil {
-		logger.Warnw("dex not reachable", "error", err)
-	}
-	if dx != nil {
-		// use custom user extractor and group processor
-		plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
-		dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
-		auths = append(auths, security.WithDex(dx))
-		logger.Info("dex successfully configured")
-	} else {
-		logger.Warnw("dex is not configured")
+	dexAddr := viper.GetString("dex-addr")
+	if dexAddr != "" {
+		dx, err := security.NewDex(dexAddr)
+		if err != nil {
+			logger.Fatalw("dex not reachable", "error", err)
+		}
+		if dx != nil {
+			// use custom user extractor and group processor
+			plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
+			dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
+			auths = append(auths, security.WithDex(dx))
+			logger.Info("dex successfully configured")
+		} else {
+			logger.Fatalw("dex is configured, but not initialized")
+		}
 	}
 
 	defaultUsers := service.NewUserDirectory(providerTenant)
@@ -442,16 +451,26 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 
 	lg := logger.Desugar()
+	var p bus.Publisher
+	ep := bus.DirectEndpoints()
+	if nsqer != nil {
+		p = nsqer.Publisher
+		ep = nsqer.Endpoints
+	}
+	ipservice, err := service.NewIP(ds, ep, ipamer, mdc)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
-	restful.DefaultContainer.Add(service.NewIP(ds, ipamer, mdc))
-	var p bus.Publisher
-	if nsqer != nil {
-		p = nsqer.Publisher
-	}
-	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer, mdc))
+	restful.DefaultContainer.Add(ipservice)
+	restful.DefaultContainer.Add(mservice)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
@@ -492,10 +511,12 @@ func resurrectDeadMachines() error {
 	initIpam()
 
 	var p bus.Publisher
+	ep := bus.DirectEndpoints()
 	if nsqer != nil {
 		p = nsqer.Publisher
+		ep = nsqer.Endpoints
 	}
-	err := service.ResurrectMachines(ds, p, ipamer, logger)
+	err := service.ResurrectMachines(ds, p, ep, ipamer, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to resurrect machines")
 	}

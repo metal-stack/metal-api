@@ -140,7 +140,7 @@ X-Date: 1985-04-12T23:20:50.52Z
   "ips": [],
   "networks": [
     {"networkid": "internet-vagrant"},
-    {"networkid": "9df96f13-054e-4686-b436-aa154b6318d4"}
+    {"networkid": "004c673a-bc4a-4e37-bdcd-ddb5181f9f08"}
   ]
 }
 
