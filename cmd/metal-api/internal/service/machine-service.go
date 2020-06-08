@@ -1006,9 +1006,9 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 				},
 				Allocation: alloc,
 			}
-			err = actor.machineReleaser(cleanupMachine)
-			if err != nil {
-				logger.Errorw("cannot call async machine cleanup", "error", err)
+			rollbackError := actor.machineReleaser(cleanupMachine)
+			if rollbackError != nil {
+				logger.Errorw("cannot call async machine cleanup", "error", rollbackError)
 			}
 		}
 		return err
