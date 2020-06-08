@@ -26,13 +26,15 @@ type firewallResource struct {
 	bus.Publisher
 	ipamer ipam.IPAMer
 	mdc    mdm.Client
+	actor  *asyncActor
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
 	ds *datastore.RethinkStore,
 	ipamer ipam.IPAMer,
-	mdc mdm.Client) *restful.WebService {
+	ep *bus.Endpoints,
+	mdc mdm.Client) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
 			ds: ds,
@@ -40,7 +42,14 @@ func NewFirewall(
 		ipamer: ipamer,
 		mdc:    mdc,
 	}
-	return r.webService()
+
+	var err error
+	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create async actor: %w", err)
+	}
+
+	return r.webService(), nil
 }
 
 // webService creates the webservice endpoint
@@ -250,7 +259,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		IsFirewall:  true,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
