@@ -28,8 +28,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
 	"github.com/dustin/go-humanize"
-	"github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/bus"
 )
@@ -64,11 +64,10 @@ type machineAllocationSpec struct {
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
 type allocationNetwork struct {
-	network        *metal.Network
-	machineNetwork *metal.MachineNetwork
-	ips            []metal.IP
-	auto           bool
-	isPrivate      bool
+	network   *metal.Network
+	ips       []metal.IP
+	auto      bool
+	isPrivate bool
 }
 
 // allocationNetworkMap is a map of allocationNetworks with the network id as the key
@@ -87,15 +86,6 @@ func getPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error
 		return nil, fmt.Errorf("no private network contained")
 	}
 	return privateNetwork, nil
-}
-
-// getMachineNetworks extracts the machines networks from an allocationNetworkMap
-func getMachineNetworks(networks allocationNetworkMap) []*metal.MachineNetwork {
-	machineNetworks := []*metal.MachineNetwork{}
-	for _, n := range networks {
-		machineNetworks = append(machineNetworks, n.machineNetwork)
-	}
-	return machineNetworks
 }
 
 // The MachineAllocation contains the allocated machine or an error.
@@ -839,10 +829,9 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		IsFirewall:  false,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc, r.waitServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.waitServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
-		// TODO: Trigger network garbage collection
-		utils.Logger(request).Sugar().Errorf("machine allocation went wrong, triggered network garbage collection", "error", err)
+		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "error", err)
 		return
 	}
 
@@ -853,7 +842,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 }
 
-func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, ws *grpc.WaitServer) (*metal.Machine, error) {
+func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.WaitServer) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -898,7 +887,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
 
-	networks, err := makeNetworks(ds, ipamer, allocationSpec)
+	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -912,16 +901,36 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 		ImageID:         allocationSpec.Image.ID,
 		UserData:        allocationSpec.UserData,
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
-		MachineNetworks: getMachineNetworks(networks),
+		MachineNetworks: []*metal.MachineNetwork{},
+	}
+	rollbackOnError := func(err error) error {
+		if err != nil {
+			cleanupMachine := &metal.Machine{
+				Base: metal.Base{
+					ID: allocationSpec.UUID,
+				},
+				Allocation: alloc,
+			}
+			rollbackError := actor.machineReleaser(cleanupMachine)
+			if rollbackError != nil {
+				logger.Errorw("cannot call async machine cleanup", "error", rollbackError)
+			}
+		}
+		return err
+	}
+
+	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
+	if err != nil {
+		return nil, rollbackOnError(err)
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
 	machine, err := ds.FindMachineByID(machineCandidate.ID)
 	if err != nil {
-		return nil, err
+		return nil, rollbackOnError(err)
 	}
 	if machine.Allocation != nil {
-		return nil, fmt.Errorf("machine %q already allocated", machine.ID)
+		return nil, rollbackOnError(fmt.Errorf("machine %q already allocated", machine.ID))
 	}
 
 	old := *machine
@@ -930,7 +939,7 @@ func allocateMachine(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationS
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return nil, fmt.Errorf("error when allocating machine %q, %v", machine.ID, err)
+		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
 	}
 
 	err = ws.NotifyAllocated(machine.ID)
@@ -1027,30 +1036,28 @@ func findWaitingMachine(ds *datastore.RethinkStore, partitionID, sizeID string) 
 	return machine, nil
 }
 
-func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
-	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
-	if err != nil {
-		return nil, err
-	}
-
+// makeNetworks creates network entities and ip addresses as specified in the allocation network map.
+// created networks are added to the machine allocation directly after their creation. This way, the rollback mechanism
+// is enabled to clean up networks that were already created.
+func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
 		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		n.machineNetwork = machineNetwork
+		alloc.MachineNetworks = append(alloc.MachineNetworks, machineNetwork)
 	}
 
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
 	asn, err := makeASN(networks)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	for _, n := range networks {
-		n.machineNetwork.ASN = asn
+	for _, n := range alloc.MachineNetworks {
+		n.ASN = asn
 	}
 
-	return networks, nil
+	return nil
 }
 
 func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
@@ -1448,7 +1455,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 	logger := utils.Logger(request).Sugar()
 
-	err = r.actor.freeMachine(r, m)
+	err = r.actor.freeMachine(r.Publisher, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1476,7 +1483,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		return
 	}
 
-	logger := utils.Logger(request).Sugar()
+	logger := utils.Logger(request)
 
 	if m.Allocation != nil && m.State.Value != metal.LockedState {
 		old := *m
@@ -1484,27 +1491,27 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		m.Allocation.Reinstall = true
 		m.Allocation.ImageID = requestPayload.ImageID
 
-		resp := makeMachineResponse(m, r.ds, logger)
+		resp := makeMachineResponse(m, r.ds, logger.Sugar())
 		if resp.Allocation.Image != nil {
 			err = r.ds.UpdateMachine(&old, m)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
-			logger.Infow("marked machine to get reinstalled", "machineID", m.ID)
+			logger.Info("marked machine to get reinstalled", zap.String("machineID", m.ID))
 
-			err = deleteVRFSwitches(r.ds, m, logger.Desugar())
+			err = deleteVRFSwitches(r.ds, m, logger)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
 
-			err = publishDeleteEvent(r, m, logger.Desugar())
+			err = publishDeleteEvent(r.Publisher, m, logger)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
 
-			err = publishMachineCmd(logger, m, r, metal.MachineReinstall)
+			err = publishMachineCmd(logger.Sugar(), m, r.Publisher, metal.MachineReinstall)
 			if err != nil {
-				logger.Errorw("unable to publish machine command", "command", metal.MachineReinstall, "machineID", m.ID, "error", err)
+				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstall)), zap.String("machineID", m.ID), zap.Error(err))
 			}
 
 			err = response.WriteHeaderAndEntity(http.StatusOK, resp)
@@ -1865,7 +1872,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		}
 	}
 
-	err = publishMachineCmd(logger, m, r, cmd, params...)
+	err = publishMachineCmd(logger, m, r.Publisher, cmd, params...)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

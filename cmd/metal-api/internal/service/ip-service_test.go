@@ -27,7 +27,7 @@ import (
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/stretchr/testify/require"
 
-	restful "github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 )
 
 func TestGetIPs(t *testing.T) {

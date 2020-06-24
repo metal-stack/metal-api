@@ -24,8 +24,8 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 
-	"github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
@@ -275,15 +275,17 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
-	nsqTLSConfig := &bus.TLSConfig{
+	publisherTLSConfig := &bus.TLSConfig{
 		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
 	}
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
-		TLS:          nsqTLSConfig,
 		NSQ:          nsq2.NewConfig(),
+	}
+	if publisherTLSConfig.CACertFile != "" && publisherTLSConfig.ClientCertFile != "" {
+		publisherCfg.TLS = publisherTLSConfig
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
@@ -497,6 +499,10 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, waitServer)
+	if err != nil {
+		logger.Fatal(err)
+	}
 
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
@@ -505,7 +511,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(ipservice)
 	restful.DefaultContainer.Add(mservice)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
-	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc, waitServer))
+	restful.DefaultContainer.Add(fservice)
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
@@ -630,7 +636,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Description: "Resource for managing pure metal",
 			Contact: &spec.ContactInfo{
 				ContactInfoProps: spec.ContactInfoProps{
-					Name: "Metal Stack",
+					Name: "metal-stack",
 					URL:  "https://metal-stack.io",
 				},
 			},

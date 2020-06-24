@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
@@ -1042,11 +1042,10 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1ExistingPrivateNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
+					network:   &testdata.Partition1ExistingPrivateNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: true,
 				},
 			},
 		},
@@ -1086,18 +1085,16 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1ExistingPrivateNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
+					network:   &testdata.Partition1ExistingPrivateNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: true,
 				},
 				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1InternetNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      false,
+					network:   &testdata.Partition1InternetNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: false,
 				},
 			},
 		},
@@ -1139,18 +1136,16 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1ExistingPrivateNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
+					network:   &testdata.Partition1ExistingPrivateNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: true,
 				},
 				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1InternetNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{testdata.Partition1InternetIP},
-					auto:           false,
-					isPrivate:      false,
+					network:   &testdata.Partition1InternetNetwork,
+					ips:       []metal.IP{testdata.Partition1InternetIP},
+					auto:      false,
+					isPrivate: false,
 				},
 			},
 		},

@@ -17,8 +17,8 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
-	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -28,14 +28,16 @@ type firewallResource struct {
 	ipamer     ipam.IPAMer
 	mdc        mdm.Client
 	waitServer *grpc.WaitServer
+	actor      *asyncActor
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
 	ds *datastore.RethinkStore,
 	ipamer ipam.IPAMer,
+	ep *bus.Endpoints,
 	mdc mdm.Client,
-	waitServer *grpc.WaitServer) *restful.WebService {
+	waitServer *grpc.WaitServer) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
 			ds: ds,
@@ -44,7 +46,14 @@ func NewFirewall(
 		mdc:        mdc,
 		waitServer: waitServer,
 	}
-	return r.webService()
+
+	var err error
+	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create async actor: %w", err)
+	}
+
+	return r.webService(), nil
 }
 
 // webService creates the webservice endpoint
@@ -254,7 +263,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		IsFirewall:  true,
 	}
 
-	m, err := allocateMachine(r.ds, r.ipamer, &spec, r.mdc, r.waitServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.waitServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
