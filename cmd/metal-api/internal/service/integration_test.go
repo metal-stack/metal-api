@@ -57,7 +57,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 	defer cancel()
 	mdc, err := mdm.NewClient(timeoutCtx, "localhost", 50051, "certs/client.pem", "certs/client-key.pem", "certs/ca.pem", "hmac", log)
 	require.NoError(err)
-	waitServer, err := grpc.NewWaitServer(ds, nsq.Publisher)
+	waitServer, err := grpc.NewWaitServer(&grpc.WaitServerConfig{
+		Datasource: ds,
+		Publisher:  nsq.Publisher,
+	})
 	require.NoError(err)
 
 	machineService, err := NewMachine(ds, nsq.Publisher, nsq.Endpoints, ipamer, mdc, waitServer)

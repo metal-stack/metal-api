@@ -985,8 +985,8 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	var err error
 	var machine *metal.Machine
 	if allocationSpec.UUID == "" {
-		// requesting allocation of an arbitrary machine in partition with given size
-		machine, err = findAvailableMachine(ds, allocationSpec.PartitionID, allocationSpec.SizeID)
+		// requesting allocation of an arbitrary ready machine in partition with given size
+		machine, err = findWaitingMachine(ds, allocationSpec.PartitionID, allocationSpec.SizeID)
 		if err != nil {
 			return nil, err
 		}
@@ -1011,7 +1011,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	return machine, err
 }
 
-func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
+func findWaitingMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
 	size, err := ds.FindSize(sizeID)
 	if err != nil {
 		return nil, fmt.Errorf("size cannot be found: %v", err)
@@ -1020,7 +1020,7 @@ func findAvailableMachine(ds *datastore.RethinkStore, partitionID, sizeID string
 	if err != nil {
 		return nil, fmt.Errorf("partition cannot be found: %v", err)
 	}
-	machine, err := ds.FindAvailableMachine(partition.ID, size.ID)
+	machine, err := ds.FindWaitingMachine(partition.ID, size.ID)
 	if err != nil {
 		return nil, err
 	}

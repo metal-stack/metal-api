@@ -7,7 +7,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/zapup"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"math/rand"
 	"sync"
@@ -24,30 +23,49 @@ func timeoutHandler(err bus.TimeoutError) error {
 	return nil
 }
 
-type WaitServer struct {
-	bus.Publisher
-	ds        *datastore.RethinkStore
-	logger    *zap.SugaredLogger
-	queueLock *sync.RWMutex
-	queue     map[string]chan bool
+type WaitServerConfig struct {
+	Publisher             bus.Publisher
+	Datasource            *datastore.RethinkStore
+	Logger                *zap.SugaredLogger
+	NsqTlsConfig          *bus.TLSConfig
+	NsqlookupdHttpAddress string
+	GrpcPort              int
+	TlsEnabled            bool
+	CaCertFile            string
+	ServerCertFile        string
+	ServerKeyFile         string
 }
 
-func NewWaitServer(ds *datastore.RethinkStore, publisher bus.Publisher) (*WaitServer, error) {
-	tlsCfg := &bus.TLSConfig{
-		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
-	}
-	c, err := bus.NewConsumer(zapup.MustRootLogger(), tlsCfg, viper.GetString("nsqlookupd-http-addr"))
+type WaitServer struct {
+	bus.Publisher
+	ds             *datastore.RethinkStore
+	logger         *zap.SugaredLogger
+	queueLock      *sync.RWMutex
+	queue          map[string]chan bool
+	GrpcPort       int
+	TlsEnabled     bool
+	CaCertFile     string
+	ServerCertFile string
+	ServerKeyFile  string
+}
+
+func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
+	c, err := bus.NewConsumer(zapup.MustRootLogger(), cfg.NsqTlsConfig, cfg.NsqlookupdHttpAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	s := &WaitServer{
-		Publisher: publisher,
-		ds:        ds,
-		logger:    zapup.MustRootLogger().Sugar(),
-		queueLock: new(sync.RWMutex),
-		queue:     make(map[string]chan bool),
+		Publisher:      cfg.Publisher,
+		ds:             cfg.Datasource,
+		logger:         cfg.Logger,
+		queueLock:      new(sync.RWMutex),
+		queue:          make(map[string]chan bool),
+		GrpcPort:       cfg.GrpcPort,
+		TlsEnabled:     cfg.TlsEnabled,
+		CaCertFile:     cfg.CaCertFile,
+		ServerCertFile: cfg.ServerCertFile,
+		ServerKeyFile:  cfg.ServerKeyFile,
 	}
 
 	channel := fmt.Sprintf("alloc-%d", rand.Int())
@@ -81,6 +99,12 @@ func (s *WaitServer) NotifyAllocated(machineID string) error {
 func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	s.logger.Infof("wait for allocation called by", "machineID", req.MachineID)
 	machineID := req.MachineID
+
+	err := s.updateWaitingFlag(machineID, true)
+	if err != nil {
+		return err
+	}
+	defer s.updateWaitingFlag(machineID, false)
 
 	s.queueLock.RLock()
 	can, ok := s.queue[machineID]
@@ -135,4 +159,14 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 			}
 		}
 	}
+}
+
+func (s *WaitServer) updateWaitingFlag(machineID string, flag bool) error {
+	m, err := s.ds.FindMachineByID(machineID)
+	if err != nil {
+		return err
+	}
+	old := *m
+	m.Waiting = flag
+	return s.ds.UpdateMachine(&old, m)
 }

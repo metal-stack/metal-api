@@ -6,7 +6,6 @@ import (
 	"fmt"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/zapup"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"io/ioutil"
@@ -14,11 +13,10 @@ import (
 	"time"
 )
 
-func Serve(ws *WaitServer) {
+func Serve(ws *WaitServer) error {
 	logger := zapup.MustRootLogger().Sugar()
 
-	grpcPort := viper.GetInt("grpc-port")
-	addr := fmt.Sprintf(":%d", grpcPort)
+	addr := fmt.Sprintf(":%d", ws.GrpcPort)
 
 	kaep := keepalive.EnforcementPolicy{
 		MinTime:             5 * time.Second, // If a client pings more than once every 5 seconds, terminate the connection
@@ -37,28 +35,28 @@ func Serve(ws *WaitServer) {
 	tlsConfig := &tls.Config{
 		NextProtos: []string{"h2"},
 	}
-	if viper.GetBool("grpc-tls-enabled") {
-		cert, err := ioutil.ReadFile(viper.GetString("grpc-server-cert-file"))
+	if ws.TlsEnabled {
+		cert, err := ioutil.ReadFile(ws.ServerCertFile)
 		if err != nil {
 			logger.Fatalw("failed to serve gRPC", "error", err)
 		}
-		key, err := ioutil.ReadFile(viper.GetString("grpc-server-key-file"))
+		key, err := ioutil.ReadFile(ws.ServerKeyFile)
 		if err != nil {
 			logger.Fatalw("failed to serve gRPC", "error", err)
 		}
 		serverCert, err := tls.X509KeyPair(cert, key)
 		if err != nil {
-			logger.Fatalw("failed to serve gRPC", "error", err)
+			return err
 		}
 
-		caCert, err := ioutil.ReadFile(viper.GetString("grpc-ca-cert-file"))
+		caCert, err := ioutil.ReadFile(ws.CaCertFile)
 		if err != nil {
-			logger.Fatalw("failed to serve gRPC", "error", err)
+			return err
 		}
 		caCertPool := x509.NewCertPool()
 		ok := caCertPool.AppendCertsFromPEM(caCert)
 		if !ok {
-			logger.Fatalf("failed to serve gRPC", "error", "bad certificate")
+			return err
 		}
 		tlsConfig.Certificates = []tls.Certificate{serverCert}
 		tlsConfig.ClientCAs = caCertPool
@@ -67,15 +65,12 @@ func Serve(ws *WaitServer) {
 		tlsConfig.ClientAuth = tls.NoClientCert
 	}
 
-	fmt.Printf("grpc on port %d\n", grpcPort)
+	fmt.Printf("grpc on port %d\n", ws.GrpcPort)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		logger.Fatalw("failed to serve gRPC", "error", err)
+		return err
 	}
 
 	logger.Infow("serve gRPC", "address", addr)
-	err = grpcServer.Serve(tls.NewListener(listener, tlsConfig))
-	if err != nil {
-		logger.Fatalw("failed to serve gRPC", "error", err)
-	}
+	return grpcServer.Serve(tls.NewListener(listener, tlsConfig))
 }

@@ -51,14 +51,15 @@ const (
 )
 
 var (
-	cfgFile    string
-	ds         *datastore.RethinkStore
-	ipamer     *ipam.Ipam
-	nsqer      *eventbus.NSQClient
-	logger     = zapup.MustRootLogger().Sugar()
-	debug      = false
-	mdc        mdm.Client
-	waitServer *grpc.WaitServer
+	cfgFile      string
+	ds           *datastore.RethinkStore
+	ipamer       *ipam.Ipam
+	nsqTlsConfig *bus.TLSConfig
+	nsqer        *eventbus.NSQClient
+	logger       = zapup.MustRootLogger().Sugar()
+	debug        = false
+	mdc          mdm.Client
+	waitServer   *grpc.WaitServer
 )
 
 var rootCmd = &cobra.Command{
@@ -274,14 +275,15 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
+	nsqTLSConfig := &bus.TLSConfig{
+		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
+		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+	}
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
-		TLS: &bus.TLSConfig{
-			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
-		},
-		NSQ: nsq2.NewConfig(),
+		TLS:          nsqTLSConfig,
+		NSQ:          nsq2.NewConfig(),
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
@@ -456,7 +458,18 @@ func initWaitServer() {
 		p = nsqer.Publisher
 	}
 	var err error
-	waitServer, err = grpc.NewWaitServer(ds, p)
+	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
+		Publisher:             p,
+		Datasource:            ds,
+		Logger:                logger,
+		NsqTlsConfig:          nsqTlsConfig,
+		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-http-addr"),
+		GrpcPort:              viper.GetInt("grpc-port"),
+		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
+		CaCertFile:            viper.GetString("grpc-ca-cert-file"),
+		ServerCertFile:        viper.GetString("grpc-server-cert-file"),
+		ServerKeyFile:         viper.GetString("grpc-server-key-file"),
+	})
 	if err != nil {
 		logger.Errorw("cannot connect to NSQ", "error", err)
 		panic(err)
@@ -596,7 +609,10 @@ func run() {
 	})
 
 	go func() {
-		grpc.Serve(waitServer)
+		err := grpc.Serve(waitServer)
+		if err != nil {
+			logger.Errorw("failed to serve gRPC", "error", err)
+		}
 	}()
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))

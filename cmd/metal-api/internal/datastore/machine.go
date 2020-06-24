@@ -432,8 +432,8 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 	return rs.updateEntity(rs.machineTable(), newMachine, oldMachine)
 }
 
-// FindAvailableMachine returns an available machine that momentarily also sits in the wait table.
-func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal.Machine, error) {
+// FindWaitingMachine returns an available, not allocated and waiting machine of given size within the given partition.
+func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -442,6 +442,7 @@ func (rs *RethinkStore) FindAvailableMachine(partitionid, sizeid string) (*metal
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
+		"waiting": true,
 	}).Sample(1)
 
 	var available metal.Machines
