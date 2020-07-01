@@ -144,7 +144,15 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 
 	result := []*v1.ImageResponse{}
 	for i := range imgs {
-		result = append(result, v1.NewImageResponse(&imgs[i]))
+		machines, err := ir.machinesByImage(imgs[i].ID)
+		if err != nil {
+			zapup.MustRootLogger().Warn("unable to collect machines for image", zap.Error(err))
+		}
+		ir := v1.NewImageResponse(&imgs[i])
+		if len(machines) > 0 {
+			ir.UsedBy = machines
+		}
+		result = append(result, ir)
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
@@ -243,18 +251,13 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 
-	machines, err := ir.ds.ListMachines()
+	machines, err := ir.machinesByImage(img.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	for _, m := range machines {
-		if m.Allocation == nil {
-			continue
-		}
-		if m.Allocation.ImageID == img.ID {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machine:%s", img.ID, m.ID)) {
-				return
-			}
+	if len(machines) > 0 {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)) {
+			return
 		}
 	}
 
@@ -327,6 +330,23 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func (ir imageResource) machinesByImage(imageID string) ([]string, error) {
+	ms, err := ir.ds.ListMachines()
+	if err != nil {
+		return nil, err
+	}
+	var machines []string
+	for _, m := range ms {
+		if m.Allocation == nil {
+			continue
+		}
+		if m.Allocation.ImageID == imageID {
+			machines = append(machines, m.ID)
+		}
+	}
+	return machines, nil
 }
 
 // networkUsageCollector implements the prometheus collector interface.
