@@ -558,16 +558,11 @@
       "required": [
         "allocation",
         "bios",
-        "changed",
-        "created",
         "events",
         "hardware",
         "id",
         "ledstate",
         "liveliness",
-        "partition",
-        "rackid",
-        "size",
         "state",
         "tags"
       ]
@@ -716,8 +711,6 @@
         }
       },
       "required": [
-        "changed",
-        "created",
         "ipaddress",
         "networkid",
         "projectid",
@@ -852,8 +845,6 @@
         }
       },
       "required": [
-        "changed",
-        "created",
         "expirationDate",
         "id"
       ]
@@ -1686,17 +1677,12 @@
       "required": [
         "allocation",
         "bios",
-        "changed",
-        "created",
         "events",
         "hardware",
         "id",
         "ipmi",
         "ledstate",
         "liveliness",
-        "partition",
-        "rackid",
-        "size",
         "state",
         "tags"
       ]
@@ -2041,16 +2027,11 @@
       "required": [
         "allocation",
         "bios",
-        "changed",
-        "created",
         "events",
         "hardware",
         "id",
         "ledstate",
         "liveliness",
-        "partition",
-        "rackid",
-        "size",
         "state",
         "tags"
       ]
@@ -2368,8 +2349,6 @@
         }
       },
       "required": [
-        "changed",
-        "created",
         "destinationprefixes",
         "id",
         "labels",
@@ -2564,8 +2543,6 @@
       },
       "required": [
         "bootconfig",
-        "changed",
-        "created",
         "id"
       ]
     },
@@ -2835,9 +2812,7 @@
         }
       },
       "required": [
-        "changed",
         "constraints",
-        "created",
         "id"
       ]
     },
@@ -3020,9 +2995,7 @@
         }
       },
       "required": [
-        "changed",
         "connections",
-        "created",
         "id",
         "last_sync",
         "last_sync_error",
@@ -3058,7 +3031,7 @@
       "url": "https://www.gnu.org/licenses/agpl-3.0.de.html"
     },
     "title": "metal-api",
-    "version": "v0.7.8"
+    "version": "spec-corrections"
   },
   "paths": {
     "/v1/firewall": {
@@ -4368,7 +4341,7 @@
         ]
       }
     },
-    "/v1/machine/{id}/power/chassis-identify-led-off/{description}": {
+    "/v1/machine/{id}/power/chassis-identify-led-off": {
       "post": {
         "consumes": [
           "application/json"
@@ -4384,9 +4357,8 @@
           },
           {
             "description": "reason why the chassis identify LED has been turned off",
-            "in": "path",
+            "in": "query",
             "name": "description",
-            "required": true,
             "type": "string"
           },
           {
@@ -4436,56 +4408,9 @@
             "type": "string"
           },
           {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.EmptyBody"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "sends a power-on to the chassis identify LED",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/power/chassis-identify-led-on/{description}": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "chassisIdentifyLEDOn",
-        "parameters": [
-          {
             "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "reason why the chassis identify LED has been turned on",
-            "in": "path",
+            "in": "query",
             "name": "description",
-            "required": true,
             "type": "string"
           },
           {

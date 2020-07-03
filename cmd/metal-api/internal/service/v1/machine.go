@@ -11,9 +11,9 @@ import (
 const RecentProvisioningEventsLimit = 5
 
 type MachineBase struct {
-	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true"`
-	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true"`
-	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true"`
+	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" optional:"true"`
+	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" optional:"true"`
+	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true" optional:"true"`
 	Hardware                 MachineHardware                 `json:"hardware" description:"the hardware of this machine"`
 	BIOS                     MachineBIOS                     `json:"bios" description:"bios information of this machine"`
 	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine"`

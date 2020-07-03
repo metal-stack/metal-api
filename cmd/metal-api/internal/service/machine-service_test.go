@@ -628,11 +628,11 @@ func TestOnMachine(t *testing.T) {
 		},
 		{
 			cmd:      metal.ChassisIdentifyLEDOnCmd,
-			endpoint: "chassis-identify-led-on/test",
+			endpoint: "chassis-identify-led-on?description=test",
 		},
 		{
 			cmd:      metal.ChassisIdentifyLEDOffCmd,
-			endpoint: "chassis-identify-led-off/test",
+			endpoint: "chassis-identify-led-off?description=test",
 		},
 	}
 
