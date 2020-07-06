@@ -429,53 +429,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "allocation_hostname",
-        "allocation_image_id",
-        "allocation_name",
-        "allocation_project",
-        "allocation_succeeded",
-        "disk_names",
-        "disk_sizes",
-        "fru_board_mfg",
-        "fru_board_mfg_serial",
-        "fru_board_part_number",
-        "fru_chassis_part_number",
-        "fru_chassis_part_serial",
-        "fru_product_manufacturer",
-        "fru_product_part_number",
-        "fru_product_serial",
-        "hardware_cpu_cores",
-        "hardware_memory",
-        "id",
-        "ipmi_address",
-        "ipmi_interface",
-        "ipmi_mac_address",
-        "ipmi_user",
-        "liveliness",
-        "name",
-        "network_asns",
-        "network_destination_prefixes",
-        "network_ids",
-        "network_ips",
-        "network_nat",
-        "network_prefixes",
-        "network_private",
-        "network_underlay",
-        "network_vrfs",
-        "nics_mac_addresses",
-        "nics_names",
-        "nics_neighbor_mac_addresses",
-        "nics_neighbor_names",
-        "nics_neighbor_vrfs",
-        "nics_vrfs",
-        "partition_id",
-        "rackid",
-        "sizeid",
-        "state_value",
-        "tags"
-      ]
+      }
     },
     "v1.FirewallResponse": {
       "properties": {
@@ -647,16 +601,7 @@
           "description": "the type of the ip address, ephemeral or static",
           "type": "string"
         }
-      },
-      "required": [
-        "ipaddress",
-        "machineid",
-        "networkid",
-        "networkprefix",
-        "projectid",
-        "tags",
-        "type"
-      ]
+      }
     },
     "v1.IPResponse": {
       "properties": {
@@ -1404,53 +1349,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "allocation_hostname",
-        "allocation_image_id",
-        "allocation_name",
-        "allocation_project",
-        "allocation_succeeded",
-        "disk_names",
-        "disk_sizes",
-        "fru_board_mfg",
-        "fru_board_mfg_serial",
-        "fru_board_part_number",
-        "fru_chassis_part_number",
-        "fru_chassis_part_serial",
-        "fru_product_manufacturer",
-        "fru_product_part_number",
-        "fru_product_serial",
-        "hardware_cpu_cores",
-        "hardware_memory",
-        "id",
-        "ipmi_address",
-        "ipmi_interface",
-        "ipmi_mac_address",
-        "ipmi_user",
-        "liveliness",
-        "name",
-        "network_asns",
-        "network_destination_prefixes",
-        "network_ids",
-        "network_ips",
-        "network_nat",
-        "network_prefixes",
-        "network_private",
-        "network_underlay",
-        "network_vrfs",
-        "nics_mac_addresses",
-        "nics_names",
-        "nics_neighbor_mac_addresses",
-        "nics_neighbor_names",
-        "nics_neighbor_vrfs",
-        "nics_vrfs",
-        "partition_id",
-        "rackid",
-        "sizeid",
-        "state_value",
-        "tags"
-      ]
+      }
     },
     "v1.MachineFru": {
       "description": "The Field Replaceable Unit data",
@@ -2246,21 +2145,7 @@
           "format": "int64",
           "type": "integer"
         }
-      },
-      "required": [
-        "destinationprefixes",
-        "id",
-        "labels",
-        "name",
-        "nat",
-        "parentnetworkid",
-        "partitionid",
-        "prefixes",
-        "privatesuper",
-        "projectid",
-        "underlay",
-        "vrf"
-      ]
+      }
     },
     "v1.NetworkResponse": {
       "properties": {
