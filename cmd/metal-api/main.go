@@ -604,7 +604,6 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 					URL:  "https://www.gnu.org/licenses/agpl-3.0.de.html",
 				},
 			},
-			Version: v.Version,
 		},
 	}
 	swo.Tags = []spec.Tag{
