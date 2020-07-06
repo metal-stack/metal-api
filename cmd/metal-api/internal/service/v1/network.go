@@ -8,7 +8,7 @@ import (
 type NetworkBase struct {
 	PartitionID *string           `json:"partitionid" description:"the partition this network belongs to" optional:"true"`
 	ProjectID   *string           `json:"projectid" description:"the project id this network belongs to, can be empty if globally available" optional:"true"`
-	Labels      map[string]string `json:"labels" description:"free labels that you associate with this network."`
+	Labels      map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
 }
 
 type NetworkImmutable struct {
@@ -67,6 +67,10 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 	if network.ParentNetworkID != "" {
 		parentNetworkID = &network.ParentNetworkID
 	}
+	labels := network.Labels
+	if labels == nil {
+		labels = make(map[string]string)
+	}
 
 	return &NetworkResponse{
 		Common: Common{
@@ -81,7 +85,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 		NetworkBase: NetworkBase{
 			PartitionID: &network.PartitionID,
 			ProjectID:   &network.ProjectID,
-			Labels:      network.Labels,
+			Labels:      labels,
 		},
 		NetworkImmutable: NetworkImmutable{
 			Prefixes:            network.Prefixes.String(),

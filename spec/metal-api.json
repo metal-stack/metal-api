@@ -510,7 +510,6 @@
         }
       },
       "required": [
-        "allocation",
         "bios",
         "events",
         "hardware",
@@ -561,10 +560,8 @@
         }
       },
       "required": [
-        "machineid",
         "networkid",
         "projectid",
-        "tags",
         "type"
       ]
     },
@@ -659,7 +656,6 @@
         "ipaddress",
         "networkid",
         "projectid",
-        "tags",
         "type"
       ]
     },
@@ -696,7 +692,6 @@
       },
       "required": [
         "ipaddress",
-        "tags",
         "type"
       ]
     },
@@ -1058,7 +1053,6 @@
       },
       "required": [
         "name",
-        "partitions",
         "primary",
         "size"
       ]
@@ -1574,7 +1568,6 @@
         }
       },
       "required": [
-        "allocation",
         "bios",
         "events",
         "hardware",
@@ -1924,7 +1917,6 @@
         }
       },
       "required": [
-        "allocation",
         "bios",
         "events",
         "hardware",
@@ -2011,10 +2003,7 @@
           "description": "the project id this network belongs to, can be empty if globally available",
           "type": "string"
         }
-      },
-      "required": [
-        "labels"
-      ]
+      }
     },
     "v1.NetworkCreateRequest": {
       "properties": {
@@ -2089,7 +2078,6 @@
       "required": [
         "destinationprefixes",
         "id",
-        "labels",
         "nat",
         "parentnetworkid",
         "prefixes",
@@ -2236,7 +2224,6 @@
       "required": [
         "destinationprefixes",
         "id",
-        "labels",
         "nat",
         "parentnetworkid",
         "prefixes",
