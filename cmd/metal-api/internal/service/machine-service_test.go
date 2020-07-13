@@ -15,11 +15,12 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type emptyPublisher struct {
@@ -37,11 +38,14 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 	return nil
 }
 
+func (p *emptyPublisher) Stop() {}
+
 func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
 	container = injectViewer(container, req)
@@ -51,7 +55,7 @@ func TestGetMachines(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Len(t, result, len(testdata.TestMachines))
@@ -220,7 +224,8 @@ func TestRegisterMachine(t *testing.T) {
 
 			js, _ := json.Marshal(registerRequest)
 			body := bytes.NewBuffer(js)
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -293,11 +298,12 @@ func TestMachineIPMIReport(t *testing.T) {
 
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/ipmi"), body)
+			req := httptest.NewRequest("POST", "/v1/machine/ipmi", body)
 			req.Header.Add("Content-Type", "application/json")
 			container = injectEditor(container, req)
 			w := httptest.NewRecorder()
@@ -307,7 +313,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
 
 			var result v1.MachineIpmiReportResponse
-			err := json.NewDecoder(resp.Body).Decode(&result)
+			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.Nil(t, err)
 			require.Equal(t, test.output, result)
 		})
@@ -338,7 +344,8 @@ func TestMachineFindIPMI(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*test.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
 			query := datastore.MachineSearchQuery{
@@ -356,7 +363,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
 
 			var results []*v1.MachineIPMIResponse
-			err := json.NewDecoder(resp.Body).Decode(&results)
+			err = json.NewDecoder(resp.Body).Decode(&results)
 
 			require.Nil(t, err)
 			require.Len(t, results, 1)
@@ -415,7 +422,8 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
 
-			machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
 			finalizeRequest := v1.MachineFinalizeAllocationRequest{
@@ -457,7 +465,9 @@ func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+
 	container := restful.NewContainer().Add(machineservice)
 
 	stateRequest := v1.MachineState{
@@ -475,7 +485,7 @@ func TestSetMachineState(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Equal(t, "1", result.ID)
@@ -487,7 +497,9 @@ func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
 	container = injectViewer(container, req)
@@ -497,7 +509,7 @@ func TestGetMachine(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
@@ -511,7 +523,9 @@ func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
 	container = injectEditor(container, req)
@@ -541,7 +555,9 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice := NewMachine(ds, pub, ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
 	container = injectEditor(container, req)
@@ -551,7 +567,7 @@ func TestFreeMachine(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
@@ -564,7 +580,9 @@ func TestSearchMachine(t *testing.T) {
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+
 	container := restful.NewContainer().Add(machineservice)
 	requestJSON := fmt.Sprintf("{%q:[%q]}", "nics_mac_addresses", "1")
 	req := httptest.NewRequest("POST", "/v1/machine/find", bytes.NewBufferString(requestJSON))
@@ -576,7 +594,7 @@ func TestSearchMachine(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var results []v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&results)
+	err = json.NewDecoder(resp.Body).Decode(&results)
 
 	require.Nil(t, err)
 	require.Len(t, results, 1)
@@ -592,7 +610,9 @@ func TestAddProvisioningEvent(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice := NewMachine(ds, &emptyPublisher{}, ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	require.NoError(t, err)
+
 	container := restful.NewContainer().Add(machineservice)
 	event := &metal.ProvisioningEvent{
 		Event:   metal.ProvisioningEventPreparing,
@@ -609,7 +629,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	resp := w.Result()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineRecentProvisioningEvents
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
 	require.Equal(t, "0", result.IncompleteProvisioningCycles)
@@ -671,7 +691,8 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice := NewMachine(ds, pub, ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			require.NoError(t, err)
 
 			js, _ := json.Marshal([]string{d.param})
 			body := bytes.NewBuffer(js)
@@ -881,7 +902,7 @@ func Test_makeMachineTags(t *testing.T) {
 				m: &metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								Private: true,
 								ASN:     1203874,
 							},
@@ -989,7 +1010,7 @@ func Test_makeMachineTags(t *testing.T) {
 				m: &metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								Private: true,
 								ASN:     1203874,
 							},

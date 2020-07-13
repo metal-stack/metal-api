@@ -3,11 +3,13 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	restful "github.com/emicklei/go-restful"
@@ -26,6 +28,11 @@ func NewImage(ds *datastore.RethinkStore) *restful.WebService {
 		webResource: webResource{
 			ds: ds,
 		},
+	}
+	iuc := imageUsageCollector{ir: &ir}
+	err := prometheus.Register(iuc)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to register prometheus", zap.Error(err))
 	}
 	return ir.webService()
 }
@@ -88,13 +95,31 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.GET("/migrate").
+		To(admin(ir.migrateImages)).
+		Operation("migrateImages").
+		Doc("migrate existing machine allocation images to semver equivalents").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
+}
+
+// Migrate existing Images of allocations to semver images
+// FIXME remove this after all machines are migrated.
+func (ir imageResource) migrateImages(request *restful.Request, response *restful.Response) {
+	_, err := ir.ds.MigrateMachineImages(nil)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 }
 
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := ir.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -159,14 +184,38 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		features[ft] = true
 	}
 
+	os, v, err := datastore.GetOsAndSemver(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	expirationDate := time.Now().Add(metal.DefaultImageExpiration)
+	if requestPayload.ExpirationDate != nil && !requestPayload.ExpirationDate.IsZero() {
+		expirationDate = *requestPayload.ExpirationDate
+	}
+
+	vc := metal.ClassificationPreview
+	if requestPayload.Classification != nil {
+		vc, err = metal.VersionClassificationFrom(*requestPayload.Classification)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
 			Name:        name,
 			Description: description,
 		},
-		URL:      requestPayload.URL,
-		Features: features,
+		URL:            requestPayload.URL,
+		Features:       features,
+		OS:             os,
+		Version:        v.String(),
+		ExpirationDate: expirationDate,
+		Classification: vc,
 	}
 
 	err = ir.ds.CreateImage(img)
@@ -183,7 +232,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := ir.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -221,7 +270,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		return
 	}
 
-	oldImage, err := ir.ds.FindImage(requestPayload.ID)
+	oldImage, err := ir.ds.GetImage(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -249,6 +298,20 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.Features = features
 	}
 
+	if requestPayload.Classification != nil {
+		vc, err := metal.VersionClassificationFrom(*requestPayload.Classification)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
+		newImage.Classification = vc
+	}
+
+	if requestPayload.ExpirationDate != nil {
+		newImage.ExpirationDate = *requestPayload.ExpirationDate
+	}
+
 	err = ir.ds.UpdateImage(oldImage, &newImage)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -257,5 +320,76 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
+	}
+}
+
+// networkUsageCollector implements the prometheus collector interface.
+type imageUsageCollector struct {
+	ir *imageResource
+}
+
+var (
+	usedImageDesc = prometheus.NewDesc(
+		"metal_image_used_total",
+		"The total number of machines using a image",
+		[]string{"imageID", "name", "os", "classification", "created", "expirationDate", "base", "features"}, nil,
+	)
+)
+
+func (iuc imageUsageCollector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(iuc, ch)
+}
+
+func (iuc imageUsageCollector) Collect(ch chan<- prometheus.Metric) {
+	// FIXME bad workaround to be able to run make spec
+	if iuc.ir == nil || iuc.ir.ds == nil {
+		return
+	}
+	imgs, err := iuc.ir.ds.ListImages()
+	if err != nil {
+		return
+	}
+	images := make(map[string]metal.Image)
+	for _, i := range imgs {
+		images[i.ID] = i
+	}
+	// init with 0
+	usage := make(map[string]int)
+	for _, i := range imgs {
+		usage[i.ID] = 0
+	}
+	// loop over machines and count
+	machines, err := iuc.ir.ds.ListMachines()
+	if err != nil {
+		return
+	}
+	for _, m := range machines {
+		if m.Allocation == nil {
+			continue
+		}
+		usage[m.Allocation.ImageID]++
+	}
+
+	for i, count := range usage {
+		image := images[i]
+
+		metric, err := prometheus.NewConstMetric(
+			usedImageDesc,
+			prometheus.CounterValue,
+			float64(count),
+			image.ID,
+			image.Name,
+			image.OS,
+			string(image.Classification),
+			fmt.Sprintf("%d", image.Created.Unix()),
+			fmt.Sprintf("%d", image.ExpirationDate.Unix()),
+			string(image.Base.ID),
+			image.ImageFeatureString(),
+		)
+		if err != nil {
+			zapup.MustRootLogger().Error("Failed create metric for UsedImages", zap.Error(err))
+			return
+		}
+		ch <- metric
 	}
 }

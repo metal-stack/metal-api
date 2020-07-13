@@ -3,8 +3,46 @@
 ### get all images
 # @name allImages
 GET {{baseurl}}
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
 
 ### get one image
 @imageid = {{allImages.response.body.$[0].id}}
 # @name getFirstImage
 GET {{baseurl}}/{{imageid}}
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### migrate images
+# @name migrateImages
+GET {{baseurl}}/migrate
+Authorization: Metal-Admin 8d7b8a807d368b716ce7d712266b680edb77ff70d050be30e0bbf2e50e189b2b
+X-Date: 1985-04-12T23:20:50.52Z
+
+### delete an image
+# @name deleteImage
+DELETE {{baseurl}}/ubuntu-19.10
+Authorization: Metal-Admin 60d4480107818d260233f835ff91ec85df194a2300b290e8aba4449246919d81
+X-Date: 1985-04-12T23:20:50.52Z
+
+
+### create an image
+# @name createImage
+PUT {{baseurl}}
+Content-Type: application/json
+Authorization: Metal-Admin ad24814d87cf57f35e1f075d02a7eb748d17536cbdff473c09be2b75df0ca4d0
+X-Date: 1985-04-12T23:20:50.52Z
+
+{
+    "id": "ubuntu-19.10",
+    "name": "Ubuntu 19.10",
+    "description": "Ubuntu 19.10",
+    "url": "http://images.metal-pod.io/metal-os/ubuntu/19.10/20200317/img.tar.lz4",
+    "features": [
+        "machine"
+    ],
+    "expirationDate": "0001-01-01T00:00:00Z",
+    "classification": "supported",
+    "created": "2020-04-21T13:11:25.402Z",
+    "changed": "2020-04-21T13:11:25.402Z"
+}

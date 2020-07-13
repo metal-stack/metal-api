@@ -111,8 +111,20 @@ var machineLiveliness = &cobra.Command{
 	},
 }
 
+var deleteOrphanImagesCmd = &cobra.Command{
+	Use:     "delete-orphan-images",
+	Short:   "delete orphan images",
+	Long:    "removes images which are expired and not used by any allocated machine, still one image per operating system is preserved",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+		initDataStore()
+		return deleteOrphanImages()
+	},
+}
+
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, machineLiveliness)
+	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, machineLiveliness, deleteOrphanImagesCmd)
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed executing root command", "error", err)
 	}
@@ -269,6 +281,9 @@ func initEventBus() {
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
+	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr")); err != nil {
+		panic(err)
+	}
 	nsqer = &nsq
 }
 
@@ -430,16 +445,26 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 
 	lg := logger.Desugar()
+	var p bus.Publisher
+	ep := bus.DirectEndpoints()
+	if nsqer != nil {
+		p = nsqer.Publisher
+		ep = nsqer.Endpoints
+	}
+	ipservice, err := service.NewIP(ds, ep, ipamer, mdc)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
-	restful.DefaultContainer.Add(service.NewIP(ds, ipamer, mdc))
-	var p bus.Publisher
-	if nsqer != nil {
-		p = nsqer.Publisher
-	}
-	restful.DefaultContainer.Add(service.NewMachine(ds, p, ipamer, mdc))
+	restful.DefaultContainer.Add(ipservice)
+	restful.DefaultContainer.Add(mservice)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
 	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
@@ -480,10 +505,12 @@ func resurrectDeadMachines() error {
 	initIpam()
 
 	var p bus.Publisher
+	ep := bus.DirectEndpoints()
 	if nsqer != nil {
 		p = nsqer.Publisher
+		ep = nsqer.Endpoints
 	}
-	err := service.ResurrectMachines(ds, p, ipamer, logger)
+	err := service.ResurrectMachines(ds, p, ep, ipamer, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to resurrect machines")
 	}
@@ -500,6 +527,13 @@ func evaluateLiveliness() error {
 	}
 
 	return nil
+}
+
+func deleteOrphanImages() error {
+	initDataStore()
+	initEventBus()
+	_, err := ds.DeleteOrphanImages(nil, nil)
+	return err
 }
 
 func run() {

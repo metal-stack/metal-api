@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"net/http"
+
+	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -28,10 +30,11 @@ type ipResource struct {
 	webResource
 	ipamer ipam.IPAMer
 	mdc    mdm.Client
+	actor  *asyncActor
 }
 
 // NewIP returns a webservice for ip specific endpoints.
-func NewIP(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
+func NewIP(ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
 	ir := ipResource{
 		webResource: webResource{
 			ds: ds,
@@ -39,7 +42,12 @@ func NewIP(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *rest
 		ipamer: ipamer,
 		mdc:    mdc,
 	}
-	return ir.webService()
+	var err error
+	ir.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create async actor: %w", err)
+	}
+	return ir.webService(), nil
 }
 
 func (ir ipResource) webService() *restful.WebService {
@@ -187,21 +195,13 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	err = validateIPDelete(ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if checkError(request, response, utils.CurrentFuncName(), validateIPDelete(ip)) {
+		return
+	}
+	if checkError(request, response, utils.CurrentFuncName(), ir.actor.releaseIP(*ip)) {
 		return
 	}
 
-	err = ir.ipamer.ReleaseIP(*ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = ir.ds.DeleteIP(ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -211,8 +211,8 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 
 func validateIPDelete(ip *metal.IP) error {
 	s := ip.GetScope()
-	if s != metal.ScopeProject && ip.Type == metal.Static {
-		return fmt.Errorf("ip with scope %s can not be deleted", ip.GetScope())
+	if s == metal.ScopeMachine {
+		return fmt.Errorf("ip with machine scope can not be deleted")
 	}
 	return nil
 }

@@ -45,6 +45,7 @@ type ServerCapacity struct {
 	Free      int    `json:"free" description:"free servers with this size"`
 	Allocated int    `json:"allocated" description:"allocated servers with this size"`
 	Faulty    int    `json:"faulty" description:"servers with issues with this size"`
+	Other     int    `json:"other" description:"servers neither free, allocated or faulty with this size"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {

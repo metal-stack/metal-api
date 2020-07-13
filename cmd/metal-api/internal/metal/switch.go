@@ -1,6 +1,9 @@
 package metal
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // Switch have to register at the api. As metal-core is a stateless application running on a switch,
 // the api needs persist all the information such that the core can create or restore a its entire
@@ -12,6 +15,8 @@ type Switch struct {
 	PartitionID        string        `rethinkdb:"partitionid" json:"partitionid"`
 	RackID             string        `rethinkdb:"rackid" json:"rackid"`
 	Mode               SwitchMode    `rethinkdb:"mode" json:"mode"`
+	LastSync           *SwitchSync   `rethinkdb:"last_sync" json:"last_sync"`
+	LastSyncError      *SwitchSync   `rethinkdb:"last_sync_error" json:"last_sync_error"`
 }
 
 // Connection between switch port and machine.
@@ -40,6 +45,13 @@ type SwitchEvent struct {
 	Type     EventType `json:"type"`
 	Machine  Machine   `json:"machine"`
 	Switches []Switch  `json:"switches"`
+}
+
+// SwitchSync contains information about the last synchronization of the state held in the metal-api to a switch.
+type SwitchSync struct {
+	Time     time.Time     `rethinkdb:"time" json:"time"`
+	Duration time.Duration `rethinkdb:"duration" json:"duration"`
+	Error    *string       `rethinkdb:"error" json:"error"`
 }
 
 // SwitchModeFrom converts a switch mode string to the type
@@ -72,9 +84,7 @@ func (c ConnectionMap) ByNicName() (map[string]Connection, error) {
 // which should not happen in a real environment.
 func (s *Switch) ConnectMachine(machine *Machine) int {
 	// first remove all existing connections to this machine.
-	if _, has := s.MachineConnections[machine.ID]; has {
-		delete(s.MachineConnections, machine.ID)
-	}
+	delete(s.MachineConnections, machine.ID)
 
 	// calculate the connections for this machine
 	for _, switchNic := range s.Nics {

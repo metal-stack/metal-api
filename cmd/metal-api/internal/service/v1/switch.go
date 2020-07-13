@@ -2,6 +2,7 @@ package v1
 
 import (
 	"sort"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
@@ -60,12 +61,19 @@ type SwitchUpdateRequest struct {
 	SwitchBase
 }
 
+type SwitchNotifyRequest struct {
+	Duration time.Duration `json:"sync_duration" description:"the duration of the switch synchronization"`
+	Error    *string       `json:"error"`
+}
+
 type SwitchResponse struct {
 	Common
 	SwitchBase
-	Nics        SwitchNics         `json:"nics" description:"the list of network interfaces on the switch"`
-	Partition   PartitionResponse  `json:"partition" description:"the partition in which this switch is located"`
-	Connections []SwitchConnection `json:"connections" description:"a connection between a switch port and a machine"`
+	Nics          SwitchNics         `json:"nics" description:"the list of network interfaces on the switch"`
+	Partition     PartitionResponse  `json:"partition" description:"the partition in which this switch is located"`
+	Connections   []SwitchConnection `json:"connections" description:"a connection between a switch port and a machine"`
+	LastSync      *metal.SwitchSync  `json:"last_sync" description:"last successful synchronization to the switch"`
+	LastSyncError *metal.SwitchSync  `json:"last_sync_error" description:"last synchronization to the switch that was erroneous"`
 	Timestamps
 }
 
@@ -88,9 +96,11 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 			RackID: s.RackID,
 			Mode:   string(s.Mode),
 		},
-		Nics:        nics,
-		Partition:   *NewPartitionResponse(p),
-		Connections: cons,
+		Nics:          nics,
+		Partition:     *NewPartitionResponse(p),
+		Connections:   cons,
+		LastSync:      s.LastSync,
+		LastSyncError: s.LastSyncError,
 		Timestamps: Timestamps{
 			Created: s.Created,
 			Changed: s.Changed,

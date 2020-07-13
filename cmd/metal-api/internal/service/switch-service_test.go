@@ -7,15 +7,15 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/require"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -128,15 +128,6 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
-	var result httperrors.HTTPErrorResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
-
-	require.Nil(t, err)
-	require.Equal(t, http.StatusUnprocessableEntity, result.StatusCode)
-	require.Regexp(t, "nic with mac address 21:11:11:11:11:11 gets removed but the machine with id \"1\" is already connected to this nic", result.Message)
 }
 
 func TestReplaceSwitch(t *testing.T) {
@@ -1192,4 +1183,68 @@ func TestUpdateSwitch(t *testing.T) {
 	require.Equal(t, testdata.Switch1.Name, *result.Name)
 	require.Equal(t, desc, *result.Description)
 	require.Equal(t, string(metal.SwitchReplace), result.Mode)
+}
+
+func TestNotifySwitch(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	switchservice := NewSwitch(ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	d := time.Second * 10
+	notifyRequest := v1.SwitchNotifyRequest{
+		Duration: d,
+	}
+	js, _ := json.Marshal(notifyRequest)
+	body := bytes.NewBuffer(js)
+	id := testdata.Switch1.ID
+	req := httptest.NewRequest("POST", "/v1/switch/"+id+"/notify", body)
+	container = injectEditor(container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Equal(t, id, result.ID)
+	require.Equal(t, d, result.LastSync.Duration)
+	require.Nil(t, result.LastSyncError)
+}
+
+func TestNotifyErrorSwitch(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	switchservice := NewSwitch(ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	d := time.Second * 10
+	e := "failed to apply config"
+	notifyRequest := v1.SwitchNotifyRequest{
+		Duration: d,
+		Error:    &e,
+	}
+	js, _ := json.Marshal(notifyRequest)
+	body := bytes.NewBuffer(js)
+	id := testdata.Switch1.ID
+	req := httptest.NewRequest("POST", "/v1/switch/"+id+"/notify", body)
+	container = injectEditor(container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+
+	require.Nil(t, err)
+	require.Equal(t, id, result.ID)
+	require.Equal(t, d, result.LastSyncError.Duration)
+	require.Equal(t, e, *result.LastSyncError.Error)
 }

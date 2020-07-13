@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -84,6 +85,17 @@ func (r switchResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SwitchUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/notify").
+		To(editor(r.notifySwitch)).
+		Doc("notify the metal-api about a configuration change of a switch").
+		Operation("notifySwitch").
+		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.SwitchNotifyRequest{}).
+		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -127,6 +139,46 @@ func (r switchResource) deleteSwitch(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r switchResource) notifySwitch(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SwitchNotifyRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	id := request.PathParameter("id")
+	s, err := r.ds.FindSwitch(id)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	old := *s
+	sync := &metal.SwitchSync{
+		Time:     time.Now(),
+		Duration: requestPayload.Duration,
+	}
+
+	if requestPayload.Error == nil {
+		s.LastSync = sync
+	} else {
+		sync.Error = requestPayload.Error
+		s.LastSyncError = sync
+	}
+
+	err = r.ds.UpdateSwitch(&old, s)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
