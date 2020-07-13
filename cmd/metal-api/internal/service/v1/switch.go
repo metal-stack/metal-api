@@ -9,6 +9,7 @@ import (
 
 type SwitchBase struct {
 	RackID string `json:"rack_id" modelDescription:"A switch that can register at the api." description:"the id of the rack in which this switch is located"`
+	Mode   string `json:"mode" description:"the mode the switch currently has" optional:"true"`
 }
 
 type SwitchNics []SwitchNic
@@ -55,6 +56,11 @@ type SwitchRegisterRequest struct {
 	SwitchBase
 }
 
+type SwitchUpdateRequest struct {
+	Common
+	SwitchBase
+}
+
 type SwitchNotifyRequest struct {
 	Duration time.Duration `json:"sync_duration" description:"the duration of the switch synchronization"`
 	Error    *string       `json:"error"`
@@ -88,6 +94,7 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 		},
 		SwitchBase: SwitchBase{
 			RackID: s.RackID,
+			Mode:   string(s.Mode),
 		},
 		Nics:          nics,
 		Partition:     *NewPartitionResponse(p),

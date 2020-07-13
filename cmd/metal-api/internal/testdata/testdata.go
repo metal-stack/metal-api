@@ -485,7 +485,6 @@ var (
 		PartitionID: "1",
 		RackID:      "1",
 		Nics: []metal.Nic{
-			Nic1,
 			Nic2,
 			Nic3,
 		},
@@ -493,7 +492,7 @@ var (
 			"1": metal.Connections{
 				metal.Connection{
 					Nic: metal.Nic{
-						MacAddress: metal.MacAddress("11:11:11:11:11:11"),
+						MacAddress: metal.MacAddress("21:11:11:11:11:11"),
 					},
 					MachineID: "1",
 				},
@@ -510,8 +509,11 @@ var (
 		Base: metal.Base{
 			ID: "switch2",
 		},
-		PartitionID:        "1",
-		RackID:             "2",
+		PartitionID: "1",
+		RackID:      "1",
+		Nics: []metal.Nic{
+			Nic4,
+		},
 		MachineConnections: metal.ConnectionMap{},
 	}
 	Switch3 = metal.Switch{
@@ -520,6 +522,28 @@ var (
 		},
 		PartitionID:        "1",
 		RackID:             "3",
+		MachineConnections: metal.ConnectionMap{},
+	}
+	SwitchReplaceFor1 = metal.Switch{
+		Base: metal.Base{
+			ID: "switch1",
+		},
+		PartitionID: "1",
+		RackID:      "1",
+		Nics: []metal.Nic{
+			metal.Nic{
+				Name:       Nic1.Name,
+				MacAddress: "98:98:98:98:98:91",
+			},
+			metal.Nic{
+				Name:       Nic2.Name,
+				MacAddress: "98:98:98:98:98:92",
+			},
+			metal.Nic{
+				Name:       Nic3.Name,
+				MacAddress: "98:98:98:98:98:93",
+			},
+		},
 		MachineConnections: metal.ConnectionMap{},
 	}
 
@@ -559,6 +583,10 @@ var (
 				MacAddress: "11:11:11:11:11:11",
 			},
 		},
+	}
+	Nic4 = metal.Nic{
+		MacAddress: metal.MacAddress("41:11:11:11:11:11"),
+		Name:       "swp1",
 	}
 
 	// IPMIs
@@ -639,12 +667,12 @@ var (
 
 	// All Nics
 	TestNics = metal.Nics{
-		Nic1, Nic2, Nic3,
+		Nic1, Nic2, Nic3, Nic4,
 	}
 
 	// All Switches
 	TestSwitches = []metal.Switch{
-		Switch1, Switch2, Switch3,
+		Switch1, Switch2, Switch3, SwitchReplaceFor1,
 	}
 	TestMacs = []string{
 		"11:11:11:11:11:11",

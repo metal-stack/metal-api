@@ -76,6 +76,8 @@ func TestRegisterMachine(t *testing.T) {
 		dbpartitions         []metal.Partition
 		dbsizes              []metal.Size
 		dbmachines           metal.Machines
+		neighbormac1         metal.MacAddress
+		neighbormac2         metal.MacAddress
 		expectedStatus       int
 		expectedErrorMessage string
 		expectedSizeName     string
@@ -86,6 +88,8 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:      "0",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
+			neighbormac1:     testdata.Switch1.Nics[0].MacAddress,
+			neighbormac2:     testdata.Switch2.Nics[0].MacAddress,
 			numcores:         1,
 			memory:           100,
 			expectedStatus:   http.StatusCreated,
@@ -97,11 +101,26 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:      "1",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
+			neighbormac1:     testdata.Switch1.Nics[0].MacAddress,
+			neighbormac2:     testdata.Switch2.Nics[0].MacAddress,
 			dbmachines:       metal.Machines{testdata.M1},
 			numcores:         1,
 			memory:           100,
 			expectedStatus:   http.StatusOK,
 			expectedSizeName: testdata.Sz1.Name,
+		},
+		{
+			name:                 "insert existing without second neighbor",
+			uuid:                 "1",
+			partitionid:          "1",
+			dbpartitions:         []metal.Partition{testdata.Partition1},
+			dbsizes:              []metal.Size{testdata.Sz1},
+			neighbormac1:         testdata.Switch1.Nics[0].MacAddress,
+			dbmachines:           metal.Machines{testdata.M1},
+			numcores:             1,
+			memory:               100,
+			expectedStatus:       http.StatusUnprocessableEntity,
+			expectedErrorMessage: "machine 1 is not connected to exactly two switches, found connections to 1 switches",
 		},
 		{
 			name:                 "empty uuid",
@@ -127,6 +146,8 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:      "1",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
+			neighbormac1:     testdata.Switch1.Nics[0].MacAddress,
+			neighbormac2:     testdata.Switch2.Nics[0].MacAddress,
 			numcores:         2,
 			memory:           100,
 			expectedStatus:   http.StatusCreated,
@@ -149,7 +170,7 @@ func TestRegisterMachine(t *testing.T) {
 				})).Return(testdata.EmptyResult, nil)
 			}
 			mock.On(r.DB("mockdb").Table("size").Get(metal.UnknownSize.ID)).Return([]metal.Size{*metal.UnknownSize}, nil)
-			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
+			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1, testdata.Switch2}, nil)
 			mock.On(r.DB("mockdb").Table("event").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.ProvisioningEventContainer{}, nil)
 			mock.On(r.DB("mockdb").Table("event").Insert(r.MockAnything(), r.InsertOpts{})).Return(testdata.EmptyResult, nil)
 			testdata.InitMockDBData(mock)
@@ -177,6 +198,26 @@ func TestRegisterMachine(t *testing.T) {
 					MachineHardwareBase: v1.MachineHardwareBase{
 						CPUCores: test.numcores,
 						Memory:   uint64(test.memory),
+					},
+					Nics: v1.MachineNicsExtended{
+						v1.MachineNicExtended{
+							Neighbors: v1.MachineNicsExtended{
+								v1.MachineNicExtended{
+									MachineNic: v1.MachineNic{
+										MacAddress: string(test.neighbormac1),
+									},
+								},
+							},
+						},
+						v1.MachineNicExtended{
+							Neighbors: v1.MachineNicsExtended{
+								v1.MachineNicExtended{
+									MachineNic: v1.MachineNic{
+										MacAddress: string(test.neighbormac2),
+									},
+								},
+							},
+						},
 					},
 				},
 			}

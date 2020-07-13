@@ -2948,6 +2948,10 @@
           "type": "string",
           "uniqueItems": true
         },
+        "mode": {
+          "description": "the mode the switch currently has",
+          "type": "string"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -3013,6 +3017,10 @@
           "$ref": "#/definitions/metal.SwitchSync",
           "description": "last synchronization to the switch that was erroneous"
         },
+        "mode": {
+          "description": "the mode the switch currently has",
+          "type": "string"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -3042,6 +3050,35 @@
         "last_sync_error",
         "nics",
         "partition",
+        "rack_id"
+      ]
+    },
+    "v1.SwitchUpdateRequest": {
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "mode": {
+          "description": "the mode the switch currently has",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
         "rack_id"
       ]
     },
@@ -5731,6 +5768,49 @@
           }
         },
         "summary": "get all switches",
+        "tags": [
+          "switch"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateSwitch",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a switch. if the switch was changed since this one was read, a conflict is returned",
         "tags": [
           "switch"
         ]
