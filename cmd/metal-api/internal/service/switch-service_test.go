@@ -318,16 +318,16 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								IPs: []string{},
 								Vrf: 104010,
 							},
-							&metal.MachineNetwork{
+							{
 								IPs:      []string{"10.0.0.2", "10.0.0.1"},
 								Vrf:      0,
 								Underlay: true,
 							},
-							&metal.MachineNetwork{
+							{
 								IPs: []string{"212.89.42.1", "212.89.42.2"},
 								Vrf: 104009,
 							},
@@ -343,7 +343,7 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								IPs:      []string{"10.0.0.1"},
 								Vrf:      104010,
 								Underlay: false,
@@ -413,18 +413,18 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								IPs:      []string{"10.1.0.1"},
 								Prefixes: []string{"10.2.0.0/22", "10.1.0.0/22"},
 								Vrf:      1234,
 								Private:  true,
 							},
-							&metal.MachineNetwork{
+							{
 								IPs:      []string{"10.0.0.2", "10.0.0.1"},
 								Vrf:      0,
 								Underlay: true,
 							},
-							&metal.MachineNetwork{
+							{
 								IPs: []string{"212.89.42.2", "212.89.42.1"},
 								Vrf: 104009,
 							},
@@ -446,7 +446,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
-							&metal.MachineNetwork{
+							{
 								IPs: []string{"212.89.42.2", "212.89.42.1"},
 								Vrf: 104009,
 							},
@@ -537,8 +537,8 @@ func TestMakeSwitchNics(t *testing.T) {
 							Project: "p",
 							ImageID: "fwimg",
 							MachineNetworks: []*metal.MachineNetwork{
-								&metal.MachineNetwork{Vrf: 1},
-								&metal.MachineNetwork{Vrf: 2},
+								{Vrf: 1},
+								{Vrf: 2},
 							},
 						},
 					},
