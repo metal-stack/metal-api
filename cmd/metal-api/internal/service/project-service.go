@@ -82,7 +82,7 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, p.Project)
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.FromProject(p.Project))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -95,7 +95,7 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.FromProjects(ps.Projects))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -114,7 +114,7 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.FromProjects(ps.Projects))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return

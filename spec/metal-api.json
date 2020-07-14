@@ -78,18 +78,6 @@
         "version"
       ]
     },
-    "timestamp.Timestamp": {
-      "properties": {
-        "nanos": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "seconds": {
-          "format": "int64",
-          "type": "integer"
-        }
-      }
-    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -912,6 +900,14 @@
         "expirationDate",
         "id"
       ]
+    },
+    "v1.Int32Value": {
+      "properties": {
+        "value": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
     },
     "v1.MachineAbortReinstallRequest": {
       "properties": {
@@ -2097,7 +2093,7 @@
           "type": "string"
         },
         "created_time": {
-          "$ref": "#/definitions/timestamp.Timestamp"
+          "$ref": "#/definitions/v1.Timestamp"
         },
         "id": {
           "type": "string"
@@ -2112,7 +2108,7 @@
           "type": "array"
         },
         "updated_time": {
-          "$ref": "#/definitions/timestamp.Timestamp"
+          "$ref": "#/definitions/v1.Timestamp"
         },
         "version": {
           "format": "int64",
@@ -2614,16 +2610,16 @@
     "v1.ProjectFindRequest": {
       "properties": {
         "description": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         },
         "id": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         },
         "name": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         },
         "tenant_id": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         }
       }
     },
@@ -2649,7 +2645,7 @@
     "v1.Quota": {
       "properties": {
         "quota": {
-          "$ref": "#/definitions/wrappers.Int32Value"
+          "$ref": "#/definitions/v1.Int32Value"
         }
       }
     },
@@ -3082,18 +3078,15 @@
         "rack_id"
       ]
     },
-    "wrappers.Int32Value": {
+    "v1.Timestamp": {
       "properties": {
-        "value": {
+        "nanos": {
           "format": "int32",
           "type": "integer"
-        }
-      }
-    },
-    "wrappers.StringValue": {
-      "properties": {
-        "value": {
-          "type": "string"
+        },
+        "seconds": {
+          "format": "int64",
+          "type": "integer"
         }
       }
     }
