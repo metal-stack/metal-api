@@ -20,9 +20,9 @@ spec:
 
 .PHONY: redoc
 redoc:
-	docker run -it --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
 	xdg-open generate/index.html
 
 .PHONY: protoc
 protoc:
-	docker run -it --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
