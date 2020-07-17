@@ -2,21 +2,27 @@ BINARY := metal-api
 MAINMODULE := github.com/metal-stack/metal-api/cmd/metal-api
 COMMONDIR := $(or ${COMMONDIR},../builder)
 
-in-docker: gofmt test all;
+in-docker: tidy spec protoc gofmt test all;
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: gofmt test all ;
+release:: tidy spec protoc gofmt test all ;
 
 .PHONY: spec
-spec: all
-	bin/metal-api dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
+spec:
+	go build \
+    		-tags netgo \
+    		-ldflags \
+    		"$(LINKMODE)" \
+    		-o bin/$(BINARY) \
+    		$(MAINMODULE)
+	bin/$(BINARY) dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
 
 .PHONY: redoc
 redoc:
-	docker run -it --rm -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
+	docker run -it --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
 	xdg-open generate/index.html
 
 .PHONY: protoc
 protoc:
-	docker run -it --rm -v $(PWD)/../../..:/work metalstack/builder bash -c "cd github.com/metal-stack/metal-api && protoc -I pkg -I../../.. --go_out plugins=grpc:pkg pkg/api/v1/*.proto"
+	docker run -it --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
