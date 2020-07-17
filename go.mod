@@ -24,12 +24,14 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/testcontainers/testcontainers-go v0.7.0
 	go.uber.org/zap v1.15.0
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
 
-replace github.com/metal-stack/masterdata-api => ../masterdata-api
-
-replace github.com/emicklei/go-restful-openapi/v2 => github.com/metal-stack/go-restful-openapi/v2 v2.2.2
+replace (
+	//FIXME remove as soon as emicklei has merged our fix
+	github.com/emicklei/go-restful-openapi/v2 => github.com/metal-stack/go-restful-openapi/v2 v2.2.2
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.5.1
+)

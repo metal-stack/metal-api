@@ -121,17 +121,17 @@ func createTestEnvironment(t *testing.T) testEnv {
 			},
 		},
 		SizeConstraints: []v1.SizeConstraint{
-			v1.SizeConstraint{
+			{
 				Type: metal.CoreConstraint,
 				Min:  8,
 				Max:  8,
 			},
-			v1.SizeConstraint{
+			{
 				Type: metal.MemoryConstraint,
 				Min:  1000,
 				Max:  2000,
 			},
-			v1.SizeConstraint{
+			{
 				Type: metal.StorageConstraint,
 				Min:  2000,
 				Max:  3000,

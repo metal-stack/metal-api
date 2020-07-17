@@ -78,6 +78,16 @@ func (r switchResource) webService() *restful.WebService {
 		Returns(http.StatusCreated, "Created", v1.SwitchResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/").
+		To(admin(r.updateSwitch)).
+		Operation("updateSwitch").
+		Doc("updates a switch. if the switch was changed since this one was read, a conflict is returned").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.SwitchUpdateRequest{}).
+		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.POST("/{id}/notify").
 		To(editor(r.notifySwitch)).
 		Doc("notify the metal-api about a configuration change of a switch").
@@ -176,6 +186,37 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 	}
 }
 
+func (r switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SwitchUpdateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	newSwitch := *oldSwitch
+
+	if requestPayload.Description != nil {
+		newSwitch.Description = *requestPayload.Description
+	}
+
+	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
+
+	err = r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(&newSwitch, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
 func (r switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchRegisterRequest
 	err := request.ReadEntity(&requestPayload)
@@ -217,16 +258,17 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 			return
 		}
 
-		// TODO: Broken switch: A machine was registered before this new switch is getting registered
-		// It needs to take over the existing connections from the broken switch or something?
-		// metal/metal#28
-
 		returnCode = http.StatusCreated
+	} else if s.Mode == metal.SwitchReplace {
+		spec := v1.NewSwitch(requestPayload)
+		err = r.replaceSwitch(s, spec)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		s = spec
 	} else {
 		old := *s
-
 		spec := v1.NewSwitch(requestPayload)
-
 		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("duplicate mac addresses found in nics")) {
 				return
@@ -263,10 +305,148 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	}
 }
 
-func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnections metal.ConnectionMap) (metal.Nics, error) {
-	// TODO: Broken switch would change nics, but if this happens we would need to repair broken connections:
-	// metal/metal#28
+// replaceSwitch replaces a broken switch
+//
+// assumptions:
+//  - cabling btw. old, new and twin-brother switch in the same rack is "the same" (m1 is connected to swp1s0 at every switch)
+//
+// constraints:
+//  - old, new and twin-brother switch must have the same partition and rack
+//  - old switch needs to be marked for replacement
+//  - twin-brother switch must not be marked for replacement (otherwise there would be no valid source of truth)
+//  - new switch needs all the nics of the twin-brother switch
+//  - new switch gets the same vrf configuration as the twin-brother switch based on the switch port name
+//  - new switch gets the same machine connections as the twin-brother switch based on the switch port name
+func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
+	twin, err := r.findTwinSwitch(new)
+	if err != nil {
+		return fmt.Errorf("could not determine twin brother for switch %s, err: %w", new.Name, err)
+	}
+	s, err := adoptFromTwin(old, twin, new)
+	if err != nil {
+		return err
+	}
+	return r.ds.UpdateSwitch(old, s)
+}
 
+// findTwinSwitch finds the neighboring twin of a switch for the given partition and rack
+func (r switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, error) {
+	rackSwitches, err := r.ds.SearchSwitches(newSwitch.RackID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not search switches in rack: %v", newSwitch.RackID)
+	}
+	if len(rackSwitches) == 0 {
+		return nil, fmt.Errorf("could not find any switch in rack: %v", newSwitch.RackID)
+	}
+	var twin *metal.Switch
+	for _, s := range rackSwitches {
+		if s.PartitionID != newSwitch.PartitionID {
+			continue
+		}
+		if twin == nil {
+			twin = &s
+		} else {
+			return nil, fmt.Errorf("found multiple twin switches for %v (%v and %v)", newSwitch.ID, twin.ID, s.ID)
+		}
+	}
+	if twin == nil {
+		return nil, fmt.Errorf("no twin brother found for switch %s, partition: %v, rack: %v", newSwitch.ID, newSwitch.PartitionID, newSwitch.RackID)
+	}
+	return twin, nil
+}
+
+// adoptFromTwin adopts the switch configuration found at the neighboring twin switch to a replacement switch.
+func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
+	s := *new
+	if new.PartitionID != old.PartitionID {
+		return nil, fmt.Errorf("old and new switch belong to different partitions, old: %v, new: %v", old.PartitionID, new.PartitionID)
+	}
+	if new.RackID != old.RackID {
+		return nil, fmt.Errorf("old and new switch belong to different racks, old: %v, new: %v", old.RackID, new.RackID)
+	}
+	if twin.Mode == metal.SwitchReplace {
+		return nil, fmt.Errorf("twin switch must not be in replace mode")
+	}
+	if len(twin.MachineConnections) == 0 {
+		// twin switch has no machine connections, switch may be used immediately, replace mode is unnecessary
+		s.Mode = metal.SwitchOperational
+		return &s, nil
+	}
+
+	newNics, err := adoptNics(twin, new)
+	if err != nil {
+		return nil, fmt.Errorf("could not adopt nic configuration from twin, err: %w", err)
+	}
+
+	newMachineConnections, err := adoptMachineConnections(twin, new)
+	if err != nil {
+		return nil, err
+	}
+
+	s.MachineConnections = newMachineConnections
+	s.Nics = newNics
+	s.Mode = metal.SwitchOperational
+
+	return &s, nil
+}
+
+// adoptNics checks whether new switch has all nics of its twin switch
+// copies vrf configuration and returns the new nics for the replacement switch
+func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
+	newNics := metal.Nics{}
+	newNicMap := newSwitch.Nics.ByName()
+	missingNics := []string{}
+	twinNicsByName := twin.Nics.ByName()
+	for name := range twinNicsByName {
+		if _, ok := newNicMap[name]; !ok {
+			missingNics = append(missingNics, name)
+		}
+	}
+	if len(missingNics) > 0 {
+		return nil, fmt.Errorf("new switch misses the nics %v - check the breakout configuration of the switch ports of switch %s", missingNics, newSwitch.Name)
+	}
+
+	for name, nic := range newNicMap {
+		// check for configuration at twin
+		if twinNic, ok := twinNicsByName[name]; ok {
+			newNic := *nic
+			newNic.Vrf = twinNic.Vrf
+			newNics = append(newNics, newNic)
+		} else {
+			// leave unchanged
+			newNics = append(newNics, *nic)
+		}
+	}
+
+	return newNics, nil
+}
+
+// adoptMachineConnections copies machine connections from twin and maps mac addresses based on the nic name
+func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap, error) {
+	newNicMap := newSwitch.Nics.ByName()
+	newConnectionMap := metal.ConnectionMap{}
+	missingNics := []string{}
+	for mid, cons := range twin.MachineConnections {
+		newConnections := metal.Connections{}
+		for _, con := range cons {
+			if n, ok := newNicMap[con.Nic.Name]; ok {
+				newCon := con
+				newCon.Nic.MacAddress = n.MacAddress
+				newConnections = append(newConnections, newCon)
+			} else {
+				// this should never happen! it means that we have machine connections with nic names that are not present anymore at the twin or the new switch
+				missingNics = append(missingNics, con.Nic.Name)
+			}
+		}
+		newConnectionMap[mid] = newConnections
+	}
+	if len(missingNics) > 0 {
+		return nil, fmt.Errorf("twin switch has machine connections with switch ports that are not present at the new switch %v", missingNics)
+	}
+	return newConnectionMap, nil
+}
+
+func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnections metal.ConnectionMap) (metal.Nics, error) {
 	// To start off we just prevent basic things that can go wrong
 	nicsThatGetLost := metal.Nics{}
 	for mac, nic := range oldNics {
@@ -365,14 +545,50 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	if err != nil {
 		return err
 	}
+	oldSwitches := []metal.Switch{}
+	newSwitches := []metal.Switch{}
 	for _, sw := range switches {
 		oldSwitch := sw
-		sw.ConnectMachine(m)
-		err := ds.UpdateSwitch(&oldSwitch, &sw)
+		if cons := sw.ConnectMachine(m); cons > 0 {
+			oldSwitches = append(oldSwitches, oldSwitch)
+			newSwitches = append(newSwitches, sw)
+		}
+	}
+
+	if len(newSwitches) != 2 {
+		return fmt.Errorf("machine %v is not connected to exactly two switches, found connections to %d switches", m.ID, len(newSwitches))
+	}
+
+	s1 := newSwitches[0]
+	s2 := newSwitches[1]
+	cons1 := s1.MachineConnections[m.ID]
+	cons2 := s2.MachineConnections[m.ID]
+	connectionMapError := fmt.Errorf("twin-switches do not have a connection map that is mirrored crosswise for machine %v, switch %v (connections: %v), switch %v (connections: %v)", m.ID, s1.Name, cons1, s2.Name, cons2)
+	if len(cons1) != len(cons2) {
+		return connectionMapError
+	}
+
+	byNicName, err := s2.MachineConnections.ByNicName()
+	if err != nil {
+		return err
+	}
+	for _, con := range s1.MachineConnections[m.ID] {
+		if con2, has := byNicName[con.Nic.Name]; has {
+			if con.Nic.Name != con2.Nic.Name {
+				return connectionMapError
+			}
+		} else {
+			return connectionMapError
+		}
+	}
+
+	for i, old := range oldSwitches {
+		err = ds.UpdateSwitch(&old, &newSwitches[i])
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
