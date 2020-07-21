@@ -54,7 +54,6 @@ var (
 	cfgFile            string
 	ds                 *datastore.RethinkStore
 	ipamer             *ipam.Ipam
-	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	logger             = zapup.MustRootLogger().Sugar()
 	debug              = false
@@ -275,7 +274,7 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
-	publisherTLSConfig = &bus.TLSConfig{
+	publisherTLSConfig := &bus.TLSConfig{
 		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
 	}
@@ -460,11 +459,15 @@ func initWaitServer() {
 		p = nsqer.Publisher
 	}
 	var err error
+	nsqTLSConfig := &bus.TLSConfig{
+		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
+		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+	}
 	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
 		Publisher:             p,
 		Datasource:            ds,
 		Logger:                logger,
-		NsqTlsConfig:          publisherTLSConfig,
+		NsqTlsConfig:          nsqTLSConfig,
 		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-http-addr"),
 		GrpcPort:              viper.GetInt("grpc-port"),
 		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
