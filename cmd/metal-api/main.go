@@ -165,7 +165,7 @@ func init() {
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
 	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
-	rootCmd.Flags().StringP("nsqlookupd-http-addr", "", "", "the http addresses of the nsqlookupd as a commalist")
+	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http addresses of the nsqlookupd as a commalist")
 
 	rootCmd.Flags().StringP("grpc-tls-enabled", "", "false", "indicates whether gRPC TLS is enabled")
 	rootCmd.Flags().StringP("grpc-ca-cert-file", "", "", "the CA certificate file to verify gRPC certificate")
@@ -296,7 +296,7 @@ func initEventBus() {
 	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
-	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-http-addr")); err != nil {
+	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr")); err != nil {
 		panic(err)
 	}
 	nsqer = &nsq
@@ -467,7 +467,7 @@ func initWaitServer() {
 		Datasource:            ds,
 		Logger:                logger,
 		NsqTlsConfig:          publisherTLSConfig,
-		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-http-addr"),
+		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-addr"),
 		GrpcPort:              viper.GetInt("grpc-port"),
 		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
 		CaCertFile:            viper.GetString("grpc-ca-cert-file"),
