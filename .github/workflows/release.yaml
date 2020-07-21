@@ -17,6 +17,7 @@ jobs:
         args: run
     - name: Build and push Docker image
       run: |
+        make protoc
         docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
         docker build -t metalstack/metal-api:${GITHUB_REF##*/} .
         docker push metalstack/metal-api:${GITHUB_REF##*/}
