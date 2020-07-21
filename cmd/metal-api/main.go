@@ -54,6 +54,7 @@ var (
 	cfgFile            string
 	ds                 *datastore.RethinkStore
 	ipamer             *ipam.Ipam
+	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	logger             = zapup.MustRootLogger().Sugar()
 	debug              = false
@@ -274,17 +275,19 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
-	publisherTLSConfig := &bus.TLSConfig{
-		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
+	caCertFile := viper.GetString("nsqd-ca-cert-file")
+	clientCertFile := viper.GetString("nsqd-client-cert-file")
+	if caCertFile != "" && clientCertFile != "" {
+		publisherTLSConfig = &bus.TLSConfig{
+			CACertFile:     caCertFile,
+			ClientCertFile: clientCertFile,
+		}
 	}
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
+		TLS:          publisherTLSConfig,
 		NSQ:          nsq2.NewConfig(),
-	}
-	if publisherTLSConfig.CACertFile != "" && publisherTLSConfig.ClientCertFile != "" {
-		publisherCfg.TLS = publisherTLSConfig
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
@@ -459,15 +462,11 @@ func initWaitServer() {
 		p = nsqer.Publisher
 	}
 	var err error
-	nsqTLSConfig := &bus.TLSConfig{
-		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
-	}
 	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
 		Publisher:             p,
 		Datasource:            ds,
 		Logger:                logger,
-		NsqTlsConfig:          nsqTLSConfig,
+		NsqTlsConfig:          publisherTLSConfig,
 		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-http-addr"),
 		GrpcPort:              viper.GetInt("grpc-port"),
 		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
