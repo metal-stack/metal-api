@@ -4,7 +4,7 @@ COMMONDIR := $(or ${COMMONDIR},../builder)
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: spec all ;
+release:: spec protoc all ;
 
 .PHONY: spec
 spec: all
@@ -17,4 +17,8 @@ redoc:
 
 .PHONY: protoc
 protoc:
+	protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
+
+.PHONY: protoc-docker
+protoc-docker:
 	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto

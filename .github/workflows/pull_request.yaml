@@ -17,7 +17,6 @@ jobs:
         args: run
     - name: Build and push Docker image
       run: |
-        make protoc
         docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
         # pull request images are prefixed with 'pr' to prevent them from overriding released images
         docker build -t metalstack/metal-api:pr-${GITHUB_HEAD_REF##*/} .
