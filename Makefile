@@ -4,7 +4,7 @@ COMMONDIR := $(or ${COMMONDIR},../builder)
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: spec protoc all ;
+release:: protoc spec all ;
 
 .PHONY: spec
 spec: all
