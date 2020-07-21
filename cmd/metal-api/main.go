@@ -51,15 +51,15 @@ const (
 )
 
 var (
-	cfgFile      string
-	ds           *datastore.RethinkStore
-	ipamer       *ipam.Ipam
-	nsqTlsConfig *bus.TLSConfig
-	nsqer        *eventbus.NSQClient
-	logger       = zapup.MustRootLogger().Sugar()
-	debug        = false
-	mdc          mdm.Client
-	waitServer   *grpc.WaitServer
+	cfgFile            string
+	ds                 *datastore.RethinkStore
+	ipamer             *ipam.Ipam
+	publisherTLSConfig *bus.TLSConfig
+	nsqer              *eventbus.NSQClient
+	logger             = zapup.MustRootLogger().Sugar()
+	debug              = false
+	mdc                mdm.Client
+	waitServer         *grpc.WaitServer
 )
 
 var rootCmd = &cobra.Command{
@@ -275,7 +275,7 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
-	publisherTLSConfig := &bus.TLSConfig{
+	publisherTLSConfig = &bus.TLSConfig{
 		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
 		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
 	}
@@ -464,7 +464,7 @@ func initWaitServer() {
 		Publisher:             p,
 		Datasource:            ds,
 		Logger:                logger,
-		NsqTlsConfig:          nsqTlsConfig,
+		NsqTlsConfig:          publisherTLSConfig,
 		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-http-addr"),
 		GrpcPort:              viper.GetInt("grpc-port"),
 		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
