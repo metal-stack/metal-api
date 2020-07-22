@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/metal-stack/go-ipam v1.5.0
-	github.com/metal-stack/masterdata-api v0.7.3-0.20200722091129-e50500d7a06e
+	github.com/metal-stack/masterdata-api v0.7.3
 	github.com/metal-stack/metal-lib v0.5.0
 	github.com/metal-stack/security v0.3.0
 	github.com/metal-stack/v v1.0.2
