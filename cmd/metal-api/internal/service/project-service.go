@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/metal-stack/masterdata-api/api/rest/mapper"
+	v1 "github.com/metal-stack/masterdata-api/api/rest/v1"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
-	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
 
@@ -82,7 +84,27 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, p.Project)
+	v1p := mapper.ToV1Project(p.Project)
+
+	// TODO: Retrieve current counts from backend
+	// if v1p.Quotas == nil {
+	// 	v1p.Quotas = &v1.QuotaSet{}
+	// }
+	// qs := v1p.Quotas
+	// if qs.Cluster == nil {
+	// 	qs.Cluster = &v1.Quota{}
+	// }
+	// if qs.Machine == nil {
+	// 	qs.Machine = &v1.Quota{}
+	// }
+	// if qs.Ip == nil {
+	// 	qs.Ip = &v1.Quota{}
+	// }
+	// qs.Machine.Used = utils.Int32Ptr(int32(machineUsage))
+	// qs.Ip.Used = utils.Int32Ptr(int32(ipUsage))
+	// qs.Project.Used
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1p)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -90,12 +112,37 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 }
 
 func (r projectResource) listProjects(request *restful.Request, response *restful.Response) {
-	ps, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	res, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	var ps []*v1.Project
+	for _, p := range res.Projects {
+		v1p := mapper.ToV1Project(p)
+
+		// TODO: Retrieve current counts from backend
+		// if v1p.Quotas == nil {
+		// 	v1p.Quotas = &v1.QuotaSet{}
+		// }
+		// qs := v1p.Quotas
+		// if qs.Cluster == nil {
+		// 	qs.Cluster = &v1.Quota{}
+		// }
+		// if qs.Machine == nil {
+		// 	qs.Machine = &v1.Quota{}
+		// }
+		// if qs.Ip == nil {
+		// 	qs.Ip = &v1.Quota{}
+		// }
+		// qs.Machine.Used = utils.Int32Ptr(int32(machineUsage))
+		// qs.Ip.Used = utils.Int32Ptr(int32(ipUsage))
+		// qs.Project.Used
+
+		ps = append(ps, v1p)
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, ps)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -103,18 +150,43 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 }
 
 func (r projectResource) findProjects(request *restful.Request, response *restful.Response) {
-	var requestPayload mdmv1.ProjectFindRequest
+	var requestPayload v1.ProjectFindRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	ps, err := r.mdc.Project().Find(context.Background(), &requestPayload)
+	res, err := r.mdc.Project().Find(context.Background(), mapper.ToMdmV1ProjectFindRequest(&requestPayload))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, ps.Projects)
+	var ps []*v1.Project
+	for _, p := range res.Projects {
+		v1p := mapper.ToV1Project(p)
+
+		// TODO: Retrieve current counts from backend
+		// if v1p.Quotas == nil {
+		// 	v1p.Quotas = &v1.QuotaSet{}
+		// }
+		// qs := v1p.Quotas
+		// if qs.Cluster == nil {
+		// 	qs.Cluster = &v1.Quota{}
+		// }
+		// if qs.Machine == nil {
+		// 	qs.Machine = &v1.Quota{}
+		// }
+		// if qs.Ip == nil {
+		// 	qs.Ip = &v1.Quota{}
+		// }
+		// qs.Machine.Used = utils.Int32Ptr(int32(machineUsage))
+		// qs.Ip.Used = utils.Int32Ptr(int32(ipUsage))
+		// qs.Project.Used
+
+		ps = append(ps, v1p)
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, ps)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
