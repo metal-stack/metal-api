@@ -32,6 +32,6 @@ require (
 
 replace (
 	//FIXME remove as soon as emicklei has merged our fix
-	github.com/emicklei/go-restful-openapi/v2 => github.com/metal-stack/go-restful-openapi/v2 v2.2.2
+	github.com/emicklei/go-restful-openapi/v2 => ../go-restful-openapi
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.5.1
 )

@@ -69,7 +69,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 	}
 
 	channel := fmt.Sprintf("alloc-%d", rand.Int())
-	err = c.With(bus.LogLevel(bus.Debug)).
+	err = c.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
 			evt := message.(*metal.AllocationEvent)
