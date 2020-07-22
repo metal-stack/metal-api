@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/metal-stack/go-ipam v1.5.0
-	github.com/metal-stack/masterdata-api v0.7.1
+	github.com/metal-stack/masterdata-api v0.7.3-0.20200722091129-e50500d7a06e
 	github.com/metal-stack/metal-lib v0.5.0
 	github.com/metal-stack/security v0.3.0
 	github.com/metal-stack/v v1.0.2
@@ -39,11 +39,4 @@ require (
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
-)
-
-replace (
-	// FIXME updating prometheus client leads to stack overflow on make spec
-	// the newer prometheus client comes with protobuf 1.4.x which creates a recursion somehow.
-	github.com/golang/protobuf => github.com/golang/protobuf v1.3.5
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.5.1
 )

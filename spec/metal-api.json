@@ -78,18 +78,6 @@
         "version"
       ]
     },
-    "timestamp.Timestamp": {
-      "properties": {
-        "nanos": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "seconds": {
-          "format": "int64",
-          "type": "integer"
-        }
-      }
-    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -2097,7 +2085,8 @@
           "type": "string"
         },
         "created_time": {
-          "$ref": "#/definitions/timestamp.Timestamp"
+          "format": "date-time",
+          "type": "string"
         },
         "id": {
           "type": "string"
@@ -2112,7 +2101,8 @@
           "type": "array"
         },
         "updated_time": {
-          "$ref": "#/definitions/timestamp.Timestamp"
+          "format": "date-time",
+          "type": "string"
         },
         "version": {
           "format": "int64",
@@ -2614,16 +2604,16 @@
     "v1.ProjectFindRequest": {
       "properties": {
         "description": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         },
         "id": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         },
         "name": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         },
         "tenant_id": {
-          "$ref": "#/definitions/wrappers.StringValue"
+          "type": "string"
         }
       }
     },
@@ -2649,7 +2639,12 @@
     "v1.Quota": {
       "properties": {
         "quota": {
-          "$ref": "#/definitions/wrappers.Int32Value"
+          "format": "int32",
+          "type": "integer"
+        },
+        "used": {
+          "format": "int32",
+          "type": "integer"
         }
       }
     },
@@ -3081,21 +3076,6 @@
         "id",
         "rack_id"
       ]
-    },
-    "wrappers.Int32Value": {
-      "properties": {
-        "value": {
-          "format": "int32",
-          "type": "integer"
-        }
-      }
-    },
-    "wrappers.StringValue": {
-      "properties": {
-        "value": {
-          "type": "string"
-        }
-      }
     }
   },
   "info": {
