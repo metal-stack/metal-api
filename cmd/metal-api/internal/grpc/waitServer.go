@@ -68,6 +68,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		ServerKeyFile:  cfg.ServerKeyFile,
 	}
 
+	rand.Seed(8129012933434)
 	channel := fmt.Sprintf("alloc-%d", rand.Int())
 	err = c.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
