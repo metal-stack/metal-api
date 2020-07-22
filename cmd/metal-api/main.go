@@ -475,8 +475,7 @@ func initWaitServer() {
 		ServerKeyFile:         viper.GetString("grpc-server-key-file"),
 	})
 	if err != nil {
-		logger.Errorw("cannot connect to NSQ", "error", err)
-		panic(err)
+		logger.Fatalw("cannot connect to NSQ", "error", err)
 	}
 }
 
@@ -619,7 +618,7 @@ func run() {
 	go func() {
 		err := grpc.Serve(waitServer)
 		if err != nil {
-			logger.Errorw("failed to serve gRPC", "error", err)
+			logger.Fatalw("failed to serve gRPC", "error", err)
 		}
 	}()
 
