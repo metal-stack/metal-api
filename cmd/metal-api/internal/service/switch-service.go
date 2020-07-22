@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -418,6 +419,9 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 		}
 	}
 
+	sort.SliceStable(newNics, func(i, j int) bool {
+		return newNics[i].Name < newNics[j].Name
+	})
 	return newNics, nil
 }
 
