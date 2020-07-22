@@ -1,380 +1,6 @@
 {
   "basePath": "/",
   "definitions": {
-    ".methods": {
-      "properties": {
-        "CheckInitialized": {
-          "$ref": "#/definitions/.methods.CheckInitialized"
-        },
-        "Flags": {
-          "format": "integer",
-          "type": "integer"
-        },
-        "Marshal": {
-          "$ref": "#/definitions/.methods.Marshal"
-        },
-        "Merge": {
-          "$ref": "#/definitions/.methods.Merge"
-        },
-        "Size": {
-          "$ref": "#/definitions/.methods.Size"
-        },
-        "Unmarshal": {
-          "$ref": "#/definitions/.methods.Unmarshal"
-        }
-      },
-      "required": [
-        "CheckInitialized",
-        "Flags",
-        "Marshal",
-        "Merge",
-        "Size",
-        "Unmarshal"
-      ]
-    },
-    ".methods.CheckInitialized": {},
-    ".methods.Marshal": {},
-    ".methods.Merge": {},
-    ".methods.Size": {},
-    ".methods.Unmarshal": {},
-    "datastore.IPSearchQuery": {
-      "description": "an ip address that can be attached to a machine",
-      "properties": {
-        "ipaddress": {
-          "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string"
-        },
-        "machineid": {
-          "description": "the machine an ip address is associated to",
-          "type": "string"
-        },
-        "networkid": {
-          "description": "the network this ip allocate request address belongs to",
-          "type": "string"
-        },
-        "networkprefix": {
-          "description": "the prefix of the network this ip address belongs to",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project this ip address belongs to, empty if not strong coupled",
-          "type": "string"
-        },
-        "tags": {
-          "description": "the tags that are assigned to this ip address",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "type": {
-          "description": "the type of the ip address, ephemeral or static",
-          "type": "string"
-        }
-      },
-      "required": [
-        "ipaddress",
-        "machineid",
-        "networkid",
-        "networkprefix",
-        "projectid",
-        "tags",
-        "type"
-      ]
-    },
-    "datastore.MachineSearchQuery": {
-      "properties": {
-        "allocation_hostname": {
-          "type": "string"
-        },
-        "allocation_image_id": {
-          "type": "string"
-        },
-        "allocation_name": {
-          "type": "string"
-        },
-        "allocation_project": {
-          "type": "string"
-        },
-        "allocation_succeeded": {
-          "type": "boolean"
-        },
-        "disk_names": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "disk_sizes": {
-          "items": {
-            "type": "integer"
-          },
-          "type": "array"
-        },
-        "fru_board_mfg": {
-          "type": "string"
-        },
-        "fru_board_mfg_serial": {
-          "type": "string"
-        },
-        "fru_board_part_number": {
-          "type": "string"
-        },
-        "fru_chassis_part_number": {
-          "type": "string"
-        },
-        "fru_chassis_part_serial": {
-          "type": "string"
-        },
-        "fru_product_manufacturer": {
-          "type": "string"
-        },
-        "fru_product_part_number": {
-          "type": "string"
-        },
-        "fru_product_serial": {
-          "type": "string"
-        },
-        "hardware_cpu_cores": {
-          "format": "int64",
-          "type": "integer"
-        },
-        "hardware_memory": {
-          "format": "int64",
-          "type": "integer"
-        },
-        "id": {
-          "type": "string"
-        },
-        "ipmi_address": {
-          "type": "string"
-        },
-        "ipmi_interface": {
-          "type": "string"
-        },
-        "ipmi_mac_address": {
-          "type": "string"
-        },
-        "ipmi_user": {
-          "type": "string"
-        },
-        "liveliness": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "network_asns": {
-          "items": {
-            "type": "integer"
-          },
-          "type": "array"
-        },
-        "network_destination_prefixes": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "network_ids": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "network_ips": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "network_nat": {
-          "type": "boolean"
-        },
-        "network_prefixes": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
-        },
-        "network_vrfs": {
-          "items": {
-            "type": "integer"
-          },
-          "type": "array"
-        },
-        "nics_mac_addresses": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "nics_names": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "nics_neighbor_mac_addresses": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "nics_neighbor_names": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "nics_neighbor_vrfs": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "nics_vrfs": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "partition_id": {
-          "type": "string"
-        },
-        "rackid": {
-          "type": "string"
-        },
-        "sizeid": {
-          "type": "string"
-        },
-        "state_value": {
-          "type": "string"
-        },
-        "tags": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "allocation_hostname",
-        "allocation_image_id",
-        "allocation_name",
-        "allocation_project",
-        "allocation_succeeded",
-        "disk_names",
-        "disk_sizes",
-        "fru_board_mfg",
-        "fru_board_mfg_serial",
-        "fru_board_part_number",
-        "fru_chassis_part_number",
-        "fru_chassis_part_serial",
-        "fru_product_manufacturer",
-        "fru_product_part_number",
-        "fru_product_serial",
-        "hardware_cpu_cores",
-        "hardware_memory",
-        "id",
-        "ipmi_address",
-        "ipmi_interface",
-        "ipmi_mac_address",
-        "ipmi_user",
-        "liveliness",
-        "name",
-        "network_asns",
-        "network_destination_prefixes",
-        "network_ids",
-        "network_ips",
-        "network_nat",
-        "network_prefixes",
-        "network_private",
-        "network_underlay",
-        "network_vrfs",
-        "nics_mac_addresses",
-        "nics_names",
-        "nics_neighbor_mac_addresses",
-        "nics_neighbor_names",
-        "nics_neighbor_vrfs",
-        "nics_vrfs",
-        "partition_id",
-        "rackid",
-        "sizeid",
-        "state_value",
-        "tags"
-      ]
-    },
-    "datastore.NetworkSearchQuery": {
-      "properties": {
-        "destinationprefixes": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "id": {
-          "type": "string"
-        },
-        "labels": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "type": "object"
-        },
-        "name": {
-          "type": "string"
-        },
-        "nat": {
-          "type": "boolean"
-        },
-        "parentnetworkid": {
-          "type": "string"
-        },
-        "partitionid": {
-          "type": "string"
-        },
-        "prefixes": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "privatesuper": {
-          "type": "boolean"
-        },
-        "projectid": {
-          "type": "string"
-        },
-        "underlay": {
-          "type": "boolean"
-        },
-        "vrf": {
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "destinationprefixes",
-        "id",
-        "labels",
-        "name",
-        "nat",
-        "parentnetworkid",
-        "partitionid",
-        "prefixes",
-        "privatesuper",
-        "projectid",
-        "underlay",
-        "vrf"
-      ]
-    },
     "httperrors.HTTPErrorResponse": {
       "properties": {
         "message": {
@@ -390,454 +16,6 @@
       "required": [
         "message",
         "statuscode"
-      ]
-    },
-    "impl.MessageInfo": {
-      "properties": {
-        "Desc": {
-          "$ref": "#/definitions/protoreflect.MessageDescriptor"
-        },
-        "Exporter": {
-          "$ref": "#/definitions/impl.exporter"
-        },
-        "GoReflectType": {
-          "$ref": "#/definitions/reflect.Type"
-        },
-        "OneofWrappers": {
-          "items": {
-            "$ref": "#/definitions/impl.MessageInfo.OneofWrappers"
-          },
-          "type": "array"
-        },
-        "coderFields": {
-          "additionalProperties": {
-            "$ref": "#/definitions/impl.coderFieldInfo"
-          },
-          "type": "object"
-        },
-        "denseCoderFields": {
-          "items": {
-            "$ref": "#/definitions/impl.coderFieldInfo"
-          },
-          "type": "array"
-        },
-        "denseFields": {
-          "items": {
-            "$ref": "#/definitions/impl.fieldInfo"
-          },
-          "type": "array"
-        },
-        "extensionMap": {
-          "$ref": "#/definitions/impl.reflectMessageInfo.extensionMap"
-        },
-        "extensionOffset": {
-          "$ref": "#/definitions/impl.offset"
-        },
-        "fields": {
-          "additionalProperties": {
-            "$ref": "#/definitions/impl.fieldInfo"
-          },
-          "type": "object"
-        },
-        "getUnknown": {
-          "$ref": "#/definitions/impl.reflectMessageInfo.getUnknown"
-        },
-        "initDone": {
-          "format": "integer",
-          "type": "integer"
-        },
-        "initMu": {
-          "$ref": "#/definitions/sync.Mutex"
-        },
-        "isMessageSet": {
-          "type": "boolean"
-        },
-        "methods": {
-          "$ref": "#/definitions/.methods"
-        },
-        "needsInitCheck": {
-          "type": "boolean"
-        },
-        "nilMessage": {
-          "$ref": "#/definitions/impl.atomicNilMessage"
-        },
-        "numRequiredFields": {
-          "format": "byte",
-          "type": "integer"
-        },
-        "oneofs": {
-          "additionalProperties": {
-            "$ref": "#/definitions/impl.oneofInfo"
-          },
-          "type": "object"
-        },
-        "orderedCoderFields": {
-          "items": {
-            "$ref": "#/definitions/impl.coderFieldInfo"
-          },
-          "type": "array"
-        },
-        "rangeInfos": {
-          "items": {
-            "$ref": "#/definitions/impl.reflectMessageInfo.rangeInfos"
-          },
-          "type": "array"
-        },
-        "setUnknown": {
-          "$ref": "#/definitions/impl.reflectMessageInfo.setUnknown"
-        },
-        "sizecacheOffset": {
-          "$ref": "#/definitions/impl.offset"
-        },
-        "unknownOffset": {
-          "$ref": "#/definitions/impl.offset"
-        }
-      },
-      "required": [
-        "Desc",
-        "Exporter",
-        "GoReflectType",
-        "OneofWrappers",
-        "coderFields",
-        "denseCoderFields",
-        "denseFields",
-        "extensionMap",
-        "extensionOffset",
-        "fields",
-        "getUnknown",
-        "initDone",
-        "initMu",
-        "isMessageSet",
-        "methods",
-        "needsInitCheck",
-        "nilMessage",
-        "numRequiredFields",
-        "oneofs",
-        "orderedCoderFields",
-        "rangeInfos",
-        "setUnknown",
-        "sizecacheOffset",
-        "unknownOffset"
-      ]
-    },
-    "impl.MessageInfo.OneofWrappers": {},
-    "impl.MessageState": {
-      "properties": {
-        "DoNotCompare": {
-          "items": {
-            "$ref": "#/definitions/impl.MessageState.DoNotCompare"
-          },
-          "type": "array"
-        },
-        "DoNotCopy": {
-          "items": {
-            "$ref": "#/definitions/sync.Mutex"
-          },
-          "type": "array"
-        },
-        "atomicMessageInfo": {
-          "$ref": "#/definitions/impl.MessageInfo"
-        }
-      },
-      "required": [
-        "DoNotCompare",
-        "DoNotCopy",
-        "atomicMessageInfo"
-      ]
-    },
-    "impl.MessageState.DoNotCompare": {},
-    "impl.atomicNilMessage": {
-      "properties": {
-        "p": {
-          "$ref": "#/definitions/unsafe.Pointer"
-        }
-      },
-      "required": [
-        "p"
-      ]
-    },
-    "impl.coderFieldInfo": {
-      "properties": {
-        "ft": {
-          "$ref": "#/definitions/reflect.Type"
-        },
-        "funcs": {
-          "$ref": "#/definitions/impl.pointerCoderFuncs"
-        },
-        "isPointer": {
-          "type": "boolean"
-        },
-        "isRequired": {
-          "type": "boolean"
-        },
-        "mi": {
-          "$ref": "#/definitions/impl.MessageInfo"
-        },
-        "num": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "offset": {
-          "$ref": "#/definitions/impl.offset"
-        },
-        "tagsize": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "validation": {
-          "$ref": "#/definitions/impl.validationInfo"
-        },
-        "wiretag": {
-          "format": "integer",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "ft",
-        "funcs",
-        "isPointer",
-        "isRequired",
-        "mi",
-        "num",
-        "offset",
-        "tagsize",
-        "validation",
-        "wiretag"
-      ]
-    },
-    "impl.coderMessageInfo": {
-      "properties": {
-        "coderFields": {
-          "additionalProperties": {
-            "$ref": "#/definitions/impl.coderFieldInfo"
-          },
-          "type": "object"
-        },
-        "denseCoderFields": {
-          "items": {
-            "$ref": "#/definitions/impl.coderFieldInfo"
-          },
-          "type": "array"
-        },
-        "extensionOffset": {
-          "$ref": "#/definitions/impl.offset"
-        },
-        "isMessageSet": {
-          "type": "boolean"
-        },
-        "methods": {
-          "$ref": "#/definitions/.methods"
-        },
-        "needsInitCheck": {
-          "type": "boolean"
-        },
-        "numRequiredFields": {
-          "format": "byte",
-          "type": "integer"
-        },
-        "orderedCoderFields": {
-          "items": {
-            "$ref": "#/definitions/impl.coderFieldInfo"
-          },
-          "type": "array"
-        },
-        "sizecacheOffset": {
-          "$ref": "#/definitions/impl.offset"
-        },
-        "unknownOffset": {
-          "$ref": "#/definitions/impl.offset"
-        }
-      },
-      "required": [
-        "coderFields",
-        "denseCoderFields",
-        "extensionOffset",
-        "isMessageSet",
-        "methods",
-        "needsInitCheck",
-        "numRequiredFields",
-        "orderedCoderFields",
-        "sizecacheOffset",
-        "unknownOffset"
-      ]
-    },
-    "impl.fieldInfo": {
-      "properties": {
-        "clear": {
-          "$ref": "#/definitions/impl.fieldInfo.clear"
-        },
-        "fieldDesc": {
-          "$ref": "#/definitions/protoreflect.FieldDescriptor"
-        },
-        "get": {
-          "$ref": "#/definitions/impl.fieldInfo.get"
-        },
-        "has": {
-          "$ref": "#/definitions/impl.fieldInfo.has"
-        },
-        "mutable": {
-          "$ref": "#/definitions/impl.fieldInfo.mutable"
-        },
-        "newField": {
-          "$ref": "#/definitions/impl.fieldInfo.newField"
-        },
-        "newMessage": {
-          "$ref": "#/definitions/impl.fieldInfo.newMessage"
-        },
-        "set": {
-          "$ref": "#/definitions/impl.fieldInfo.set"
-        }
-      },
-      "required": [
-        "clear",
-        "fieldDesc",
-        "get",
-        "has",
-        "mutable",
-        "newField",
-        "newMessage",
-        "set"
-      ]
-    },
-    "impl.fieldInfo.clear": {},
-    "impl.fieldInfo.get": {},
-    "impl.fieldInfo.has": {},
-    "impl.fieldInfo.mutable": {},
-    "impl.fieldInfo.newField": {},
-    "impl.fieldInfo.newMessage": {},
-    "impl.fieldInfo.set": {},
-    "impl.oneofInfo": {
-      "properties": {
-        "oneofDesc": {
-          "$ref": "#/definitions/protoreflect.OneofDescriptor"
-        },
-        "which": {
-          "$ref": "#/definitions/impl.oneofInfo.which"
-        }
-      },
-      "required": [
-        "oneofDesc",
-        "which"
-      ]
-    },
-    "impl.oneofInfo.which": {},
-    "impl.pointerCoderFuncs": {
-      "properties": {
-        "isInit": {
-          "$ref": "#/definitions/impl.pointerCoderFuncs.isInit"
-        },
-        "marshal": {
-          "$ref": "#/definitions/impl.pointerCoderFuncs.marshal"
-        },
-        "merge": {
-          "$ref": "#/definitions/impl.pointerCoderFuncs.merge"
-        },
-        "mi": {
-          "$ref": "#/definitions/impl.MessageInfo"
-        },
-        "size": {
-          "$ref": "#/definitions/impl.pointerCoderFuncs.size"
-        },
-        "unmarshal": {
-          "$ref": "#/definitions/impl.pointerCoderFuncs.unmarshal"
-        }
-      },
-      "required": [
-        "isInit",
-        "marshal",
-        "merge",
-        "mi",
-        "size",
-        "unmarshal"
-      ]
-    },
-    "impl.pointerCoderFuncs.isInit": {},
-    "impl.pointerCoderFuncs.marshal": {},
-    "impl.pointerCoderFuncs.merge": {},
-    "impl.pointerCoderFuncs.size": {},
-    "impl.pointerCoderFuncs.unmarshal": {},
-    "impl.reflectMessageInfo": {
-      "properties": {
-        "denseFields": {
-          "items": {
-            "$ref": "#/definitions/impl.fieldInfo"
-          },
-          "type": "array"
-        },
-        "extensionMap": {
-          "$ref": "#/definitions/impl.reflectMessageInfo.extensionMap"
-        },
-        "fields": {
-          "additionalProperties": {
-            "$ref": "#/definitions/impl.fieldInfo"
-          },
-          "type": "object"
-        },
-        "getUnknown": {
-          "$ref": "#/definitions/impl.reflectMessageInfo.getUnknown"
-        },
-        "nilMessage": {
-          "$ref": "#/definitions/impl.atomicNilMessage"
-        },
-        "oneofs": {
-          "additionalProperties": {
-            "$ref": "#/definitions/impl.oneofInfo"
-          },
-          "type": "object"
-        },
-        "rangeInfos": {
-          "items": {
-            "$ref": "#/definitions/impl.reflectMessageInfo.rangeInfos"
-          },
-          "type": "array"
-        },
-        "setUnknown": {
-          "$ref": "#/definitions/impl.reflectMessageInfo.setUnknown"
-        }
-      },
-      "required": [
-        "denseFields",
-        "extensionMap",
-        "fields",
-        "getUnknown",
-        "nilMessage",
-        "oneofs",
-        "rangeInfos",
-        "setUnknown"
-      ]
-    },
-    "impl.reflectMessageInfo.extensionMap": {},
-    "impl.reflectMessageInfo.getUnknown": {},
-    "impl.reflectMessageInfo.rangeInfos": {},
-    "impl.reflectMessageInfo.setUnknown": {},
-    "impl.validationInfo": {
-      "properties": {
-        "keyType": {
-          "format": "byte",
-          "type": "integer"
-        },
-        "mi": {
-          "$ref": "#/definitions/impl.MessageInfo"
-        },
-        "requiredBit": {
-          "format": "integer",
-          "type": "integer"
-        },
-        "typ": {
-          "format": "byte",
-          "type": "integer"
-        },
-        "valType": {
-          "format": "byte",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "keyType",
-        "mi",
-        "requiredBit",
-        "typ",
-        "valType"
       ]
     },
     "metal.SwitchSync": {
@@ -860,7 +38,6 @@
         "time"
       ]
     },
-    "pragma.NoUnkeyedLiterals": {},
     "rest.status": {
       "properties": {
         "message": {
@@ -899,49 +76,6 @@
         "name",
         "revision",
         "version"
-      ]
-    },
-    "sync.Mutex": {
-      "properties": {
-        "sema": {
-          "format": "integer",
-          "type": "integer"
-        },
-        "state": {
-          "format": "int32",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "sema",
-        "state"
-      ]
-    },
-    "timestamppb.Timestamp": {
-      "properties": {
-        "nanos": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "seconds": {
-          "format": "int64",
-          "type": "integer"
-        },
-        "sizeCache": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "state": {
-          "$ref": "#/definitions/impl.MessageState"
-        },
-        "unknownFields": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "sizeCache",
-        "state",
-        "unknownFields"
       ]
     },
     "v1.BGPFilter": {
@@ -1021,38 +155,6 @@
         "description",
         "value"
       ]
-    },
-    "v1.Common": {
-      "properties": {
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ]
-    },
-    "v1.Describable": {
-      "properties": {
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
-        }
-      }
     },
     "v1.EmptyBody": {},
     "v1.FirewallCreateRequest": {
@@ -1505,40 +607,6 @@
         "type"
       ]
     },
-    "v1.IPBase": {
-      "properties": {
-        "networkid": {
-          "description": "the network this ip allocate request address belongs to",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project this ip address belongs to",
-          "type": "string"
-        },
-        "tags": {
-          "description": "free tags that you associate with this ip.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "type": {
-          "default": "static",
-          "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
-          "enum": [
-            "ephemeral",
-            "static"
-          ],
-          "type": "string"
-        }
-      },
-      "required": [
-        "networkid",
-        "projectid",
-        "tags",
-        "type"
-      ]
-    },
     "v1.IPFindRequest": {
       "properties": {
         "ipaddress": {
@@ -1581,19 +649,6 @@
         "projectid",
         "tags",
         "type"
-      ]
-    },
-    "v1.IPIdentifiable": {
-      "description": "an ip address that can be attached to a machine",
-      "properties": {
-        "ipaddress": {
-          "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string",
-          "uniqueItems": true
-        }
-      },
-      "required": [
-        "ipaddress"
       ]
     },
     "v1.IPResponse": {
@@ -1693,53 +748,6 @@
         "ipaddress",
         "tags",
         "type"
-      ]
-    },
-    "v1.Identifiable": {
-      "properties": {
-        "id": {
-          "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
-        }
-      },
-      "required": [
-        "id"
-      ]
-    },
-    "v1.ImageBase": {
-      "description": "an image that can be attached to a machine",
-      "properties": {
-        "classification": {
-          "description": "classification of this image",
-          "type": "string"
-        },
-        "expirationDate": {
-          "description": "expirationDate of this image",
-          "format": "date-time",
-          "type": "string"
-        },
-        "features": {
-          "description": "features of this image",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "url": {
-          "description": "the url of this image",
-          "type": "string"
-        },
-        "usedby": {
-          "description": "machines where this image is in use",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "expirationDate"
       ]
     },
     "v1.ImageCreateRequest": {
@@ -2089,74 +1097,6 @@
         "date",
         "vendor",
         "version"
-      ]
-    },
-    "v1.MachineBase": {
-      "description": "A machine representing a bare metal machine.",
-      "properties": {
-        "allocation": {
-          "$ref": "#/definitions/v1.MachineAllocation",
-          "description": "the allocation data of an allocated machine"
-        },
-        "bios": {
-          "$ref": "#/definitions/v1.MachineBIOS",
-          "description": "bios information of this machine"
-        },
-        "events": {
-          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents",
-          "description": "recent events of this machine during provisioning"
-        },
-        "hardware": {
-          "$ref": "#/definitions/v1.MachineHardware",
-          "description": "the hardware of this machine"
-        },
-        "ledstate": {
-          "$ref": "#/definitions/v1.ChassisIdentifyLEDState",
-          "description": "the state of this chassis identify LED"
-        },
-        "liveliness": {
-          "description": "the liveliness of this machine",
-          "type": "string"
-        },
-        "partition": {
-          "$ref": "#/definitions/v1.PartitionResponse",
-          "description": "the partition assigned to this machine",
-          "readOnly": true
-        },
-        "rackid": {
-          "description": "the rack assigned to this machine",
-          "readOnly": true,
-          "type": "string"
-        },
-        "size": {
-          "$ref": "#/definitions/v1.SizeResponse",
-          "description": "the size of this machine",
-          "readOnly": true
-        },
-        "state": {
-          "$ref": "#/definitions/v1.MachineState",
-          "description": "the state of this machine"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "allocation",
-        "bios",
-        "events",
-        "hardware",
-        "ledstate",
-        "liveliness",
-        "partition",
-        "rackid",
-        "size",
-        "state",
-        "tags"
       ]
     },
     "v1.MachineBlockDevice": {
@@ -2592,32 +1532,6 @@
         "disks",
         "memory",
         "nics"
-      ]
-    },
-    "v1.MachineHardwareBase": {
-      "properties": {
-        "cpu_cores": {
-          "description": "the number of cpu cores",
-          "format": "int32",
-          "type": "integer"
-        },
-        "disks": {
-          "description": "the list of block devices of this machine",
-          "items": {
-            "$ref": "#/definitions/v1.MachineBlockDevice"
-          },
-          "type": "array"
-        },
-        "memory": {
-          "description": "the total memory of the machine",
-          "format": "integer",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "cpu_cores",
-        "disks",
-        "memory"
       ]
     },
     "v1.MachineHardwareExtended": {
@@ -3171,7 +2085,8 @@
           "type": "string"
         },
         "created_time": {
-          "$ref": "#/definitions/timestamppb.Timestamp"
+          "format": "date-time",
+          "type": "string"
         },
         "id": {
           "type": "string"
@@ -3186,7 +2101,8 @@
           "type": "array"
         },
         "updated_time": {
-          "$ref": "#/definitions/timestamppb.Timestamp"
+          "format": "date-time",
+          "type": "string"
         },
         "version": {
           "format": "int64",
@@ -3210,28 +2126,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "partitionid": {
-          "description": "the partition this network belongs to",
-          "type": "string"
-        },
-        "projectid": {
-          "description": "the project id this network belongs to, can be empty if globally available",
-          "type": "string"
-        }
-      },
-      "required": [
-        "labels"
-      ]
-    },
-    "v1.NetworkBase": {
-      "properties": {
-        "labels": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "free labels that you associate with this network.",
-          "type": "object"
         },
         "partitionid": {
           "description": "the partition this network belongs to",
@@ -3391,58 +2285,6 @@
         "vrf"
       ]
     },
-    "v1.NetworkImmutable": {
-      "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
-      "properties": {
-        "destinationprefixes": {
-          "description": "the destination prefixes of this network",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
-          "type": "boolean"
-        },
-        "parentnetworkid": {
-          "description": "the id of the parent network",
-          "type": "string"
-        },
-        "prefixes": {
-          "description": "the prefixes of this network",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "privatesuper": {
-          "description": "if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition",
-          "type": "boolean"
-        },
-        "underlay": {
-          "description": "if set to true, this network can be used for underlay communication",
-          "type": "boolean"
-        },
-        "vrf": {
-          "description": "the vrf this network is associated with",
-          "format": "integer",
-          "type": "integer"
-        },
-        "vrfshared": {
-          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "destinationprefixes",
-        "nat",
-        "parentnetworkid",
-        "prefixes",
-        "privatesuper",
-        "underlay"
-      ]
-    },
     "v1.NetworkResponse": {
       "properties": {
         "changed": {
@@ -3599,21 +2441,6 @@
         "used_ips",
         "used_prefixes"
       ]
-    },
-    "v1.PartitionBase": {
-      "properties": {
-        "mgmtserviceaddress": {
-          "description": "the address to the management service of this partition",
-          "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
-        }
-      }
     },
     "v1.PartitionBootConfiguration": {
       "description": "a partition has a distinct location in a data center, individual entities belong to a partition",
@@ -3774,7 +2601,23 @@
         "id"
       ]
     },
-    "v1.Project": {
+    "v1.ProjectFindRequest": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.ProjectResponse": {
       "properties": {
         "description": {
           "type": "string"
@@ -3793,33 +2636,15 @@
         }
       }
     },
-    "v1.ProjectFindRequest": {
-      "properties": {
-        "description": {
-          "$ref": "#/definitions/wrapperspb.StringValue"
-        },
-        "id": {
-          "$ref": "#/definitions/wrapperspb.StringValue"
-        },
-        "name": {
-          "$ref": "#/definitions/wrapperspb.StringValue"
-        },
-        "tenant_id": {
-          "$ref": "#/definitions/wrapperspb.StringValue"
-        }
-      }
-    },
-    "v1.ProjectResponse": {
-      "properties": {
-        "project": {
-          "$ref": "#/definitions/v1.Project"
-        }
-      }
-    },
     "v1.Quota": {
       "properties": {
         "quota": {
-          "$ref": "#/definitions/wrapperspb.Int32Value"
+          "format": "int32",
+          "type": "integer"
+        },
+        "used": {
+          "format": "int32",
+          "type": "integer"
         }
       }
     },
@@ -4052,22 +2877,6 @@
         "id"
       ]
     },
-    "v1.SwitchBase": {
-      "description": "A switch that can register at the api.",
-      "properties": {
-        "mode": {
-          "description": "the mode the switch currently has",
-          "type": "string"
-        },
-        "rack_id": {
-          "description": "the id of the rack in which this switch is located",
-          "type": "string"
-        }
-      },
-      "required": [
-        "rack_id"
-      ]
-    },
     "v1.SwitchConnection": {
       "properties": {
         "machine_id": {
@@ -4266,71 +3075,6 @@
       "required": [
         "id",
         "rack_id"
-      ]
-    },
-    "v1.Timestamps": {
-      "properties": {
-        "changed": {
-          "description": "the last changed timestamp of this entity",
-          "format": "date-time",
-          "readOnly": true,
-          "type": "string"
-        },
-        "created": {
-          "description": "the creation time of this entity",
-          "format": "date-time",
-          "readOnly": true,
-          "type": "string"
-        }
-      },
-      "required": [
-        "changed",
-        "created"
-      ]
-    },
-    "wrapperspb.Int32Value": {
-      "properties": {
-        "sizeCache": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "state": {
-          "$ref": "#/definitions/impl.MessageState"
-        },
-        "unknownFields": {
-          "type": "string"
-        },
-        "value": {
-          "format": "int32",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "sizeCache",
-        "state",
-        "unknownFields"
-      ]
-    },
-    "wrapperspb.StringValue": {
-      "properties": {
-        "sizeCache": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "state": {
-          "$ref": "#/definitions/impl.MessageState"
-        },
-        "unknownFields": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "sizeCache",
-        "state",
-        "unknownFields"
       ]
     }
   },

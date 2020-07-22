@@ -574,209 +574,209 @@ func TestMakeSwitchNics(t *testing.T) {
 	}
 }
 
-//func Test_adoptFromTwin(t *testing.T) { //TODO Fix issue #86
-//	type args struct {
-//		old       *metal.Switch
-//		twin      *metal.Switch
-//		newSwitch *metal.Switch
-//	}
-//	tests := []struct {
-//		name    string
-//		args    args
-//		want    *metal.Switch
-//		wantErr bool
-//	}{
-//		{
-//			name: "adopt machine connections and nic configuration from twin",
-//			args: args{
-//				old: &metal.Switch{
-//					Mode: metal.SwitchReplace,
-//				},
-//				twin: &metal.Switch{
-//					Nics: metal.Nics{
-//						metal.Nic{
-//							Name:       "swp1s0",
-//							MacAddress: "aa:aa:aa:aa:aa:a1",
-//							Vrf:        "1",
-//						},
-//						metal.Nic{
-//							Name:       "swp1s1",
-//							MacAddress: "aa:aa:aa:aa:aa:a2",
-//						},
-//						metal.Nic{
-//							Name:       "swp1s2",
-//							MacAddress: "aa:aa:aa:aa:aa:a3",
-//						},
-//					},
-//					MachineConnections: metal.ConnectionMap{
-//						"m1": metal.Connections{
-//							metal.Connection{
-//								Nic: metal.Nic{
-//									Name:       "swp1s0",
-//									MacAddress: "aa:aa:aa:aa:aa:a1",
-//								},
-//							},
-//						},
-//						"fw1": metal.Connections{
-//							metal.Connection{
-//								Nic: metal.Nic{
-//									Name:       "swp1s1",
-//									MacAddress: "aa:aa:aa:aa:aa:a2",
-//								},
-//							},
-//						},
-//					},
-//				},
-//				newSwitch: &metal.Switch{
-//					Nics: metal.Nics{
-//						metal.Nic{
-//							Name:       "swp1s0",
-//							MacAddress: "bb:bb:bb:bb:bb:b1",
-//						},
-//						metal.Nic{
-//							Name:       "swp1s1",
-//							MacAddress: "bb:bb:bb:bb:bb:b2",
-//						},
-//						metal.Nic{
-//							Name:       "swp1s2",
-//							MacAddress: "bb:bb:bb:bb:bb:b3",
-//						},
-//						metal.Nic{
-//							Name:       "swp1s3",
-//							MacAddress: "bb:bb:bb:bb:bb:b4",
-//						},
-//					},
-//				},
-//			},
-//			want: &metal.Switch{
-//				Mode: metal.SwitchOperational,
-//				Nics: metal.Nics{
-//					metal.Nic{
-//						Name:       "swp1s0",
-//						MacAddress: "bb:bb:bb:bb:bb:b1",
-//						Vrf:        "1",
-//					},
-//					metal.Nic{
-//						Name:       "swp1s1",
-//						MacAddress: "bb:bb:bb:bb:bb:b2",
-//					},
-//					metal.Nic{
-//						Name:       "swp1s2",
-//						MacAddress: "bb:bb:bb:bb:bb:b3",
-//					},
-//					metal.Nic{
-//						Name:       "swp1s3",
-//						MacAddress: "bb:bb:bb:bb:bb:b4",
-//					},
-//				},
-//				MachineConnections: metal.ConnectionMap{
-//					"m1": metal.Connections{
-//						metal.Connection{
-//							Nic: metal.Nic{
-//								Name:       "swp1s0",
-//								MacAddress: "bb:bb:bb:bb:bb:b1",
-//							},
-//						},
-//					},
-//					"fw1": metal.Connections{
-//						metal.Connection{
-//							Nic: metal.Nic{
-//								Name:       "swp1s1",
-//								MacAddress: "bb:bb:bb:bb:bb:b2",
-//							},
-//						},
-//					},
-//				},
-//			},
-//			wantErr: false,
-//		},
-//		{
-//			name: "fail if partition differs",
-//			args: args{
-//				old: &metal.Switch{
-//					Mode:        metal.SwitchReplace,
-//					PartitionID: "1",
-//				},
-//				newSwitch: &metal.Switch{
-//					PartitionID: "2",
-//				},
-//			},
-//			wantErr: true,
-//		},
-//		{
-//			name: "fail if rack differs",
-//			args: args{
-//				old: &metal.Switch{
-//					Mode:        metal.SwitchReplace,
-//					PartitionID: "1",
-//					RackID:      "1",
-//				},
-//				newSwitch: &metal.Switch{
-//					PartitionID: "1",
-//					RackID:      "2",
-//				},
-//			},
-//			wantErr: true,
-//		},
-//		{
-//			name: "fail if twin switch is also in replace mode",
-//			args: args{
-//				old: &metal.Switch{
-//					Mode:        metal.SwitchReplace,
-//					PartitionID: "1",
-//					RackID:      "1",
-//				},
-//				twin: &metal.Switch{
-//					Mode:        metal.SwitchReplace,
-//					PartitionID: "1",
-//					RackID:      "1",
-//				},
-//				newSwitch: &metal.Switch{
-//					PartitionID: "1",
-//					RackID:      "1",
-//				},
-//			},
-//			wantErr: true,
-//		},
-//		{
-//			name: "new switch is directly useable if twin has no machine connections",
-//			args: args{
-//				old: &metal.Switch{
-//					Mode:        metal.SwitchReplace,
-//					PartitionID: "1",
-//					RackID:      "1",
-//				},
-//				twin: &metal.Switch{
-//					PartitionID: "1",
-//					RackID:      "1",
-//				},
-//				newSwitch: &metal.Switch{
-//					PartitionID: "1",
-//					RackID:      "1",
-//				},
-//			},
-//			want: &metal.Switch{
-//				PartitionID: "1",
-//				RackID:      "1",
-//				Mode:        metal.SwitchOperational,
-//			},
-//			wantErr: false,
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			got, err := adoptFromTwin(tt.args.old, tt.args.twin, tt.args.newSwitch)
-//			if (err != nil) != tt.wantErr {
-//				t.Errorf("adoptFromTwin() error = %v, wantErr %v", err, tt.wantErr)
-//				return
-//			}
-//			if !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("adoptFromTwin() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+// func Test_adoptFromTwin(t *testing.T) { //TODO Fix issue #86
+// 	type args struct {
+// 		old       *metal.Switch
+// 		twin      *metal.Switch
+// 		newSwitch *metal.Switch
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		want    *metal.Switch
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name: "adopt machine connections and nic configuration from twin",
+// 			args: args{
+// 				old: &metal.Switch{
+// 					Mode: metal.SwitchReplace,
+// 				},
+// 				twin: &metal.Switch{
+// 					Nics: metal.Nics{
+// 						metal.Nic{
+// 							Name:       "swp1s0",
+// 							MacAddress: "aa:aa:aa:aa:aa:a1",
+// 							Vrf:        "1",
+// 						},
+// 						metal.Nic{
+// 							Name:       "swp1s1",
+// 							MacAddress: "aa:aa:aa:aa:aa:a2",
+// 						},
+// 						metal.Nic{
+// 							Name:       "swp1s2",
+// 							MacAddress: "aa:aa:aa:aa:aa:a3",
+// 						},
+// 					},
+// 					MachineConnections: metal.ConnectionMap{
+// 						"m1": metal.Connections{
+// 							metal.Connection{
+// 								Nic: metal.Nic{
+// 									Name:       "swp1s0",
+// 									MacAddress: "aa:aa:aa:aa:aa:a1",
+// 								},
+// 							},
+// 						},
+// 						"fw1": metal.Connections{
+// 							metal.Connection{
+// 								Nic: metal.Nic{
+// 									Name:       "swp1s1",
+// 									MacAddress: "aa:aa:aa:aa:aa:a2",
+// 								},
+// 							},
+// 						},
+// 					},
+// 				},
+// 				newSwitch: &metal.Switch{
+// 					Nics: metal.Nics{
+// 						metal.Nic{
+// 							Name:       "swp1s0",
+// 							MacAddress: "bb:bb:bb:bb:bb:b1",
+// 						},
+// 						metal.Nic{
+// 							Name:       "swp1s1",
+// 							MacAddress: "bb:bb:bb:bb:bb:b2",
+// 						},
+// 						metal.Nic{
+// 							Name:       "swp1s2",
+// 							MacAddress: "bb:bb:bb:bb:bb:b3",
+// 						},
+// 						metal.Nic{
+// 							Name:       "swp1s3",
+// 							MacAddress: "bb:bb:bb:bb:bb:b4",
+// 						},
+// 					},
+// 				},
+// 			},
+// 			want: &metal.Switch{
+// 				Mode: metal.SwitchOperational,
+// 				Nics: metal.Nics{
+// 					metal.Nic{
+// 						Name:       "swp1s0",
+// 						MacAddress: "bb:bb:bb:bb:bb:b1",
+// 						Vrf:        "1",
+// 					},
+// 					metal.Nic{
+// 						Name:       "swp1s1",
+// 						MacAddress: "bb:bb:bb:bb:bb:b2",
+// 					},
+// 					metal.Nic{
+// 						Name:       "swp1s2",
+// 						MacAddress: "bb:bb:bb:bb:bb:b3",
+// 					},
+// 					metal.Nic{
+// 						Name:       "swp1s3",
+// 						MacAddress: "bb:bb:bb:bb:bb:b4",
+// 					},
+// 				},
+// 				MachineConnections: metal.ConnectionMap{
+// 					"m1": metal.Connections{
+// 						metal.Connection{
+// 							Nic: metal.Nic{
+// 								Name:       "swp1s0",
+// 								MacAddress: "bb:bb:bb:bb:bb:b1",
+// 							},
+// 						},
+// 					},
+// 					"fw1": metal.Connections{
+// 						metal.Connection{
+// 							Nic: metal.Nic{
+// 								Name:       "swp1s1",
+// 								MacAddress: "bb:bb:bb:bb:bb:b2",
+// 							},
+// 						},
+// 					},
+// 				},
+// 			},
+// 			wantErr: false,
+// 		},
+// 		{
+// 			name: "fail if partition differs",
+// 			args: args{
+// 				old: &metal.Switch{
+// 					Mode:        metal.SwitchReplace,
+// 					PartitionID: "1",
+// 				},
+// 				newSwitch: &metal.Switch{
+// 					PartitionID: "2",
+// 				},
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "fail if rack differs",
+// 			args: args{
+// 				old: &metal.Switch{
+// 					Mode:        metal.SwitchReplace,
+// 					PartitionID: "1",
+// 					RackID:      "1",
+// 				},
+// 				newSwitch: &metal.Switch{
+// 					PartitionID: "1",
+// 					RackID:      "2",
+// 				},
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "fail if twin switch is also in replace mode",
+// 			args: args{
+// 				old: &metal.Switch{
+// 					Mode:        metal.SwitchReplace,
+// 					PartitionID: "1",
+// 					RackID:      "1",
+// 				},
+// 				twin: &metal.Switch{
+// 					Mode:        metal.SwitchReplace,
+// 					PartitionID: "1",
+// 					RackID:      "1",
+// 				},
+// 				newSwitch: &metal.Switch{
+// 					PartitionID: "1",
+// 					RackID:      "1",
+// 				},
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "new switch is directly useable if twin has no machine connections",
+// 			args: args{
+// 				old: &metal.Switch{
+// 					Mode:        metal.SwitchReplace,
+// 					PartitionID: "1",
+// 					RackID:      "1",
+// 				},
+// 				twin: &metal.Switch{
+// 					PartitionID: "1",
+// 					RackID:      "1",
+// 				},
+// 				newSwitch: &metal.Switch{
+// 					PartitionID: "1",
+// 					RackID:      "1",
+// 				},
+// 			},
+// 			want: &metal.Switch{
+// 				PartitionID: "1",
+// 				RackID:      "1",
+// 				Mode:        metal.SwitchOperational,
+// 			},
+// 			wantErr: false,
+// 		},
+// 	}
+
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			got, err := adoptFromTwin(tt.args.old, tt.args.twin, tt.args.newSwitch)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("adoptFromTwin() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("adoptFromTwin() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
 
 func Test_adoptNicsFromTwin(t *testing.T) {
 	type args struct {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	v1 "github.com/metal-stack/masterdata-api/api/rest/v1"
 	"net/http"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -47,8 +48,8 @@ func (r projectResource) webService() *restful.WebService {
 		Doc("get project by id").
 		Param(ws.PathParameter("id", "identifier of the project").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(mdmv1.ProjectResponse{}).
-		Returns(http.StatusOK, "OK", mdmv1.ProjectResponse{}).
+		Writes(v1.ProjectResponse{}).
+		Returns(http.StatusOK, "OK", v1.ProjectResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -56,8 +57,8 @@ func (r projectResource) webService() *restful.WebService {
 		Operation("listProjects").
 		Doc("get all projects").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]mdmv1.ProjectResponse{}).
-		Returns(http.StatusOK, "OK", []mdmv1.ProjectResponse{}).
+		Writes([]v1.ProjectResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ProjectResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/find").
@@ -65,9 +66,9 @@ func (r projectResource) webService() *restful.WebService {
 		Operation("findProjects").
 		Doc("get all projects that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(mdmv1.ProjectFindRequest{}).
-		Writes([]mdmv1.ProjectResponse{}).
-		Returns(http.StatusOK, "OK", []mdmv1.ProjectResponse{}).
+		Reads(v1.ProjectFindRequest{}).
+		Writes([]v1.ProjectResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ProjectResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
