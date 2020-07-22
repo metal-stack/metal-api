@@ -89,12 +89,11 @@ func Serve(ws *WaitServer) error {
 		tlsConfig.ClientAuth = tls.NoClientCert
 	}
 
-	fmt.Printf("grpc on port %d\n", ws.GrpcPort)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
 
-	logger.Infow("serve gRPC", "address", addr)
+	logger.Infow("serve gRPC", "address", addr, "port", ws.GrpcPort)
 	return grpcServer.Serve(tls.NewListener(listener, tlsConfig))
 }
