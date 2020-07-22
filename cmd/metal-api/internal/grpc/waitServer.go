@@ -73,7 +73,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
 			evt := message.(*metal.AllocationEvent)
-			s.logger.Debugf("Got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
+			s.logger.Debugw("Got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
 			s.queueLock.Lock()
 			s.queue[evt.MachineID] <- true
 			s.queueLock.Unlock()
@@ -89,15 +89,15 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 func (s *WaitServer) NotifyAllocated(machineID string) error {
 	err := s.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machineID})
 	if err != nil {
-		s.logger.Errorf("failed to publish machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID, "error", err)
+		s.logger.Errorw("failed to publish machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID, "error", err)
 	} else {
-		s.logger.Debugf("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID)
+		s.logger.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID)
 	}
 	return err
 }
 
 func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
-	s.logger.Infof("wait for allocation called by", "machineID", req.MachineID)
+	s.logger.Infow("wait for allocation called by", "machineID", req.MachineID)
 	machineID := req.MachineID
 
 	err := s.updateWaitingFlag(machineID, true)
@@ -107,7 +107,7 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	defer func() {
 		err := s.updateWaitingFlag(machineID, false)
 		if err != nil {
-			s.logger.Errorf("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
+			s.logger.Errorw("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
 		}
 	}()
 
