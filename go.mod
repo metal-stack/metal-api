@@ -15,6 +15,7 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/mux v1.7.4 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/metal-stack/go-ipam v1.5.0
 	github.com/metal-stack/masterdata-api v0.7.3

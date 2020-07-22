@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/zapup"
 	"google.golang.org/grpc"
@@ -29,6 +30,7 @@ func Serve(ws *WaitServer) error {
 	grpcServer := grpc.NewServer(
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
+		grpc.StreamInterceptor(grpc_zap.StreamServerInterceptor(logger.Desugar())),
 	)
 	v1.RegisterWaitServer(grpcServer, ws)
 
