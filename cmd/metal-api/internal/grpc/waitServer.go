@@ -2,15 +2,16 @@ package grpc
 
 import (
 	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
-	"math/rand"
-	"sync"
-	"time"
 )
 
 const (
@@ -74,7 +75,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
 			evt := message.(*metal.AllocationEvent)
-			s.logger.Debugw("Got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
+			s.logger.Debugw("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
 			s.queueLock.Lock()
 			s.queue[evt.MachineID] <- true
 			s.queueLock.Unlock()
