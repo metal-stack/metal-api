@@ -100,7 +100,17 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	s.logger.Infow("wait for allocation called by", "machineID", req.MachineID)
 	machineID := req.MachineID
 
-	err := s.updateWaitingFlag(machineID, true)
+	m, err := s.ds.FindMachineByID(machineID)
+	if err != nil {
+		return err
+	}
+	allocated := m.Allocation != nil
+	if allocated {
+		return nil
+	}
+
+	// machine is not yet allocated, so we set the waiting flag
+	err = s.updateWaitingFlag(machineID, true)
 	if err != nil {
 		return err
 	}
@@ -111,10 +121,21 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		}
 	}()
 
-	can, err := s.getAllocationChannel(machineID)
-	if err != nil {
-		return err
+	// we also create and listen to a channel that will be used as soon as the machine is allocated
+	s.queueLock.Lock()
+	can, ok := s.queue[machineID]
+	if !ok {
+		can = make(chan bool)
+		s.queue[machineID] = can
 	}
+	s.queueLock.Unlock()
+
+	defer func() {
+		close(can)
+		s.queueLock.Lock()
+		delete(s.queue, machineID)
+		s.queueLock.Unlock()
+	}()
 
 	nextCheck := time.Now()
 	ctx := srv.Context()
@@ -123,18 +144,9 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case allocated := <-can:
-			if !allocated {
-				err := srv.Send(&v1.WaitResponse{})
-				if err != nil {
-					return err
-				}
-				continue
+			if allocated {
+				return nil
 			}
-			s.queueLock.Lock()
-			close(can)
-			delete(s.queue, machineID)
-			s.queueLock.Unlock()
-			return nil
 		case now := <-time.After(5 * time.Second):
 			if now.After(nextCheck) {
 				m, err := s.ds.FindMachineByID(machineID)
@@ -155,38 +167,13 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	}
 }
 
-func (s *WaitServer) getAllocationChannel(machineID string) (chan bool, error) {
-	s.queueLock.RLock()
-	can, ok := s.queue[machineID]
-	s.queueLock.RUnlock()
-
-	if !ok {
-		m, err := s.ds.FindMachineByID(machineID)
-		if err != nil {
-			return nil, err
-		}
-		allocated := m.Allocation != nil
-		if allocated {
-			return nil, nil
-		}
-
-		can = make(chan bool)
-		s.queueLock.Lock()
-		s.queue[machineID] = can
-		s.queueLock.Unlock()
-	}
-
-	return can, nil
-}
-
 func (s *WaitServer) handleAllocation(machineID string) {
 	s.queueLock.RLock()
+	defer s.queueLock.RUnlock()
+
 	can, ok := s.queue[machineID]
-	s.queueLock.RUnlock()
 	if ok {
-		s.queueLock.Lock()
 		can <- true
-		s.queueLock.Unlock()
 	}
 }
 
