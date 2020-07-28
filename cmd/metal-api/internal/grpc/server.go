@@ -94,6 +94,6 @@ func Serve(ws *WaitServer) error {
 		return err
 	}
 
-	logger.Infow("serve gRPC", "address", addr, "port", ws.GrpcPort)
+	logger.Infow("serve gRPC", "address", addr)
 	return grpcServer.Serve(tls.NewListener(listener, tlsConfig))
 }
