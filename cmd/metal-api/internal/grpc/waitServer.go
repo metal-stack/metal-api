@@ -76,9 +76,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
 			evt := message.(*metal.AllocationEvent)
 			s.logger.Debugw("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
-			s.queueLock.Lock()
-			s.queue[evt.MachineID] <- true
-			s.queueLock.Unlock()
+			s.handleAllocation(evt.MachineID)
 			return nil
 		}, 5, bus.Timeout(receiverHandlerTimeout, timeoutHandler), bus.TTL(allocationTopicTTL))
 	if err != nil {
@@ -113,24 +111,9 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		}
 	}()
 
-	s.queueLock.RLock()
-	can, ok := s.queue[machineID]
-	s.queueLock.RUnlock()
-
-	if !ok {
-		m, err := s.ds.FindMachineByID(machineID)
-		if err != nil {
-			return err
-		}
-		allocated := m.Allocation != nil
-		if allocated {
-			return nil
-		}
-
-		can = make(chan bool)
-		s.queueLock.Lock()
-		s.queue[machineID] = can
-		s.queueLock.Unlock()
+	can, err := s.getAllocationChannel(machineID)
+	if err != nil {
+		return err
 	}
 
 	nextCheck := time.Now()
@@ -141,6 +124,10 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 			return ctx.Err()
 		case allocated := <-can:
 			if !allocated {
+				err := srv.Send(&v1.WaitResponse{})
+				if err != nil {
+					return err
+				}
 				continue
 			}
 			s.queueLock.Lock()
@@ -165,6 +152,41 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 				return err
 			}
 		}
+	}
+}
+
+func (s *WaitServer) getAllocationChannel(machineID string) (chan bool, error) {
+	s.queueLock.RLock()
+	can, ok := s.queue[machineID]
+	s.queueLock.RUnlock()
+
+	if !ok {
+		m, err := s.ds.FindMachineByID(machineID)
+		if err != nil {
+			return nil, err
+		}
+		allocated := m.Allocation != nil
+		if allocated {
+			return nil, nil
+		}
+
+		can = make(chan bool)
+		s.queueLock.Lock()
+		s.queue[machineID] = can
+		s.queueLock.Unlock()
+	}
+
+	return can, nil
+}
+
+func (s *WaitServer) handleAllocation(machineID string) {
+	s.queueLock.RLock()
+	can, ok := s.queue[machineID]
+	s.queueLock.RUnlock()
+	if ok {
+		s.queueLock.Lock()
+		can <- true
+		s.queueLock.Unlock()
 	}
 }
 
