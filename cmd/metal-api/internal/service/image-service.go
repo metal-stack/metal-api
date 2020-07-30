@@ -259,7 +259,6 @@ func checkImageURL(id, url string) error {
 		return fmt.Errorf("image:%s is not accessible under:%s error:%v", id, url, err)
 	}
 	if res.StatusCode >= 400 {
-		fmt.Printf("status:%d\n", res.StatusCode)
 		return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, url, res.Status)
 	}
 	return nil
