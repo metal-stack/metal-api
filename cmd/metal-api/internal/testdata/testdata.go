@@ -220,7 +220,7 @@ var (
 			Name:        "Image 1",
 			Description: "description 1",
 		},
-		URL:            "http://somewhere/image1.zip",
+		URL:            "http://images.metal-stack.io/metal-os/master/ubuntu/20.04/20200730/img.tar.lz4",
 		OS:             "image",
 		Version:        "1.0.0",
 		ExpirationDate: expireDate,
@@ -232,7 +232,7 @@ var (
 			Name:        "Image 2",
 			Description: "description 2",
 		},
-		URL:            "http://somewhere/image2.zip",
+		URL:            "http://images.metal-stack.io/metal-os/master/ubuntu/20.04/20200730/img.tar.lz4",
 		OS:             "image",
 		Version:        "2.0.0",
 		ExpirationDate: expireDate,
@@ -244,7 +244,7 @@ var (
 			Name:        "Image 3",
 			Description: "description 3",
 		},
-		URL:            "http://somewhere/image3.zip",
+		URL:            "http://images.metal-stack.io/metal-os/master/ubuntu/20.04/20200730/img.tar.lz4",
 		OS:             "image",
 		Version:        "3.0.0",
 		ExpirationDate: expireDate,
@@ -256,7 +256,7 @@ var (
 			Name:        "Image 4",
 			Description: "description 4",
 		},
-		URL: "http://somewhere/image3.zip",
+		URL: "http://images.metal-stack.io/metal-os/master/ubuntu/20.04/20200730/img.tar.lz4",
 	}
 	// Networks
 	prefix1    = metal.Prefix{IP: "185.1.2.0", Length: "26"}

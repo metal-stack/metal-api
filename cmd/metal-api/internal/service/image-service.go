@@ -223,6 +223,11 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		}
 	}
 
+	err = checkImageURL(requestPayload.ID, requestPayload.URL)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -246,6 +251,18 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func checkImageURL(id, url string) error {
+	res, err := http.Head(url)
+	if err != nil {
+		return fmt.Errorf("image:%s is not accessible under:%s error:%v", id, url, err)
+	}
+	if res.StatusCode >= 400 {
+		fmt.Printf("status:%d\n", res.StatusCode)
+		return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, url, res.Status)
+	}
+	return nil
 }
 
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
@@ -303,6 +320,10 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.Description = *requestPayload.Description
 	}
 	if requestPayload.URL != nil {
+		err = checkImageURL(requestPayload.ID, *requestPayload.URL)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 		newImage.URL = *requestPayload.URL
 	}
 	features := make(map[metal.ImageFeatureType]bool)
