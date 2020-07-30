@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -170,7 +171,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
-	require.Equal(t, "image:image-1 is not accessible under:http://this.domain.does.not.exist/ error:Head \"http://this.domain.does.not.exist/\": dial tcp: lookup this.domain.does.not.exist: no such host", result.Message)
+	require.True(t, strings.Contains(result.Message, "no such host"))
 
 	createRequest.URL = "http://images.metal-stack.io/this-file-does-not-exist"
 
