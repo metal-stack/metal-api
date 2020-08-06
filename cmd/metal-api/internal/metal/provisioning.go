@@ -82,14 +82,6 @@ func (p ProvisioningEventType) Is(event string) bool {
 	return string(p) == event
 }
 
-// FIXME @gerrit this method is unused
-// func (p provisioningEventSequence) firstEvent() *ProvisioningEventType {
-// 	if len(p) == 0 {
-// 		return nil
-// 	}
-// 	return &p[0]
-// }
-
 func (p provisioningEventSequence) lastEvent() *ProvisioningEventType {
 	if len(p) == 0 {
 		return nil
@@ -116,8 +108,6 @@ func (e *ProvisioningEvent) hasExpectedSuccessor(log *zap.SugaredLogger, actualS
 		log.Errorw("successor map does not contain an expected successor for event", "event", currentEvent)
 		return false
 	}
-
-	log.Debugw("checking expected successor", "currentEvent", currentEvent, "actualSuccessor", actualSuccessor, "expectedSuccessor", expectedSuccessors)
 
 	return expectedSuccessors.containsEvent(actualSuccessor)
 }

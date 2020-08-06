@@ -49,7 +49,7 @@ func TestNSQ_WaitForPublisher(t *testing.T) {
 
 func TestNSQ_WaitForTopicsCreated(t *testing.T) {
 	assert := assert.New(t)
-	topic := metal.NSQTopic("gopher")
+	topic := metal.NSQTopic{Name: "gopher"}
 	partition := metal.Partition{
 		Base: metal.Base{ID: "partition-id"},
 	}

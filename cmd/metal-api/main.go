@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-lib/rest"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -29,15 +33,12 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
 	bus "github.com/metal-stack/metal-lib/bus"
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
-	rest "github.com/metal-stack/metal-lib/rest"
 	zapup "github.com/metal-stack/metal-lib/zapup"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -50,13 +51,15 @@ const (
 )
 
 var (
-	cfgFile string
-	ds      *datastore.RethinkStore
-	ipamer  *ipam.Ipam
-	nsqer   *eventbus.NSQClient
-	logger  = zapup.MustRootLogger().Sugar()
-	debug   = false
-	mdc     mdm.Client
+	cfgFile            string
+	ds                 *datastore.RethinkStore
+	ipamer             *ipam.Ipam
+	publisherTLSConfig *bus.TLSConfig
+	nsqer              *eventbus.NSQClient
+	logger             = zapup.MustRootLogger().Sugar()
+	debug              = false
+	mdc                mdm.Client
+	waitServer         *grpc.WaitServer
 )
 
 var rootCmd = &cobra.Command{
@@ -71,6 +74,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
+		initWaitServer()
 		run()
 	},
 }
@@ -137,6 +141,7 @@ func init() {
 
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
+	rootCmd.Flags().IntP("grpc-port", "", 50051, "the port to serve gRPC on")
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
@@ -160,7 +165,12 @@ func init() {
 	rootCmd.Flags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.Flags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
 	rootCmd.Flags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
-	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http address of the nsqlookupd as a commalist")
+	rootCmd.Flags().StringP("nsqlookupd-addr", "", "", "the http addresses of the nsqlookupd as a commalist")
+
+	rootCmd.Flags().StringP("grpc-tls-enabled", "", "false", "indicates whether gRPC TLS is enabled")
+	rootCmd.Flags().StringP("grpc-ca-cert-file", "", "", "the CA certificate file to verify gRPC certificate")
+	rootCmd.Flags().StringP("grpc-server-cert-file", "", "", "the gRPC server certificate file")
+	rootCmd.Flags().StringP("grpc-server-key-file", "", "", "the gRPC server key file")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -265,17 +275,19 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
+	caCertFile := viper.GetString("nsqd-ca-cert-file")
+	clientCertFile := viper.GetString("nsqd-client-cert-file")
+	if caCertFile != "" && clientCertFile != "" {
+		publisherTLSConfig = &bus.TLSConfig{
+			CACertFile:     caCertFile,
+			ClientCertFile: clientCertFile,
+		}
+	}
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
+		TLS:          publisherTLSConfig,
 		NSQ:          nsq2.NewConfig(),
-	}
-	tlsConfig := &bus.TLSConfig{
-		CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-		ClientCertFile: viper.GetString("nsqd-client-cert-file"),
-	}
-	if tlsConfig.CACertFile != "" && tlsConfig.ClientCertFile != "" {
-		publisherCfg.TLS = tlsConfig
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
@@ -444,6 +456,29 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
+func initWaitServer() {
+	var p bus.Publisher
+	if nsqer != nil {
+		p = nsqer.Publisher
+	}
+	var err error
+	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
+		Publisher:             p,
+		Datasource:            ds,
+		Logger:                logger,
+		NsqTlsConfig:          publisherTLSConfig,
+		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-addr"),
+		GrpcPort:              viper.GetInt("grpc-port"),
+		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
+		CaCertFile:            viper.GetString("grpc-ca-cert-file"),
+		ServerCertFile:        viper.GetString("grpc-server-cert-file"),
+		ServerKeyFile:         viper.GetString("grpc-server-key-file"),
+	})
+	if err != nil {
+		logger.Fatalw("cannot connect to NSQ", "error", err)
+	}
+}
+
 func initRestServices(withauth bool) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
@@ -461,14 +496,15 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc)
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc)
+	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, waitServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
+
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
@@ -578,6 +614,13 @@ func run() {
 			return
 		}
 	})
+
+	go func() {
+		err := grpc.Serve(waitServer)
+		if err != nil {
+			logger.Fatalw("failed to serve gRPC", "error", err)
+		}
+	}()
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)

@@ -11,9 +11,12 @@ require (
 	github.com/emicklei/go-restful/v3 v3.2.0
 	github.com/go-openapi/spec v0.19.8
 	github.com/go-stack/stack v1.8.0
+	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.0
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/mux v1.7.4 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
+	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/metal-stack/go-ipam v1.5.0
 	github.com/metal-stack/masterdata-api v0.7.3
@@ -37,6 +40,8 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
+	google.golang.org/grpc v1.30.0
+	google.golang.org/protobuf v1.24.0
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
