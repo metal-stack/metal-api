@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package v1;
+
+option go_package = "api/v1";
+
+message WaitRequest {
+    string machineID = 1;
+}
+
+message WaitResponse {}
+
+service Wait {
+    rpc Wait (WaitRequest) returns (stream WaitResponse);
+}

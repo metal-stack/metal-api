@@ -4787,50 +4787,6 @@
         ]
       }
     },
-    "/v1/machine/{id}/wait": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "waitForAllocation",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "504": {
-            "description": "Timeout",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "wait for an allocation of this machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
     "/v1/network": {
       "get": {
         "consumes": [

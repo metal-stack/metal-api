@@ -44,7 +44,7 @@ func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
@@ -224,7 +224,7 @@ func TestRegisterMachine(t *testing.T) {
 
 			js, _ := json.Marshal(registerRequest)
 			body := bytes.NewBuffer(js)
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
@@ -298,7 +298,7 @@ func TestMachineIPMIReport(t *testing.T) {
 
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
@@ -344,7 +344,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*test.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -422,7 +422,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
 
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -465,7 +465,7 @@ func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -497,7 +497,7 @@ func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -523,7 +523,7 @@ func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -555,7 +555,7 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -580,7 +580,7 @@ func TestSearchMachine(t *testing.T) {
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -610,7 +610,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -691,7 +691,7 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 
 			js, _ := json.Marshal([]string{d.param})

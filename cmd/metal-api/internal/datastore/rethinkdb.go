@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -108,10 +107,6 @@ func (rs *RethinkStore) machineTable() *r.Term {
 }
 func (rs *RethinkStore) switchTable() *r.Term {
 	res := r.DB(rs.dbname).Table("switch")
-	return &res
-}
-func (rs *RethinkStore) waitTable() *r.Term {
-	res := r.DB(rs.dbname).Table("wait")
 	return &res
 }
 func (rs *RethinkStore) eventTable() *r.Term {
@@ -329,25 +324,6 @@ func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldE
 		return fmt.Errorf("cannot update %v (%s): %v", getEntityName(newEntity), oldEntity.GetID(), err)
 	}
 	return nil
-}
-
-func (rs *RethinkStore) listenForEntityChange(ctx context.Context, table *r.Term, entity metal.Entity, response interface{}) error {
-	res, err := table.Get(entity.GetID()).Changes().Run(rs.session, r.RunOpts{Context: ctx})
-	if err != nil {
-		return fmt.Errorf("cannot listen for %v change with id %q in database", getEntityName(entity), entity.GetID())
-	}
-	defer res.Close()
-
-	for res.Next(&response) {
-		rs.SugaredLogger.Debugw("entity changed", "entity", getEntityName(entity), "id", entity.GetID())
-		return nil
-	}
-	err = res.Err()
-	if err != nil {
-		return fmt.Errorf("error retrieving next %v (%s) from database: %v", getEntityName(entity), entity.GetID(), err)
-	}
-
-	return fmt.Errorf("%v (%s) database change event stream has closed without an error", getEntityName(entity), entity.GetID())
 }
 
 func getEntityName(entity interface{}) string {
