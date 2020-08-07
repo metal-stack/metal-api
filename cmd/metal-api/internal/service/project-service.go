@@ -117,25 +117,10 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 		return
 	}
 
-	v1p := mapper.ToV1Project(p.Project)
-
-	// TODO: Retrieve current counts from backend
-	// if v1p.Quotas == nil {
-	// 	v1p.Quotas = &v1.QuotaSet{}
-	// }
-	// qs := v1p.Quotas
-	// if qs.Cluster == nil {
-	// 	qs.Cluster = &v1.Quota{}
-	// }
-	// if qs.Machine == nil {
-	// 	qs.Machine = &v1.Quota{}
-	// }
-	// if qs.Ip == nil {
-	// 	qs.Ip = &v1.Quota{}
-	// }
-	// qs.Machine.Used = utils.Int32Ptr(int32(machineUsage))
-	// qs.Ip.Used = utils.Int32Ptr(int32(ipUsage))
-	// qs.Project.Used
+	v1p, err := r.setProjectQuota(p.Project)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1p)
 	if err != nil {
@@ -150,7 +135,7 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	ps, err := r.setProjectQuota(res.Projects)
+	ps, err := r.setProjectsQuota(res.Projects)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -174,7 +159,7 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	ps, err := r.setProjectQuota(res.Projects)
+	ps, err := r.setProjectsQuota(res.Projects)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -184,38 +169,6 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
-}
-
-func (r projectResource) setProjectQuota(projects []*mdmv1.Project) ([]*v1.Project, error) {
-	pips, err := r.ipsByProject()
-	if err != nil {
-		return nil, err
-	}
-	pms, err := r.machinesByProject()
-	if err != nil {
-		return nil, err
-	}
-	var ps []*v1.Project
-	for _, p := range projects {
-		v1p := mapper.ToV1Project(p)
-		if v1p.Quotas == nil {
-			v1p.Quotas = &v1.QuotaSet{}
-		}
-		qs := v1p.Quotas
-		if qs.Machine == nil {
-			qs.Machine = &v1.Quota{}
-		}
-		if qs.Ip == nil {
-			qs.Ip = &v1.Quota{}
-		}
-		machineUsage := int32(len(pms[p.Meta.Id]))
-		ipUsage := int32(len(pips[p.Meta.Id]))
-		qs.Machine.Used = &machineUsage
-		qs.Ip.Used = &ipUsage
-
-		ps = append(ps, v1p)
-	}
-	return ps, nil
 }
 
 func (r projectResource) createProject(request *restful.Request, response *restful.Response) {
@@ -355,40 +308,73 @@ func (r projectResource) updateProject(request *restful.Request, response *restf
 	}
 }
 
-func (r projectResource) ipsByProject() (map[string]metal.IPs, error) {
+func (r projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, error) {
+	if project.Meta == nil {
+		return nil, fmt.Errorf("project does not have a projectID")
+	}
+	projectID := project.Meta.Id
+
+	var ips metal.IPs
+	err := r.ds.SearchIPs(&datastore.IPSearchQuery{ProjectID: &projectID}, &ips)
+	if err != nil {
+		return nil, err
+	}
+
+	var ms metal.Machines
+	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, &ms)
+	if err != nil {
+		return nil, err
+	}
+
+	p := mapper.ToV1Project(project)
+	if p.Quotas == nil {
+		p.Quotas = &v1.QuotaSet{}
+	}
+	qs := p.Quotas
+	if qs.Machine == nil {
+		qs.Machine = &v1.Quota{}
+	}
+	if qs.Ip == nil {
+		qs.Ip = &v1.Quota{}
+	}
+	machineUsage := int32(len(ms))
+	ipUsage := int32(len(ips))
+	qs.Machine.Used = &machineUsage
+	qs.Ip.Used = &ipUsage
+
+	return p, nil
+}
+
+func (r projectResource) setProjectsQuota(projects []*mdmv1.Project) ([]*v1.Project, error) {
 	ips, err := r.ds.ListIPs()
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]metal.IPs)
-	for _, ip := range ips {
-		if ip.ProjectID == "" {
-			continue
-		}
-		pips := result[ip.ProjectID]
-		pips = append(pips, ip)
-		result[ip.ProjectID] = pips
-	}
-	return result, nil
-}
-
-func (r projectResource) machinesByProject() (map[string]metal.Machines, error) {
-	// FIXME implement ScopedMachineFind
+	pips := ips.ByProjectID()
 	ms, err := r.ds.ListMachines()
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]metal.Machines)
-	for _, m := range ms {
-		if m.Allocation == nil {
-			continue
+	pms := ms.ByProjectID()
+	var ps []*v1.Project
+	for _, p := range projects {
+		v1p := mapper.ToV1Project(p)
+		if v1p.Quotas == nil {
+			v1p.Quotas = &v1.QuotaSet{}
 		}
-		if m.Allocation.Project == "" {
-			continue
+		qs := v1p.Quotas
+		if qs.Machine == nil {
+			qs.Machine = &v1.Quota{}
 		}
-		pms := result[m.Allocation.Project]
-		pms = append(pms, m)
-		result[m.Allocation.Project] = pms
+		if qs.Ip == nil {
+			qs.Ip = &v1.Quota{}
+		}
+		machineUsage := int32(len(pms[p.Meta.Id]))
+		ipUsage := int32(len(pips[p.Meta.Id]))
+		qs.Machine.Used = &machineUsage
+		qs.Ip.Used = &ipUsage
+
+		ps = append(ps, v1p)
 	}
-	return result, nil
+	return ps, nil
 }
