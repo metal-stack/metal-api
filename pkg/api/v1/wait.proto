@@ -8,8 +8,8 @@ message WaitRequest {
     string machineID = 1;
 }
 
-message WaitResponse {}
+message KeepPatientResponse {}
 
 service Wait {
-    rpc Wait (WaitRequest) returns (stream WaitResponse);
+    rpc Wait (WaitRequest) returns (stream KeepPatientResponse);
 }

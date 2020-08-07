@@ -159,7 +159,7 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 				}
 				nextCheck = now.Add(60 * time.Second)
 			}
-			err := srv.Send(&v1.WaitResponse{})
+			err := srv.Send(&v1.KeepPatientResponse{})
 			if err != nil {
 				return err
 			}
