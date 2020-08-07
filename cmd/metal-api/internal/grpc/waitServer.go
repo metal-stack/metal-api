@@ -115,6 +115,9 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		return err
 	}
 	defer func() {
+		if err != nil {
+			return
+		}
 		err := s.updateWaitingFlag(machineID, false)
 		if err != nil {
 			s.logger.Errorw("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
