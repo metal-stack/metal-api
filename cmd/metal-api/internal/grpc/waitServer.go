@@ -159,11 +159,27 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 				}
 				nextCheck = now.Add(60 * time.Second)
 			}
-			err := srv.Send(&v1.KeepPatientResponse{})
+			err := sendKeepPatientResponse(srv)
 			if err != nil {
 				return err
 			}
 		}
+	}
+}
+
+// https://github.com/grpc/grpc-go/issues/1229#issuecomment-302755717
+func sendKeepPatientResponse(srv v1.Wait_WaitServer) error {
+	errChan := make(chan error, 1)
+	ctx := srv.Context()
+	go func() {
+		errChan <- srv.Send(&v1.KeepPatientResponse{})
+		close(errChan)
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-errChan:
+		return err
 	}
 }
 
