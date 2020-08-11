@@ -20,9 +20,8 @@ import (
 )
 
 type MockedProjectService struct {
-	t                  *testing.T
-	ws                 *restful.WebService
-	projectServiceMock func(mock *mdmv1mock.ProjectServiceClient)
+	t  *testing.T
+	ws *restful.WebService
 }
 
 var (
@@ -57,6 +56,7 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	}
 }
 
+//nolint:golint,unused
 func (m *MockedProjectService) list(user *security.User, resp interface{}) int {
 	return webRequestGet(m.t, m.ws, user, user, "/v1/project", resp)
 }

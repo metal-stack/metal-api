@@ -248,6 +248,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	return te
 }
 
+//nolint:golint,unused
 var adminUser = &security.User{
 	Tenant: "provider",
 	Groups: []security.ResourceAccess{
