@@ -2601,6 +2601,25 @@
         "id"
       ]
     },
+    "v1.ProjectCreateRequest": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      }
+    },
     "v1.ProjectFindRequest": {
       "properties": {
         "description": {
@@ -2618,6 +2637,25 @@
       }
     },
     "v1.ProjectResponse": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.ProjectUpdateRequest": {
       "properties": {
         "description": {
           "type": "string"
@@ -5364,6 +5402,92 @@
         "tags": [
           "project"
         ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateProject",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.ProjectUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "schema": {
+              "$ref": "#/definitions/v1.ProjectResponse"
+            }
+          },
+          "412": {
+            "description": "OptimisticLock",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "update a project. optimistic lock error can occur.",
+        "tags": [
+          "project"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "createProject",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.ProjectCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.ProjectResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a project. if the given ID already exists a conflict is returned",
+        "tags": [
+          "project"
+        ]
       }
     },
     "/v1/project/find": {
@@ -5409,6 +5533,42 @@
       }
     },
     "/v1/project/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteProject",
+        "parameters": [
+          {
+            "description": "identifier of the project",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.ProjectResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes a project and returns the deleted entity",
+        "tags": [
+          "project"
+        ]
+      },
       "get": {
         "consumes": [
           "application/json"
