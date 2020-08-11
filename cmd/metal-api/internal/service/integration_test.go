@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -11,6 +10,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-lib/zapup"
+	"github.com/metal-stack/security"
 
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"go.uber.org/zap"
@@ -245,39 +248,46 @@ func createTestEnvironment(t *testing.T) testEnv {
 	return te
 }
 
+var adminUser = &security.User{
+	Tenant: "provider",
+	Groups: []security.ResourceAccess{
+		"maas-all-all-admin",
+	},
+}
+
 func (te *testEnv) sizeCreate(t *testing.T, icr v1.SizeCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.sizeService, icr, "/v1/size/", response)
+	return webRequestPut(t, te.sizeService, adminUser, icr, "/v1/size/", response)
 }
 
 func (te *testEnv) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.partitionService, icr, "/v1/partition/", response)
+	return webRequestPut(t, te.partitionService, adminUser, icr, "/v1/partition/", response)
 }
 
 func (te *testEnv) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
-	return webRequestPost(t, te.switchService, srr, "/v1/switch/register", response)
+	return webRequestPost(t, te.switchService, adminUser, srr, "/v1/switch/register", response)
 }
 func (te *testEnv) switchGet(t *testing.T, swid string, response interface{}) int {
-	return webRequestGet(t, te.switchService, emptyBody{}, "/v1/switch/"+swid, response)
+	return webRequestGet(t, te.switchService, adminUser, emptyBody{}, "/v1/switch/"+swid, response)
 }
 func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.imageService, icr, "/v1/image/", response)
+	return webRequestPut(t, te.imageService, adminUser, icr, "/v1/image/", response)
 }
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.networkService, icr, "/v1/network/", response)
+	return webRequestPut(t, te.networkService, adminUser, icr, "/v1/network/", response)
 }
 func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, response interface{}) int {
-	return webRequestPost(t, te.networkService, nar, "/v1/network/allocate", response)
+	return webRequestPost(t, te.networkService, adminUser, nar, "/v1/network/allocate", response)
 }
 
 func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, response interface{}) int {
-	return webRequestPost(t, te.machineService, mar, "/v1/machine/allocate", response)
+	return webRequestPost(t, te.machineService, adminUser, mar, "/v1/machine/allocate", response)
 }
 
 func (te *testEnv) machineFree(t *testing.T, uuid string, response interface{}) int {
-	return webRequestDelete(t, te.machineService, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
+	return webRequestDelete(t, te.machineService, adminUser, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
 }
 func (te *testEnv) machineRegister(t *testing.T, mrr v1.MachineRegisterRequest, response interface{}) int {
-	return webRequestPost(t, te.machineService, mrr, "/v1/machine/register", response)
+	return webRequestPost(t, te.machineService, adminUser, mrr, "/v1/machine/register", response)
 }
 
 func (te *testEnv) machineWait(uuid string) {
@@ -305,28 +315,24 @@ func (te *testEnv) machineWait(uuid string) {
 //nolint:golint,unused
 type emptyBody struct{}
 
-//nolint:golint,unused
-func webRequestPut(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodPut, service, request, path, response)
+func webRequestPut(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+	return webRequest(t, http.MethodPut, service, user, request, path, response)
+}
+
+func webRequestPost(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+	return webRequest(t, http.MethodPost, service, user, request, path, response)
+}
+
+func webRequestDelete(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+	return webRequest(t, http.MethodDelete, service, user, request, path, response)
+}
+
+func webRequestGet(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+	return webRequest(t, http.MethodGet, service, user, request, path, response)
 }
 
 //nolint:golint,unused
-func webRequestPost(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodPost, service, request, path, response)
-}
-
-//nolint:golint,unused
-func webRequestDelete(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodDelete, service, request, path, response)
-}
-
-//nolint:golint,unused
-func webRequestGet(t *testing.T, service *restful.WebService, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodGet, service, request, path, response)
-}
-
-//nolint:golint,unused
-func webRequest(t *testing.T, method string, service *restful.WebService, request interface{}, path string, response interface{}) int {
+func webRequest(t *testing.T, method string, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
 	container := restful.NewContainer().Add(service)
 
 	jsonBody, err := json.Marshal(request)
@@ -335,12 +341,24 @@ func webRequest(t *testing.T, method string, service *restful.WebService, reques
 	createReq := httptest.NewRequest(method, path, body)
 	createReq.Header.Set("Content-Type", "application/json")
 
-	container = injectAdmin(container, createReq)
+	container.Filter(MockAuth(user))
+
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, createReq)
 
 	resp := w.Result()
+
 	err = json.NewDecoder(resp.Body).Decode(response)
 	require.NoError(t, err)
 	return resp.StatusCode
+}
+
+func MockAuth(user *security.User) restful.FilterFunction {
+	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+		log := zapup.RequestLogger(req.Request)
+		rq := req.Request
+		ctx := security.PutUserInContext(zapup.PutLogger(rq.Context(), log), user)
+		req.Request = rq.WithContext(ctx)
+		chain.ProcessFilter(req, resp)
+	}
 }
