@@ -569,6 +569,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	if requestPayload.Description != nil {
 		newNetwork.Description = *requestPayload.Description
 	}
+	newNetwork.Labels = requestPayload.Labels
 
 	var prefixesToBeRemoved metal.Prefixes
 	var prefixesToBeAdded metal.Prefixes
