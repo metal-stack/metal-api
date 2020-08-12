@@ -55,7 +55,7 @@ type NetworkFindRequest struct {
 type NetworkUpdateRequest struct {
 	Common
 	Prefixes []string          `json:"prefixes" description:"the prefixes of this network" optional:"true"`
-	Labels   map[string]string `json:"labels" description:"free labels that you associate with this network."`
+	Labels   map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
 }
 
 // NetworkResponse holds all properties returned in a FindNetwork or GetNetwork request.

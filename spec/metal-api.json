@@ -2416,8 +2416,7 @@
         }
       },
       "required": [
-        "id",
-        "labels"
+        "id"
       ]
     },
     "v1.NetworkUsage": {
