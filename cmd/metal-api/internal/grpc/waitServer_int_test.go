@@ -249,6 +249,7 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 		if err != nil {
 			continue
 		}
+		time.Sleep(5*time.Millisecond)
 		t.unconnectedMachines.Done()
 
 		for {
