@@ -218,13 +218,15 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	}()
 
 	// we also create and listen to a channel that will be used as soon as the machine is allocated
-	s.queueLock.Lock()
+	s.queueLock.RLock()
 	can, ok := s.queue[machineID]
+	s.queueLock.RUnlock()
 	if !ok {
 		can = make(chan bool)
+		s.queueLock.Lock()
 		s.queue[machineID] = can
+		s.queueLock.Unlock()
 	}
-	s.queueLock.Unlock()
 
 	defer func() {
 		s.queueLock.Lock()
