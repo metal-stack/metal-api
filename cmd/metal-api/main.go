@@ -616,7 +616,7 @@ func run() {
 	})
 
 	go func() {
-		err := grpc.Serve(waitServer)
+		err := waitServer.Serve()
 		if err != nil {
 			logger.Fatalw("failed to serve gRPC", "error", err)
 		}
