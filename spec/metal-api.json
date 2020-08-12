@@ -2396,6 +2396,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"

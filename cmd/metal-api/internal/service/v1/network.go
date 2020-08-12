@@ -5,12 +5,14 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
+// NetworkBase defines properties common for all Network structs.
 type NetworkBase struct {
 	PartitionID *string           `json:"partitionid" description:"the partition this network belongs to" optional:"true"`
 	ProjectID   *string           `json:"projectid" description:"the project id this network belongs to, can be empty if globally available" optional:"true"`
 	Labels      map[string]string `json:"labels" description:"free labels that you associate with this network."`
 }
 
+// NetworkImmutable defines the properties which are immutable in the Network.
 type NetworkImmutable struct {
 	Prefixes            []string `json:"prefixes" modelDescription:"a network which contains prefixes from which IP addresses can be allocated" description:"the prefixes of this network"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
@@ -22,6 +24,7 @@ type NetworkImmutable struct {
 	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network"`
 }
 
+// NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
 type NetworkUsage struct {
 	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
 	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
@@ -29,6 +32,7 @@ type NetworkUsage struct {
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
+// NetworkCreateRequest is used to create a new Network.
 type NetworkCreateRequest struct {
 	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
 	Describable
@@ -36,20 +40,25 @@ type NetworkCreateRequest struct {
 	NetworkImmutable
 }
 
+// NetworkAllocateRequest is used to allocate a Network prefix from a given Network.
 type NetworkAllocateRequest struct {
 	Describable
 	NetworkBase
 }
 
+// NetworkFindRequest is used to find a Network with different criteria.
 type NetworkFindRequest struct {
 	datastore.NetworkSearchQuery
 }
 
+// NetworkUpdateRequest defines the properties of a Network which can be updated.
 type NetworkUpdateRequest struct {
 	Common
-	Prefixes []string `json:"prefixes" description:"the prefixes of this network" optional:"true"`
+	Prefixes []string          `json:"prefixes" description:"the prefixes of this network" optional:"true"`
+	Labels   map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
 }
 
+// NetworkResponse holds all properties returned in a FindNetwork or GetNetwork request.
 type NetworkResponse struct {
 	Common
 	NetworkBase
@@ -58,6 +67,7 @@ type NetworkResponse struct {
 	Timestamps
 }
 
+// NewNetworkResponse converts the metal Network in the NetworkResponse visible from the API.
 func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *NetworkResponse {
 	if network == nil {
 		return nil
