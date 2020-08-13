@@ -99,7 +99,7 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 func (t *test) run() {
 	defer t.shutdown()
 
-	time.Sleep(20*time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	t.notReadyMachines = new(sync.WaitGroup)
 	t.notReadyMachines.Add(t.numberMachineInstances)
