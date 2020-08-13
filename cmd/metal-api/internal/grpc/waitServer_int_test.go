@@ -99,6 +99,8 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 func (t *test) run() {
 	defer t.shutdown()
 
+	time.Sleep(20*time.Millisecond)
+
 	t.notReadyMachines = new(sync.WaitGroup)
 	t.notReadyMachines.Add(t.numberMachineInstances)
 	t.unallocatedMachines = new(sync.WaitGroup)
@@ -256,9 +258,15 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 		for {
 			_, err := stream.Recv()
 			if err == io.EOF {
+				if !receivedResponse {
+					break
+				}
 				return nil
 			}
 			if err != nil {
+				if !receivedResponse {
+					break
+				}
 				if t.testCase == clientFailure {
 					return err
 				}
