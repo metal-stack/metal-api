@@ -64,7 +64,7 @@ type WaitServer struct {
 	logger           *zap.SugaredLogger
 	queueLock        *sync.RWMutex
 	queue            map[string]chan bool
-	GrpcPort         int
+	grpcPort         int
 	tlsEnabled       bool
 	caCertFile       string
 	serverCertFile   string
@@ -93,7 +93,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		logger:           cfg.Logger,
 		queueLock:        new(sync.RWMutex),
 		queue:            make(map[string]chan bool),
-		GrpcPort:         cfg.GrpcPort,
+		grpcPort:         cfg.GrpcPort,
 		tlsEnabled:       cfg.TlsEnabled,
 		caCertFile:       cfg.CaCertFile,
 		serverCertFile:   cfg.ServerCertFile,
@@ -130,7 +130,7 @@ func (s *WaitServer) NotifyAllocated(machineID string) error {
 }
 
 func (s *WaitServer) Serve() error {
-	addr := fmt.Sprintf(":%d", s.GrpcPort)
+	addr := fmt.Sprintf(":%d", s.grpcPort)
 
 	kaep := keepalive.EnforcementPolicy{
 		MinTime:             5 * time.Second, // If a client pings more than once every 5 seconds, terminate the connection

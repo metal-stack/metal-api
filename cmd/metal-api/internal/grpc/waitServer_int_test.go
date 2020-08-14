@@ -194,7 +194,7 @@ func (t *test) startApiInstances(ds Datasource) {
 			ds:               ds,
 			queueLock:        new(sync.RWMutex),
 			queue:            make(map[string]chan bool),
-			GrpcPort:         50005 + i,
+			grpcPort:         50005 + i,
 			logger:           zap.NewNop().Sugar(),
 			responseInterval: 2 * time.Millisecond,
 		}
