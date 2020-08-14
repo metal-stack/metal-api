@@ -26,8 +26,10 @@ import (
 )
 
 const (
-	receiverHandlerTimeout = 15 * time.Second
-	allocationTopicTTL     = time.Duration(30) * time.Second
+	receiverHandlerTimeout  = 15 * time.Second
+	allocationTopicTTL      = time.Duration(30) * time.Second
+	defaultResponseInterval = 5 * time.Second
+	defaultCheckInterval    = 60 * time.Second
 )
 
 func timeoutHandler(err bus.TimeoutError) error {
@@ -51,20 +53,24 @@ type WaitServerConfig struct {
 	CaCertFile            string
 	ServerCertFile        string
 	ServerKeyFile         string
+	ResponseInterval      time.Duration
+	CheckInterval         time.Duration
 }
 
 type WaitServer struct {
 	bus.Publisher
-	server         *grpc.Server
-	ds             Datasource
-	logger         *zap.SugaredLogger
-	queueLock      *sync.RWMutex
-	queue          map[string]chan bool
-	GrpcPort       int
-	TlsEnabled     bool
-	CaCertFile     string
-	ServerCertFile string
-	ServerKeyFile  string
+	server           *grpc.Server
+	ds               Datasource
+	logger           *zap.SugaredLogger
+	queueLock        *sync.RWMutex
+	queue            map[string]chan bool
+	grpcPort         int
+	tlsEnabled       bool
+	caCertFile       string
+	serverCertFile   string
+	serverKeyFile    string
+	responseInterval time.Duration
+	checkInterval    time.Duration
 }
 
 func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
@@ -73,17 +79,27 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		return nil, err
 	}
 
+	responseInterval := cfg.ResponseInterval
+	if responseInterval <= 0 {
+		responseInterval = defaultResponseInterval
+	}
+	checkInterval := cfg.CheckInterval
+	if checkInterval <= 0 {
+		checkInterval = defaultCheckInterval
+	}
 	s := &WaitServer{
-		Publisher:      cfg.Publisher,
-		ds:             cfg.Datasource,
-		logger:         cfg.Logger,
-		queueLock:      new(sync.RWMutex),
-		queue:          make(map[string]chan bool),
-		GrpcPort:       cfg.GrpcPort,
-		TlsEnabled:     cfg.TlsEnabled,
-		CaCertFile:     cfg.CaCertFile,
-		ServerCertFile: cfg.ServerCertFile,
-		ServerKeyFile:  cfg.ServerKeyFile,
+		Publisher:        cfg.Publisher,
+		ds:               cfg.Datasource,
+		logger:           cfg.Logger,
+		queueLock:        new(sync.RWMutex),
+		queue:            make(map[string]chan bool),
+		grpcPort:         cfg.GrpcPort,
+		tlsEnabled:       cfg.TlsEnabled,
+		caCertFile:       cfg.CaCertFile,
+		serverCertFile:   cfg.ServerCertFile,
+		serverKeyFile:    cfg.ServerKeyFile,
+		responseInterval: responseInterval,
+		checkInterval:    checkInterval,
 	}
 
 	rand.Seed(time.Now().Unix())
@@ -114,7 +130,7 @@ func (s *WaitServer) NotifyAllocated(machineID string) error {
 }
 
 func (s *WaitServer) Serve() error {
-	addr := fmt.Sprintf(":%d", s.GrpcPort)
+	addr := fmt.Sprintf(":%d", s.grpcPort)
 
 	kaep := keepalive.EnforcementPolicy{
 		MinTime:             5 * time.Second, // If a client pings more than once every 5 seconds, terminate the connection
@@ -153,12 +169,12 @@ func (s *WaitServer) Serve() error {
 		return err
 	}
 
-	if s.TlsEnabled {
-		cert, err := ioutil.ReadFile(s.ServerCertFile)
+	if s.tlsEnabled {
+		cert, err := ioutil.ReadFile(s.serverCertFile)
 		if err != nil {
 			s.logger.Fatalw("failed to serve gRPC", "error", err)
 		}
-		key, err := ioutil.ReadFile(s.ServerKeyFile)
+		key, err := ioutil.ReadFile(s.serverKeyFile)
 		if err != nil {
 			s.logger.Fatalw("failed to serve gRPC", "error", err)
 		}
@@ -167,7 +183,7 @@ func (s *WaitServer) Serve() error {
 			return err
 		}
 
-		caCert, err := ioutil.ReadFile(s.CaCertFile)
+		caCert, err := ioutil.ReadFile(s.caCertFile)
 		if err != nil {
 			return err
 		}
@@ -246,7 +262,7 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 			if allocated {
 				return nil
 			}
-		case now := <-time.After(5 * time.Second):
+		case now := <-time.After(s.responseInterval):
 			if now.After(nextCheck) {
 				m, err = s.ds.FindMachineByID(machineID)
 				if err != nil {
@@ -256,7 +272,7 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 				if allocated {
 					return nil
 				}
-				nextCheck = now.Add(60 * time.Second)
+				nextCheck = now.Add(s.checkInterval)
 			}
 			err = sendKeepPatientResponse(srv)
 			if err != nil {

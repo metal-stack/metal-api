@@ -40,7 +40,7 @@ type test struct {
 	numberAllocations      int
 	testCase               testCase
 
-	unconnectedMachines *sync.WaitGroup
+	notReadyMachines    *sync.WaitGroup
 	unallocatedMachines *sync.WaitGroup
 	mtx                 *sync.Mutex
 	allocations         map[string]bool
@@ -99,8 +99,10 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 func (t *test) run() {
 	defer t.shutdown()
 
-	t.unconnectedMachines = new(sync.WaitGroup)
-	t.unconnectedMachines.Add(t.numberMachineInstances)
+	time.Sleep(20 * time.Millisecond)
+
+	t.notReadyMachines = new(sync.WaitGroup)
+	t.notReadyMachines.Add(t.numberMachineInstances)
 	t.unallocatedMachines = new(sync.WaitGroup)
 	t.unallocatedMachines.Add(t.numberAllocations)
 	t.mtx = new(sync.Mutex)
@@ -113,7 +115,7 @@ func (t *test) run() {
 
 	t.startApiInstances(ds)
 	t.startMachineInstances()
-	t.unconnectedMachines.Wait()
+	t.notReadyMachines.Wait()
 
 	require.Equal(t, t.numberMachineInstances, len(ds.wait))
 	for _, wait := range ds.wait {
@@ -122,15 +124,15 @@ func (t *test) run() {
 
 	switch t.testCase {
 	case serverFailure:
-		t.unconnectedMachines.Add(t.numberMachineInstances)
+		t.notReadyMachines.Add(t.numberMachineInstances)
 		t.stopApiInstances()
 		t.startApiInstances(ds)
-		t.unconnectedMachines.Wait()
+		t.notReadyMachines.Wait()
 	case clientFailure:
-		t.unconnectedMachines.Add(t.numberMachineInstances)
+		t.notReadyMachines.Add(t.numberMachineInstances)
 		t.stopMachineInstances()
 		t.startMachineInstances()
-		t.unconnectedMachines.Wait()
+		t.notReadyMachines.Wait()
 	}
 
 	require.Equal(t, t.numberMachineInstances, len(ds.wait))
@@ -189,11 +191,12 @@ func (t *test) stopMachineInstances() {
 func (t *test) startApiInstances(ds Datasource) {
 	for i := 0; i < t.numberApiInstances; i++ {
 		s := &WaitServer{
-			ds:        ds,
-			queueLock: new(sync.RWMutex),
-			queue:     make(map[string]chan bool),
-			GrpcPort:  50005 + i,
-			logger:    zap.NewNop().Sugar(),
+			ds:               ds,
+			queueLock:        new(sync.RWMutex),
+			queue:            make(map[string]chan bool),
+			grpcPort:         50005 + i,
+			logger:           zap.NewNop().Sugar(),
+			responseInterval: 2 * time.Millisecond,
 		}
 		t.ss = append(t.ss, s)
 		go func() {
@@ -249,19 +252,29 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 		if err != nil {
 			continue
 		}
-		time.Sleep(5*time.Millisecond)
-		t.unconnectedMachines.Done()
+
+		receivedResponse := false
 
 		for {
 			_, err := stream.Recv()
 			if err == io.EOF {
+				if !receivedResponse {
+					break
+				}
 				return nil
 			}
 			if err != nil {
+				if !receivedResponse {
+					break
+				}
 				if t.testCase == clientFailure {
 					return err
 				}
 				break
+			}
+			if !receivedResponse {
+				receivedResponse = true
+				t.notReadyMachines.Done()
 			}
 		}
 	}
