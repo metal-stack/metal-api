@@ -12,9 +12,13 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+const (
+	DemotedUser = "metal"
+)
+
 var (
-	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
-		"integerpool", "integerpoolinfo"}
+	tables = []string{"image", "size", "partition", "machine", "switch", "event", "network", "ip",
+		"integerpool", "integerpoolinfo", "migration"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -22,7 +26,6 @@ type RethinkStore struct {
 	*zap.SugaredLogger
 	session   r.QueryExecutor
 	dbsession *r.Session
-	database  *r.Term
 
 	dbname string
 	dbuser string
@@ -64,6 +67,12 @@ func (rs *RethinkStore) Health() error {
 	)
 }
 
+// Initialize initializes the database, it should be called every time
+// the application comes up before using the data store
+func (rs *RethinkStore) Initialize() error {
+	return rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+}
+
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	db := rs.db()
 
@@ -81,10 +90,19 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
+	_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
+		Conflict: "replace",
+	}).RunWrite(rs.session)
+	if err != nil {
+		return err
+	}
+
 	err = rs.initIntegerPool()
 	if err != nil {
 		return err
 	}
+
+	rs.SugaredLogger.Infow("tables successfully initialized")
 
 	return nil
 }
@@ -129,6 +147,14 @@ func (rs *RethinkStore) integerInfoTable() *r.Term {
 	res := r.DB(rs.dbname).Table("integerpoolinfo")
 	return &res
 }
+func (rs *RethinkStore) migrationTable() *r.Term {
+	res := r.DB(rs.dbname).Table("migration")
+	return &res
+}
+func (rs *RethinkStore) userTable() *r.Term {
+	res := r.DB("rethinkdb").Table("users")
+	return &res
+}
 func (rs *RethinkStore) db() *r.Term {
 	res := r.DB(rs.dbname)
 	return &res
@@ -157,13 +183,27 @@ func (rs *RethinkStore) Close() error {
 // Connect connects to the database. If there is an error, it will run until there is
 // a connection.
 func (rs *RethinkStore) Connect() error {
-	rs.database, rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
+	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
-	return rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
+	return nil
 }
 
-func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, error) {
+// Demote connects to the database with the demoted metal runtime user. this enables
+// putting the database in read-only mode during database migrations
+func (rs *RethinkStore) Demote() error {
+	rs.Info("Connecting with demoted runtime user")
+	err := rs.Close()
+	if err != nil {
+		return err
+	}
+	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
+	rs.Info("Rethinkstore connected with demoted user")
+	rs.session = rs.dbsession
+	return nil
+}
+
+func connect(hosts []string, dbname, user, pwd string) (*r.Session, error) {
 	var err error
 	session, err := r.Connect(r.ConnectOpts{
 		Addresses: hosts,
@@ -174,32 +214,31 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Term, *r.Session, err
 		MaxOpen:   20,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot connect to DB: %v", err)
+		return nil, fmt.Errorf("cannot connect to DB: %v", err)
 	}
 
 	err = r.DBList().Contains(dbname).Do(func(row r.Term) r.Term {
 		return r.Branch(row, nil, r.DBCreate(dbname))
 	}).Exec(session)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot create database: %v", err)
+		return nil, fmt.Errorf("cannot create database: %v", err)
 	}
 
-	db := r.DB(dbname)
-	return &db, session, nil
+	return session, nil
 }
 
-// retryConnect versucht endlos eine Verbindung zur DB herzustellen. Wenn
-// die Verbindung nicht klappt wird eine zeit lang gewartet und erneut
-// versucht.
-func retryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) (*r.Term, *r.Session) {
+// retryConnect infinitely tries to establish a database connection.
+// in case a connection could not be established, the function will
+// wait for a short period of time and try again.
+func retryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) *r.Session {
 tryAgain:
-	db, s, err := connect(hosts, dbname, user, pwd)
+	s, err := connect(hosts, dbname, user, pwd)
 	if err != nil {
 		log.Errorw("db connection error", "db", dbname, "hosts", hosts, "error", err)
 		time.Sleep(3 * time.Second)
 		goto tryAgain
 	}
-	return db, s
+	return s
 }
 
 func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id string) error {

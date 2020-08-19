@@ -38,6 +38,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/testcontainers/testcontainers-go v0.7.0
 	go.uber.org/zap v1.15.0
+	go4.org v0.0.0-20200411211856-f5505b9728dd
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/grpc v1.30.0
