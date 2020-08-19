@@ -12,8 +12,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
-	restful "github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/zapup"
 )
@@ -50,6 +50,16 @@ func (ir imageResource) webService() *restful.WebService {
 		To(ir.findImage).
 		Operation("findImage").
 		Doc("get image by id").
+		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/{id}/latest").
+		To(ir.findLatestImage).
+		Operation("findLatestImage").
+		Doc("find latest image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.ImageResponse{}).
@@ -95,25 +105,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/migrate").
-		To(admin(ir.migrateImages)).
-		Operation("migrateImages").
-		Doc("migrate existing machine allocation images to semver equivalents").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.ImageResponse{}).
-		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	return ws
-}
-
-// Migrate existing Images of allocations to semver images
-// FIXME remove this after all machines are migrated.
-func (ir imageResource) migrateImages(request *restful.Request, response *restful.Response) {
-	_, err := ir.ds.MigrateMachineImages(nil)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
 }
 
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
@@ -130,15 +122,42 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 	}
 }
 
+func (ir imageResource) findLatestImage(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	img, err := ir.ds.FindImage(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
 	imgs, err := ir.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
+	ms, err := ir.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	result := []*v1.ImageResponse{}
 	for i := range imgs {
-		result = append(result, v1.NewImageResponse(&imgs[i]))
+		machines, err := ir.machinesByImage(ms, imgs[i].ID)
+		if err != nil {
+			zapup.MustRootLogger().Warn("unable to collect machines for image", zap.Error(err))
+		}
+		ir := v1.NewImageResponse(&imgs[i])
+		if len(machines) > 0 {
+			ir.UsedBy = machines
+		}
+		result = append(result, ir)
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
@@ -204,6 +223,11 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		}
 	}
 
+	err = checkImageURL(requestPayload.ID, requestPayload.URL)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	img := &metal.Image{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -229,6 +253,17 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	}
 }
 
+func checkImageURL(id, url string) error {
+	res, err := http.Head(url)
+	if err != nil {
+		return fmt.Errorf("image:%s is not accessible under:%s error:%v", id, url, err)
+	}
+	if res.StatusCode >= 400 {
+		return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, url, res.Status)
+	}
+	return nil
+}
+
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
@@ -237,18 +272,18 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 
-	machines, err := ir.ds.ListMachines()
+	ms, err := ir.ds.ListMachines()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	for _, m := range machines {
-		if m.Allocation == nil {
-			continue
-		}
-		if m.Allocation.ImageID == img.ID {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machine:%s", img.ID, m.ID)) {
-				return
-			}
+
+	machines, err := ir.machinesByImage(ms, img.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if len(machines) > 0 {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)) {
+			return
 		}
 	}
 
@@ -284,6 +319,10 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.Description = *requestPayload.Description
 	}
 	if requestPayload.URL != nil {
+		err = checkImageURL(requestPayload.ID, *requestPayload.URL)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 		newImage.URL = *requestPayload.URL
 	}
 	features := make(map[metal.ImageFeatureType]bool)
@@ -321,6 +360,19 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func (ir imageResource) machinesByImage(machines metal.Machines, imageID string) ([]string, error) {
+	var machinesByImage []string
+	for _, m := range machines {
+		if m.Allocation == nil {
+			continue
+		}
+		if m.Allocation.ImageID == imageID {
+			machinesByImage = append(machinesByImage, m.ID)
+		}
+	}
+	return machinesByImage, nil
 }
 
 // networkUsageCollector implements the prometheus collector interface.

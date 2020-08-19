@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
@@ -44,7 +44,7 @@ func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
@@ -76,6 +76,8 @@ func TestRegisterMachine(t *testing.T) {
 		dbpartitions         []metal.Partition
 		dbsizes              []metal.Size
 		dbmachines           metal.Machines
+		neighbormac1         metal.MacAddress
+		neighbormac2         metal.MacAddress
 		expectedStatus       int
 		expectedErrorMessage string
 		expectedSizeName     string
@@ -86,6 +88,8 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:      "0",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
+			neighbormac1:     testdata.Switch1.Nics[0].MacAddress,
+			neighbormac2:     testdata.Switch2.Nics[0].MacAddress,
 			numcores:         1,
 			memory:           100,
 			expectedStatus:   http.StatusCreated,
@@ -97,11 +101,26 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:      "1",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
+			neighbormac1:     testdata.Switch1.Nics[0].MacAddress,
+			neighbormac2:     testdata.Switch2.Nics[0].MacAddress,
 			dbmachines:       metal.Machines{testdata.M1},
 			numcores:         1,
 			memory:           100,
 			expectedStatus:   http.StatusOK,
 			expectedSizeName: testdata.Sz1.Name,
+		},
+		{
+			name:                 "insert existing without second neighbor",
+			uuid:                 "1",
+			partitionid:          "1",
+			dbpartitions:         []metal.Partition{testdata.Partition1},
+			dbsizes:              []metal.Size{testdata.Sz1},
+			neighbormac1:         testdata.Switch1.Nics[0].MacAddress,
+			dbmachines:           metal.Machines{testdata.M1},
+			numcores:             1,
+			memory:               100,
+			expectedStatus:       http.StatusUnprocessableEntity,
+			expectedErrorMessage: "machine 1 is not connected to exactly two switches, found connections to 1 switches",
 		},
 		{
 			name:                 "empty uuid",
@@ -127,6 +146,8 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:      "1",
 			dbpartitions:     []metal.Partition{testdata.Partition1},
 			dbsizes:          []metal.Size{testdata.Sz1},
+			neighbormac1:     testdata.Switch1.Nics[0].MacAddress,
+			neighbormac2:     testdata.Switch2.Nics[0].MacAddress,
 			numcores:         2,
 			memory:           100,
 			expectedStatus:   http.StatusCreated,
@@ -149,7 +170,7 @@ func TestRegisterMachine(t *testing.T) {
 				})).Return(testdata.EmptyResult, nil)
 			}
 			mock.On(r.DB("mockdb").Table("size").Get(metal.UnknownSize.ID)).Return([]metal.Size{*metal.UnknownSize}, nil)
-			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{}, nil)
+			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1, testdata.Switch2}, nil)
 			mock.On(r.DB("mockdb").Table("event").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.ProvisioningEventContainer{}, nil)
 			mock.On(r.DB("mockdb").Table("event").Insert(r.MockAnything(), r.InsertOpts{})).Return(testdata.EmptyResult, nil)
 			testdata.InitMockDBData(mock)
@@ -178,12 +199,32 @@ func TestRegisterMachine(t *testing.T) {
 						CPUCores: test.numcores,
 						Memory:   uint64(test.memory),
 					},
+					Nics: v1.MachineNicsExtended{
+						v1.MachineNicExtended{
+							Neighbors: v1.MachineNicsExtended{
+								v1.MachineNicExtended{
+									MachineNic: v1.MachineNic{
+										MacAddress: string(test.neighbormac1),
+									},
+								},
+							},
+						},
+						v1.MachineNicExtended{
+							Neighbors: v1.MachineNicsExtended{
+								v1.MachineNicExtended{
+									MachineNic: v1.MachineNic{
+										MacAddress: string(test.neighbormac2),
+									},
+								},
+							},
+						},
+					},
 				},
 			}
 
 			js, _ := json.Marshal(registerRequest)
 			body := bytes.NewBuffer(js)
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
@@ -257,7 +298,7 @@ func TestMachineIPMIReport(t *testing.T) {
 
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			js, _ := json.Marshal(test.input)
@@ -303,7 +344,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*test.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -381,7 +422,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for _, test := range data {
 		t.Run(test.name, func(t *testing.T) {
 
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -424,7 +465,7 @@ func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -456,7 +497,7 @@ func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -482,7 +523,7 @@ func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -514,7 +555,7 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -539,7 +580,7 @@ func TestSearchMachine(t *testing.T) {
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -569,7 +610,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -650,7 +691,7 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 
 			js, _ := json.Marshal([]string{d.param})
@@ -1042,11 +1083,10 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1ExistingPrivateNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
+					network:   &testdata.Partition1ExistingPrivateNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: true,
 				},
 			},
 		},
@@ -1086,18 +1126,16 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1ExistingPrivateNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
+					network:   &testdata.Partition1ExistingPrivateNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: true,
 				},
 				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1InternetNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      false,
+					network:   &testdata.Partition1InternetNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: false,
 				},
 			},
 		},
@@ -1139,18 +1177,16 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1ExistingPrivateNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{},
-					auto:           true,
-					isPrivate:      true,
+					network:   &testdata.Partition1ExistingPrivateNetwork,
+					ips:       []metal.IP{},
+					auto:      true,
+					isPrivate: true,
 				},
 				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
-					network:        &testdata.Partition1InternetNetwork,
-					machineNetwork: &metal.MachineNetwork{},
-					ips:            []metal.IP{testdata.Partition1InternetIP},
-					auto:           false,
-					isPrivate:      false,
+					network:   &testdata.Partition1InternetNetwork,
+					ips:       []metal.IP{testdata.Partition1InternetIP},
+					auto:      false,
+					isPrivate: false,
 				},
 			},
 		},

@@ -12,6 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-lib/rest"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	nsq2 "github.com/nsqio/go-nsq"
 	"github.com/pkg/errors"
 
@@ -20,8 +25,8 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 
-	"github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
@@ -32,15 +37,12 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
 	bus "github.com/metal-stack/metal-lib/bus"
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
-	rest "github.com/metal-stack/metal-lib/rest"
 	zapup "github.com/metal-stack/metal-lib/zapup"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -53,13 +55,15 @@ const (
 )
 
 var (
-	cfgFile string
-	ds      *datastore.RethinkStore
-	ipamer  *ipam.Ipam
-	nsqer   *eventbus.NSQClient
-	logger  = zapup.MustRootLogger().Sugar()
-	debug   = false
-	mdc     mdm.Client
+	cfgFile            string
+	ds                 *datastore.RethinkStore
+	ipamer             *ipam.Ipam
+	publisherTLSConfig *bus.TLSConfig
+	nsqer              *eventbus.NSQClient
+	logger             = zapup.MustRootLogger().Sugar()
+	debug              = false
+	mdc                mdm.Client
+	waitServer         *grpc.WaitServer
 )
 
 var rootCmd = &cobra.Command{
@@ -76,6 +80,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
+		initWaitServer()
 		run()
 	},
 }
@@ -172,6 +177,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.PersistentFlags().IntP("port", "", 8080, "the port to serve on")
+	rootCmd.PersistentFlags().IntP("grpc-port", "", 50051, "the port to serve gRPC on")
 
 	rootCmd.PersistentFlags().StringP("base-path", "", "/", "the base path of the api server")
 
@@ -195,7 +201,12 @@ func init() {
 	rootCmd.PersistentFlags().StringP("nsqd-ca-cert-file", "", "", "the CA certificate file to verify nsqd certificate")
 	rootCmd.PersistentFlags().StringP("nsqd-client-cert-file", "", "", "the client certificate file to access nsqd")
 	rootCmd.PersistentFlags().StringP("nsqd-write-timeout", "", "10s", "the write timeout for nsqd")
-	rootCmd.PersistentFlags().StringP("nsqlookupd-addr", "", "", "the http address of the nsqlookupd as a commalist")
+	rootCmd.PersistentFlags().StringP("nsqlookupd-addr", "", "", "the http addresses of the nsqlookupd as a commalist")
+
+	rootCmd.PersistentFlags().StringP("grpc-tls-enabled", "", "false", "indicates whether gRPC TLS is enabled")
+	rootCmd.PersistentFlags().StringP("grpc-ca-cert-file", "", "", "the CA certificate file to verify gRPC certificate")
+	rootCmd.PersistentFlags().StringP("grpc-server-cert-file", "", "", "the gRPC server certificate file")
+	rootCmd.PersistentFlags().StringP("grpc-server-key-file", "", "", "the gRPC server key file")
 
 	rootCmd.PersistentFlags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.PersistentFlags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -300,14 +311,19 @@ func initEventBus() {
 	if err != nil {
 		writeTimeout = 0
 	}
+	caCertFile := viper.GetString("nsqd-ca-cert-file")
+	clientCertFile := viper.GetString("nsqd-client-cert-file")
+	if caCertFile != "" && clientCertFile != "" {
+		publisherTLSConfig = &bus.TLSConfig{
+			CACertFile:     caCertFile,
+			ClientCertFile: clientCertFile,
+		}
+	}
 	publisherCfg := &bus.PublisherConfig{
 		TCPAddress:   viper.GetString("nsqd-tcp-addr"),
 		HTTPEndpoint: viper.GetString("nsqd-http-endpoint"),
-		TLS: &bus.TLSConfig{
-			CACertFile:     viper.GetString("nsqd-ca-cert-file"),
-			ClientCertFile: viper.GetString("nsqd-client-cert-file"),
-		},
-		NSQ: nsq2.NewConfig(),
+		TLS:          publisherTLSConfig,
+		NSQ:          nsq2.NewConfig(),
 	}
 	publisherCfg.NSQ.WriteTimeout = writeTimeout
 
@@ -430,7 +446,7 @@ func initIpam() {
 			viper.GetString("ipam-db-user"),
 			viper.GetString("ipam-db-password"),
 			viper.GetString("ipam-db-name"),
-			"disable")
+			goipam.SSLModeDisable)
 		if err != nil {
 			logger.Errorw("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
 			time.Sleep(3 * time.Second)
@@ -452,18 +468,21 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 	providerTenant := viper.GetString("provider-tenant")
 
-	dx, err := security.NewDex(viper.GetString("dex-addr"))
-	if err != nil {
-		logger.Warnw("dex not reachable", "error", err)
-	}
-	if dx != nil {
-		// use custom user extractor and group processor
-		plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
-		dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
-		auths = append(auths, security.WithDex(dx))
-		logger.Info("dex successfully configured")
-	} else {
-		logger.Warnw("dex is not configured")
+	dexAddr := viper.GetString("dex-addr")
+	if dexAddr != "" {
+		dx, err := security.NewDex(dexAddr)
+		if err != nil {
+			logger.Fatalw("dex not reachable", "error", err)
+		}
+		if dx != nil {
+			// use custom user extractor and group processor
+			plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
+			dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
+			auths = append(auths, security.WithDex(dx))
+			logger.Info("dex successfully configured")
+		} else {
+			logger.Fatalw("dex is configured, but not initialized")
+		}
 	}
 
 	defaultUsers := service.NewUserDirectory(providerTenant)
@@ -488,6 +507,29 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
+func initWaitServer() {
+	var p bus.Publisher
+	if nsqer != nil {
+		p = nsqer.Publisher
+	}
+	var err error
+	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
+		Publisher:             p,
+		Datasource:            ds,
+		Logger:                logger,
+		NsqTlsConfig:          publisherTLSConfig,
+		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-addr"),
+		GrpcPort:              viper.GetInt("grpc-port"),
+		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
+		CaCertFile:            viper.GetString("grpc-ca-cert-file"),
+		ServerCertFile:        viper.GetString("grpc-server-cert-file"),
+		ServerKeyFile:         viper.GetString("grpc-server-key-file"),
+	})
+	if err != nil {
+		logger.Fatalw("cannot connect to NSQ", "error", err)
+	}
+}
+
 func initRestServices(withauth bool) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
@@ -505,10 +547,15 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc)
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
+	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, waitServer)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
@@ -516,7 +563,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(ipservice)
 	restful.DefaultContainer.Add(mservice)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
-	restful.DefaultContainer.Add(service.NewFirewall(ds, ipamer, mdc))
+	restful.DefaultContainer.Add(fservice)
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
@@ -619,6 +666,13 @@ func run() {
 		}
 	})
 
+	go func() {
+		err := waitServer.Serve()
+		if err != nil {
+			logger.Fatalw("failed to serve gRPC", "error", err)
+		}
+	}()
+
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)
 	err := http.ListenAndServe(addr, nil)
@@ -634,7 +688,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Description: "Resource for managing pure metal",
 			Contact: &spec.ContactInfo{
 				ContactInfoProps: spec.ContactInfoProps{
-					Name: "Metal Stack",
+					Name: "metal-stack",
 					URL:  "https://metal-stack.io",
 				},
 			},

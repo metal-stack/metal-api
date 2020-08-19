@@ -336,32 +336,3 @@ func TestRethinkStore_switchTable(t *testing.T) {
 		})
 	}
 }
-
-func TestRethinkStore_waitTable(t *testing.T) {
-
-	// mock the DB
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	theWantedTerm := r.DB("mockdb").Table("wait")
-
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Term
-	}{
-		// test cases:
-		{
-			name: "TestRethinkStore_waitTable Test 1",
-			rs:   ds,
-			want: &theWantedTerm,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.waitTable(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.waitTable() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}

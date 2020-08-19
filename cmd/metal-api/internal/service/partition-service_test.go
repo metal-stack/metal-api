@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	restful "github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
@@ -20,7 +20,7 @@ import (
 type nopTopicCreater struct {
 }
 
-func (n nopTopicCreater) CreateTopic(partitionID, topicFQN string) error {
+func (n nopTopicCreater) CreateTopic(topicFQN string) error {
 	return nil
 }
 
@@ -29,7 +29,7 @@ type expectingTopicCreater struct {
 	expectedTopics []string
 }
 
-func (n expectingTopicCreater) CreateTopic(partitionID, topicFQN string) error {
+func (n expectingTopicCreater) CreateTopic(topicFQN string) error {
 	assert := assert.New(n.t)
 	assert.NotEmpty(topicFQN)
 	assert.Contains(n.expectedTopics, topicFQN, "Expectation %v contains %s failed.", n.expectedTopics, topicFQN)

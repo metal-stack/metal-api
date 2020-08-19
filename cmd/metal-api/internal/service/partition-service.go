@@ -12,29 +12,30 @@ import (
 
 	"fmt"
 
-	restful "github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/zapup"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type TopicCreater interface {
-	CreateTopic(partitionID, topicFQN string) error
+// TopicCreator creates a topic for messaging.
+type TopicCreator interface {
+	CreateTopic(topicFQN string) error
 }
 
 type partitionResource struct {
 	webResource
-	topicCreater TopicCreater
+	topicCreator TopicCreator
 }
 
 // NewPartition returns a webservice for partition specific endpoints.
-func NewPartition(ds *datastore.RethinkStore, tc TopicCreater) *restful.WebService {
+func NewPartition(ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
 	r := partitionResource{
 		webResource: webResource{
 			ds: ds,
 		},
-		topicCreater: tc,
+		topicCreator: tc,
 	}
 	pcc := partitionCapacityCollector{r: &r}
 	err := prometheus.Register(pcc)
@@ -209,7 +210,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
-	if err := r.topicCreater.CreateTopic(p.GetID(), fqn); err != nil {
+	if err := r.topicCreator.CreateTopic(fqn); err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}

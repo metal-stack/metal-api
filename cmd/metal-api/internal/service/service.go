@@ -15,19 +15,19 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/httperrors"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/security"
 	"go.uber.org/zap"
 )
 
-var (
-	BasePath = "/"
-)
+// BasePath is the URL base path for the metal-api
+var BasePath = "/"
 
 type webResource struct {
 	ds *datastore.RethinkStore
 }
 
+// UserDirectory is the directory of users
 type UserDirectory struct {
 	viewer security.User
 	edit   security.User
@@ -36,6 +36,7 @@ type UserDirectory struct {
 	metalUsers map[string]security.User
 }
 
+// NewUserDirectory creates a new user directory with default users
 func NewUserDirectory(providerTenant string) *UserDirectory {
 	ud := &UserDirectory{}
 
@@ -67,6 +68,7 @@ func NewUserDirectory(providerTenant string) *UserDirectory {
 	return ud
 }
 
+// UserNames returns the list of user names in the directory.
 func (ud *UserDirectory) UserNames() []string {
 	keys := make([]string, 0, len(ud.metalUsers))
 	for k := range ud.metalUsers {
@@ -75,6 +77,7 @@ func (ud *UserDirectory) UserNames() []string {
 	return keys
 }
 
+// Get a user by its user name.
 func (ud *UserDirectory) Get(user string) security.User {
 	return ud.metalUsers[user]
 }
@@ -166,6 +169,7 @@ func tenant(request *restful.Request) string {
 	return security.GetUser(request.Request).Tenant
 }
 
+// TenantEnsurer holds allowed tenants and a list of path suffixes that
 type TenantEnsurer struct {
 	allowedTenants       map[string]bool
 	excludedPathSuffixes []string
