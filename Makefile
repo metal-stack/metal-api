@@ -5,20 +5,24 @@ MINI_LAB_KUBECONFIG := $(shell pwd)/../mini-lab/.kubeconfig
 
 include $(COMMONDIR)/Makefile.inc
 
-.PHONY: all
-all:: gofmt
-	go mod tidy
-
-release:: all;
+release:: protoc spec all ;
 
 .PHONY: spec
 spec: all
-	bin/metal-api dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
+	bin/$(BINARY) dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
 
 .PHONY: redoc
 redoc:
-	docker run -it --rm -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
 	xdg-open generate/index.html
+
+.PHONY: protoc
+protoc:
+	protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
+
+.PHONY: protoc-docker
+protoc-docker:
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
 
 .PHONY: mini-lab-push
 mini-lab-push:
