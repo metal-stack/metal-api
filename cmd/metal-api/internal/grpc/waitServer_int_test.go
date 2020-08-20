@@ -51,7 +51,7 @@ func TestWaitServer(t *testing.T) {
 
 	var tt []*test
 	aa := []int{1, 10}
-	mm := [][]int{{1, 1}, {100, 70}}
+	mm := [][]int{{10, 7}}
 	for _, a := range aa {
 		for _, m := range mm {
 			require.True(t, a > 0)
