@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -12,8 +13,8 @@ func TestNics_ByMac(t *testing.T) {
 	nicArray := make([]Nic, countOfNics)
 	for i := 0; i < countOfNics; i++ {
 		nicArray[i] = Nic{
-			MacAddress: MacAddress("11:11:1" + string(i)),
-			Name:       "swp" + string(i),
+			MacAddress: MacAddress("11:11:1" + fmt.Sprintf("%d", i)),
+			Name:       "swp" + fmt.Sprintf("%d", i),
 			Neighbors:  nil,
 		}
 	}
