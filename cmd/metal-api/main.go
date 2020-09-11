@@ -59,7 +59,7 @@ var (
 	logger             = zapup.MustRootLogger().Sugar()
 	debug              = false
 	mdc                mdm.Client
-	waitServer         *grpc.WaitServer
+	grpcServer         *grpc.Server
 )
 
 var rootCmd = &cobra.Command{
@@ -74,7 +74,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
-		initWaitServer()
+		initGrpcServer()
 		run()
 	},
 }
@@ -456,13 +456,13 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initWaitServer() {
+func initGrpcServer() {
 	var p bus.Publisher
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
 	var err error
-	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
+	grpcServer, err = grpc.NewServer(&grpc.ServerConfig{
 		Publisher:             p,
 		Datasource:            ds,
 		Logger:                logger,
@@ -496,11 +496,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitServer)
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, waitServer)
+	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -616,7 +616,7 @@ func run() {
 	})
 
 	go func() {
-		err := waitServer.Serve()
+		err := grpcServer.Serve()
 		if err != nil {
 			logger.Fatalw("failed to serve gRPC", "error", err)
 		}

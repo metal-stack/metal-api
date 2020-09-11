@@ -32,7 +32,7 @@ type client struct {
 
 type test struct {
 	*testing.T
-	ss []*WaitServer
+	ss []*Server
 	cc []*client
 
 	numberApiInstances     int
@@ -190,7 +190,7 @@ func (t *test) stopMachineInstances() {
 
 func (t *test) startApiInstances(ds Datasource) {
 	for i := 0; i < t.numberApiInstances; i++ {
-		s := &WaitServer{
+		s := &Server{
 			ds:               ds,
 			queueLock:        new(sync.RWMutex),
 			queue:            make(map[string]chan bool),

@@ -40,7 +40,7 @@ type machineResource struct {
 	ipamer     ipam.IPAMer
 	mdc        mdm.Client
 	actor      *asyncActor
-	waitServer *grpc.WaitServer
+	grpcServer *grpc.Server
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -109,7 +109,7 @@ func NewMachine(
 	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
-	waitServer *grpc.WaitServer) (*restful.WebService, error) {
+	grpcServer *grpc.Server) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -118,7 +118,7 @@ func NewMachine(
 		Publisher:  pub,
 		ipamer:     ipamer,
 		mdc:        mdc,
-		waitServer: waitServer,
+		grpcServer: grpcServer,
 	}
 	var err error
 	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
@@ -829,7 +829,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		IsFirewall:  false,
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.waitServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "error", err)
 		return
@@ -842,7 +842,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 }
 
-func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.WaitServer) (*metal.Machine, error) {
+func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.Server) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err

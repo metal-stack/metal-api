@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package v1;
+
+option go_package = "api/v1";
+
+message SupermetalPasswordRequest {
+    string partitionID = 1;
+}
+
+message SupermetalPasswordResponse {
+    string supermetalPassword = 1;
+}
+
+service SupermetalPassword {
+    rpc FetchSupermetalPassword (SupermetalPasswordRequest) returns (SupermetalPasswordResponse);
+}
