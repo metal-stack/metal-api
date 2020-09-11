@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"io/ioutil"
 	"strings"
@@ -11,12 +10,14 @@ import (
 func (s *Server) FetchSupermetalPassword(ctx context.Context, req *v1.SupermetalPasswordRequest) (*v1.SupermetalPasswordResponse, error) {
 	defer ctx.Done()
 
-	bb, err := ioutil.ReadFile(fmt.Sprintf("/supermetal/%s.pwd", req.PartitionID))
-	if err != nil {
-		return nil, err
+	resp := &v1.SupermetalPasswordResponse{
+		FeatureDisabled: false,
 	}
-	supwd := strings.TrimSpace(string(bb))
-	return &v1.SupermetalPasswordResponse{
-		SupermetalPassword: supwd,
-	}, nil
+	bb, err := ioutil.ReadFile("/bmc/supermetal.pwd")
+	if err != nil {
+		resp.FeatureDisabled = true // having no supermetal password in place is not an error but indicates that we disable updating bmc admin user
+		return resp, nil
+	}
+	resp.SupermetalPassword = strings.TrimSpace(string(bb))
+	return resp, nil
 }
