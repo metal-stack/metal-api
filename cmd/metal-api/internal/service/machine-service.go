@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/pkg/errors"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh"
 
@@ -64,28 +65,28 @@ type machineAllocationSpec struct {
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
 type allocationNetwork struct {
-	network   *metal.Network
-	ips       []metal.IP
-	auto      bool
-	isPrivate bool
+	network          *metal.Network
+	ips              []metal.IP
+	auto             bool
+	isPrimaryPrivate bool
 }
 
 // allocationNetworkMap is a map of allocationNetworks with the network id as the key
 type allocationNetworkMap map[string]*allocationNetwork
 
-// getPrivateNetwork extracts the private network from an allocationNetworkMap
-func getPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
-	var privateNetwork *allocationNetwork
+// getPrimaryPrivateNetwork extracts the private network from an allocationNetworkMap
+func getPrimaryPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
+	var primaryPrivateNetwork *allocationNetwork
 	for _, n := range networks {
-		if n.isPrivate {
-			privateNetwork = n
+		if n.isPrimaryPrivate {
+			primaryPrivateNetwork = n
 			break
 		}
 	}
-	if privateNetwork == nil {
+	if primaryPrivateNetwork == nil {
 		return nil, fmt.Errorf("no private network contained")
 	}
-	return privateNetwork, nil
+	return primaryPrivateNetwork, nil
 }
 
 // The MachineAllocation contains the allocated machine or an error.
@@ -1110,13 +1111,14 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// what do we have to prevent:
 	// - user wants to place his machine in a network that does not belong to the project in which the machine is being placed
 	// - user wants a machine with a private network that is not in the partition of the machine
-	// - user wants to define multiple private networks for his machine
-	// - user must define one private network
+	// - user specifies no private network
+	// - user specifies additional private networks that have a project reference
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
 	// - user's private network is specified with noauto, which would make the machine have no ip address
 
 	specNetworks := make(map[string]*allocationNetwork)
-	var privateNetwork *allocationNetwork
+	var primaryPrivateNetwork *allocationNetwork
+	var privateNetworks []*allocationNetwork
 
 	for _, networkSpec := range allocationSpec.Networks {
 		auto := true
@@ -1137,24 +1139,22 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		}
 
 		n := &allocationNetwork{
-			network:   network,
-			auto:      auto,
-			ips:       []metal.IP{},
-			isPrivate: false,
+			network:          network,
+			auto:             auto,
+			ips:              []metal.IP{},
+			isPrimaryPrivate: false,
 		}
 
 		for _, privateSuperNetwork := range privateSuperNetworks {
 			if network.ParentNetworkID == privateSuperNetwork.ID {
-				// this is the user given private network
-				if privateNetwork != nil {
-					return nil, fmt.Errorf("multiple private networks provided, which is not allowed")
+				if network.ProjectID != "" {
+					if primaryPrivateNetwork != nil {
+						return nil, fmt.Errorf("multiple private networks with project id are specified, which is unallowed")
+					}
+					n.isPrimaryPrivate = true
+					primaryPrivateNetwork = n
 				}
-				if network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
-					return nil, fmt.Errorf("the private network must be in the partition where the machine is going to be placed")
-				}
-				n.isPrivate = true
-				privateNetwork = n
-				break
+				privateNetworks = append(privateNetworks, n)
 			}
 		}
 
@@ -1165,37 +1165,48 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		return nil, fmt.Errorf("given network ids are not unique")
 	}
 
-	if privateNetwork == nil {
+	if len(privateNetworks) == 0 {
 		return nil, fmt.Errorf("no private network given")
 	}
 
-	if privateNetwork.network.ProjectID != allocationSpec.ProjectID {
+	if primaryPrivateNetwork.network.ProjectID != allocationSpec.ProjectID {
 		return nil, fmt.Errorf("the given private network does not belong to the project, which is not allowed")
 	}
 
-	for _, ipString := range allocationSpec.IPs {
-		ip, err := ds.FindIPByID(ipString)
-		if err != nil {
-			return nil, err
-		}
-		if ip.ProjectID != allocationSpec.ProjectID {
-			return nil, fmt.Errorf("given ip %q with project id %q does not belong to the project of this allocation: %s", ip.IPAddress, ip.ProjectID, allocationSpec.ProjectID)
-		}
-		network, ok := specNetworks[ip.NetworkID]
-		if !ok {
-			return nil, fmt.Errorf("given ip %q is not in any of the given networks, which is required", ip.IPAddress)
-		}
-		s := ip.GetScope()
-		if s != metal.ScopeMachine && s != metal.ScopeProject {
-			return nil, fmt.Errorf("given ip %q is not available for direct attachment to machine because it is already in use", ip.IPAddress)
+	for _, pn := range privateNetworks {
+		if pn.network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
+			return nil, fmt.Errorf("private networks must be in the partition where the machine is going to be placed")
 		}
 
-		network.auto = false
-		network.ips = append(network.ips, *ip)
-	}
+		if !pn.isPrimaryPrivate && pn.network.ProjectID != "" {
+			return nil, fmt.Errorf("secondary private networks must not be assigned to a project")
+		}
 
-	if !privateNetwork.auto && len(privateNetwork.ips) == 0 {
-		return nil, fmt.Errorf("the private network has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address")
+		for _, ipString := range allocationSpec.IPs {
+			ip, err := ds.FindIPByID(ipString)
+			if err != nil {
+				return nil, err
+			}
+			if ip.ProjectID != allocationSpec.ProjectID {
+				return nil, fmt.Errorf("given ip %q with project id %q does not belong to the project of this allocation: %s", ip.IPAddress, ip.ProjectID, allocationSpec.ProjectID)
+			}
+			network, ok := specNetworks[ip.NetworkID]
+			if !ok {
+				return nil, fmt.Errorf("given ip %q is not in any of the given networks, which is required", ip.IPAddress)
+			}
+			s := ip.GetScope()
+			if s != metal.ScopeMachine && s != metal.ScopeProject {
+				return nil, fmt.Errorf("given ip %q is not available for direct attachment to machine because it is already in use", ip.IPAddress)
+			}
+
+			network.auto = false
+			network.ips = append(network.ips, *ip)
+		}
+
+		if !pn.auto && len(pn.ips) == 0 {
+			return nil, fmt.Errorf("the private network has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address")
+		}
+
 	}
 
 	return specNetworks, nil
@@ -1217,9 +1228,9 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 	underlay := &underlays[0]
 
 	return &allocationNetwork{
-		network:   underlay,
-		auto:      true,
-		isPrivate: false,
+		network:          underlay,
+		auto:             true,
+		isPrimaryPrivate: false,
 	}, nil
 }
 
@@ -1262,7 +1273,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		Prefixes:            n.network.Prefixes.String(),
 		IPs:                 ipAddresses,
 		DestinationPrefixes: n.network.DestinationPrefixes.String(),
-		Private:             n.isPrivate,
+		Private:             n.isPrimaryPrivate,
 		Underlay:            n.network.Underlay,
 		Nat:                 n.network.Nat,
 		Vrf:                 n.network.Vrf,
@@ -1271,19 +1282,19 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	return &machineNetwork, nil
 }
 
-// makeASN we can use the IP of the private network (which always have to be present and unique)
+// makeASN we can use the IP of the primary private network (which always have to be present and unique)
 // for generating a unique ASN.
 func makeASN(networks allocationNetworkMap) (int64, error) {
-	privateNetwork, err := getPrivateNetwork(networks)
+	primaryPrivateNetwork, err := getPrimaryPrivateNetwork(networks)
 	if err != nil {
 		return 0, err
 	}
 
-	if len(privateNetwork.ips) == 0 {
+	if len(primaryPrivateNetwork.ips) == 0 {
 		return 0, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
 	}
 
-	asn, err := privateNetwork.ips[0].ASN()
+	asn, err := primaryPrivateNetwork.ips[0].ASN()
 	if err != nil {
 		return 0, err
 	}
@@ -1301,14 +1312,14 @@ func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags [
 	labels := make(map[string]string)
 
 	for _, n := range networks {
-		if !n.isPrivate {
+		if !n.isPrimaryPrivate {
 			for k, v := range n.network.Labels {
 				labels[k] = v
 			}
 		}
 	}
 
-	privateNetwork, _ := getPrivateNetwork(networks)
+	privateNetwork, _ := getPrimaryPrivateNetwork(networks)
 	if privateNetwork != nil {
 		for k, v := range privateNetwork.network.Labels {
 			labels[k] = v

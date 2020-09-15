@@ -929,7 +929,7 @@ func Test_makeMachineTags(t *testing.T) {
 								"private-network-label": "1",
 							},
 						},
-						isPrivate: true,
+						isPrimaryPrivate: true,
 					},
 				},
 				userTags: []string{"usertag=something"},
@@ -965,7 +965,7 @@ func Test_makeMachineTags(t *testing.T) {
 								"override": "2",
 							},
 						},
-						isPrivate: true,
+						isPrimaryPrivate: true,
 					},
 				},
 			},
@@ -995,7 +995,7 @@ func Test_makeMachineTags(t *testing.T) {
 								"override": "2",
 							},
 						},
-						isPrivate: true,
+						isPrimaryPrivate: true,
 					},
 				},
 				userTags: []string{"override=3"},
@@ -1083,10 +1083,10 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:   &testdata.Partition1ExistingPrivateNetwork,
-					ips:       []metal.IP{},
-					auto:      true,
-					isPrivate: true,
+					network:          &testdata.Partition1ExistingPrivateNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: true,
 				},
 			},
 		},
@@ -1126,16 +1126,16 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:   &testdata.Partition1ExistingPrivateNetwork,
-					ips:       []metal.IP{},
-					auto:      true,
-					isPrivate: true,
+					network:          &testdata.Partition1ExistingPrivateNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: true,
 				},
 				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
-					network:   &testdata.Partition1InternetNetwork,
-					ips:       []metal.IP{},
-					auto:      true,
-					isPrivate: false,
+					network:          &testdata.Partition1InternetNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: false,
 				},
 			},
 		},
@@ -1177,16 +1177,16 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr:                false,
 			want: allocationNetworkMap{
 				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
-					network:   &testdata.Partition1ExistingPrivateNetwork,
-					ips:       []metal.IP{},
-					auto:      true,
-					isPrivate: true,
+					network:          &testdata.Partition1ExistingPrivateNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: true,
 				},
 				testdata.Partition1InternetNetwork.ID: &allocationNetwork{
-					network:   &testdata.Partition1InternetNetwork,
-					ips:       []metal.IP{testdata.Partition1InternetIP},
-					auto:      false,
-					isPrivate: false,
+					network:          &testdata.Partition1InternetNetwork,
+					ips:              []metal.IP{testdata.Partition1InternetIP},
+					auto:             false,
+					isPrimaryPrivate: false,
 				},
 			},
 		},
@@ -1220,7 +1220,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			partition:              &testdata.Partition1,
 			partitionSuperNetworks: partitionSuperNetworks,
 			wantErr:                true,
-			errRegex:               "the private network must be in the partition where the machine is going to be placed",
+			errRegex:               "private networks must be in the partition where the machine is going to be placed",
 		},
 		{
 			name: "try to assign machine to super network",
@@ -1253,7 +1253,38 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			errRegex:               "underlay networks are not allowed to be set explicitly",
 		},
 		{
-			name: "try to add machine to multiple private networks",
+			name: "try to add machine to private network and storage network",
+			allocationSpec: &machineAllocationSpec{
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
+					},
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1ExistingStorageNetwork.ID,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			want: allocationNetworkMap{
+				testdata.Partition1ExistingPrivateNetwork.ID: &allocationNetwork{
+					network:          &testdata.Partition1ExistingPrivateNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: true,
+				},
+				testdata.Partition1ExistingStorageNetwork.ID: &allocationNetwork{
+					network:          &testdata.Partition1ExistingStorageNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: false,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "try to add machine to multiple private networks with project id",
 			allocationSpec: &machineAllocationSpec{
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
@@ -1267,7 +1298,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			partition:              &testdata.Partition1,
 			partitionSuperNetworks: partitionSuperNetworks,
 			wantErr:                true,
-			errRegex:               "multiple private networks provided, which is not allowed",
+			errRegex:               "multiple private networks with project id are specified",
 		},
 		{
 			name: "try to add the same network a couple of times",
@@ -1317,7 +1348,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			for wantNetworkID, wantNetwork := range tt.want {
 				require.Contains(t, got, wantNetworkID)
 				gotNetwork := got[wantNetworkID]
-				require.Equal(t, wantNetwork.isPrivate, gotNetwork.isPrivate)
+				require.Equal(t, wantNetwork.isPrimaryPrivate, gotNetwork.isPrimaryPrivate)
 				require.Equal(t, wantNetwork.auto, gotNetwork.auto)
 
 				var gotIPs []string

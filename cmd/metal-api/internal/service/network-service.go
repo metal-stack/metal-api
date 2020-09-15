@@ -411,20 +411,19 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		partitionID = *requestPayload.PartitionID
 	}
 
-	if projectID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectid should not be empty")) {
-			return
-		}
-	}
 	if partitionID == "" {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partitionid should not be empty")) {
 			return
 		}
 	}
 
-	project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	netProjectID := ""
+	if projectID != "" {
+		project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		netProjectID = project.GetProject().GetMeta().GetId()
 	}
 
 	partition, err := r.ds.FindPartition(partitionID)
@@ -445,7 +444,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 			Description: description,
 		},
 		PartitionID: partition.ID,
-		ProjectID:   project.GetProject().GetMeta().GetId(),
+		ProjectID:   netProjectID,
 		Labels:      requestPayload.Labels,
 	}
 
