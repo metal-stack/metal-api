@@ -24,6 +24,6 @@ type Common struct {
 }
 
 type Timestamps struct {
-	Created time.Time `json:"created" description:"the creation time of this entity" readOnly:"true"`
-	Changed time.Time `json:"changed" description:"the last changed timestamp of this entity" readOnly:"true"`
+	Created time.Time `json:"created" description:"the creation time of this entity" readOnly:"true" optional:"true"`
+	Changed time.Time `json:"changed" description:"the last changed timestamp of this entity" readOnly:"true" optional:"true"`
 }

@@ -8,13 +8,13 @@ import (
 
 // IPSearchQuery can be used to search networks.
 type IPSearchQuery struct {
-	IPAddress        *string  `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip"`
-	ParentPrefixCidr *string  `json:"networkprefix" description:"the prefix of the network this ip address belongs to"`
-	NetworkID        *string  `json:"networkid" description:"the network this ip allocate request address belongs to"`
-	Tags             []string `json:"tags" description:"the tags that are assigned to this ip address"`
-	ProjectID        *string  `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled"`
-	Type             *string  `json:"type" description:"the type of the ip address, ephemeral or static"`
-	MachineID        *string  `json:"machineid" description:"the machine an ip address is associated to"`
+	IPAddress        *string  `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" optional:"true"`
+	ParentPrefixCidr *string  `json:"networkprefix" description:"the prefix of the network this ip address belongs to" optional:"true"`
+	NetworkID        *string  `json:"networkid" description:"the network this ip allocate request address belongs to" optional:"true"`
+	Tags             []string `json:"tags" description:"the tags that are assigned to this ip address" optional:"true"`
+	ProjectID        *string  `json:"projectid" description:"the project this ip address belongs to, empty if not strong coupled" optional:"true"`
+	Type             *string  `json:"type" description:"the type of the ip address, ephemeral or static" optional:"true"`
+	MachineID        *string  `json:"machineid" description:"the machine an ip address is associated to" optional:"true"`
 }
 
 // GenerateTerm generates the project search query term.

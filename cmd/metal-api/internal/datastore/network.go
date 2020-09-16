@@ -10,18 +10,18 @@ import (
 
 // NetworkSearchQuery can be used to search networks.
 type NetworkSearchQuery struct {
-	ID                  *string           `json:"id"`
-	Name                *string           `json:"name"`
-	PartitionID         *string           `json:"partitionid"`
-	ProjectID           *string           `json:"projectid"`
-	Prefixes            []string          `json:"prefixes"`
-	DestinationPrefixes []string          `json:"destinationprefixes"`
-	Nat                 *bool             `json:"nat"`
-	PrivateSuper        *bool             `json:"privatesuper"`
-	Underlay            *bool             `json:"underlay"`
-	Vrf                 *int64            `json:"vrf"`
-	ParentNetworkID     *string           `json:"parentnetworkid"`
-	Labels              map[string]string `json:"labels"`
+	ID                  *string           `json:"id" optional:"true"`
+	Name                *string           `json:"name" optional:"true"`
+	PartitionID         *string           `json:"partitionid" optional:"true"`
+	ProjectID           *string           `json:"projectid" optional:"true"`
+	Prefixes            []string          `json:"prefixes" optional:"true"`
+	DestinationPrefixes []string          `json:"destinationprefixes" optional:"true"`
+	Nat                 *bool             `json:"nat" optional:"true"`
+	PrivateSuper        *bool             `json:"privatesuper" optional:"true"`
+	Underlay            *bool             `json:"underlay" optional:"true"`
+	Vrf                 *int64            `json:"vrf" optional:"true"`
+	ParentNetworkID     *string           `json:"parentnetworkid" optional:"true"`
+	Labels              map[string]string `json:"labels" optional:"true"`
 }
 
 // GenerateTerm generates the project search query term.

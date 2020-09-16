@@ -11,12 +11,12 @@ import (
 const RecentProvisioningEventsLimit = 5
 
 type MachineBase struct {
-	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true"`
-	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true"`
-	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true"`
+	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" optional:"true"`
+	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" optional:"true"`
+	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true" optional:"true"`
 	Hardware                 MachineHardware                 `json:"hardware" description:"the hardware of this machine"`
 	BIOS                     MachineBIOS                     `json:"bios" description:"bios information of this machine"`
-	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine"`
+	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine" optional:"true"`
 	State                    MachineState                    `json:"state" rethinkdb:"state" description:"the state of this machine"`
 	LEDState                 ChassisIdentifyLEDState         `json:"ledstate" rethinkdb:"ledstate" description:"the state of this chassis identify LED"`
 	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine"`
@@ -91,7 +91,7 @@ type ChassisIdentifyLEDState struct {
 type MachineBlockDevice struct {
 	Name       string                `json:"name" description:"the name of this block device"`
 	Size       uint64                `json:"size" description:"the size of this block device"`
-	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk"`
+	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk" optional:"true"`
 	Primary    bool                  `json:"primary" description:"whether this disk has the OS installed"`
 }
 
