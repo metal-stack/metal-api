@@ -1,9 +1,9 @@
 name: Build image from release tag
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types:
+      - published
 
 jobs:
   build:
