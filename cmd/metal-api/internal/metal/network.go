@@ -75,6 +75,7 @@ type Network struct {
 	PrivateSuper        bool              `rethinkdb:"privatesuper" json:"privatesuper"`
 	Nat                 bool              `rethinkdb:"nat" json:"nat"`
 	Underlay            bool              `rethinkdb:"underlay" json:"underlay"`
+	Shared              bool              `rethinkdb:"shared" json:"shared"`
 	Labels              map[string]string `rethinkdb:"labels" json:"labels"`
 }
 

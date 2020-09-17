@@ -410,20 +410,25 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	if requestPayload.PartitionID != nil {
 		partitionID = *requestPayload.PartitionID
 	}
+	shared := false
+	if requestPayload.Shared != nil {
+		shared = *requestPayload.Shared
+	}
 
+	if projectID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectid should not be empty")) {
+			return
+		}
+	}
 	if partitionID == "" {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partitionid should not be empty")) {
 			return
 		}
 	}
 
-	netProjectID := ""
-	if projectID != "" {
-		project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		netProjectID = project.GetProject().GetMeta().GetId()
+	project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
 	partition, err := r.ds.FindPartition(partitionID)
@@ -444,8 +449,9 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 			Description: description,
 		},
 		PartitionID: partition.ID,
-		ProjectID:   netProjectID,
+		ProjectID:   project.GetProject().GetMeta().GetId(),
 		Labels:      requestPayload.Labels,
+		Shared:      shared,
 	}
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
@@ -570,6 +576,9 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	}
 	if requestPayload.Labels != nil {
 		newNetwork.Labels = requestPayload.Labels
+	}
+	if requestPayload.Shared != nil {
+		newNetwork.Shared = *requestPayload.Shared
 	}
 
 	var prefixesToBeRemoved metal.Prefixes

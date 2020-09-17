@@ -400,7 +400,7 @@ var (
 		ProjectID:       "",
 		PrivateSuper:    false,
 		Nat:             false,
-		Underlay:        false,
+		Shared:          true,
 	}
 
 	Partition2ExistingPrivateNetwork = metal.Network{

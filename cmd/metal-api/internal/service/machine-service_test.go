@@ -1284,7 +1284,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "try to add machine to multiple private networks with project id",
+			name: "try to add machine to multiple private networks which are not shared",
 			allocationSpec: &machineAllocationSpec{
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
@@ -1298,7 +1298,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			partition:              &testdata.Partition1,
 			partitionSuperNetworks: partitionSuperNetworks,
 			wantErr:                true,
-			errRegex:               "multiple private networks with project id are specified",
+			errRegex:               "multiple private networks are specified but there must be only one primary private network that must not be shared",
 		},
 		{
 			name: "try to add the same network a couple of times",
