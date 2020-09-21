@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/pkg/errors"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh"
 
@@ -1039,12 +1040,12 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	}
 
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
-	asn, err := makeASN(networks)
+	asn, err := makeASN(ds, networks)
 	if err != nil {
 		return err
 	}
 	for _, n := range alloc.MachineNetworks {
-		n.ASN = asn
+		n.ASN = *asn
 	}
 
 	return nil
@@ -1263,19 +1264,19 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 
 // makeASN we can use the IP of the private network (which always have to be present and unique)
 // for generating a unique ASN.
-func makeASN(networks allocationNetworkMap) (int64, error) {
+func makeASN(ds *datastore.RethinkStore, networks allocationNetworkMap) (*uint32, error) {
 	privateNetwork, err := getPrivateNetwork(networks)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	if len(privateNetwork.ips) == 0 {
-		return 0, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
+		return nil, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
 	}
 
-	asn, err := privateNetwork.ips[0].ASN()
+	asn, err := datastore.AcquireASN(ds)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	return asn, nil
@@ -1340,7 +1341,7 @@ func makeMachineSystemLabels(m *metal.Machine) map[string]string {
 	for _, n := range m.Allocation.MachineNetworks {
 		if n.Private {
 			if n.ASN != 0 {
-				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(n.ASN, 10)
+				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(int64(n.ASN), 10)
 				break
 			}
 		}
