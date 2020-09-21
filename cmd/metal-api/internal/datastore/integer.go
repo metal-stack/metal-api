@@ -26,9 +26,12 @@ type Integerinfo struct {
 
 // initIntegerPool initializes a pool to acquire unique integers from.
 // the acquired integers are used from the network service for defining the:
+// one integer for:
 // - vrf name
 // - vni
 // - vxlan-id
+// and one integer for:
+// - asn-id offset added to 4210000000 (ASNBase)
 //
 // the integer range has a vxlan-id constraint from Cumulus:
 // 	net add vxlan vxlan10 vxlan id
@@ -36,6 +39,7 @@ type Integerinfo struct {
 //
 // in order not to impact performance too much, we limited the range of integers to 2^17=131072,
 // which includes the range that we typically used for vrf names in the past.
+// By this limitation we limit the number of machines possible to manage to ~130.000 !
 //
 // the implementation of the pool works as follows:
 // - write the given range of integers to the rethinkdb on first start (with the integer as the document id)
