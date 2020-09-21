@@ -1627,7 +1627,7 @@
       "properties": {
         "asn": {
           "description": "ASN number for this network in the bgp configuration",
-          "format": "int64",
+          "format": "integer",
           "type": "integer"
         },
         "destinationprefixes": {
