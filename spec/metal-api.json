@@ -3053,7 +3053,7 @@
       }
     },
     "/v1/firewall/find": {
-      "get": {
+      "post": {
         "consumes": [
           "application/json"
         ],
