@@ -84,9 +84,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
-
-			ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
-			rs.IntegerPools["vrf"] = &ip
+			ip := rs.IntegerPools["vrf"]
 
 			if tt.requiresMock {
 				if tt.err != nil {
@@ -114,8 +112,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 
 func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	rs, mock := InitMockDB()
-	ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
-	rs.IntegerPools["vrf"] = &ip
+	ip := rs.IntegerPools["vrf"]
 
 	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"name": "vrf", "id": float64(IntegerPoolRangeMin)}}}
 	mock.On(r.DB("mockdb").Table("integerpool").Get(map[string]interface{}{"name": "vrf"}).Limit(1).Delete(r.
@@ -152,8 +149,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
-			ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
-			rs.IntegerPools["vrf"] = &ip
+			ip := rs.IntegerPools["vrf"]
 
 			if tt.requiresMock {
 				changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"name": "vrf", "id": float64(
@@ -219,8 +215,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
-			ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
-			rs.IntegerPools["vrf"] = &ip
+			ip := rs.IntegerPools["vrf"]
 
 			term := rs.integerTable().Get(tt.value)
 			if tt.requiresMock {
