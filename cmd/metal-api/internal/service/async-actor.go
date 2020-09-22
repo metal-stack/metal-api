@@ -81,6 +81,7 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	if machine.Allocation == nil {
 		return nil
 	}
+	var asn uint32
 	for _, machineNetwork := range machine.Allocation.MachineNetworks {
 		if machineNetwork.IPs == nil {
 			continue
@@ -101,11 +102,15 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 				return err
 			}
 		}
+		// all machineNetworks have the same ASN, must only be released once
 		if machineNetwork.ASN > 0 {
-			err := a.ReleaseASN(machineNetwork.ASN)
-			if err != nil {
-				return err
-			}
+			asn = machineNetwork.ASN
+		}
+	}
+	if asn > 0 {
+		err := a.ReleaseASN(asn)
+		if err != nil {
+			return err
 		}
 	}
 
