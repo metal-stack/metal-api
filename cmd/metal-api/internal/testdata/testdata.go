@@ -790,7 +790,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
 		map[string]interface{}{"new_val": M3},
 	}, nil)
-	mock.On(r.DB("mockdb").Table("vrfpool").Get(r.MockAnything()).Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}}, nil)
+	mock.On(r.DB("mockdb").Table("integerpool").Get(r.MockAnything()).Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(12345)}}}}, nil)
 
 	// Default: Return Empty result
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything())).Return(EmptyResult, nil)

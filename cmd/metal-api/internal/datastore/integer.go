@@ -41,7 +41,7 @@ func (rs *RethinkStore) GetIntegerPool(name string) (*IntegerPool, error) {
 	return ip, nil
 }
 
-// NewIntegerPool initializes a pool to acquire unique integers from.
+// initIntegerPool initializes a pool to acquire unique integers from.
 // the acquired integers are used from the network service for defining the:
 // - vrf name
 // - vni
@@ -68,7 +68,7 @@ func (rs *RethinkStore) GetIntegerPool(name string) (*IntegerPool, error) {
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (rs *RethinkStore) NewIntegerPool(tablename string, min, max uint) (*IntegerPool, error) {
+func (rs *RethinkStore) initIntegerPool(tablename string, min, max uint) (*IntegerPool, error) {
 	var result integerinfo
 	err := rs.findEntityByID(rs.integerInfoTable(tablename), &result, tablename)
 	if err != nil {
@@ -83,6 +83,8 @@ func (rs *RethinkStore) NewIntegerPool(tablename string, min, max uint) (*Intege
 		max:       max,
 		rs:        rs,
 	}
+	rs.integerPools[tablename] = ip
+	rs.SugaredLogger.Infow("pool info", "table", tablename, "info", result)
 	if result.IsInitialized {
 		return ip, nil
 	}
@@ -93,7 +95,7 @@ func (rs *RethinkStore) NewIntegerPool(tablename string, min, max uint) (*Intege
 	if err != nil {
 		return nil, err
 	}
-	_, err = rs.integerInfoTable(tablename).Insert(map[string]interface{}{"IsInitialized": true}).RunWrite(rs.session)
+	_, err = rs.integerInfoTable(tablename).Insert(map[string]interface{}{"id": tablename, "IsInitialized": true}).RunWrite(rs.session)
 	return ip, err
 }
 

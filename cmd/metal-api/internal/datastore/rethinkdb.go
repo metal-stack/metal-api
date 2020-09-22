@@ -14,7 +14,8 @@ import (
 
 const (
 	// VRFIntegerPoolName defines the name of the pool for VRFs
-	VRFIntegerPoolName = "vrfpool"
+	// FIXME, must be renamed to vrfpool later
+	VRFIntegerPoolName = "integerpool"
 	// ASNIntegerPoolName defines the name of the pool for ASNs
 	ASNIntegerPoolName = "asnpool"
 )
@@ -80,13 +81,13 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 
 	err := multi(rs.session,
 		// rename old integerpool to vrfpool
-		// FIXME can be removed once migrated
-		db.TableList().Contains("integerpool").Do(func(r r.Term) r.Term {
-			return db.Table("integerpool").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName})
-		}),
-		db.TableList().Contains("integerpoolinfo").Do(func(r r.Term) r.Term {
-			return db.Table("integerpoolinfo").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName + "info"})
-		}),
+		// FIXME enable and remove once migrated
+		// db.TableList().Contains("integerpool").Do(func(r r.Term) r.Term {
+		// 	return db.Table("integerpool").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName})
+		// }),
+		// db.TableList().Contains("integerpoolinfo").Do(func(r r.Term) r.Term {
+		// 	return db.Table("integerpoolinfo").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName + "info"})
+		// }),
 		// create our tables
 		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
 			return db.TableCreate(r, opts)
@@ -101,7 +102,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	}
 
 	for _, pool := range integerPools {
-		ip, err := rs.NewIntegerPool(pool, IntegerPoolRangeMin, IntegerPoolRangeMax)
+		ip, err := rs.initIntegerPool(pool, IntegerPoolRangeMin, IntegerPoolRangeMax)
 		if err != nil {
 			return err
 		}
