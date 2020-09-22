@@ -118,7 +118,7 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	rs.IntegerPools["vrf"] = &ip
 
 	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"name": "vrf", "id": float64(IntegerPoolRangeMin)}}}
-	mock.On(r.DB("mockdb").Table("integerpool").Get(map[string]interface{}{"name": "vrf", "id": float64(IntegerPoolRangeMin)}).Limit(1).Delete(r.
+	mock.On(r.DB("mockdb").Table("integerpool").Get(map[string]interface{}{"name": "vrf"}).Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
 	got, err := ip.AcquireRandomUniqueInteger()
@@ -158,7 +158,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 			if tt.requiresMock {
 				changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"name": "vrf", "id": float64(
 					tt.value)}}}
-				mock.On(r.DB("mockdb").Table("integerpool").Get(map[string]interface{}{"name": "vrf", "id": tt.value}).Delete(r.
+				mock.On(r.DB("mockdb").Table("integerpool").Get(map[string]interface{}{"id": tt.value, "name": "vrf"}).Delete(r.
 					DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, tt.err)
 			}
 

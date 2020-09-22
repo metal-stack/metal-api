@@ -106,10 +106,7 @@ func (rs *RethinkStore) NewIntegerPool(name string, min, max uint32) (*IntegerPo
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
 func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint32, error) {
-	i := integer{
-		Name: ip.name,
-	}
-	t := ip.rs.integerTable().Get(i).Limit(1)
+	t := ip.rs.integerTable().Get(map[string]interface{}{"name": ip.name}).Limit(1)
 	return ip.genericAcquire(&t)
 }
 
