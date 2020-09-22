@@ -101,6 +101,12 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 				return err
 			}
 		}
+		if machineNetwork.ASN > 0 {
+			err := a.ReleaseASN(machineNetwork.ASN)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// it can happen that an IP gets properly allocated for a machine but
@@ -119,7 +125,6 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 			return err
 		}
 	}
-
 	return nil
 }
 

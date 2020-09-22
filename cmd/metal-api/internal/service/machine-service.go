@@ -1274,7 +1274,7 @@ func makeASN(ds *datastore.RethinkStore, networks allocationNetworkMap) (*uint32
 		return nil, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
 	}
 
-	asn, err := datastore.AcquireASN(ds)
+	asn, err := ds.AcquireASN()
 	if err != nil {
 		return nil, err
 	}

@@ -18,7 +18,7 @@ const (
 )
 
 // AcquireASN fetches a unique integer by using the existing integer pool and adding to ASNBase
-func AcquireASN(rs *RethinkStore) (*uint32, error) {
+func (rs *RethinkStore) AcquireASN() (*uint32, error) {
 
 	i, err := rs.AcquireRandomUniqueInteger()
 	if err != nil {
@@ -32,7 +32,7 @@ func AcquireASN(rs *RethinkStore) (*uint32, error) {
 }
 
 // ReleaseASN will release the asn from the integerpool
-func ReleaseASN(rs *RethinkStore, asn uint32) error {
+func (rs *RethinkStore) ReleaseASN(asn uint32) error {
 	if asn < ASNBase {
 		return fmt.Errorf("asn might not be smaller than:%d", ASNBase)
 	}
