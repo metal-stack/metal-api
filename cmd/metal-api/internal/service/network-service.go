@@ -336,7 +336,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 
 	if vrf != 0 {
-		vrfPool, err := r.ds.GetInterPool(datastore.VRFIntegerPoolName)
+		vrfPool, err := r.ds.GetIntegerPool(datastore.VRFIntegerPoolName)
 		if err != nil {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %v", err)) {
 				return
@@ -469,7 +469,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 }
 
 func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
-	vrfPool, err := ds.GetInterPool(datastore.VRFIntegerPoolName)
+	vrfPool, err := ds.GetIntegerPool(datastore.VRFIntegerPoolName)
 	if err != nil {
 		return nil, err
 	}
@@ -539,7 +539,7 @@ func (r networkResource) freeNetwork(request *restful.Request, response *restful
 		}
 	}
 
-	vrfPool, err := r.ds.GetInterPool(datastore.VRFIntegerPoolName)
+	vrfPool, err := r.ds.GetIntegerPool(datastore.VRFIntegerPoolName)
 	if err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
 			return
@@ -688,7 +688,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	vrfPool, err := r.ds.GetInterPool(datastore.VRFIntegerPoolName)
+	vrfPool, err := r.ds.GetIntegerPool(datastore.VRFIntegerPoolName)
 	if err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
 			return

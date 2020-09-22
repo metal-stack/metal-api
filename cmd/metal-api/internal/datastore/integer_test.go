@@ -117,8 +117,8 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
 	rs.IntegerPools["vrf"] = &ip
 
-	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(IntegerPoolRangeMin)}}}
-	mock.On(r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.
+	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"name": "vrf", "id": float64(IntegerPoolRangeMin)}}}
+	mock.On(r.DB("mockdb").Table("integerpool").Get(map[string]interface{}{"name": "vrf", "id": float64(IntegerPoolRangeMin)}).Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
 	got, err := ip.AcquireRandomUniqueInteger()

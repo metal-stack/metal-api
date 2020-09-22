@@ -36,8 +36,8 @@ type integerinfo struct {
 	IsInitialized bool   `rethinkdb:"isInitialized" json:"isInitialized"`
 }
 
-// GetInterPool returns a named integerpool if already created
-func (rs *RethinkStore) GetInterPool(name string) (*IntegerPool, error) {
+// GetIntegerPool returns a named integerpool if already created
+func (rs *RethinkStore) GetIntegerPool(name string) (*IntegerPool, error) {
 	ip, ok := rs.IntegerPools[name]
 	if !ok {
 		return nil, fmt.Errorf("no integerpool for %s created", name)
