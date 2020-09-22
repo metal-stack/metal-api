@@ -38,7 +38,7 @@ type RethinkStore struct {
 	dbuser       string
 	dbpass       string
 	dbhost       string
-	IntegerPools map[string]*IntegerPool
+	integerPools map[string]*IntegerPool
 }
 
 // New creates a new rethink store.
@@ -49,7 +49,7 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 		dbname:        dbname,
 		dbuser:        dbuser,
 		dbpass:        dbpass,
-		IntegerPools:  make(map[string]*IntegerPool),
+		integerPools:  make(map[string]*IntegerPool),
 	}
 }
 
@@ -98,7 +98,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		if err != nil {
 			return err
 		}
-		rs.IntegerPools[pool] = ip
+		rs.integerPools[pool] = ip
 	}
 	return nil
 }

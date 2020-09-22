@@ -34,7 +34,7 @@ type integerinfo struct {
 
 // GetIntegerPool returns a named integerpool if already created
 func (rs *RethinkStore) GetIntegerPool(name string) (*IntegerPool, error) {
-	ip, ok := rs.IntegerPools[name]
+	ip, ok := rs.integerPools[name]
 	if !ok {
 		return nil, fmt.Errorf("no integerpool for %s created", name)
 	}
