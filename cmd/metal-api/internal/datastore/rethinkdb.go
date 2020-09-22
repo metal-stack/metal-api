@@ -20,6 +20,7 @@ const (
 )
 
 var (
+	// FIXME move old integerpool/integerpoolinfo to vrfpool
 	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
 		VRFIntegerPoolName, VRFIntegerPoolName + "info",
 		ASNIntegerPoolName, ASNIntegerPoolName + "info"}
