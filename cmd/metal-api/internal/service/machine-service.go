@@ -1040,7 +1040,7 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	}
 
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
-	asn, err := makeASN(ds, networks)
+	asn, err := ds.AcquireASN()
 	if err != nil {
 		return err
 	}
@@ -1260,26 +1260,6 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	}
 
 	return &machineNetwork, nil
-}
-
-// makeASN we can use the IP of the private network (which always have to be present and unique)
-// for generating a unique ASN.
-func makeASN(ds *datastore.RethinkStore, networks allocationNetworkMap) (*uint32, error) {
-	privateNetwork, err := getPrivateNetwork(networks)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(privateNetwork.ips) == 0 {
-		return nil, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
-	}
-
-	asn, err := ds.AcquireASN()
-	if err != nil {
-		return nil, err
-	}
-
-	return asn, nil
 }
 
 // makeMachineTags constructs the tags of the machine.
