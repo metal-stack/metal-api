@@ -20,7 +20,6 @@ const (
 )
 
 var (
-	// FIXME move old integerpool/integerpoolinfo to vrfpool
 	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
 		VRFIntegerPoolName, VRFIntegerPoolName + "info",
 		ASNIntegerPoolName, ASNIntegerPoolName + "info"}
@@ -80,6 +79,14 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	db := rs.db()
 
 	err := multi(rs.session,
+		// rename old integerpool to vrfpool
+		// FIXME can be removed once migrated
+		db.TableList().Contains("integerpool").Do(func(r r.Term) r.Term {
+			return db.Table("integerpool").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName})
+		}),
+		db.TableList().Contains("integerpoolinfo").Do(func(r r.Term) r.Term {
+			return db.Table("integerpoolinfo").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName + "info"})
+		}),
 		// create our tables
 		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
 			return db.TableCreate(r, opts)
