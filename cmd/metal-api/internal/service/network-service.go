@@ -336,7 +336,13 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 
 	if vrf != 0 {
-		_, err := r.ds.AcquireUniqueInteger(vrf)
+		vrfPool, err := r.ds.GetIntegerPool(datastore.VRFIntegerPoolName)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %v", err)) {
+				return
+			}
+		}
+		_, err = vrfPool.AcquireUniqueInteger(vrf)
 		if err != nil {
 			if !metal.IsConflict(err) {
 				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %v", err)) {
@@ -463,7 +469,11 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 }
 
 func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
-	vrf, err := ds.AcquireRandomUniqueInteger()
+	vrfPool, err := ds.GetIntegerPool(datastore.VRFIntegerPoolName)
+	if err != nil {
+		return nil, err
+	}
+	vrf, err := vrfPool.AcquireRandomUniqueInteger()
 	if err != nil {
 		return nil, fmt.Errorf("Could not acquire a vrf: %v", err)
 	}
@@ -530,7 +540,13 @@ func (r networkResource) freeNetwork(request *restful.Request, response *restful
 	}
 
 	if nw.Vrf != 0 {
-		err = r.ds.ReleaseUniqueInteger(nw.Vrf)
+		vrfPool, err := r.ds.GetIntegerPool(datastore.VRFIntegerPoolName)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
+				return
+			}
+		}
+		err = vrfPool.ReleaseUniqueInteger(nw.Vrf)
 		if err != nil {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
 				return
@@ -673,7 +689,13 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 	}
 
 	if nw.Vrf != 0 {
-		err = r.ds.ReleaseUniqueInteger(nw.Vrf)
+		vrfPool, err := r.ds.GetIntegerPool(datastore.VRFIntegerPoolName)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
+				return
+			}
+		}
+		err = vrfPool.ReleaseUniqueInteger(nw.Vrf)
 		if err != nil {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
 				return

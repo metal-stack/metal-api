@@ -34,6 +34,10 @@ func InitMockDB() (*RethinkStore, *r.Mock) {
 		"db-password",
 	)
 	mock := rs.Mock()
+	vrfPool := IntegerPool{tablename: VRFIntegerPoolName, rs: rs, min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
+	asnPool := IntegerPool{tablename: ASNIntegerPoolName, rs: rs, min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
+	rs.IntegerPools[vrfPool.tablename] = &vrfPool
+	rs.IntegerPools[asnPool.tablename] = &asnPool
 	return rs, mock
 }
 

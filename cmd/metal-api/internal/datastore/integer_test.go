@@ -84,17 +84,19 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
+			ip, err := rs.GetIntegerPool(VRFIntegerPoolName)
+			assert.NoError(t, err)
 			if tt.requiresMock {
 				if tt.err != nil {
-					mock.On(r.DB("mockdb").Table("integerpool").Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(nil, tt.err)
+					mock.On(r.DB("mockdb").Table(ip.tablename).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(nil, tt.err)
 				} else {
-					mock.On(r.DB("mockdb").Table("integerpool").Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(r.
-						WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(
+					mock.On(r.DB("mockdb").Table(ip.tablename).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(r.
+						WriteResponse{Changes: []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
 						tt.value)}}}}, tt.err)
 				}
 			}
 
-			got := rs.ReleaseUniqueInteger(tt.value)
+			got := ip.ReleaseUniqueInteger(tt.value)
 			if tt.err != nil {
 				assert.EqualError(t, got, tt.err.Error())
 			} else {
@@ -110,11 +112,13 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 
 func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	rs, mock := InitMockDB()
-	changes := []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(IntegerPoolRangeMin)}}}
-	mock.On(r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.
+	ip, err := rs.GetIntegerPool(VRFIntegerPoolName)
+	assert.NoError(t, err)
+	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(IntegerPoolRangeMin)}}}
+	mock.On(r.DB("mockdb").Table(ip.tablename).Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
-	got, err := rs.AcquireRandomUniqueInteger()
+	got, err := ip.AcquireRandomUniqueInteger()
 	assert.NoError(t, err)
 	assert.EqualValues(t, IntegerPoolRangeMin, got)
 
@@ -145,14 +149,17 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
+			ip, err := rs.GetIntegerPool(VRFIntegerPoolName)
+			assert.NoError(t, err)
+
 			if tt.requiresMock {
-				changes := []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(
+				changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
 					tt.value)}}}
-				mock.On(r.DB("mockdb").Table("integerpool").Get(tt.value).Delete(r.
+				mock.On(r.DB("mockdb").Table(ip.tablename).Get(tt.value).Delete(r.
 					DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, tt.err)
 			}
 
-			got, err := rs.AcquireUniqueInteger(tt.value)
+			got, err := ip.AcquireUniqueInteger(tt.value)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -209,21 +216,24 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
-			term := rs.integerTable().Get(tt.value)
+			ip, err := rs.GetIntegerPool(VRFIntegerPoolName)
+			assert.NoError(t, err)
+
+			term := rs.integerTable(ip.tablename).Get(tt.value)
 			if tt.requiresMock {
 				var changes []r.ChangeResponse
 				if tt.tableChanges {
-					changes = []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(
+					changes = []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
 						tt.value)}}}
 				}
 				mock.On(term.Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes},
 					tt.runWriteErr)
 				if tt.requiresCountMock {
-					mock.On(rs.integerTable().Count()).Return(int64(0), nil)
+					mock.On(rs.integerTable(ip.tablename).Count()).Return(int64(0), nil)
 				}
 			}
 
-			got, err := rs.genericAcquire(&term)
+			got, err := ip.genericAcquire(&term)
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())
 			} else {

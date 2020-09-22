@@ -12,9 +12,18 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+const (
+	// VRFIntegerPoolName defines the name of the pool for VRFs
+	VRFIntegerPoolName = "vrfpool"
+	// ASNIntegerPoolName defines the name of the pool for ASNs
+	ASNIntegerPoolName = "asnpool"
+)
+
 var (
 	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
-		"integerpool", "integerpoolinfo"}
+		VRFIntegerPoolName, VRFIntegerPoolName + "info",
+		ASNIntegerPoolName, ASNIntegerPoolName + "info"}
+	integerPools = []string{VRFIntegerPoolName, ASNIntegerPoolName}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -24,10 +33,11 @@ type RethinkStore struct {
 	dbsession *r.Session
 	database  *r.Term
 
-	dbname string
-	dbuser string
-	dbpass string
-	dbhost string
+	dbname       string
+	dbuser       string
+	dbpass       string
+	dbhost       string
+	IntegerPools map[string]*IntegerPool
 }
 
 // New creates a new rethink store.
@@ -38,6 +48,7 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 		dbname:        dbname,
 		dbuser:        dbuser,
 		dbpass:        dbpass,
+		IntegerPools:  make(map[string]*IntegerPool),
 	}
 }
 
@@ -81,11 +92,13 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	err = rs.initIntegerPool()
-	if err != nil {
-		return err
+	for _, pool := range integerPools {
+		ip, err := rs.NewIntegerPool(pool, IntegerPoolRangeMin, IntegerPoolRangeMax)
+		if err != nil {
+			return err
+		}
+		rs.IntegerPools[pool] = ip
 	}
-
 	return nil
 }
 
@@ -121,12 +134,12 @@ func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
 	return &res
 }
-func (rs *RethinkStore) integerTable() *r.Term {
-	res := r.DB(rs.dbname).Table("integerpool")
+func (rs *RethinkStore) integerTable(tablename string) *r.Term {
+	res := r.DB(rs.dbname).Table(tablename)
 	return &res
 }
-func (rs *RethinkStore) integerInfoTable() *r.Term {
-	res := r.DB(rs.dbname).Table("integerpoolinfo")
+func (rs *RethinkStore) integerInfoTable(tablename string) *r.Term {
+	res := r.DB(rs.dbname).Table(tablename + "info")
 	return &res
 }
 func (rs *RethinkStore) db() *r.Term {
