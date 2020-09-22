@@ -18,26 +18,6 @@
         "statuscode"
       ]
     },
-    "metal.SwitchSync": {
-      "properties": {
-        "duration": {
-          "format": "integer",
-          "type": "integer"
-        },
-        "error": {
-          "type": "string"
-        },
-        "time": {
-          "format": "date-time",
-          "type": "string"
-        }
-      },
-      "required": [
-        "duration",
-        "error",
-        "time"
-      ]
-    },
     "rest.status": {
       "properties": {
         "message": {
@@ -2897,11 +2877,11 @@
           "uniqueItems": true
         },
         "last_sync": {
-          "$ref": "#/definitions/metal.SwitchSync",
+          "$ref": "#/definitions/v1.SwitchSync",
           "description": "last successful synchronization to the switch"
         },
         "last_sync_error": {
-          "$ref": "#/definitions/metal.SwitchSync",
+          "$ref": "#/definitions/v1.SwitchSync",
           "description": "last synchronization to the switch that was erroneous"
         },
         "mode": {
@@ -2931,11 +2911,31 @@
       "required": [
         "connections",
         "id",
-        "last_sync",
-        "last_sync_error",
         "nics",
         "partition",
         "rack_id"
+      ]
+    },
+    "v1.SwitchSync": {
+      "properties": {
+        "duration": {
+          "description": "the duration that lat switch sync took",
+          "format": "integer",
+          "type": "integer"
+        },
+        "error": {
+          "description": "shows the error occurred during the sync",
+          "type": "string"
+        },
+        "time": {
+          "description": "point in time when the last switch sync happened",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration",
+        "time"
       ]
     },
     "v1.SwitchUpdateRequest": {
