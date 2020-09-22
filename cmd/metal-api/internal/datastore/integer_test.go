@@ -15,8 +15,8 @@ import (
 
 func Test_makeRange(t *testing.T) {
 	type args struct {
-		min uint
-		max uint
+		min uint32
+		max uint32
 	}
 	tests := []struct {
 		name string
@@ -26,12 +26,12 @@ func Test_makeRange(t *testing.T) {
 		{
 			name: "verify minimum range 1-1",
 			args: args{min: 1, max: 1},
-			want: []integer{{1}},
+			want: []integer{{"vrf", 1}},
 		},
 		{
 			name: "verify range 1-5",
 			args: args{min: 1, max: 5},
-			want: []integer{{1}, {2}, {3}, {4}, {5}},
+			want: []integer{{"vrf", 1}, {"vrf", 2}, {"vrf", 3}, {"vrf", 4}, {"vrf", 5}},
 		},
 		{
 			name: "verify empty range on max less than min",
@@ -41,12 +41,12 @@ func Test_makeRange(t *testing.T) {
 		{
 			name: "verify zero result",
 			args: args{min: 0, max: 0},
-			want: []integer{{0}},
+			want: []integer{{"vrf", 0}},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := makeRange(tt.args.min, tt.args.max); !reflect.DeepEqual(got, tt.want) {
+			if got := makeRange("vrf", tt.args.min, tt.args.max); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeRange() = %v, want %v", got, tt.want)
 			}
 		})
@@ -57,7 +57,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		value        uint
+		value        uint32
 		err          error
 		requiresMock bool
 	}{
@@ -84,17 +84,21 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
+
+			ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
+			rs.IntegerPools["vrf"] = &ip
+
 			if tt.requiresMock {
 				if tt.err != nil {
-					mock.On(r.DB("mockdb").Table("integerpool").Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(nil, tt.err)
+					mock.On(r.DB("mockdb").Table("integerpool").Insert(integer{Name: "vrf", ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(nil, tt.err)
 				} else {
-					mock.On(r.DB("mockdb").Table("integerpool").Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(r.
-						WriteResponse{Changes: []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(
+					mock.On(r.DB("mockdb").Table("integerpool").Insert(integer{Name: "vrf", ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(r.
+						WriteResponse{Changes: []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
 						tt.value)}}}}, tt.err)
 				}
 			}
 
-			got := rs.ReleaseUniqueInteger(tt.value)
+			got := ip.ReleaseUniqueInteger(tt.value)
 			if tt.err != nil {
 				assert.EqualError(t, got, tt.err.Error())
 			} else {
@@ -110,11 +114,14 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 
 func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	rs, mock := InitMockDB()
-	changes := []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(IntegerPoolRangeMin)}}}
+	ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
+	rs.IntegerPools["vrf"] = &ip
+
+	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(IntegerPoolRangeMin)}}}
 	mock.On(r.DB("mockdb").Table("integerpool").Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
-	got, err := rs.AcquireRandomUniqueInteger()
+	got, err := ip.AcquireRandomUniqueInteger()
 	assert.NoError(t, err)
 	assert.EqualValues(t, IntegerPoolRangeMin, got)
 
@@ -124,7 +131,7 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 	tests := []struct {
 		name         string
-		value        uint
+		value        uint32
 		err          error
 		requiresMock bool
 	}{
@@ -145,14 +152,17 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
+			ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
+			rs.IntegerPools["vrf"] = &ip
+
 			if tt.requiresMock {
-				changes := []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(
+				changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"name": "vrf", "id": float64(
 					tt.value)}}}
-				mock.On(r.DB("mockdb").Table("integerpool").Get(tt.value).Delete(r.
+				mock.On(r.DB("mockdb").Table("integerpool").Get(map[string]interface{}{"name": "vrf", "id": tt.value}).Delete(r.
 					DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, tt.err)
 			}
 
-			got, err := rs.AcquireUniqueInteger(tt.value)
+			got, err := ip.AcquireUniqueInteger(tt.value)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -170,7 +180,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 func TestRethinkStore_genericAcquire(t *testing.T) {
 	tests := []struct {
 		name              string
-		value             uint
+		value             uint32
 		runWriteErr       error
 		expectedErr       error
 		requiresMock      bool
@@ -209,11 +219,14 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
+			ip := IntegerPool{rs: rs, name: "vrf", min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
+			rs.IntegerPools["vrf"] = &ip
+
 			term := rs.integerTable().Get(tt.value)
 			if tt.requiresMock {
 				var changes []r.ChangeResponse
 				if tt.tableChanges {
-					changes = []r.ChangeResponse{r.ChangeResponse{OldValue: map[string]interface{}{"id": float64(
+					changes = []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
 						tt.value)}}}
 				}
 				mock.On(term.Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes},
@@ -223,7 +236,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 				}
 			}
 
-			got, err := rs.genericAcquire(&term)
+			got, err := ip.genericAcquire(&term)
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())
 			} else {

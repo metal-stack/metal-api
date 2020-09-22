@@ -10,21 +10,42 @@ import (
 
 var (
 	// IntegerPoolRangeMin the minimum integer to get from the pool
-	IntegerPoolRangeMin = uint(1)
+	IntegerPoolRangeMin = uint32(1)
 	// IntegerPoolRangeMax the maximum integer to get from the pool
-	IntegerPoolRangeMax = uint(131072)
+	IntegerPoolRangeMax = uint32(131072)
 )
 
+// IntegerPool defines a pool if integers for unique integer acquisition per use case e.g. name
+type IntegerPool struct {
+	name string
+	min  uint32
+	max  uint32
+	rs   *RethinkStore
+}
+
 type integer struct {
-	ID uint `rethinkdb:"id" json:"id"`
+	// TODO: howto migrate to new Schema
+	Name string `rethinkdb:"name" json:"name"`
+	ID   uint32 `rethinkdb:"id" json:"id"`
 }
 
 // Integerinfo contains information on the integer pool.
-type Integerinfo struct {
-	IsInitialized bool `rethinkdb:"isInitialized" json:"isInitialized"`
+type integerinfo struct {
+	// TODO: howto migrate to new Schema
+	Name          string `rethinkdb:"name" json:"name"`
+	IsInitialized bool   `rethinkdb:"isInitialized" json:"isInitialized"`
 }
 
-// initIntegerPool initializes a pool to acquire unique integers from.
+// GetInterPool returns a named integerpool if already created
+func (rs *RethinkStore) GetInterPool(name string) (*IntegerPool, error) {
+	ip, ok := rs.IntegerPools[name]
+	if !ok {
+		return nil, fmt.Errorf("no integerpool for %s created", name)
+	}
+	return ip, nil
+}
+
+// NewIntegerPool initializes a pool to acquire unique integers from.
 // the acquired integers are used from the network service for defining the:
 // - vrf name
 // - vni
@@ -51,57 +72,73 @@ type Integerinfo struct {
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (rs *RethinkStore) initIntegerPool() error {
-
-	var result Integerinfo
+func (rs *RethinkStore) NewIntegerPool(name string, min, max uint32) (*IntegerPool, error) {
+	var result []integerinfo
+	// Search by name also
 	err := rs.findEntityByID(rs.integerInfoTable(), &result, "integerpool")
 	if err != nil {
 		if !metal.IsNotFound(err) {
-			return err
+			return nil, err
 		}
 	}
 
-	if result.IsInitialized {
-		return nil
+	ip := &IntegerPool{
+		name: name,
+		min:  min,
+		max:  max,
+		rs:   rs,
+	}
+	for _, r := range result {
+		if r.Name == name && r.IsInitialized {
+			return ip, nil
+		}
 	}
 
-	rs.SugaredLogger.Infow("Initializing integer pool", "RangeMin", IntegerPoolRangeMin, "RangeMax", IntegerPoolRangeMax)
-	intRange := makeRange(IntegerPoolRangeMin, IntegerPoolRangeMax)
-	_, err = rs.integerTable().Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: IntegerPoolRangeMax})
+	rs.SugaredLogger.Infow("Initializing integer pool", "RangeMin", min, "RangeMax", max)
+	intRange := makeRange(name, min, max)
+	_, err = rs.integerTable().Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: max})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = rs.integerInfoTable().Insert(map[string]interface{}{"id": "integerpool", "IsInitialized": true}).RunWrite(rs.session)
-	return err
+	_, err = rs.integerInfoTable().Insert(map[string]interface{}{"name": name, "id": "integerpool", "IsInitialized": true}).RunWrite(rs.session)
+	return ip, err
 }
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
-func (rs *RethinkStore) AcquireRandomUniqueInteger() (uint, error) {
-	t := rs.integerTable().Limit(1)
-	return rs.genericAcquire(&t)
+func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint32, error) {
+	i := integer{
+		Name: ip.name,
+	}
+	t := ip.rs.integerTable().Get(i).Limit(1)
+	return ip.genericAcquire(&t)
 }
 
 // AcquireUniqueInteger returns a unique integer from the pool.
-func (rs *RethinkStore) AcquireUniqueInteger(value uint) (uint, error) {
-	err := verifyRange(value)
+func (ip *IntegerPool) AcquireUniqueInteger(value uint32) (uint32, error) {
+	err := ip.verifyRange(value)
 	if err != nil {
 		return 0, err
 	}
-	t := rs.integerTable().Get(value)
-	return rs.genericAcquire(&t)
+	i := integer{
+		Name: ip.name,
+		ID:   value,
+	}
+	t := ip.rs.integerTable().Get(i)
+	return ip.genericAcquire(&t)
 }
 
 // ReleaseUniqueInteger returns a unique integer to the pool.
-func (rs *RethinkStore) ReleaseUniqueInteger(id uint) error {
-	err := verifyRange(id)
+func (ip *IntegerPool) ReleaseUniqueInteger(id uint32) error {
+	err := ip.verifyRange(id)
 	if err != nil {
 		return err
 	}
 
 	i := integer{
-		ID: id,
+		Name: ip.name,
+		ID:   id,
 	}
-	_, err = rs.integerTable().Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(rs.session)
+	_, err = ip.rs.integerTable().Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(ip.rs.session)
 	if err != nil {
 		return err
 	}
@@ -109,14 +146,14 @@ func (rs *RethinkStore) ReleaseUniqueInteger(id uint) error {
 	return nil
 }
 
-func (rs *RethinkStore) genericAcquire(term *r.Term) (uint, error) {
-	res, err := term.Delete(r.DeleteOpts{ReturnChanges: true}).RunWrite(rs.session)
+func (ip *IntegerPool) genericAcquire(term *r.Term) (uint32, error) {
+	res, err := term.Delete(r.DeleteOpts{ReturnChanges: true}).RunWrite(ip.rs.session)
 	if err != nil {
 		return 0, err
 	}
 
 	if len(res.Changes) == 0 {
-		res, err := rs.integerTable().Count().Run(rs.session)
+		res, err := ip.rs.integerTable().Count().Run(ip.rs.session)
 		if err != nil {
 			return 0, err
 		}
@@ -128,28 +165,28 @@ func (rs *RethinkStore) genericAcquire(term *r.Term) (uint, error) {
 
 		if count <= 0 {
 			return 0, metal.Internal(fmt.Errorf("acquisition of a value failed for exhausted pool"), "")
-		} else {
-			return 0, metal.Conflict("integer is already acquired by another")
 		}
+		return 0, metal.Conflict("integer is already acquired by another")
 	}
 
-	result := uint(res.Changes[0].OldValue.(map[string]interface{})["id"].(float64))
+	result := uint32(res.Changes[0].OldValue.(map[string]interface{})["id"].(float64))
 	return result, nil
 }
 
-func makeRange(min, max uint) []integer {
+func makeRange(name string, min, max uint32) []integer {
 	a := make([]integer, max-min+1)
 	for i := range a {
 		a[i] = integer{
-			ID: min + uint(i),
+			Name: name,
+			ID:   min + uint32(i),
 		}
 	}
 	return a
 }
 
-func verifyRange(value uint) error {
-	if value < IntegerPoolRangeMin || value > IntegerPoolRangeMax {
-		return fmt.Errorf("value '%d' is outside of the allowed range '%d - %d'", value, IntegerPoolRangeMin, IntegerPoolRangeMax)
+func (ip *IntegerPool) verifyRange(value uint32) error {
+	if value < ip.min || value > ip.max {
+		return fmt.Errorf("value '%d' is outside of the allowed range '%d - %d'", value, ip.min, ip.max)
 	}
 	return nil
 }
