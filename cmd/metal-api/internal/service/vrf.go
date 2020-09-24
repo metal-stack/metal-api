@@ -10,7 +10,7 @@ import (
 func acquireRandomVRF(ds *datastore.RethinkStore) (*uint, error) {
 	vrfPool, err := ds.GetIntegerPool(datastore.VRFIntegerPool)
 	if err != nil {
-		return nil, fmt.Errorf("could not acquire vrf: %v", err)
+		return nil, fmt.Errorf("could not acquire random vrf: %v", err)
 	}
 	vrf, err := vrfPool.AcquireRandomUniqueInteger()
 	return &vrf, err
@@ -20,7 +20,7 @@ func acquireRandomVRF(ds *datastore.RethinkStore) (*uint, error) {
 func acquireVRF(ds *datastore.RethinkStore, vrf uint) error {
 	vrfPool, err := ds.GetIntegerPool(datastore.VRFIntegerPool)
 	if err != nil {
-		return fmt.Errorf("could not acquire vrf: %v", err)
+		return fmt.Errorf("could not acquire vrf:%d %v", vrf, err)
 	}
 	_, err = vrfPool.AcquireUniqueInteger(vrf)
 	return err
@@ -30,7 +30,7 @@ func acquireVRF(ds *datastore.RethinkStore, vrf uint) error {
 func releaseVRF(ds *datastore.RethinkStore, vrf uint) error {
 	vrfPool, err := ds.GetIntegerPool(datastore.VRFIntegerPool)
 	if err != nil {
-		return fmt.Errorf("could not acquire vrf: %v", err)
+		return fmt.Errorf("could not release vrf: %v", err)
 	}
 	return vrfPool.ReleaseUniqueInteger(vrf)
 }
