@@ -19,8 +19,11 @@ const (
 
 // AcquireASN fetches a unique integer by using the existing integer pool and adding to ASNBase
 func (rs *RethinkStore) AcquireASN() (*uint32, error) {
-
-	i, err := rs.AcquireRandomUniqueInteger()
+	asnPool, err := rs.GetIntegerPool(ASNIntegerPool)
+	if err != nil {
+		return nil, err
+	}
+	i, err := asnPool.AcquireRandomUniqueInteger()
 	if err != nil {
 		return nil, err
 	}
@@ -38,5 +41,9 @@ func (rs *RethinkStore) ReleaseASN(asn uint32) error {
 	}
 	i := uint(asn - ASNBase)
 
-	return rs.ReleaseUniqueInteger(i)
+	asnPool, err := rs.GetIntegerPool(ASNIntegerPool)
+	if err != nil {
+		return err
+	}
+	return asnPool.ReleaseUniqueInteger(i)
 }
