@@ -75,10 +75,6 @@ func (rs *RethinkStore) GetIntegerPool(pool IntegerPoolType) (*IntegerPool, erro
 // 	net add vxlan vxlan10 vxlan id
 //  <1-16777214>  :  An integer from 1 to 16777214
 //
-// FIXME Gerrit:
-// Aus dem Pool zieht man aber nicht die 4.000.000.000 raus.
-// Ist halt theoretisch möglich wie bei dem VRF 104009.
-// Man möchte 104010 einführen in seiner Infrastruktur und möglicherweise hat eine ASN dann diese ID herausgezogen und kein VRF. Weiß nicht, ob das so schlimm ist.^^
 // in order not to impact performance too much, we limited the range of integers to 2^17=131072,
 // which includes the range that we typically used for vrf names in the past.
 // By this limitation we limit the number of machines possible to manage to ~130.000 !

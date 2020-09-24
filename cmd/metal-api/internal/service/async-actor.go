@@ -103,6 +103,8 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 			}
 		}
 		// all machineNetworks have the same ASN, must only be released once
+		// in the old way asn was in the range of 4200000000 + offset from last two octets of private ip
+		// but we must only release asn which are acquired from 4210000000 and above from the ASNIntegerPool
 		if machineNetwork.ASN >= ASNBase {
 			asn = machineNetwork.ASN
 		}

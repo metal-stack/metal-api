@@ -51,11 +51,12 @@ type BootInfo struct {
 }
 
 type MachineNetwork struct {
-	NetworkID           string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
-	Prefixes            []string `json:"prefixes" description:"the prefixes of this network"`
-	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
-	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
-	ASN                 uint32   `json:"asn" description:"ASN number for this network in the bgp configuration"`
+	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
+	Prefixes  []string `json:"prefixes" description:"the prefixes of this network"`
+	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
+	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
+	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
+	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
 	Private             bool     `json:"private" description:"indicates whether this network is the private network of this machine"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
@@ -410,7 +411,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				NetworkID:           nw.NetworkID,
 				IPs:                 ips,
 				Vrf:                 nw.Vrf,
-				ASN:                 nw.ASN,
+				ASN:                 int64(nw.ASN),
 				Private:             nw.Private,
 				Nat:                 nw.Nat,
 				Underlay:            nw.Underlay,
