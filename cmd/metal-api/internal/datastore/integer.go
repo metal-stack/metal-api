@@ -8,6 +8,22 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+// IntegerPoolType defines the name of the IntegerPool
+type IntegerPoolType string
+
+func (p IntegerPoolType) String() string {
+	return string(p)
+}
+
+const (
+	// VRFIntegerPool defines the name of the pool for VRFs
+	// this also defines the name of the tables
+	// FIXME, must be renamed to vrfpool later
+	VRFIntegerPool IntegerPoolType = "integerpool"
+	// ASNIntegerPool defines the name of the pool for ASNs
+	ASNIntegerPool IntegerPoolType = "asnpool"
+)
+
 var (
 	// VRFPoolRangeMin the minimum integer to get from the vrf pool
 	VRFPoolRangeMin = uint(1)
@@ -37,10 +53,10 @@ type integerinfo struct {
 }
 
 // GetIntegerPool returns a named integerpool if already created
-func (rs *RethinkStore) GetIntegerPool(name string) (*IntegerPool, error) {
-	ip, ok := rs.integerPools[name]
+func (rs *RethinkStore) GetIntegerPool(pool IntegerPoolType) (*IntegerPool, error) {
+	ip, ok := rs.integerPools[pool]
 	if !ok {
-		return nil, fmt.Errorf("no integerpool for %s created", name)
+		return nil, fmt.Errorf("no integerpool for %s created", pool)
 	}
 	return ip, nil
 }
@@ -72,8 +88,9 @@ func (rs *RethinkStore) GetIntegerPool(name string) (*IntegerPool, error) {
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (rs *RethinkStore) initIntegerPool(tablename string, min, max uint) (*IntegerPool, error) {
+func (rs *RethinkStore) initIntegerPool(pool IntegerPoolType, min, max uint) (*IntegerPool, error) {
 	var result integerinfo
+	tablename := pool.String()
 	err := rs.findEntityByID(rs.integerInfoTable(tablename), &result, tablename)
 	if err != nil {
 		if !metal.IsNotFound(err) {
@@ -87,7 +104,7 @@ func (rs *RethinkStore) initIntegerPool(tablename string, min, max uint) (*Integ
 		max:       max,
 		rs:        rs,
 	}
-	rs.integerPools[tablename] = ip
+	rs.integerPools[pool] = ip
 	rs.SugaredLogger.Infow("pool info", "table", tablename, "info", result)
 	if result.IsInitialized {
 		return ip, nil

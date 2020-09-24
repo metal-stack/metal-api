@@ -12,18 +12,10 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
-const (
-	// VRFIntegerPoolName defines the name of the pool for VRFs
-	// FIXME, must be renamed to vrfpool later
-	VRFIntegerPoolName = "integerpool"
-	// ASNIntegerPoolName defines the name of the pool for ASNs
-	ASNIntegerPoolName = "asnpool"
-)
-
 var (
 	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
-		VRFIntegerPoolName, VRFIntegerPoolName + "info",
-		ASNIntegerPoolName, ASNIntegerPoolName + "info"}
+		VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
+		ASNIntegerPool.String(), ASNIntegerPool.String() + "info"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -37,7 +29,7 @@ type RethinkStore struct {
 	dbuser       string
 	dbpass       string
 	dbhost       string
-	integerPools map[string]*IntegerPool
+	integerPools map[IntegerPoolType]*IntegerPool
 }
 
 // New creates a new rethink store.
@@ -48,7 +40,7 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 		dbname:        dbname,
 		dbuser:        dbuser,
 		dbpass:        dbpass,
-		integerPools:  make(map[string]*IntegerPool),
+		integerPools:  make(map[IntegerPoolType]*IntegerPool),
 	}
 }
 
@@ -100,17 +92,17 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	vrfPool, err := rs.initIntegerPool(VRFIntegerPoolName, VRFPoolRangeMin, VRFPoolRangeMax)
+	vrfPool, err := rs.initIntegerPool(VRFIntegerPool, VRFPoolRangeMin, VRFPoolRangeMax)
 	if err != nil {
 		return err
 	}
-	rs.integerPools[VRFIntegerPoolName] = vrfPool
+	rs.integerPools[VRFIntegerPool] = vrfPool
 
-	asnPool, err := rs.initIntegerPool(ASNIntegerPoolName, ASNPoolRangeMin, ASNPoolRangeMax)
+	asnPool, err := rs.initIntegerPool(ASNIntegerPool, ASNPoolRangeMin, ASNPoolRangeMax)
 	if err != nil {
 		return err
 	}
-	rs.integerPools[ASNIntegerPoolName] = asnPool
+	rs.integerPools[ASNIntegerPool] = asnPool
 
 	return nil
 }

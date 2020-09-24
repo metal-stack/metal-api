@@ -17,7 +17,7 @@ var (
 		dbname:        "dbname",
 		dbuser:        "dbuser",
 		dbpass:        "password",
-		integerPools:  make(map[string]*IntegerPool),
+		integerPools:  make(map[IntegerPoolType]*IntegerPool),
 	}
 )
 
