@@ -33,8 +33,8 @@ func (rs *RethinkStore) AcquireASN() (*uint32, error) {
 
 // ReleaseASN will release the asn from the integerpool
 func (rs *RethinkStore) ReleaseASN(asn uint32) error {
-	if asn < ASNBase {
-		return fmt.Errorf("asn might not be smaller than:%d", ASNBase)
+	if asn < ASNBase || asn > ASNMax {
+		return fmt.Errorf("asn %d might not be smaller than:%d or larger than %d", asn, ASNBase, ASNMax)
 	}
 	i := uint(asn - ASNBase)
 

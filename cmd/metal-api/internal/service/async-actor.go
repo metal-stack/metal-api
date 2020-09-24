@@ -103,11 +103,11 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 			}
 		}
 		// all machineNetworks have the same ASN, must only be released once
-		if machineNetwork.ASN > 0 {
+		if machineNetwork.ASN >= datastore.ASNBase {
 			asn = machineNetwork.ASN
 		}
 	}
-	if asn > 0 {
+	if asn >= datastore.ASNBase {
 		err := a.ReleaseASN(asn)
 		if err != nil {
 			return err
