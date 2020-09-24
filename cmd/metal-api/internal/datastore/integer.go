@@ -40,7 +40,8 @@ type IntegerPool struct {
 	tablename string
 	min       uint
 	max       uint
-	rs        *RethinkStore
+	term      *r.Term
+	session   r.QueryExecutor
 }
 
 type integer struct {
@@ -102,7 +103,8 @@ func (rs *RethinkStore) initIntegerPool(pool IntegerPoolType, min, max uint) (*I
 		tablename: tablename,
 		min:       min,
 		max:       max,
-		rs:        rs,
+		session:   rs.session,
+		term:      rs.integerTable(tablename),
 	}
 	rs.integerPools[pool] = ip
 	rs.SugaredLogger.Infow("pool info", "table", tablename, "info", result)
@@ -122,7 +124,7 @@ func (rs *RethinkStore) initIntegerPool(pool IntegerPoolType, min, max uint) (*I
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
 func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
-	t := ip.rs.integerTable(ip.tablename).Limit(1)
+	t := ip.term.Limit(1)
 	return ip.genericAcquire(&t)
 }
 
@@ -132,7 +134,7 @@ func (ip *IntegerPool) AcquireUniqueInteger(value uint) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	t := ip.rs.integerTable(ip.tablename).Get(value)
+	t := ip.term.Get(value)
 	return ip.genericAcquire(&t)
 }
 
@@ -146,7 +148,7 @@ func (ip *IntegerPool) ReleaseUniqueInteger(id uint) error {
 	i := integer{
 		ID: id,
 	}
-	_, err = ip.rs.integerTable(ip.tablename).Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(ip.rs.session)
+	_, err = ip.term.Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(ip.session)
 	if err != nil {
 		return err
 	}
@@ -155,13 +157,13 @@ func (ip *IntegerPool) ReleaseUniqueInteger(id uint) error {
 }
 
 func (ip *IntegerPool) genericAcquire(term *r.Term) (uint, error) {
-	res, err := term.Delete(r.DeleteOpts{ReturnChanges: true}).RunWrite(ip.rs.session)
+	res, err := term.Delete(r.DeleteOpts{ReturnChanges: true}).RunWrite(ip.session)
 	if err != nil {
 		return 0, err
 	}
 
 	if len(res.Changes) == 0 {
-		res, err := ip.rs.integerTable(ip.tablename).Count().Run(ip.rs.session)
+		res, err := ip.term.Count().Run(ip.session)
 		if err != nil {
 			return 0, err
 		}
