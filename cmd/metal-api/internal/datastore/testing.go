@@ -34,8 +34,8 @@ func InitMockDB() (*RethinkStore, *r.Mock) {
 		"db-password",
 	)
 	mock := rs.Mock()
-	vrfPool := IntegerPool{tablename: VRFIntegerPoolName, rs: rs, min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
-	asnPool := IntegerPool{tablename: ASNIntegerPoolName, rs: rs, min: IntegerPoolRangeMin, max: IntegerPoolRangeMax}
+	vrfPool := IntegerPool{tablename: VRFIntegerPoolName, rs: rs, min: VRFPoolRangeMin, max: VRFPoolRangeMax}
+	asnPool := IntegerPool{tablename: ASNIntegerPoolName, rs: rs, min: VRFPoolRangeMin, max: VRFPoolRangeMax}
 	rs.integerPools[vrfPool.tablename] = &vrfPool
 	rs.integerPools[asnPool.tablename] = &asnPool
 	return rs, mock
@@ -65,8 +65,8 @@ func InitTestDB(t *testing.T) (*RethinkStore, testcontainers.Container, context.
 		dbuser:        "",
 		dbpass:        "",
 	}
-	IntegerPoolRangeMin = 10000
-	IntegerPoolRangeMax = 10010
+	VRFPoolRangeMin = 10000
+	VRFPoolRangeMax = 10010
 	err = rs.Connect()
 	assert.NoError(t, err)
 	return rs, c, ctx

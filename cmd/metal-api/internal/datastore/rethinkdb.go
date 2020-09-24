@@ -24,7 +24,6 @@ var (
 	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
 		VRFIntegerPoolName, VRFIntegerPoolName + "info",
 		ASNIntegerPoolName, ASNIntegerPoolName + "info"}
-	integerPools = []string{VRFIntegerPoolName, ASNIntegerPoolName}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -101,13 +100,18 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	for _, pool := range integerPools {
-		ip, err := rs.initIntegerPool(pool, IntegerPoolRangeMin, IntegerPoolRangeMax)
-		if err != nil {
-			return err
-		}
-		rs.integerPools[pool] = ip
+	vrfPool, err := rs.initIntegerPool(VRFIntegerPoolName, VRFPoolRangeMin, VRFPoolRangeMax)
+	if err != nil {
+		return err
 	}
+	rs.integerPools[VRFIntegerPoolName] = vrfPool
+
+	asnPool, err := rs.initIntegerPool(ASNIntegerPoolName, ASNPoolRangeMin, ASNPoolRangeMax)
+	if err != nil {
+		return err
+	}
+	rs.integerPools[ASNIntegerPoolName] = asnPool
+
 	return nil
 }
 

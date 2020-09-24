@@ -9,10 +9,14 @@ import (
 )
 
 var (
-	// IntegerPoolRangeMin the minimum integer to get from the pool
-	IntegerPoolRangeMin = uint(1)
-	// IntegerPoolRangeMax the maximum integer to get from the pool
-	IntegerPoolRangeMax = uint(131072)
+	// VRFPoolRangeMin the minimum integer to get from the vrf pool
+	VRFPoolRangeMin = uint(1)
+	// VRFPoolRangeMax the maximum integer to get from the vrf pool
+	VRFPoolRangeMax = uint(131072)
+	// ASNPoolRangeMin the minimum integer to get from the asn pool
+	ASNPoolRangeMin = uint(1)
+	// ASNPoolRangeMax the maximum integer to get from the asn pool
+	ASNPoolRangeMax = uint(131072)
 )
 
 // IntegerPool manages unique integers

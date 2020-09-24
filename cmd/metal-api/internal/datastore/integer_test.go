@@ -76,7 +76,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 		{
 			name:         "verify validation of input fails",
 			value:        524288,
-			err:          fmt.Errorf("value '524288' is outside of the allowed range '%d - %d'", IntegerPoolRangeMin, IntegerPoolRangeMax),
+			err:          fmt.Errorf("value '524288' is outside of the allowed range '%d - %d'", VRFPoolRangeMin, VRFPoolRangeMax),
 			requiresMock: false,
 		},
 	}
@@ -114,13 +114,13 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	rs, mock := InitMockDB()
 	ip, err := rs.GetIntegerPool(VRFIntegerPoolName)
 	assert.NoError(t, err)
-	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(IntegerPoolRangeMin)}}}
+	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(VRFPoolRangeMin)}}}
 	mock.On(r.DB("mockdb").Table(ip.tablename).Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
 	got, err := ip.AcquireRandomUniqueInteger()
 	assert.NoError(t, err)
-	assert.EqualValues(t, IntegerPoolRangeMin, got)
+	assert.EqualValues(t, VRFPoolRangeMin, got)
 
 	mock.AssertExpectations(t)
 }
@@ -141,7 +141,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 		{
 			name:         "verify validation of input fails",
 			value:        524288,
-			err:          fmt.Errorf("value '524288' is outside of the allowed range '%d - %d'", IntegerPoolRangeMin, IntegerPoolRangeMax),
+			err:          fmt.Errorf("value '524288' is outside of the allowed range '%d - %d'", VRFPoolRangeMin, VRFPoolRangeMax),
 			requiresMock: false,
 		},
 	}
