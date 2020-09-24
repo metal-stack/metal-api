@@ -72,14 +72,37 @@ type SwitchResponse struct {
 	Nics          SwitchNics         `json:"nics" description:"the list of network interfaces on the switch"`
 	Partition     PartitionResponse  `json:"partition" description:"the partition in which this switch is located"`
 	Connections   []SwitchConnection `json:"connections" description:"a connection between a switch port and a machine"`
-	LastSync      *metal.SwitchSync  `json:"last_sync" description:"last successful synchronization to the switch"`
-	LastSyncError *metal.SwitchSync  `json:"last_sync_error" description:"last synchronization to the switch that was erroneous"`
+	LastSync      *SwitchSync        `json:"last_sync" description:"last successful synchronization to the switch" optional:"true"`
+	LastSyncError *SwitchSync        `json:"last_sync_error" description:"last synchronization to the switch that was erroneous" optional:"true"`
 	Timestamps
+}
+
+type SwitchSync struct {
+	Time     time.Time     `json:"time" description:"point in time when the last switch sync happened"`
+	Duration time.Duration `json:"duration" description:"the duration that lat switch sync took"`
+	Error    *string       `json:"error" description:"shows the error occurred during the sync" optional:"true"`
 }
 
 func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, cons []SwitchConnection) *SwitchResponse {
 	if s == nil {
 		return nil
+	}
+
+	var lastSync *SwitchSync
+	if s.LastSync != nil {
+		lastSync = &SwitchSync{
+			Time:     s.LastSync.Time,
+			Duration: s.LastSync.Duration,
+			Error:    s.LastSync.Error,
+		}
+	}
+	var lastSyncError *SwitchSync
+	if s.LastSyncError != nil {
+		lastSyncError = &SwitchSync{
+			Time:     s.LastSyncError.Time,
+			Duration: s.LastSyncError.Duration,
+			Error:    s.LastSyncError.Error,
+		}
 	}
 
 	return &SwitchResponse{
@@ -99,8 +122,8 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 		Nics:          nics,
 		Partition:     *NewPartitionResponse(p),
 		Connections:   cons,
-		LastSync:      s.LastSync,
-		LastSyncError: s.LastSyncError,
+		LastSync:      lastSync,
+		LastSyncError: lastSyncError,
 		Timestamps: Timestamps{
 			Created: s.Created,
 			Changed: s.Changed,

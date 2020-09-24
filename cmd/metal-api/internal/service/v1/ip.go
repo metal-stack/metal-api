@@ -9,7 +9,7 @@ type IPBase struct {
 	ProjectID string       `json:"projectid" description:"the project this ip address belongs to"`
 	NetworkID string       `json:"networkid" description:"the network this ip allocate request address belongs to"`
 	Type      metal.IPType `json:"type" default:"static" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
-	Tags      []string     `json:"tags" description:"free tags that you associate with this ip."`
+	Tags      []string     `json:"tags" description:"free tags that you associate with this ip." optional:"true"`
 }
 
 type IPIdentifiable struct {
@@ -19,14 +19,14 @@ type IPIdentifiable struct {
 type IPAllocateRequest struct {
 	Describable
 	IPBase
-	MachineID *string `json:"machineid" description:"the machine id this ip should be associated with"`
+	MachineID *string `json:"machineid" description:"the machine id this ip should be associated with" optional:"true"`
 }
 
 type IPUpdateRequest struct {
 	IPIdentifiable
 	Describable
 	Type metal.IPType `json:"type" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
-	Tags []string     `json:"tags" description:"free tags that you associate with this ip."`
+	Tags []string     `json:"tags" description:"free tags that you associate with this ip." optional:"true"`
 }
 
 type IPFindRequest struct {
@@ -41,6 +41,10 @@ type IPResponse struct {
 }
 
 func NewIPResponse(ip *metal.IP) *IPResponse {
+	tags := ip.Tags
+	if tags == nil {
+		tags = []string{}
+	}
 	return &IPResponse{
 		Describable: Describable{
 			Name:        &ip.Name,
@@ -50,7 +54,7 @@ func NewIPResponse(ip *metal.IP) *IPResponse {
 			NetworkID: ip.NetworkID,
 			ProjectID: ip.ProjectID,
 			Type:      ip.Type,
-			Tags:      ip.Tags,
+			Tags:      tags,
 		},
 		IPIdentifiable: IPIdentifiable{
 			IPAddress: ip.IPAddress,
