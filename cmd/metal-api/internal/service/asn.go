@@ -1,7 +1,9 @@
-package datastore
+package service
 
 import (
 	"fmt"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 )
 
 const (
@@ -17,9 +19,9 @@ const (
 	ASNMax = uint32(4294967294)
 )
 
-// AcquireASN fetches a unique integer by using the existing integer pool and adding to ASNBase
-func (rs *RethinkStore) AcquireASN() (*uint32, error) {
-	asnPool, err := rs.GetIntegerPool(ASNIntegerPool)
+// acquireASN fetches a unique integer by using the existing integer pool and adding to ASNBase
+func acquireASN(ds *datastore.RethinkStore) (*uint32, error) {
+	asnPool, err := ds.GetIntegerPool(datastore.ASNIntegerPool)
 	if err != nil {
 		return nil, err
 	}
@@ -34,14 +36,14 @@ func (rs *RethinkStore) AcquireASN() (*uint32, error) {
 	return &asn, nil
 }
 
-// ReleaseASN will release the asn from the integerpool
-func (rs *RethinkStore) ReleaseASN(asn uint32) error {
+// releaseASN will release the asn from the integerpool
+func releaseASN(ds *datastore.RethinkStore, asn uint32) error {
 	if asn < ASNBase || asn > ASNMax {
 		return fmt.Errorf("asn %d might not be smaller than:%d or larger than %d", asn, ASNBase, ASNMax)
 	}
 	i := uint(asn - ASNBase)
 
-	asnPool, err := rs.GetIntegerPool(ASNIntegerPool)
+	asnPool, err := ds.GetIntegerPool(datastore.ASNIntegerPool)
 	if err != nil {
 		return err
 	}
