@@ -345,28 +345,18 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("chassisIdentifyLEDOn").
 		Doc("sends a power-on to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.QueryParameter("description", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on/{description}").
-		To(editor(r.chassisIdentifyLEDOn)).
-		Operation("chassisIdentifyLEDOn").
-		Doc("sends a power-on to the chassis identify LED").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned on").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.EmptyBody{}).
-		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off/{description}").
+	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off").
 		To(editor(r.chassisIdentifyLEDOff)).
 		Operation("chassisIdentifyLEDOff").
 		Doc("sends a power-off to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
+		Param(ws.QueryParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
@@ -1858,11 +1848,11 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 }
 
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.PathParameter("description"))
+	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.PathParameter("description"))
+	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
