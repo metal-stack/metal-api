@@ -158,7 +158,7 @@ type MachineNetwork struct {
 	DestinationPrefixes []string `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
 	Vrf                 uint     `rethinkdb:"vrf" json:"vrf"`
 	Private             bool     `rethinkdb:"private" json:"private"`
-	ASN                 int64    `rethinkdb:"asn" json:"asn"`
+	ASN                 uint32   `rethinkdb:"asn" json:"asn"`
 	Nat                 bool     `rethinkdb:"nat" json:"nat"`
 	Underlay            bool     `rethinkdb:"underlay" json:"underlay"`
 }
