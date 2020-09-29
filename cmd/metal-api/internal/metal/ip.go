@@ -2,13 +2,12 @@ package metal
 
 import (
 	"fmt"
-	"github.com/metal-stack/metal-lib/pkg/tag"
-	"net"
 	"strings"
 	"time"
 
+	"github.com/metal-stack/metal-lib/pkg/tag"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
-	"github.com/pkg/errors"
 )
 
 // IPType is the type of an ip.
@@ -76,22 +75,6 @@ func (ip *IP) GetCreated() time.Time {
 // SetCreated sets the creation timestamp of the entity
 func (ip *IP) SetCreated(created time.Time) {
 	ip.Created = created
-}
-
-// ASNBase is the offset for all Machine ASN´s
-const ASNBase = int64(4200000000)
-
-// ASN calculate a ASN from the ip
-// we start to calculate ASNs for machines with the first ASN in the 32bit ASN range and
-// add the last 2 octets of the ip of the machine to achieve unique ASNs per vrf
-// TODO consider using IntegerPool here as well to calculate the addition to ASNBase
-func (ip *IP) ASN() (int64, error) {
-	i := net.ParseIP(ip.IPAddress)
-	if i == nil {
-		return int64(-1), errors.Errorf("unable to parse ip %s", ip.IPAddress)
-	}
-	asn := ASNBase + int64(i[14])*256 + int64(i[15])
-	return asn, nil
 }
 
 // GetScope determines the scope of an ip address

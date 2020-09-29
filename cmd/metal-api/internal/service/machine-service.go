@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/pkg/errors"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh"
 
@@ -344,28 +345,18 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("chassisIdentifyLEDOn").
 		Doc("sends a power-on to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.QueryParameter("description", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on/{description}").
-		To(editor(r.chassisIdentifyLEDOn)).
-		Operation("chassisIdentifyLEDOn").
-		Doc("sends a power-on to the chassis identify LED").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned on").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.EmptyBody{}).
-		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off/{description}").
+	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off").
 		To(editor(r.chassisIdentifyLEDOff)).
 		Operation("chassisIdentifyLEDOff").
 		Doc("sends a power-off to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
+		Param(ws.QueryParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
@@ -1049,12 +1040,12 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	}
 
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
-	asn, err := makeASN(networks)
+	asn, err := acquireASN(ds)
 	if err != nil {
 		return err
 	}
 	for _, n := range alloc.MachineNetworks {
-		n.ASN = asn
+		n.ASN = *asn
 	}
 
 	return nil
@@ -1271,26 +1262,6 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	return &machineNetwork, nil
 }
 
-// makeASN we can use the IP of the private network (which always have to be present and unique)
-// for generating a unique ASN.
-func makeASN(networks allocationNetworkMap) (int64, error) {
-	privateNetwork, err := getPrivateNetwork(networks)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(privateNetwork.ips) == 0 {
-		return 0, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
-	}
-
-	asn, err := privateNetwork.ips[0].ASN()
-	if err != nil {
-		return 0, err
-	}
-
-	return asn, nil
-}
-
 // makeMachineTags constructs the tags of the machine.
 // following tags are added in the following precedence (from lowest to highest in case of duplication):
 // - external network labels (concatenated, from all machine networks that this machine belongs to)
@@ -1350,7 +1321,7 @@ func makeMachineSystemLabels(m *metal.Machine) map[string]string {
 	for _, n := range m.Allocation.MachineNetworks {
 		if n.Private {
 			if n.ASN != 0 {
-				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(n.ASN, 10)
+				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(int64(n.ASN), 10)
 				break
 			}
 		}
@@ -1847,11 +1818,11 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 }
 
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.PathParameter("description"))
+	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.PathParameter("description"))
+	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {

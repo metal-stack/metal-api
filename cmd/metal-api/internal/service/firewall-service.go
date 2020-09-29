@@ -2,8 +2,9 @@ package service
 
 import (
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"net/http"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/zapup"
@@ -76,7 +77,7 @@ func (r firewallResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/find").
+	ws.Route(ws.POST("/find").
 		To(viewer(r.findFirewalls)).
 		Operation("findFirewalls").
 		Doc("find firewalls by multiple criteria").

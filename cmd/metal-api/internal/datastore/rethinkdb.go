@@ -14,7 +14,8 @@ import (
 
 var (
 	tables = []string{"image", "size", "partition", "machine", "switch", "wait", "event", "network", "ip",
-		"integerpool", "integerpoolinfo"}
+		VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
+		ASNIntegerPool.String(), ASNIntegerPool.String() + "info"}
 )
 
 // A RethinkStore is the database access layer for rethinkdb.
@@ -24,10 +25,11 @@ type RethinkStore struct {
 	dbsession *r.Session
 	database  *r.Term
 
-	dbname string
-	dbuser string
-	dbpass string
-	dbhost string
+	dbname       string
+	dbuser       string
+	dbpass       string
+	dbhost       string
+	integerPools map[IntegerPoolType]*IntegerPool
 }
 
 // New creates a new rethink store.
@@ -38,6 +40,7 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 		dbname:        dbname,
 		dbuser:        dbuser,
 		dbpass:        dbpass,
+		integerPools:  make(map[IntegerPoolType]*IntegerPool),
 	}
 }
 
@@ -68,6 +71,14 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	db := rs.db()
 
 	err := multi(rs.session,
+		// rename old integerpool to vrfpool
+		// FIXME enable and remove once migrated
+		// db.TableList().Contains("integerpool").Do(func(r r.Term) r.Term {
+		// 	return db.Table("integerpool").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName})
+		// }),
+		// db.TableList().Contains("integerpoolinfo").Do(func(r r.Term) r.Term {
+		// 	return db.Table("integerpoolinfo").Config().Update(map[string]interface{}{"name": VRFIntegerPoolName + "info"})
+		// }),
 		// create our tables
 		r.Expr(tables).Difference(db.TableList()).ForEach(func(r r.Term) r.Term {
 			return db.TableCreate(r, opts)
@@ -81,10 +92,17 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	err = rs.initIntegerPool()
+	vrfPool, err := rs.initIntegerPool(VRFIntegerPool, VRFPoolRangeMin, VRFPoolRangeMax)
 	if err != nil {
 		return err
 	}
+	rs.integerPools[VRFIntegerPool] = vrfPool
+
+	asnPool, err := rs.initIntegerPool(ASNIntegerPool, ASNPoolRangeMin, ASNPoolRangeMax)
+	if err != nil {
+		return err
+	}
+	rs.integerPools[ASNIntegerPool] = asnPool
 
 	return nil
 }
@@ -121,12 +139,12 @@ func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
 	return &res
 }
-func (rs *RethinkStore) integerTable() *r.Term {
-	res := r.DB(rs.dbname).Table("integerpool")
+func (rs *RethinkStore) integerTable(tablename string) *r.Term {
+	res := r.DB(rs.dbname).Table(tablename)
 	return &res
 }
-func (rs *RethinkStore) integerInfoTable() *r.Term {
-	res := r.DB(rs.dbname).Table("integerpoolinfo")
+func (rs *RethinkStore) integerInfoTable(tablename string) *r.Term {
+	res := r.DB(rs.dbname).Table(tablename + "info")
 	return &res
 }
 func (rs *RethinkStore) db() *r.Term {

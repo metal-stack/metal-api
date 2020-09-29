@@ -18,26 +18,6 @@
         "statuscode"
       ]
     },
-    "metal.SwitchSync": {
-      "properties": {
-        "duration": {
-          "format": "integer",
-          "type": "integer"
-        },
-        "error": {
-          "type": "string"
-        },
-        "time": {
-          "format": "date-time",
-          "type": "string"
-        }
-      },
-      "required": [
-        "duration",
-        "error",
-        "time"
-      ]
-    },
     "rest.status": {
       "properties": {
         "message": {
@@ -417,53 +397,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "allocation_hostname",
-        "allocation_image_id",
-        "allocation_name",
-        "allocation_project",
-        "allocation_succeeded",
-        "disk_names",
-        "disk_sizes",
-        "fru_board_mfg",
-        "fru_board_mfg_serial",
-        "fru_board_part_number",
-        "fru_chassis_part_number",
-        "fru_chassis_part_serial",
-        "fru_product_manufacturer",
-        "fru_product_part_number",
-        "fru_product_serial",
-        "hardware_cpu_cores",
-        "hardware_memory",
-        "id",
-        "ipmi_address",
-        "ipmi_interface",
-        "ipmi_mac_address",
-        "ipmi_user",
-        "liveliness",
-        "name",
-        "network_asns",
-        "network_destination_prefixes",
-        "network_ids",
-        "network_ips",
-        "network_nat",
-        "network_prefixes",
-        "network_private",
-        "network_underlay",
-        "network_vrfs",
-        "nics_mac_addresses",
-        "nics_names",
-        "nics_neighbor_mac_addresses",
-        "nics_neighbor_names",
-        "nics_neighbor_vrfs",
-        "nics_vrfs",
-        "partition_id",
-        "rackid",
-        "sizeid",
-        "state_value",
-        "tags"
-      ]
+      }
     },
     "v1.FirewallResponse": {
       "properties": {
@@ -544,18 +478,12 @@
         }
       },
       "required": [
-        "allocation",
         "bios",
-        "changed",
-        "created",
         "events",
         "hardware",
         "id",
         "ledstate",
         "liveliness",
-        "partition",
-        "rackid",
-        "size",
         "state",
         "tags"
       ]
@@ -600,10 +528,8 @@
         }
       },
       "required": [
-        "machineid",
         "networkid",
         "projectid",
-        "tags",
         "type"
       ]
     },
@@ -640,16 +566,7 @@
           "description": "the type of the ip address, ephemeral or static",
           "type": "string"
         }
-      },
-      "required": [
-        "ipaddress",
-        "machineid",
-        "networkid",
-        "networkprefix",
-        "projectid",
-        "tags",
-        "type"
-      ]
+      }
     },
     "v1.IPResponse": {
       "properties": {
@@ -704,12 +621,9 @@
         }
       },
       "required": [
-        "changed",
-        "created",
         "ipaddress",
         "networkid",
         "projectid",
-        "tags",
         "type"
       ]
     },
@@ -746,7 +660,6 @@
       },
       "required": [
         "ipaddress",
-        "tags",
         "type"
       ]
     },
@@ -847,8 +760,6 @@
         }
       },
       "required": [
-        "changed",
-        "created",
         "expirationDate",
         "id"
       ]
@@ -1124,7 +1035,6 @@
       },
       "required": [
         "name",
-        "partitions",
         "primary",
         "size"
       ]
@@ -1415,53 +1325,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "allocation_hostname",
-        "allocation_image_id",
-        "allocation_name",
-        "allocation_project",
-        "allocation_succeeded",
-        "disk_names",
-        "disk_sizes",
-        "fru_board_mfg",
-        "fru_board_mfg_serial",
-        "fru_board_part_number",
-        "fru_chassis_part_number",
-        "fru_chassis_part_serial",
-        "fru_product_manufacturer",
-        "fru_product_part_number",
-        "fru_product_serial",
-        "hardware_cpu_cores",
-        "hardware_memory",
-        "id",
-        "ipmi_address",
-        "ipmi_interface",
-        "ipmi_mac_address",
-        "ipmi_user",
-        "liveliness",
-        "name",
-        "network_asns",
-        "network_destination_prefixes",
-        "network_ids",
-        "network_ips",
-        "network_nat",
-        "network_prefixes",
-        "network_private",
-        "network_underlay",
-        "network_vrfs",
-        "nics_mac_addresses",
-        "nics_names",
-        "nics_neighbor_mac_addresses",
-        "nics_neighbor_names",
-        "nics_neighbor_vrfs",
-        "nics_vrfs",
-        "partition_id",
-        "rackid",
-        "sizeid",
-        "state_value",
-        "tags"
-      ]
+      }
     },
     "v1.MachineFru": {
       "description": "The Field Replaceable Unit data",
@@ -1686,19 +1550,13 @@
         }
       },
       "required": [
-        "allocation",
         "bios",
-        "changed",
-        "created",
         "events",
         "hardware",
         "id",
         "ipmi",
         "ledstate",
         "liveliness",
-        "partition",
-        "rackid",
-        "size",
         "state",
         "tags"
       ]
@@ -2041,18 +1899,12 @@
         }
       },
       "required": [
-        "allocation",
         "bios",
-        "changed",
-        "created",
         "events",
         "hardware",
         "id",
         "ledstate",
         "liveliness",
-        "partition",
-        "rackid",
-        "size",
         "state",
         "tags"
       ]
@@ -2135,10 +1987,7 @@
           "description": "the project id this network belongs to, can be empty if globally available",
           "type": "string"
         }
-      },
-      "required": [
-        "labels"
-      ]
+      }
     },
     "v1.NetworkCreateRequest": {
       "properties": {
@@ -2213,7 +2062,6 @@
       "required": [
         "destinationprefixes",
         "id",
-        "labels",
         "nat",
         "parentnetworkid",
         "prefixes",
@@ -2269,21 +2117,7 @@
           "format": "int64",
           "type": "integer"
         }
-      },
-      "required": [
-        "destinationprefixes",
-        "id",
-        "labels",
-        "name",
-        "nat",
-        "parentnetworkid",
-        "partitionid",
-        "prefixes",
-        "privatesuper",
-        "projectid",
-        "underlay",
-        "vrf"
-      ]
+      }
     },
     "v1.NetworkResponse": {
       "properties": {
@@ -2372,11 +2206,8 @@
         }
       },
       "required": [
-        "changed",
-        "created",
         "destinationprefixes",
         "id",
-        "labels",
         "nat",
         "parentnetworkid",
         "prefixes",
@@ -2575,8 +2406,6 @@
       },
       "required": [
         "bootconfig",
-        "changed",
-        "created",
         "id"
       ]
     },
@@ -2889,9 +2718,7 @@
         }
       },
       "required": [
-        "changed",
         "constraints",
-        "created",
         "id"
       ]
     },
@@ -3050,11 +2877,11 @@
           "uniqueItems": true
         },
         "last_sync": {
-          "$ref": "#/definitions/metal.SwitchSync",
+          "$ref": "#/definitions/v1.SwitchSync",
           "description": "last successful synchronization to the switch"
         },
         "last_sync_error": {
-          "$ref": "#/definitions/metal.SwitchSync",
+          "$ref": "#/definitions/v1.SwitchSync",
           "description": "last synchronization to the switch that was erroneous"
         },
         "mode": {
@@ -3082,15 +2909,33 @@
         }
       },
       "required": [
-        "changed",
         "connections",
-        "created",
         "id",
-        "last_sync",
-        "last_sync_error",
         "nics",
         "partition",
         "rack_id"
+      ]
+    },
+    "v1.SwitchSync": {
+      "properties": {
+        "duration": {
+          "description": "the duration that lat switch sync took",
+          "format": "integer",
+          "type": "integer"
+        },
+        "error": {
+          "description": "shows the error occurred during the sync",
+          "type": "string"
+        },
+        "time": {
+          "description": "point in time when the last switch sync happened",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration",
+        "time"
       ]
     },
     "v1.SwitchUpdateRequest": {
@@ -3128,13 +2973,12 @@
       "name": "metal-stack",
       "url": "https://metal-stack.io"
     },
-    "description": "Resource for managing pure metal",
+    "description": "API to manage and control plane resources like machines, switches, operating system images, machine sizes, networks, IP addresses and more",
     "license": {
-      "name": "MIT",
-      "url": "http://mit.org"
+      "name": "AGPL-3.0",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.de.html"
     },
-    "title": "metal-api",
-    "version": "1.0.0"
+    "title": "metal-api"
   },
   "paths": {
     "/v1/firewall": {
@@ -3209,7 +3053,7 @@
       }
     },
     "/v1/firewall/find": {
-      "get": {
+      "post": {
         "consumes": [
           "application/json"
         ],
@@ -4444,7 +4288,7 @@
         ]
       }
     },
-    "/v1/machine/{id}/power/chassis-identify-led-off/{description}": {
+    "/v1/machine/{id}/power/chassis-identify-led-off": {
       "post": {
         "consumes": [
           "application/json"
@@ -4460,9 +4304,8 @@
           },
           {
             "description": "reason why the chassis identify LED has been turned off",
-            "in": "path",
+            "in": "query",
             "name": "description",
-            "required": true,
             "type": "string"
           },
           {
@@ -4512,56 +4355,9 @@
             "type": "string"
           },
           {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.EmptyBody"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "sends a power-on to the chassis identify LED",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/power/chassis-identify-led-on/{description}": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "chassisIdentifyLEDOn",
-        "parameters": [
-          {
             "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "reason why the chassis identify LED has been turned on",
-            "in": "path",
+            "in": "query",
             "name": "description",
-            "required": true,
             "type": "string"
           },
           {
@@ -6110,10 +5906,10 @@
   },
   "security": [
     {
-      "Authorization": [
-        "HMAC",
-        "jwt"
-      ]
+      "HMAC": []
+    },
+    {
+      "jwt": []
     }
   ],
   "securityDefinitions": {

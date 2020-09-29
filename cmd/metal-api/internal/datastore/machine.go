@@ -9,66 +9,66 @@ import (
 
 // MachineSearchQuery can be used to search machines.
 type MachineSearchQuery struct {
-	ID          *string  `json:"id"`
-	Name        *string  `json:"name"`
-	PartitionID *string  `json:"partition_id"`
-	SizeID      *string  `json:"sizeid"`
-	RackID      *string  `json:"rackid"`
-	Liveliness  *string  `json:"liveliness"`
-	Tags        []string `json:"tags"`
+	ID          *string  `json:"id" optional:"true"`
+	Name        *string  `json:"name" optional:"true"`
+	PartitionID *string  `json:"partition_id" optional:"true"`
+	SizeID      *string  `json:"sizeid" optional:"true"`
+	RackID      *string  `json:"rackid" optional:"true"`
+	Liveliness  *string  `json:"liveliness" optional:"true"`
+	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
-	AllocationName      *string `json:"allocation_name"`
-	AllocationProject   *string `json:"allocation_project"`
-	AllocationImageID   *string `json:"allocation_image_id"`
-	AllocationHostname  *string `json:"allocation_hostname"`
-	AllocationSucceeded *bool   `json:"allocation_succeeded"`
+	AllocationName      *string `json:"allocation_name" optional:"true"`
+	AllocationProject   *string `json:"allocation_project" optional:"true"`
+	AllocationImageID   *string `json:"allocation_image_id" optional:"true"`
+	AllocationHostname  *string `json:"allocation_hostname" optional:"true"`
+	AllocationSucceeded *bool   `json:"allocation_succeeded" optional:"true"`
 
 	// network
-	NetworkIDs                 []string `json:"network_ids"`
-	NetworkPrefixes            []string `json:"network_prefixes"`
-	NetworkIPs                 []string `json:"network_ips"`
-	NetworkDestinationPrefixes []string `json:"network_destination_prefixes"`
-	NetworkVrfs                []int64  `json:"network_vrfs"`
-	NetworkPrivate             *bool    `json:"network_private"`
-	NetworkASNs                []int64  `json:"network_asns"`
-	NetworkNat                 *bool    `json:"network_nat"`
-	NetworkUnderlay            *bool    `json:"network_underlay"`
+	NetworkIDs                 []string `json:"network_ids" optional:"true"`
+	NetworkPrefixes            []string `json:"network_prefixes" optional:"true"`
+	NetworkIPs                 []string `json:"network_ips" optional:"true"`
+	NetworkDestinationPrefixes []string `json:"network_destination_prefixes" optional:"true"`
+	NetworkVrfs                []int64  `json:"network_vrfs" optional:"true"`
+	NetworkPrivate             *bool    `json:"network_private" optional:"true"`
+	NetworkASNs                []int64  `json:"network_asns" optional:"true"`
+	NetworkNat                 *bool    `json:"network_nat" optional:"true"`
+	NetworkUnderlay            *bool    `json:"network_underlay" optional:"true"`
 
 	// hardware
-	HardwareMemory   *int64 `json:"hardware_memory"`
-	HardwareCPUCores *int64 `json:"hardware_cpu_cores"`
+	HardwareMemory   *int64 `json:"hardware_memory" optional:"true"`
+	HardwareCPUCores *int64 `json:"hardware_cpu_cores" optional:"true"`
 
 	// nics
-	NicsMacAddresses         []string `json:"nics_mac_addresses"`
-	NicsNames                []string `json:"nics_names"`
-	NicsVrfs                 []string `json:"nics_vrfs"`
-	NicsNeighborMacAddresses []string `json:"nics_neighbor_mac_addresses"`
-	NicsNeighborNames        []string `json:"nics_neighbor_names"`
-	NicsNeighborVrfs         []string `json:"nics_neighbor_vrfs"`
+	NicsMacAddresses         []string `json:"nics_mac_addresses" optional:"true"`
+	NicsNames                []string `json:"nics_names" optional:"true"`
+	NicsVrfs                 []string `json:"nics_vrfs" optional:"true"`
+	NicsNeighborMacAddresses []string `json:"nics_neighbor_mac_addresses" optional:"true"`
+	NicsNeighborNames        []string `json:"nics_neighbor_names" optional:"true"`
+	NicsNeighborVrfs         []string `json:"nics_neighbor_vrfs" optional:"true"`
 
 	// disks
-	DiskNames []string `json:"disk_names"`
-	DiskSizes []int64  `json:"disk_sizes"`
+	DiskNames []string `json:"disk_names" optional:"true"`
+	DiskSizes []int64  `json:"disk_sizes" optional:"true"`
 
 	// state
-	StateValue *string `json:"state_value"`
+	StateValue *string `json:"state_value" optional:"true"`
 
 	// ipmi
-	IpmiAddress    *string `json:"ipmi_address"`
-	IpmiMacAddress *string `json:"ipmi_mac_address"`
-	IpmiUser       *string `json:"ipmi_user"`
-	IpmiInterface  *string `json:"ipmi_interface"`
+	IpmiAddress    *string `json:"ipmi_address" optional:"true"`
+	IpmiMacAddress *string `json:"ipmi_mac_address" optional:"true"`
+	IpmiUser       *string `json:"ipmi_user" optional:"true"`
+	IpmiInterface  *string `json:"ipmi_interface" optional:"true"`
 
 	// fru
-	FruChassisPartNumber   *string `json:"fru_chassis_part_number"`
-	FruChassisPartSerial   *string `json:"fru_chassis_part_serial"`
-	FruBoardMfg            *string `json:"fru_board_mfg"`
-	FruBoardMfgSerial      *string `json:"fru_board_mfg_serial"`
-	FruBoardPartNumber     *string `json:"fru_board_part_number"`
-	FruProductManufacturer *string `json:"fru_product_manufacturer"`
-	FruProductPartNumber   *string `json:"fru_product_part_number"`
-	FruProductSerial       *string `json:"fru_product_serial"`
+	FruChassisPartNumber   *string `json:"fru_chassis_part_number" optional:"true"`
+	FruChassisPartSerial   *string `json:"fru_chassis_part_serial" optional:"true"`
+	FruBoardMfg            *string `json:"fru_board_mfg" optional:"true"`
+	FruBoardMfgSerial      *string `json:"fru_board_mfg_serial" optional:"true"`
+	FruBoardPartNumber     *string `json:"fru_board_part_number" optional:"true"`
+	FruProductManufacturer *string `json:"fru_product_manufacturer" optional:"true"`
+	FruProductPartNumber   *string `json:"fru_product_part_number" optional:"true"`
+	FruProductSerial       *string `json:"fru_product_serial" optional:"true"`
 }
 
 // GenerateTerm generates the project search query term.

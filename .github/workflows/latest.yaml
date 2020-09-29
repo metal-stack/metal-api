@@ -20,3 +20,6 @@ jobs:
         docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
         docker build -t metalstack/metal-api .
         docker push metalstack/metal-api
+    - uses: release-drafter/release-drafter@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
