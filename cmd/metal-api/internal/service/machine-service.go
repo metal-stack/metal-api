@@ -749,6 +749,18 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 
+		// update FRU
+		if requestPayload.Fru != nil {
+			newMachine.IPMI.Fru.ChassisPartSerial = utils.StrValue(requestPayload.Fru.ChassisPartSerial, newMachine.IPMI.Fru.ChassisPartSerial)
+			newMachine.IPMI.Fru.ChassisPartNumber = utils.StrValue(requestPayload.Fru.ChassisPartNumber, newMachine.IPMI.Fru.ChassisPartNumber)
+			newMachine.IPMI.Fru.BoardMfg = utils.StrValue(requestPayload.Fru.BoardMfg, newMachine.IPMI.Fru.BoardMfg)
+			newMachine.IPMI.Fru.BoardMfgSerial = utils.StrValue(requestPayload.Fru.BoardMfgSerial, newMachine.IPMI.Fru.BoardMfgSerial)
+			newMachine.IPMI.Fru.BoardPartNumber = utils.StrValue(requestPayload.Fru.BoardPartNumber, newMachine.IPMI.Fru.BoardPartNumber)
+			newMachine.IPMI.Fru.ProductManufacturer = utils.StrValue(requestPayload.Fru.ProductManufacturer, newMachine.IPMI.Fru.ProductManufacturer)
+			newMachine.IPMI.Fru.ProductSerial = utils.StrValue(requestPayload.Fru.ProductSerial, newMachine.IPMI.Fru.ProductSerial)
+			newMachine.IPMI.Fru.ProductPartNumber = utils.StrValue(requestPayload.Fru.ProductPartNumber, newMachine.IPMI.Fru.ProductPartNumber)
+		}
+
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
 			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", newMachine, "err", err)
