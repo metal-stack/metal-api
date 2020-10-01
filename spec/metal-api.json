@@ -1117,6 +1117,10 @@
           "description": "the console password which was generated while provisioning",
           "type": "string"
         },
+        "fru": {
+          "$ref": "#/definitions/v1.MachineFru",
+          "description": "the FRU information"
+        },
         "initrd": {
           "description": "the initrd image",
           "type": "string"
@@ -1138,6 +1142,7 @@
         "bootloaderid",
         "cmdline",
         "console_password",
+        "fru",
         "initrd",
         "kernel",
         "ospartition",

@@ -1381,6 +1381,17 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	}
 	m.Allocation.Reinstall = false
 
+	if requestPayload.Fru != nil {
+		m.IPMI.Fru.ChassisPartSerial = utils.StrValue(requestPayload.Fru.ChassisPartSerial, m.IPMI.Fru.ChassisPartSerial)
+		m.IPMI.Fru.ChassisPartNumber = utils.StrValue(requestPayload.Fru.ChassisPartNumber, m.IPMI.Fru.ChassisPartNumber)
+		m.IPMI.Fru.BoardMfg = utils.StrValue(requestPayload.Fru.BoardMfg, m.IPMI.Fru.BoardMfg)
+		m.IPMI.Fru.BoardMfgSerial = utils.StrValue(requestPayload.Fru.BoardMfgSerial, m.IPMI.Fru.BoardMfgSerial)
+		m.IPMI.Fru.BoardPartNumber = utils.StrValue(requestPayload.Fru.BoardPartNumber, m.IPMI.Fru.BoardPartNumber)
+		m.IPMI.Fru.ProductManufacturer = utils.StrValue(requestPayload.Fru.ProductManufacturer, m.IPMI.Fru.ProductManufacturer)
+		m.IPMI.Fru.ProductSerial = utils.StrValue(requestPayload.Fru.ProductSerial, m.IPMI.Fru.ProductSerial)
+		m.IPMI.Fru.ProductPartNumber = utils.StrValue(requestPayload.Fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
+	}
+
 	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return

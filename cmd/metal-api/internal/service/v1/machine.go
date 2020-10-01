@@ -197,13 +197,14 @@ type MachineDiskPartition struct {
 }
 
 type MachineFinalizeAllocationRequest struct {
-	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
-	PrimaryDisk     string `json:"primarydisk" description:"the device name of the primary disk"`
-	OSPartition     string `json:"ospartition" description:"the partition that has the OS installed"`
-	Initrd          string `json:"initrd" description:"the initrd image"`
-	Cmdline         string `json:"cmdline" description:"the cmdline"`
-	Kernel          string `json:"kernel" description:"the kernel"`
-	BootloaderID    string `json:"bootloaderid" description:"the bootloader ID"`
+	ConsolePassword string      `json:"console_password" description:"the console password which was generated while provisioning"`
+	PrimaryDisk     string      `json:"primarydisk" description:"the device name of the primary disk"`
+	OSPartition     string      `json:"ospartition" description:"the partition that has the OS installed"`
+	Initrd          string      `json:"initrd" description:"the initrd image"`
+	Cmdline         string      `json:"cmdline" description:"the cmdline"`
+	Kernel          string      `json:"kernel" description:"the kernel"`
+	BootloaderID    string      `json:"bootloaderid" description:"the bootloader ID"`
+	Fru             *MachineFru `json:"fru" description:"the FRU information"`
 }
 
 type MachineFindRequest struct {
