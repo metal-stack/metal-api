@@ -2,7 +2,6 @@ package datastore
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -444,42 +443,21 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
-		"waiting": true,
-	})
+		"waiting":    true,
+		"liveliness": metal.MachineLivelinessAlive,
+	}).Sample(1)
 
-	var candidates metal.Machines
-	err := rs.searchEntities(&q, &candidates)
+	var availables metal.Machines
+	err := rs.searchEntities(&q, &availables)
 	if err != nil {
 		return nil, err
 	}
 
-	var available metal.Machines
-
-	for _, m := range candidates {
-		liveliness, err := rs.EvaluateMachineLiveliness(m)
-		if err != nil {
-			rs.SugaredLogger.Errorw("cannot detect machine liveliness", "machine", m, "error", err)
-			// fall through, so the rest of the machines is getting evaluated
-			continue
-		}
-		switch liveliness {
-		case metal.MachineLivelinessAlive:
-			available = append(available, m)
-		}
-	}
-
-	if available == nil || len(available) < 1 {
+	if len(availables) < 1 {
 		return nil, fmt.Errorf("no machine available")
 	}
 
-	// pick a random machine from all available ones
-	idx := rand.Intn(len(available))
-	m, err := rs.FindMachineByID(available[idx].ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
+	return &availables[0], nil
 }
 
 func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) (metal.MachineLiveliness, error) {
