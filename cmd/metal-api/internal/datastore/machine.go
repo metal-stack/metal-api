@@ -2,6 +2,8 @@ package datastore
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -443,25 +445,69 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 			"value": string(metal.AvailableState),
 		},
 		"waiting": true,
-	}).Sample(1)
+	})
 
-	var available metal.Machines
-	err := rs.searchEntities(&q, &available)
+	var candidates metal.Machines
+	err := rs.searchEntities(&q, &candidates)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(available) < 1 {
+	var available metal.Machines
+
+	for _, m := range candidates {
+		liveliness, err := rs.EvaluateMachineLiveliness(m)
+		if err != nil {
+			rs.SugaredLogger.Errorw("cannot detect machine liveliness", "machine", m, "error", err)
+			// fall through, so the rest of the machines is getting evaluated
+			continue
+		}
+		switch liveliness {
+		case metal.MachineLivelinessAlive:
+			available = append(available, m)
+		}
+	}
+
+	if available == nil || len(available) < 1 {
 		return nil, fmt.Errorf("no machine available")
 	}
 
-	// we actually return the machine from the machine table, not from the wait table
-	// otherwise we will get in trouble with update operations on the machine table because
-	// we have mixed timestamps with the entity from the wait table...
-	m, err := rs.FindMachineByID(available[0].ID)
+	// pick a random machine from all available ones
+	idx := rand.Intn(len(available))
+	m, err := rs.FindMachineByID(available[idx].ID)
 	if err != nil {
 		return nil, err
 	}
 
 	return m, nil
+}
+
+func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) (metal.MachineLiveliness, error) {
+	provisioningEvents, err := rs.FindProvisioningEventContainer(m.ID)
+	if err != nil {
+		// we have no provisioning events... we cannot tell
+		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
+	}
+
+	old := *provisioningEvents
+
+	if provisioningEvents.LastEventTime != nil {
+		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
+			if m.Allocation != nil {
+				// the machine is either dead or the customer did turn off the phone home service
+				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
+			} else {
+				// the machine is just dead
+				provisioningEvents.Liveliness = metal.MachineLivelinessDead
+			}
+		} else {
+			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
+		}
+		err = rs.UpdateProvisioningEventContainer(&old, provisioningEvents)
+		if err != nil {
+			return provisioningEvents.Liveliness, err
+		}
+	}
+
+	return provisioningEvents.Liveliness, nil
 }
