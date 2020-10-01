@@ -225,11 +225,12 @@ type MachineIPMIResponse struct {
 }
 
 type Leases map[string]string
+type FRUs map[string]*MachineFru
 
 type MachineIpmiReport struct {
-	PartitionID string      `json:"partitionid" description:"the partition id for the ipmi report"`
-	Leases      Leases      `json:"leases" description:"the active leases to be reported by a management server"`
-	Fru         *MachineFru `json:"fru" description:"the FRU information"`
+	PartitionID string `json:"partitionid" description:"the partition id for the ipmi report"`
+	Leases      Leases `json:"leases" description:"the active leases to be reported by a management server"`
+	FRUs        FRUs   `json:"frus" description:"the FRU information by machine UID"`
 }
 
 type MachineIpmiReportResponse struct {

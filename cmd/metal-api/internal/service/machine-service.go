@@ -749,17 +749,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 
-		// update FRU
-		if requestPayload.Fru != nil {
-			newMachine.IPMI.Fru.ChassisPartSerial = utils.StrValue(requestPayload.Fru.ChassisPartSerial, newMachine.IPMI.Fru.ChassisPartSerial)
-			newMachine.IPMI.Fru.ChassisPartNumber = utils.StrValue(requestPayload.Fru.ChassisPartNumber, newMachine.IPMI.Fru.ChassisPartNumber)
-			newMachine.IPMI.Fru.BoardMfg = utils.StrValue(requestPayload.Fru.BoardMfg, newMachine.IPMI.Fru.BoardMfg)
-			newMachine.IPMI.Fru.BoardMfgSerial = utils.StrValue(requestPayload.Fru.BoardMfgSerial, newMachine.IPMI.Fru.BoardMfgSerial)
-			newMachine.IPMI.Fru.BoardPartNumber = utils.StrValue(requestPayload.Fru.BoardPartNumber, newMachine.IPMI.Fru.BoardPartNumber)
-			newMachine.IPMI.Fru.ProductManufacturer = utils.StrValue(requestPayload.Fru.ProductManufacturer, newMachine.IPMI.Fru.ProductManufacturer)
-			newMachine.IPMI.Fru.ProductSerial = utils.StrValue(requestPayload.Fru.ProductSerial, newMachine.IPMI.Fru.ProductSerial)
-			newMachine.IPMI.Fru.ProductPartNumber = utils.StrValue(requestPayload.Fru.ProductPartNumber, newMachine.IPMI.Fru.ProductPartNumber)
-		}
+		updateFru(newMachine, requestPayload.FRUs)
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
@@ -773,6 +763,22 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func updateFru(m metal.Machine, frus v1.FRUs) {
+	fru, ok := frus[m.ID]
+	if !ok || fru == nil {
+		return
+	}
+
+	m.IPMI.Fru.ChassisPartSerial = utils.StrValue(fru.ChassisPartSerial, m.IPMI.Fru.ChassisPartSerial)
+	m.IPMI.Fru.ChassisPartNumber = utils.StrValue(fru.ChassisPartNumber, m.IPMI.Fru.ChassisPartNumber)
+	m.IPMI.Fru.BoardMfg = utils.StrValue(fru.BoardMfg, m.IPMI.Fru.BoardMfg)
+	m.IPMI.Fru.BoardMfgSerial = utils.StrValue(fru.BoardMfgSerial, m.IPMI.Fru.BoardMfgSerial)
+	m.IPMI.Fru.BoardPartNumber = utils.StrValue(fru.BoardPartNumber, m.IPMI.Fru.BoardPartNumber)
+	m.IPMI.Fru.ProductManufacturer = utils.StrValue(fru.ProductManufacturer, m.IPMI.Fru.ProductManufacturer)
+	m.IPMI.Fru.ProductSerial = utils.StrValue(fru.ProductSerial, m.IPMI.Fru.ProductSerial)
+	m.IPMI.Fru.ProductPartNumber = utils.StrValue(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
 }
 
 func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {

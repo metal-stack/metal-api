@@ -1568,9 +1568,12 @@
     },
     "v1.MachineIpmiReport": {
       "properties": {
-        "fru": {
-          "$ref": "#/definitions/v1.MachineFru",
-          "description": "the FRU information"
+        "frus": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.MachineFru"
+          },
+          "description": "the FRU information by machine UID",
+          "type": "object"
         },
         "leases": {
           "additionalProperties": {
@@ -1585,7 +1588,7 @@
         }
       },
       "required": [
-        "fru",
+        "frus",
         "leases",
         "partitionid"
       ]
