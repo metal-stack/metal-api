@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -88,17 +87,8 @@ func sendError(log *zap.Logger, rsp *restful.Response, opname string, errRsp *ht
 
 func sendErrorImpl(log *zap.Logger, rsp *restful.Response, opname string, errRsp *httperrors.HTTPErrorResponse, stackup int) {
 	s := stack.Caller(stackup)
-	response, merr := json.Marshal(errRsp)
-	log.Error("service error", zap.String("operation", opname), zap.Int("status", errRsp.StatusCode), zap.String("error", errRsp.Message), zap.Stringer("service-caller", s), zap.String("resp", string(response)))
-	if merr != nil {
-		err := rsp.WriteError(http.StatusInternalServerError, fmt.Errorf("unable to format error string: %v", merr))
-		if err != nil {
-			log.Error("Failed to send response", zap.Error(err))
-			return
-		}
-		return
-	}
-	err := rsp.WriteErrorString(errRsp.StatusCode, string(response))
+	log.Error("service error", zap.String("operation", opname), zap.Int("status", errRsp.StatusCode), zap.String("error", errRsp.Message), zap.Stringer("service-caller", s), zap.String("resp", errRsp.Error()))
+	err := rsp.WriteHeaderAndEntity(errRsp.StatusCode, errRsp)
 	if err != nil {
 		log.Error("Failed to send response", zap.Error(err))
 		return
