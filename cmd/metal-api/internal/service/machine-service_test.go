@@ -1253,15 +1253,62 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			errRegex:               "underlay networks are not allowed to be set explicitly",
 		},
 		{
-			name: "try to add machine to private network and storage network",
+			name: "try to add machine to a shared network as primary private network",
 			allocationSpec: &machineAllocationSpec{
-				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				IsFirewall: false,
+				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			want: allocationNetworkMap{
+				testdata.Partition1ExistingSharedNetwork.ID: &allocationNetwork{
+					network:          &testdata.Partition1ExistingSharedNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "try to add firewall to a shared network as primary private network",
+			allocationSpec: &machineAllocationSpec{
+				IsFirewall: true,
+				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			want: allocationNetworkMap{
+				testdata.Partition1ExistingSharedNetwork.ID: &allocationNetwork{
+					network:          &testdata.Partition1ExistingSharedNetwork,
+					ips:              []metal.IP{},
+					auto:             true,
+					isPrimaryPrivate: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "try to add firewall to private network and shared network",
+			allocationSpec: &machineAllocationSpec{
+				IsFirewall: true,
+				ProjectID:  testdata.Partition1ExistingPrivateNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
 					},
 					v1.MachineAllocationNetwork{
-						NetworkID: testdata.Partition1ExistingStorageNetwork.ID,
+						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
 					},
 				},
 			},
@@ -1274,14 +1321,33 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 					auto:             true,
 					isPrimaryPrivate: true,
 				},
-				testdata.Partition1ExistingStorageNetwork.ID: &allocationNetwork{
-					network:          &testdata.Partition1ExistingStorageNetwork,
+				testdata.Partition1ExistingSharedNetwork.ID: &allocationNetwork{
+					network:          &testdata.Partition1ExistingSharedNetwork,
 					ips:              []metal.IP{},
 					auto:             true,
 					isPrimaryPrivate: false,
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "try to add machine to private network and shared network",
+			allocationSpec: &machineAllocationSpec{
+				IsFirewall: false,
+				ProjectID:  testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
+					},
+					v1.MachineAllocationNetwork{
+						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
+					},
+				},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			errRegex:               "machines are not allowed to be placed into multiple private networks",
+			wantErr:                true,
 		},
 		{
 			name: "try to add machine to multiple private networks which are not shared",

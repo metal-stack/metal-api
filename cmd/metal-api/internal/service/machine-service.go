@@ -1102,7 +1102,8 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// - user wants to place his machine in a network that does not belong to the project in which the machine is being placed
 	// - user wants a machine with a private network that is not in the partition of the machine
 	// - user specifies no private network
-	// - user specifies multiple primary private networks (those are not shared)
+	// - user specifies multiple, unshared private networks
+	// - user specifies a shared private network in addition to an unshared one for a machine
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
 	// - user's private network is specified with noauto, which would make the machine have no ip address
 
@@ -1157,6 +1158,21 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 
 	if len(privateNetworks) == 0 {
 		return nil, fmt.Errorf("no private network given")
+	}
+
+	if !allocationSpec.IsFirewall && len(privateNetworks) > 1 {
+		return nil, fmt.Errorf("machines are not allowed to be placed into multiple private networks")
+	}
+
+	if len(privateNetworks) == 1 && privateNetworks[0].network.Shared {
+		// this means that this is a machine of a shared private network
+		// this is an exception where the primary private network is a shared one.
+		privateNetworks[0].isPrimaryPrivate = true
+		primaryPrivateNetwork = privateNetworks[0]
+	}
+
+	if primaryPrivateNetwork == nil {
+		return nil, fmt.Errorf("could not determine primary private network")
 	}
 
 	if primaryPrivateNetwork.network.ProjectID != allocationSpec.ProjectID {
