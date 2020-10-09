@@ -1040,12 +1040,12 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	}
 
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
-	asn, err := makeASN(networks)
+	asn, err := acquireASN(ds)
 	if err != nil {
 		return err
 	}
 	for _, n := range alloc.MachineNetworks {
-		n.ASN = asn
+		n.ASN = *asn
 	}
 
 	return nil
@@ -1288,26 +1288,6 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	return &machineNetwork, nil
 }
 
-// makeASN we can use the IP of the primary private network (which always have to be present and unique)
-// for generating a unique ASN.
-func makeASN(networks allocationNetworkMap) (int64, error) {
-	primaryPrivateNetwork, err := getPrimaryPrivateNetwork(networks)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(primaryPrivateNetwork.ips) == 0 {
-		return 0, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
-	}
-
-	asn, err := primaryPrivateNetwork.ips[0].ASN()
-	if err != nil {
-		return 0, err
-	}
-
-	return asn, nil
-}
-
 // makeMachineTags constructs the tags of the machine.
 // following tags are added in the following precedence (from lowest to highest in case of duplication):
 // - external network labels (concatenated, from all machine networks that this machine belongs to)
@@ -1367,7 +1347,7 @@ func makeMachineSystemLabels(m *metal.Machine) map[string]string {
 	for _, n := range m.Allocation.MachineNetworks {
 		if n.Private {
 			if n.ASN != 0 {
-				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(n.ASN, 10)
+				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(int64(n.ASN), 10)
 				break
 			}
 		}
