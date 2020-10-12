@@ -1721,8 +1721,8 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	return nil
 }
 
-func evaluateMachineLiveliness(rs *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
-	provisioningEvents, err := rs.FindProvisioningEventContainer(m.ID)
+func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
+	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
 		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
@@ -1742,7 +1742,7 @@ func evaluateMachineLiveliness(rs *datastore.RethinkStore, m metal.Machine) (met
 		} else {
 			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
 		}
-		err = rs.UpdateProvisioningEventContainer(&old, provisioningEvents)
+		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
 		if err != nil {
 			return provisioningEvents.Liveliness, err
 		}
