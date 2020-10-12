@@ -40,3 +40,10 @@ func SplitCIDR(cidr string) (string, *int) {
 
 	return cidr, nil
 }
+
+func StrValueDefault(ptr *string, fallback string) string {
+	if ptr == nil {
+		return fallback
+	}
+	return *ptr
+}
