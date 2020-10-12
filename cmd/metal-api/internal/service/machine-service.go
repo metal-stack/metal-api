@@ -771,14 +771,14 @@ func updateFru(m metal.Machine, frus v1.FRUs) {
 		return
 	}
 
-	m.IPMI.Fru.ChassisPartSerial = utils.StrValue(fru.ChassisPartSerial, m.IPMI.Fru.ChassisPartSerial)
-	m.IPMI.Fru.ChassisPartNumber = utils.StrValue(fru.ChassisPartNumber, m.IPMI.Fru.ChassisPartNumber)
-	m.IPMI.Fru.BoardMfg = utils.StrValue(fru.BoardMfg, m.IPMI.Fru.BoardMfg)
-	m.IPMI.Fru.BoardMfgSerial = utils.StrValue(fru.BoardMfgSerial, m.IPMI.Fru.BoardMfgSerial)
-	m.IPMI.Fru.BoardPartNumber = utils.StrValue(fru.BoardPartNumber, m.IPMI.Fru.BoardPartNumber)
-	m.IPMI.Fru.ProductManufacturer = utils.StrValue(fru.ProductManufacturer, m.IPMI.Fru.ProductManufacturer)
-	m.IPMI.Fru.ProductSerial = utils.StrValue(fru.ProductSerial, m.IPMI.Fru.ProductSerial)
-	m.IPMI.Fru.ProductPartNumber = utils.StrValue(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
+	m.IPMI.Fru.ChassisPartSerial = utils.StrValueDefault(fru.ChassisPartSerial, m.IPMI.Fru.ChassisPartSerial)
+	m.IPMI.Fru.ChassisPartNumber = utils.StrValueDefault(fru.ChassisPartNumber, m.IPMI.Fru.ChassisPartNumber)
+	m.IPMI.Fru.BoardMfg = utils.StrValueDefault(fru.BoardMfg, m.IPMI.Fru.BoardMfg)
+	m.IPMI.Fru.BoardMfgSerial = utils.StrValueDefault(fru.BoardMfgSerial, m.IPMI.Fru.BoardMfgSerial)
+	m.IPMI.Fru.BoardPartNumber = utils.StrValueDefault(fru.BoardPartNumber, m.IPMI.Fru.BoardPartNumber)
+	m.IPMI.Fru.ProductManufacturer = utils.StrValueDefault(fru.ProductManufacturer, m.IPMI.Fru.ProductManufacturer)
+	m.IPMI.Fru.ProductSerial = utils.StrValueDefault(fru.ProductSerial, m.IPMI.Fru.ProductSerial)
+	m.IPMI.Fru.ProductPartNumber = utils.StrValueDefault(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
 }
 
 func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
