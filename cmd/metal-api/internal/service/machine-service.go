@@ -749,7 +749,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 
-		updateFru(newMachine, requestPayload.FRUs)
+		updateFru(&newMachine, requestPayload.FRUs)
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
@@ -765,7 +765,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	}
 }
 
-func updateFru(m metal.Machine, frus v1.FRUs) {
+func updateFru(m *metal.Machine, frus v1.FRUs) {
 	fru, ok := frus[m.ID]
 	if !ok || fru == nil {
 		return
