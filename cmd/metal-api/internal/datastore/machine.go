@@ -2,7 +2,6 @@ package datastore
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -458,34 +457,4 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 	}
 
 	return &availables[0], nil
-}
-
-func (rs *RethinkStore) EvaluateMachineLiveliness(m metal.Machine) (metal.MachineLiveliness, error) {
-	provisioningEvents, err := rs.FindProvisioningEventContainer(m.ID)
-	if err != nil {
-		// we have no provisioning events... we cannot tell
-		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
-	}
-
-	old := *provisioningEvents
-
-	if provisioningEvents.LastEventTime != nil {
-		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
-			if m.Allocation != nil {
-				// the machine is either dead or the customer did turn off the phone home service
-				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
-			} else {
-				// the machine is just dead
-				provisioningEvents.Liveliness = metal.MachineLivelinessDead
-			}
-		} else {
-			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
-		}
-		err = rs.UpdateProvisioningEventContainer(&old, provisioningEvents)
-		if err != nil {
-			return provisioningEvents.Liveliness, err
-		}
-	}
-
-	return provisioningEvents.Liveliness, nil
 }

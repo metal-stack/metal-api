@@ -1694,7 +1694,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	errors := 0
 	for _, m := range machines {
 		p := liveliness[m.PartitionID]
-		lvlness, err := ds.EvaluateMachineLiveliness(m)
+		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
 			errors++
@@ -1719,6 +1719,36 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errors)
 
 	return nil
+}
+
+func evaluateMachineLiveliness(rs *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
+	provisioningEvents, err := rs.FindProvisioningEventContainer(m.ID)
+	if err != nil {
+		// we have no provisioning events... we cannot tell
+		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
+	}
+
+	old := *provisioningEvents
+
+	if provisioningEvents.LastEventTime != nil {
+		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
+			if m.Allocation != nil {
+				// the machine is either dead or the customer did turn off the phone home service
+				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
+			} else {
+				// the machine is just dead
+				provisioningEvents.Liveliness = metal.MachineLivelinessDead
+			}
+		} else {
+			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
+		}
+		err = rs.UpdateProvisioningEventContainer(&old, provisioningEvents)
+		if err != nil {
+			return provisioningEvents.Liveliness, err
+		}
+	}
+
+	return provisioningEvents.Liveliness, nil
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
