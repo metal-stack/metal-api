@@ -2558,6 +2558,13 @@
           "format": "int32",
           "type": "integer"
         },
+        "faultymachines": {
+          "description": "servers with issues with this size",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "free": {
           "description": "free servers with this size",
           "format": "int32",
@@ -2567,6 +2574,13 @@
           "description": "servers neither free, allocated or faulty with this size",
           "format": "int32",
           "type": "integer"
+        },
+        "othermachines": {
+          "description": "servers neither free, allocated or faulty with this size",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "size": {
           "description": "the size of the server",
@@ -2581,8 +2595,10 @@
       "required": [
         "allocated",
         "faulty",
+        "faultymachines",
         "free",
         "other",
+        "othermachines",
         "size",
         "total"
       ]
