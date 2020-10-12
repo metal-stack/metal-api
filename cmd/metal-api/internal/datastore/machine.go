@@ -442,26 +442,19 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
-		"waiting": true,
+		"waiting":    true,
+		"liveliness": metal.MachineLivelinessAlive,
 	}).Sample(1)
 
-	var available metal.Machines
-	err := rs.searchEntities(&q, &available)
+	var availables metal.Machines
+	err := rs.searchEntities(&q, &availables)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(available) < 1 {
+	if len(availables) < 1 {
 		return nil, fmt.Errorf("no machine available")
 	}
 
-	// we actually return the machine from the machine table, not from the wait table
-	// otherwise we will get in trouble with update operations on the machine table because
-	// we have mixed timestamps with the entity from the wait table...
-	m, err := rs.FindMachineByID(available[0].ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
+	return &availables[0], nil
 }
