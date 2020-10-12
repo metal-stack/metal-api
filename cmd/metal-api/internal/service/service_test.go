@@ -1,7 +1,6 @@
 package service
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"bytes"
 
 	"github.com/emicklei/go-restful/v3"
+	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/rest"
 	"github.com/metal-stack/security"
 )
@@ -58,17 +58,17 @@ func TestTenantEnsurer(t *testing.T) {
 	require.False(t, e.allowed("abc"))
 }
 
-func foo(req *restful.Request, resp *restful.Response) {
-	_, _ = io.WriteString(resp.ResponseWriter, "foo")
-}
-
 func TestAllowedPathSuffixes(t *testing.T) {
-	e := NewTenantEnsurer([]string{"a", "b", "c"}, []string{"/health", "/liveliness"})
-	ws := new(restful.WebService).Path("")
+	foo := func(req *restful.Request, resp *restful.Response) {
+		_ = resp.WriteHeaderAndEntity(http.StatusOK, nil)
+	}
+
+	e := NewTenantEnsurer([]string{"a", "b", "c"}, []string{"health", "liveliness"})
+	ws := new(restful.WebService).Path("/").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 	ws.Filter(e.EnsureAllowedTenantFilter)
-	health := ws.GET("/health").To(foo)
-	liveliness := ws.GET("/liveliness").To(foo)
-	machine := ws.GET("/machine").To(foo)
+	health := ws.GET("health").To(foo).Returns(http.StatusOK, "OK", nil).DefaultReturns("Error", httperrors.HTTPErrorResponse{})
+	liveliness := ws.GET("liveliness").To(foo).Returns(http.StatusOK, "OK", nil).DefaultReturns("Error", httperrors.HTTPErrorResponse{})
+	machine := ws.GET("machine").To(foo).Returns(http.StatusOK, "OK", nil).DefaultReturns("Error", httperrors.HTTPErrorResponse{})
 	ws.Route(health)
 	ws.Route(liveliness)
 	ws.Route(machine)
@@ -76,7 +76,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 
 	// health must be allowed without tenant check
 	httpRequest, _ := http.NewRequest("GET", "http://localhost/health", nil)
-	httpRequest.Header.Set("Accept", "*/*")
+	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter := httptest.NewRecorder()
 
 	restful.DefaultContainer.Dispatch(httpWriter, httpRequest)
@@ -85,7 +85,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 
 	// liveliness must be allowed without tenant check
 	httpRequest, _ = http.NewRequest("GET", "http://localhost/liveliness", nil)
-	httpRequest.Header.Set("Accept", "*/*")
+	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter = httptest.NewRecorder()
 
 	restful.DefaultContainer.Dispatch(httpWriter, httpRequest)
@@ -94,7 +94,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 
 	// machine must not be allowed without tenant check
 	httpRequest, _ = http.NewRequest("GET", "http://localhost/machine", nil)
-	httpRequest.Header.Set("Accept", "*/*")
+	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter = httptest.NewRecorder()
 
 	restful.DefaultContainer.Dispatch(httpWriter, httpRequest)
