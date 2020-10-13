@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -14,7 +15,6 @@ type MachineSearchQuery struct {
 	PartitionID *string  `json:"partition_id" optional:"true"`
 	SizeID      *string  `json:"sizeid" optional:"true"`
 	RackID      *string  `json:"rackid" optional:"true"`
-	Liveliness  *string  `json:"liveliness" optional:"true"`
 	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
@@ -102,12 +102,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.RackID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("rackid").Eq(*p.RackID)
-		})
-	}
-
-	if p.Liveliness != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("liveliness").Eq(*p.Liveliness)
 		})
 	}
 
@@ -442,19 +436,40 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
-		"waiting":    true,
-		"liveliness": metal.MachineLivelinessAlive,
-	}).Sample(1)
+		"waiting": true,
+	})
 
-	var availables metal.Machines
-	err := rs.searchEntities(&q, &availables)
+	var candidates metal.Machines
+	err := rs.searchEntities(&q, &candidates)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(availables) < 1 {
+	ecs, err := rs.ListProvisioningEventContainers()
+	if err != nil {
+		return nil, err
+	}
+	ecMap := ecs.ByID()
+
+	var available metal.Machines
+	for _, m := range candidates {
+		ec, ok := ecMap[m.ID]
+		if !ok {
+			rs.SugaredLogger.Errorw("cannot find machine provisioning event container", "machine", m, "error", err)
+			// fall through, so the rest of the machines is getting evaluated
+			continue
+		}
+		switch ec.Liveliness {
+		case metal.MachineLivelinessAlive:
+			available = append(available, m)
+		}
+	}
+
+	if available == nil || len(available) < 1 {
 		return nil, fmt.Errorf("no machine available")
 	}
 
-	return &availables[0], nil
+	// pick a random machine from all available ones
+	idx := rand.Intn(len(available))
+	return &available[idx], nil
 }
