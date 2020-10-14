@@ -292,9 +292,6 @@
         "ipmi_user": {
           "type": "string"
         },
-        "liveliness": {
-          "type": "string"
-        },
         "name": {
           "type": "string"
         },
@@ -1218,9 +1215,6 @@
           "type": "string"
         },
         "ipmi_user": {
-          "type": "string"
-        },
-        "liveliness": {
           "type": "string"
         },
         "name": {
