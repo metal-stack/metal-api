@@ -426,7 +426,9 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 	return rs.updateEntity(rs.machineTable(), newMachine, oldMachine)
 }
 
-// FindWaitingMachine returns an available, not allocated and waiting machine of given size within the given partition.
+// FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
+// TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
+// but current implementation should have a slightly better readability.
 func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
