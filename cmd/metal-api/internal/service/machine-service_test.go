@@ -1302,6 +1302,32 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "add machine with specific ip to a shared network as primary private network with ip auto acquisition implicitly disabled",
+			allocationSpec: &machineAllocationSpec{
+				IsFirewall: false,
+				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Networks: v1.MachineAllocationNetworks{
+					v1.MachineAllocationNetwork{
+						AutoAcquireIP: &boolTrue,
+						NetworkID:     testdata.Partition1ExistingSharedNetwork.ID,
+					},
+				},
+				IPs: []string{testdata.Partition1SpecificSharedIP.IPAddress},
+			},
+			partition:              &testdata.Partition1,
+			partitionSuperNetworks: partitionSuperNetworks,
+			want: allocationNetworkMap{
+				testdata.Partition1ExistingSharedNetwork.ID: &allocationNetwork{
+					network:          &testdata.Partition1ExistingSharedNetwork,
+					ips:              []metal.IP{testdata.Partition1SpecificSharedIP},
+					auto:             false,
+					isPrimaryPrivate: true,
+					shared:           true,
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "add firewall to a shared network as primary private network",
 			allocationSpec: &machineAllocationSpec{
 				IsFirewall: true,
