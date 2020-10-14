@@ -161,6 +161,7 @@ type MachineNetwork struct {
 	ASN                 uint32   `rethinkdb:"asn" json:"asn"`
 	Nat                 bool     `rethinkdb:"nat" json:"nat"`
 	Underlay            bool     `rethinkdb:"underlay" json:"underlay"`
+	Shared              bool     `rethinkdb:"shared" json:"shared"`
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.

@@ -581,6 +581,11 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		newNetwork.Shared = *requestPayload.Shared
 	}
 
+	if oldNetwork.Shared && !newNetwork.Shared {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("once a network is marked as shared it is not possible to unshare it"))
+		return
+	}
+
 	var prefixesToBeRemoved metal.Prefixes
 	var prefixesToBeAdded metal.Prefixes
 
