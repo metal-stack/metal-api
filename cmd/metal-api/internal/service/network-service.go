@@ -494,6 +494,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 		Nat:                 parent.Nat,
 		PrivateSuper:        false,
 		Underlay:            false,
+		Shared:              nwSpec.Shared,
 		Vrf:                 *vrf,
 		ParentNetworkID:     parent.ID,
 		Labels:              nwSpec.Labels,
