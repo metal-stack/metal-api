@@ -292,9 +292,6 @@
         "ipmi_user": {
           "type": "string"
         },
-        "liveliness": {
-          "type": "string"
-        },
         "name": {
           "type": "string"
         },
@@ -1220,9 +1217,6 @@
         "ipmi_user": {
           "type": "string"
         },
-        "liveliness": {
-          "type": "string"
-        },
         "name": {
           "type": "string"
         },
@@ -1563,6 +1557,13 @@
     },
     "v1.MachineIpmiReport": {
       "properties": {
+        "frus": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.MachineFru"
+          },
+          "description": "the FRU information by machine UID",
+          "type": "object"
+        },
         "leases": {
           "additionalProperties": {
             "type": "string"
@@ -1576,6 +1577,7 @@
         }
       },
       "required": [
+        "frus",
         "leases",
         "partitionid"
       ]
@@ -2566,6 +2568,13 @@
           "format": "int32",
           "type": "integer"
         },
+        "faultymachines": {
+          "description": "servers with issues with this size",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "free": {
           "description": "free servers with this size",
           "format": "int32",
@@ -2575,6 +2584,13 @@
           "description": "servers neither free, allocated or faulty with this size",
           "format": "int32",
           "type": "integer"
+        },
+        "othermachines": {
+          "description": "servers neither free, allocated or faulty with this size",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "size": {
           "description": "the size of the server",
@@ -2589,8 +2605,10 @@
       "required": [
         "allocated",
         "faulty",
+        "faultymachines",
         "free",
         "other",
+        "othermachines",
         "size",
         "total"
       ]

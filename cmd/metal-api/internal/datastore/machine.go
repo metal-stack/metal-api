@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -14,7 +15,6 @@ type MachineSearchQuery struct {
 	PartitionID *string  `json:"partition_id" optional:"true"`
 	SizeID      *string  `json:"sizeid" optional:"true"`
 	RackID      *string  `json:"rackid" optional:"true"`
-	Liveliness  *string  `json:"liveliness" optional:"true"`
 	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
@@ -102,12 +102,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.RackID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("rackid").Eq(*p.RackID)
-		})
-	}
-
-	if p.Liveliness != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("liveliness").Eq(*p.Liveliness)
 		})
 	}
 
@@ -432,7 +426,9 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 	return rs.updateEntity(rs.machineTable(), newMachine, oldMachine)
 }
 
-// FindWaitingMachine returns an available, not allocated and waiting machine of given size within the given partition.
+// FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
+// TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
+// but current implementation should have a slightly better readability.
 func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
@@ -443,25 +439,39 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 			"value": string(metal.AvailableState),
 		},
 		"waiting": true,
-	}).Sample(1)
+	})
 
-	var available metal.Machines
-	err := rs.searchEntities(&q, &available)
+	var candidates metal.Machines
+	err := rs.searchEntities(&q, &candidates)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(available) < 1 {
+	ecs, err := rs.ListProvisioningEventContainers()
+	if err != nil {
+		return nil, err
+	}
+	ecMap := ecs.ByID()
+
+	var available metal.Machines
+	for _, m := range candidates {
+		ec, ok := ecMap[m.ID]
+		if !ok {
+			rs.SugaredLogger.Errorw("cannot find machine provisioning event container", "machine", m, "error", err)
+			// fall through, so the rest of the machines is getting evaluated
+			continue
+		}
+		switch ec.Liveliness {
+		case metal.MachineLivelinessAlive:
+			available = append(available, m)
+		}
+	}
+
+	if available == nil || len(available) < 1 {
 		return nil, fmt.Errorf("no machine available")
 	}
 
-	// we actually return the machine from the machine table, not from the wait table
-	// otherwise we will get in trouble with update operations on the machine table because
-	// we have mixed timestamps with the entity from the wait table...
-	m, err := rs.FindMachineByID(available[0].ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
+	// pick a random machine from all available ones
+	idx := rand.Intn(len(available))
+	return &available[idx], nil
 }
