@@ -443,6 +443,11 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		return
 	}
 
+	nat := superNetwork.Nat
+	if shared {
+		nat = true
+	}
+
 	nwSpec := &metal.Network{
 		Base: metal.Base{
 			Name:        name,
@@ -452,6 +457,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		ProjectID:   project.GetProject().GetMeta().GetId(),
 		Labels:      requestPayload.Labels,
 		Shared:      shared,
+		Nat:         nat,
 	}
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
@@ -491,7 +497,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 		DestinationPrefixes: metal.Prefixes{},
 		PartitionID:         parent.PartitionID,
 		ProjectID:           nwSpec.ProjectID,
-		Nat:                 parent.Nat,
+		Nat:                 nwSpec.Nat,
 		PrivateSuper:        false,
 		Underlay:            false,
 		Shared:              nwSpec.Shared,
@@ -585,6 +591,10 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	if oldNetwork.Shared && !newNetwork.Shared {
 		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("once a network is marked as shared it is not possible to unshare it"))
 		return
+	}
+
+	if newNetwork.Shared {
+		newNetwork.Nat = true
 	}
 
 	var prefixesToBeRemoved metal.Prefixes
