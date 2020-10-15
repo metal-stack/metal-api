@@ -2,26 +2,28 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/test/bufconn"
 	"io"
 	"math/rand"
+	"net"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 )
 
+const bufSize = 1024 * 1024
+
 type testCase int
 
 const (
 	happyPath testCase = iota
-	serverFailure
 	clientFailure
 )
 
@@ -33,6 +35,7 @@ type client struct {
 type test struct {
 	*testing.T
 	ss []*WaitServer
+	ll []*bufconn.Listener
 	cc []*client
 
 	numberApiInstances     int
@@ -51,7 +54,7 @@ func TestWaitServer(t *testing.T) {
 
 	var tt []*test
 	aa := []int{1, 10}
-	mm := [][]int{{10, 7}}
+	mm := [][]int{{1, 1}, {3, 1}, {10, 7}, {100, 70}}
 	for _, a := range aa {
 		for _, m := range mm {
 			require.True(t, a > 0)
@@ -68,8 +71,6 @@ func TestWaitServer(t *testing.T) {
 	for _, test := range tt {
 		test.T = t
 		test.testCase = happyPath
-		test.run()
-		test.testCase = serverFailure
 		test.run()
 		test.testCase = clientFailure
 		test.run()
@@ -123,11 +124,6 @@ func (t *test) run() {
 	}
 
 	switch t.testCase {
-	case serverFailure:
-		t.notReadyMachines.Add(t.numberMachineInstances)
-		t.stopApiInstances()
-		t.startApiInstances(ds)
-		t.notReadyMachines.Wait()
 	case clientFailure:
 		t.notReadyMachines.Add(t.numberMachineInstances)
 		t.stopMachineInstances()
@@ -172,8 +168,10 @@ func (t *test) shutdown() {
 func (t *test) stopApiInstances() {
 	defer func() {
 		t.ss = t.ss[:0]
+		t.ll = t.ll[:0]
 	}()
-	for _, s := range t.ss {
+	for i, s := range t.ss {
+		t.ll[i].Close()
 		s.server.Stop()
 	}
 }
@@ -191,18 +189,27 @@ func (t *test) stopMachineInstances() {
 func (t *test) startApiInstances(ds Datasource) {
 	for i := 0; i < t.numberApiInstances; i++ {
 		s := &WaitServer{
+			server:           grpc.NewServer(),
 			ds:               ds,
 			queueLock:        new(sync.RWMutex),
 			queue:            make(map[string]chan bool),
-			grpcPort:         50005 + i,
 			logger:           zap.NewNop().Sugar(),
 			responseInterval: 2 * time.Millisecond,
 		}
 		t.ss = append(t.ss, s)
+
+		l := bufconn.Listen(bufSize)
+		t.ll = append(t.ll, l)
+		v1.RegisterWaitServer(s.server, s)
 		go func() {
-			err := s.Serve()
+			err := s.server.Serve(l)
 			require.Nil(t, err)
 		}()
+	}
+}
+func (t *test) bufDialer(l *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
+	return func(context.Context, string) (net.Conn, error) {
+		return l.Dial()
 	}
 }
 
@@ -212,16 +219,17 @@ func (t *test) startMachineInstances() {
 		Timeout:             20 * time.Millisecond,
 		PermitWithoutStream: true,
 	}
-	opts := []grpc.DialOption{
-		grpc.WithKeepaliveParams(kacp),
-		grpc.WithInsecure(),
-		grpc.WithBlock(),
-	}
 	for i := 0; i < t.numberMachineInstances; i++ {
 		machineID := strconv.Itoa(i)
-		port := 50005 + rand.Intn(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
-		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+		l := t.ll[rand.Intn(t.numberApiInstances)]
+		opts := []grpc.DialOption{
+			grpc.WithContextDialer(t.bufDialer(l)),
+			grpc.WithKeepaliveParams(kacp),
+			grpc.WithInsecure(),
+			grpc.WithBlock(),
+		}
+		conn, err := grpc.DialContext(ctx, "bufnet", opts...)
 		require.Nil(t, err)
 		t.cc = append(t.cc, &client{
 			ClientConn: conn,
@@ -248,7 +256,7 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 
 	for {
 		stream, err := c.Wait(ctx, req)
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		if err != nil {
 			continue
 		}
