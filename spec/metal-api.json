@@ -1645,6 +1645,10 @@
           "description": "indicates whether this network is the private network of this machine",
           "type": "boolean"
         },
+        "shared": {
+          "description": "marks a network as shareable.",
+          "type": "boolean"
+        },
         "underlay": {
           "description": "if set to true, this network can be used for underlay communication",
           "type": "boolean"
@@ -1663,6 +1667,7 @@
         "networkid",
         "prefixes",
         "private",
+        "shared",
         "underlay",
         "vrf"
       ]

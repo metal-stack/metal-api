@@ -58,6 +58,7 @@ type MachineNetwork struct {
 	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
 	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
 	Private             bool     `json:"private" description:"indicates whether this network is the private network of this machine"`
+	Shared              bool     `json:"shared" description:"marks a network as shareable."`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
@@ -419,6 +420,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Underlay:            nw.Underlay,
 				DestinationPrefixes: nw.DestinationPrefixes,
 				Prefixes:            nw.Prefixes,
+				Shared:              nw.Shared,
 			}
 			networks = append(networks, network)
 		}
