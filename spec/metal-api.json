@@ -1642,7 +1642,11 @@
           "type": "array"
         },
         "private": {
-          "description": "indicates whether this network is the private network of this machine",
+          "description": "indicates whether this network is a private network",
+          "type": "boolean"
+        },
+        "privateprimary": {
+          "description": "indicates whether this network is the private primary network of this machine",
           "type": "boolean"
         },
         "shared": {
@@ -1667,6 +1671,7 @@
         "networkid",
         "prefixes",
         "private",
+        "privateprimary",
         "shared",
         "underlay",
         "vrf"
