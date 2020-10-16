@@ -157,6 +157,7 @@ type MachineNetwork struct {
 	IPs                 []string `rethinkdb:"ips" json:"ips"`
 	DestinationPrefixes []string `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
 	Vrf                 uint     `rethinkdb:"vrf" json:"vrf"`
+	PrivatePrimary      bool     `rethinkdb:"privateprimary" json:"privateprimary"`
 	Private             bool     `rethinkdb:"private" json:"private"`
 	ASN                 uint32   `rethinkdb:"asn" json:"asn"`
 	Nat                 bool     `rethinkdb:"nat" json:"nat"`
