@@ -1991,10 +1991,6 @@
           "description": "a readable name for this entity",
           "type": "string"
         },
-        "nat": {
-          "description": "if set to true, packets leaving this network get masqueraded behind interface ip.",
-          "type": "boolean"
-        },
         "partitionid": {
           "description": "the partition this network belongs to",
           "type": "string"

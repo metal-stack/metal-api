@@ -443,11 +443,6 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		return
 	}
 
-	nat := superNetwork.Nat
-	if requestPayload.Nat != nil {
-		nat = *requestPayload.Nat
-	}
-
 	nwSpec := &metal.Network{
 		Base: metal.Base{
 			Name:        name,
@@ -457,7 +452,6 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		ProjectID:   project.GetProject().GetMeta().GetId(),
 		Labels:      requestPayload.Labels,
 		Shared:      shared,
-		Nat:         nat,
 	}
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
@@ -497,7 +491,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 		DestinationPrefixes: metal.Prefixes{},
 		PartitionID:         parent.PartitionID,
 		ProjectID:           nwSpec.ProjectID,
-		Nat:                 nwSpec.Nat,
+		Nat:                 false,
 		PrivateSuper:        false,
 		Underlay:            false,
 		Shared:              nwSpec.Shared,
