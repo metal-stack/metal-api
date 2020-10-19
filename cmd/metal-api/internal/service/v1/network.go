@@ -45,6 +45,7 @@ type NetworkCreateRequest struct {
 type NetworkAllocateRequest struct {
 	Describable
 	NetworkBase
+	Nat *bool `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip." optional:"true"`
 }
 
 // NetworkFindRequest is used to find a Network with different criteria.

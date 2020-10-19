@@ -444,8 +444,8 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	}
 
 	nat := superNetwork.Nat
-	if shared {
-		nat = true
+	if requestPayload.Nat != nil {
+		nat = *requestPayload.Nat
 	}
 
 	nwSpec := &metal.Network{
@@ -591,10 +591,6 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	if oldNetwork.Shared && !newNetwork.Shared {
 		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("once a network is marked as shared it is not possible to unshare it"))
 		return
-	}
-
-	if newNetwork.Shared {
-		newNetwork.Nat = true
 	}
 
 	var prefixesToBeRemoved metal.Prefixes
