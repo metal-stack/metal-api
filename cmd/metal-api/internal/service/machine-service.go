@@ -69,9 +69,7 @@ type allocationNetwork struct {
 	ips     []metal.IP
 	auto    bool
 
-	privatePrimary bool
-	private        bool
-	shared         bool
+	networkType metal.NetworkType
 }
 
 // allocationNetworkMap is a map of allocationNetworks with the network id as the key
@@ -81,7 +79,7 @@ type allocationNetworkMap map[string]*allocationNetwork
 func getPrivatePrimaryNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
 	var privatePrimaryNetwork *allocationNetwork
 	for _, n := range networks {
-		if n.privatePrimary {
+		if n.networkType.PrivatePrimary {
 			privatePrimaryNetwork = n
 			break
 		}
@@ -1152,25 +1150,22 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		}
 
 		n := &allocationNetwork{
-			network:        network,
-			auto:           auto,
-			ips:            []metal.IP{},
-			privatePrimary: false,
-			private:        false,
-			shared:         false,
+			network:     network,
+			auto:        auto,
+			ips:         []metal.IP{},
+			networkType: metal.Public,
 		}
 
 		for _, privateSuperNetwork := range privateSuperNetworks {
 			if network.ParentNetworkID == privateSuperNetwork.ID {
-				n.private = true
-				n.shared = network.Shared
 				if network.Shared {
+					n.networkType = metal.PrivateSecondaryShared
 					privateSharedNetworks = append(privateSharedNetworks, n)
 				} else {
 					if primaryPrivateNetwork != nil {
 						return nil, fmt.Errorf("multiple private networks are specified but there must be only one primary private network that must not be shared")
 					}
-					n.privatePrimary = true
+					n.networkType = metal.PrivatePrimaryUnshared
 					primaryPrivateNetwork = n
 				}
 				privateNetworks = append(privateNetworks, n)
@@ -1201,7 +1196,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		}
 
 		primaryPrivateNetwork = privateSharedNetworks[0]
-		primaryPrivateNetwork.privatePrimary = true
+		primaryPrivateNetwork.networkType = metal.PrivatePrimaryShared
 	}
 
 	if !allocationSpec.IsFirewall && len(privateNetworks) > 1 {
@@ -1238,7 +1233,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", pn.network.ID)
 		}
 
-		if !pn.privatePrimary && !pn.network.Shared {
+		if pn.networkType == metal.PrivateSecondaryUnshared {
 			return nil, fmt.Errorf("private network %q is not allowed to be used because it is not marked as shared", pn.network.ID)
 		}
 
@@ -1266,11 +1261,9 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 	underlay := &underlays[0]
 
 	return &allocationNetwork{
-		network:        underlay,
-		auto:           true,
-		privatePrimary: false,
-		private:        false,
-		shared:         false,
+		network:     underlay,
+		auto:        true,
+		networkType: metal.Underlay,
 	}, nil
 }
 
@@ -1313,10 +1306,10 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		Prefixes:            n.network.Prefixes.String(),
 		IPs:                 ipAddresses,
 		DestinationPrefixes: n.network.DestinationPrefixes.String(),
-		PrivatePrimary:      n.privatePrimary,
-		Private:             n.private,
-		Shared:              n.shared,
-		Underlay:            n.network.Underlay,
+		PrivatePrimary:      n.networkType.PrivatePrimary,
+		Private:             n.networkType.Private,
+		Shared:              n.networkType.Shared,
+		Underlay:            n.networkType.Underlay,
 		Nat:                 n.network.Nat,
 		Vrf:                 n.network.Vrf,
 	}
@@ -1334,7 +1327,7 @@ func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags [
 	labels := make(map[string]string)
 
 	for _, n := range networks {
-		if !n.privatePrimary && !n.shared {
+		if !n.networkType.PrivatePrimary && !n.networkType.Shared {
 			for k, v := range n.network.Labels {
 				labels[k] = v
 			}
