@@ -18,6 +18,32 @@
         "statuscode"
       ]
     },
+    "metal.NetworkType": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Private": {
+          "type": "boolean"
+        },
+        "PrivatePrimary": {
+          "type": "boolean"
+        },
+        "Shared": {
+          "type": "boolean"
+        },
+        "Underlay": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "Name",
+        "Private",
+        "PrivatePrimary",
+        "Shared",
+        "Underlay"
+      ]
+    },
     "rest.status": {
       "properties": {
         "message": {
@@ -1634,28 +1660,16 @@
           "description": "the networkID of the allocated machine in this vrf",
           "type": "string"
         },
+        "networktype": {
+          "$ref": "#/definitions/metal.NetworkType",
+          "description": "the network type"
+        },
         "prefixes": {
           "description": "the prefixes of this network",
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "private": {
-          "description": "indicates whether this network is a private network",
-          "type": "boolean"
-        },
-        "privateprimary": {
-          "description": "indicates whether this network is the private primary network of this machine",
-          "type": "boolean"
-        },
-        "shared": {
-          "description": "marks a network as shareable.",
-          "type": "boolean"
-        },
-        "underlay": {
-          "description": "if set to true, this network can be used for underlay communication",
-          "type": "boolean"
         },
         "vrf": {
           "description": "the vrf of the allocated machine",
@@ -1669,11 +1683,8 @@
         "ips",
         "nat",
         "networkid",
+        "networktype",
         "prefixes",
-        "private",
-        "privateprimary",
-        "shared",
-        "underlay",
         "vrf"
       ]
     },
