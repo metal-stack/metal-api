@@ -1153,7 +1153,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 			network:     network,
 			auto:        auto,
 			ips:         []metal.IP{},
-			networkType: metal.Public,
+			networkType: metal.External,
 		}
 
 		for _, privateSuperNetwork := range privateSuperNetworks {

@@ -922,7 +922,7 @@ func Test_makeMachineTags(t *testing.T) {
 								"external-network-label": "1",
 							},
 						},
-						networkType: metal.Public,
+						networkType: metal.External,
 					},
 					"network-uuid-2": &allocationNetwork{
 						network: &metal.Network{
@@ -1136,7 +1136,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 					network:     &testdata.Partition1InternetNetwork,
 					ips:         []metal.IP{},
 					auto:        true,
-					networkType: metal.Public,
+					networkType: metal.External,
 				},
 			},
 		},
@@ -1187,7 +1187,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 					network:     &testdata.Partition1InternetNetwork,
 					ips:         []metal.IP{testdata.Partition1InternetIP},
 					auto:        false,
-					networkType: metal.Public,
+					networkType: metal.External,
 				},
 			},
 		},

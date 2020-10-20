@@ -121,7 +121,7 @@ func TestMachineNetwork_NetworkType(t *testing.T) {
 				Underlay:       false,
 				Shared:         false,
 			},
-			want: Public,
+			want: External,
 		},
 		{
 			name: "try to specify a private primary network with private false",

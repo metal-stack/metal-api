@@ -203,8 +203,8 @@ var (
 		Shared:         false,
 		Underlay:       false,
 	}
-	Public NetworkType = NetworkType{
-		Name:           "public",
+	External NetworkType = NetworkType{
+		Name:           "external",
 		Private:        false,
 		PrivatePrimary: false,
 		Shared:         false,
@@ -217,7 +217,7 @@ var (
 		Shared:         false,
 		Underlay:       true,
 	}
-	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, Public, Underlay}
+	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
 )
 
 // Is checks whether the machine network has the given type
