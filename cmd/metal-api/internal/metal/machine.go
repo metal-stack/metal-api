@@ -172,7 +172,7 @@ type NetworkType struct {
 	PrivatePrimary bool   `json:"private_primary,omitempty"`
 	Shared         bool   `json:"shared,omitempty"`
 	Underlay       bool   `json:"underlay,omitempty"`
-	supported      bool   `json:"-"`
+	Supported      bool   `json:"-"`
 }
 
 var (
@@ -182,7 +182,7 @@ var (
 		PrivatePrimary: true,
 		Shared:         false,
 		Underlay:       false,
-		supported:      true,
+		Supported:      true,
 	}
 	PrivatePrimaryShared NetworkType = NetworkType{
 		Name:           "privateprimaryshared",
@@ -190,7 +190,7 @@ var (
 		PrivatePrimary: true,
 		Shared:         true,
 		Underlay:       false,
-		supported:      true,
+		Supported:      true,
 	}
 	PrivateSecondaryShared NetworkType = NetworkType{
 		Name:           "privatesecondaryshared",
@@ -198,7 +198,7 @@ var (
 		PrivatePrimary: false,
 		Shared:         true,
 		Underlay:       false,
-		supported:      true,
+		Supported:      true,
 	}
 	// PrivateSecondaryUnshared this case is not a valid configuration
 	PrivateSecondaryUnshared NetworkType = NetworkType{
@@ -207,7 +207,7 @@ var (
 		PrivatePrimary: false,
 		Shared:         false,
 		Underlay:       false,
-		supported:      false,
+		Supported:      false,
 	}
 	External NetworkType = NetworkType{
 		Name:           "external",
@@ -215,7 +215,7 @@ var (
 		PrivatePrimary: false,
 		Shared:         false,
 		Underlay:       false,
-		supported:      true,
+		Supported:      true,
 	}
 	Underlay NetworkType = NetworkType{
 		Name:           "underlay",
@@ -223,7 +223,7 @@ var (
 		PrivatePrimary: false,
 		Shared:         false,
 		Underlay:       true,
-		supported:      true,
+		Supported:      true,
 	}
 	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
 )
@@ -246,12 +246,12 @@ func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
 		return nil, fmt.Errorf("could not determine network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
 	}
 
-	if nt.supported {
+	if nt.Supported {
 		return nt, nil
 	}
 	// This is for machineNetworks from a Allocation which was before NetworkType was introduced.
 	// We guess based on unset fields not present at this time and therefor are set to false.
-	if mn.Private == true && mn.PrivatePrimary == false && mn.Shared == false && mn.Underlay == false {
+	if mn.Private && !mn.PrivatePrimary && !mn.Shared && !mn.Underlay {
 		return &PrivatePrimaryUnshared, nil
 	}
 	return nil, fmt.Errorf("determined network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v is unsupported", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
