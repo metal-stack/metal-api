@@ -60,6 +60,14 @@ type MachineNetwork struct {
 	Nat                 bool              `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string          `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	NetworkType         metal.NetworkType `json:"networktype" description:"the network type"`
+	// Private flag to indicate this is a private network
+	//
+	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
+	Private bool `json:"private" description:"indicates whether this network is the private network of this machine"`
+	// Underlay flag to indicate this is a underlay network
+	//
+	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
+	Underlay bool `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 }
 
 type MachineHardwareBase struct {
@@ -422,6 +430,8 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				DestinationPrefixes: nw.DestinationPrefixes,
 				Prefixes:            nw.Prefixes,
 				NetworkType:         *nt,
+				Private:             nt.Private,
+				Underlay:            nt.Underlay,
 			}
 			networks = append(networks, network)
 		}

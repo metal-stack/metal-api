@@ -1671,6 +1671,14 @@
           },
           "type": "array"
         },
+        "private": {
+          "description": "indicates whether this network is the private network of this machine",
+          "type": "boolean"
+        },
+        "underlay": {
+          "description": "if set to true, this network can be used for underlay communication",
+          "type": "boolean"
+        },
         "vrf": {
           "description": "the vrf of the allocated machine",
           "format": "integer",
@@ -1685,6 +1693,8 @@
         "networkid",
         "networktype",
         "prefixes",
+        "private",
+        "underlay",
         "vrf"
       ]
     },
