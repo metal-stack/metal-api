@@ -114,6 +114,16 @@ func TestMachineNetwork_NetworkType(t *testing.T) {
 			want: PrivateSecondaryShared,
 		},
 		{
+			name: "public network",
+			fields: fields{
+				PrivatePrimary: false,
+				Private:        false,
+				Underlay:       false,
+				Shared:         false,
+			},
+			want: Public,
+		},
+		{
 			name: "try to specify a private primary network with private false",
 			fields: fields{
 				PrivatePrimary: true,

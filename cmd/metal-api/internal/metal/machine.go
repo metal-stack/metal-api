@@ -217,6 +217,7 @@ var (
 		Shared:         false,
 		Underlay:       true,
 	}
+	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, Public, Underlay}
 )
 
 // Is checks whether the machine network has the given type
@@ -226,34 +227,11 @@ func (mn *MachineNetwork) Is(n NetworkType) bool {
 
 // NetworkType determines the network type based on the flags stored in the db entity.
 func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
-	if mn.Is(Underlay) {
-		underlay := Underlay
-		return &underlay, nil
-	}
-
-	if mn.Is(PrivatePrimaryUnshared) {
-		privatePrimaryUnshared := PrivatePrimaryUnshared
-		return &privatePrimaryUnshared, nil
-	}
-
-	if mn.Is(PrivatePrimaryShared) {
-		privatePrimaryShared := PrivatePrimaryShared
-		return &privatePrimaryShared, nil
-	}
-
-	if mn.Is(PrivateSecondaryShared) {
-		privateSecondaryShared := PrivateSecondaryShared
-		return &privateSecondaryShared, nil
-	}
-
-	if mn.Is(PrivateSecondaryUnshared) {
-		privateSecondaryShared := PrivateSecondaryUnshared
-		return &privateSecondaryShared, nil
-	}
-
-	if mn.Is(Public) {
-		public := Public
-		return &public, nil
+	for _, t := range AllNetworkTypes {
+		if mn.Is(t) {
+			nt := t
+			return &nt, nil
+		}
 	}
 
 	return nil, fmt.Errorf("could not determine network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
