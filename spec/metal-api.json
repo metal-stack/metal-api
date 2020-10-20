@@ -20,29 +20,22 @@
     },
     "metal.NetworkType": {
       "properties": {
-        "Name": {
+        "name": {
           "type": "string"
         },
-        "Private": {
+        "private": {
           "type": "boolean"
         },
-        "PrivatePrimary": {
+        "private_primary": {
           "type": "boolean"
         },
-        "Shared": {
+        "shared": {
           "type": "boolean"
         },
-        "Underlay": {
+        "underlay": {
           "type": "boolean"
         }
-      },
-      "required": [
-        "Name",
-        "Private",
-        "PrivatePrimary",
-        "Shared",
-        "Underlay"
-      ]
+      }
     },
     "rest.status": {
       "properties": {

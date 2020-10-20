@@ -1233,10 +1233,6 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", pn.network.ID)
 		}
 
-		if pn.networkType == metal.PrivateSecondaryUnshared {
-			return nil, fmt.Errorf("private network %q is not allowed to be used because it is not marked as shared", pn.network.ID)
-		}
-
 		if !pn.auto && len(pn.ips) == 0 {
 			return nil, fmt.Errorf("the private network %q has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address", pn.network.ID)
 		}

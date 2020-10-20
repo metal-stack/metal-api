@@ -134,6 +134,37 @@ func TestMachineNetwork_NetworkType(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "machine network from old allocation guessed to a primaryprivateunshared",
+			fields: fields{
+				PrivatePrimary: false,
+				Private:        true,
+				Underlay:       false,
+				Shared:         false,
+			},
+			wantErr: false,
+			want:    PrivatePrimaryUnshared,
+		},
+		{
+			name: "unsupported networktype public shared",
+			fields: fields{
+				PrivatePrimary: false,
+				Private:        false,
+				Underlay:       false,
+				Shared:         true,
+			},
+			wantErr: true,
+		},
+		{
+			name: "unsupported networktype underlay private",
+			fields: fields{
+				PrivatePrimary: false,
+				Private:        true,
+				Underlay:       true,
+				Shared:         true,
+			},
+			wantErr: true,
+		},
+		{
 			name: "underlay",
 			fields: fields{
 				Underlay: true,

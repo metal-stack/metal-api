@@ -167,11 +167,12 @@ type MachineNetwork struct {
 
 // NetworkType represents the type of a network
 type NetworkType struct {
-	Name           string
-	Private        bool
-	PrivatePrimary bool
-	Shared         bool
-	Underlay       bool
+	Name           string `json:"name,omitempty"`
+	Private        bool   `json:"private,omitempty"`
+	PrivatePrimary bool   `json:"private_primary,omitempty"`
+	Shared         bool   `json:"shared,omitempty"`
+	Underlay       bool   `json:"underlay,omitempty"`
+	supported      bool   `json:"-"`
 }
 
 var (
@@ -181,6 +182,7 @@ var (
 		PrivatePrimary: true,
 		Shared:         false,
 		Underlay:       false,
+		supported:      true,
 	}
 	PrivatePrimaryShared NetworkType = NetworkType{
 		Name:           "privateprimaryshared",
@@ -188,6 +190,7 @@ var (
 		PrivatePrimary: true,
 		Shared:         true,
 		Underlay:       false,
+		supported:      true,
 	}
 	PrivateSecondaryShared NetworkType = NetworkType{
 		Name:           "privatesecondaryshared",
@@ -195,13 +198,16 @@ var (
 		PrivatePrimary: false,
 		Shared:         true,
 		Underlay:       false,
+		supported:      true,
 	}
+	// PrivateSecondaryUnshared this case is not a valid configuration
 	PrivateSecondaryUnshared NetworkType = NetworkType{
 		Name:           "privatesecondaryunshared",
 		Private:        true,
 		PrivatePrimary: false,
 		Shared:         false,
 		Underlay:       false,
+		supported:      false,
 	}
 	External NetworkType = NetworkType{
 		Name:           "external",
@@ -209,6 +215,7 @@ var (
 		PrivatePrimary: false,
 		Shared:         false,
 		Underlay:       false,
+		supported:      true,
 	}
 	Underlay NetworkType = NetworkType{
 		Name:           "underlay",
@@ -216,6 +223,7 @@ var (
 		PrivatePrimary: false,
 		Shared:         false,
 		Underlay:       true,
+		supported:      true,
 	}
 	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
 )
@@ -227,14 +235,26 @@ func (mn *MachineNetwork) Is(n NetworkType) bool {
 
 // NetworkType determines the network type based on the flags stored in the db entity.
 func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
+	var nt *NetworkType
 	for _, t := range AllNetworkTypes {
 		if mn.Is(t) {
-			nt := t
-			return &nt, nil
+			nt = &t
+			break
 		}
 	}
+	if nt == nil {
+		return nil, fmt.Errorf("could not determine network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
+	}
 
-	return nil, fmt.Errorf("could not determine network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
+	if nt.supported {
+		return nt, nil
+	}
+	// This is for machineNetworks from a Allocation which was before NetworkType was introduced.
+	// We guess based on unset fields not present at this time and therefor are set to false.
+	if mn.Private == true && mn.PrivatePrimary == false && mn.Shared == false && mn.Underlay == false {
+		return &PrivatePrimaryUnshared, nil
+	}
+	return nil, fmt.Errorf("determined network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v is unsupported", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
 }
 
 func (n NetworkType) String() string {

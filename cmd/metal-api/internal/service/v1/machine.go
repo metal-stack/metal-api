@@ -430,8 +430,9 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				DestinationPrefixes: nw.DestinationPrefixes,
 				Prefixes:            nw.Prefixes,
 				NetworkType:         *nt,
-				Private:             nt.Private,
-				Underlay:            nt.Underlay,
+				// FIXME: Both following fields are deprecated and for backward compatibility reasons only
+				Private:  nt.Private,
+				Underlay: nt.Underlay,
 			}
 			networks = append(networks, network)
 		}
