@@ -65,9 +65,10 @@ type machineAllocationSpec struct {
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
 type allocationNetwork struct {
-	network        *metal.Network
-	ips            []metal.IP
-	auto           bool
+	network *metal.Network
+	ips     []metal.IP
+	auto    bool
+
 	privatePrimary bool
 	private        bool
 	shared         bool

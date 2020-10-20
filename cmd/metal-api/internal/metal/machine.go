@@ -165,6 +165,39 @@ type MachineNetwork struct {
 	Shared              bool     `rethinkdb:"shared" json:"shared"`
 }
 
+type NetworkType int
+
+const (
+	PrivatePrimaryUnshared NetworkType = iota
+	PrivatePrimaryShared
+	PrivateSecondaryShared
+	Underlay
+)
+
+func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
+	if mn.Underlay {
+		underlay := Underlay
+		return &underlay, nil
+	}
+
+	if mn.PrivatePrimary && !mn.Shared {
+		privatePrimaryUnshared := PrivatePrimaryUnshared
+		return &privatePrimaryUnshared, nil
+	}
+
+	if mn.PrivatePrimary && mn.Shared {
+		privatePrimaryShared := PrivatePrimaryShared
+		return &privatePrimaryShared, nil
+	}
+
+	if !mn.PrivatePrimary && mn.Private && mn.Shared {
+		privateSecondaryShared := PrivateSecondaryShared
+		return &privateSecondaryShared, nil
+	}
+
+	return nil, fmt.Errorf("could not determine network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
+}
+
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
 	Memory   uint64        `rethinkdb:"memory" json:"memory"`
