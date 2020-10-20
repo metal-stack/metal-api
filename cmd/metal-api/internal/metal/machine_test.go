@@ -70,4 +70,85 @@ func TestMachine_HasMAC(t *testing.T) {
 	}
 }
 
+func TestMachineNetwork_NetworkType(t *testing.T) {
+	type fields struct {
+		PrivatePrimary bool
+		Private        bool
+		Underlay       bool
+		Shared         bool
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    NetworkType
+		wantErr bool
+	}{
+		{
+			name: "private primary unshared",
+			fields: fields{
+				PrivatePrimary: true,
+				Private:        true,
+				Underlay:       false,
+				Shared:         false,
+			},
+			want: PrivatePrimaryUnshared,
+		},
+		{
+			name: "private primary shared",
+			fields: fields{
+				PrivatePrimary: true,
+				Private:        true,
+				Underlay:       false,
+				Shared:         true,
+			},
+			want: PrivatePrimaryShared,
+		},
+		{
+			name: "private secondary shared",
+			fields: fields{
+				PrivatePrimary: false,
+				Private:        true,
+				Underlay:       false,
+				Shared:         true,
+			},
+			want: PrivateSecondaryShared,
+		},
+		{
+			name: "try to specify a private primary network with private false",
+			fields: fields{
+				PrivatePrimary: true,
+				Private:        false,
+				Underlay:       false,
+				Shared:         true,
+			},
+			wantErr: true,
+		},
+		{
+			name: "underlay",
+			fields: fields{
+				Underlay: true,
+			},
+			want: Underlay,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mn := &MachineNetwork{
+				PrivatePrimary: tt.fields.PrivatePrimary,
+				Private:        tt.fields.Private,
+				Underlay:       tt.fields.Underlay,
+				Shared:         tt.fields.Shared,
+			}
+			got, err := mn.NetworkType()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MachineNetwork.NetworkType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != nil && *got != tt.want {
+				t.Errorf("MachineNetwork.NetworkType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // TODO: Write tests for machine allocation

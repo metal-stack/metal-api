@@ -165,32 +165,34 @@ type MachineNetwork struct {
 	Shared              bool     `rethinkdb:"shared" json:"shared"`
 }
 
-type NetworkType int
+// NetworkType represents the type of a network
+type NetworkType string
 
 const (
-	PrivatePrimaryUnshared NetworkType = iota
-	PrivatePrimaryShared
-	PrivateSecondaryShared
-	Underlay
+	PrivatePrimaryUnshared NetworkType = "privateprimaryunshared"
+	PrivatePrimaryShared   NetworkType = "privateprimaryshared"
+	PrivateSecondaryShared NetworkType = "privatesecondaryshared"
+	Underlay               NetworkType = "underlay"
 )
 
+// NetworkType determines the network type based on the flags stored in the db entity.
 func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
-	if mn.Underlay {
+	if mn.Underlay && !mn.PrivatePrimary && !mn.Private && !mn.Shared {
 		underlay := Underlay
 		return &underlay, nil
 	}
 
-	if mn.PrivatePrimary && !mn.Shared {
+	if mn.Private && mn.PrivatePrimary && !mn.Shared {
 		privatePrimaryUnshared := PrivatePrimaryUnshared
 		return &privatePrimaryUnshared, nil
 	}
 
-	if mn.PrivatePrimary && mn.Shared {
+	if mn.Private && mn.PrivatePrimary && mn.Shared {
 		privatePrimaryShared := PrivatePrimaryShared
 		return &privatePrimaryShared, nil
 	}
 
-	if !mn.PrivatePrimary && mn.Private && mn.Shared {
+	if mn.Private && !mn.PrivatePrimary && mn.Shared {
 		privateSecondaryShared := PrivateSecondaryShared
 		return &privateSecondaryShared, nil
 	}
