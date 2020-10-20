@@ -56,13 +56,10 @@ type MachineNetwork struct {
 	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
-	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Private             bool     `json:"private" description:"indicates whether this network is a private network"`
-	PrivatePrimary      bool     `json:"privateprimary" description:"indicates whether this network is the private primary network of this machine"`
-	Shared              bool     `json:"shared" description:"marks a network as shareable."`
-	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
-	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+	ASN                 int64             `json:"asn" description:"ASN number for this network in the bgp configuration"`
+	Nat                 bool              `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	DestinationPrefixes []string          `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	NetworkType         metal.NetworkType `json:"networktype" description:"the network type"`
 }
 
 type MachineHardwareBase struct {
@@ -411,18 +408,20 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		var networks []MachineNetwork
 		for _, nw := range m.Allocation.MachineNetworks {
 			ips := append([]string{}, nw.IPs...)
+			nt, err := nw.NetworkType()
+			if err != nil {
+				continue
+			}
+
 			network := MachineNetwork{
 				NetworkID:           nw.NetworkID,
 				IPs:                 ips,
 				Vrf:                 nw.Vrf,
 				ASN:                 int64(nw.ASN),
-				Private:             nw.Private,
-				PrivatePrimary:      nw.PrivatePrimary,
 				Nat:                 nw.Nat,
-				Underlay:            nw.Underlay,
 				DestinationPrefixes: nw.DestinationPrefixes,
 				Prefixes:            nw.Prefixes,
-				Shared:              nw.Shared,
+				NetworkType:         *nt,
 			}
 			networks = append(networks, network)
 		}

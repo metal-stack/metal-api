@@ -165,6 +165,82 @@ type MachineNetwork struct {
 	Shared              bool     `rethinkdb:"shared" json:"shared"`
 }
 
+// NetworkType represents the type of a network
+type NetworkType struct {
+	Name           string
+	Private        bool
+	PrivatePrimary bool
+	Shared         bool
+	Underlay       bool
+}
+
+var (
+	PrivatePrimaryUnshared NetworkType = NetworkType{
+		Name:           "privateprimaryunshared",
+		Private:        true,
+		PrivatePrimary: true,
+		Shared:         false,
+		Underlay:       false,
+	}
+	PrivatePrimaryShared NetworkType = NetworkType{
+		Name:           "privateprimaryshared",
+		Private:        true,
+		PrivatePrimary: true,
+		Shared:         true,
+		Underlay:       false,
+	}
+	PrivateSecondaryShared NetworkType = NetworkType{
+		Name:           "privatesecondaryshared",
+		Private:        true,
+		PrivatePrimary: false,
+		Shared:         true,
+		Underlay:       false,
+	}
+	PrivateSecondaryUnshared NetworkType = NetworkType{
+		Name:           "privatesecondaryunshared",
+		Private:        true,
+		PrivatePrimary: false,
+		Shared:         false,
+		Underlay:       false,
+	}
+	Public NetworkType = NetworkType{
+		Name:           "public",
+		Private:        false,
+		PrivatePrimary: false,
+		Shared:         false,
+		Underlay:       false,
+	}
+	Underlay NetworkType = NetworkType{
+		Name:           "underlay",
+		Private:        false,
+		PrivatePrimary: false,
+		Shared:         false,
+		Underlay:       true,
+	}
+	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, Public, Underlay}
+)
+
+// Is checks whether the machine network has the given type
+func (mn *MachineNetwork) Is(n NetworkType) bool {
+	return mn.Private == n.Private && mn.PrivatePrimary == n.PrivatePrimary && mn.Shared == n.Shared && mn.Underlay == n.Underlay
+}
+
+// NetworkType determines the network type based on the flags stored in the db entity.
+func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
+	for _, t := range AllNetworkTypes {
+		if mn.Is(t) {
+			nt := t
+			return &nt, nil
+		}
+	}
+
+	return nil, fmt.Errorf("could not determine network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
+}
+
+func (n NetworkType) String() string {
+	return n.Name
+}
+
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
 	Memory   uint64        `rethinkdb:"memory" json:"memory"`
