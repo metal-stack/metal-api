@@ -20,7 +20,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/metal-stack/go-ipam v1.6.0
 	github.com/metal-stack/masterdata-api v0.8.1
-	github.com/metal-stack/metal-lib v0.6.0
+	github.com/metal-stack/metal-lib v0.6.3-0.20201021121903-8d6026f1be85
 	github.com/metal-stack/security v0.4.0
 	github.com/metal-stack/v v1.0.2
 	github.com/morikuni/aec v1.0.0 // indirect

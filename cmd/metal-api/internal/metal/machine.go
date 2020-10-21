@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -177,7 +178,7 @@ type NetworkType struct {
 
 var (
 	PrivatePrimaryUnshared NetworkType = NetworkType{
-		Name:           "privateprimaryunshared",
+		Name:           mn.PrivatePrimaryUnshared,
 		Private:        true,
 		PrivatePrimary: true,
 		Shared:         false,
@@ -185,7 +186,7 @@ var (
 		Supported:      true,
 	}
 	PrivatePrimaryShared NetworkType = NetworkType{
-		Name:           "privateprimaryshared",
+		Name:           mn.PrivatePrimaryShared,
 		Private:        true,
 		PrivatePrimary: true,
 		Shared:         true,
@@ -193,7 +194,7 @@ var (
 		Supported:      true,
 	}
 	PrivateSecondaryShared NetworkType = NetworkType{
-		Name:           "privatesecondaryshared",
+		Name:           mn.PrivateSecondaryShared,
 		Private:        true,
 		PrivatePrimary: false,
 		Shared:         true,
@@ -202,7 +203,7 @@ var (
 	}
 	// PrivateSecondaryUnshared this case is not a valid configuration
 	PrivateSecondaryUnshared NetworkType = NetworkType{
-		Name:           "privatesecondaryunshared",
+		Name:           mn.PrivateSecondaryUnshared,
 		Private:        true,
 		PrivatePrimary: false,
 		Shared:         false,
@@ -210,7 +211,7 @@ var (
 		Supported:      false,
 	}
 	External NetworkType = NetworkType{
-		Name:           "external",
+		Name:           mn.External,
 		Private:        false,
 		PrivatePrimary: false,
 		Shared:         false,
@@ -218,7 +219,7 @@ var (
 		Supported:      true,
 	}
 	Underlay NetworkType = NetworkType{
-		Name:           "underlay",
+		Name:           mn.Underlay,
 		Private:        false,
 		PrivatePrimary: false,
 		Shared:         false,
