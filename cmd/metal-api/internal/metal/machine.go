@@ -249,8 +249,8 @@ func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
 	if nt.Supported {
 		return nt, nil
 	}
-	// This is for machineNetworks from a Allocation which was before NetworkType was introduced.
-	// We guess based on unset fields not present at this time and therefor are set to false.
+	// This is for machineNetworks from an allocation which was before NetworkType was introduced.
+	// We guess based on unset fields not present at this time and therefore are set to false.
 	if mn.Private && !mn.PrivatePrimary && !mn.Shared && !mn.Underlay {
 		return &PrivatePrimaryUnshared, nil
 	}
