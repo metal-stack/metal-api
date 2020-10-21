@@ -10,6 +10,7 @@ type NetworkBase struct {
 	PartitionID *string           `json:"partitionid" description:"the partition this network belongs to" optional:"true"`
 	ProjectID   *string           `json:"projectid" description:"the project id this network belongs to, can be empty if globally available" optional:"true"`
 	Labels      map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Shared      *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
 }
 
 // NetworkImmutable defines the properties which are immutable in the Network.
@@ -56,6 +57,7 @@ type NetworkUpdateRequest struct {
 	Common
 	Prefixes []string          `json:"prefixes" description:"the prefixes of this network" optional:"true"`
 	Labels   map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Shared   *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
 }
 
 // NetworkResponse holds all properties returned in a FindNetwork or GetNetwork request.
@@ -96,6 +98,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			PartitionID: &network.PartitionID,
 			ProjectID:   &network.ProjectID,
 			Labels:      labels,
+			Shared:      &network.Shared,
 		},
 		NetworkImmutable: NetworkImmutable{
 			Prefixes:            network.Prefixes.String(),

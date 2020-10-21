@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -157,10 +158,109 @@ type MachineNetwork struct {
 	IPs                 []string `rethinkdb:"ips" json:"ips"`
 	DestinationPrefixes []string `rethinkdb:"destinationprefixes" json:"destinationprefixes"`
 	Vrf                 uint     `rethinkdb:"vrf" json:"vrf"`
+	PrivatePrimary      bool     `rethinkdb:"privateprimary" json:"privateprimary"`
 	Private             bool     `rethinkdb:"private" json:"private"`
 	ASN                 uint32   `rethinkdb:"asn" json:"asn"`
 	Nat                 bool     `rethinkdb:"nat" json:"nat"`
 	Underlay            bool     `rethinkdb:"underlay" json:"underlay"`
+	Shared              bool     `rethinkdb:"shared" json:"shared"`
+}
+
+// NetworkType represents the type of a network
+type NetworkType struct {
+	Name           string `json:"name,omitempty"`
+	Private        bool   `json:"private,omitempty"`
+	PrivatePrimary bool   `json:"private_primary,omitempty"`
+	Shared         bool   `json:"shared,omitempty"`
+	Underlay       bool   `json:"underlay,omitempty"`
+	Supported      bool   `json:"-"`
+}
+
+var (
+	PrivatePrimaryUnshared NetworkType = NetworkType{
+		Name:           mn.PrivatePrimaryUnshared,
+		Private:        true,
+		PrivatePrimary: true,
+		Shared:         false,
+		Underlay:       false,
+		Supported:      true,
+	}
+	PrivatePrimaryShared NetworkType = NetworkType{
+		Name:           mn.PrivatePrimaryShared,
+		Private:        true,
+		PrivatePrimary: true,
+		Shared:         true,
+		Underlay:       false,
+		Supported:      true,
+	}
+	PrivateSecondaryShared NetworkType = NetworkType{
+		Name:           mn.PrivateSecondaryShared,
+		Private:        true,
+		PrivatePrimary: false,
+		Shared:         true,
+		Underlay:       false,
+		Supported:      true,
+	}
+	// PrivateSecondaryUnshared this case is not a valid configuration
+	PrivateSecondaryUnshared NetworkType = NetworkType{
+		Name:           mn.PrivateSecondaryUnshared,
+		Private:        true,
+		PrivatePrimary: false,
+		Shared:         false,
+		Underlay:       false,
+		Supported:      false,
+	}
+	External NetworkType = NetworkType{
+		Name:           mn.External,
+		Private:        false,
+		PrivatePrimary: false,
+		Shared:         false,
+		Underlay:       false,
+		Supported:      true,
+	}
+	Underlay NetworkType = NetworkType{
+		Name:           mn.Underlay,
+		Private:        false,
+		PrivatePrimary: false,
+		Shared:         false,
+		Underlay:       true,
+		Supported:      true,
+	}
+	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
+)
+
+// Is checks whether the machine network has the given type
+func (mn *MachineNetwork) Is(n NetworkType) bool {
+	return mn.Private == n.Private && mn.PrivatePrimary == n.PrivatePrimary && mn.Shared == n.Shared && mn.Underlay == n.Underlay
+}
+
+// NetworkType determines the network type based on the flags stored in the db entity.
+func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
+	var nt *NetworkType
+	for _, t := range AllNetworkTypes {
+		if mn.Is(t) {
+			nt = &t
+			break
+		}
+	}
+	if nt == nil {
+		return nil, fmt.Errorf("could not determine network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
+	}
+
+	if nt.Supported {
+		return nt, nil
+	}
+	// This is for machineNetworks from an allocation which was before NetworkType was introduced.
+	// We guess based on unset fields not present at this time and therefore are set to false.
+	// TODO: This guess based approach can be removed in future releases.
+	if mn.Private && !mn.PrivatePrimary && !mn.Shared && !mn.Underlay {
+		return &PrivatePrimaryUnshared, nil
+	}
+	return nil, fmt.Errorf("determined network type out of flags, underlay: %v, privateprimary: %v, private: %v, shared: %v is unsupported", mn.Underlay, mn.PrivatePrimary, mn.Private, mn.Shared)
+}
+
+func (n NetworkType) String() string {
+	return n.Name
 }
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.

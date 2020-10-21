@@ -57,10 +57,17 @@ type MachineNetwork struct {
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
 	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Private             bool     `json:"private" description:"indicates whether this network is the private network of this machine"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+	NetworkType         string   `json:"networktype" description:"the network type, types can be looked up in the network package of metal-lib"`
+	// Private flag to indicate this is a private network
+	//
+	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
+	Private bool `json:"private" description:"indicates whether this network is the private network of this machine"`
+	// Underlay flag to indicate this is a underlay network
+	//
+	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
+	Underlay bool `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 }
 
 type MachineHardwareBase struct {
@@ -409,16 +416,23 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		var networks []MachineNetwork
 		for _, nw := range m.Allocation.MachineNetworks {
 			ips := append([]string{}, nw.IPs...)
+			nt, err := nw.NetworkType()
+			if err != nil {
+				continue
+			}
+
 			network := MachineNetwork{
 				NetworkID:           nw.NetworkID,
 				IPs:                 ips,
 				Vrf:                 nw.Vrf,
 				ASN:                 int64(nw.ASN),
-				Private:             nw.Private,
 				Nat:                 nw.Nat,
-				Underlay:            nw.Underlay,
 				DestinationPrefixes: nw.DestinationPrefixes,
 				Prefixes:            nw.Prefixes,
+				NetworkType:         nt.Name,
+				// FIXME: Both following fields are deprecated and for backward compatibility reasons only
+				Private:  nt.Private,
+				Underlay: nt.Underlay,
 			}
 			networks = append(networks, network)
 		}

@@ -65,28 +65,29 @@ type machineAllocationSpec struct {
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
 type allocationNetwork struct {
-	network   *metal.Network
-	ips       []metal.IP
-	auto      bool
-	isPrivate bool
+	network *metal.Network
+	ips     []metal.IP
+	auto    bool
+
+	networkType metal.NetworkType
 }
 
 // allocationNetworkMap is a map of allocationNetworks with the network id as the key
 type allocationNetworkMap map[string]*allocationNetwork
 
-// getPrivateNetwork extracts the private network from an allocationNetworkMap
-func getPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
-	var privateNetwork *allocationNetwork
+// getPrivatePrimaryNetwork extracts the private network from an allocationNetworkMap
+func getPrivatePrimaryNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
+	var privatePrimaryNetwork *allocationNetwork
 	for _, n := range networks {
-		if n.isPrivate {
-			privateNetwork = n
+		if n.networkType.PrivatePrimary {
+			privatePrimaryNetwork = n
 			break
 		}
 	}
-	if privateNetwork == nil {
-		return nil, fmt.Errorf("no private network contained")
+	if privatePrimaryNetwork == nil {
+		return nil, fmt.Errorf("no private primary network contained")
 	}
-	return privateNetwork, nil
+	return privatePrimaryNetwork, nil
 }
 
 // The MachineAllocation contains the allocated machine or an error.
@@ -1119,13 +1120,16 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// what do we have to prevent:
 	// - user wants to place his machine in a network that does not belong to the project in which the machine is being placed
 	// - user wants a machine with a private network that is not in the partition of the machine
-	// - user wants to define multiple private networks for his machine
-	// - user must define one private network
+	// - user specifies no private network
+	// - user specifies multiple, unshared private networks
+	// - user specifies a shared private network in addition to an unshared one for a machine
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
-	// - user's private network is specified with noauto, which would make the machine have no ip address
+	// - user's private network is specified with noauto but no specific IPs are given: this would yield a machine with no ip address
 
 	specNetworks := make(map[string]*allocationNetwork)
-	var privateNetwork *allocationNetwork
+	var primaryPrivateNetwork *allocationNetwork
+	var privateNetworks []*allocationNetwork
+	var privateSharedNetworks []*allocationNetwork
 
 	for _, networkSpec := range allocationSpec.Networks {
 		auto := true
@@ -1146,25 +1150,27 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		}
 
 		n := &allocationNetwork{
-			network:   network,
-			auto:      auto,
-			ips:       []metal.IP{},
-			isPrivate: false,
+			network:     network,
+			auto:        auto,
+			ips:         []metal.IP{},
+			networkType: metal.External,
 		}
 
 		for _, privateSuperNetwork := range privateSuperNetworks {
-			if network.ParentNetworkID == privateSuperNetwork.ID {
-				// this is the user given private network
-				if privateNetwork != nil {
-					return nil, fmt.Errorf("multiple private networks provided, which is not allowed")
-				}
-				if network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
-					return nil, fmt.Errorf("the private network must be in the partition where the machine is going to be placed")
-				}
-				n.isPrivate = true
-				privateNetwork = n
-				break
+			if network.ParentNetworkID != privateSuperNetwork.ID {
+				continue
 			}
+			if network.Shared {
+				n.networkType = metal.PrivateSecondaryShared
+				privateSharedNetworks = append(privateSharedNetworks, n)
+			} else {
+				if primaryPrivateNetwork != nil {
+					return nil, fmt.Errorf("multiple private networks are specified but there must be only one primary private network that must not be shared")
+				}
+				n.networkType = metal.PrivatePrimaryUnshared
+				primaryPrivateNetwork = n
+			}
+			privateNetworks = append(privateNetworks, n)
 		}
 
 		specNetworks[network.ID] = n
@@ -1174,11 +1180,31 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		return nil, fmt.Errorf("given network ids are not unique")
 	}
 
-	if privateNetwork == nil {
+	if len(privateNetworks) == 0 {
 		return nil, fmt.Errorf("no private network given")
 	}
 
-	if privateNetwork.network.ProjectID != allocationSpec.ProjectID {
+	// if there is no unshared private network we try to determine a shared one as primary
+	if primaryPrivateNetwork == nil {
+		// this means that this is a machine of a shared private network
+		// this is an exception where the primary private network is a shared one.
+		// it must be the only private network
+		if len(privateSharedNetworks) == 0 {
+			return nil, fmt.Errorf("no private shared network found that could be used as primary private network")
+		}
+		if len(privateSharedNetworks) > 1 {
+			return nil, fmt.Errorf("machines and firewalls are not allowed to be placed into multiple private, shared networks (firewall needs an unshared private network and machines may only reside in one private network)")
+		}
+
+		primaryPrivateNetwork = privateSharedNetworks[0]
+		primaryPrivateNetwork.networkType = metal.PrivatePrimaryShared
+	}
+
+	if !allocationSpec.IsFirewall && len(privateNetworks) > 1 {
+		return nil, fmt.Errorf("machines are not allowed to be placed into multiple private networks")
+	}
+
+	if primaryPrivateNetwork.network.ProjectID != allocationSpec.ProjectID {
 		return nil, fmt.Errorf("the given private network does not belong to the project, which is not allowed")
 	}
 
@@ -1203,8 +1229,14 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		network.ips = append(network.ips, *ip)
 	}
 
-	if !privateNetwork.auto && len(privateNetwork.ips) == 0 {
-		return nil, fmt.Errorf("the private network has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address")
+	for _, pn := range privateNetworks {
+		if pn.network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
+			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", pn.network.ID)
+		}
+
+		if !pn.auto && len(pn.ips) == 0 {
+			return nil, fmt.Errorf("the private network %q has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address", pn.network.ID)
+		}
 	}
 
 	return specNetworks, nil
@@ -1226,9 +1258,9 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 	underlay := &underlays[0]
 
 	return &allocationNetwork{
-		network:   underlay,
-		auto:      true,
-		isPrivate: false,
+		network:     underlay,
+		auto:        true,
+		networkType: metal.Underlay,
 	}, nil
 }
 
@@ -1271,8 +1303,10 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		Prefixes:            n.network.Prefixes.String(),
 		IPs:                 ipAddresses,
 		DestinationPrefixes: n.network.DestinationPrefixes.String(),
-		Private:             n.isPrivate,
-		Underlay:            n.network.Underlay,
+		PrivatePrimary:      n.networkType.PrivatePrimary,
+		Private:             n.networkType.Private,
+		Shared:              n.networkType.Shared,
+		Underlay:            n.networkType.Underlay,
 		Nat:                 n.network.Nat,
 		Vrf:                 n.network.Vrf,
 	}
@@ -1290,14 +1324,14 @@ func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags [
 	labels := make(map[string]string)
 
 	for _, n := range networks {
-		if !n.isPrivate {
+		if !n.networkType.PrivatePrimary && !n.networkType.Shared {
 			for k, v := range n.network.Labels {
 				labels[k] = v
 			}
 		}
 	}
 
-	privateNetwork, _ := getPrivateNetwork(networks)
+	privateNetwork, _ := getPrivatePrimaryNetwork(networks)
 	if privateNetwork != nil {
 		for k, v := range privateNetwork.network.Labels {
 			labels[k] = v
