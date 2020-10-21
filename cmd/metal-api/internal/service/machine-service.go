@@ -1157,19 +1157,20 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		}
 
 		for _, privateSuperNetwork := range privateSuperNetworks {
-			if network.ParentNetworkID == privateSuperNetwork.ID {
-				if network.Shared {
-					n.networkType = metal.PrivateSecondaryShared
-					privateSharedNetworks = append(privateSharedNetworks, n)
-				} else {
-					if primaryPrivateNetwork != nil {
-						return nil, fmt.Errorf("multiple private networks are specified but there must be only one primary private network that must not be shared")
-					}
-					n.networkType = metal.PrivatePrimaryUnshared
-					primaryPrivateNetwork = n
-				}
-				privateNetworks = append(privateNetworks, n)
+			if network.ParentNetworkID != privateSuperNetwork.ID {
+				continue
 			}
+			if network.Shared {
+				n.networkType = metal.PrivateSecondaryShared
+				privateSharedNetworks = append(privateSharedNetworks, n)
+			} else {
+				if primaryPrivateNetwork != nil {
+					return nil, fmt.Errorf("multiple private networks are specified but there must be only one primary private network that must not be shared")
+				}
+				n.networkType = metal.PrivatePrimaryUnshared
+				primaryPrivateNetwork = n
+			}
+			privateNetworks = append(privateNetworks, n)
 		}
 
 		specNetworks[network.ID] = n
