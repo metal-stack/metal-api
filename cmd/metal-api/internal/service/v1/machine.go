@@ -59,7 +59,7 @@ type MachineNetwork struct {
 	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	NetworkType         string   `json:"networktype" description:"the network type"`
+	NetworkType         string   `json:"networktype" description:"the network type, types can be looked up in the network package of metal-lib"`
 	// Private flag to indicate this is a private network
 	//
 	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
