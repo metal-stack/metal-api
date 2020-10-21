@@ -41,11 +41,12 @@ type test struct {
 	numberApiInstances     int
 	numberMachineInstances int
 	numberAllocations      int
+	testCaseMutex          *sync.RWMutex
 	testCase               testCase
 
 	notReadyMachines    *sync.WaitGroup
 	unallocatedMachines *sync.WaitGroup
-	mtx                 *sync.Mutex
+	allocationsMutex    *sync.RWMutex
 	allocations         map[string]bool
 }
 
@@ -65,21 +66,26 @@ func TestWaitServer(t *testing.T) {
 				numberApiInstances:     a,
 				numberMachineInstances: m[0],
 				numberAllocations:      m[1],
+				testCaseMutex:          new(sync.RWMutex),
 			})
 		}
 	}
 	for _, test := range tt {
 		test.T = t
+		test.testCaseMutex.Lock()
 		test.testCase = happyPath
+		test.testCaseMutex.Unlock()
 		test.run()
+		test.testCaseMutex.Lock()
 		test.testCase = clientFailure
+		test.testCaseMutex.Unlock()
 		test.run()
 	}
 }
 
 type datasource struct {
-	mtx  *sync.Mutex
-	wait map[string]bool
+	mutex *sync.RWMutex
+	wait  map[string]bool
 }
 
 func (ds *datasource) FindMachineByID(machineID string) (*metal.Machine, error) {
@@ -91,8 +97,8 @@ func (ds *datasource) FindMachineByID(machineID string) (*metal.Machine, error) 
 }
 
 func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
-	ds.mtx.Lock()
-	defer ds.mtx.Unlock()
+	ds.mutex.Lock()
+	defer ds.mutex.Unlock()
 	ds.wait[new.ID] = new.Waiting
 	return nil
 }
@@ -106,12 +112,12 @@ func (t *test) run() {
 	t.notReadyMachines.Add(t.numberMachineInstances)
 	t.unallocatedMachines = new(sync.WaitGroup)
 	t.unallocatedMachines.Add(t.numberAllocations)
-	t.mtx = new(sync.Mutex)
+	t.allocationsMutex = new(sync.RWMutex)
 	t.allocations = make(map[string]bool)
 
 	ds := &datasource{
-		mtx:  new(sync.Mutex),
-		wait: make(map[string]bool),
+		mutex: new(sync.RWMutex),
+		wait:  make(map[string]bool),
 	}
 
 	t.startApiInstances(ds)
@@ -119,36 +125,49 @@ func (t *test) run() {
 	t.notReadyMachines.Wait()
 
 	require.Equal(t, t.numberMachineInstances, len(ds.wait))
+	ds.mutex.RLock()
 	for _, wait := range ds.wait {
 		require.True(t, wait)
 	}
+	ds.mutex.RUnlock()
 
+	t.testCaseMutex.RLock()
 	switch t.testCase {
 	case clientFailure:
+		t.testCaseMutex.RUnlock()
 		t.notReadyMachines.Add(t.numberMachineInstances)
 		t.stopMachineInstances()
 		t.startMachineInstances()
 		t.notReadyMachines.Wait()
+	default:
+		t.testCaseMutex.RUnlock()
 	}
 
 	require.Equal(t, t.numberMachineInstances, len(ds.wait))
+	ds.mutex.RLock()
 	for _, wait := range ds.wait {
 		require.True(t, wait)
 	}
+	ds.mutex.RUnlock()
 
 	t.allocateMachines()
 
 	t.unallocatedMachines.Wait()
 
+	t.allocationsMutex.RLock()
 	require.Equal(t, t.numberAllocations, len(t.allocations))
 	for _, allocated := range t.allocations {
 		require.True(t, allocated)
 	}
 
+	ds.mutex.RLock()
 	require.Equal(t, t.numberMachineInstances, len(ds.wait))
 	for key, wait := range ds.wait {
 		require.Equal(t, !containsKey(t.allocations, key), wait)
 	}
+	ds.mutex.RUnlock()
+
+	t.allocationsMutex.RUnlock()
 }
 
 func containsKey(m map[string]bool, key string) bool {
@@ -202,8 +221,7 @@ func (t *test) startApiInstances(ds Datasource) {
 		t.ll = append(t.ll, l)
 		v1.RegisterWaitServer(s.server, s)
 		go func() {
-			err := s.server.Serve(l)
-			require.Nil(t, err)
+			_ = s.server.Serve(l)
 		}()
 	}
 }
@@ -241,9 +259,9 @@ func (t *test) startMachineInstances() {
 			if err != nil {
 				return
 			}
-			t.mtx.Lock()
+			t.allocationsMutex.Lock()
 			t.allocations[machineID] = true
-			t.mtx.Unlock()
+			t.allocationsMutex.Unlock()
 			t.unallocatedMachines.Done()
 		}()
 	}
@@ -275,9 +293,12 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 				if !receivedResponse {
 					break
 				}
+				t.testCaseMutex.RLock()
 				if t.testCase == clientFailure {
+					t.testCaseMutex.RUnlock()
 					return err
 				}
+				t.testCaseMutex.RUnlock()
 				break
 			}
 			if !receivedResponse {
@@ -293,9 +314,9 @@ func (t *test) allocateMachines() {
 	for i := 0; i < t.numberAllocations; i++ {
 		machineID := t.selectMachine(alreadyAllocated)
 		alreadyAllocated = append(alreadyAllocated, machineID)
-		t.mtx.Lock()
+		t.allocationsMutex.Lock()
 		t.allocations[machineID] = false
-		t.mtx.Unlock()
+		t.allocationsMutex.Unlock()
 		t.simulateNsqNotifyAllocated(machineID)
 	}
 }
