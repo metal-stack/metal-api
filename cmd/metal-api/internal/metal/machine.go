@@ -251,6 +251,7 @@ func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
 	}
 	// This is for machineNetworks from an allocation which was before NetworkType was introduced.
 	// We guess based on unset fields not present at this time and therefore are set to false.
+	// TODO: This guess based approach can be removed in future releases.
 	if mn.Private && !mn.PrivatePrimary && !mn.Shared && !mn.Underlay {
 		return &PrivatePrimaryUnshared, nil
 	}
