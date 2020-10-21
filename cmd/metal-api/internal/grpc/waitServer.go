@@ -247,9 +247,7 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	defer func() {
 		s.queueLock.Lock()
 		delete(s.queue, machineID)
-		if err != nil {
-			close(can)
-		}
+		close(can)
 		s.queueLock.Unlock()
 	}()
 
