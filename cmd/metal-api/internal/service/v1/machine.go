@@ -56,10 +56,10 @@ type MachineNetwork struct {
 	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
 	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
-	ASN                 int64             `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Nat                 bool              `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
-	DestinationPrefixes []string          `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	NetworkType         metal.NetworkType `json:"networktype" description:"the network type"`
+	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
+	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	NetworkType         string   `json:"networktype" description:"the network type"`
 	// Private flag to indicate this is a private network
 	//
 	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
@@ -429,7 +429,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Nat:                 nw.Nat,
 				DestinationPrefixes: nw.DestinationPrefixes,
 				Prefixes:            nw.Prefixes,
-				NetworkType:         *nt,
+				NetworkType:         nt.Name,
 				// FIXME: Both following fields are deprecated and for backward compatibility reasons only
 				Private:  nt.Private,
 				Underlay: nt.Underlay,
