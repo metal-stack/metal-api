@@ -277,7 +277,7 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 	for {
 		stream, err := c.Wait(ctx, req)
 		if err != nil {
-			time.Sleep(10*time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			continue
 		}
 
