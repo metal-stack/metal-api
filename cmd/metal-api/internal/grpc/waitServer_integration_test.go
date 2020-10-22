@@ -1,3 +1,5 @@
+// +build integration
+
 package grpc
 
 import (
@@ -274,8 +276,8 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 
 	for {
 		stream, err := c.Wait(ctx, req)
-		time.Sleep(10 * time.Millisecond)
 		if err != nil {
+			time.Sleep(10*time.Millisecond)
 			continue
 		}
 
