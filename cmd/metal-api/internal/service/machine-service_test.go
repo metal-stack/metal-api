@@ -888,7 +888,6 @@ func Test_validateAllocationSpec(t *testing.T) {
 func Test_makeMachineTags(t *testing.T) {
 	type args struct {
 		m        *metal.Machine
-		networks allocationNetworkMap
 		userTags []string
 	}
 	tests := []struct {
@@ -915,63 +914,13 @@ func Test_makeMachineTags(t *testing.T) {
 						},
 					},
 				},
-				networks: allocationNetworkMap{
-					"network-uuid-1": &allocationNetwork{
-						network: &metal.Network{
-							Labels: map[string]string{
-								"external-network-label": "1",
-							},
-						},
-						networkType: metal.External,
-					},
-					"network-uuid-2": &allocationNetwork{
-						network: &metal.Network{
-							Labels: map[string]string{
-								"private-network-label": "1",
-							},
-						},
-						networkType: metal.PrivatePrimaryUnshared,
-					},
-				},
 				userTags: []string{"usertag=something"},
 			},
 			want: []string{
-				"external-network-label=1",
-				"private-network-label=1",
 				"usertag=something",
 				"machine.metal-stack.io/network.primary.asn=1203874",
 				"machine.metal-stack.io/rack=rack01",
 				"machine.metal-stack.io/chassis=chassis123",
-			},
-		},
-		{
-			name: "private network tags higher precedence than external network tags",
-			args: args{
-				m: &metal.Machine{
-					Allocation: &metal.MachineAllocation{
-						MachineNetworks: []*metal.MachineNetwork{},
-					},
-				},
-				networks: allocationNetworkMap{
-					"network-uuid-1": &allocationNetwork{
-						network: &metal.Network{
-							Labels: map[string]string{
-								"override": "1",
-							},
-						},
-					},
-					"network-uuid-2": &allocationNetwork{
-						network: &metal.Network{
-							Labels: map[string]string{
-								"override": "2",
-							},
-						},
-						networkType: metal.PrivatePrimaryUnshared,
-					},
-				},
-			},
-			want: []string{
-				"override=2",
 			},
 		},
 		{
@@ -980,23 +929,6 @@ func Test_makeMachineTags(t *testing.T) {
 				m: &metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						MachineNetworks: []*metal.MachineNetwork{},
-					},
-				},
-				networks: allocationNetworkMap{
-					"network-uuid-1": &allocationNetwork{
-						network: &metal.Network{
-							Labels: map[string]string{
-								"override": "1",
-							},
-						},
-					},
-					"network-uuid-2": &allocationNetwork{
-						network: &metal.Network{
-							Labels: map[string]string{
-								"override": "2",
-							},
-						},
-						networkType: metal.PrivatePrimaryUnshared,
 					},
 				},
 				userTags: []string{"override=3"},
@@ -1018,7 +950,6 @@ func Test_makeMachineTags(t *testing.T) {
 						},
 					},
 				},
-				networks: allocationNetworkMap{},
 				userTags: []string{"machine.metal-stack.io/network.primary.asn=iamdoingsomethingevil"},
 			},
 			want: []string{
@@ -1028,7 +959,7 @@ func Test_makeMachineTags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeMachineTags(tt.args.m, tt.args.networks, tt.args.userTags)
+			got := makeMachineTags(tt.args.m, tt.args.userTags)
 
 			for _, wantElement := range tt.want {
 				require.Contains(t, got, wantElement, "tag not contained in result")
