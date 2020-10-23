@@ -225,6 +225,7 @@ func (t *test) startApiInstances(ds Datasource) {
 		}()
 	}
 }
+
 func (t *test) bufDialer(l *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
 	return func(context.Context, string) (net.Conn, error) {
 		return l.Dial()
