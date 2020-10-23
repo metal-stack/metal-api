@@ -33,4 +33,4 @@ mini-lab-push:
 
 .PHONY: test-wait-server
 test-wait-server:
-	$(GO) test -tags=integration -p=1 -count=10 -failfast -run Wait ./cmd/metal-api/internal/grpc
+	CGO_ENABLED=1 $(GO) test -race -failfast -run Wait ./cmd/metal-api/internal/grpc
