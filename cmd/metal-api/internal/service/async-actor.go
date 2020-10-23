@@ -39,6 +39,11 @@ func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore,
 	return actor, nil
 }
 
+type networkRelease struct {
+	machineID string
+	networks  []*metal.MachineNetwork
+}
+
 func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	if m.State.Value == metal.LockedState {
 		return fmt.Errorf("machine is locked")
@@ -55,7 +60,14 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	}
 
 	// call the releaser async
-	err = a.machineReleaser(m)
+	var networks []*metal.MachineNetwork
+	if m.Allocation != nil {
+		networks = m.Allocation.MachineNetworks
+	}
+	err = a.machineReleaser(&networkRelease{
+		machineID: m.ID,
+		networks:  networks,
+	})
 	if err != nil {
 		// log error, but what should we do here? we already called
 		// deleteVRFSwitches and publishDeleteEvent, so should we return
@@ -77,12 +89,9 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	return nil
 }
 
-func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
-	if machine.Allocation == nil {
-		return nil
-	}
+func (a *asyncActor) releaseMachineNetworks(release *networkRelease) error {
 	var asn uint32
-	for _, machineNetwork := range machine.Allocation.MachineNetworks {
+	for _, machineNetwork := range release.networks {
 		if machineNetwork.IPs == nil {
 			continue
 		}
@@ -97,7 +106,7 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 				return err
 			}
 
-			err = a.disassociateIP(ip, machine)
+			err = a.disassociateIP(ip, release.machineID)
 			if err != nil {
 				return err
 			}
@@ -121,13 +130,13 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	// IPs "dangling".
 	var danglingIPs metal.IPs
 	err := a.SearchIPs(&datastore.IPSearchQuery{
-		Tags: []string{metal.IpTag(tag.MachineID, machine.ID)},
+		Tags: []string{metal.IpTag(tag.MachineID, release.machineID)},
 	}, &danglingIPs)
 	if err != nil {
 		return err
 	}
 	for _, ip := range danglingIPs {
-		err = a.disassociateIP(&ip, machine)
+		err = a.disassociateIP(&ip, release.machineID)
 		if err != nil {
 			return err
 		}
@@ -135,15 +144,15 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	return nil
 }
 
-func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error {
+func (a *asyncActor) disassociateIP(ip *metal.IP, machineID string) error {
 	// ignore ips that were associated with the machine for allocation but the association is not present anymore at the ip
-	if !ip.HasMachineId(machine.GetID()) {
+	if !ip.HasMachineId(machineID) {
 		return nil
 	}
 
 	// disassociate machine from ip
 	new := *ip
-	new.RemoveMachineId(machine.GetID())
+	new.RemoveMachineId(machineID)
 	err := a.UpdateIP(ip, &new)
 	if err != nil {
 		return err

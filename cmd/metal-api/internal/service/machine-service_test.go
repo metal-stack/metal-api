@@ -540,6 +540,8 @@ func TestFreeMachine(t *testing.T) {
 	// TODO: Add tests for IPAM, verifying that networks are cleaned up properly
 
 	ds, mock := datastore.InitMockDB()
+	tags := []string{"machine.metal-stack.io/id=1"}
+	mock.On(r.DB("mockdb").Table("ip").Filter(r.MockAnything())).Return([]interface{}{tags}, nil)
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
