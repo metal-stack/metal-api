@@ -75,21 +75,6 @@ type allocationNetwork struct {
 // allocationNetworkMap is a map of allocationNetworks with the network id as the key
 type allocationNetworkMap map[string]*allocationNetwork
 
-// getPrivatePrimaryNetwork extracts the private network from an allocationNetworkMap
-func getPrivatePrimaryNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
-	var privatePrimaryNetwork *allocationNetwork
-	for _, n := range networks {
-		if n.networkType.PrivatePrimary {
-			privatePrimaryNetwork = n
-			break
-		}
-	}
-	if privatePrimaryNetwork == nil {
-		return nil, fmt.Errorf("no private primary network contained")
-	}
-	return privatePrimaryNetwork, nil
-}
-
 // The MachineAllocation contains the allocated machine or an error.
 type MachineAllocation struct {
 	Machine *metal.Machine
@@ -945,7 +930,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 	old := *machine
 	machine.Allocation = alloc
-	machine.Tags = makeMachineTags(machine, networks, allocationSpec.Tags)
+	machine.Tags = makeMachineTags(machine, allocationSpec.Tags)
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
@@ -1316,27 +1301,10 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 
 // makeMachineTags constructs the tags of the machine.
 // following tags are added in the following precedence (from lowest to highest in case of duplication):
-// - external network labels (concatenated, from all machine networks that this machine belongs to)
-// - private network labels (concatenated)
 // - user given tags (from allocation spec)
 // - system tags (immutable information from the metal-api that are useful for the end user, e.g. machine rack and chassis)
-func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags []string) []string {
+func makeMachineTags(m *metal.Machine, userTags []string) []string {
 	labels := make(map[string]string)
-
-	for _, n := range networks {
-		if !n.networkType.PrivatePrimary && !n.networkType.Shared {
-			for k, v := range n.network.Labels {
-				labels[k] = v
-			}
-		}
-	}
-
-	privateNetwork, _ := getPrivatePrimaryNetwork(networks)
-	if privateNetwork != nil {
-		for k, v := range privateNetwork.network.Labels {
-			labels[k] = v
-		}
-	}
 
 	// as user labels are given as an array, we need to figure out if label-like tags were provided.
 	// otherwise the user could provide confusing information like:
