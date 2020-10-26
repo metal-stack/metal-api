@@ -247,9 +247,6 @@ func (s *WaitServer) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	defer func() {
 		s.queueLock.Lock()
 		delete(s.queue, machineID)
-		if err == nil {
-			close(can)
-		}
 		s.queueLock.Unlock()
 	}()
 
@@ -302,11 +299,11 @@ func sendKeepPatientResponse(srv v1.Wait_WaitServer) error {
 
 func (s *WaitServer) handleAllocation(machineID string) {
 	s.queueLock.RLock()
-	defer s.queueLock.RUnlock()
-
 	can, ok := s.queue[machineID]
+	s.queueLock.RUnlock()
 	if ok {
 		can <- true
+		close(can)
 	}
 }
 
