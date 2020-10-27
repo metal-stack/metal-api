@@ -47,7 +47,7 @@ type test struct {
 }
 
 func TestWaitServer(t *testing.T) {
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UnixNano())
 
 	var tt []*test
 	aa := []int{1, 10}
