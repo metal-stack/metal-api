@@ -18,15 +18,6 @@ import (
 	"time"
 )
 
-const bufSize = 1024 * 1024
-
-type testCase int
-
-const (
-	happyPath testCase = iota
-	clientFailure
-)
-
 type client struct {
 	*grpc.ClientConn
 	cancel func()
@@ -41,8 +32,6 @@ type test struct {
 	numberApiInstances     int
 	numberMachineInstances int
 	numberAllocations      int
-	testCaseMutex          *sync.RWMutex
-	testCase               testCase
 
 	notReadyMachines    *sync.WaitGroup
 	unallocatedMachines *sync.WaitGroup
@@ -55,7 +44,7 @@ func TestWaitServer(t *testing.T) {
 
 	var tt []*test
 	aa := []int{1, 10}
-	mm := [][]int{{1, 1}, {3, 1}, {10, 7}, {100, 70}}
+	mm := [][]int{{1, 1}, {3, 1}, {10, 7}}
 	for _, a := range aa {
 		for _, m := range mm {
 			require.True(t, a > 0)
@@ -66,19 +55,11 @@ func TestWaitServer(t *testing.T) {
 				numberApiInstances:     a,
 				numberMachineInstances: m[0],
 				numberAllocations:      m[1],
-				testCaseMutex:          new(sync.RWMutex),
 			})
 		}
 	}
 	for _, test := range tt {
 		test.T = t
-		test.testCaseMutex.Lock()
-		test.testCase = happyPath
-		test.testCaseMutex.Unlock()
-		test.run()
-		test.testCaseMutex.Lock()
-		test.testCase = clientFailure
-		test.testCaseMutex.Unlock()
 		test.run()
 	}
 }
@@ -106,8 +87,6 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 func (t *test) run() {
 	defer t.shutdown()
 
-	time.Sleep(20 * time.Millisecond)
-
 	t.notReadyMachines = new(sync.WaitGroup)
 	t.notReadyMachines.Add(t.numberMachineInstances)
 	t.unallocatedMachines = new(sync.WaitGroup)
@@ -130,18 +109,6 @@ func (t *test) run() {
 		require.True(t, wait)
 	}
 	ds.mutex.RUnlock()
-
-	t.testCaseMutex.RLock()
-	switch t.testCase {
-	case clientFailure:
-		t.testCaseMutex.RUnlock()
-		t.notReadyMachines.Add(t.numberMachineInstances)
-		t.stopMachineInstances()
-		t.startMachineInstances()
-		t.notReadyMachines.Wait()
-	default:
-		t.testCaseMutex.RUnlock()
-	}
 
 	require.Equal(t, t.numberMachineInstances, len(ds.wait))
 	ds.mutex.RLock()
@@ -206,6 +173,8 @@ func (t *test) stopMachineInstances() {
 }
 
 func (t *test) startApiInstances(ds Datasource) {
+	wg := new(sync.WaitGroup)
+	wg.Add(t.numberApiInstances)
 	for i := 0; i < t.numberApiInstances; i++ {
 		s := &WaitServer{
 			server:           grpc.NewServer(),
@@ -213,23 +182,20 @@ func (t *test) startApiInstances(ds Datasource) {
 			queueLock:        new(sync.RWMutex),
 			queue:            make(map[string]chan bool),
 			logger:           zap.NewNop().Sugar(),
-			responseInterval: 2 * time.Millisecond,
+			responseInterval: 2*time.Millisecond,
+			checkInterval: time.Hour,
 		}
 		t.ss = append(t.ss, s)
 
-		l := bufconn.Listen(bufSize)
+		l := bufconn.Listen(1024)
 		t.ll = append(t.ll, l)
 		v1.RegisterWaitServer(s.server, s)
 		go func() {
+			wg.Done()
 			_ = s.server.Serve(l)
 		}()
 	}
-}
-
-func (t *test) bufDialer(l *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
-	return func(context.Context, string) (net.Conn, error) {
-		return l.Dial()
-	}
+	wg.Wait()
 }
 
 func (t *test) startMachineInstances() {
@@ -238,12 +204,17 @@ func (t *test) startMachineInstances() {
 		Timeout:             20 * time.Millisecond,
 		PermitWithoutStream: true,
 	}
+	bufDialer := func (l *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
+		return func(context.Context, string) (net.Conn, error) {
+			return l.Dial()
+		}
+	}
 	for i := 0; i < t.numberMachineInstances; i++ {
 		machineID := strconv.Itoa(i)
 		ctx, cancel := context.WithCancel(context.Background())
 		l := t.ll[rand.Intn(t.numberApiInstances)]
 		opts := []grpc.DialOption{
-			grpc.WithContextDialer(t.bufDialer(l)),
+			grpc.WithContextDialer(bufDialer(l)),
 			grpc.WithKeepaliveParams(kacp),
 			grpc.WithInsecure(),
 			grpc.WithBlock(),
@@ -276,7 +247,7 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 	for {
 		stream, err := c.Wait(ctx, req)
 		if err != nil {
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(2 * time.Millisecond)
 			continue
 		}
 
@@ -291,15 +262,6 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 				return nil
 			}
 			if err != nil {
-				if !receivedResponse {
-					break
-				}
-				t.testCaseMutex.RLock()
-				if t.testCase == clientFailure {
-					t.testCaseMutex.RUnlock()
-					return err
-				}
-				t.testCaseMutex.RUnlock()
 				break
 			}
 			if !receivedResponse {
