@@ -110,6 +110,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 	if err == nil {
 		r = b.Uint64()
 	} else {
+		s.logger.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
 		mathrand.Seed(time.Now().UnixNano())
 		r = mathrand.Uint64()
 	}
