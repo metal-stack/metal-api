@@ -33,4 +33,4 @@ mini-lab-push:
 
 .PHONY: test-wait-server
 test-wait-server:
-	CGO_ENABLED=1 $(GO) test -race -count 5 -p 1 -failfast -run Wait ./cmd/metal-api/internal/grpc
+	CGO_ENABLED=1 $(GO) test -race -count 20 -p 1 -failfast -run Wait ./cmd/metal-api/internal/grpc

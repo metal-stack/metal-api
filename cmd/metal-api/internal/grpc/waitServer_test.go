@@ -182,8 +182,8 @@ func (t *test) startApiInstances(ds Datasource) {
 			queueLock:        new(sync.RWMutex),
 			queue:            make(map[string]chan bool),
 			logger:           zap.NewNop().Sugar(),
-			responseInterval: 2*time.Millisecond,
-			checkInterval: time.Hour,
+			responseInterval: 2 * time.Millisecond,
+			checkInterval:    time.Hour,
 		}
 		t.ss = append(t.ss, s)
 
@@ -204,7 +204,7 @@ func (t *test) startMachineInstances() {
 		Timeout:             20 * time.Millisecond,
 		PermitWithoutStream: true,
 	}
-	bufDialer := func (l *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
+	bufDialer := func(l *bufconn.Listener) func(context.Context, string) (net.Conn, error) {
 		return func(context.Context, string) (net.Conn, error) {
 			return l.Dial()
 		}
