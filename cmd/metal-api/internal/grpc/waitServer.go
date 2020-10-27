@@ -102,7 +102,7 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		checkInterval:    checkInterval,
 	}
 
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UnixNano())
 	channel := fmt.Sprintf("alloc-%d#ephemeral", rand.Int())
 	err = c.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
