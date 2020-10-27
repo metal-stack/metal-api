@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -13,7 +14,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"io/ioutil"
-	"math/rand"
+	"math"
+	"math/big"
+	mathrand "math/rand"
 	"net"
 	"sync"
 	"time"
@@ -102,8 +105,16 @@ func NewWaitServer(cfg *WaitServerConfig) (*WaitServer, error) {
 		checkInterval:    checkInterval,
 	}
 
-	rand.Seed(time.Now().Unix())
-	channel := fmt.Sprintf("alloc-%d#ephemeral", rand.Int())
+	var r uint64
+	b, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+	if err == nil {
+		r = b.Uint64()
+	} else {
+		s.logger.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
+		mathrand.Seed(time.Now().UnixNano())
+		r = mathrand.Uint64()
+	}
+	channel := fmt.Sprintf("alloc-%d#ephemeral", r)
 	err = c.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
