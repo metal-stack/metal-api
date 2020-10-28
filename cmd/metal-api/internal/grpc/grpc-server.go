@@ -14,56 +14,40 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"io/ioutil"
 	"net"
-	"sync"
 	"time"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 )
 
 const (
-	receiverHandlerTimeout  = 15 * time.Second
-	allocationTopicTTL      = time.Duration(30) * time.Second
 	defaultResponseInterval = 5 * time.Second
 	defaultCheckInterval    = 60 * time.Second
 )
 
-func timeoutHandler(err bus.TimeoutError) error {
-	zapup.MustRootLogger().Sugar().Error("Timeout processing event", "event", err.Event())
-	return nil
-}
-
-type Datasource interface {
-	FindMachineByID(machineID string) (*metal.Machine, error)
-	UpdateMachine(old, new *metal.Machine) error
-}
-
 type ServerConfig struct {
-	Publisher             bus.Publisher
-	Datasource            Datasource
-	Logger                *zap.SugaredLogger
-	NsqTlsConfig          *bus.TLSConfig
-	NsqlookupdHttpAddress string
-	GrpcPort              int
-	TlsEnabled            bool
-	CaCertFile            string
-	ServerCertFile        string
-	ServerKeyFile         string
-	ResponseInterval      time.Duration
-	CheckInterval         time.Duration
+	Publisher                bus.Publisher
+	Datasource               Datasource
+	Logger                   *zap.SugaredLogger
+	NsqTlsConfig             *bus.TLSConfig
+	NsqlookupdHttpAddress    string
+	GrpcPort                 int
+	TlsEnabled               bool
+	CaCertFile               string
+	ServerCertFile           string
+	ServerKeyFile            string
+	ResponseInterval         time.Duration
+	CheckInterval            time.Duration
+	BMCSuperUserPasswordFile string
 }
 
 type Server struct {
-	bus.Publisher
-	consumer         *bus.Consumer
-	server           *grpc.Server
+	*WaitService
+	*SupwdService
 	ds               Datasource
 	logger           *zap.SugaredLogger
-	queueLock        *sync.RWMutex
-	queue            map[string]chan bool
+	server           *grpc.Server
 	grpcPort         int
 	tlsEnabled       bool
 	caCertFile       string
@@ -83,18 +67,17 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 		checkInterval = defaultCheckInterval
 	}
 
-	c, err := bus.NewConsumer(zapup.MustRootLogger(), cfg.NsqTlsConfig, cfg.NsqlookupdHttpAddress)
+	waitService, err := NewWaitService(cfg)
 	if err != nil {
 		return nil, err
 	}
+	supwdService := NewSupwdService(cfg.BMCSuperUserPasswordFile)
 
 	s := &Server{
-		Publisher:        cfg.Publisher,
-		consumer:         c,
+		WaitService:      waitService,
+		SupwdService:     supwdService,
 		ds:               cfg.Datasource,
 		logger:           cfg.Logger,
-		queueLock:        new(sync.RWMutex),
-		queue:            make(map[string]chan bool),
 		grpcPort:         cfg.GrpcPort,
 		tlsEnabled:       cfg.TlsEnabled,
 		caCertFile:       cfg.CaCertFile,
@@ -102,11 +85,6 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 		serverKeyFile:    cfg.ServerKeyFile,
 		responseInterval: responseInterval,
 		checkInterval:    checkInterval,
-	}
-
-	err = s.initWaitEndpoint()
-	if err != nil {
-		return nil, err
 	}
 
 	return s, nil
@@ -121,7 +99,7 @@ func (s *Server) Serve() error {
 	}
 	kasp := keepalive.ServerParameters{
 		Time:    5 * time.Second, // Ping the client if it is idle for 5 seconds to ensure the connection is still active
-		Timeout: 1 * time.Second, // Grpc 1 second for the ping ack before assuming the connection is dead
+		Timeout: 1 * time.Second, // Wait 1 second for the ping ack before assuming the connection is dead
 	}
 
 	grpcLogger := s.logger.Named("grpc").Desugar()
@@ -146,8 +124,8 @@ func (s *Server) Serve() error {
 	)
 	grpc_prometheus.Register(s.server)
 
-	v1.RegisterSuperUserPasswordServer(s.server, s)
-	v1.RegisterWaitServer(s.server, s)
+	v1.RegisterSuperUserPasswordServer(s.server, s.SupwdService)
+	v1.RegisterWaitServer(s.server, s.WaitService)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {

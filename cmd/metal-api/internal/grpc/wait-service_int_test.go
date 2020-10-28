@@ -190,14 +190,16 @@ func (t *test) stopMachineInstances() {
 
 func (t *test) startApiInstances(ds Datasource) {
 	for i := 0; i < t.numberApiInstances; i++ {
-		s := &Server{
-			ds:               ds,
-			queueLock:        new(sync.RWMutex),
-			queue:            make(map[string]chan bool),
-			grpcPort:         50005 + i,
-			logger:           zap.NewNop().Sugar(),
-			responseInterval: 2 * time.Millisecond,
+		cfg := &ServerConfig{
+			Datasource:       ds,
+			Logger:           zap.NewNop().Sugar(),
+			GrpcPort:         50005 + i,
+			TlsEnabled:       false,
+			ResponseInterval: 2 * time.Millisecond,
+			CheckInterval:    1 * time.Hour,
 		}
+		s, err := NewServer(cfg)
+		require.Nil(t, err)
 		t.ss = append(t.ss, s)
 		go func() {
 			err := s.Serve()

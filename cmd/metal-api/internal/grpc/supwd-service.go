@@ -7,13 +7,23 @@ import (
 	"strings"
 )
 
-func (s *Server) FetchSuperUserPassword(ctx context.Context, req *v1.SuperUserPasswordRequest) (*v1.SuperUserPasswordResponse, error) {
+type SupwdService struct {
+	pwdFile string
+}
+
+func NewSupwdService(bmcSuperuserPasswordFile string) *SupwdService {
+	return &SupwdService{
+		pwdFile: bmcSuperuserPasswordFile,
+	}
+}
+
+func (s *SupwdService) FetchSuperUserPassword(ctx context.Context, req *v1.SuperUserPasswordRequest) (*v1.SuperUserPasswordResponse, error) {
 	defer ctx.Done()
 
 	resp := &v1.SuperUserPasswordResponse{
 		FeatureDisabled: false,
 	}
-	bb, err := ioutil.ReadFile("/bmc/superUser.pwd")
+	bb, err := ioutil.ReadFile(s.pwdFile)
 	if err != nil {
 		resp.FeatureDisabled = true // having no superUser password in place is not an error but indicates that we disable updating bmc admin user
 		return resp, nil
