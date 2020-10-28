@@ -172,7 +172,7 @@ func init() {
 	rootCmd.Flags().StringP("grpc-server-cert-file", "", "", "the gRPC server certificate file")
 	rootCmd.Flags().StringP("grpc-server-key-file", "", "", "the gRPC server key file")
 
-	rootCmd.Flags().StringP("bmc-superuser-pwd-file", "", "/bmc/superUser.pwd", "the path to the BMC superuser password file")
+	rootCmd.Flags().StringP("bmc-superuser-pwd-file", "", "", "the path to the BMC superuser password file")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
