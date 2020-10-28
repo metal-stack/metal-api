@@ -353,10 +353,12 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 				cap.Allocated++
 			} else if machineHasIssues(m) {
 				cap.Faulty++
+				cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
 			} else if available {
 				cap.Free++
 			} else {
 				cap.Other++
+				cap.OtherMachines = append(cap.OtherMachines, m.ID)
 			}
 
 			cap.Total++

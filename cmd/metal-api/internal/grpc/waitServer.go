@@ -1,13 +1,16 @@
 package grpc
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
+	"math"
+	"math/big"
+	mathrand "math/rand"
 )
 
 func (s *Server) NotifyAllocated(machineID string) error {
@@ -21,8 +24,16 @@ func (s *Server) NotifyAllocated(machineID string) error {
 }
 
 func (s *Server) initWaitEndpoint() error {
-	rand.Seed(time.Now().Unix())
-	channel := fmt.Sprintf("alloc-%d#ephemeral", rand.Int())
+	var r uint64
+	b, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+	if err == nil {
+		r = b.Uint64()
+	} else {
+		s.logger.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
+		mathrand.Seed(time.Now().UnixNano())
+		r = mathrand.Uint64()
+	}
+	channel := fmt.Sprintf("alloc-%d#ephemeral", r)
 	return s.consumer.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
