@@ -13,10 +13,10 @@ type SupwdService struct {
 	pwdFile string
 }
 
-func NewSupwdService(bmcSuperuserPasswordFile string, logger *zap.SugaredLogger) *SupwdService {
+func NewSupwdService(cfg *ServerConfig) *SupwdService {
 	return &SupwdService{
-		logger:  logger,
-		pwdFile: bmcSuperuserPasswordFile,
+		logger:  cfg.Logger,
+		pwdFile: cfg.BMCSuperUserPasswordFile,
 	}
 }
 
