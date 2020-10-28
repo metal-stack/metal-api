@@ -71,7 +71,7 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	supwdService := NewSupwdService(cfg.BMCSuperUserPasswordFile)
+	supwdService := NewSupwdService(cfg.BMCSuperUserPasswordFile, cfg.Logger)
 
 	s := &Server{
 		WaitService:      waitService,
