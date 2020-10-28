@@ -146,7 +146,7 @@ func (s *Server) Serve() error {
 	)
 	grpc_prometheus.Register(s.server)
 
-	v1.RegisterSupermetalPasswordServer(s.server, s)
+	v1.RegisterSuperUserPasswordServer(s.server, s)
 	v1.RegisterWaitServer(s.server, s)
 
 	listener, err := net.Listen("tcp", addr)

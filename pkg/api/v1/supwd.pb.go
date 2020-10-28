@@ -29,14 +29,14 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-type SupermetalPasswordRequest struct {
+type SuperUserPasswordRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 }
 
-func (x *SupermetalPasswordRequest) Reset() {
-	*x = SupermetalPasswordRequest{}
+func (x *SuperUserPasswordRequest) Reset() {
+	*x = SuperUserPasswordRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_api_v1_supwd_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -44,13 +44,13 @@ func (x *SupermetalPasswordRequest) Reset() {
 	}
 }
 
-func (x *SupermetalPasswordRequest) String() string {
+func (x *SuperUserPasswordRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SupermetalPasswordRequest) ProtoMessage() {}
+func (*SuperUserPasswordRequest) ProtoMessage() {}
 
-func (x *SupermetalPasswordRequest) ProtoReflect() protoreflect.Message {
+func (x *SuperUserPasswordRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_api_v1_supwd_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -62,22 +62,22 @@ func (x *SupermetalPasswordRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SupermetalPasswordRequest.ProtoReflect.Descriptor instead.
-func (*SupermetalPasswordRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SuperUserPasswordRequest.ProtoReflect.Descriptor instead.
+func (*SuperUserPasswordRequest) Descriptor() ([]byte, []int) {
 	return file_api_v1_supwd_proto_rawDescGZIP(), []int{0}
 }
 
-type SupermetalPasswordResponse struct {
+type SuperUserPasswordResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	FeatureDisabled    bool   `protobuf:"varint,1,opt,name=featureDisabled,proto3" json:"featureDisabled,omitempty"`
-	SupermetalPassword string `protobuf:"bytes,2,opt,name=supermetalPassword,proto3" json:"supermetalPassword,omitempty"`
+	FeatureDisabled   bool   `protobuf:"varint,1,opt,name=featureDisabled,proto3" json:"featureDisabled,omitempty"`
+	SuperUserPassword string `protobuf:"bytes,2,opt,name=superUserPassword,proto3" json:"superUserPassword,omitempty"`
 }
 
-func (x *SupermetalPasswordResponse) Reset() {
-	*x = SupermetalPasswordResponse{}
+func (x *SuperUserPasswordResponse) Reset() {
+	*x = SuperUserPasswordResponse{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_api_v1_supwd_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -85,13 +85,13 @@ func (x *SupermetalPasswordResponse) Reset() {
 	}
 }
 
-func (x *SupermetalPasswordResponse) String() string {
+func (x *SuperUserPasswordResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SupermetalPasswordResponse) ProtoMessage() {}
+func (*SuperUserPasswordResponse) ProtoMessage() {}
 
-func (x *SupermetalPasswordResponse) ProtoReflect() protoreflect.Message {
+func (x *SuperUserPasswordResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_api_v1_supwd_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -103,21 +103,21 @@ func (x *SupermetalPasswordResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SupermetalPasswordResponse.ProtoReflect.Descriptor instead.
-func (*SupermetalPasswordResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SuperUserPasswordResponse.ProtoReflect.Descriptor instead.
+func (*SuperUserPasswordResponse) Descriptor() ([]byte, []int) {
 	return file_api_v1_supwd_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SupermetalPasswordResponse) GetFeatureDisabled() bool {
+func (x *SuperUserPasswordResponse) GetFeatureDisabled() bool {
 	if x != nil {
 		return x.FeatureDisabled
 	}
 	return false
 }
 
-func (x *SupermetalPasswordResponse) GetSupermetalPassword() string {
+func (x *SuperUserPasswordResponse) GetSuperUserPassword() string {
 	if x != nil {
-		return x.SupermetalPassword
+		return x.SuperUserPassword
 	}
 	return ""
 }
@@ -160,12 +160,12 @@ func file_api_v1_supwd_proto_rawDescGZIP() []byte {
 
 var file_api_v1_supwd_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_api_v1_supwd_proto_goTypes = []interface{}{
-	(*SupermetalPasswordRequest)(nil),  // 0: v1.SupermetalPasswordRequest
-	(*SupermetalPasswordResponse)(nil), // 1: v1.SupermetalPasswordResponse
+	(*SuperUserPasswordRequest)(nil),  // 0: v1.SuperUserPasswordRequest
+	(*SuperUserPasswordResponse)(nil), // 1: v1.SuperUserPasswordResponse
 }
 var file_api_v1_supwd_proto_depIdxs = []int32{
-	0, // 0: v1.SupermetalPassword.FetchSupermetalPassword:input_type -> v1.SupermetalPasswordRequest
-	1, // 1: v1.SupermetalPassword.FetchSupermetalPassword:output_type -> v1.SupermetalPasswordResponse
+	0, // 0: v1.SuperUserPassword.FetchSuperUserPassword:input_type -> v1.SuperUserPasswordRequest
+	1, // 1: v1.SuperUserPassword.FetchSuperUserPassword:output_type -> v1.SuperUserPasswordResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -180,7 +180,7 @@ func file_api_v1_supwd_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_api_v1_supwd_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SupermetalPasswordRequest); i {
+			switch v := v.(*SuperUserPasswordRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -192,7 +192,7 @@ func file_api_v1_supwd_proto_init() {
 			}
 		}
 		file_api_v1_supwd_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SupermetalPasswordResponse); i {
+			switch v := v.(*SuperUserPasswordResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -232,72 +232,72 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// SupermetalPasswordClient is the client API for SupermetalPassword service.
+// SuperUserPasswordClient is the client API for SuperUserPassword service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type SupermetalPasswordClient interface {
-	FetchSupermetalPassword(ctx context.Context, in *SupermetalPasswordRequest, opts ...grpc.CallOption) (*SupermetalPasswordResponse, error)
+type SuperUserPasswordClient interface {
+	FetchSuperUserPassword(ctx context.Context, in *SuperUserPasswordRequest, opts ...grpc.CallOption) (*SuperUserPasswordResponse, error)
 }
 
-type supermetalPasswordClient struct {
+type superUserPasswordClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewSupermetalPasswordClient(cc grpc.ClientConnInterface) SupermetalPasswordClient {
-	return &supermetalPasswordClient{cc}
+func NewSuperUserPasswordClient(cc grpc.ClientConnInterface) SuperUserPasswordClient {
+	return &superUserPasswordClient{cc}
 }
 
-func (c *supermetalPasswordClient) FetchSupermetalPassword(ctx context.Context, in *SupermetalPasswordRequest, opts ...grpc.CallOption) (*SupermetalPasswordResponse, error) {
-	out := new(SupermetalPasswordResponse)
-	err := c.cc.Invoke(ctx, "/v1.SupermetalPassword/FetchSupermetalPassword", in, out, opts...)
+func (c *superUserPasswordClient) FetchSuperUserPassword(ctx context.Context, in *SuperUserPasswordRequest, opts ...grpc.CallOption) (*SuperUserPasswordResponse, error) {
+	out := new(SuperUserPasswordResponse)
+	err := c.cc.Invoke(ctx, "/v1.SuperUserPassword/FetchSuperUserPassword", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// SupermetalPasswordServer is the server API for SupermetalPassword service.
-type SupermetalPasswordServer interface {
-	FetchSupermetalPassword(context.Context, *SupermetalPasswordRequest) (*SupermetalPasswordResponse, error)
+// SuperUserPasswordServer is the server API for SuperUserPassword service.
+type SuperUserPasswordServer interface {
+	FetchSuperUserPassword(context.Context, *SuperUserPasswordRequest) (*SuperUserPasswordResponse, error)
 }
 
-// UnimplementedSupermetalPasswordServer can be embedded to have forward compatible implementations.
-type UnimplementedSupermetalPasswordServer struct {
+// UnimplementedSuperUserPasswordServer can be embedded to have forward compatible implementations.
+type UnimplementedSuperUserPasswordServer struct {
 }
 
-func (*UnimplementedSupermetalPasswordServer) FetchSupermetalPassword(context.Context, *SupermetalPasswordRequest) (*SupermetalPasswordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FetchSupermetalPassword not implemented")
+func (*UnimplementedSuperUserPasswordServer) FetchSuperUserPassword(context.Context, *SuperUserPasswordRequest) (*SuperUserPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchSuperUserPassword not implemented")
 }
 
-func RegisterSupermetalPasswordServer(s *grpc.Server, srv SupermetalPasswordServer) {
-	s.RegisterService(&_SupermetalPassword_serviceDesc, srv)
+func RegisterSuperUserPasswordServer(s *grpc.Server, srv SuperUserPasswordServer) {
+	s.RegisterService(&_SuperUserPassword_serviceDesc, srv)
 }
 
-func _SupermetalPassword_FetchSupermetalPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SupermetalPasswordRequest)
+func _SuperUserPassword_FetchSuperUserPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SuperUserPasswordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SupermetalPasswordServer).FetchSupermetalPassword(ctx, in)
+		return srv.(SuperUserPasswordServer).FetchSuperUserPassword(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/v1.SupermetalPassword/FetchSupermetalPassword",
+		FullMethod: "/v1.SuperUserPassword/FetchSuperUserPassword",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SupermetalPasswordServer).FetchSupermetalPassword(ctx, req.(*SupermetalPasswordRequest))
+		return srv.(SuperUserPasswordServer).FetchSuperUserPassword(ctx, req.(*SuperUserPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _SupermetalPassword_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "v1.SupermetalPassword",
-	HandlerType: (*SupermetalPasswordServer)(nil),
+var _SuperUserPassword_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "v1.SuperUserPassword",
+	HandlerType: (*SuperUserPasswordServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "FetchSupermetalPassword",
-			Handler:    _SupermetalPassword_FetchSupermetalPassword_Handler,
+			MethodName: "FetchSuperUserPassword",
+			Handler:    _SuperUserPassword_FetchSuperUserPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

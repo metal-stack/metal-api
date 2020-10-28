@@ -7,17 +7,17 @@ import (
 	"strings"
 )
 
-func (s *Server) FetchSupermetalPassword(ctx context.Context, req *v1.SupermetalPasswordRequest) (*v1.SupermetalPasswordResponse, error) {
+func (s *Server) FetchSuperUserPassword(ctx context.Context, req *v1.SuperUserPasswordRequest) (*v1.SuperUserPasswordResponse, error) {
 	defer ctx.Done()
 
-	resp := &v1.SupermetalPasswordResponse{
+	resp := &v1.SuperUserPasswordResponse{
 		FeatureDisabled: false,
 	}
-	bb, err := ioutil.ReadFile("/bmc/supermetal.pwd")
+	bb, err := ioutil.ReadFile("/bmc/superUser.pwd")
 	if err != nil {
-		resp.FeatureDisabled = true // having no supermetal password in place is not an error but indicates that we disable updating bmc admin user
+		resp.FeatureDisabled = true // having no superUser password in place is not an error but indicates that we disable updating bmc admin user
 		return resp, nil
 	}
-	resp.SupermetalPassword = strings.TrimSpace(string(bb))
+	resp.SuperUserPassword = strings.TrimSpace(string(bb))
 	return resp, nil
 }

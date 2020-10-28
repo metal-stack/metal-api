@@ -4,14 +4,14 @@ package v1;
 
 option go_package = "api/v1";
 
-message SupermetalPasswordRequest {
+message SuperUserPasswordRequest {
 }
 
-message SupermetalPasswordResponse {
+message SuperUserPasswordResponse {
     bool featureDisabled = 1;
-    string supermetalPassword = 2;
+    string superUserPassword = 2;
 }
 
-service SupermetalPassword {
-    rpc FetchSupermetalPassword (SupermetalPasswordRequest) returns (SupermetalPasswordResponse);
+service SuperUserPassword {
+    rpc FetchSuperUserPassword (SuperUserPasswordRequest) returns (SuperUserPasswordResponse);
 }
