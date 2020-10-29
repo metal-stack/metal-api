@@ -35,6 +35,7 @@ type firewallResource struct {
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
 	ds *datastore.RethinkStore,
+	pub bus.Publisher,
 	ipamer ipam.IPAMer,
 	ep *bus.Endpoints,
 	mdc mdm.Client,
@@ -49,7 +50,7 @@ func NewFirewall(
 	}
 
 	var err error
-	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer, pub)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}

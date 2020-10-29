@@ -16,19 +16,26 @@ import (
 type asyncActor struct {
 	*zap.Logger
 	ipam.IPAMer
+	pub bus.Publisher
 	*datastore.RethinkStore
-	machineReleaser bus.Func
-	ipReleaser      bus.Func
+	machineReleaser        bus.Func
+	machineNetworkReleaser bus.Func
+	ipReleaser             bus.Func
 }
 
-func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore, ip ipam.IPAMer) (*asyncActor, error) {
+func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore, ip ipam.IPAMer, pub bus.Publisher) (*asyncActor, error) {
 	actor := &asyncActor{
 		Logger:       l,
 		IPAMer:       ip,
 		RethinkStore: ds,
+		pub:          pub,
 	}
 	var err error
-	_, actor.machineReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
+	_, actor.machineReleaser, err = ep.Function("releaseMachine", actor.releaseMachine)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create async bus function for machine releasing: %w", err)
+	}
+	_, actor.machineNetworkReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async bus function for machine releasing: %w", err)
 	}
@@ -39,28 +46,14 @@ func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore,
 	return actor, nil
 }
 
-func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
+func (a *asyncActor) freeMachine(m *metal.Machine) error {
 	if m.State.Value == metal.LockedState {
 		return fmt.Errorf("machine is locked")
 	}
 
-	err := deleteVRFSwitches(a.RethinkStore, m, a.Logger)
+	err := a.machineReleaser(m)
 	if err != nil {
 		return err
-	}
-
-	err = publishDeleteEvent(pub, m, a.Logger)
-	if err != nil {
-		return err
-	}
-
-	// call the releaser async
-	err = a.machineReleaser(m)
-	if err != nil {
-		// log error, but what should we do here? we already called
-		// deleteVRFSwitches and publishDeleteEvent, so should we return
-		// an error or "fall through"?
-		a.Error("cannot call async machine cleanup", zap.Error(err))
 	}
 
 	old := *m
@@ -73,6 +66,29 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 		return err
 	}
 	a.Info("freed machine", zap.String("machineID", m.ID))
+
+	return nil
+}
+func (a *asyncActor) releaseMachine(machine *metal.Machine) error {
+	if machine.Allocation == nil {
+		return nil
+	}
+
+	err := deleteVRFSwitches(a.RethinkStore, machine, a.Logger)
+	if err != nil {
+		return err
+	}
+
+	err = publishDeleteEvent(a.pub, machine, a.Logger)
+	if err != nil {
+		return err
+	}
+
+	err = a.machineReleaser(machine)
+	if err != nil {
+		// what should we do here? this error shows a problem with the nsq-bus system
+		a.Error("error calling machine network releaser", zap.Error(err))
+	}
 
 	return nil
 }
