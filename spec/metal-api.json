@@ -16,7 +16,13 @@
       "required": [
         "message",
         "statuscode"
-      ]
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/metal-stack/metal-lib/httperrors"
+        },
+        "type": "HTTPErrorResponse"
+      }
     },
     "rest.status": {
       "properties": {
@@ -1635,7 +1641,7 @@
           "type": "string"
         },
         "networktype": {
-          "description": "the network type",
+          "description": "the network type, types can be looked up in the network package of metal-lib",
           "type": "string"
         },
         "prefixes": {

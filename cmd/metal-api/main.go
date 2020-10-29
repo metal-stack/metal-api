@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
-	"github.com/metal-stack/metal-lib/rest"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -15,6 +11,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-lib/rest"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	nsq2 "github.com/nsqio/go-nsq"
 	"github.com/pkg/errors"
@@ -538,6 +539,22 @@ func initRestServices(withauth bool) *restfulspec.Config {
 func dumpSwaggerJSON() {
 	cfg := initRestServices(false)
 	actual := restfulspec.BuildSwagger(*cfg)
+
+	// declare custom type for default errors, see:
+	// https://github.com/go-swagger/go-swagger/blob/master/docs/use/models/schemas.md#using-custom-types
+	// this has the advantage that the Error() function for printing will work on errors
+	customGoType := map[string]interface{}{
+		"x-go-type": map[string]interface{}{
+			"type": "HTTPErrorResponse",
+			"import": map[string]interface{}{
+				"package": "github.com/metal-stack/metal-lib/httperrors",
+			},
+		},
+	}
+	httpErrDef := actual.Definitions["httperrors.HTTPErrorResponse"]
+	httpErrDef.ExtraProps = customGoType
+	actual.Definitions["httperrors.HTTPErrorResponse"] = httpErrDef
+
 	js, err := json.MarshalIndent(actual, "", "  ")
 	if err != nil {
 		panic(err)
