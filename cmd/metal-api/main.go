@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
-	"github.com/metal-stack/metal-lib/rest"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -15,6 +11,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-lib/rest"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	nsq2 "github.com/nsqio/go-nsq"
 	"github.com/pkg/errors"
@@ -492,7 +493,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	ipservice, err := service.NewIP(ds, ep, ipamer, mdc)
+	ipservice, err := service.NewIP(ds, p, ep, ipamer, mdc)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -500,7 +501,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, waitServer)
+	fservice, err := service.NewFirewall(ds, p, ipamer, ep, mdc, waitServer)
 	if err != nil {
 		logger.Fatal(err)
 	}

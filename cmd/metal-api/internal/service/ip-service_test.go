@@ -34,7 +34,7 @@ func TestGetIPs(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, nil, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(ipservice)
@@ -62,7 +62,7 @@ func TestGetIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, nil, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
@@ -84,7 +84,7 @@ func TestGetIPNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, nil, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
@@ -108,7 +108,7 @@ func TestDeleteIP(t *testing.T) {
 	require.Nil(t, err)
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipamer, nil)
+	ipservice, err := NewIP(ds, nil, bus.DirectEndpoints(), ipamer, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
@@ -168,7 +168,7 @@ func TestAllocateIP(t *testing.T) {
 
 	mdc := mdm.NewMock(&psc, &tsc)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
+	ipservice, err := NewIP(ds, nil, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
@@ -228,7 +228,7 @@ func TestUpdateIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(ds, nil, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"

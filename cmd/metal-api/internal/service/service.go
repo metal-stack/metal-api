@@ -193,7 +193,7 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	// enforce tenant check otherwise
 	tenantID := tenant(req)
 	if !e.allowed(tenantID) {
-		err := fmt.Errorf("tenant %s not allowed", tenantID)
+		err := fmt.Errorf("tenant %q not allowed", tenantID)
 		sendError(utils.Logger(req), resp, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusForbidden, err))
 		return
 	}

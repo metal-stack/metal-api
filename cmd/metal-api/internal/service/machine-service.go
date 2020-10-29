@@ -108,7 +108,7 @@ func NewMachine(
 		waitServer: waitServer,
 	}
 	var err error
-	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer, pub)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}
@@ -1446,7 +1446,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 	logger := utils.Logger(request).Sugar()
 
-	err = r.actor.freeMachine(r.Publisher, m)
+	err = r.actor.freeMachine(m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1772,7 +1772,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ds *datastore.RethinkStore, pub bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1780,7 +1780,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 		return err
 	}
 
-	act, err := newAsyncActor(logger.Desugar(), ep, ds, ipamer)
+	act, err := newAsyncActor(logger.Desugar(), ep, ds, ipamer, pub)
 	if err != nil {
 		return err
 	}
@@ -1810,7 +1810,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 		}
 
 		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = act.freeMachine(publisher, &m)
+		err = act.freeMachine(&m)
 		if err != nil {
 			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 		}
