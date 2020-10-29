@@ -37,11 +37,11 @@ func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore,
 	}
 	_, actor.machineNetworkReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create async bus function for machine releasing: %w", err)
+		return nil, fmt.Errorf("cannot create async bus function for machine network releasing: %w", err)
 	}
 	_, actor.ipReleaser, err = ep.Function("releaseIP", actor.releaseIP)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create bus function for ip releasing: %w", err)
+		return nil, fmt.Errorf("cannot create async bus function for ip releasing: %w", err)
 	}
 	return actor, nil
 }
@@ -69,11 +69,8 @@ func (a *asyncActor) freeMachine(m *metal.Machine) error {
 
 	return nil
 }
-func (a *asyncActor) releaseMachine(machine *metal.Machine) error {
-	if machine.Allocation == nil {
-		return nil
-	}
 
+func (a *asyncActor) releaseMachine(machine *metal.Machine) error {
 	err := deleteVRFSwitches(a.RethinkStore, machine, a.Logger)
 	if err != nil {
 		return err
