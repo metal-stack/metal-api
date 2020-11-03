@@ -543,19 +543,19 @@ func TestFreeMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	events := []string{"1-machine", "1-switch"}
+	events := []string{"1-machine", "releaseMachineNetworks", "1-switch"}
 	eventidx := 0
 	pub.doPublish = func(topic string, data interface{}) error {
 		require.Equal(t, events[eventidx], topic)
 		eventidx++
-		if eventidx == 0 {
+		if eventidx == 1 {
 			dv := data.(metal.MachineEvent)
 			require.Equal(t, "1", dv.OldMachineID)
 		}
 		return nil
 	}
 
-	machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
+	machineservice, err := NewMachine(ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
