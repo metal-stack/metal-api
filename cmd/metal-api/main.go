@@ -59,7 +59,7 @@ var (
 	logger             = zapup.MustRootLogger().Sugar()
 	debug              = false
 	mdc                mdm.Client
-	waitServer         *grpc.WaitServer
+	grpcServer         *grpc.Server
 )
 
 var rootCmd = &cobra.Command{
@@ -74,7 +74,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
-		initWaitServer()
+		initGrpcServer()
 		run()
 	},
 }
@@ -171,6 +171,8 @@ func init() {
 	rootCmd.Flags().StringP("grpc-ca-cert-file", "", "", "the CA certificate file to verify gRPC certificate")
 	rootCmd.Flags().StringP("grpc-server-cert-file", "", "", "the gRPC server certificate file")
 	rootCmd.Flags().StringP("grpc-server-key-file", "", "", "the gRPC server key file")
+
+	rootCmd.Flags().StringP("bmc-superuser-pwd-file", "", "", "the path to the BMC superuser password file")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -456,23 +458,24 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initWaitServer() {
+func initGrpcServer() {
 	var p bus.Publisher
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
 	var err error
-	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
-		Publisher:             p,
-		Datasource:            ds,
-		Logger:                logger,
-		NsqTlsConfig:          publisherTLSConfig,
-		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-addr"),
-		GrpcPort:              viper.GetInt("grpc-port"),
-		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
-		CaCertFile:            viper.GetString("grpc-ca-cert-file"),
-		ServerCertFile:        viper.GetString("grpc-server-cert-file"),
-		ServerKeyFile:         viper.GetString("grpc-server-key-file"),
+	grpcServer, err = grpc.NewServer(&grpc.ServerConfig{
+		Publisher:                p,
+		Datasource:               ds,
+		Logger:                   logger,
+		NsqTlsConfig:             publisherTLSConfig,
+		NsqlookupdHttpAddress:    viper.GetString("nsqlookupd-addr"),
+		GrpcPort:                 viper.GetInt("grpc-port"),
+		TlsEnabled:               viper.GetBool("grpc-tls-enabled"),
+		CaCertFile:               viper.GetString("grpc-ca-cert-file"),
+		ServerCertFile:           viper.GetString("grpc-server-cert-file"),
+		ServerKeyFile:            viper.GetString("grpc-server-key-file"),
+		BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
 	})
 	if err != nil {
 		logger.Fatalw("cannot connect to NSQ", "error", err)
@@ -496,11 +499,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitServer)
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, waitServer)
+	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -616,7 +619,7 @@ func run() {
 	})
 
 	go func() {
-		err := waitServer.Serve()
+		err := grpcServer.Serve()
 		if err != nil {
 			logger.Fatalw("failed to serve gRPC", "error", err)
 		}
