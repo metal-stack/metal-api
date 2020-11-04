@@ -45,26 +45,22 @@ type ServerConfig struct {
 type Server struct {
 	*WaitService
 	*SupwdService
-	ds               Datasource
-	logger           *zap.SugaredLogger
-	server           *grpc.Server
-	grpcPort         int
-	tlsEnabled       bool
-	caCertFile       string
-	serverCertFile   string
-	serverKeyFile    string
-	responseInterval time.Duration
-	checkInterval    time.Duration
+	ds             Datasource
+	logger         *zap.SugaredLogger
+	server         *grpc.Server
+	grpcPort       int
+	tlsEnabled     bool
+	caCertFile     string
+	serverCertFile string
+	serverKeyFile  string
 }
 
 func NewServer(cfg *ServerConfig) (*Server, error) {
-	responseInterval := cfg.ResponseInterval
-	if responseInterval <= 0 {
-		responseInterval = defaultResponseInterval
+	if cfg.ResponseInterval <= 0 {
+		cfg.ResponseInterval = defaultResponseInterval
 	}
-	checkInterval := cfg.CheckInterval
-	if checkInterval <= 0 {
-		checkInterval = defaultCheckInterval
+	if cfg.CheckInterval <= 0 {
+		cfg.CheckInterval = defaultCheckInterval
 	}
 
 	waitService, err := NewWaitService(cfg)
@@ -74,17 +70,15 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	supwdService := NewSupwdService(cfg)
 
 	s := &Server{
-		WaitService:      waitService,
-		SupwdService:     supwdService,
-		ds:               cfg.Datasource,
-		logger:           cfg.Logger,
-		grpcPort:         cfg.GrpcPort,
-		tlsEnabled:       cfg.TlsEnabled,
-		caCertFile:       cfg.CaCertFile,
-		serverCertFile:   cfg.ServerCertFile,
-		serverKeyFile:    cfg.ServerKeyFile,
-		responseInterval: responseInterval,
-		checkInterval:    checkInterval,
+		WaitService:    waitService,
+		SupwdService:   supwdService,
+		ds:             cfg.Datasource,
+		logger:         cfg.Logger,
+		grpcPort:       cfg.GrpcPort,
+		tlsEnabled:     cfg.TlsEnabled,
+		caCertFile:     cfg.CaCertFile,
+		serverCertFile: cfg.ServerCertFile,
+		serverKeyFile:  cfg.ServerKeyFile,
 	}
 
 	return s, nil
