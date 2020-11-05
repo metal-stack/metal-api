@@ -221,7 +221,7 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("ipmiReport").
 		Doc("reports IPMI ip addresses leased by a management server for machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineIpmiReport{}).
+		Reads(v1.MachineIpmiReports{}).
 		Returns(http.StatusOK, "OK", v1.MachineIpmiReportResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -637,7 +637,7 @@ func (r machineResource) findIPMIMachines(request *restful.Request, response *re
 }
 
 func (r machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineIpmiReport
+	var requestPayload v1.MachineIpmiReports
 	log := utils.Logger(request)
 	logger := log.Sugar()
 	err := request.ReadEntity(&requestPayload)
@@ -661,7 +661,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	known := v1.Leases{}
+	known := make(map[string]string)
 	for _, m := range ms {
 		uuid := m.ID
 		if uuid == "" {
@@ -670,12 +670,12 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		known[uuid] = m.IPMI.Address
 	}
 	resp := v1.MachineIpmiReportResponse{
-		Updated: v1.Leases{},
-		Created: v1.Leases{},
+		Updated: []string{},
+		Created: []string{},
 	}
 	// create empty machines for uuids that are not yet known to the metal-api
 	const defaultIPMIPort = "623"
-	for uuid, ip := range requestPayload.Leases {
+	for uuid, report := range requestPayload.Reports {
 		if uuid == "" {
 			continue
 		}
@@ -688,15 +688,15 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			},
 			PartitionID: p.ID,
 			IPMI: metal.IPMI{
-				Address: ip + ":" + defaultIPMIPort,
+				Address: report.BMCIp + ":" + defaultIPMIPort,
 			},
 		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
-			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", ip, "m", m, "err", err)
+			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
 			continue
 		}
-		resp.Created[uuid] = ip
+		resp.Created = append(resp.Created, uuid)
 	}
 	// update machine ipmi data if ipmi ip changed
 	for _, oldMachine := range ms {
@@ -705,7 +705,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 		// if oldmachine.uuid is not part of this update cycle skip it
-		ip, ok := requestPayload.Leases[uuid]
+		report, ok := requestPayload.Reports[uuid]
 		if !ok {
 			continue
 		}
@@ -714,11 +714,11 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		// Replace host part of ipmi address with the ip from the ipmicatcher
 		hostAndPort := strings.Split(oldMachine.IPMI.Address, ":")
 		if len(hostAndPort) == 2 {
-			newMachine.IPMI.Address = ip + ":" + hostAndPort[1]
+			newMachine.IPMI.Address = report.BMCIp + ":" + hostAndPort[1]
 		} else if len(hostAndPort) < 2 {
-			newMachine.IPMI.Address = ip + ":" + defaultIPMIPort
+			newMachine.IPMI.Address = report.BMCIp + ":" + defaultIPMIPort
 		} else {
-			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", ip, "machine", newMachine, "address", newMachine.IPMI.Address)
+			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
 
@@ -735,14 +735,21 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 
-		updateFru(&newMachine, requestPayload.FRUs)
+		updateFru(&newMachine, report.FRU)
+
+		if report.BIOSVersion != "" {
+			newMachine.BIOS.Version = report.BIOSVersion
+		}
+		if report.BMCVersion != "" {
+			newMachine.IPMI.BMCVersion = report.BMCVersion
+		}
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", newMachine, "err", err)
+			logger.Errorf("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
 			continue
 		}
-		resp.Updated[uuid] = ip
+		resp.Updated = append(resp.Updated, uuid)
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
@@ -751,9 +758,8 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	}
 }
 
-func updateFru(m *metal.Machine, frus v1.FRUs) {
-	fru, ok := frus[m.ID]
-	if !ok || fru == nil {
+func updateFru(m *metal.Machine, fru *v1.MachineFru) {
+	if fru == nil {
 		return
 	}
 

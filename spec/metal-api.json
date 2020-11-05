@@ -1557,52 +1557,62 @@
     },
     "v1.MachineIpmiReport": {
       "properties": {
-        "frus": {
-          "additionalProperties": {
-            "$ref": "#/definitions/v1.MachineFru"
-          },
-          "description": "the FRU information by machine UID",
-          "type": "object"
-        },
-        "leases": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "the active leases to be reported by a management server",
-          "type": "object"
-        },
-        "partitionid": {
-          "description": "the partition id for the ipmi report",
+        "BIOSVersion": {
           "type": "string"
+        },
+        "BMCIp": {
+          "type": "string"
+        },
+        "BMCVersion": {
+          "type": "string"
+        },
+        "FRU": {
+          "$ref": "#/definitions/v1.MachineFru"
         }
       },
       "required": [
-        "frus",
-        "leases",
-        "partitionid"
+        "BIOSVersion",
+        "BMCIp",
+        "BMCVersion",
+        "FRU"
       ]
     },
     "v1.MachineIpmiReportResponse": {
       "properties": {
         "created": {
-          "additionalProperties": {
+          "description": "the machine uuids that triggered a creation of a machine entity",
+          "items": {
             "type": "string"
           },
-          "description": "the leases that triggered a creation of a machine entity",
-          "type": "object"
+          "type": "array"
         },
         "updated": {
-          "additionalProperties": {
+          "description": "the machine uuids that triggered an update of ipmi data",
+          "items": {
             "type": "string"
           },
-          "description": "the leases that triggered an update of ipmi data",
-          "type": "object"
+          "type": "array"
         }
       },
       "required": [
         "created",
         "updated"
       ]
+    },
+    "v1.MachineIpmiReports": {
+      "properties": {
+        "partitionid": {
+          "description": "the partition id for the ipmi report",
+          "type": "string"
+        },
+        "reports": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.MachineIpmiReport"
+          },
+          "description": "uuid to machinereport",
+          "type": "object"
+        }
+      }
     },
     "v1.MachineNetwork": {
       "description": "prefixes that are reachable within this network",
@@ -3833,7 +3843,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.MachineIpmiReport"
+              "$ref": "#/definitions/v1.MachineIpmiReports"
             }
           }
         ],
