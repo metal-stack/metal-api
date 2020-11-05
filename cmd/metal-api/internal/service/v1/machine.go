@@ -230,18 +230,20 @@ type MachineIPMIResponse struct {
 	Timestamps
 }
 
-type Leases map[string]string
-type FRUs map[string]*MachineFru
-
 type MachineIpmiReport struct {
-	PartitionID string `json:"partitionid" description:"the partition id for the ipmi report"`
-	Leases      Leases `json:"leases" description:"the active leases to be reported by a management server"`
-	FRUs        FRUs   `json:"frus" description:"the FRU information by machine UID"`
+	BMCIp       string
+	FRU         *MachineFru
+	BIOSVersion string
+	BMCVersion  string
+}
+type MachineIpmiReports struct {
+	PartitionID string                       `json:"partitionid,omitempty" description:"the partition id for the ipmi report"`
+	Reports     map[string]MachineIpmiReport `json:"reports,omitempty" description:"uuid to machinereport"`
 }
 
 type MachineIpmiReportResponse struct {
-	Updated Leases `json:"updated" description:"the leases that triggered an update of ipmi data"`
-	Created Leases `json:"created" description:"the leases that triggered a creation of a machine entity"`
+	Updated []string `json:"updated" description:"the machine uuids that triggered an update of ipmi data"`
+	Created []string `json:"created" description:"the machine uuids that triggered a creation of a machine entity"`
 }
 
 type MachineReinstallRequest struct {
