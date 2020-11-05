@@ -542,7 +542,11 @@ func dumpSwaggerJSON() {
 
 	// declare custom type for default errors, see:
 	// https://github.com/go-swagger/go-swagger/blob/master/docs/use/models/schemas.md#using-custom-types
-	// this has the advantage that the Error() function for printing will work on errors
+	// amongst other things, this has the advantage that the Error() function for printing of the original
+	// type is preserved.
+	//
+	// unfortunately, gorestful does not support injecting the type, therefore we need to forcefully
+	// add the definition into the spec definition
 	customGoType := map[string]interface{}{
 		"x-go-type": map[string]interface{}{
 			"type": "HTTPErrorResponse",
