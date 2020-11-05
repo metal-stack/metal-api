@@ -266,31 +266,31 @@ func TestMachineIPMIReport(t *testing.T) {
 
 	data := []struct {
 		name           string
-		input          v1.MachineIpmiReport
+		input          v1.MachineIpmiReports
 		output         v1.MachineIpmiReportResponse
 		wantStatusCode int
 	}{
 		{
 			name: "update machine1 ipmi address",
-			input: v1.MachineIpmiReport{
+			input: v1.MachineIpmiReports{
 				PartitionID: testdata.M1.PartitionID,
-				Leases:      map[string]string{testdata.M1.ID: "192.167.0.1"},
+				Reports:     map[string]v1.MachineIpmiReport{testdata.M1.ID: {BMCIp: "192.167.0.1"}},
 			},
 			output: v1.MachineIpmiReportResponse{
-				Updated: map[string]string{testdata.M1.ID: "192.167.0.1"},
-				Created: map[string]string{},
+				Updated: []string{testdata.M1.ID},
+				Created: []string{},
 			},
 			wantStatusCode: http.StatusOK,
 		},
 		{
 			name: "don't update machine with unkown mac",
-			input: v1.MachineIpmiReport{
+			input: v1.MachineIpmiReports{
 				PartitionID: testdata.M1.PartitionID,
-				Leases:      map[string]string{"xyz": "192.167.0.1"},
+				Reports:     map[string]v1.MachineIpmiReport{"xyz": {BMCIp: "192.167.0.1"}},
 			},
 			output: v1.MachineIpmiReportResponse{
-				Updated: map[string]string{},
-				Created: map[string]string{"xyz": "192.167.0.1"},
+				Updated: []string{},
+				Created: []string{"xyz"},
 			},
 			wantStatusCode: http.StatusOK,
 		},
@@ -543,19 +543,19 @@ func TestFreeMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	pub := &emptyPublisher{}
-	events := []string{"1-machine", "1-switch"}
+	events := []string{"1-machine", "releaseMachineNetworks", "1-switch"}
 	eventidx := 0
 	pub.doPublish = func(topic string, data interface{}) error {
 		require.Equal(t, events[eventidx], topic)
 		eventidx++
-		if eventidx == 0 {
+		if eventidx == 1 {
 			dv := data.(metal.MachineEvent)
 			require.Equal(t, "1", dv.OldMachineID)
 		}
 		return nil
 	}
 
-	machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
+	machineservice, err := NewMachine(ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
