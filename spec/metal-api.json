@@ -1837,6 +1837,12 @@
         "imageid"
       ]
     },
+    "v1.MachineReserve": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
     "v1.MachineResponse": {
       "properties": {
         "allocation": {
@@ -2373,6 +2379,9 @@
           "type": "string",
           "uniqueItems": true
         },
+        "machine_reserve": {
+          "$ref": "#/definitions/v1.MachineReserve"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -2421,6 +2430,9 @@
           "type": "string",
           "uniqueItems": true
         },
+        "machine_reserve": {
+          "$ref": "#/definitions/v1.MachineReserve"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -2456,6 +2468,9 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "machine_reserve": {
+          "$ref": "#/definitions/v1.MachineReserve"
         },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
@@ -2607,6 +2622,11 @@
           },
           "type": "array"
         },
+        "reserved": {
+          "description": "reserved machines",
+          "format": "int32",
+          "type": "integer"
+        },
         "size": {
           "description": "the size of the server",
           "type": "string"
@@ -2624,6 +2644,7 @@
         "free",
         "other",
         "othermachines",
+        "reserved",
         "size",
         "total"
       ]
