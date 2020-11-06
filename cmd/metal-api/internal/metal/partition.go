@@ -6,6 +6,7 @@ type Partition struct {
 	BootConfiguration          BootConfiguration `rethinkdb:"bootconfig" json:"bootconfig"`
 	MgmtServiceAddress         string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
 	PrivateNetworkPrefixLength int               `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
+	MachineReserve             MachineReserve    `rethinkdb:"machinereserve" json:"machinereserve"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline
@@ -14,6 +15,9 @@ type BootConfiguration struct {
 	KernelURL   string `rethinkdb:"kernelurl" json:"kernelurl"`
 	CommandLine string `rethinkdb:"commandline" json:"commandline"`
 }
+
+// MachineReserve configures spare machine size to count
+type MachineReserve map[string]int
 
 // Partitions is a list of partitions.
 type Partitions []Partition

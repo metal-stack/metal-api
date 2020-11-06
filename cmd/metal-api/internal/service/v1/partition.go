@@ -19,12 +19,14 @@ type PartitionCreateRequest struct {
 	Common
 	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
+	MachineReserve             *MachineReserve            `json:"machine_reserve,omitempty"`
 }
 
 type PartitionUpdateRequest struct {
 	Common
 	MgmtServiceAddress         *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
+	MachineReserve             *MachineReserve             `json:"machine_reserve,omitempty"`
 }
 
 type PartitionResponse struct {
@@ -32,12 +34,15 @@ type PartitionResponse struct {
 	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
 	Timestamps
+	MachineReserve *MachineReserve `json:"machine_reserve,omitempty"`
 }
 
 type PartitionCapacity struct {
 	Common
 	ServerCapacities []ServerCapacity `json:"servers" description:"servers available in this partition"`
 }
+
+type MachineReserve map[string]int
 
 type ServerCapacity struct {
 	Size           string   `json:"size" description:"the size of the server"`
@@ -48,11 +53,16 @@ type ServerCapacity struct {
 	FaultyMachines []string `json:"faultymachines" description:"servers with issues with this size"`
 	Other          int      `json:"other" description:"servers neither free, allocated or faulty with this size"`
 	OtherMachines  []string `json:"othermachines" description:"servers neither free, allocated or faulty with this size"`
+	Reserved       int      `json:"reserved" description:"reserved machines"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 	if p == nil {
 		return nil
+	}
+	mr := MachineReserve{}
+	for k, v := range p.MachineReserve {
+		mr[k] = v
 	}
 	return &PartitionResponse{
 		Common: Common{
@@ -77,5 +87,6 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			Created: p.Created,
 			Changed: p.Changed,
 		},
+		MachineReserve: &mr,
 	}
 }

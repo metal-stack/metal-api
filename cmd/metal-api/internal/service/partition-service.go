@@ -193,6 +193,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
+	var mr metal.MachineReserve
+	if requestPayload.MachineReserve != nil {
+		for k, v := range *requestPayload.MachineReserve {
+			mr[k] = v
+		}
+	}
 
 	p := &metal.Partition{
 		Base: metal.Base{
@@ -207,6 +213,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
+		MachineReserve: mr,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -278,6 +285,13 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 	}
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
+	}
+	if requestPayload.MachineReserve != nil {
+		mr := metal.MachineReserve{}
+		for k, v := range *requestPayload.MachineReserve {
+			mr[k] = v
+		}
+		newPartition.MachineReserve = mr
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
@@ -361,6 +375,7 @@ func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, erro
 				cap.OtherMachines = append(cap.OtherMachines, m.ID)
 			}
 
+			cap.Reserved = p.MachineReserve[size]
 			cap.Total++
 		}
 		sc := []v1.ServerCapacity{}
