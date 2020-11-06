@@ -722,9 +722,6 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 
-		if newMachine.IPMI.Address == oldMachine.IPMI.Address {
-			continue
-		}
 		// machine was created by a PXE boot event and has no partition set.
 		if oldMachine.PartitionID == "" {
 			newMachine.PartitionID = p.ID
