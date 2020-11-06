@@ -193,7 +193,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
-	var mr metal.MachineReserve
+	mr := metal.MachineReserve{}
 	if requestPayload.MachineReserve != nil {
 		for k, v := range *requestPayload.MachineReserve {
 			mr[k] = v
