@@ -16,7 +16,13 @@
       "required": [
         "message",
         "statuscode"
-      ]
+      ],
+      "x-go-type": {
+        "import": {
+          "package": "github.com/metal-stack/metal-lib/httperrors"
+        },
+        "type": "HTTPErrorResponse"
+      }
     },
     "rest.status": {
       "properties": {
