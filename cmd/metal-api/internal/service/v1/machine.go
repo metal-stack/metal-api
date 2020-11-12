@@ -395,7 +395,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 		nics = append(nics, nic)
 
-		var disks []MachineBlockDevice
+		disks := []MachineBlockDevice{}
 		for i := range m.Hardware.Disks {
 			disk := MachineBlockDevice{
 				Name: m.Hardware.Disks[i].Name,
