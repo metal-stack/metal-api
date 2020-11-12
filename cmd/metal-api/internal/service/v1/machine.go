@@ -273,7 +273,7 @@ func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 		}
 		nics = append(nics, nic)
 	}
-	disks := []metal.BlockDevice{}
+	var disks []metal.BlockDevice
 	for _, d := range r.Disks {
 		disk := metal.BlockDevice{
 			Name:    d.Name,
