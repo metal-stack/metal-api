@@ -387,6 +387,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
+
 	nics := MachineNics{}
 	for i := range m.Hardware.Nics {
 		nic := MachineNic{
@@ -394,23 +395,24 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Name:       m.Hardware.Nics[i].Name,
 		}
 		nics = append(nics, nic)
+	}
 
-		var disks []MachineBlockDevice
-		for i := range m.Hardware.Disks {
-			disk := MachineBlockDevice{
-				Name: m.Hardware.Disks[i].Name,
-				Size: m.Hardware.Disks[i].Size,
-			}
-			disks = append(disks, disk)
+	disks := []MachineBlockDevice{}
+	for i := range m.Hardware.Disks {
+		disk := MachineBlockDevice{
+			Name: m.Hardware.Disks[i].Name,
+			Size: m.Hardware.Disks[i].Size,
 		}
-		hardware = MachineHardware{
-			MachineHardwareBase: MachineHardwareBase{
-				Memory:   m.Hardware.Memory,
-				CPUCores: m.Hardware.CPUCores,
-				Disks:    disks,
-			},
-			Nics: nics,
-		}
+		disks = append(disks, disk)
+	}
+
+	hardware = MachineHardware{
+		MachineHardwareBase: MachineHardwareBase{
+			Memory:   m.Hardware.Memory,
+			CPUCores: m.Hardware.CPUCores,
+			Disks:    disks,
+		},
+		Nics: nics,
 	}
 
 	var allocation *MachineAllocation
