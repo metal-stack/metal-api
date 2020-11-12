@@ -22,7 +22,7 @@ type NetworkImmutable struct {
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 	VrfShared           *bool    `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)" optional:"true"`
-	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network"`
+	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
 }
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.

@@ -2094,7 +2094,6 @@
         "destinationprefixes",
         "id",
         "nat",
-        "parentnetworkid",
         "prefixes",
         "privatesuper",
         "underlay"
@@ -2244,7 +2243,6 @@
         "destinationprefixes",
         "id",
         "nat",
-        "parentnetworkid",
         "prefixes",
         "privatesuper",
         "underlay",
