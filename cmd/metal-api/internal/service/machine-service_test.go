@@ -664,6 +664,14 @@ func TestOnMachine(t *testing.T) {
 			endpoint: "bios",
 		},
 		{
+			cmd:      metal.MachineDiskCmd,
+			endpoint: "disk",
+		},
+		{
+			cmd:      metal.MachinePxeCmd,
+			endpoint: "pxe",
+		},
+		{
 			cmd:      metal.ChassisIdentifyLEDOnCmd,
 			endpoint: "chassis-identify-led-on",
 		},
