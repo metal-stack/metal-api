@@ -177,6 +177,16 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 		Constraints: constraints,
 	}
 
+	ss, err := r.ds.ListSizes()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if so := s.Overlaps(&ss); so != nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("size overlaps with %q", so.GetID())) {
+			return
+		}
+	}
+
 	err = r.ds.CreateSize(s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -239,6 +249,16 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 			constraints = append(constraints, constraint)
 		}
 		newSize.Constraints = constraints
+	}
+
+	ss, err := r.ds.ListSizes()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if so := newSize.Overlaps(&ss); so != nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("size overlaps with %q", so.GetID())) {
+			return
+		}
 	}
 
 	err = r.ds.UpdateSize(oldSize, &newSize)

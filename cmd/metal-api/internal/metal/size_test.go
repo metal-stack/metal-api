@@ -30,7 +30,7 @@ var (
 	}
 	microOverlappingSize = Size{
 		Base: Base{
-			Name: "micro",
+			Name: "microOverlapping",
 		},
 		Constraints: []Constraint{
 			{
@@ -50,6 +50,18 @@ var (
 			},
 		},
 	}
+	microIncompleteSize = Size{
+		Base: Base{
+			Name: "microIncomplete",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+		},
+	}
 	tinySize = Size{
 		Base: Base{
 			Name: "tiny",
@@ -59,6 +71,28 @@ var (
 				Type: CoreConstraint,
 				Min:  1,
 				Max:  1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  1025,
+				Max:  1077838336,
+			},
+			{
+				Type: StorageConstraint,
+				Min:  1024,
+				Max:  2048,
+			},
+		},
+	}
+	largeSize = Size{
+		Base: Base{
+			Name: "large",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  8,
+				Max:  16,
 			},
 			{
 				Type: MemoryConstraint,
@@ -169,7 +203,7 @@ func TestSizes_FromHardware(t *testing.T) {
 			args: args{
 				hardware: MachineHardware{
 					CPUCores: 1,
-					Memory:   1024,
+					Memory:   2048,
 					Disks: []BlockDevice{
 						{
 							Size: 1025,
@@ -259,6 +293,61 @@ func TestSizes_ByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sz.ByID(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Sizes.ByID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSizes_Overlaps(t *testing.T) {
+	type args struct {
+		sizes Sizes
+	}
+	tests := []struct {
+		name string
+		sz   Size
+		args args
+		want *Size
+	}{
+		// Test Data Array:
+		{
+			name: "non-overlapping size",
+			sz:   microSize,
+			args: args{
+				sizes: Sizes{tinySize, largeSize},
+			},
+			want: nil,
+		},
+		{
+			name: "overlapping size",
+			sz:   microOverlappingSize,
+			args: args{
+				sizes: Sizes{microSize, tinySize, largeSize},
+			},
+			want: &microSize,
+		},
+		{
+			name: "add incomplete size",
+			sz:   microIncompleteSize,
+			args: args{
+				sizes: Sizes{microSize, tinySize, largeSize},
+			},
+			want: &microSize,
+		},
+		{
+			name: "have incomplete sizes",
+			sz:   microSize,
+			args: args{
+				sizes: Sizes{microIncompleteSize, tinySize, largeSize},
+			},
+			want: &microIncompleteSize,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.sz.Overlaps(&tt.args.sizes)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Sizes.Overlaps() = %v, want %v", got, tt.want)
 			}
 		})
 	}
