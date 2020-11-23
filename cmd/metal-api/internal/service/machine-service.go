@@ -1458,6 +1458,12 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
+
+	event := string(metal.ProvisioningEventPlannedReboot)
+	_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: "freeMachine"})
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 }
 
 // reinstallMachine reinstalls the requested machine with given image by either allocating
