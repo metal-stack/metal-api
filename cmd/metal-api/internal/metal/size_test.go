@@ -50,18 +50,6 @@ var (
 			},
 		},
 	}
-	microIncompleteSize = Size{
-		Base: Base{
-			Name: "microIncomplete",
-		},
-		Constraints: []Constraint{
-			{
-				Type: CoreConstraint,
-				Min:  1,
-				Max:  1,
-			},
-		},
-	}
 	tinySize = Size{
 		Base: Base{
 			Name: "tiny",
@@ -75,28 +63,6 @@ var (
 			{
 				Type: MemoryConstraint,
 				Min:  1025,
-				Max:  1077838336,
-			},
-			{
-				Type: StorageConstraint,
-				Min:  1024,
-				Max:  2048,
-			},
-		},
-	}
-	largeSize = Size{
-		Base: Base{
-			Name: "large",
-		},
-		Constraints: []Constraint{
-			{
-				Type: CoreConstraint,
-				Min:  8,
-				Max:  16,
-			},
-			{
-				Type: MemoryConstraint,
-				Min:  1024,
 				Max:  1077838336,
 			},
 			{
@@ -302,6 +268,7 @@ func TestSizes_Overlaps(t *testing.T) {
 	type args struct {
 		sizes Sizes
 	}
+
 	tests := []struct {
 		name string
 		sz   Size
@@ -311,35 +278,259 @@ func TestSizes_Overlaps(t *testing.T) {
 		// Test Data Array:
 		{
 			name: "non-overlapping size",
-			sz:   microSize,
+			sz: Size{
+				Base: Base{
+					Name: "micro",
+				},
+				Constraints: []Constraint{
+					{
+						Type: CoreConstraint,
+						Min:  1,
+						Max:  1,
+					},
+					{
+						Type: MemoryConstraint,
+						Min:  1024,
+						Max:  1024,
+					},
+					{
+						Type: StorageConstraint,
+						Min:  0,
+						Max:  1024,
+					},
+				},
+			},
 			args: args{
-				sizes: Sizes{tinySize, largeSize},
+				sizes: Sizes{
+					Size{
+						Base: Base{
+							Name: "tiny",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  1,
+								Max:  1,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1025,
+								Max:  1077838336,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  1024,
+								Max:  2048,
+							},
+						},
+					},
+					Size{
+						Base: Base{
+							Name: "large",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  8,
+								Max:  16,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1024,
+								Max:  1077838336,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  1024,
+								Max:  2048,
+							},
+						},
+					},
+				},
 			},
 			want: nil,
 		},
 		{
 			name: "overlapping size",
-			sz:   microOverlappingSize,
+			sz: Size{
+				Base: Base{
+					Name: "microOverlapping",
+				},
+				Constraints: []Constraint{
+					{
+						Type: CoreConstraint,
+						Min:  1,
+						Max:  1,
+					},
+					{
+						Type: MemoryConstraint,
+						Min:  1024,
+						Max:  1024,
+					},
+					{
+						Type: StorageConstraint,
+						Min:  0,
+						Max:  2048,
+					},
+				},
+			},
 			args: args{
-				sizes: Sizes{microSize, tinySize, largeSize},
+				sizes: Sizes{
+					Size{
+						Base: Base{
+							Name: "micro",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  1,
+								Max:  1,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1024,
+								Max:  1024,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  0,
+								Max:  1024,
+							},
+						},
+					},
+					Size{
+						Base: Base{
+							Name: "tiny",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  1,
+								Max:  1,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1025,
+								Max:  1077838336,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  1024,
+								Max:  2048,
+							},
+						},
+					},
+					Size{
+						Base: Base{
+							Name: "large",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  8,
+								Max:  16,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1024,
+								Max:  1077838336,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  1024,
+								Max:  2048,
+							},
+						},
+					},
+				},
 			},
 			want: &microSize,
 		},
 		{
 			name: "add incomplete size",
-			sz:   microIncompleteSize,
+			sz: Size{
+				Base: Base{
+					Name: "microIncomplete",
+				},
+				Constraints: []Constraint{
+					{
+						Type: CoreConstraint,
+						Min:  1,
+						Max:  1,
+					},
+				},
+			},
 			args: args{
-				sizes: Sizes{microSize, tinySize, largeSize},
+				sizes: Sizes{
+					Size{
+						Base: Base{
+							Name: "micro",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  1,
+								Max:  1,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1024,
+								Max:  1024,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  0,
+								Max:  1024,
+							},
+						},
+					},
+					Size{
+						Base: Base{
+							Name: "tiny",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  1,
+								Max:  1,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1025,
+								Max:  1077838336,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  1024,
+								Max:  2048,
+							},
+						},
+					},
+					Size{
+						Base: Base{
+							Name: "large",
+						},
+						Constraints: []Constraint{
+							{
+								Type: CoreConstraint,
+								Min:  8,
+								Max:  16,
+							},
+							{
+								Type: MemoryConstraint,
+								Min:  1024,
+								Max:  1077838336,
+							},
+							{
+								Type: StorageConstraint,
+								Min:  1024,
+								Max:  2048,
+							},
+						},
+					},
+				},
 			},
 			want: &microSize,
-		},
-		{
-			name: "have incomplete sizes",
-			sz:   microSize,
-			args: args{
-				sizes: Sizes{microIncompleteSize, tinySize, largeSize},
-			},
-			want: &microIncompleteSize,
 		},
 	}
 
