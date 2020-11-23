@@ -105,6 +105,30 @@ nextsize:
 	return &found[0], []*SizeMatchingLog{matchedlog}, nil
 }
 
+func (s *Size) overlaps(so *Size) bool {
+	if len(so.Constraints) == 0 {
+		return false
+	}
+	for _, c := range s.Constraints {
+		for _, co := range so.Constraints {
+			if c.Type == co.Type && ((c.Min < co.Min && c.Max < co.Min) || (c.Min > co.Min && c.Min > co.Max)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// Overlaps returns nil if Size does not overlap with any other size, otherwise returs overlapping Size
+func (s *Size) Overlaps(ss *Sizes) *Size {
+	for _, so := range *ss {
+		if s.Name != so.Name && s.overlaps(&so) {
+			return &so
+		}
+	}
+	return nil
+}
+
 // A ConstraintMatchingLog is used do return a log message to the caller
 // beside the contraint itself.
 type ConstraintMatchingLog struct {
