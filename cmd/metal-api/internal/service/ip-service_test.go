@@ -146,7 +146,9 @@ func TestDeleteIP(t *testing.T) {
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
 
-			require.Nil(t, err)
+			if tt.wantedStatus != http.StatusUnprocessableEntity {
+				require.Nil(t, err)
+			}
 		})
 	}
 }
@@ -308,6 +310,10 @@ func TestUpdateIP(t *testing.T) {
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
 			var result v1.IPResponse
 			err := json.NewDecoder(resp.Body).Decode(&result)
+
+			if tt.wantedStatus == http.StatusUnprocessableEntity {
+				return
+			}
 
 			require.Nil(t, err)
 			if tt.wantedIPIdentifiable != nil {
