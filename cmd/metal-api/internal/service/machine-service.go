@@ -1806,7 +1806,10 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if provisioningEvents.Liveliness != metal.MachineLivelinessDead {
+		// sometimes a machine does not boot properly from the network and boots into the old operating system
+		// and then it emits "phoned home" events but has no allocation anymore
+		isPhoningHome := len(provisioningEvents.Events) > 0 && provisioningEvents.Liveliness == metal.MachineLivelinessAlive && provisioningEvents.Events[0].Event == metal.ProvisioningEventPhonedHome
+		if provisioningEvents.Liveliness != metal.MachineLivelinessDead && !isPhoningHome {
 			continue
 		}
 
