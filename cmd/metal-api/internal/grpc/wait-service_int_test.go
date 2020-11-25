@@ -68,13 +68,12 @@ func TestWaitServer(t *testing.T) {
 	}
 	for _, test := range tt {
 		test.T = t
-		// tests are hanging on my machine. :(
-		// test.testCase = happyPath
-		// test.run()
-		// test.testCase = serverFailure
-		// test.run()
-		// test.testCase = clientFailure
-		// test.run()
+		test.testCase = happyPath
+		test.run()
+		test.testCase = serverFailure
+		test.run()
+		test.testCase = clientFailure
+		test.run()
 	}
 }
 
