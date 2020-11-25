@@ -290,7 +290,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	// for private, unshared networks the project id must be the same
 	// for external networks the project id is not checked
-	if !nw.Shared && nw.ParentNetworkID != "" && p.Project.Meta.Id != nw.ProjectID {
+	if !nw.Shared && nw.ProjectID != "" && p.Project.Meta.Id != nw.ProjectID {
 		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID))
 		return
 	}
