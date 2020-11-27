@@ -606,6 +606,10 @@ func deleteOrphanImages() error {
 	return err
 }
 
+func redirect(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, service.BasePath+"apidocs/", http.StatusTemporaryRedirect)
+}
+
 func run() {
 	initRestServices(true)
 
@@ -624,7 +628,8 @@ func run() {
 		Container:      restful.DefaultContainer}
 	restful.DefaultContainer.Filter(cors.Filter)
 
-	// expose generated apidoc
+	// expose generated apidoc, redirect from /
+	http.HandleFunc("/", redirect)
 	http.Handle(service.BasePath+"apidocs/", http.StripPrefix(service.BasePath+"apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))
 
 	// catch all other errors
