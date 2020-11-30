@@ -9,7 +9,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.2.1
 	github.com/emicklei/go-restful/v3 v3.4.0
-	github.com/go-openapi/spec v0.19.14
+	github.com/go-openapi/spec v0.19.15
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4

@@ -624,9 +624,6 @@ func run() {
 		Container:      restful.DefaultContainer}
 	restful.DefaultContainer.Filter(cors.Filter)
 
-	// expose generated apidoc
-	http.Handle(service.BasePath+"apidocs/", http.StripPrefix(service.BasePath+"apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))
-
 	// catch all other errors
 	restful.DefaultContainer.Add(new(restful.WebService).Path("/"))
 	restful.DefaultContainer.ServiceErrorHandler(func(serviceErr restful.ServiceError, request *restful.Request, response *restful.Response) {
