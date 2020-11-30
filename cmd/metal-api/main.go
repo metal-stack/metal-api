@@ -46,9 +46,8 @@ import (
 )
 
 const (
-	cfgFileType             = "yaml"
-	moduleName              = "metal-api"
-	generatedHTMLAPIDocPath = "./generate/"
+	cfgFileType = "yaml"
+	moduleName  = "metal-api"
 )
 
 var (
