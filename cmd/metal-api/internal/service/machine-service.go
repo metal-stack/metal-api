@@ -319,7 +319,27 @@ func (r machineResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/{id}/power/bios").
 		To(editor(r.machineBios)).
 		Operation("machineBios").
-		Doc("boots machine into BIOS on next reboot").
+		Doc("boots machine into BIOS").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/power/disk").
+		To(editor(r.machineDisk)).
+		Operation("machineDisk").
+		Doc("boots machine from disk").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/power/pxe").
+		To(editor(r.machinePxe)).
+		Operation("machinePxe").
+		Doc("boots machine from PXE").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
@@ -1844,6 +1864,14 @@ func (r machineResource) machineReset(request *restful.Request, response *restfu
 
 func (r machineResource) machineBios(request *restful.Request, response *restful.Response) {
 	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
+}
+
+func (r machineResource) machineDisk(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineDisk", metal.MachineDiskCmd, request, response)
+}
+
+func (r machineResource) machinePxe(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machinePxe", metal.MachinePxeCmd, request, response)
 }
 
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
