@@ -46,9 +46,8 @@ import (
 )
 
 const (
-	cfgFileType             = "yaml"
-	moduleName              = "metal-api"
-	generatedHTMLAPIDocPath = "./generate/"
+	cfgFileType = "yaml"
+	moduleName  = "metal-api"
 )
 
 var (
@@ -623,9 +622,6 @@ func run() {
 		CookiesAllowed: false,
 		Container:      restful.DefaultContainer}
 	restful.DefaultContainer.Filter(cors.Filter)
-
-	// expose generated apidoc
-	http.Handle(service.BasePath+"apidocs/", http.StripPrefix(service.BasePath+"apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))
 
 	// catch all other errors
 	restful.DefaultContainer.Add(new(restful.WebService).Path("/"))

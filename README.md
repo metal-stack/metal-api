@@ -1,7 +1,7 @@
 # metal-api
 
 ![Build](https://github.com/metal-stack/metal-api/workflows/Build%20from%20master/badge.svg)
-[![Slack](https://img.shields.io/badge/slack-metal--stack-brightgreen.svg?logo=slack)](https://metal-stack.slack.com/) 
+[![Slack](https://img.shields.io/badge/slack-metal--stack-brightgreen.svg?logo=slack)](https://metal-stack.slack.com/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/metal-stack/metal-api)](https://goreportcard.com/report/github.com/metal-stack/metal-api)
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/metal-stack/metal-api)
 [![Docker Pulls](https://img.shields.io/docker/pulls/metalstack/metal-api.svg)](https://hub.docker.com/r/metalstack/metal-api/)
