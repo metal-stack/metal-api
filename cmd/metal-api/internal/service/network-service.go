@@ -782,11 +782,11 @@ var (
 		"The total number of used prefixes of the network",
 		[]string{"networkId", "prefixes", "destPrefixes", "partitionId", "projectId", "parentNetworkID", "vrf", "isPrivateSuper", "useNat", "isUnderlay"}, nil,
 	)
-	availablePrefixesDesc = prometheus.NewDesc(
-		"metal_network_prefix_available",
-		"The total number of available prefixes of the network",
-		[]string{"networkId", "prefixes", "destPrefixes", "partitionId", "projectId", "parentNetworkID", "vrf", "isPrivateSuper", "useNat", "isUnderlay"}, nil,
-	)
+	// availablePrefixesDesc = prometheus.NewDesc(
+	// 	"metal_network_prefix_available",
+	// 	"The total number of available prefixes of the network",
+	// 	[]string{"networkId", "prefixes", "destPrefixes", "partitionId", "projectId", "parentNetworkID", "vrf", "isPrivateSuper", "useNat", "isUnderlay"}, nil,
+	// )
 )
 
 func (nuc networkUsageCollector) Describe(ch chan<- *prometheus.Desc) {
