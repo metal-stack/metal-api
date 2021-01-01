@@ -467,7 +467,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	}
 }
 
-func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
+func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
 	vrf, err := acquireRandomVRF(ds)
 	if err != nil {
 		return nil, fmt.Errorf("Could not acquire a vrf: %v", err)
@@ -716,15 +716,17 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 		if err != nil {
 			continue
 		}
+		// FIXME what the heck ?
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs
 		usage.UsedIPs = usage.UsedIPs + u.UsedIPs
-		usage.AvailablePrefixes = usage.AvailablePrefixes + u.AvailablePrefixes
+		// FIXME enable this again
+		// usage.AvailablePrefixes = usage.AvailablePrefixes + u.AvailablePrefixes
 		usage.UsedPrefixes = usage.UsedPrefixes + u.UsedPrefixes
 	}
 	return usage
 }
 
-func createChildPrefix(parentPrefixes metal.Prefixes, childLength int, ipamer ipam.IPAMer) (*metal.Prefix, error) {
+func createChildPrefix(parentPrefixes metal.Prefixes, childLength uint8, ipamer ipam.IPAMer) (*metal.Prefix, error) {
 	var errors []error
 	var err error
 	var childPrefix *metal.Prefix
@@ -873,25 +875,26 @@ func (nuc networkUsageCollector) Collect(ch chan<- prometheus.Metric) {
 			return
 		}
 		ch <- metric
-		metric, err = prometheus.NewConstMetric(
-			availablePrefixesDesc,
-			prometheus.CounterValue,
-			float64(usage.AvailablePrefixes),
-			nws[i].ID,
-			prefixes,
-			destPrefixes,
-			nws[i].PartitionID,
-			nws[i].ProjectID,
-			nws[i].ParentNetworkID,
-			vrf,
-			privateSuper,
-			nat,
-			underlay,
-		)
-		if err != nil {
-			zapup.MustRootLogger().Error("Failed create metric for AvailablePrefixes", zap.Error(err))
-			return
-		}
-		ch <- metric
+		// FIXME enable again once we know howto measure new AvailablePrefixes
+		// metric, err = prometheus.NewConstMetric(
+		// 	availablePrefixesDesc,
+		// 	prometheus.CounterValue,
+		// 	float64(usage.AvailablePrefixes),
+		// 	nws[i].ID,
+		// 	prefixes,
+		// 	destPrefixes,
+		// 	nws[i].PartitionID,
+		// 	nws[i].ProjectID,
+		// 	nws[i].ParentNetworkID,
+		// 	vrf,
+		// 	privateSuper,
+		// 	nat,
+		// 	underlay,
+		// )
+		// if err != nil {
+		// 	zapup.MustRootLogger().Error("Failed create metric for AvailablePrefixes", zap.Error(err))
+		// 	return
+		// }
+		// ch <- metric
 	}
 }

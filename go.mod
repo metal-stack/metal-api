@@ -19,7 +19,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
-	github.com/metal-stack/go-ipam v1.7.0
+	github.com/metal-stack/go-ipam v1.7.1-0.20201231151559-3621d3814325
 	github.com/metal-stack/masterdata-api v0.8.4
 	github.com/metal-stack/metal-lib v0.6.6
 	github.com/metal-stack/security v0.4.0
@@ -39,7 +39,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.9.0
 	github.com/tidwall/pretty v1.0.2 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/grpc v1.33.2
 	google.golang.org/protobuf v1.25.0
