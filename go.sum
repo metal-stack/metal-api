@@ -538,6 +538,8 @@ github.com/metal-stack/go-ipam v1.7.1-0.20201231151559-3621d3814325 h1:m6f45juQs
 github.com/metal-stack/go-ipam v1.7.1-0.20201231151559-3621d3814325/go.mod h1:lFlChm9KtNlzOAbaP+4OeGBeF8vr80L/kLB26Sc4H5E=
 github.com/metal-stack/go-ipam v1.7.1-0.20210101161956-c5407971e95f h1:CCIVjFXJnQ8qffa/fRnRyIDjo4RQoMdfGxGhtGHNokQ=
 github.com/metal-stack/go-ipam v1.7.1-0.20210101161956-c5407971e95f/go.mod h1:sU0Y/pXAuu9GpESqpPJVhQNLHVwSHejeLKDp1XfdbSA=
+github.com/metal-stack/go-ipam v1.7.1-0.20210106113513-81c011a47244 h1:70RZEjxcnS7kKtidZHEuFju2yxVbKokKDj7DG/RiPfg=
+github.com/metal-stack/go-ipam v1.7.1-0.20210106113513-81c011a47244/go.mod h1:GM8gFupyhHlqEzQosCFsU3ai4zkX9Pu9pzcA+P3GTz4=
 github.com/metal-stack/masterdata-api v0.8.4 h1:CnrhxiS9XL5PQN+J0yFv5KNvuan3JMx5omofEwHVweQ=
 github.com/metal-stack/masterdata-api v0.8.4/go.mod h1:4EDS04thTWdxcTpLsaLdG1PEUdnvKJFIdf7GEMduDdI=
 github.com/metal-stack/metal-lib v0.6.3/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
@@ -1237,6 +1239,8 @@ inet.af/netaddr v0.0.0-20201231045418-bf0e22f9f32f h1:JWUQvzPI8vrWWOUSJ1fpd9QrhI
 inet.af/netaddr v0.0.0-20201231045418-bf0e22f9f32f/go.mod h1:lbePDLSB5c45kkUmF7ETNE5X9z/yuQvWJIv1hhb5rFI=
 inet.af/netaddr v0.0.0-20210101043548-c5e71b4f334a h1:fjPw2PKOtFH/RclBkpF7Owv7fUO0+PKZvhAW7q4waJs=
 inet.af/netaddr v0.0.0-20210101043548-c5e71b4f334a/go.mod h1:jPZo7Jy4nke2cCgISa4fKJKa5T7+EO8k5fWwWghzneg=
+inet.af/netaddr v0.0.0-20210105212526-648fbc18a69d h1:6f0242aW/6x2enQBOSKgDS8KQNw6Tp7IVR8eG3x0Jc8=
+inet.af/netaddr v0.0.0-20210105212526-648fbc18a69d/go.mod h1:jPZo7Jy4nke2cCgISa4fKJKa5T7+EO8k5fWwWghzneg=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=

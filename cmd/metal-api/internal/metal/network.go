@@ -87,16 +87,10 @@ type NetworkMap map[string]Network
 
 // NetworkUsage contains usage information of a network
 type NetworkUsage struct {
-	AvailableIPs      uint64            `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           uint64            `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes []AvailablePrefix `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
-	UsedPrefixes      uint64            `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
-}
-
-// AvailablePrefix count by length
-type AvailablePrefix struct {
-	PrefixLength uint8
-	Count        uint32
+	AvailableIPs              uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs                   uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailableSmallestPrefixes uint64 `json:"available_smallest_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	UsedPrefixes              uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // ByID creates an indexed map of partitions whre the id is the index.

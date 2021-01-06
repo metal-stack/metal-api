@@ -131,16 +131,11 @@ func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 		return nil, fmt.Errorf("prefix for cidr:%s not found", cidr)
 	}
 	usage := prefix.Usage()
-	avpfxs := []metal.AvailablePrefix{}
-	for _, pfx := range usage.AvailablePrefixes {
-		avpfxs = append(avpfxs, metal.AvailablePrefix{PrefixLength: pfx.PrefixLength, Count: pfx.Count})
-	}
-
 	return &metal.NetworkUsage{
-		AvailableIPs:      usage.AvailableIPs,
-		UsedIPs:           usage.AcquiredIPs,
-		AvailablePrefixes: avpfxs,
-		UsedPrefixes:      usage.AcquiredPrefixes,
+		AvailableIPs:              usage.AvailableIPs,
+		UsedIPs:                   usage.AcquiredIPs,
+		AvailableSmallestPrefixes: usage.AvailableSmallestPrefixes,
+		UsedPrefixes:              usage.AcquiredPrefixes,
 	}, nil
 }
 

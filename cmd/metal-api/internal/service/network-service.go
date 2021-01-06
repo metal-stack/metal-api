@@ -782,11 +782,11 @@ var (
 		"The total number of used prefixes of the network",
 		[]string{"networkId", "prefixes", "destPrefixes", "partitionId", "projectId", "parentNetworkID", "vrf", "isPrivateSuper", "useNat", "isUnderlay"}, nil,
 	)
-	// availablePrefixesDesc = prometheus.NewDesc(
-	// 	"metal_network_prefix_available",
-	// 	"The total number of available prefixes of the network",
-	// 	[]string{"networkId", "prefixes", "destPrefixes", "partitionId", "projectId", "parentNetworkID", "vrf", "isPrivateSuper", "useNat", "isUnderlay"}, nil,
-	// )
+	availablePrefixesDesc = prometheus.NewDesc(
+		"metal_network_prefix_available",
+		"The total number of available 2 bit prefixes of the network",
+		[]string{"networkId", "prefixes", "destPrefixes", "partitionId", "projectId", "parentNetworkID", "vrf", "isPrivateSuper", "useNat", "isUnderlay"}, nil,
+	)
 )
 
 func (nuc networkUsageCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -875,26 +875,25 @@ func (nuc networkUsageCollector) Collect(ch chan<- prometheus.Metric) {
 			return
 		}
 		ch <- metric
-		// FIXME enable again once we know howto measure new AvailablePrefixes
-		// metric, err = prometheus.NewConstMetric(
-		// 	availablePrefixesDesc,
-		// 	prometheus.CounterValue,
-		// 	float64(usage.AvailablePrefixes),
-		// 	nws[i].ID,
-		// 	prefixes,
-		// 	destPrefixes,
-		// 	nws[i].PartitionID,
-		// 	nws[i].ProjectID,
-		// 	nws[i].ParentNetworkID,
-		// 	vrf,
-		// 	privateSuper,
-		// 	nat,
-		// 	underlay,
-		// )
-		// if err != nil {
-		// 	zapup.MustRootLogger().Error("Failed create metric for AvailablePrefixes", zap.Error(err))
-		// 	return
-		// }
-		// ch <- metric
+		metric, err = prometheus.NewConstMetric(
+			availablePrefixesDesc,
+			prometheus.CounterValue,
+			float64(usage.AvailableSmallestPrefixes),
+			nws[i].ID,
+			prefixes,
+			destPrefixes,
+			nws[i].PartitionID,
+			nws[i].ProjectID,
+			nws[i].ParentNetworkID,
+			vrf,
+			privateSuper,
+			nat,
+			underlay,
+		)
+		if err != nil {
+			zapup.MustRootLogger().Error("Failed create metric for AvailablePrefixes", zap.Error(err))
+			return
+		}
+		ch <- metric
 	}
 }
