@@ -461,6 +461,13 @@ var (
 		Tags:        []string{tag.MachineID},
 		ProjectID:   "1",
 	}
+	IP4 = metal.IP{
+		IPAddress:   "2001:0db8:85a3::1",
+		Name:        "IPv6 4",
+		Description: "description 4",
+		Type:        "ephemeral",
+		ProjectID:   "1",
+	}
 	IPAMIP = metal.IP{
 		Name:        "IPAM IP",
 		Description: "description IPAM",
@@ -685,7 +692,7 @@ var (
 	}
 	// All IPs
 	TestIPs = []metal.IP{
-		IP1, IP2, IP3,
+		IP1, IP2, IP3, IP4,
 	}
 
 	// All Events
@@ -803,6 +810,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("3.4.5.6")).Return(IP3, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get("2001:0db8:85a3::1")).Return(IP4, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("8.8.8.8")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("ip").Get("9.9.9.9")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(Partition1InternetIP.IPAddress)).Return(Partition1InternetIP, nil)
