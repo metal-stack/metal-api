@@ -27,10 +27,11 @@ type NetworkImmutable struct {
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
 type NetworkUsage struct {
-	AvailableIPs              uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs                   uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailableSmallestPrefixes uint64 `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
-	UsedPrefixes              uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs              uint64   `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs                   uint64   `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailableSmallestPrefixes uint64   `json:"available_smallest_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	AvailablePrefixes         []string `json:"available_prefixes" description:"a list of possible child prefixes"`
+	UsedPrefixes              uint64   `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // NetworkCreateRequest is used to create a new Network.
@@ -113,6 +114,7 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			AvailableIPs:              usage.AvailableIPs,
 			UsedIPs:                   usage.UsedIPs,
 			AvailableSmallestPrefixes: usage.AvailableSmallestPrefixes,
+			AvailablePrefixes:         usage.AvailablePrefixes,
 			UsedPrefixes:              usage.UsedPrefixes,
 		},
 		Timestamps: Timestamps{
