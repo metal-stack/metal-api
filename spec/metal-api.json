@@ -2295,7 +2295,14 @@
           "type": "integer"
         },
         "available_prefixes": {
-          "description": "the total available Prefixes",
+          "description": "a list of possible child prefixes",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "available_smallest_prefixes": {
+          "description": "the total available 2 bit Prefixes",
           "format": "integer",
           "type": "integer"
         },
@@ -2313,6 +2320,7 @@
       "required": [
         "available_ips",
         "available_prefixes",
+        "available_smallest_prefixes",
         "used_ips",
         "used_prefixes"
       ]
@@ -2387,7 +2395,7 @@
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
+          "format": "byte",
           "maximum": 30,
           "minimum": 16,
           "type": "integer"
@@ -2435,7 +2443,7 @@
         },
         "privatenetworkprefixlength": {
           "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
+          "format": "byte",
           "maximum": 30,
           "minimum": 16,
           "type": "integer"
