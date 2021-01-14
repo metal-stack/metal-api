@@ -60,7 +60,7 @@ func multi(session r.QueryExecutor, tt ...r.Term) error {
 func (rs *RethinkStore) Health() error {
 	return multi(rs.session,
 		r.Branch(
-			rs.db().TableList().Contains(r.Expr(tables)),
+			rs.db().TableList().SetIntersection(r.Expr(tables)).Count().Eq(len(tables)),
 			r.Expr(true),
 			r.Error("required tables are missing")),
 	)
