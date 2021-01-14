@@ -97,6 +97,11 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
+	_, err = rs.db().Wait().Run(rs.session)
+	if err != nil {
+		return err
+	}
+
 	_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
 		Conflict: "replace",
 	}).RunWrite(rs.session)
