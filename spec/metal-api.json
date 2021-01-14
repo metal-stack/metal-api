@@ -3970,6 +3970,42 @@
       }
     },
     "/v1/machine/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteMachine",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes a machine from the database",
+        "tags": [
+          "machine"
+        ]
+      },
       "get": {
         "consumes": [
           "application/json"

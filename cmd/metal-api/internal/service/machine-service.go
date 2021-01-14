@@ -216,6 +216,16 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.DELETE("/{id}").
+		To(admin(r.deleteMachine)).
+		Operation("deleteMachine").
+		Doc("deletes a machine from the database").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.POST("/ipmi").
 		To(editor(r.ipmiReport)).
 		Operation("ipmiReport").
@@ -1483,6 +1493,66 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: "freeMachine"})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+}
+
+func (r machineResource) deleteMachine(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	logger := utils.Logger(request).Sugar()
+
+	if m.Allocation != nil {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot delete machine that is allocated"))
+		return
+	}
+
+	ec, err := r.ds.FindProvisioningEventContainer(id)
+
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("can only delete dead machines"))
+		return
+	}
+
+	switches, err := r.ds.SearchSwitchesConnectedToMachine(m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	for _, old := range switches {
+		_, ok := old.MachineConnections[m.ID]
+		if !ok {
+			continue
+		}
+
+		new := old
+		new.MachineConnections = metal.ConnectionMap{}
+
+		for id, connection := range old.MachineConnections {
+			new.MachineConnections[id] = connection
+		}
+		delete(new.MachineConnections, m.ID)
+
+		err = r.ds.UpdateSwitch(&old, &new)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	err = r.ds.DeleteMachine(m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
 	}
 }
 
