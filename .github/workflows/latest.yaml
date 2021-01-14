@@ -11,12 +11,24 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Lint
-      uses: actions-contrib/golangci-lint@master
+
+    - name: Docker Login
+      uses: docker/login-action@v1
       with:
-        args: run
+        registry: ${{ secrets.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_REGISTRY_USER }}
+        password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v2
+      with:
+        version: v1.32.2
+
     - name: Build and push Docker image
       run: |
-        docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
-        docker build -t metalstack/metal-api .
-        docker push metalstack/metal-api
+        docker build -t ghcr.io/metal-stack/metal-api .
+        docker push ghcr.io/metal-stack/metal-api
+
+    - uses: release-drafter/release-drafter@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

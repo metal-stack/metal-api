@@ -126,6 +126,18 @@ func TestCreateSize(t *testing.T) {
 				Description: &testdata.Sz1.Description,
 			},
 		},
+		SizeConstraints: []v1.SizeConstraint{
+			{
+				Type: metal.CoreConstraint,
+				Min:  15,
+				Max:  27,
+			},
+			{
+				Type: metal.MemoryConstraint,
+				Min:  100,
+				Max:  100,
+			},
+		},
 	}
 	js, _ := json.Marshal(createRequest)
 	body := bytes.NewBuffer(js)
@@ -153,8 +165,8 @@ func TestUpdateSize(t *testing.T) {
 	sizeservice := NewSize(ds)
 	container := restful.NewContainer().Add(sizeservice)
 
-	minCores := uint64(1)
-	maxCores := uint64(4)
+	minCores := uint64(8)
+	maxCores := uint64(16)
 	updateRequest := v1.SizeUpdateRequest{
 		Common: v1.Common{
 			Describable: v1.Describable{

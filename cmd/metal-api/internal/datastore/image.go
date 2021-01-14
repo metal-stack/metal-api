@@ -147,9 +147,6 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 		if os != image.OS {
 			continue
 		}
-		if time.Since(image.ExpirationDate) > 0 {
-			continue
-		}
 		v, err := semver.NewVersion(image.Version)
 		if err != nil {
 			continue

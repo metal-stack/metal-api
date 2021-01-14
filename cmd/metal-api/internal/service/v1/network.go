@@ -9,7 +9,8 @@ import (
 type NetworkBase struct {
 	PartitionID *string           `json:"partitionid" description:"the partition this network belongs to" optional:"true"`
 	ProjectID   *string           `json:"projectid" description:"the project id this network belongs to, can be empty if globally available" optional:"true"`
-	Labels      map[string]string `json:"labels" description:"free labels that you associate with this network."`
+	Labels      map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Shared      *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
 }
 
 // NetworkImmutable defines the properties which are immutable in the Network.
@@ -21,7 +22,7 @@ type NetworkImmutable struct {
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 	VrfShared           *bool    `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)" optional:"true"`
-	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network"`
+	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
 }
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
@@ -56,6 +57,7 @@ type NetworkUpdateRequest struct {
 	Common
 	Prefixes []string          `json:"prefixes" description:"the prefixes of this network" optional:"true"`
 	Labels   map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Shared   *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
 }
 
 // NetworkResponse holds all properties returned in a FindNetwork or GetNetwork request.
@@ -77,6 +79,10 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 	if network.ParentNetworkID != "" {
 		parentNetworkID = &network.ParentNetworkID
 	}
+	labels := network.Labels
+	if labels == nil {
+		labels = make(map[string]string)
+	}
 
 	return &NetworkResponse{
 		Common: Common{
@@ -91,7 +97,8 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 		NetworkBase: NetworkBase{
 			PartitionID: &network.PartitionID,
 			ProjectID:   &network.ProjectID,
-			Labels:      network.Labels,
+			Labels:      labels,
+			Shared:      &network.Shared,
 		},
 		NetworkImmutable: NetworkImmutable{
 			Prefixes:            network.Prefixes.String(),

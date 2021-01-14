@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"io"
-	"math/rand"
+	mathrand "math/rand"
 	"strconv"
 	"sync"
 	"testing"
@@ -32,7 +32,7 @@ type client struct {
 
 type test struct {
 	*testing.T
-	ss []*WaitServer
+	ss []*Server
 	cc []*client
 
 	numberApiInstances     int
@@ -47,7 +47,7 @@ type test struct {
 }
 
 func TestWaitServer(t *testing.T) {
-	rand.Seed(time.Now().Unix())
+	mathrand.Seed(time.Now().UnixNano())
 
 	var tt []*test
 	aa := []int{1, 10}
@@ -190,14 +190,16 @@ func (t *test) stopMachineInstances() {
 
 func (t *test) startApiInstances(ds Datasource) {
 	for i := 0; i < t.numberApiInstances; i++ {
-		s := &WaitServer{
-			ds:               ds,
-			queueLock:        new(sync.RWMutex),
-			queue:            make(map[string]chan bool),
-			grpcPort:         50005 + i,
-			logger:           zap.NewNop().Sugar(),
-			responseInterval: 2 * time.Millisecond,
+		cfg := &ServerConfig{
+			Datasource:       ds,
+			Logger:           zap.NewNop().Sugar(),
+			GrpcPort:         50005 + i,
+			TlsEnabled:       false,
+			ResponseInterval: 2 * time.Millisecond,
+			CheckInterval:    1 * time.Hour,
 		}
+		s, err := NewServer(cfg)
+		require.Nil(t, err)
 		t.ss = append(t.ss, s)
 		go func() {
 			err := s.Serve()
@@ -219,7 +221,7 @@ func (t *test) startMachineInstances() {
 	}
 	for i := 0; i < t.numberMachineInstances; i++ {
 		machineID := strconv.Itoa(i)
-		port := 50005 + rand.Intn(t.numberApiInstances)
+		port := 50005 + mathrand.Intn(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
 		require.Nil(t, err)
@@ -293,7 +295,7 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(rand.Intn(t.numberMachineInstances))
+	machineID := strconv.Itoa(mathrand.Intn(t.numberMachineInstances))
 	for _, id := range except {
 		if id == machineID {
 			return t.selectMachine(except)

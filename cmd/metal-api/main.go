@@ -47,9 +47,8 @@ import (
 )
 
 const (
-	cfgFileType             = "yaml"
-	moduleName              = "metal-api"
-	generatedHTMLAPIDocPath = "./generate/"
+	cfgFileType = "yaml"
+	moduleName  = "metal-api"
 )
 
 var (
@@ -61,7 +60,7 @@ var (
 	logger             = zapup.MustRootLogger().Sugar()
 	debug              = false
 	mdc                mdm.Client
-	waitServer         *grpc.WaitServer
+	grpcServer         *grpc.Server
 )
 
 var rootCmd = &cobra.Command{
@@ -78,7 +77,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
-		initWaitServer()
+		initGrpcServer()
 		run()
 	},
 }
@@ -198,6 +197,8 @@ func init() {
 	rootCmd.Flags().StringP("grpc-ca-cert-file", "", "", "the CA certificate file to verify gRPC certificate")
 	rootCmd.Flags().StringP("grpc-server-cert-file", "", "", "the gRPC server certificate file")
 	rootCmd.Flags().StringP("grpc-server-key-file", "", "", "the gRPC server key file")
+
+	rootCmd.Flags().StringP("bmc-superuser-pwd-file", "", "", "the path to the BMC superuser password file")
 
 	rootCmd.Flags().StringP("hmac-view-key", "", "must-be-changed", "the preshared key for hmac security for a viewing user")
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -510,23 +511,24 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initWaitServer() {
+func initGrpcServer() {
 	var p bus.Publisher
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
 	var err error
-	waitServer, err = grpc.NewWaitServer(&grpc.WaitServerConfig{
-		Publisher:             p,
-		Datasource:            ds,
-		Logger:                logger,
-		NsqTlsConfig:          publisherTLSConfig,
-		NsqlookupdHttpAddress: viper.GetString("nsqlookupd-addr"),
-		GrpcPort:              viper.GetInt("grpc-port"),
-		TlsEnabled:            viper.GetBool("grpc-tls-enabled"),
-		CaCertFile:            viper.GetString("grpc-ca-cert-file"),
-		ServerCertFile:        viper.GetString("grpc-server-cert-file"),
-		ServerKeyFile:         viper.GetString("grpc-server-key-file"),
+	grpcServer, err = grpc.NewServer(&grpc.ServerConfig{
+		Publisher:                p,
+		Datasource:               ds,
+		Logger:                   logger,
+		NsqTlsConfig:             publisherTLSConfig,
+		NsqlookupdHttpAddress:    viper.GetString("nsqlookupd-addr"),
+		GrpcPort:                 viper.GetInt("grpc-port"),
+		TlsEnabled:               viper.GetBool("grpc-tls-enabled"),
+		CaCertFile:               viper.GetString("grpc-ca-cert-file"),
+		ServerCertFile:           viper.GetString("grpc-server-cert-file"),
+		ServerKeyFile:            viper.GetString("grpc-server-key-file"),
+		BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
 	})
 	if err != nil {
 		logger.Fatalw("cannot connect to NSQ", "error", err)
@@ -550,11 +552,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitServer)
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, waitServer)
+	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -592,6 +594,26 @@ func initRestServices(withauth bool) *restfulspec.Config {
 func dumpSwaggerJSON() {
 	cfg := initRestServices(false)
 	actual := restfulspec.BuildSwagger(*cfg)
+
+	// declare custom type for default errors, see:
+	// https://github.com/go-swagger/go-swagger/blob/master/docs/use/models/schemas.md#using-custom-types
+	// amongst other things, this has the advantage that the Error() function for printing of the original
+	// type is preserved.
+	//
+	// unfortunately, gorestful does not support injecting the type, therefore we need to forcefully
+	// add the definition into the spec definition
+	customGoType := map[string]interface{}{
+		"x-go-type": map[string]interface{}{
+			"type": "HTTPErrorResponse",
+			"import": map[string]interface{}{
+				"package": "github.com/metal-stack/metal-lib/httperrors",
+			},
+		},
+	}
+	httpErrDef := actual.Definitions["httperrors.HTTPErrorResponse"]
+	httpErrDef.ExtraProps = customGoType
+	actual.Definitions["httperrors.HTTPErrorResponse"] = httpErrDef
+
 	js, err := json.MarshalIndent(actual, "", "  ")
 	if err != nil {
 		panic(err)
@@ -654,9 +676,6 @@ func run() {
 		Container:      restful.DefaultContainer}
 	restful.DefaultContainer.Filter(cors.Filter)
 
-	// expose generated apidoc
-	http.Handle(service.BasePath+"apidocs/", http.StripPrefix(service.BasePath+"apidocs/", http.FileServer(http.Dir(generatedHTMLAPIDocPath))))
-
 	// catch all other errors
 	restful.DefaultContainer.Add(new(restful.WebService).Path("/"))
 	restful.DefaultContainer.ServiceErrorHandler(func(serviceErr restful.ServiceError, request *restful.Request, response *restful.Response) {
@@ -670,7 +689,7 @@ func run() {
 	})
 
 	go func() {
-		err := waitServer.Serve()
+		err := grpcServer.Serve()
 		if err != nil {
 			logger.Fatalw("failed to serve gRPC", "error", err)
 		}
@@ -688,7 +707,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 	swo.Info = &spec.Info{
 		InfoProps: spec.InfoProps{
 			Title:       moduleName,
-			Description: "Resource for managing pure metal",
+			Description: "API to manage and control plane resources like machines, switches, operating system images, machine sizes, networks, IP addresses and more",
 			Contact: &spec.ContactInfo{
 				ContactInfoProps: spec.ContactInfoProps{
 					Name: "metal-stack",
@@ -697,11 +716,10 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			},
 			License: &spec.License{
 				LicenseProps: spec.LicenseProps{
-					Name: "MIT",
-					URL:  "http://mit.org",
+					Name: "AGPL-3.0",
+					URL:  "https://www.gnu.org/licenses/agpl-3.0.de.html",
 				},
 			},
-			Version: "1.0.0",
 		},
 	}
 	swo.Tags = []spec.Tag{
@@ -735,13 +753,14 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 
 	hmacspec := spec.APIKeyAuth("Authorization", "header")
 	hmacspec.Description = "Generate a 'Authorization: Metal xxxx' header where 'xxxx' is a HMAC generated by the Request-Date, the Request-Method and the Body"
-	swo.SecurityDefinitions = map[string]*spec.SecurityScheme{
+	swo.SecurityDefinitions = spec.SecurityDefinitions{
 		"HMAC": hmacspec,
 		"jwt":  jwtspec,
 	}
 	swo.BasePath = viper.GetString("base-path")
 	swo.Security = []map[string][]string{
-		{"Authorization": []string{"HMAC", "jwt"}},
+		{"HMAC": []string{}},
+		{"jwt": []string{}},
 	}
 
 	// Maybe this leads to an issue, investigating...:

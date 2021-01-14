@@ -81,6 +81,7 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	if machine.Allocation == nil {
 		return nil
 	}
+	var asn uint32
 	for _, machineNetwork := range machine.Allocation.MachineNetworks {
 		if machineNetwork.IPs == nil {
 			continue
@@ -101,6 +102,18 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 				return err
 			}
 		}
+		// all machineNetworks have the same ASN, must only be released once
+		// in the old way asn was in the range of 4200000000 + offset from last two octets of private ip
+		// but we must only release asn which are acquired from 4210000000 and above from the ASNIntegerPool
+		if machineNetwork.ASN >= ASNBase {
+			asn = machineNetwork.ASN
+		}
+	}
+	if asn >= ASNBase {
+		err := releaseASN(a.RethinkStore, asn)
+		if err != nil {
+			return err
+		}
 	}
 
 	// it can happen that an IP gets properly allocated for a machine but
@@ -119,7 +132,6 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 			return err
 		}
 	}
-
 	return nil
 }
 

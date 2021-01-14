@@ -390,6 +390,32 @@ var (
 		Underlay:        false,
 	}
 
+	Partition1ExistingSharedNetwork = metal.Network{
+		Base: metal.Base{
+			ID: "existing-shared-network-1",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.0.205.0", Length: "22"}},
+		PartitionID:     Partition1.ID,
+		ParentNetworkID: Partition1PrivateSuperNetwork.ID,
+		ProjectID:       "shared-uuid",
+		PrivateSuper:    false,
+		Nat:             false,
+		Shared:          true,
+	}
+
+	Partition1ExistingSharedNetwork2 = metal.Network{
+		Base: metal.Base{
+			ID: "existing-shared-network-2",
+		},
+		Prefixes:        metal.Prefixes{{IP: "10.0.206.0", Length: "22"}},
+		PartitionID:     Partition1.ID,
+		ParentNetworkID: Partition1PrivateSuperNetwork.ID,
+		ProjectID:       "shared-uuid2",
+		PrivateSuper:    false,
+		Nat:             false,
+		Shared:          true,
+	}
+
 	Partition2ExistingPrivateNetwork = metal.Network{
 		Base: metal.Base{
 			ID: "existing-private-network-2",
@@ -449,6 +475,16 @@ var (
 		IPAddress: "212.34.0.2",
 		ProjectID: Partition1ExistingPrivateNetwork.ProjectID,
 		NetworkID: Partition2InternetNetwork.ID,
+	}
+	Partition1SpecificSharedIP = metal.IP{
+		IPAddress: "10.0.205.1",
+		ProjectID: Partition1ExistingSharedNetwork.ProjectID,
+		NetworkID: Partition1ExistingSharedNetwork.ID,
+	}
+	Partition1SpecificSharedConsumerIP = metal.IP{
+		IPAddress: "10.0.205.2",
+		ProjectID: Partition1ExistingPrivateNetwork.ProjectID,
+		NetworkID: Partition1ExistingSharedNetwork.ID,
 	}
 
 	// partitions
@@ -750,6 +786,8 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get(Nw2.ID)).Return(Nw2, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Nw3.ID)).Return(Nw3, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Partition1ExistingPrivateNetwork.ID)).Return(Partition1ExistingPrivateNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition1ExistingSharedNetwork.ID)).Return(Partition1ExistingSharedNetwork, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(Partition1ExistingSharedNetwork2.ID)).Return(Partition1ExistingSharedNetwork2, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Partition1InternetNetwork.ID)).Return(Partition1InternetNetwork, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Partition1PrivateSuperNetwork.ID)).Return(Partition1PrivateSuperNetwork, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Partition1UnderlayNetwork.ID)).Return(Partition1UnderlayNetwork, nil)
@@ -769,6 +807,8 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip").Get("9.9.9.9")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(Partition1InternetIP.IPAddress)).Return(Partition1InternetIP, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(Partition2InternetIP.IPAddress)).Return(Partition2InternetIP, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(Partition1SpecificSharedIP.IPAddress)).Return(Partition1SpecificSharedIP, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(Partition1SpecificSharedConsumerIP.IPAddress)).Return(Partition1SpecificSharedConsumerIP, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("1")).Return(M1, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("2")).Return(M2, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("3")).Return(M3, nil)

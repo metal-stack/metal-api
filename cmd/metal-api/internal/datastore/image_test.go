@@ -222,7 +222,6 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 	}
 }
 func Test_getMostRecentImageFor(t *testing.T) {
-	invalid := time.Now().Add(time.Hour * -1)
 	valid := time.Now().Add(time.Hour)
 	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
 	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ExpirationDate: valid}
@@ -235,8 +234,6 @@ func Test_getMostRecentImageFor(t *testing.T) {
 	ubuntu20_04_20200501 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501", ExpirationDate: valid}
 	ubuntu20_04_20200502 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502", ExpirationDate: valid}
 	ubuntu20_04_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603", ExpirationDate: valid}
-	ubuntu20_04_20200602 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200602"}, OS: "ubuntu", Version: "20.10.20200602", ExpirationDate: valid}
-	ubuntu20_10_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.10.20200603"}, OS: "ubuntu", Version: "20.10.20200603", ExpirationDate: invalid}
 
 	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: valid}
 	alpine3_9_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
@@ -289,13 +286,6 @@ func Test_getMostRecentImageFor(t *testing.T) {
 			id:      "alpine-3.9",
 			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, alpine3_10_20191012, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, alpine3_10, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
 			want:    &alpine3_9_20191012,
-			wantErr: false,
-		},
-		{
-			name:    "ubuntu with invalid",
-			id:      "ubuntu-20.10",
-			images:  []metal.Image{ubuntu20_04_20200602, ubuntu20_10_20200603},
-			want:    &ubuntu20_04_20200602,
 			wantErr: false,
 		},
 	}

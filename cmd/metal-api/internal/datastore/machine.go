@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -9,66 +10,65 @@ import (
 
 // MachineSearchQuery can be used to search machines.
 type MachineSearchQuery struct {
-	ID          *string  `json:"id"`
-	Name        *string  `json:"name"`
-	PartitionID *string  `json:"partition_id"`
-	SizeID      *string  `json:"sizeid"`
-	RackID      *string  `json:"rackid"`
-	Liveliness  *string  `json:"liveliness"`
-	Tags        []string `json:"tags"`
+	ID          *string  `json:"id" optional:"true"`
+	Name        *string  `json:"name" optional:"true"`
+	PartitionID *string  `json:"partition_id" optional:"true"`
+	SizeID      *string  `json:"sizeid" optional:"true"`
+	RackID      *string  `json:"rackid" optional:"true"`
+	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
-	AllocationName      *string `json:"allocation_name"`
-	AllocationProject   *string `json:"allocation_project"`
-	AllocationImageID   *string `json:"allocation_image_id"`
-	AllocationHostname  *string `json:"allocation_hostname"`
-	AllocationSucceeded *bool   `json:"allocation_succeeded"`
+	AllocationName      *string `json:"allocation_name" optional:"true"`
+	AllocationProject   *string `json:"allocation_project" optional:"true"`
+	AllocationImageID   *string `json:"allocation_image_id" optional:"true"`
+	AllocationHostname  *string `json:"allocation_hostname" optional:"true"`
+	AllocationSucceeded *bool   `json:"allocation_succeeded" optional:"true"`
 
 	// network
-	NetworkIDs                 []string `json:"network_ids"`
-	NetworkPrefixes            []string `json:"network_prefixes"`
-	NetworkIPs                 []string `json:"network_ips"`
-	NetworkDestinationPrefixes []string `json:"network_destination_prefixes"`
-	NetworkVrfs                []int64  `json:"network_vrfs"`
-	NetworkPrivate             *bool    `json:"network_private"`
-	NetworkASNs                []int64  `json:"network_asns"`
-	NetworkNat                 *bool    `json:"network_nat"`
-	NetworkUnderlay            *bool    `json:"network_underlay"`
+	NetworkIDs                 []string `json:"network_ids" optional:"true"`
+	NetworkPrefixes            []string `json:"network_prefixes" optional:"true"`
+	NetworkIPs                 []string `json:"network_ips" optional:"true"`
+	NetworkDestinationPrefixes []string `json:"network_destination_prefixes" optional:"true"`
+	NetworkVrfs                []int64  `json:"network_vrfs" optional:"true"`
+	NetworkPrivate             *bool    `json:"network_private" optional:"true"`
+	NetworkASNs                []int64  `json:"network_asns" optional:"true"`
+	NetworkNat                 *bool    `json:"network_nat" optional:"true"`
+	NetworkUnderlay            *bool    `json:"network_underlay" optional:"true"`
 
 	// hardware
-	HardwareMemory   *int64 `json:"hardware_memory"`
-	HardwareCPUCores *int64 `json:"hardware_cpu_cores"`
+	HardwareMemory   *int64 `json:"hardware_memory" optional:"true"`
+	HardwareCPUCores *int64 `json:"hardware_cpu_cores" optional:"true"`
 
 	// nics
-	NicsMacAddresses         []string `json:"nics_mac_addresses"`
-	NicsNames                []string `json:"nics_names"`
-	NicsVrfs                 []string `json:"nics_vrfs"`
-	NicsNeighborMacAddresses []string `json:"nics_neighbor_mac_addresses"`
-	NicsNeighborNames        []string `json:"nics_neighbor_names"`
-	NicsNeighborVrfs         []string `json:"nics_neighbor_vrfs"`
+	NicsMacAddresses         []string `json:"nics_mac_addresses" optional:"true"`
+	NicsNames                []string `json:"nics_names" optional:"true"`
+	NicsVrfs                 []string `json:"nics_vrfs" optional:"true"`
+	NicsNeighborMacAddresses []string `json:"nics_neighbor_mac_addresses" optional:"true"`
+	NicsNeighborNames        []string `json:"nics_neighbor_names" optional:"true"`
+	NicsNeighborVrfs         []string `json:"nics_neighbor_vrfs" optional:"true"`
 
 	// disks
-	DiskNames []string `json:"disk_names"`
-	DiskSizes []int64  `json:"disk_sizes"`
+	DiskNames []string `json:"disk_names" optional:"true"`
+	DiskSizes []int64  `json:"disk_sizes" optional:"true"`
 
 	// state
-	StateValue *string `json:"state_value"`
+	StateValue *string `json:"state_value" optional:"true"`
 
 	// ipmi
-	IpmiAddress    *string `json:"ipmi_address"`
-	IpmiMacAddress *string `json:"ipmi_mac_address"`
-	IpmiUser       *string `json:"ipmi_user"`
-	IpmiInterface  *string `json:"ipmi_interface"`
+	IpmiAddress    *string `json:"ipmi_address" optional:"true"`
+	IpmiMacAddress *string `json:"ipmi_mac_address" optional:"true"`
+	IpmiUser       *string `json:"ipmi_user" optional:"true"`
+	IpmiInterface  *string `json:"ipmi_interface" optional:"true"`
 
 	// fru
-	FruChassisPartNumber   *string `json:"fru_chassis_part_number"`
-	FruChassisPartSerial   *string `json:"fru_chassis_part_serial"`
-	FruBoardMfg            *string `json:"fru_board_mfg"`
-	FruBoardMfgSerial      *string `json:"fru_board_mfg_serial"`
-	FruBoardPartNumber     *string `json:"fru_board_part_number"`
-	FruProductManufacturer *string `json:"fru_product_manufacturer"`
-	FruProductPartNumber   *string `json:"fru_product_part_number"`
-	FruProductSerial       *string `json:"fru_product_serial"`
+	FruChassisPartNumber   *string `json:"fru_chassis_part_number" optional:"true"`
+	FruChassisPartSerial   *string `json:"fru_chassis_part_serial" optional:"true"`
+	FruBoardMfg            *string `json:"fru_board_mfg" optional:"true"`
+	FruBoardMfgSerial      *string `json:"fru_board_mfg_serial" optional:"true"`
+	FruBoardPartNumber     *string `json:"fru_board_part_number" optional:"true"`
+	FruProductManufacturer *string `json:"fru_product_manufacturer" optional:"true"`
+	FruProductPartNumber   *string `json:"fru_product_part_number" optional:"true"`
+	FruProductSerial       *string `json:"fru_product_serial" optional:"true"`
 }
 
 // GenerateTerm generates the project search query term.
@@ -102,12 +102,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.RackID != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("rackid").Eq(*p.RackID)
-		})
-	}
-
-	if p.Liveliness != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("liveliness").Eq(*p.Liveliness)
 		})
 	}
 
@@ -432,7 +426,9 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 	return rs.updateEntity(rs.machineTable(), newMachine, oldMachine)
 }
 
-// FindWaitingMachine returns an available, not allocated and waiting machine of given size within the given partition.
+// FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
+// TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
+// but current implementation should have a slightly better readability.
 func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
@@ -443,25 +439,39 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 			"value": string(metal.AvailableState),
 		},
 		"waiting": true,
-	}).Sample(1)
+	})
 
-	var available metal.Machines
-	err := rs.searchEntities(&q, &available)
+	var candidates metal.Machines
+	err := rs.searchEntities(&q, &candidates)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(available) < 1 {
+	ecs, err := rs.ListProvisioningEventContainers()
+	if err != nil {
+		return nil, err
+	}
+	ecMap := ecs.ByID()
+
+	var available metal.Machines
+	for _, m := range candidates {
+		ec, ok := ecMap[m.ID]
+		if !ok {
+			rs.SugaredLogger.Errorw("cannot find machine provisioning event container", "machine", m, "error", err)
+			// fall through, so the rest of the machines is getting evaluated
+			continue
+		}
+		switch ec.Liveliness {
+		case metal.MachineLivelinessAlive:
+			available = append(available, m)
+		}
+	}
+
+	if available == nil || len(available) < 1 {
 		return nil, fmt.Errorf("no machine available")
 	}
 
-	// we actually return the machine from the machine table, not from the wait table
-	// otherwise we will get in trouble with update operations on the machine table because
-	// we have mixed timestamps with the entity from the wait table...
-	m, err := rs.FindMachineByID(available[0].ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
+	// pick a random machine from all available ones
+	idx := rand.Intn(len(available))
+	return &available[idx], nil
 }

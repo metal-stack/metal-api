@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/pkg/errors"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh"
 
@@ -40,7 +41,7 @@ type machineResource struct {
 	ipamer     ipam.IPAMer
 	mdc        mdm.Client
 	actor      *asyncActor
-	waitServer *grpc.WaitServer
+	grpcServer *grpc.Server
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -64,29 +65,15 @@ type machineAllocationSpec struct {
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
 type allocationNetwork struct {
-	network   *metal.Network
-	ips       []metal.IP
-	auto      bool
-	isPrivate bool
+	network *metal.Network
+	ips     []metal.IP
+	auto    bool
+
+	networkType metal.NetworkType
 }
 
 // allocationNetworkMap is a map of allocationNetworks with the network id as the key
 type allocationNetworkMap map[string]*allocationNetwork
-
-// getPrivateNetwork extracts the private network from an allocationNetworkMap
-func getPrivateNetwork(networks allocationNetworkMap) (*allocationNetwork, error) {
-	var privateNetwork *allocationNetwork
-	for _, n := range networks {
-		if n.isPrivate {
-			privateNetwork = n
-			break
-		}
-	}
-	if privateNetwork == nil {
-		return nil, fmt.Errorf("no private network contained")
-	}
-	return privateNetwork, nil
-}
 
 // The MachineAllocation contains the allocated machine or an error.
 type MachineAllocation struct {
@@ -109,7 +96,7 @@ func NewMachine(
 	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
-	waitServer *grpc.WaitServer) (*restful.WebService, error) {
+	grpcServer *grpc.Server) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -118,7 +105,7 @@ func NewMachine(
 		Publisher:  pub,
 		ipamer:     ipamer,
 		mdc:        mdc,
-		waitServer: waitServer,
+		grpcServer: grpcServer,
 	}
 	var err error
 	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
@@ -229,12 +216,22 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.DELETE("/{id}").
+		To(admin(r.deleteMachine)).
+		Operation("deleteMachine").
+		Doc("deletes a machine from the database").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.POST("/ipmi").
 		To(editor(r.ipmiReport)).
 		Operation("ipmiReport").
 		Doc("reports IPMI ip addresses leased by a management server for machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineIpmiReport{}).
+		Reads(v1.MachineIpmiReports{}).
 		Returns(http.StatusOK, "OK", v1.MachineIpmiReportResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -332,7 +329,27 @@ func (r machineResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/{id}/power/bios").
 		To(editor(r.machineBios)).
 		Operation("machineBios").
-		Doc("boots machine into BIOS on next reboot").
+		Doc("boots machine into BIOS").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/power/disk").
+		To(editor(r.machineDisk)).
+		Operation("machineDisk").
+		Doc("boots machine from disk").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/power/pxe").
+		To(editor(r.machinePxe)).
+		Operation("machinePxe").
+		Doc("boots machine from PXE").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
@@ -344,28 +361,18 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("chassisIdentifyLEDOn").
 		Doc("sends a power-on to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.QueryParameter("description", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-on/{description}").
-		To(editor(r.chassisIdentifyLEDOn)).
-		Operation("chassisIdentifyLEDOn").
-		Doc("sends a power-on to the chassis identify LED").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned on").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.EmptyBody{}).
-		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off/{description}").
+	ws.Route(ws.POST("/{id}/power/chassis-identify-led-off").
 		To(editor(r.chassisIdentifyLEDOff)).
 		Operation("chassisIdentifyLEDOff").
 		Doc("sends a power-off to the chassis identify LED").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.PathParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
+		Param(ws.QueryParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
@@ -660,7 +667,7 @@ func (r machineResource) findIPMIMachines(request *restful.Request, response *re
 }
 
 func (r machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineIpmiReport
+	var requestPayload v1.MachineIpmiReports
 	log := utils.Logger(request)
 	logger := log.Sugar()
 	err := request.ReadEntity(&requestPayload)
@@ -684,7 +691,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	known := v1.Leases{}
+	known := make(map[string]string)
 	for _, m := range ms {
 		uuid := m.ID
 		if uuid == "" {
@@ -693,12 +700,12 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		known[uuid] = m.IPMI.Address
 	}
 	resp := v1.MachineIpmiReportResponse{
-		Updated: v1.Leases{},
-		Created: v1.Leases{},
+		Updated: []string{},
+		Created: []string{},
 	}
 	// create empty machines for uuids that are not yet known to the metal-api
 	const defaultIPMIPort = "623"
-	for uuid, ip := range requestPayload.Leases {
+	for uuid, report := range requestPayload.Reports {
 		if uuid == "" {
 			continue
 		}
@@ -711,15 +718,15 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			},
 			PartitionID: p.ID,
 			IPMI: metal.IPMI{
-				Address: ip + ":" + defaultIPMIPort,
+				Address: report.BMCIp + ":" + defaultIPMIPort,
 			},
 		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
-			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", ip, "m", m, "err", err)
+			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
 			continue
 		}
-		resp.Created[uuid] = ip
+		resp.Created = append(resp.Created, uuid)
 	}
 	// update machine ipmi data if ipmi ip changed
 	for _, oldMachine := range ms {
@@ -728,7 +735,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 		// if oldmachine.uuid is not part of this update cycle skip it
-		ip, ok := requestPayload.Leases[uuid]
+		report, ok := requestPayload.Reports[uuid]
 		if !ok {
 			continue
 		}
@@ -737,17 +744,14 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		// Replace host part of ipmi address with the ip from the ipmicatcher
 		hostAndPort := strings.Split(oldMachine.IPMI.Address, ":")
 		if len(hostAndPort) == 2 {
-			newMachine.IPMI.Address = ip + ":" + hostAndPort[1]
+			newMachine.IPMI.Address = report.BMCIp + ":" + hostAndPort[1]
 		} else if len(hostAndPort) < 2 {
-			newMachine.IPMI.Address = ip + ":" + defaultIPMIPort
+			newMachine.IPMI.Address = report.BMCIp + ":" + defaultIPMIPort
 		} else {
-			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", ip, "machine", newMachine, "address", newMachine.IPMI.Address)
+			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
 
-		if newMachine.IPMI.Address == oldMachine.IPMI.Address {
-			continue
-		}
 		// machine was created by a PXE boot event and has no partition set.
 		if oldMachine.PartitionID == "" {
 			newMachine.PartitionID = p.ID
@@ -758,18 +762,42 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 
+		updateFru(&newMachine, report.FRU)
+
+		if report.BIOSVersion != "" {
+			newMachine.BIOS.Version = report.BIOSVersion
+		}
+		if report.BMCVersion != "" {
+			newMachine.IPMI.BMCVersion = report.BMCVersion
+		}
+
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorf("could not update machine", "id", uuid, "ip", ip, "machine", newMachine, "err", err)
+			logger.Errorf("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
 			continue
 		}
-		resp.Updated[uuid] = ip
+		resp.Updated = append(resp.Updated, uuid)
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func updateFru(m *metal.Machine, fru *v1.MachineFru) {
+	if fru == nil {
+		return
+	}
+
+	m.IPMI.Fru.ChassisPartSerial = utils.StrValueDefault(fru.ChassisPartSerial, m.IPMI.Fru.ChassisPartSerial)
+	m.IPMI.Fru.ChassisPartNumber = utils.StrValueDefault(fru.ChassisPartNumber, m.IPMI.Fru.ChassisPartNumber)
+	m.IPMI.Fru.BoardMfg = utils.StrValueDefault(fru.BoardMfg, m.IPMI.Fru.BoardMfg)
+	m.IPMI.Fru.BoardMfgSerial = utils.StrValueDefault(fru.BoardMfgSerial, m.IPMI.Fru.BoardMfgSerial)
+	m.IPMI.Fru.BoardPartNumber = utils.StrValueDefault(fru.BoardPartNumber, m.IPMI.Fru.BoardPartNumber)
+	m.IPMI.Fru.ProductManufacturer = utils.StrValueDefault(fru.ProductManufacturer, m.IPMI.Fru.ProductManufacturer)
+	m.IPMI.Fru.ProductSerial = utils.StrValueDefault(fru.ProductSerial, m.IPMI.Fru.ProductSerial)
+	m.IPMI.Fru.ProductPartNumber = utils.StrValueDefault(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
 }
 
 func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
@@ -829,7 +857,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		IsFirewall:  false,
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.waitServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "error", err)
 		return
@@ -842,7 +870,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 }
 
-func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.WaitServer) (*metal.Machine, error) {
+func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.Server) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -935,7 +963,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 	old := *machine
 	machine.Allocation = alloc
-	machine.Tags = makeMachineTags(machine, networks, allocationSpec.Tags)
+	machine.Tags = makeMachineTags(machine, allocationSpec.Tags)
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
@@ -1049,12 +1077,12 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	}
 
 	// the metal-networker expects to have the same unique ASN on all networks of this machine
-	asn, err := makeASN(networks)
+	asn, err := acquireASN(ds)
 	if err != nil {
 		return err
 	}
 	for _, n := range alloc.MachineNetworks {
-		n.ASN = asn
+		n.ASN = *asn
 	}
 
 	return nil
@@ -1110,13 +1138,16 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// what do we have to prevent:
 	// - user wants to place his machine in a network that does not belong to the project in which the machine is being placed
 	// - user wants a machine with a private network that is not in the partition of the machine
-	// - user wants to define multiple private networks for his machine
-	// - user must define one private network
+	// - user specifies no private network
+	// - user specifies multiple, unshared private networks
+	// - user specifies a shared private network in addition to an unshared one for a machine
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
-	// - user's private network is specified with noauto, which would make the machine have no ip address
+	// - user's private network is specified with noauto but no specific IPs are given: this would yield a machine with no ip address
 
 	specNetworks := make(map[string]*allocationNetwork)
-	var privateNetwork *allocationNetwork
+	var primaryPrivateNetwork *allocationNetwork
+	var privateNetworks []*allocationNetwork
+	var privateSharedNetworks []*allocationNetwork
 
 	for _, networkSpec := range allocationSpec.Networks {
 		auto := true
@@ -1137,25 +1168,27 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		}
 
 		n := &allocationNetwork{
-			network:   network,
-			auto:      auto,
-			ips:       []metal.IP{},
-			isPrivate: false,
+			network:     network,
+			auto:        auto,
+			ips:         []metal.IP{},
+			networkType: metal.External,
 		}
 
 		for _, privateSuperNetwork := range privateSuperNetworks {
-			if network.ParentNetworkID == privateSuperNetwork.ID {
-				// this is the user given private network
-				if privateNetwork != nil {
-					return nil, fmt.Errorf("multiple private networks provided, which is not allowed")
-				}
-				if network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
-					return nil, fmt.Errorf("the private network must be in the partition where the machine is going to be placed")
-				}
-				n.isPrivate = true
-				privateNetwork = n
-				break
+			if network.ParentNetworkID != privateSuperNetwork.ID {
+				continue
 			}
+			if network.Shared {
+				n.networkType = metal.PrivateSecondaryShared
+				privateSharedNetworks = append(privateSharedNetworks, n)
+			} else {
+				if primaryPrivateNetwork != nil {
+					return nil, fmt.Errorf("multiple private networks are specified but there must be only one primary private network that must not be shared")
+				}
+				n.networkType = metal.PrivatePrimaryUnshared
+				primaryPrivateNetwork = n
+			}
+			privateNetworks = append(privateNetworks, n)
 		}
 
 		specNetworks[network.ID] = n
@@ -1165,11 +1198,31 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		return nil, fmt.Errorf("given network ids are not unique")
 	}
 
-	if privateNetwork == nil {
+	if len(privateNetworks) == 0 {
 		return nil, fmt.Errorf("no private network given")
 	}
 
-	if privateNetwork.network.ProjectID != allocationSpec.ProjectID {
+	// if there is no unshared private network we try to determine a shared one as primary
+	if primaryPrivateNetwork == nil {
+		// this means that this is a machine of a shared private network
+		// this is an exception where the primary private network is a shared one.
+		// it must be the only private network
+		if len(privateSharedNetworks) == 0 {
+			return nil, fmt.Errorf("no private shared network found that could be used as primary private network")
+		}
+		if len(privateSharedNetworks) > 1 {
+			return nil, fmt.Errorf("machines and firewalls are not allowed to be placed into multiple private, shared networks (firewall needs an unshared private network and machines may only reside in one private network)")
+		}
+
+		primaryPrivateNetwork = privateSharedNetworks[0]
+		primaryPrivateNetwork.networkType = metal.PrivatePrimaryShared
+	}
+
+	if !allocationSpec.IsFirewall && len(privateNetworks) > 1 {
+		return nil, fmt.Errorf("machines are not allowed to be placed into multiple private networks")
+	}
+
+	if primaryPrivateNetwork.network.ProjectID != allocationSpec.ProjectID {
 		return nil, fmt.Errorf("the given private network does not belong to the project, which is not allowed")
 	}
 
@@ -1194,8 +1247,14 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		network.ips = append(network.ips, *ip)
 	}
 
-	if !privateNetwork.auto && len(privateNetwork.ips) == 0 {
-		return nil, fmt.Errorf("the private network has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address")
+	for _, pn := range privateNetworks {
+		if pn.network.PartitionID != partitionPrivateSuperNetwork.PartitionID {
+			return nil, fmt.Errorf("private network %q must be located in the partition where the machine is going to be placed", pn.network.ID)
+		}
+
+		if !pn.auto && len(pn.ips) == 0 {
+			return nil, fmt.Errorf("the private network %q has no auto ip acquisition, but no suitable IPs were provided, which would lead into a machine having no ip address", pn.network.ID)
+		}
 	}
 
 	return specNetworks, nil
@@ -1217,9 +1276,9 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 	underlay := &underlays[0]
 
 	return &allocationNetwork{
-		network:   underlay,
-		auto:      true,
-		isPrivate: false,
+		network:     underlay,
+		auto:        true,
+		networkType: metal.Underlay,
 	}, nil
 }
 
@@ -1262,8 +1321,10 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		Prefixes:            n.network.Prefixes.String(),
 		IPs:                 ipAddresses,
 		DestinationPrefixes: n.network.DestinationPrefixes.String(),
-		Private:             n.isPrivate,
-		Underlay:            n.network.Underlay,
+		PrivatePrimary:      n.networkType.PrivatePrimary,
+		Private:             n.networkType.Private,
+		Shared:              n.networkType.Shared,
+		Underlay:            n.networkType.Underlay,
 		Nat:                 n.network.Nat,
 		Vrf:                 n.network.Vrf,
 	}
@@ -1271,49 +1332,12 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	return &machineNetwork, nil
 }
 
-// makeASN we can use the IP of the private network (which always have to be present and unique)
-// for generating a unique ASN.
-func makeASN(networks allocationNetworkMap) (int64, error) {
-	privateNetwork, err := getPrivateNetwork(networks)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(privateNetwork.ips) == 0 {
-		return 0, fmt.Errorf("private network has no IPs, which would result in a machine without an IP")
-	}
-
-	asn, err := privateNetwork.ips[0].ASN()
-	if err != nil {
-		return 0, err
-	}
-
-	return asn, nil
-}
-
 // makeMachineTags constructs the tags of the machine.
 // following tags are added in the following precedence (from lowest to highest in case of duplication):
-// - external network labels (concatenated, from all machine networks that this machine belongs to)
-// - private network labels (concatenated)
 // - user given tags (from allocation spec)
 // - system tags (immutable information from the metal-api that are useful for the end user, e.g. machine rack and chassis)
-func makeMachineTags(m *metal.Machine, networks allocationNetworkMap, userTags []string) []string {
+func makeMachineTags(m *metal.Machine, userTags []string) []string {
 	labels := make(map[string]string)
-
-	for _, n := range networks {
-		if !n.isPrivate {
-			for k, v := range n.network.Labels {
-				labels[k] = v
-			}
-		}
-	}
-
-	privateNetwork, _ := getPrivateNetwork(networks)
-	if privateNetwork != nil {
-		for k, v := range privateNetwork.network.Labels {
-			labels[k] = v
-		}
-	}
 
 	// as user labels are given as an array, we need to figure out if label-like tags were provided.
 	// otherwise the user could provide confusing information like:
@@ -1350,7 +1374,7 @@ func makeMachineSystemLabels(m *metal.Machine) map[string]string {
 	for _, n := range m.Allocation.MachineNetworks {
 		if n.Private {
 			if n.ASN != 0 {
-				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(n.ASN, 10)
+				labels[tag.MachineNetworkPrimaryASN] = strconv.FormatInt(int64(n.ASN), 10)
 				break
 			}
 		}
@@ -1456,6 +1480,72 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	logger := utils.Logger(request).Sugar()
 
 	err = r.actor.freeMachine(r.Publisher, m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	if err != nil {
+		logger.Error("Failed to send response", zap.Error(err))
+	}
+
+	event := string(metal.ProvisioningEventPlannedReboot)
+	_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: "freeMachine"})
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+}
+
+func (r machineResource) deleteMachine(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	logger := utils.Logger(request).Sugar()
+
+	if m.Allocation != nil {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot delete machine that is allocated"))
+		return
+	}
+
+	ec, err := r.ds.FindProvisioningEventContainer(id)
+
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("can only delete dead machines"))
+		return
+	}
+
+	switches, err := r.ds.SearchSwitchesConnectedToMachine(m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	for _, old := range switches {
+		_, ok := old.MachineConnections[m.ID]
+		if !ok {
+			continue
+		}
+
+		new := old
+		new.MachineConnections = metal.ConnectionMap{}
+
+		for id, connection := range old.MachineConnections {
+			new.MachineConnections[id] = connection
+		}
+		delete(new.MachineConnections, m.ID)
+
+		err = r.ds.UpdateSwitch(&old, &new)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	err = r.ds.DeleteMachine(m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1846,12 +1936,20 @@ func (r machineResource) machineBios(request *restful.Request, response *restful
 	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
 }
 
+func (r machineResource) machineDisk(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineDisk", metal.MachineDiskCmd, request, response)
+}
+
+func (r machineResource) machinePxe(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machinePxe", metal.MachinePxeCmd, request, response)
+}
+
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.PathParameter("description"))
+	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.PathParameter("description"))
+	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {

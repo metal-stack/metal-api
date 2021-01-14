@@ -11,12 +11,12 @@ import (
 const RecentProvisioningEventsLimit = 5
 
 type MachineBase struct {
-	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true"`
-	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true"`
-	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true"`
+	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" optional:"true"`
+	RackID                   string                          `json:"rackid" description:"the rack assigned to this machine" readOnly:"true" optional:"true"`
+	Size                     *SizeResponse                   `json:"size" description:"the size of this machine" readOnly:"true" optional:"true"`
 	Hardware                 MachineHardware                 `json:"hardware" description:"the hardware of this machine"`
 	BIOS                     MachineBIOS                     `json:"bios" description:"bios information of this machine"`
-	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine"`
+	Allocation               *MachineAllocation              `json:"allocation" description:"the allocation data of an allocated machine" optional:"true"`
 	State                    MachineState                    `json:"state" rethinkdb:"state" description:"the state of this machine"`
 	LEDState                 ChassisIdentifyLEDState         `json:"ledstate" rethinkdb:"ledstate" description:"the state of this chassis identify LED"`
 	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine"`
@@ -51,15 +51,23 @@ type BootInfo struct {
 }
 
 type MachineNetwork struct {
-	NetworkID           string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
-	Prefixes            []string `json:"prefixes" description:"the prefixes of this network"`
-	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
-	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
+	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
+	Prefixes  []string `json:"prefixes" description:"the prefixes of this network"`
+	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
+	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
+	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
 	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Private             bool     `json:"private" description:"indicates whether this network is the private network of this machine"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
-	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
+	NetworkType         string   `json:"networktype" description:"the network type, types can be looked up in the network package of metal-lib"`
+	// Private flag to indicate this is a private network
+	//
+	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
+	Private bool `json:"private" description:"indicates whether this network is the private network of this machine"`
+	// Underlay flag to indicate this is a underlay network
+	//
+	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
+	Underlay bool `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 }
 
 type MachineHardwareBase struct {
@@ -91,7 +99,7 @@ type ChassisIdentifyLEDState struct {
 type MachineBlockDevice struct {
 	Name       string                `json:"name" description:"the name of this block device"`
 	Size       uint64                `json:"size" description:"the size of this block device"`
-	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk"`
+	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk" optional:"true"`
 	Primary    bool                  `json:"primary" description:"whether this disk has the OS installed"`
 }
 
@@ -222,16 +230,20 @@ type MachineIPMIResponse struct {
 	Timestamps
 }
 
-type Leases map[string]string
-
 type MachineIpmiReport struct {
-	PartitionID string `json:"partitionid" description:"the partition id for the ipmi report"`
-	Leases      Leases `json:"leases" description:"the active leases to be reported by a management server"`
+	BMCIp       string
+	FRU         *MachineFru
+	BIOSVersion string
+	BMCVersion  string
+}
+type MachineIpmiReports struct {
+	PartitionID string                       `json:"partitionid,omitempty" description:"the partition id for the ipmi report"`
+	Reports     map[string]MachineIpmiReport `json:"reports,omitempty" description:"uuid to machinereport"`
 }
 
 type MachineIpmiReportResponse struct {
-	Updated Leases `json:"updated" description:"the leases that triggered an update of ipmi data"`
-	Created Leases `json:"created" description:"the leases that triggered a creation of a machine entity"`
+	Updated []string `json:"updated" description:"the machine uuids that triggered an update of ipmi data"`
+	Created []string `json:"created" description:"the machine uuids that triggered a creation of a machine entity"`
 }
 
 type MachineReinstallRequest struct {
@@ -375,6 +387,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
+
 	nics := MachineNics{}
 	for i := range m.Hardware.Nics {
 		nic := MachineNic{
@@ -382,23 +395,24 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Name:       m.Hardware.Nics[i].Name,
 		}
 		nics = append(nics, nic)
+	}
 
-		var disks []MachineBlockDevice
-		for i := range m.Hardware.Disks {
-			disk := MachineBlockDevice{
-				Name: m.Hardware.Disks[i].Name,
-				Size: m.Hardware.Disks[i].Size,
-			}
-			disks = append(disks, disk)
+	disks := []MachineBlockDevice{}
+	for i := range m.Hardware.Disks {
+		disk := MachineBlockDevice{
+			Name: m.Hardware.Disks[i].Name,
+			Size: m.Hardware.Disks[i].Size,
 		}
-		hardware = MachineHardware{
-			MachineHardwareBase: MachineHardwareBase{
-				Memory:   m.Hardware.Memory,
-				CPUCores: m.Hardware.CPUCores,
-				Disks:    disks,
-			},
-			Nics: nics,
-		}
+		disks = append(disks, disk)
+	}
+
+	hardware = MachineHardware{
+		MachineHardwareBase: MachineHardwareBase{
+			Memory:   m.Hardware.Memory,
+			CPUCores: m.Hardware.CPUCores,
+			Disks:    disks,
+		},
+		Nics: nics,
 	}
 
 	var allocation *MachineAllocation
@@ -406,16 +420,23 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		var networks []MachineNetwork
 		for _, nw := range m.Allocation.MachineNetworks {
 			ips := append([]string{}, nw.IPs...)
+			nt, err := nw.NetworkType()
+			if err != nil {
+				continue
+			}
+
 			network := MachineNetwork{
 				NetworkID:           nw.NetworkID,
 				IPs:                 ips,
 				Vrf:                 nw.Vrf,
-				ASN:                 nw.ASN,
-				Private:             nw.Private,
+				ASN:                 int64(nw.ASN),
 				Nat:                 nw.Nat,
-				Underlay:            nw.Underlay,
 				DestinationPrefixes: nw.DestinationPrefixes,
 				Prefixes:            nw.Prefixes,
+				NetworkType:         nt.Name,
+				// FIXME: Both following fields are deprecated and for backward compatibility reasons only
+				Private:  nt.Private,
+				Underlay: nt.Underlay,
 			}
 			networks = append(networks, network)
 		}

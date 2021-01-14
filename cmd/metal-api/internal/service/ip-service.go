@@ -283,6 +283,18 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	if p.Project == nil || p.Project.Meta == nil {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("error retrieving project %q", requestPayload.ProjectID))
+		return
+	}
+
+	// for private, unshared networks the project id must be the same
+	// for external networks the project id is not checked
+	if !nw.Shared && nw.ParentNetworkID != "" && p.Project.Meta.Id != nw.ProjectID {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID))
+		return
+	}
+
 	tags := requestPayload.Tags
 	if requestPayload.MachineID != nil {
 		tags = append(tags, metal.IpTag(tag.MachineID, *requestPayload.MachineID))

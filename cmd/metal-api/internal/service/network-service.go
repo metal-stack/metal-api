@@ -336,7 +336,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 
 	if vrf != 0 {
-		_, err := r.ds.AcquireUniqueInteger(vrf)
+		err = acquireVRF(r.ds, vrf)
 		if err != nil {
 			if !metal.IsConflict(err) {
 				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %v", err)) {
@@ -410,6 +410,10 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	if requestPayload.PartitionID != nil {
 		partitionID = *requestPayload.PartitionID
 	}
+	shared := false
+	if requestPayload.Shared != nil {
+		shared = *requestPayload.Shared
+	}
 
 	if projectID == "" {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectid should not be empty")) {
@@ -447,6 +451,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		PartitionID: partition.ID,
 		ProjectID:   project.GetProject().GetMeta().GetId(),
 		Labels:      requestPayload.Labels,
+		Shared:      shared,
 	}
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
@@ -463,7 +468,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 }
 
 func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
-	vrf, err := ds.AcquireRandomUniqueInteger()
+	vrf, err := acquireRandomVRF(ds)
 	if err != nil {
 		return nil, fmt.Errorf("Could not acquire a vrf: %v", err)
 	}
@@ -486,10 +491,11 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 		DestinationPrefixes: metal.Prefixes{},
 		PartitionID:         parent.PartitionID,
 		ProjectID:           nwSpec.ProjectID,
-		Nat:                 parent.Nat,
+		Nat:                 false,
 		PrivateSuper:        false,
 		Underlay:            false,
-		Vrf:                 vrf,
+		Shared:              nwSpec.Shared,
+		Vrf:                 *vrf,
 		ParentNetworkID:     parent.ID,
 		Labels:              nwSpec.Labels,
 	}
@@ -530,7 +536,7 @@ func (r networkResource) freeNetwork(request *restful.Request, response *restful
 	}
 
 	if nw.Vrf != 0 {
-		err = r.ds.ReleaseUniqueInteger(nw.Vrf)
+		err = releaseVRF(r.ds, nw.Vrf)
 		if err != nil {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
 				return
@@ -571,6 +577,14 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	}
 	if requestPayload.Labels != nil {
 		newNetwork.Labels = requestPayload.Labels
+	}
+	if requestPayload.Shared != nil {
+		newNetwork.Shared = *requestPayload.Shared
+	}
+
+	if oldNetwork.Shared && !newNetwork.Shared {
+		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("once a network is marked as shared it is not possible to unshare it"))
+		return
 	}
 
 	var prefixesToBeRemoved metal.Prefixes
@@ -673,7 +687,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 	}
 
 	if nw.Vrf != 0 {
-		err = r.ds.ReleaseUniqueInteger(nw.Vrf)
+		err = releaseVRF(r.ds, nw.Vrf)
 		if err != nil {
 			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
 				return
