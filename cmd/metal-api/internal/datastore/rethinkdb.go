@@ -60,13 +60,9 @@ func multi(session r.QueryExecutor, tt ...r.Term) error {
 func (rs *RethinkStore) Health() error {
 	return multi(rs.session,
 		r.Branch(
-			rs.db().TableList().Difference(r.Expr(tables)).Count().Eq(0),
+			rs.db().TableList().Contains(r.Expr(tables)),
 			r.Expr(true),
-			r.Error("too many tables in DB")),
-		r.Branch(
-			r.Expr(tables).Difference(rs.db().TableList()).Count().Eq(0),
-			r.Expr(true),
-			r.Error("too less tables in DB")),
+			r.Error("required tables are missing")),
 	)
 }
 
