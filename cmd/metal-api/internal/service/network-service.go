@@ -716,11 +716,9 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 		if err != nil {
 			continue
 		}
-		// FIXME what the heck ?
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs
 		usage.UsedIPs = usage.UsedIPs + u.UsedIPs
-		// FIXME enable this again
-		// usage.AvailablePrefixes = usage.AvailablePrefixes + u.AvailablePrefixes
+		usage.AvailablePrefixes = append(usage.AvailablePrefixes, u.AvailablePrefixes...)
 		usage.UsedPrefixes = usage.UsedPrefixes + u.UsedPrefixes
 	}
 	return usage
