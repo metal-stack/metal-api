@@ -35,6 +35,9 @@ var (
 
 // MustRegisterMigration registers a migration and panics when a problem occurs
 func MustRegisterMigration(m Migration) {
+	if m.Version < 1 {
+		panic(fmt.Sprintf("migrations should start from version number '1', but found version %q", m.Version))
+	}
 	migrationRegisterLock.Lock()
 	defer migrationRegisterLock.Unlock()
 	for _, migration := range migrations {
