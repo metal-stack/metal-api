@@ -116,7 +116,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		if err != nil {
 			return err
 		}
-		_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": false}).RunWrite(rs.session)
+		_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
 		if err != nil {
 			return err
 		}
