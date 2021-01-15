@@ -104,22 +104,18 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	}
 	defer res.Close()
 
-	// demoted runtime user creation
-	res, err = rs.userTable().Get(DemotedUser).Run(rs.session)
+	// demoted runtime user creation / update
+	rs.Info("creating / updating demoted runtime user")
+	_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
+		Conflict: "update",
+	}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
-	defer res.Close()
-	if res.IsNil() {
-		rs.SugaredLogger.Infow("creating demoted runtime user")
-		_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}).RunWrite(rs.session)
-		if err != nil {
-			return err
-		}
-		_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
-		if err != nil {
-			return err
-		}
+	rs.Info("ensuring demoted user can read and write")
+	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
+	if err != nil {
+		return err
 	}
 
 	// integer pools
@@ -134,6 +130,8 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 	rs.integerPools[ASNIntegerPool] = asnPool
+
+	rs.Info("database init complete")
 
 	return nil
 }
@@ -223,13 +221,13 @@ func (rs *RethinkStore) Connect() error {
 // Demote connects to the database with the demoted metal runtime user. this enables
 // putting the database in read-only mode during database migrations
 func (rs *RethinkStore) Demote() error {
-	rs.Info("Connecting with demoted runtime user")
+	rs.Info("connecting with demoted runtime user")
 	err := rs.Close()
 	if err != nil {
 		return err
 	}
 	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
-	rs.Info("Rethinkstore connected with demoted user")
+	rs.Info("rethinkstore connected with demoted user")
 	rs.session = rs.dbsession
 	return nil
 }

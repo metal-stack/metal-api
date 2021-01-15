@@ -24,7 +24,8 @@ type Migration struct {
 
 // MigrationVersionEntry is a version entry in the migration database
 type MigrationVersionEntry struct {
-	Version int `rethinkdb:"id"`
+	Version int    `rethinkdb:"id"`
+	Name    string `rethinkdb:"name"`
 }
 
 var (
@@ -78,7 +79,7 @@ func (ms Migrations) Between(current int, target *int) (Migrations, error) {
 	return result, nil
 }
 
-// Migrate runs database migrations and puts the database into read only mode for runtime users
+// Migrate runs database migrations and puts the database into read only mode for demoted runtime users.
 func (rs *RethinkStore) Migrate(targetVersion *int, dry bool) error {
 	_, err := rs.migrationTable().Insert(MigrationVersionEntry{Version: 0}, r.InsertOpts{
 		Conflict: "replace",
@@ -141,7 +142,7 @@ func (rs *RethinkStore) Migrate(targetVersion *int, dry bool) error {
 			return errors.Wrap(err, "error running database migration")
 		}
 
-		_, err := rs.migrationTable().Insert(MigrationVersionEntry{Version: m.Version}, r.InsertOpts{
+		_, err := rs.migrationTable().Insert(MigrationVersionEntry{Version: m.Version, Name: m.Name}, r.InsertOpts{
 			Conflict: "replace",
 		}).RunWrite(rs.session)
 		if err != nil {

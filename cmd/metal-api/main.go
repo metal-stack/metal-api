@@ -110,8 +110,10 @@ var initDatabase = &cobra.Command{
 	Use:     "initdb",
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
-	Run: func(cmd *cobra.Command, args []string) {
-		initDataStore()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		connectDataStore()
+
+		return ds.Initialize()
 	},
 }
 
