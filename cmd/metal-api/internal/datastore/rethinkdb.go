@@ -97,18 +97,32 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 		return err
 	}
 
-	_, err = rs.db().Wait().Run(rs.session)
+	// be graceful after table creation and wait until ready
+	res, err := db.Wait().Run(rs.session)
 	if err != nil {
 		return err
 	}
+	defer res.Close()
 
-	_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
-		Conflict: "replace",
-	}).RunWrite(rs.session)
+	// demoted runtime user creation
+	res, err = rs.userTable().Get(DemotedUser).Run(rs.session)
 	if err != nil {
 		return err
 	}
+	defer res.Close()
+	if res.IsNil() {
+		rs.SugaredLogger.Infow("creating demoted runtime user")
+		_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}).RunWrite(rs.session)
+		if err != nil {
+			return err
+		}
+		_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": false}).RunWrite(rs.session)
+		if err != nil {
+			return err
+		}
+	}
 
+	// integer pools
 	vrfPool, err := rs.initIntegerPool(VRFIntegerPool, VRFPoolRangeMin, VRFPoolRangeMax)
 	if err != nil {
 		return err
