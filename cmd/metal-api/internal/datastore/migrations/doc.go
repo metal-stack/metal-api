@@ -13,4 +13,6 @@
 // this use-case has not been implemented and it possibly requires more difficult
 // deployment orchestration to apply a migration.
 //
+// We also do not support down migrations for the time being because it also makes
+// things more complicated than they need to be.
 package migrations
