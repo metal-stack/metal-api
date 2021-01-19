@@ -11,14 +11,14 @@ func init() {
 		Name:    "remove wait table (not used anymore since grpc wait server was introduced)",
 		Version: 1,
 		Up: func(db *r.Term, session r.QueryExecutor, rs *datastore.RethinkStore) error {
-			cursor, err := db.TableList().Contains("wait").Run(session)
+			res, err := db.TableList().Contains("wait").Run(session)
 			if err != nil {
 				return err
 			}
-			defer cursor.Close()
+			defer res.Close()
 
 			var exists bool
-			err = cursor.One(&exists)
+			err = res.One(&exists)
 			if err != nil {
 				return err
 			}

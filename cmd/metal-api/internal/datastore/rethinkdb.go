@@ -227,8 +227,13 @@ func (rs *RethinkStore) Demote() error {
 		return err
 	}
 	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
-	rs.Info("rethinkstore connected with demoted user")
 	rs.session = rs.dbsession
+
+	for name, pool := range rs.integerPools {
+		pool.RenewSession(rs.integerTable(name.String()), rs.session)
+	}
+
+	rs.Info("rethinkstore connected with demoted user")
 	return nil
 }
 

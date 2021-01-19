@@ -17,5 +17,5 @@
 // things more complicated than they need to be.
 //
 // Please ensure that your migrations are idempotent (they need to work for existing and
-// for fresh deployments).
+// for fresh deployments). Check the state before modifying it.
 package migrations
