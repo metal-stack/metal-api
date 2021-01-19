@@ -15,4 +15,7 @@
 //
 // We also do not support down migrations for the time being because it also makes
 // things more complicated than they need to be.
+//
+// Please ensure that your migrations are idempotent (they need to work for existing and
+// for fresh deployments).
 package migrations
