@@ -23,6 +23,7 @@ import (
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
 
+	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -63,9 +64,11 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     moduleName,
-	Short:   "an api to offer pure metal",
-	Version: v.V.String(),
+	Use:           moduleName,
+	Short:         "an api to offer pure metal",
+	Version:       v.V.String(),
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		initLogging()
 		initMetrics()
@@ -76,6 +79,21 @@ var rootCmd = &cobra.Command{
 		initSignalHandlers()
 		initGrpcServer()
 		run()
+	},
+}
+
+var migrateDatabase = &cobra.Command{
+	Use:     "migrate",
+	Short:   "migrates the database to the latest version",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		connectDataStore()
+		var targetVersion *int
+		specificVersion := viper.GetInt("target-version")
+		if specificVersion != -1 {
+			targetVersion = &specificVersion
+		}
+		return ds.Migrate(targetVersion, viper.GetBool("dry-run"))
 	},
 }
 
@@ -92,8 +110,10 @@ var initDatabase = &cobra.Command{
 	Use:     "initdb",
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
-	Run: func(cmd *cobra.Command, args []string) {
-		initDataStore()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		connectDataStore()
+
+		return ds.Initialize()
 	},
 }
 
@@ -128,14 +148,22 @@ var deleteOrphanImagesCmd = &cobra.Command{
 }
 
 func main() {
-	rootCmd.AddCommand(dumpSwagger, initDatabase, resurrectMachines, machineLiveliness, deleteOrphanImagesCmd)
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed executing root command", "error", err)
+		logger.Fatalw("failed executing root command", "error", err)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	rootCmd.AddCommand(
+		dumpSwagger,
+		initDatabase,
+		migrateDatabase,
+		resurrectMachines,
+		machineLiveliness,
+		deleteOrphanImagesCmd,
+	)
 
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
 
@@ -145,11 +173,11 @@ func init() {
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
-	rootCmd.Flags().StringP("db", "", "rethinkdb", "the database adapter to use")
-	rootCmd.Flags().StringP("db-name", "", "metalapi", "the database name to use")
-	rootCmd.Flags().StringP("db-addr", "", "", "the database address string to use")
-	rootCmd.Flags().StringP("db-user", "", "", "the database user to use")
-	rootCmd.Flags().StringP("db-password", "", "", "the database password to use")
+	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
+	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
+	rootCmd.PersistentFlags().StringP("db-addr", "", "", "the database address string to use")
+	rootCmd.PersistentFlags().StringP("db-user", "", "", "the database user to use")
+	rootCmd.PersistentFlags().StringP("db-password", "", "", "the database password to use")
 
 	rootCmd.Flags().StringP("ipam-db", "", "postgres", "the database adapter to use")
 	rootCmd.Flags().StringP("ipam-db-name", "", "metal-ipam", "the database name to use")
@@ -195,6 +223,18 @@ func init() {
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
 		logger.Error("unable to construct root command:%v", err)
+	}
+
+	err = viper.BindPFlags(rootCmd.PersistentFlags())
+	if err != nil {
+		logger.Error("unable to construct root command:%v", err)
+	}
+
+	migrateDatabase.Flags().Int("target-version", -1, "the target version of the migration, when set to -1 will migrate to latest version")
+	migrateDatabase.Flags().Bool("dry-run", false, "only shows which migrations would run, but does not execute them")
+	err = viper.BindPFlags(migrateDatabase.Flags())
+	if err != nil {
+		logger.Error("unable to construct migrate command:%v", err)
 	}
 }
 
@@ -319,7 +359,7 @@ func waitForPartitions() metal.Partitions {
 	return partitions
 }
 
-func initDataStore() {
+func connectDataStore() {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
 		ds = datastore.New(
@@ -334,9 +374,24 @@ func initDataStore() {
 	}
 
 	err := ds.Connect()
-
 	if err != nil {
 		logger.Errorw("cannot connect to data store", "error", err)
+		panic(err)
+	}
+}
+
+func initDataStore() {
+	connectDataStore()
+
+	err := ds.Initialize()
+	if err != nil {
+		logger.Errorw("error initializing data store tables", "error", err)
+		panic(err)
+	}
+
+	err = ds.Demote()
+	if err != nil {
+		logger.Errorw("error demoting to data store runtime user", "error", err)
 		panic(err)
 	}
 }

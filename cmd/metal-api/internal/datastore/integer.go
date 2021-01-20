@@ -126,6 +126,11 @@ func (rs *RethinkStore) initIntegerPool(pool IntegerPoolType, min, max uint) (*I
 	return ip, err
 }
 
+func (ip *IntegerPool) RenewSession(term *r.Term, session r.QueryExecutor) {
+	ip.term = term
+	ip.session = session
+}
+
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
 func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
 	t := ip.term.Limit(1)

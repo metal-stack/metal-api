@@ -150,23 +150,19 @@ func Test_connect(t *testing.T) {
 		name    string
 		args    args
 		want    *r.Term
-		want1   *r.Session
 		wantErr bool
 	}{
 		// Test-Data List / Test Cases:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := connect(tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
+			got, err := connect(tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("connect() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("connect() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("connect() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
@@ -181,21 +177,17 @@ func Test_retryConnect(t *testing.T) {
 		pwd    string
 	}
 	tests := []struct {
-		name  string
-		args  args
-		want  *r.Term
-		want1 *r.Session
+		name string
+		args args
+		want *r.Term
 	}{
 		// Test-Data List / Test Cases:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := retryConnect(tt.args.log, tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
+			got := retryConnect(tt.args.log, tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("retryConnect() got = %v, want %v", got, tt.want)
-			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("retryConnect() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}

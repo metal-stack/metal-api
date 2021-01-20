@@ -39,6 +39,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.9.0
 	github.com/tidwall/pretty v1.0.2 // indirect
 	go.uber.org/zap v1.16.0
+	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/grpc v1.33.2
