@@ -716,12 +716,12 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 		if err != nil {
 			continue
 		}
+		// FIXME remove
+		zapup.MustRootLogger().Sugar().Infow("network usage", "prefix", prefix, "usage", u)
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs
 		usage.UsedIPs = usage.UsedIPs + u.UsedIPs
 		usage.AvailablePrefixes = append(usage.AvailablePrefixes, u.AvailablePrefixes...)
 		usage.UsedPrefixes = usage.UsedPrefixes + u.UsedPrefixes
-		// FIXME remove
-		zapup.MustRootLogger().Sugar().Infow("network usage", "prefix", prefix, "usage", usage)
 	}
 	return usage
 }
