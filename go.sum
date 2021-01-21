@@ -526,6 +526,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/metal-stack/go-ipam v1.8.0 h1:En3valiIMMy5Su48Q9lFq5KHclWCUdGChJJFFG3W1Hc=
 github.com/metal-stack/go-ipam v1.8.0/go.mod h1:BSg9iOnOCbK/UZZm8WOhEJWW43iQBYqFHGFMh5Q6T7o=
+github.com/metal-stack/go-ipam v1.8.1-0.20210121155041-85c8e08bd58c h1:Z8JeHHdTGgDxQnpB1885HcFeKuu/KbIPCiNF5AJ5IHs=
+github.com/metal-stack/go-ipam v1.8.1-0.20210121155041-85c8e08bd58c/go.mod h1:BSg9iOnOCbK/UZZm8WOhEJWW43iQBYqFHGFMh5Q6T7o=
 github.com/metal-stack/masterdata-api v0.8.4 h1:CnrhxiS9XL5PQN+J0yFv5KNvuan3JMx5omofEwHVweQ=
 github.com/metal-stack/masterdata-api v0.8.4/go.mod h1:4EDS04thTWdxcTpLsaLdG1PEUdnvKJFIdf7GEMduDdI=
 github.com/metal-stack/metal-lib v0.6.3/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
