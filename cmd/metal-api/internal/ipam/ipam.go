@@ -30,6 +30,9 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8)
 
 	length := childLength
 	ipprefix, err := netaddr.ParseIPPrefix(ipamParentPrefix.Cidr)
+	if err != nil {
+		return nil, err
+	}
 	if ipprefix.IP.Is6() {
 		// FIXME: this must be configurable
 		length = uint8(64)
