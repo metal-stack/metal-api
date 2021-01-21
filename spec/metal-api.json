@@ -2291,7 +2291,7 @@
       "properties": {
         "available_ips": {
           "description": "the total available IPs",
-          "format": "integer",
+          "format": "uint64",
           "type": "integer"
         },
         "available_prefixes": {

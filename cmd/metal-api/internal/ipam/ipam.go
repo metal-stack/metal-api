@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"inet.af/netaddr"
 
 	ipam "github.com/metal-stack/go-ipam"
 )
@@ -27,7 +28,14 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8)
 		return nil, fmt.Errorf("error finding parent prefix in ipam: %s", parentPrefix.String())
 	}
 
-	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, childLength)
+	length := childLength
+	ipprefix, err := netaddr.ParseIPPrefix(ipamParentPrefix.Cidr)
+	if ipprefix.IP.Is6() {
+		// FIXME: this must be configurable
+		length = uint8(64)
+	}
+
+	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, length)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new prefix in ipam: %v", err)
 	}

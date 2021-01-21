@@ -529,8 +529,8 @@ github.com/metal-stack/go-ipam v1.8.0/go.mod h1:BSg9iOnOCbK/UZZm8WOhEJWW43iQBYqF
 github.com/metal-stack/masterdata-api v0.8.4 h1:CnrhxiS9XL5PQN+J0yFv5KNvuan3JMx5omofEwHVweQ=
 github.com/metal-stack/masterdata-api v0.8.4/go.mod h1:4EDS04thTWdxcTpLsaLdG1PEUdnvKJFIdf7GEMduDdI=
 github.com/metal-stack/metal-lib v0.6.3/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
-github.com/metal-stack/metal-lib v0.6.6 h1:5ajMDUGHruYOmRqn3r373rbIKbTtQkfVfKLKmRatJnE=
-github.com/metal-stack/metal-lib v0.6.6/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
+github.com/metal-stack/metal-lib v0.6.9 h1:6AvJ8RKJqjed2GdKIZlN9Qvt8sXhu3r6yfYKv++pLaU=
+github.com/metal-stack/metal-lib v0.6.9/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
 github.com/metal-stack/security v0.4.0 h1:NrPm5srgmgeS9UdQmGKLEJ3P7BSsV2Gm7P781LmM0Xo=
 github.com/metal-stack/security v0.4.0/go.mod h1:C7kSrHwRcG+47375RJjhakN1LenbEJF9uQd4I50nZlY=
 github.com/metal-stack/v v1.0.2 h1:IGtLAGtazQd8r0i/5+YNjBJUEIZYrbVxynY9EXrlTV4=
@@ -794,6 +794,8 @@ go4.org v0.0.0-20201209231011-d4a079459e60 h1:iqAGo78tVOJXELHQFRjR6TMwItrvXH4hrG
 go4.org v0.0.0-20201209231011-d4a079459e60/go.mod h1:CIiUVy99QCPfoE13bO4EZaz5GZMZXMSBGhxRdsvzbkg=
 go4.org/intern v0.0.0-20210101010959-7cab76ca296a h1:28p852HIWWaOS019DYK/A3yTmpm1HJaUce63pvll4C8=
 go4.org/intern v0.0.0-20210101010959-7cab76ca296a/go.mod h1:vLqJ+12kCw61iCWsPto0EOHhBS+o4rO5VIucbc9g2Cc=
+go4.org/intern v0.0.0-20210108033219-3eb7198706b2 h1:VFTf+jjIgsldaz/Mr00VaCSswHJrI2hIjQygE/W4IMg=
+go4.org/intern v0.0.0-20210108033219-3eb7198706b2/go.mod h1:vLqJ+12kCw61iCWsPto0EOHhBS+o4rO5VIucbc9g2Cc=
 go4.org/unsafe/assume-no-moving-gc v0.0.0-20201222175341-b30ae309168e/go.mod h1:FftLjUGFEDu5k8lt0ddY+HcrH/qU/0qk+H8j9/nTl3E=
 go4.org/unsafe/assume-no-moving-gc v0.0.0-20201222180813-1025295fd063 h1:1tk03FUNpulq2cuWpXZWj649rwJpk0d20rxWiopKRmc=
 go4.org/unsafe/assume-no-moving-gc v0.0.0-20201222180813-1025295fd063/go.mod h1:FftLjUGFEDu5k8lt0ddY+HcrH/qU/0qk+H8j9/nTl3E=
@@ -1219,6 +1221,8 @@ honnef.co/go/tools v0.0.1-2020.1.5 h1:nI5egYTGJakVyOryqLs1cQO5dO0ksin5XXs2pspk75
 honnef.co/go/tools v0.0.1-2020.1.5/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
 inet.af/netaddr v0.0.0-20210105212526-648fbc18a69d h1:6f0242aW/6x2enQBOSKgDS8KQNw6Tp7IVR8eG3x0Jc8=
 inet.af/netaddr v0.0.0-20210105212526-648fbc18a69d/go.mod h1:jPZo7Jy4nke2cCgISa4fKJKa5T7+EO8k5fWwWghzneg=
+inet.af/netaddr v0.0.0-20210115183222-bffc12a571f6 h1:qXKGfyyL36ihrrtUAZ0FspwEJwITJCwg4nVKDuBDLRs=
+inet.af/netaddr v0.0.0-20210115183222-bffc12a571f6/go.mod h1:I2i9ONCXRZDnG1+7O8fSuYzjcPxHQXrIfzD/IkR87x4=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=

@@ -172,6 +172,8 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.MgmtServiceAddress != nil {
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
+
+	// FIXME: this must be adopted to be IPv6 compatible
 	prefixLength := uint8(22)
 	if requestPayload.PrivateNetworkPrefixLength != nil {
 		prefixLength = *requestPayload.PrivateNetworkPrefixLength
