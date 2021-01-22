@@ -1,6 +1,9 @@
 package datastore
 
 import (
+	"fmt"
+
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -88,6 +91,13 @@ func (rs *RethinkStore) ListIPs() (metal.IPs, error) {
 
 // CreateIP creates a new ip.
 func (rs *RethinkStore) CreateIP(ip *metal.IP) error {
+	if ip.AllocationUUID == "" {
+		uuid, err := uuid.NewRandom()
+		if err != nil {
+			return fmt.Errorf("unable to create uuid for IP allocation: %v", err)
+		}
+		ip.AllocationUUID = uuid.String()
+	}
 	return rs.createEntity(rs.ipTable(), ip)
 }
 

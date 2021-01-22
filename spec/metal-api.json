@@ -573,6 +573,10 @@
     },
     "v1.IPResponse": {
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used for distinguishing between ip address allocation over time.",
+          "type": "string"
+        },
         "changed": {
           "description": "the last changed timestamp of this entity",
           "format": "date-time",
@@ -624,6 +628,7 @@
         }
       },
       "required": [
+        "allocationuuid",
         "ipaddress",
         "networkid",
         "projectid",
@@ -632,6 +637,10 @@
     },
     "v1.IPUpdateRequest": {
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used for distinguishing between ip address allocation over time.",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -662,6 +671,7 @@
         }
       },
       "required": [
+        "allocationuuid",
         "ipaddress",
         "type"
       ]
