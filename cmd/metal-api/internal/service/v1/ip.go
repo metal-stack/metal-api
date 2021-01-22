@@ -14,7 +14,7 @@ type IPBase struct {
 
 type IPIdentifiable struct {
 	IPAddress      string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" unique:"true" readonly:"true"`
-	AllocationUUID string `json:"allocationuuid" description:"a unique identifier for this ip address allocation, can be used for distinguishing between ip address allocation over time." readonly:"true"`
+	AllocationUUID string `json:"allocationuuid" description:"a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time." readonly:"true"`
 }
 
 type IPAllocateRequest struct {

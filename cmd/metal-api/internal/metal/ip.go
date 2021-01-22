@@ -37,8 +37,8 @@ const (
 type IP struct {
 	IPAddress string `rethinkdb:"id" json:"id"`
 	// AllocationID will be randomly generated during IP creation and helps identifying the point in time
-	// when an IP was created.
-	// Without this field it is impossible to distinguish whether an IP address was re-acquired or
+	// when an IP was created. This is not the primary key!
+	// This field can help to distinguish whether an IP address was re-acquired or
 	// if it is still the same ip address as before.
 	AllocationUUID   string    `rethinkdb:"allocationuuid" json:"allocationuuid"`
 	ParentPrefixCidr string    `rethinkdb:"prefix" json:"prefix"`
