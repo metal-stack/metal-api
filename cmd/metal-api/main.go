@@ -46,9 +46,16 @@ import (
 	"go.uber.org/zap"
 )
 
+type dsConnectOpt int
+
 const (
 	cfgFileType = "yaml"
 	moduleName  = "metal-api"
+
+	// DataStoreConnectTableInit connects to the data store and then runs data store initialization
+	DataStoreConnectTableInit dsConnectOpt = 0
+	// DataStoreConnectNoDemotion connects to the data store without demoting to runtime user
+	DataStoreConnectNoDemotion dsConnectOpt = 1
 )
 
 var (
@@ -69,16 +76,25 @@ var rootCmd = &cobra.Command{
 	Version:       v.V.String(),
 	SilenceUsage:  true,
 	SilenceErrors: true,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		initLogging()
 		initMetrics()
-		initDataStore()
+
+		var opts []dsConnectOpt
+		if viper.GetBool("init-data-store") {
+			opts = append(opts, DataStoreConnectTableInit)
+		}
+		err := connectDataStore(opts...)
+		if err != nil {
+			return err
+		}
+
 		initEventBus()
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
 		initGrpcServer()
-		run()
+		return run()
 	},
 }
 
@@ -87,7 +103,10 @@ var migrateDatabase = &cobra.Command{
 	Short:   "migrates the database to the latest version",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		connectDataStore()
+		err := connectDataStore(DataStoreConnectNoDemotion)
+		if err != nil {
+			return err
+		}
 		var targetVersion *int
 		specificVersion := viper.GetInt("target-version")
 		if specificVersion != -1 {
@@ -111,7 +130,10 @@ var initDatabase = &cobra.Command{
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		connectDataStore()
+		err := connectDataStore(DataStoreConnectTableInit, DataStoreConnectNoDemotion)
+		if err != nil {
+			return err
+		}
 
 		return ds.Initialize()
 	},
@@ -142,8 +164,14 @@ var deleteOrphanImagesCmd = &cobra.Command{
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		initLogging()
-		initDataStore()
-		return deleteOrphanImages()
+		err := connectDataStore()
+		if err != nil {
+			return err
+		}
+		initEventBus()
+
+		_, err = ds.DeleteOrphanImages(nil, nil)
+		return err
 	},
 }
 
@@ -170,6 +198,7 @@ func init() {
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
 	rootCmd.Flags().IntP("grpc-port", "", 50051, "the port to serve gRPC on")
+	rootCmd.Flags().Bool("init-data-store", true, "initializes the data store on start (can be switched off when running the init command before starting instances)")
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
@@ -359,7 +388,7 @@ func waitForPartitions() metal.Partitions {
 	return partitions
 }
 
-func connectDataStore() {
+func connectDataStore(opts ...dsConnectOpt) error {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
 		ds = datastore.New(
@@ -370,30 +399,43 @@ func connectDataStore() {
 			viper.GetString("db-password"),
 		)
 	} else {
-		logger.Error("database not supported", "db", dbAdapter)
+		return fmt.Errorf("database not supported: %v", dbAdapter)
+	}
+
+	initTables := false
+	demote := true
+
+	for _, opt := range opts {
+		switch opt {
+		case DataStoreConnectNoDemotion:
+			demote = false
+		case DataStoreConnectTableInit:
+			initTables = true
+		default:
+			return fmt.Errorf("unsupported datastore connect option")
+		}
 	}
 
 	err := ds.Connect()
 	if err != nil {
-		logger.Errorw("cannot connect to data store", "error", err)
-		panic(err)
-	}
-}
-
-func initDataStore() {
-	connectDataStore()
-
-	err := ds.Initialize()
-	if err != nil {
-		logger.Errorw("error initializing data store tables", "error", err)
-		panic(err)
+		return fmt.Errorf("cannot connect to data store: %v", err)
 	}
 
-	err = ds.Demote()
-	if err != nil {
-		logger.Errorw("error demoting to data store runtime user", "error", err)
-		panic(err)
+	if initTables {
+		err := ds.Initialize()
+		if err != nil {
+			return fmt.Errorf("error initializing data store tables: %v", err)
+		}
 	}
+
+	if demote {
+		err = ds.Demote()
+		if err != nil {
+			return fmt.Errorf("error demoting to data store runtime user: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func initMasterData() {
@@ -624,7 +666,10 @@ func dumpSwaggerJSON() {
 }
 
 func resurrectDeadMachines() error {
-	initDataStore()
+	err := connectDataStore()
+	if err != nil {
+		return err
+	}
 	initEventBus()
 	initIpam()
 
@@ -634,7 +679,7 @@ func resurrectDeadMachines() error {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	err := service.ResurrectMachines(ds, p, ep, ipamer, logger)
+	err = service.ResurrectMachines(ds, p, ep, ipamer, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to resurrect machines")
 	}
@@ -643,9 +688,12 @@ func resurrectDeadMachines() error {
 }
 
 func evaluateLiveliness() error {
-	initDataStore()
+	err := connectDataStore()
+	if err != nil {
+		return err
+	}
 
-	err := service.MachineLiveliness(ds, logger)
+	err = service.MachineLiveliness(ds, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to evaluate machine liveliness")
 	}
@@ -653,14 +701,7 @@ func evaluateLiveliness() error {
 	return nil
 }
 
-func deleteOrphanImages() error {
-	initDataStore()
-	initEventBus()
-	_, err := ds.DeleteOrphanImages(nil, nil)
-	return err
-}
-
-func run() {
+func run() error {
 	initRestServices(true)
 
 	// enable OPTIONS-request so clients can query CORS information
@@ -700,9 +741,11 @@ func run() {
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)
 	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		logger.Errorw("failed to start metal api", "error", err)
+	if err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("failed to start metal api: %v", err)
 	}
+
+	return nil
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {

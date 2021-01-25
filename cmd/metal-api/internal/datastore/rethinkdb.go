@@ -66,8 +66,8 @@ func (rs *RethinkStore) Health() error {
 	)
 }
 
-// Initialize initializes the database, it should be called every time
-// the application comes up before using the data store
+// Initialize initializes the database, it should be called before serving the metal-api
+// in order to ensure that tables, pools, permissions are properly initialized
 func (rs *RethinkStore) Initialize() error {
 	return rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
 }
