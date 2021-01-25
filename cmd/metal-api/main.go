@@ -54,7 +54,7 @@ const (
 
 	// DataStoreConnectTableInit connects to the data store and then runs data store initialization
 	DataStoreConnectTableInit dsConnectOpt = 0
-	// DataStoreConnectNoDemotion connects to the data store without demoting to runtime user
+	// DataStoreConnectNoDemotion connects to the data store without demoting to runtime user in the end
 	DataStoreConnectNoDemotion dsConnectOpt = 1
 )
 
