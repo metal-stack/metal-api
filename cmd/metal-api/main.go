@@ -130,12 +130,7 @@ var initDatabase = &cobra.Command{
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := connectDataStore(DataStoreConnectTableInit, DataStoreConnectNoDemotion)
-		if err != nil {
-			return err
-		}
-
-		return ds.Initialize()
+		return connectDataStore(DataStoreConnectTableInit, DataStoreConnectNoDemotion)
 	},
 }
 

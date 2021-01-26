@@ -53,13 +53,24 @@ type integerinfo struct {
 	IsInitialized bool `rethinkdb:"isInitialized" json:"isInitialized"`
 }
 
-// GetIntegerPool returns a named integerpool if already created
-func (rs *RethinkStore) GetIntegerPool(pool IntegerPoolType) (*IntegerPool, error) {
-	ip, ok := rs.integerPools[pool]
-	if !ok {
-		return nil, fmt.Errorf("no integerpool for %s created", pool)
+func (rs *RethinkStore) GetVRFPool() *IntegerPool {
+	return &IntegerPool{
+		tablename: VRFIntegerPool.String(),
+		session:   rs.session,
+		min:       VRFPoolRangeMin,
+		max:       VRFPoolRangeMax,
+		term:      rs.vrfTable(),
 	}
-	return ip, nil
+}
+
+func (rs *RethinkStore) GetASNPool() *IntegerPool {
+	return &IntegerPool{
+		tablename: ASNIntegerPool.String(),
+		session:   rs.session,
+		min:       ASNPoolRangeMin,
+		max:       ASNPoolRangeMax,
+		term:      rs.asnTable(),
+	}
 }
 
 // initIntegerPool initializes a pool to acquire unique integers from.
@@ -93,42 +104,28 @@ func (rs *RethinkStore) GetIntegerPool(pool IntegerPoolType) (*IntegerPool, erro
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (rs *RethinkStore) initIntegerPool(pool IntegerPoolType, min, max uint) (*IntegerPool, error) {
+func (i *IntegerPool) initIntegerPool(rs *RethinkStore) error {
 	var result integerinfo
-	tablename := pool.String()
-	err := rs.findEntityByID(rs.integerInfoTable(tablename), &result, tablename)
+	err := rs.findEntityByID(rs.integerInfoTable(i.tablename), &result, i.tablename)
 	if err != nil {
 		if !metal.IsNotFound(err) {
-			return nil, err
+			return err
 		}
 	}
 
-	ip := &IntegerPool{
-		tablename: tablename,
-		min:       min,
-		max:       max,
-		session:   rs.session,
-		term:      rs.integerTable(tablename),
-	}
-	rs.integerPools[pool] = ip
-	rs.SugaredLogger.Infow("pool info", "table", tablename, "info", result)
+	rs.SugaredLogger.Infow("pool info", "table", i.tablename, "info", result)
 	if result.IsInitialized {
-		return ip, nil
+		return nil
 	}
 
-	rs.SugaredLogger.Infow("Initializing integer pool", "for", tablename, "RangeMin", min, "RangeMax", max)
-	intRange := makeRange(min, max)
-	_, err = rs.integerTable(tablename).Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: max})
+	rs.SugaredLogger.Infow("Initializing integer pool", "for", i.tablename, "RangeMin", i.min, "RangeMax", i.max)
+	intRange := makeRange(i.min, i.max)
+	_, err = rs.integerTable(i.tablename).Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: i.max})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	_, err = rs.integerInfoTable(tablename).Insert(map[string]interface{}{"id": tablename, "IsInitialized": true}).RunWrite(rs.session)
-	return ip, err
-}
-
-func (ip *IntegerPool) RenewSession(term *r.Term, session r.QueryExecutor) {
-	ip.term = term
-	ip.session = session
+	_, err = rs.integerInfoTable(i.tablename).Insert(map[string]interface{}{"id": i.tablename, "IsInitialized": true}).RunWrite(rs.session)
+	return err
 }
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
