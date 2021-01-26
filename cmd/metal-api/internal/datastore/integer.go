@@ -115,7 +115,7 @@ func (ip *IntegerPool) String() string {
 func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 	var result integerinfo
 	err := ip.infoTable.ReadOne(&result, ip.session)
-	if err != nil {
+	if err != nil && err != r.ErrEmptyResult {
 		return err
 	}
 
