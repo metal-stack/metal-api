@@ -106,7 +106,7 @@ func (rs *RethinkStore) GetASNPool() *IntegerPool {
 // - everything can be done atomically, so there are no race conditions
 func (ip *IntegerPool) initIntegerPool(rs *RethinkStore) error {
 	var result integerinfo
-	err := rs.findEntityByID(ip.table(rs), &result, ip.tablename)
+	err := rs.findEntityByID(ip.infoTable(rs), &result, ip.tablename)
 	if err != nil {
 		if !metal.IsNotFound(err) {
 			return err
@@ -124,7 +124,7 @@ func (ip *IntegerPool) initIntegerPool(rs *RethinkStore) error {
 	if err != nil {
 		return err
 	}
-	_, err = ip.table(rs).Insert(map[string]interface{}{"id": ip.tablename, "IsInitialized": true}).RunWrite(rs.session)
+	_, err = ip.infoTable(rs).Insert(map[string]interface{}{"id": ip.tablename, "IsInitialized": true}).RunWrite(rs.session)
 	return err
 }
 
