@@ -170,24 +170,8 @@ func (rs *RethinkStore) asnTable() *r.Term {
 	res := r.DB(rs.dbname).Table(ASNIntegerPool.String())
 	return &res
 }
-func (rs *RethinkStore) asnInfoTable() *r.Term {
-	res := r.DB(rs.dbname).Table(ASNIntegerPool.String() + "info")
-	return &res
-}
 func (rs *RethinkStore) vrfTable() *r.Term {
 	res := r.DB(rs.dbname).Table(VRFIntegerPool.String())
-	return &res
-}
-func (rs *RethinkStore) vrfInfoTable() *r.Term {
-	res := r.DB(rs.dbname).Table(VRFIntegerPool.String() + "info")
-	return &res
-}
-func (rs *RethinkStore) integerTable(tableName string) *r.Term {
-	res := r.DB(rs.dbname).Table(tableName)
-	return &res
-}
-func (rs *RethinkStore) integerInfoTable(tableName string) *r.Term {
-	res := r.DB(rs.dbname).Table(tableName + "info")
 	return &res
 }
 func (rs *RethinkStore) migrationTable() *r.Term {

@@ -104,28 +104,38 @@ func (rs *RethinkStore) GetASNPool() *IntegerPool {
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (i *IntegerPool) initIntegerPool(rs *RethinkStore) error {
+func (ip *IntegerPool) initIntegerPool(rs *RethinkStore) error {
 	var result integerinfo
-	err := rs.findEntityByID(rs.integerInfoTable(i.tablename), &result, i.tablename)
+	err := rs.findEntityByID(ip.table(rs), &result, ip.tablename)
 	if err != nil {
 		if !metal.IsNotFound(err) {
 			return err
 		}
 	}
 
-	rs.SugaredLogger.Infow("pool info", "table", i.tablename, "info", result)
+	rs.SugaredLogger.Infow("pool info", "table", ip.tablename, "info", result)
 	if result.IsInitialized {
 		return nil
 	}
 
-	rs.SugaredLogger.Infow("Initializing integer pool", "for", i.tablename, "RangeMin", i.min, "RangeMax", i.max)
-	intRange := makeRange(i.min, i.max)
-	_, err = rs.integerTable(i.tablename).Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: i.max})
+	rs.SugaredLogger.Infow("Initializing integer pool", "for", ip.tablename, "RangeMin", ip.min, "RangeMax", ip.max)
+	intRange := makeRange(ip.min, ip.max)
+	_, err = ip.table(rs).Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: ip.max})
 	if err != nil {
 		return err
 	}
-	_, err = rs.integerInfoTable(i.tablename).Insert(map[string]interface{}{"id": i.tablename, "IsInitialized": true}).RunWrite(rs.session)
+	_, err = ip.table(rs).Insert(map[string]interface{}{"id": ip.tablename, "IsInitialized": true}).RunWrite(rs.session)
 	return err
+}
+
+func (ip *IntegerPool) table(rs *RethinkStore) *r.Term {
+	t := r.DB(rs.dbname).Table(ip.tablename)
+	return &t
+}
+
+func (ip *IntegerPool) infoTable(rs *RethinkStore) *r.Term {
+	t := r.DB(rs.dbname).Table(ip.tablename + "info")
+	return &t
 }
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.

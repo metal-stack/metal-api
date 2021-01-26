@@ -215,7 +215,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 			rs, mock := InitMockDB()
 			ip := rs.GetVRFPool()
 
-			term := rs.integerTable(ip.tablename).Get(tt.value)
+			term := ip.table(rs).Get(tt.value)
 			if tt.requiresMock {
 				var changes []r.ChangeResponse
 				if tt.tableChanges {
@@ -225,7 +225,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 				mock.On(term.Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes},
 					tt.runWriteErr)
 				if tt.requiresCountMock {
-					mock.On(rs.integerTable(ip.tablename).Count()).Return(int64(0), nil)
+					mock.On(ip.table(rs).Count()).Return(int64(0), nil)
 				}
 			}
 
