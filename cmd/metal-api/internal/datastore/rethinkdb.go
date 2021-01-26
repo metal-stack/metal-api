@@ -119,12 +119,12 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	}
 
 	// integer pools
-	err = rs.GetVRFPool().initIntegerPool(rs)
+	err = rs.GetVRFPool().initIntegerPool(rs.SugaredLogger)
 	if err != nil {
 		return err
 	}
 
-	err = rs.GetASNPool().initIntegerPool(rs)
+	err = rs.GetASNPool().initIntegerPool(rs.SugaredLogger)
 	if err != nil {
 		return err
 	}
@@ -170,8 +170,16 @@ func (rs *RethinkStore) asnTable() *r.Term {
 	res := r.DB(rs.dbname).Table(ASNIntegerPool.String())
 	return &res
 }
+func (rs *RethinkStore) asnInfoTable() *r.Term {
+	res := r.DB(rs.dbname).Table(ASNIntegerPool.String() + "info")
+	return &res
+}
 func (rs *RethinkStore) vrfTable() *r.Term {
 	res := r.DB(rs.dbname).Table(VRFIntegerPool.String())
+	return &res
+}
+func (rs *RethinkStore) vrfInfoTable() *r.Term {
+	res := r.DB(rs.dbname).Table(VRFIntegerPool.String() + "info")
 	return &res
 }
 func (rs *RethinkStore) migrationTable() *r.Term {

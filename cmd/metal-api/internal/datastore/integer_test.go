@@ -87,9 +87,9 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 			ip := rs.GetVRFPool()
 			if tt.requiresMock {
 				if tt.err != nil {
-					mock.On(r.DB("mockdb").Table(ip.tablename).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(nil, tt.err)
+					mock.On(r.DB("mockdb").Table(ip.String()).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(nil, tt.err)
 				} else {
-					mock.On(r.DB("mockdb").Table(ip.tablename).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(r.
+					mock.On(r.DB("mockdb").Table(ip.String()).Insert(integer{ID: tt.value}, r.InsertOpts{Conflict: "replace"})).Return(r.
 						WriteResponse{Changes: []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
 						tt.value)}}}}, tt.err)
 				}
@@ -113,7 +113,7 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	rs, mock := InitMockDB()
 	ip := rs.GetVRFPool()
 	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(VRFPoolRangeMin)}}}
-	mock.On(r.DB("mockdb").Table(ip.tablename).Limit(1).Delete(r.
+	mock.On(r.DB("mockdb").Table(ip.String()).Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
 	got, err := ip.AcquireRandomUniqueInteger()
@@ -152,7 +152,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 			if tt.requiresMock {
 				changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(
 					tt.value)}}}
-				mock.On(r.DB("mockdb").Table(ip.tablename).Get(tt.value).Delete(r.
+				mock.On(r.DB("mockdb").Table(ip.String()).Get(tt.value).Delete(r.
 					DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, tt.err)
 			}
 
@@ -215,7 +215,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 			rs, mock := InitMockDB()
 			ip := rs.GetVRFPool()
 
-			term := ip.table(rs).Get(tt.value)
+			term := ip.poolTable.Get(tt.value)
 			if tt.requiresMock {
 				var changes []r.ChangeResponse
 				if tt.tableChanges {
@@ -225,7 +225,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 				mock.On(term.Delete(r.DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes},
 					tt.runWriteErr)
 				if tt.requiresCountMock {
-					mock.On(ip.table(rs).Count()).Return(int64(0), nil)
+					mock.On(ip.poolTable.Count()).Return(int64(0), nil)
 				}
 			}
 

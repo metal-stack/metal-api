@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"go.uber.org/zap"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -37,10 +38,11 @@ var (
 
 // IntegerPool manages unique integers
 type IntegerPool struct {
-	tablename string
+	poolType  IntegerPoolType
 	min       uint
 	max       uint
-	term      *r.Term
+	poolTable *r.Term
+	infoTable *r.Term
 	session   r.QueryExecutor
 }
 
@@ -55,22 +57,28 @@ type integerinfo struct {
 
 func (rs *RethinkStore) GetVRFPool() *IntegerPool {
 	return &IntegerPool{
-		tablename: VRFIntegerPool.String(),
+		poolType:  VRFIntegerPool,
 		session:   rs.session,
 		min:       VRFPoolRangeMin,
 		max:       VRFPoolRangeMax,
-		term:      rs.vrfTable(),
+		poolTable: rs.vrfTable(),
+		infoTable: rs.vrfInfoTable(),
 	}
 }
 
 func (rs *RethinkStore) GetASNPool() *IntegerPool {
 	return &IntegerPool{
-		tablename: ASNIntegerPool.String(),
+		poolType:  ASNIntegerPool,
 		session:   rs.session,
 		min:       ASNPoolRangeMin,
 		max:       ASNPoolRangeMax,
-		term:      rs.asnTable(),
+		poolTable: rs.asnTable(),
+		infoTable: rs.asnInfoTable(),
 	}
+}
+
+func (ip *IntegerPool) String() string {
+	return ip.poolType.String()
 }
 
 // initIntegerPool initializes a pool to acquire unique integers from.
@@ -104,43 +112,31 @@ func (rs *RethinkStore) GetASNPool() *IntegerPool {
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (ip *IntegerPool) initIntegerPool(rs *RethinkStore) error {
+func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 	var result integerinfo
-	err := rs.findEntityByID(ip.infoTable(rs), &result, ip.tablename)
+	err := ip.infoTable.ReadOne(&result, ip.session)
 	if err != nil {
-		if !metal.IsNotFound(err) {
-			return err
-		}
+		return err
 	}
 
-	rs.SugaredLogger.Infow("pool info", "table", ip.tablename, "info", result)
+	log.Infow("pool info", "id", ip.String(), "info", result)
 	if result.IsInitialized {
 		return nil
 	}
 
-	rs.SugaredLogger.Infow("Initializing integer pool", "for", ip.tablename, "RangeMin", ip.min, "RangeMax", ip.max)
+	log.Infow("initializing integer pool", "for", ip.String(), "RangeMin", ip.min, "RangeMax", ip.max)
 	intRange := makeRange(ip.min, ip.max)
-	_, err = ip.table(rs).Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: ip.max})
+	_, err = ip.poolTable.Insert(intRange).RunWrite(ip.session, r.RunOpts{ArrayLimit: ip.max})
 	if err != nil {
 		return err
 	}
-	_, err = ip.infoTable(rs).Insert(map[string]interface{}{"id": ip.tablename, "IsInitialized": true}).RunWrite(rs.session)
+	_, err = ip.infoTable.Insert(map[string]interface{}{"id": ip.String(), "IsInitialized": true}).RunWrite(ip.session)
 	return err
-}
-
-func (ip *IntegerPool) table(rs *RethinkStore) *r.Term {
-	t := r.DB(rs.dbname).Table(ip.tablename)
-	return &t
-}
-
-func (ip *IntegerPool) infoTable(rs *RethinkStore) *r.Term {
-	t := r.DB(rs.dbname).Table(ip.tablename + "info")
-	return &t
 }
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
 func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
-	t := ip.term.Limit(1)
+	t := ip.poolTable.Limit(1)
 	return ip.genericAcquire(&t)
 }
 
@@ -150,7 +146,7 @@ func (ip *IntegerPool) AcquireUniqueInteger(value uint) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	t := ip.term.Get(value)
+	t := ip.poolTable.Get(value)
 	return ip.genericAcquire(&t)
 }
 
@@ -164,7 +160,7 @@ func (ip *IntegerPool) ReleaseUniqueInteger(id uint) error {
 	i := integer{
 		ID: id,
 	}
-	_, err = ip.term.Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(ip.session)
+	_, err = ip.poolTable.Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(ip.session)
 	if err != nil {
 		return err
 	}
@@ -179,7 +175,7 @@ func (ip *IntegerPool) genericAcquire(term *r.Term) (uint, error) {
 	}
 
 	if len(res.Changes) == 0 {
-		res, err := ip.term.Count().Run(ip.session)
+		res, err := ip.poolTable.Count().Run(ip.session)
 		if err != nil {
 			return 0, err
 		}
