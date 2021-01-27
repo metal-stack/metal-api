@@ -5,6 +5,8 @@ type Partition struct {
 	Base
 	BootConfiguration  BootConfiguration `rethinkdb:"bootconfig" json:"bootconfig"`
 	MgmtServiceAddress string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
+	// TODO: remove once migration #3 was done
+	PrivateNetworkPrefixLength uint8 `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline
