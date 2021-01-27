@@ -403,6 +403,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 				}
 			}
 		}
+		nw.ChildPrefixLength = requestPayload.ChildPrefixLength
 	}
 
 	for _, p := range nw.Prefixes {
