@@ -574,7 +574,7 @@
     "v1.IPResponse": {
       "properties": {
         "allocationuuid": {
-          "description": "a unique identifier for this ip address allocation, can be used for distinguishing between ip address allocation over time.",
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
           "type": "string"
         },
         "changed": {
@@ -638,7 +638,7 @@
     "v1.IPUpdateRequest": {
       "properties": {
         "allocationuuid": {
-          "description": "a unique identifier for this ip address allocation, can be used for distinguishing between ip address allocation over time.",
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
           "type": "string"
         },
         "description": {

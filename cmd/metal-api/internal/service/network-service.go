@@ -9,6 +9,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
+	"inet.af/netaddr"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -246,7 +247,8 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 	}
 	prefixes := metal.Prefixes{}
-	// all Prefixes must be valid
+	addressFamilies := make(map[string]bool)
+	// all Prefixes must be valid and from the same addressfamily
 	for _, p := range requestPayload.Prefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		// TODO: Should return a bad request 401
@@ -255,7 +257,25 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 				return
 			}
 		}
+		ipprefix, err := netaddr.ParseIPPrefix(p)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+				return
+			}
+		}
+		if ipprefix.IP.Is4() {
+			addressFamilies["ipv4"] = true
+		}
+		if ipprefix.IP.Is6() {
+			addressFamilies["ipv6"] = true
+		}
 		prefixes = append(prefixes, *prefix)
+	}
+
+	if len(addressFamilies) > 1 {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefixes have different addressfamilies")) {
+			return
+		}
 	}
 
 	destPrefixes := metal.Prefixes{}
@@ -365,6 +385,24 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		PrivateSuper:        privateSuper,
 		Underlay:            underlay,
 		Vrf:                 vrf,
+	}
+
+	// check if childprefixlength is set and matches addressfamily
+	if requestPayload.ChildPrefixLength != nil && privateSuper {
+		cpl := *requestPayload.ChildPrefixLength
+		for _, p := range prefixes {
+			ipprefix, err := netaddr.ParseIPPrefix(p.String())
+			if err != nil {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+					return
+				}
+			}
+			if cpl >= ipprefix.Bits {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given childprefixlength %d is not smaller than prefix length of:%s", cpl, p.String())) {
+					return
+				}
+			}
+		}
 	}
 
 	for _, p := range nw.Prefixes {

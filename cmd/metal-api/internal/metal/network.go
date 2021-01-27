@@ -3,7 +3,8 @@ package metal
 import (
 	"fmt"
 	"net"
-	"strings"
+
+	"inet.af/netaddr"
 )
 
 // A MacAddress is the type for mac adresses. When using a
@@ -32,15 +33,13 @@ type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
 func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
-	parts := strings.Split(cidr, "/")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("cannot split cidr into pieces: %v", cidr)
+	ipprefix, err := netaddr.ParseIPPrefix(cidr)
+	if err != nil {
+		return nil, err
 	}
-	ip := strings.TrimSpace(parts[0])
-	length := strings.TrimSpace(parts[1])
 	return &Prefix{
-		IP:     ip,
-		Length: length,
+		IP:     ipprefix.IP.String(),
+		Length: fmt.Sprintf("%d", ipprefix.Bits),
 	}, nil
 }
 
