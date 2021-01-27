@@ -73,6 +73,7 @@ type Network struct {
 	ParentNetworkID     string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
 	Vrf                 uint              `rethinkdb:"vrf" json:"vrf"`
 	PrivateSuper        bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	ChildPrefixLength   *uint8            `rethinkdb:"childprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil"`
 	Nat                 bool              `rethinkdb:"nat" json:"nat"`
 	Underlay            bool              `rethinkdb:"underlay" json:"underlay"`
 	Shared              bool              `rethinkdb:"shared" json:"shared"`
@@ -148,6 +149,7 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	return result
 }
 
+// NicMap returns the nic for a given macaddress
 type NicMap map[MacAddress]*Nic
 
 // ByMac creates a indexed map from a nic list.

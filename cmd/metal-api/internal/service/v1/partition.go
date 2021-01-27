@@ -5,8 +5,7 @@ import (
 )
 
 type PartitionBase struct {
-	MgmtServiceAddress         *string `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
-	PrivateNetworkPrefixLength *uint8  `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
+	MgmtServiceAddress *string `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 }
 
 type PartitionBootConfiguration struct {
@@ -65,8 +64,7 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			},
 		},
 		PartitionBase: PartitionBase{
-			MgmtServiceAddress:         &p.MgmtServiceAddress,
-			PrivateNetworkPrefixLength: &p.PrivateNetworkPrefixLength,
+			MgmtServiceAddress: &p.MgmtServiceAddress,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,

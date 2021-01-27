@@ -2018,6 +2018,11 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
+        "childprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -2091,6 +2096,7 @@
         }
       },
       "required": [
+        "childprefixlength",
         "destinationprefixes",
         "id",
         "nat",
@@ -2156,6 +2162,11 @@
           "format": "date-time",
           "readOnly": true,
           "type": "string"
+        },
+        "childprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
         },
         "created": {
           "description": "the creation time of this entity",
@@ -2240,6 +2251,7 @@
         }
       },
       "required": [
+        "childprefixlength",
         "destinationprefixes",
         "id",
         "nat",
@@ -2392,13 +2404,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "byte",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [
@@ -2440,13 +2445,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "byte",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [

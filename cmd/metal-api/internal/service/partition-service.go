@@ -173,16 +173,6 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
 
-	// FIXME: this must be adopted to be IPv6 compatible
-	prefixLength := uint8(22)
-	if requestPayload.PrivateNetworkPrefixLength != nil {
-		prefixLength = *requestPayload.PrivateNetworkPrefixLength
-		if prefixLength < 16 || prefixLength > 30 {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("private network prefix length is out of range")) {
-				return
-			}
-		}
-	}
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
@@ -202,8 +192,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 			Name:        name,
 			Description: description,
 		},
-		MgmtServiceAddress:         mgmtServiceAddress,
-		PrivateNetworkPrefixLength: prefixLength,
+		MgmtServiceAddress: mgmtServiceAddress,
 		BootConfiguration: metal.BootConfiguration{
 			ImageURL:    imageURL,
 			KernelURL:   kernelURL,

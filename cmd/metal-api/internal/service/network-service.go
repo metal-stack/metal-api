@@ -454,7 +454,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		Shared:      shared,
 	}
 
-	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
+	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, *superNetwork.ChildPrefixLength)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

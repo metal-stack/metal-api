@@ -501,7 +501,6 @@ var (
 			Name:        "partition1",
 			Description: "description 1",
 		},
-		PrivateNetworkPrefixLength: 22,
 	}
 	Partition2 = metal.Partition{
 		Base: metal.Base{
@@ -509,7 +508,6 @@ var (
 			Name:        "partition2",
 			Description: "description 2",
 		},
-		PrivateNetworkPrefixLength: 22,
 	}
 	Partition3 = metal.Partition{
 		Base: metal.Base{
@@ -517,7 +515,6 @@ var (
 			Name:        "partition3",
 			Description: "description 3",
 		},
-		PrivateNetworkPrefixLength: 22,
 	}
 
 	// Switches
