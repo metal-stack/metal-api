@@ -52,7 +52,8 @@ type integer struct {
 
 // integerinfo contains information on the integer pool.
 type integerinfo struct {
-	IsInitialized bool `rethinkdb:"isInitialized" json:"isInitialized"`
+	ID            string `rethinkdb:"id"`
+	IsInitialized bool   `rethinkdb:"isInitialized" json:"isInitialized"`
 }
 
 func (rs *RethinkStore) GetVRFPool() *IntegerPool {
@@ -113,14 +114,14 @@ func (ip *IntegerPool) String() string {
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
 func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
-	var result integerinfo
-	err := ip.infoTable.ReadOne(&result, ip.session)
+	var info integerinfo
+	err := ip.infoTable.ReadOne(&info, ip.session)
 	if err != nil && err != r.ErrEmptyResult {
 		return err
 	}
 
-	log.Infow("pool info", "id", ip.String(), "info", result)
-	if result.IsInitialized {
+	log.Infow("pool info", "id", ip.String(), "info", info)
+	if info.IsInitialized {
 		return nil
 	}
 
@@ -130,8 +131,16 @@ func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 	if err != nil {
 		return err
 	}
-	_, err = ip.infoTable.Insert(map[string]interface{}{"id": ip.String(), "IsInitialized": true}).RunWrite(ip.session)
-	return err
+
+	_, err = ip.infoTable.Insert(integerinfo{
+		ID:            ip.String(),
+		IsInitialized: true,
+	}).RunWrite(ip.session)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
