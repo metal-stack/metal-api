@@ -2291,17 +2291,17 @@
       "properties": {
         "available_ips": {
           "description": "the total available IPs",
-          "format": "uint64",
+          "format": "integer",
           "type": "integer"
         },
-        "available_prefixes": {
+        "available_prefix_list": {
           "description": "a list of possible child prefixes",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
-        "available_smallest_prefixes": {
+        "available_prefixes": {
           "description": "the total available 2 bit Prefixes",
           "format": "integer",
           "type": "integer"
@@ -2319,8 +2319,8 @@
       },
       "required": [
         "available_ips",
+        "available_prefix_list",
         "available_prefixes",
-        "available_smallest_prefixes",
         "used_ips",
         "used_prefixes"
       ]

@@ -143,11 +143,11 @@ func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	}
 	usage := prefix.Usage()
 	return &metal.NetworkUsage{
-		AvailableIPs:              usage.AvailableIPs,
-		UsedIPs:                   usage.AcquiredIPs,
-		AvailableSmallestPrefixes: usage.AvailableSmallestPrefixes,
-		AvailablePrefixes:         usage.AvailablePrefixes,
-		UsedPrefixes:              usage.AcquiredPrefixes,
+		AvailableIPs:        usage.AvailableIPs,
+		UsedIPs:             usage.AcquiredIPs,
+		AvailablePrefixes:   usage.AvailableSmallestPrefixes,
+		AvailablePrefixList: usage.AvailablePrefixes,
+		UsedPrefixes:        usage.AcquiredPrefixes,
 	}, nil
 }
 

@@ -718,8 +718,8 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 		}
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs
 		usage.UsedIPs = usage.UsedIPs + u.UsedIPs
-		usage.AvailablePrefixes = append(usage.AvailablePrefixes, u.AvailablePrefixes...)
-		usage.AvailableSmallestPrefixes = usage.AvailableSmallestPrefixes + u.AvailableSmallestPrefixes
+		usage.AvailablePrefixList = append(usage.AvailablePrefixList, u.AvailablePrefixList...)
+		usage.AvailablePrefixes = usage.AvailablePrefixes + u.AvailablePrefixes
 		usage.UsedPrefixes = usage.UsedPrefixes + u.UsedPrefixes
 	}
 	return usage
@@ -877,7 +877,7 @@ func (nuc networkUsageCollector) Collect(ch chan<- prometheus.Metric) {
 		metric, err = prometheus.NewConstMetric(
 			availablePrefixesDesc,
 			prometheus.CounterValue,
-			float64(usage.AvailableSmallestPrefixes),
+			float64(usage.AvailablePrefixes),
 			nws[i].ID,
 			prefixes,
 			destPrefixes,
