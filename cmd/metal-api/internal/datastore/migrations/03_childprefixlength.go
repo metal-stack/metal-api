@@ -1,14 +1,15 @@
 package migrations
 
 import (
-	"fmt"
-
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 )
 
 func init() {
+	type tmpPartition struct {
+		PrivateNetworkPrefixLength uint8 `rethinkdb:"privatenetworkprefixlength"`
+	}
 	datastore.MustRegisterMigration(datastore.Migration{
 		Name:    "migrate partition.childprefixlength to tenant super network",
 		Version: 3,
@@ -23,21 +24,30 @@ func init() {
 					continue
 				}
 
-				new := old
-				partition, err := rs.FindPartition(old.PartitionID)
+				cursor, err := db.Table("partition").Get(old.PartitionID).Run(session)
 				if err != nil {
 					return err
 				}
-				if partition == nil {
-					return fmt.Errorf("unable to find partition for network:%s", old.ID)
+				var partition tmpPartition
+				err = cursor.One(&partition)
+				if err != nil {
+					return err
 				}
+
+				new := old
 				new.ChildPrefixLength = &partition.PrivateNetworkPrefixLength
 				err = rs.UpdateNetwork(&old, &new)
 				if err != nil {
 					return err
 				}
+				err = cursor.Close()
+				if err != nil {
+					return err
+				}
 			}
-			return nil
+
+			_, err = db.Table("partition").Replace(r.Row.Without("privatenetworkprefixlength")).RunWrite(session)
+			return err
 		},
 	})
 }
