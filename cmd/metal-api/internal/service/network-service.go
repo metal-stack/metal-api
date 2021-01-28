@@ -505,6 +505,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	if requestPayload.AddressFamily != nil {
 		addressFamily = v1.ToAddressFamily(*requestPayload.AddressFamily)
 	}
+	zapup.MustRootLogger().Sugar().Infow("network allocate", "family", addressFamily)
 	var (
 		superNetwork      metal.Network
 		superNetworkFound bool
@@ -528,6 +529,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 			return
 		}
 	}
+	zapup.MustRootLogger().Sugar().Infow("network allocate", "supernetwork", superNetwork.ID)
 
 	nwSpec := &metal.Network{
 		Base: metal.Base{
