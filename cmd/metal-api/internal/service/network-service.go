@@ -542,6 +542,12 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		Shared:      shared,
 	}
 
+	if superNetwork.ChildPrefixLength == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no supernetwork has no childprefixlength specified:%s", superNetwork.ID)) {
+			return
+		}
+	}
+
 	// Allow configurable prefix length
 	length := *superNetwork.ChildPrefixLength
 	if requestPayload.Length != nil {
