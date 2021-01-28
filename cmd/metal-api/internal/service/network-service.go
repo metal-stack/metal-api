@@ -227,6 +227,10 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	if requestPayload.VrfShared != nil {
 		vrfShared = *requestPayload.VrfShared
 	}
+	labels := make(map[string]string)
+	if requestPayload.Labels != nil {
+		labels = requestPayload.Labels
+	}
 
 	privateSuper := requestPayload.PrivateSuper
 	underlay := requestPayload.Underlay
@@ -365,6 +369,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		PrivateSuper:        privateSuper,
 		Underlay:            underlay,
 		Vrf:                 vrf,
+		Labels:              labels,
 	}
 
 	for _, p := range nw.Prefixes {
