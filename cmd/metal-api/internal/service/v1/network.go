@@ -48,6 +48,7 @@ type NetworkAllocateRequest struct {
 	Describable
 	NetworkBase
 	AddressFamily *AddressFamily `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4" optional:"true"`
+	Length        *uint8         `json:"length" description:"the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix" optional:"true"`
 }
 
 // AddressFamily identifies IPv4/IPv6

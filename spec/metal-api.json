@@ -2012,6 +2012,11 @@
           "description": "free labels that you associate with this network.",
           "type": "object"
         },
+        "length": {
+          "description": "the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix",
+          "format": "byte",
+          "type": "integer"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"

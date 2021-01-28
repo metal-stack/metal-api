@@ -540,7 +540,13 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		Shared:      shared,
 	}
 
-	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, *superNetwork.ChildPrefixLength)
+	// Allow configurable prefix length
+	length := *superNetwork.ChildPrefixLength
+	if requestPayload.Length != nil {
+		length = *requestPayload.Length
+	}
+
+	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, length)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
