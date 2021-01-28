@@ -416,8 +416,8 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 					return
 				}
 			}
-			if cpl >= ipprefix.Bits {
-				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given childprefixlength %d is not smaller than prefix length of:%s", cpl, p.String())) {
+			if cpl <= ipprefix.Bits {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given childprefixlength %d is not greater than prefix length of:%s", cpl, p.String())) {
 					return
 				}
 			}

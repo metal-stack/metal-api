@@ -19,7 +19,7 @@ type NetworkImmutable struct {
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	PrivateSuper        bool     `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
-	ChildPrefixLength   *uint8   `json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil"`
+	ChildPrefixLength   *uint8   `json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil" optional:"true"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 	VrfShared           *bool    `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)" optional:"true"`
