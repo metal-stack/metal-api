@@ -543,7 +543,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	}
 
 	if superNetwork.ChildPrefixLength == nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no supernetwork has no childprefixlength specified:%s", superNetwork.ID)) {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("supernetwork %s has no childprefixlength specified", superNetwork.ID)) {
 			return
 		}
 	}
