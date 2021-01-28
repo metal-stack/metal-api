@@ -47,7 +47,18 @@ type NetworkCreateRequest struct {
 type NetworkAllocateRequest struct {
 	Describable
 	NetworkBase
+	AddressFamily *AddressFamily `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4" optional:"true"`
 }
+
+// AddressFamily identifies IPv4/IPv6
+type AddressFamily string
+
+const (
+	// IPv4AddressFamily identifies IPv4
+	IPv4AddressFamily = AddressFamily("IPv4")
+	// IPv6AddressFamily identifies IPv6
+	IPv6AddressFamily = AddressFamily("IPv6")
+)
 
 // NetworkFindRequest is used to find a Network with different criteria.
 type NetworkFindRequest struct {

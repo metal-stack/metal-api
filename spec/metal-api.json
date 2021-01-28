@@ -1997,6 +1997,10 @@
     },
     "v1.NetworkAllocateRequest": {
       "properties": {
+        "address_family": {
+          "description": "can be ipv4 or ipv6, defaults to ipv4",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"

@@ -317,9 +317,12 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			return
 		}
 
+		// We should support two private super per partition, one per addressfamily
+		// the network allocate request must be configurable with addressfamily
 		if privateSuper {
 			boolTrue := true
-			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &metal.Network{})
+			var nw metal.Network
+			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &nw)
 			if err != nil {
 				if !metal.IsNotFound(err) {
 					if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -327,8 +330,24 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 					}
 				}
 			} else {
-				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a private super network", partition.ID)) {
-					return
+				existingsuper := nw.Prefixes[0].String()
+				ipprefxexistingsuper, err := netaddr.ParseIPPrefix(existingsuper)
+				if err != nil {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", existingsuper, err)) {
+						return
+					}
+				}
+				newsuper := prefixes[0].String()
+				ipprefixnew, err := netaddr.ParseIPPrefix(newsuper)
+				if err != nil {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", newsuper, err)) {
+						return
+					}
+				}
+				if (ipprefixnew.IP.Is4() && ipprefxexistingsuper.IP.Is4()) || (ipprefixnew.IP.Is6() && ipprefxexistingsuper.IP.Is6()) {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a private super network for this addressfamily", partition.ID)) {
+						return
+					}
 				}
 			}
 		}
@@ -475,11 +494,39 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		return
 	}
 
-	var superNetwork metal.Network
+	var superNetworks metal.Networks
 	boolTrue := true
-	err = r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetwork)
+	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetworks)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	addressFamily := v1.IPv4AddressFamily
+	if requestPayload.AddressFamily != nil {
+		addressFamily = *requestPayload.AddressFamily
+	}
+	var (
+		superNetwork      metal.Network
+		superNetworkFound bool
+	)
+	for _, snw := range superNetworks {
+		ipprefix, err := netaddr.ParseIPPrefix(snw.Prefixes[0].String())
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if addressFamily == v1.IPv4AddressFamily && ipprefix.IP.Is4() {
+			superNetwork = snw
+			superNetworkFound = true
+		}
+		if addressFamily == v1.IPv6AddressFamily && ipprefix.IP.Is6() {
+			superNetwork = snw
+			superNetworkFound = true
+		}
+	}
+	if !superNetworkFound {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no supernetwork for addressfamiliy:%s found", addressFamily)) {
+			return
+		}
 	}
 
 	nwSpec := &metal.Network{
