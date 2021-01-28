@@ -503,7 +503,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 
 	addressFamily := v1.IPv4AddressFamily
 	if requestPayload.AddressFamily != nil {
-		addressFamily = *requestPayload.AddressFamily
+		addressFamily = v1.ToAddressFamily(*requestPayload.AddressFamily)
 	}
 	var (
 		superNetwork      metal.Network
