@@ -1780,7 +1780,6 @@
       },
       "required": [
         "incomplete_provisioning_cycles",
-        "last_event_time",
         "log"
       ]
     },

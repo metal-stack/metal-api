@@ -105,7 +105,7 @@ type MachineBlockDevice struct {
 
 type MachineRecentProvisioningEvents struct {
 	Events                       []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
-	LastEventTime                *time.Time                 `json:"last_event_time" description:"the time where the last event was received"`
+	LastEventTime                *time.Time                 `json:"last_event_time" description:"the time where the last event was received" optional:"true"`
 	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container"`
 }
 
