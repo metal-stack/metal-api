@@ -20,7 +20,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
-	github.com/metal-stack/go-ipam v1.8.1-0.20210122070915-fed6e9e701ed
+	github.com/metal-stack/go-ipam v1.8.1-0.20210201062048-ce86362b1d97
 	github.com/metal-stack/masterdata-api v0.8.4
 	github.com/metal-stack/metal-lib v0.6.9
 	github.com/metal-stack/security v0.4.0
@@ -47,5 +47,5 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
-	inet.af/netaddr v0.0.0-20210115183222-bffc12a571f6
+	inet.af/netaddr v0.0.0-20210129021658-06debf945877
 )

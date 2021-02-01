@@ -197,6 +197,7 @@ func (r networkResource) findNetworks(request *restful.Request, response *restfu
 	}
 }
 
+// TODO allow creation of networks with childprefixlength which are not privatesuper
 func (r networkResource) createNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkCreateRequest
 	err := request.ReadEntity(&requestPayload)
@@ -450,6 +451,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 }
 
+// TODO add possibility to allocate from a non super network if given in the AllocateRequest and super has childprefixlength
 func (r networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkAllocateRequest
 	err := request.ReadEntity(&requestPayload)
@@ -530,7 +532,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		}
 	}
 	if !superNetworkFound {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no supernetwork for addressfamiliy:%s found", addressFamily)) {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no supernetwork for addressfamily:%s found", addressFamily)) {
 			return
 		}
 	}
