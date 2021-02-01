@@ -20,7 +20,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
-	github.com/metal-stack/go-ipam v1.8.1-0.20210201062048-ce86362b1d97
+	github.com/metal-stack/go-ipam v1.8.1
 	github.com/metal-stack/masterdata-api v0.8.4
 	github.com/metal-stack/metal-lib v0.6.9
 	github.com/metal-stack/security v0.4.0
