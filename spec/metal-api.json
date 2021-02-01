@@ -636,11 +636,8 @@
       ]
     },
     "v1.IPUpdateRequest": {
+      "description": "an ip address that can be attached to a machine",
       "properties": {
-        "allocationuuid": {
-          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
-          "type": "string"
-        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -671,7 +668,6 @@
         }
       },
       "required": [
-        "allocationuuid",
         "ipaddress",
         "type"
       ]

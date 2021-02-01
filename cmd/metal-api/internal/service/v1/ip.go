@@ -24,7 +24,7 @@ type IPAllocateRequest struct {
 }
 
 type IPUpdateRequest struct {
-	IPIdentifiable
+	IPAddress string `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" unique:"true" readonly:"true"`
 	Describable
 	Type metal.IPType `json:"type" enum:"static|ephemeral" description:"the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time"`
 	Tags []string     `json:"tags" description:"free tags that you associate with this ip." optional:"true"`
