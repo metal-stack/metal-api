@@ -379,6 +379,8 @@ const (
 	MachineReinstall         MachineCommand = "REINSTALL"
 	ChassisIdentifyLEDOnCmd  MachineCommand = "LED-ON"
 	ChassisIdentifyLEDOffCmd MachineCommand = "LED-OFF"
+	BiosUpdate               MachineCommand = "BIOS-UPDATE"
+	BmcUpdate                MachineCommand = "BMC-UPDATE"
 )
 
 // A MachineExecCommand can be sent via a MachineEvent to execute

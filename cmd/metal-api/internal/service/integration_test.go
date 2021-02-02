@@ -66,7 +66,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	})
 	require.NoError(err)
 
-	machineService, err := NewMachine(ds, nsq.Publisher, nsq.Endpoints, ipamer, mdc, grpcServer)
+	machineService, err := NewMachine(ds, nsq.Publisher, nsq.Endpoints, ipamer, mdc, grpcServer, nil)
 	require.NoError(err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)

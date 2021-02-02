@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"net"
 	"net/http"
 	"strconv"
@@ -42,6 +45,7 @@ type machineResource struct {
 	mdc        mdm.Client
 	actor      *asyncActor
 	grpcServer *grpc.Server
+	s3Client   *v1.S3Client
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -96,7 +100,8 @@ func NewMachine(
 	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
-	grpcServer *grpc.Server) (*restful.WebService, error) {
+	grpcServer *grpc.Server,
+	s3Client *v1.S3Client) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -106,6 +111,7 @@ func NewMachine(
 		ipamer:     ipamer,
 		mdc:        mdc,
 		grpcServer: grpcServer,
+		s3Client:   s3Client,
 	}
 	var err error
 	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
@@ -172,6 +178,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineAllocateRequest{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -182,6 +189,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineFinalizeAllocationRequest{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -213,6 +221,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("free a machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -232,6 +241,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("reports IPMI ip addresses leased by a management server for machines").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineIpmiReports{}).
+		Writes(v1.MachineIpmiReportResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineIpmiReportResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -262,6 +272,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineReinstallRequest{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		Returns(http.StatusBadRequest, "Bad Request", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -283,6 +294,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("get the current machine provisioning event container").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -293,6 +305,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineProvisioningEvent{}).
+		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -303,6 +316,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -313,6 +327,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -323,6 +338,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -333,6 +349,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -343,6 +360,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -353,6 +371,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -364,6 +383,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.QueryParameter("description", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -375,6 +395,75 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.QueryParameter("description", "reason why the chassis identify LED has been turned off").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/upload/bios").
+		To(editor(r.uploadBIOSUpdate)).
+		Operation("uploadBIOSUpdate").
+		Doc("upload given BIOS update for given machine").
+		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
+		Param(ws.PathParameter("board", "the board").DataType("string")).
+		Param(ws.PathParameter("revision", "the BIOS update revision").DataType("string")).
+		Param(ws.FormParameter("file", "the BIOS update file").DataType("file")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Consumes("multipart/form-data").
+		Returns(http.StatusOK, "OK", nil).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/upload/bmc").
+		To(editor(r.uploadBMCUpdate)).
+		Operation("uploadBMCUpdate").
+		Doc("upload given BMC update for given machine").
+		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
+		Param(ws.PathParameter("board", "the board").DataType("string")).
+		Param(ws.PathParameter("revision", "the BMC update revision").DataType("string")).
+		Param(ws.FormParameter("file", "the BMC update file").DataType("file")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Consumes("multipart/form-data").
+		Returns(http.StatusOK, "OK", nil).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/{id}/available-bios-updates").
+		To(editor(r.availableBIOSUpdates)).
+		Operation("availableBIOSUpdates").
+		Doc("returns all available BIOS updates for the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineAvailableUpdates{}).
+		Returns(http.StatusOK, "OK", v1.MachineAvailableUpdates{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/{id}/available-bmc-updates").
+		To(editor(r.availableBMCUpdates)).
+		Operation("availableBMCUpdates").
+		Doc("returns all available BMC updates for the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineAvailableUpdates{}).
+		Returns(http.StatusOK, "OK", v1.MachineAvailableUpdates{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/update/bios").
+		To(editor(r.updateBIOS)).
+		Operation("updateBIOS").
+		Doc("sends a BIOS update command to the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineUpdate{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/update/bmc").
+		To(editor(r.updateBMC)).
+		Operation("updateBMC").
+		Doc("sends a bmc update command to the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineUpdate{}).
+		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -1952,6 +2041,14 @@ func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, respons
 	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
 }
 
+func (r machineResource) updateBIOS(request *restful.Request, response *restful.Response) {
+	r.machineCmd("updateBIOS", metal.BiosUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, strconv.FormatBool(r.s3Client.HostnameImmutable))
+}
+
+func (r machineResource) updateBMC(request *restful.Request, response *restful.Response) {
+	r.machineCmd("updateBMC", metal.BmcUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, strconv.FormatBool(r.s3Client.HostnameImmutable))
+}
+
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
 	logger := utils.Logger(request).Sugar()
 	id := request.PathParameter("id")
@@ -2178,4 +2275,95 @@ func (s machineAllocationSpec) noautoNetworkN() int {
 
 func (s machineAllocationSpec) autoNetworkN() int {
 	return len(s.Networks) - s.noautoNetworkN()
+}
+
+func (r machineResource) uploadBIOSUpdate(request *restful.Request, response *restful.Response) {
+	r.uploadUpdate(request, response, "bios")
+}
+
+func (r machineResource) uploadBMCUpdate(request *restful.Request, response *restful.Response) {
+	r.uploadUpdate(request, response, "bmc")
+}
+
+func (r machineResource) uploadUpdate(request *restful.Request, response *restful.Response, kind string) {
+	vendor := strings.ToLower(request.PathParameter("vendor"))
+	board := strings.ToUpper(request.PathParameter("board"))
+	revision := request.PathParameter("revision")
+	var file []byte
+	err := request.ReadEntity(&file)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	resp, err := r.s3Client.ListBuckets(context.Background(), nil)
+	if err != nil {
+		panic(err)
+	}
+	bucketFound := false
+	for _, b := range resp.Buckets {
+		if *b.Name == vendor {
+			bucketFound = true
+			break
+		}
+	}
+	if !bucketFound {
+		_, err = r.s3Client.CreateBucket(context.Background(), &s3.CreateBucketInput{
+			Bucket: &vendor,
+		})
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
+	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Body:   bytes.NewReader(file),
+		Bucket: &vendor,
+		Key:    &key,
+	})
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeader(http.StatusOK)
+}
+
+func (r machineResource) availableBIOSUpdates(request *restful.Request, response *restful.Response) {
+	r.availableUpdates(request, response, "bios")
+}
+
+func (r machineResource) availableBMCUpdates(request *restful.Request, response *restful.Response) {
+	r.availableUpdates(request, response, "bmc")
+}
+
+func (r machineResource) availableUpdates(request *restful.Request, response *restful.Response, kind string) {
+	id := request.PathParameter("id")
+	m, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	fru := m.IPMI.Fru
+	bucketName := strings.ToLower(fru.ProductManufacturer)
+	prefix := fmt.Sprintf("updates/%s/%s", kind, strings.ToUpper(fru.BoardPartNumber))
+	r4, err := r.s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+		Bucket: aws.String(bucketName),
+		Prefix: &prefix,
+	})
+	if err != nil {
+		panic(err)
+	}
+	var vv []string
+	for _, c := range r4.Contents {
+		parts := strings.Split(*c.Key, "/")
+		v := parts[len(parts)-1]
+		vv = append(vv, v)
+	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineAvailableUpdates{
+		Revisions: vv,
+	})
+	if err != nil {
+		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }

@@ -96,6 +96,15 @@ type ChassisIdentifyLEDState struct {
 	Description string `json:"description" description:"a description why this chassis identify LED is in the given state"`
 }
 
+type MachineAvailableUpdates struct {
+	Revisions []string `json:"revisions" description:"list of all available BIOS updates"`
+}
+
+type MachineUpdate struct {
+	Revision    string `json:"revision" description:"the update revision"`
+	Description string `json:"description" description:"a description why the machine has been updated"`
+}
+
 type MachineBlockDevice struct {
 	Name       string                `json:"name" description:"the name of this block device"`
 	Size       uint64                `json:"size" description:"the size of this block device"`

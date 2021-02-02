@@ -997,6 +997,20 @@
         "networkid"
       ]
     },
+    "v1.MachineAvailableUpdates": {
+      "properties": {
+        "revisions": {
+          "description": "list of all available BIOS updates",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "revisions"
+      ]
+    },
     "v1.MachineBIOS": {
       "description": "The bios version",
       "properties": {
@@ -1951,6 +1965,22 @@
       "required": [
         "description",
         "value"
+      ]
+    },
+    "v1.MachineUpdate": {
+      "properties": {
+        "description": {
+          "description": "a description why the machine has been updated",
+          "type": "string"
+        },
+        "revision": {
+          "description": "the update revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "revision"
       ]
     },
     "v1.Meta": {
@@ -4086,6 +4116,82 @@
         ]
       }
     },
+    "/v1/machine/{id}/available-bios-updates": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "availableBIOSUpdates",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineAvailableUpdates"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "returns all available BIOS updates for the machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/{id}/available-bmc-updates": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "availableBMCUpdates",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineAvailableUpdates"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "returns all available BMC updates for the machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
     "/v1/machine/{id}/chassis-identify-led-state": {
       "post": {
         "consumes": [
@@ -4809,6 +4915,208 @@
           }
         },
         "summary": "set the state of a machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/{id}/update/bios": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateBIOS",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineUpdate"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "sends a BIOS update command to the machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/{id}/update/bmc": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateBMC",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineUpdate"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "sends a bmc update command to the machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/{id}/upload/bios": {
+      "post": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "operationId": "uploadBIOSUpdate",
+        "parameters": [
+          {
+            "description": "the vendor",
+            "in": "path",
+            "name": "vendor",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "path",
+            "name": "board",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the BIOS update revision",
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the BIOS update file",
+            "in": "formData",
+            "name": "file",
+            "type": "file"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "upload given BIOS update for given machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/{id}/upload/bmc": {
+      "post": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "operationId": "uploadBMCUpdate",
+        "parameters": [
+          {
+            "description": "the vendor",
+            "in": "path",
+            "name": "vendor",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "path",
+            "name": "board",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the BMC update revision",
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the BMC update file",
+            "in": "formData",
+            "name": "file",
+            "type": "file"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "upload given BMC update for given machine",
         "tags": [
           "machine"
         ]

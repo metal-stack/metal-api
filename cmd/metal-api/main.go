@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -172,6 +173,12 @@ func init() {
 	rootCmd.Flags().IntP("grpc-port", "", 50051, "the port to serve gRPC on")
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
+
+	rootCmd.Flags().StringP("s3-region", "", "", "the region of the s3 server")
+	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server")
+	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server")
+	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server")
+	rootCmd.Flags().BoolP("s3-hostname-immutable", "", false, "whether the hostname is immutable or not")
 
 	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
@@ -554,7 +561,18 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer)
+
+	s3Region := viper.GetString("s3-region")
+	s3Address := viper.GetString("s3-address")
+	s3Key := viper.GetString("s3-key")
+	s3Secret := viper.GetString("s3-secret")
+	s3HostnameImmutable := viper.GetBool("s3-hostname-immutable")
+	s3Client := v1.NewS3Client(s3Region, s3Address, s3Key, s3Secret, s3HostnameImmutable)
+	err = s3Client.Connect()
+	if err != nil {
+		logger.Fatal(err)
+	}
+	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client)
 	if err != nil {
 		logger.Fatal(err)
 	}
