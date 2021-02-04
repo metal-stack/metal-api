@@ -278,9 +278,7 @@ func TestUpdateIP(t *testing.T) {
 					Name:        &testdata.IP2.Name,
 					Description: &testdata.IP2.Description,
 				},
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP1.IPAddress,
-				},
+				IPAddress: testdata.IP1.IPAddress,
 			},
 			wantedStatus: http.StatusOK,
 			wantedDescribable: &v1.Describable{
@@ -291,10 +289,8 @@ func TestUpdateIP(t *testing.T) {
 		{
 			name: "moving from ephemeral to static",
 			updateRequest: v1.IPUpdateRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP1.IPAddress,
-				},
-				Type: "static",
+				IPAddress: testdata.IP1.IPAddress,
+				Type:      "static",
 			},
 			wantedStatus: http.StatusOK,
 			wantedIPBase: &v1.IPBase{
@@ -306,21 +302,17 @@ func TestUpdateIP(t *testing.T) {
 		{
 			name: "moving from static to ephemeral must not be allowed",
 			updateRequest: v1.IPUpdateRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP2.IPAddress,
-				},
-				Type: "ephemeral",
+				IPAddress: testdata.IP2.IPAddress,
+				Type:      "ephemeral",
 			},
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name: "internal tag machine is allowed",
 			updateRequest: v1.IPUpdateRequest{
-				IPIdentifiable: v1.IPIdentifiable{
-					IPAddress: testdata.IP3.IPAddress,
-				},
-				Type: "static",
-				Tags: []string{machineIDTag1},
+				IPAddress: testdata.IP3.IPAddress,
+				Type:      "static",
+				Tags:      []string{machineIDTag1},
 			},
 			wantedStatus: http.StatusOK,
 		},
