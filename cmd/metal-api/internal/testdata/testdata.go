@@ -268,6 +268,8 @@ var (
 	prefixes2    = []metal.Prefix{prefix2}
 	prefixes3    = []metal.Prefix{prefix3}
 	prefixesIPAM = []metal.Prefix{prefixIPAM}
+	cpl1         = uint8(28)
+	cpl2         = uint8(22)
 
 	Nw1 = metal.Network{
 		Base: metal.Base{
@@ -275,9 +277,10 @@ var (
 			Name:        "Network 1",
 			Description: "description 1",
 		},
-		PartitionID:  Partition1.ID,
-		Prefixes:     prefixes1,
-		PrivateSuper: true,
+		PartitionID:       Partition1.ID,
+		Prefixes:          prefixes1,
+		PrivateSuper:      true,
+		ChildPrefixLength: &cpl1,
 	}
 	Nw2 = metal.Network{
 		Base: metal.Base{
@@ -285,8 +288,10 @@ var (
 			Name:        "Network 2",
 			Description: "description 2",
 		},
-		Prefixes: prefixes2,
-		Underlay: true,
+		PartitionID:       Partition1.ID,
+		Prefixes:          prefixes2,
+		Underlay:          true,
+		ChildPrefixLength: &cpl2,
 	}
 	Nw3 = metal.Network{
 		Base: metal.Base{
@@ -802,6 +807,8 @@ func InitMockDBData(mock *r.Mock) {
 
 	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
+	//	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.Networks{Nw1, Nw2}, nil)
+
 	mock.On(r.DB("mockdb").Table("network").Filter(func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("1") }).Filter(func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(Nw3, nil)
 
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)

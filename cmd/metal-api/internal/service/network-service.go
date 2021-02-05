@@ -258,13 +258,13 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		// TODO: Should return a bad request 401
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %s is not valid: %v", p, err)) {
 				return
 			}
 		}
 		ipprefix, err := netaddr.ParseIPPrefix(p)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %s is not valid: %v", p, err)) {
 				return
 			}
 		}
@@ -287,7 +287,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	for _, p := range requestPayload.DestinationPrefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not valid: %v", p, err)) {
 				return
 			}
 		}
@@ -338,14 +338,14 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 				existingsuper := nw.Prefixes[0].String()
 				ipprefxexistingsuper, err := netaddr.ParseIPPrefix(existingsuper)
 				if err != nil {
-					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", existingsuper, err)) {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not valid: %v", existingsuper, err)) {
 						return
 					}
 				}
 				newsuper := prefixes[0].String()
 				ipprefixnew, err := netaddr.ParseIPPrefix(newsuper)
 				if err != nil {
-					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", newsuper, err)) {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not valid: %v", newsuper, err)) {
 						return
 					}
 				}
@@ -544,7 +544,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 			Description: description,
 		},
 		PartitionID: partition.ID,
-		ProjectID:   project.GetProject().GetMeta().GetId(),
+		ProjectID:   project.GetProject().GetMeta().Id,
 		Labels:      requestPayload.Labels,
 		Shared:      shared,
 	}

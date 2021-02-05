@@ -4,8 +4,8 @@ go 1.15
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/Microsoft/hcsshim v0.8.10 // indirect
-	github.com/containerd/continuity v0.0.0-20201119173150-04c754faca46 // indirect
+	github.com/Microsoft/hcsshim v0.8.14 // indirect
+	github.com/containerd/continuity v0.0.0-20201208142359-180525291bb7 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.2.1
 	github.com/emicklei/go-restful/v3 v3.4.0
@@ -31,7 +31,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
 	github.com/smartystreets/assertions v1.2.0 // indirect
-	github.com/spf13/afero v1.4.1 // indirect
+	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
@@ -47,5 +47,5 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
-	inet.af/netaddr v0.0.0-20210129021658-06debf945877
+	inet.af/netaddr v0.0.0-20210203214853-aa702495c49b
 )
