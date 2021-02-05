@@ -10,20 +10,18 @@ import (
 
 type S3Client struct {
 	*s3.Client
-	Region            string
-	Url               string
-	Key               string
-	Secret            string
-	HostnameImmutable bool // https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/endpoints/#immutable-endpoints
+	Region string
+	Url    string
+	Key    string
+	Secret string
 }
 
-func NewS3Client(region, url, key, secret string, hostnameImmutable bool) *S3Client {
+func NewS3Client(region, url, key, secret string) *S3Client {
 	return &S3Client{
-		Region:            region,
-		Url:               url,
-		Key:               key,
-		Secret:            secret,
-		HostnameImmutable: hostnameImmutable,
+		Region: region,
+		Url:    url,
+		Key:    key,
+		Secret: secret,
 	}
 }
 
@@ -35,10 +33,9 @@ func (c *S3Client) Connect() error {
 	customResolver := aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
 		if c.Region == region {
 			return aws.Endpoint{
-				PartitionID:       "aws",
-				URL:               c.Url,
-				SigningRegion:     region,
-				HostnameImmutable: c.HostnameImmutable,
+				PartitionID:   "aws",
+				URL:           c.Url,
+				SigningRegion: region,
 			}, nil
 		}
 		// returning EndpointNotFoundError will allow the service to fallback to it's default resolution

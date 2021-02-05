@@ -566,8 +566,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	s3Address := viper.GetString("s3-address")
 	s3Key := viper.GetString("s3-key")
 	s3Secret := viper.GetString("s3-secret")
-	s3HostnameImmutable := viper.GetBool("s3-hostname-immutable")
-	s3Client := v1.NewS3Client(s3Region, s3Address, s3Key, s3Secret, s3HostnameImmutable)
+	s3Client := v1.NewS3Client(s3Region, s3Address, s3Key, s3Secret)
 	err = s3Client.Connect()
 	if err != nil {
 		logger.Fatal(err)

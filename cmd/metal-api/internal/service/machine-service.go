@@ -2042,11 +2042,11 @@ func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, respons
 }
 
 func (r machineResource) updateBIOS(request *restful.Request, response *restful.Response) {
-	r.machineCmd("updateBIOS", metal.BiosUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, strconv.FormatBool(r.s3Client.HostnameImmutable))
+	r.machineCmd("updateBIOS", metal.BiosUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
 }
 
 func (r machineResource) updateBMC(request *restful.Request, response *restful.Response) {
-	r.machineCmd("updateBMC", metal.BmcUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, strconv.FormatBool(r.s3Client.HostnameImmutable))
+	r.machineCmd("updateBMC", metal.BmcUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
