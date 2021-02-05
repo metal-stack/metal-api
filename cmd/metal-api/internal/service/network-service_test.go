@@ -370,9 +370,6 @@ func Test_networkResource_allocateNetwork(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		type integer struct {
-			ID uint
-		}
 		ds, mock := datastore.InitMockDB()
 
 		ipamer, err := testdata.InitMockIpamData(mock, false)
