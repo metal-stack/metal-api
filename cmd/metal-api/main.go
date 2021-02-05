@@ -178,7 +178,6 @@ func init() {
 	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server")
 	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server")
 	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server")
-	rootCmd.Flags().BoolP("s3-hostname-immutable", "", false, "whether the hostname is immutable or not")
 
 	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
