@@ -1786,8 +1786,13 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
 		ec.Liveliness = metal.MachineLivelinessAlive
 	} else {
-		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
-		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
+		if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPlannedReboot {
+			// machine free emits a planned reboot event, prevent the machine to set state back to phoned home while shutting down
+			zapup.MustRootLogger().Sugar().Debugw("swallowing phone home event after machine deletion", "id", ec.ID)
+		} else {
+			ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
+			ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
+		}
 		ec.Liveliness = metal.MachineLivelinessAlive
 	}
 	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
