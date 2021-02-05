@@ -17,7 +17,6 @@ var (
 		dbname:        "dbname",
 		dbuser:        "dbuser",
 		dbpass:        "password",
-		integerPools:  make(map[IntegerPoolType]*IntegerPool),
 	}
 )
 

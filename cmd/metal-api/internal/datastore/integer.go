@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"go.uber.org/zap"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -37,10 +38,11 @@ var (
 
 // IntegerPool manages unique integers
 type IntegerPool struct {
-	tablename string
+	poolType  IntegerPoolType
 	min       uint
 	max       uint
-	term      *r.Term
+	poolTable *r.Term
+	infoTable *r.Term
 	session   r.QueryExecutor
 }
 
@@ -50,16 +52,34 @@ type integer struct {
 
 // integerinfo contains information on the integer pool.
 type integerinfo struct {
-	IsInitialized bool `rethinkdb:"isInitialized" json:"isInitialized"`
+	ID            string `rethinkdb:"id"`
+	IsInitialized bool   `rethinkdb:"isInitialized" json:"isInitialized"`
 }
 
-// GetIntegerPool returns a named integerpool if already created
-func (rs *RethinkStore) GetIntegerPool(pool IntegerPoolType) (*IntegerPool, error) {
-	ip, ok := rs.integerPools[pool]
-	if !ok {
-		return nil, fmt.Errorf("no integerpool for %s created", pool)
+func (rs *RethinkStore) GetVRFPool() *IntegerPool {
+	return &IntegerPool{
+		poolType:  VRFIntegerPool,
+		session:   rs.session,
+		min:       VRFPoolRangeMin,
+		max:       VRFPoolRangeMax,
+		poolTable: rs.vrfTable(),
+		infoTable: rs.vrfInfoTable(),
 	}
-	return ip, nil
+}
+
+func (rs *RethinkStore) GetASNPool() *IntegerPool {
+	return &IntegerPool{
+		poolType:  ASNIntegerPool,
+		session:   rs.session,
+		min:       ASNPoolRangeMin,
+		max:       ASNPoolRangeMax,
+		poolTable: rs.asnTable(),
+		infoTable: rs.asnInfoTable(),
+	}
+}
+
+func (ip *IntegerPool) String() string {
+	return ip.poolType.String()
 }
 
 // initIntegerPool initializes a pool to acquire unique integers from.
@@ -93,47 +113,39 @@ func (rs *RethinkStore) GetIntegerPool(pool IntegerPoolType) (*IntegerPool, erro
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (rs *RethinkStore) initIntegerPool(pool IntegerPoolType, min, max uint) (*IntegerPool, error) {
-	var result integerinfo
-	tablename := pool.String()
-	err := rs.findEntityByID(rs.integerInfoTable(tablename), &result, tablename)
+func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
+	var info integerinfo
+	err := ip.infoTable.ReadOne(&info, ip.session)
+	if err != nil && err != r.ErrEmptyResult {
+		return err
+	}
+
+	log.Infow("pool info", "id", ip.String(), "info", info)
+	if info.IsInitialized {
+		return nil
+	}
+
+	log.Infow("initializing integer pool", "for", ip.String(), "RangeMin", ip.min, "RangeMax", ip.max)
+	intRange := makeRange(ip.min, ip.max)
+	_, err = ip.poolTable.Insert(intRange).RunWrite(ip.session, r.RunOpts{ArrayLimit: ip.max})
 	if err != nil {
-		if !metal.IsNotFound(err) {
-			return nil, err
-		}
+		return err
 	}
 
-	ip := &IntegerPool{
-		tablename: tablename,
-		min:       min,
-		max:       max,
-		session:   rs.session,
-		term:      rs.integerTable(tablename),
-	}
-	rs.integerPools[pool] = ip
-	rs.SugaredLogger.Infow("pool info", "table", tablename, "info", result)
-	if result.IsInitialized {
-		return ip, nil
-	}
-
-	rs.SugaredLogger.Infow("Initializing integer pool", "for", tablename, "RangeMin", min, "RangeMax", max)
-	intRange := makeRange(min, max)
-	_, err = rs.integerTable(tablename).Insert(intRange).RunWrite(rs.session, r.RunOpts{ArrayLimit: max})
+	_, err = ip.infoTable.Insert(integerinfo{
+		ID:            ip.String(),
+		IsInitialized: true,
+	}).RunWrite(ip.session)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	_, err = rs.integerInfoTable(tablename).Insert(map[string]interface{}{"id": tablename, "IsInitialized": true}).RunWrite(rs.session)
-	return ip, err
-}
 
-func (ip *IntegerPool) RenewSession(term *r.Term, session r.QueryExecutor) {
-	ip.term = term
-	ip.session = session
+	return nil
 }
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
 func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
-	t := ip.term.Limit(1)
+	t := ip.poolTable.Limit(1)
 	return ip.genericAcquire(&t)
 }
 
@@ -143,7 +155,7 @@ func (ip *IntegerPool) AcquireUniqueInteger(value uint) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	t := ip.term.Get(value)
+	t := ip.poolTable.Get(value)
 	return ip.genericAcquire(&t)
 }
 
@@ -157,7 +169,7 @@ func (ip *IntegerPool) ReleaseUniqueInteger(id uint) error {
 	i := integer{
 		ID: id,
 	}
-	_, err = ip.term.Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(ip.session)
+	_, err = ip.poolTable.Insert(i, r.InsertOpts{Conflict: "replace"}).RunWrite(ip.session)
 	if err != nil {
 		return err
 	}
@@ -172,7 +184,7 @@ func (ip *IntegerPool) genericAcquire(term *r.Term) (uint, error) {
 	}
 
 	if len(res.Changes) == 0 {
-		res, err := ip.term.Count().Run(ip.session)
+		res, err := ip.poolTable.Count().Run(ip.session)
 		if err != nil {
 			return 0, err
 		}

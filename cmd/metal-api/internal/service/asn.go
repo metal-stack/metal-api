@@ -21,11 +21,7 @@ const (
 
 // acquireASN fetches a unique integer by using the existing integer pool and adding to ASNBase
 func acquireASN(ds *datastore.RethinkStore) (*uint32, error) {
-	asnPool, err := ds.GetIntegerPool(datastore.ASNIntegerPool)
-	if err != nil {
-		return nil, err
-	}
-	i, err := asnPool.AcquireRandomUniqueInteger()
+	i, err := ds.GetASNPool().AcquireRandomUniqueInteger()
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +39,5 @@ func releaseASN(ds *datastore.RethinkStore, asn uint32) error {
 	}
 	i := uint(asn - ASNBase)
 
-	asnPool, err := ds.GetIntegerPool(datastore.ASNIntegerPool)
-	if err != nil {
-		return err
-	}
-	return asnPool.ReleaseUniqueInteger(i)
+	return ds.GetASNPool().ReleaseUniqueInteger(i)
 }
