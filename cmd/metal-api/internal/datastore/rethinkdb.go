@@ -28,11 +28,10 @@ type RethinkStore struct {
 	session   r.QueryExecutor
 	dbsession *r.Session
 
-	dbname       string
-	dbuser       string
-	dbpass       string
-	dbhost       string
-	integerPools map[IntegerPoolType]*IntegerPool
+	dbname string
+	dbuser string
+	dbpass string
+	dbhost string
 }
 
 // New creates a new rethink store.
@@ -43,7 +42,6 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 		dbname:        dbname,
 		dbuser:        dbuser,
 		dbpass:        dbpass,
-		integerPools:  make(map[IntegerPoolType]*IntegerPool),
 	}
 }
 
@@ -66,13 +64,15 @@ func (rs *RethinkStore) Health() error {
 	)
 }
 
-// Initialize initializes the database, it should be called every time
-// the application comes up before using the data store
+// Initialize initializes the database, it should be called before serving the metal-api
+// in order to ensure that tables, pools, permissions are properly initialized
 func (rs *RethinkStore) Initialize() error {
 	return rs.initializeTables(r.TableCreateOpts{Shards: 1, Replicas: 1})
 }
 
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
+	rs.Info("starting database init")
+
 	db := rs.db()
 
 	err := multi(rs.session,
@@ -119,17 +119,15 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	}
 
 	// integer pools
-	vrfPool, err := rs.initIntegerPool(VRFIntegerPool, VRFPoolRangeMin, VRFPoolRangeMax)
+	err = rs.GetVRFPool().initIntegerPool(rs.SugaredLogger)
 	if err != nil {
 		return err
 	}
-	rs.integerPools[VRFIntegerPool] = vrfPool
 
-	asnPool, err := rs.initIntegerPool(ASNIntegerPool, ASNPoolRangeMin, ASNPoolRangeMax)
+	err = rs.GetASNPool().initIntegerPool(rs.SugaredLogger)
 	if err != nil {
 		return err
 	}
-	rs.integerPools[ASNIntegerPool] = asnPool
 
 	rs.Info("database init complete")
 
@@ -168,12 +166,20 @@ func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
 	return &res
 }
-func (rs *RethinkStore) integerTable(tablename string) *r.Term {
-	res := r.DB(rs.dbname).Table(tablename)
+func (rs *RethinkStore) asnTable() *r.Term {
+	res := r.DB(rs.dbname).Table(ASNIntegerPool.String())
 	return &res
 }
-func (rs *RethinkStore) integerInfoTable(tablename string) *r.Term {
-	res := r.DB(rs.dbname).Table(tablename + "info")
+func (rs *RethinkStore) asnInfoTable() *r.Term {
+	res := r.DB(rs.dbname).Table(ASNIntegerPool.String() + "info")
+	return &res
+}
+func (rs *RethinkStore) vrfTable() *r.Term {
+	res := r.DB(rs.dbname).Table(VRFIntegerPool.String())
+	return &res
+}
+func (rs *RethinkStore) vrfInfoTable() *r.Term {
+	res := r.DB(rs.dbname).Table(VRFIntegerPool.String() + "info")
 	return &res
 }
 func (rs *RethinkStore) migrationTable() *r.Term {
@@ -228,10 +234,6 @@ func (rs *RethinkStore) Demote() error {
 	}
 	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
-
-	for name, pool := range rs.integerPools {
-		pool.RenewSession(rs.integerTable(name.String()), rs.session)
-	}
 
 	rs.Info("rethinkstore connected with demoted user")
 	return nil

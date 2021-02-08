@@ -546,6 +546,10 @@
           "description": "the machine an ip address is associated to",
           "type": "string"
         },
+        "name": {
+          "description": "the name of the ip address",
+          "type": "string"
+        },
         "networkid": {
           "description": "the network this ip allocate request address belongs to",
           "type": "string"
