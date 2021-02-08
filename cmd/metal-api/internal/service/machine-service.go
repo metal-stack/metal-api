@@ -1792,8 +1792,8 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 		} else {
 			ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
 			ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
+			ec.Liveliness = metal.MachineLivelinessAlive
 		}
-		ec.Liveliness = metal.MachineLivelinessAlive
 	}
 	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
 
