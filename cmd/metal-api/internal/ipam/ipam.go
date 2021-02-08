@@ -20,7 +20,7 @@ func New(ip ipam.Ipamer) *Ipam {
 }
 
 // AllocateChildPrefix creates a child prefix from a parent prefix in the IPAM.
-func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (*metal.Prefix, error) {
+func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
 	ipamParentPrefix := i.ip.PrefixFrom(parentPrefix.String())
 
 	if ipamParentPrefix == nil {
@@ -131,12 +131,12 @@ func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 		return nil, fmt.Errorf("prefix for cidr:%s not found", cidr)
 	}
 	usage := prefix.Usage()
-
 	return &metal.NetworkUsage{
-		AvailableIPs:      usage.AvailableIPs,
-		UsedIPs:           usage.AcquiredIPs,
-		AvailablePrefixes: usage.AvailablePrefixes,
-		UsedPrefixes:      usage.AcquiredPrefixes,
+		AvailableIPs:        usage.AvailableIPs,
+		UsedIPs:             usage.AcquiredIPs,
+		AvailablePrefixes:   usage.AvailableSmallestPrefixes,
+		AvailablePrefixList: usage.AvailablePrefixes,
+		UsedPrefixes:        usage.AcquiredPrefixes,
 	}, nil
 }
 

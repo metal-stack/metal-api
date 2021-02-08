@@ -1996,6 +1996,10 @@
     },
     "v1.NetworkAllocateRequest": {
       "properties": {
+        "address_family": {
+          "description": "can be ipv4 or ipv6, defaults to ipv4",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -2006,6 +2010,11 @@
           },
           "description": "free labels that you associate with this network.",
           "type": "object"
+        },
+        "length": {
+          "description": "the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix",
+          "format": "byte",
+          "type": "integer"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -2027,6 +2036,11 @@
     },
     "v1.NetworkCreateRequest": {
       "properties": {
+        "childprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -2166,6 +2180,11 @@
           "readOnly": true,
           "type": "string"
         },
+        "childprefixlength": {
+          "description": "if privatesuper, this defines the bitlen of child prefixes if not nil",
+          "format": "byte",
+          "type": "integer"
+        },
         "created": {
           "description": "the creation time of this entity",
           "format": "date-time",
@@ -2303,8 +2322,15 @@
           "format": "integer",
           "type": "integer"
         },
+        "available_prefix_list": {
+          "description": "a list of possible child prefixes",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "available_prefixes": {
-          "description": "the total available Prefixes",
+          "description": "the total available 2 bit Prefixes",
           "format": "integer",
           "type": "integer"
         },
@@ -2321,6 +2347,7 @@
       },
       "required": [
         "available_ips",
+        "available_prefix_list",
         "available_prefixes",
         "used_ips",
         "used_prefixes"
@@ -2393,13 +2420,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [
@@ -2441,13 +2461,6 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
-        },
-        "privatenetworkprefixlength": {
-          "description": "the length of private networks for the machine's child networks in this partition, default 22",
-          "format": "int32",
-          "maximum": 30,
-          "minimum": 16,
-          "type": "integer"
         }
       },
       "required": [

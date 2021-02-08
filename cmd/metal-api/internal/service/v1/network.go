@@ -19,6 +19,7 @@ type NetworkImmutable struct {
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	PrivateSuper        bool     `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
+	ChildPrefixLength   *uint8   `json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil" optional:"true"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
 	VrfShared           *bool    `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)" optional:"true"`
@@ -27,10 +28,11 @@ type NetworkImmutable struct {
 
 // NetworkUsage reports core metrics about available and used IPs or Prefixes in a Network.
 type NetworkUsage struct {
-	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
-	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs        uint64   `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs             uint64   `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes   uint64   `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	AvailablePrefixList []string `json:"available_prefix_list" description:"a list of possible child prefixes"`
+	UsedPrefixes        uint64   `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // NetworkCreateRequest is used to create a new Network.
@@ -45,6 +47,29 @@ type NetworkCreateRequest struct {
 type NetworkAllocateRequest struct {
 	Describable
 	NetworkBase
+	AddressFamily *string `json:"address_family" description:"can be ipv4 or ipv6, defaults to ipv4" optional:"true"`
+	Length        *uint8  `json:"length" description:"the bitlen of the prefix to allocate, defaults to childprefixlength of super prefix" optional:"true"`
+}
+
+// AddressFamily identifies IPv4/IPv6
+type AddressFamily string
+
+const (
+	// IPv4AddressFamily identifies IPv4
+	IPv4AddressFamily = AddressFamily("IPv4")
+	// IPv6AddressFamily identifies IPv6
+	IPv6AddressFamily = AddressFamily("IPv6")
+)
+
+// ToAddressFamily will convert a string af to a AddressFamily
+func ToAddressFamily(af string) AddressFamily {
+	switch af {
+	case "IPv4", "ipv4":
+		return IPv4AddressFamily
+	case "IPv6", "ipv6":
+		return IPv6AddressFamily
+	}
+	return IPv4AddressFamily
 }
 
 // NetworkFindRequest is used to find a Network with different criteria.
@@ -105,15 +130,17 @@ func NewNetworkResponse(network *metal.Network, usage *metal.NetworkUsage) *Netw
 			DestinationPrefixes: network.DestinationPrefixes.String(),
 			Nat:                 network.Nat,
 			PrivateSuper:        network.PrivateSuper,
+			ChildPrefixLength:   network.ChildPrefixLength,
 			Underlay:            network.Underlay,
 			Vrf:                 &network.Vrf,
 			ParentNetworkID:     parentNetworkID,
 		},
 		Usage: NetworkUsage{
-			AvailableIPs:      usage.AvailableIPs,
-			UsedIPs:           usage.UsedIPs,
-			AvailablePrefixes: usage.AvailablePrefixes,
-			UsedPrefixes:      usage.UsedPrefixes,
+			AvailableIPs:        usage.AvailableIPs,
+			UsedIPs:             usage.UsedIPs,
+			AvailablePrefixes:   usage.AvailablePrefixes,
+			AvailablePrefixList: usage.AvailablePrefixList,
+			UsedPrefixes:        usage.UsedPrefixes,
 		},
 		Timestamps: Timestamps{
 			Created: network.Created,

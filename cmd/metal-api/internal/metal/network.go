@@ -3,7 +3,8 @@ package metal
 import (
 	"fmt"
 	"net"
-	"strings"
+
+	"inet.af/netaddr"
 )
 
 // A MacAddress is the type for mac adresses. When using a
@@ -32,15 +33,13 @@ type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
 func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
-	parts := strings.Split(cidr, "/")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("cannot split cidr into pieces: %v", cidr)
+	ipprefix, err := netaddr.ParseIPPrefix(cidr)
+	if err != nil {
+		return nil, err
 	}
-	ip := strings.TrimSpace(parts[0])
-	length := strings.TrimSpace(parts[1])
 	return &Prefix{
-		IP:     ip,
-		Length: length,
+		IP:     ipprefix.IP.String(),
+		Length: fmt.Sprintf("%d", ipprefix.Bits),
 	}, nil
 }
 
@@ -73,6 +72,7 @@ type Network struct {
 	ParentNetworkID     string            `rethinkdb:"parentnetworkid" json:"parentnetworkid"`
 	Vrf                 uint              `rethinkdb:"vrf" json:"vrf"`
 	PrivateSuper        bool              `rethinkdb:"privatesuper" json:"privatesuper"`
+	ChildPrefixLength   *uint8            `rethinkdb:"childprefixlength" json:"childprefixlength" description:"if privatesuper, this defines the bitlen of child prefixes if not nil"`
 	Nat                 bool              `rethinkdb:"nat" json:"nat"`
 	Underlay            bool              `rethinkdb:"underlay" json:"underlay"`
 	Shared              bool              `rethinkdb:"shared" json:"shared"`
@@ -87,10 +87,11 @@ type NetworkMap map[string]Network
 
 // NetworkUsage contains usage information of a network
 type NetworkUsage struct {
-	AvailableIPs      uint64 `json:"available_ips" description:"the total available IPs" readonly:"true"`
-	UsedIPs           uint64 `json:"used_ips" description:"the total used IPs" readonly:"true"`
-	AvailablePrefixes uint64 `json:"available_prefixes" description:"the total available Prefixes" readonly:"true"`
-	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
+	AvailableIPs        uint64   `json:"available_ips" description:"the total available IPs" readonly:"true"`
+	UsedIPs             uint64   `json:"used_ips" description:"the total used IPs" readonly:"true"`
+	AvailablePrefixes   uint64   `json:"available_prefixes" description:"the total available 2 bit Prefixes" readonly:"true"`
+	AvailablePrefixList []string `json:"available_prefix_list" description:"a list of possible child prefixes"`
+	UsedPrefixes        uint64   `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
 // ByID creates an indexed map of partitions whre the id is the index.
@@ -147,6 +148,7 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	return result
 }
 
+// NicMap returns the nic for a given macaddress
 type NicMap map[MacAddress]*Nic
 
 // ByMac creates a indexed map from a nic list.

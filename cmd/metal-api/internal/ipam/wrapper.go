@@ -11,7 +11,7 @@ type IPAMer interface {
 	AllocateIP(prefix metal.Prefix) (string, error)
 	AllocateSpecificIP(prefix metal.Prefix, specificIP string) (string, error)
 	ReleaseIP(ip metal.IP) error
-	AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (*metal.Prefix, error)
+	AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error)
 	ReleaseChildPrefix(childPrefix metal.Prefix) error
 	CreatePrefix(prefix metal.Prefix) error
 	DeletePrefix(prefix metal.Prefix) error

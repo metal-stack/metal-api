@@ -268,6 +268,8 @@ var (
 	prefixes2    = []metal.Prefix{prefix2}
 	prefixes3    = []metal.Prefix{prefix3}
 	prefixesIPAM = []metal.Prefix{prefixIPAM}
+	cpl1         = uint8(28)
+	cpl2         = uint8(22)
 
 	Nw1 = metal.Network{
 		Base: metal.Base{
@@ -275,9 +277,10 @@ var (
 			Name:        "Network 1",
 			Description: "description 1",
 		},
-		PartitionID:  Partition1.ID,
-		Prefixes:     prefixes1,
-		PrivateSuper: true,
+		PartitionID:       Partition1.ID,
+		Prefixes:          prefixes1,
+		PrivateSuper:      true,
+		ChildPrefixLength: &cpl1,
 	}
 	Nw2 = metal.Network{
 		Base: metal.Base{
@@ -285,8 +288,10 @@ var (
 			Name:        "Network 2",
 			Description: "description 2",
 		},
-		Prefixes: prefixes2,
-		Underlay: true,
+		PartitionID:       Partition1.ID,
+		Prefixes:          prefixes2,
+		Underlay:          true,
+		ChildPrefixLength: &cpl2,
 	}
 	Nw3 = metal.Network{
 		Base: metal.Base{
@@ -461,6 +466,13 @@ var (
 		Tags:        []string{tag.MachineID},
 		ProjectID:   "1",
 	}
+	IP4 = metal.IP{
+		IPAddress:   "2001:0db8:85a3::1",
+		Name:        "IPv6 4",
+		Description: "description 4",
+		Type:        "ephemeral",
+		ProjectID:   "1",
+	}
 	IPAMIP = metal.IP{
 		Name:        "IPAM IP",
 		Description: "description IPAM",
@@ -494,7 +506,6 @@ var (
 			Name:        "partition1",
 			Description: "description 1",
 		},
-		PrivateNetworkPrefixLength: 22,
 	}
 	Partition2 = metal.Partition{
 		Base: metal.Base{
@@ -502,7 +513,6 @@ var (
 			Name:        "partition2",
 			Description: "description 2",
 		},
-		PrivateNetworkPrefixLength: 22,
 	}
 	Partition3 = metal.Partition{
 		Base: metal.Base{
@@ -510,7 +520,6 @@ var (
 			Name:        "partition3",
 			Description: "description 3",
 		},
-		PrivateNetworkPrefixLength: 22,
 	}
 
 	// Switches
@@ -685,7 +694,7 @@ var (
 	}
 	// All IPs
 	TestIPs = []metal.IP{
-		IP1, IP2, IP3,
+		IP1, IP2, IP3, IP4,
 	}
 
 	// All Events
@@ -798,11 +807,14 @@ func InitMockDBData(mock *r.Mock) {
 
 	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
+	//	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything()).Filter(r.MockAnything())).Return(metal.Networks{Nw1, Nw2}, nil)
+
 	mock.On(r.DB("mockdb").Table("network").Filter(func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("1") }).Filter(func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(Nw3, nil)
 
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("3.4.5.6")).Return(IP3, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get("2001:0db8:85a3::1")).Return(IP4, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("8.8.8.8")).Return(nil, fmt.Errorf("Test Error"))
 	mock.On(r.DB("mockdb").Table("ip").Get("9.9.9.9")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(Partition1InternetIP.IPAddress)).Return(Partition1InternetIP, nil)

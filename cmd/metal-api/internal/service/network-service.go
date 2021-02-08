@@ -9,6 +9,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
+	"inet.af/netaddr"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -196,6 +197,7 @@ func (r networkResource) findNetworks(request *restful.Request, response *restfu
 	}
 }
 
+// TODO allow creation of networks with childprefixlength which are not privatesuper
 func (r networkResource) createNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkCreateRequest
 	err := request.ReadEntity(&requestPayload)
@@ -250,23 +252,42 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 	}
 	prefixes := metal.Prefixes{}
-	// all Prefixes must be valid
+	addressFamilies := make(map[string]bool)
+	// all Prefixes must be valid and from the same addressfamily
 	for _, p := range requestPayload.Prefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		// TODO: Should return a bad request 401
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %s is not valid: %v", p, err)) {
 				return
 			}
 		}
+		ipprefix, err := netaddr.ParseIPPrefix(p)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %s is not valid: %v", p, err)) {
+				return
+			}
+		}
+		if ipprefix.IP.Is4() {
+			addressFamilies["ipv4"] = true
+		}
+		if ipprefix.IP.Is6() {
+			addressFamilies["ipv6"] = true
+		}
 		prefixes = append(prefixes, *prefix)
+	}
+
+	if len(addressFamilies) > 1 {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefixes have different addressfamilies")) {
+			return
+		}
 	}
 
 	destPrefixes := metal.Prefixes{}
 	for _, p := range requestPayload.DestinationPrefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not valid: %v", p, err)) {
 				return
 			}
 		}
@@ -301,9 +322,12 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 			return
 		}
 
+		// We should support two private super per partition, one per addressfamily
+		// the network allocate request must be configurable with addressfamily
 		if privateSuper {
 			boolTrue := true
-			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &metal.Network{})
+			var nw metal.Network
+			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &nw)
 			if err != nil {
 				if !metal.IsNotFound(err) {
 					if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -311,8 +335,24 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 					}
 				}
 			} else {
-				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a private super network", partition.ID)) {
-					return
+				existingsuper := nw.Prefixes[0].String()
+				ipprefxexistingsuper, err := netaddr.ParseIPPrefix(existingsuper)
+				if err != nil {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not valid: %v", existingsuper, err)) {
+						return
+					}
+				}
+				newsuper := prefixes[0].String()
+				ipprefixnew, err := netaddr.ParseIPPrefix(newsuper)
+				if err != nil {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not valid: %v", newsuper, err)) {
+						return
+					}
+				}
+				if (ipprefixnew.IP.Is4() && ipprefxexistingsuper.IP.Is4()) || (ipprefixnew.IP.Is6() && ipprefxexistingsuper.IP.Is6()) {
+					if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partition with id %q already has a private super network for this addressfamily", partition.ID)) {
+						return
+					}
 				}
 			}
 		}
@@ -372,6 +412,25 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		Labels:              labels,
 	}
 
+	// check if childprefixlength is set and matches addressfamily
+	if requestPayload.ChildPrefixLength != nil && privateSuper {
+		cpl := *requestPayload.ChildPrefixLength
+		for _, p := range prefixes {
+			ipprefix, err := netaddr.ParseIPPrefix(p.String())
+			if err != nil {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+					return
+				}
+			}
+			if cpl <= ipprefix.Bits {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given childprefixlength %d is not greater than prefix length of:%s", cpl, p.String())) {
+					return
+				}
+			}
+		}
+		nw.ChildPrefixLength = requestPayload.ChildPrefixLength
+	}
+
 	for _, p := range nw.Prefixes {
 		err := r.ipamer.CreatePrefix(p)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -392,6 +451,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 }
 
+// TODO add possibility to allocate from a non super network if given in the AllocateRequest and super has childprefixlength
 func (r networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkAllocateRequest
 	err := request.ReadEntity(&requestPayload)
@@ -441,12 +501,42 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		return
 	}
 
-	var superNetwork metal.Network
+	var superNetworks metal.Networks
 	boolTrue := true
-	err = r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetwork)
+	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetworks)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
+	addressFamily := v1.IPv4AddressFamily
+	if requestPayload.AddressFamily != nil {
+		addressFamily = v1.ToAddressFamily(*requestPayload.AddressFamily)
+	}
+	zapup.MustRootLogger().Sugar().Infow("network allocate", "family", addressFamily)
+	var (
+		superNetwork      metal.Network
+		superNetworkFound bool
+	)
+	for _, snw := range superNetworks {
+		ipprefix, err := netaddr.ParseIPPrefix(snw.Prefixes[0].String())
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if addressFamily == v1.IPv4AddressFamily && ipprefix.IP.Is4() {
+			superNetwork = snw
+			superNetworkFound = true
+		}
+		if addressFamily == v1.IPv6AddressFamily && ipprefix.IP.Is6() {
+			superNetwork = snw
+			superNetworkFound = true
+		}
+	}
+	if !superNetworkFound {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no supernetwork for addressfamily:%s found", addressFamily)) {
+			return
+		}
+	}
+	zapup.MustRootLogger().Sugar().Infow("network allocate", "supernetwork", superNetwork.ID)
 
 	nwSpec := &metal.Network{
 		Base: metal.Base{
@@ -454,12 +544,24 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 			Description: description,
 		},
 		PartitionID: partition.ID,
-		ProjectID:   project.GetProject().GetMeta().GetId(),
+		ProjectID:   project.GetProject().GetMeta().Id,
 		Labels:      requestPayload.Labels,
 		Shared:      shared,
 	}
 
-	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
+	if superNetwork.ChildPrefixLength == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("supernetwork %s has no childprefixlength specified", superNetwork.ID)) {
+			return
+		}
+	}
+
+	// Allow configurable prefix length
+	length := *superNetwork.ChildPrefixLength
+	if requestPayload.Length != nil {
+		length = *requestPayload.Length
+	}
+
+	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, length)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -472,7 +574,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	}
 }
 
-func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
+func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
 	vrf, err := acquireRandomVRF(ds)
 	if err != nil {
 		return nil, fmt.Errorf("Could not acquire a vrf: %v", err)
@@ -723,13 +825,14 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 		}
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs
 		usage.UsedIPs = usage.UsedIPs + u.UsedIPs
+		usage.AvailablePrefixList = append(usage.AvailablePrefixList, u.AvailablePrefixList...)
 		usage.AvailablePrefixes = usage.AvailablePrefixes + u.AvailablePrefixes
 		usage.UsedPrefixes = usage.UsedPrefixes + u.UsedPrefixes
 	}
 	return usage
 }
 
-func createChildPrefix(parentPrefixes metal.Prefixes, childLength int, ipamer ipam.IPAMer) (*metal.Prefix, error) {
+func createChildPrefix(parentPrefixes metal.Prefixes, childLength uint8, ipamer ipam.IPAMer) (*metal.Prefix, error) {
 	var errors []error
 	var err error
 	var childPrefix *metal.Prefix
@@ -787,7 +890,7 @@ var (
 	)
 	availablePrefixesDesc = prometheus.NewDesc(
 		"metal_network_prefix_available",
-		"The total number of available prefixes of the network",
+		"The total number of available 2 bit prefixes of the network",
 		[]string{"networkId", "prefixes", "destPrefixes", "partitionId", "projectId", "parentNetworkID", "vrf", "isPrivateSuper", "useNat", "isUnderlay"}, nil,
 	)
 )
