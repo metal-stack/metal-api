@@ -1787,7 +1787,7 @@ func (r machineResource) provisioningEventForMachine(machineID string, e v1.Mach
 		ec.Liveliness = metal.MachineLivelinessAlive
 	} else {
 		if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPlannedReboot {
-			// machine free emits a planned reboot event, prevent the machine to set state back to phoned home while shutting down
+			// machine free emits a planned reboot event, now prevent the machine to set state back to phoned home while shutting down
 			zapup.MustRootLogger().Sugar().Debugw("swallowing phone home event after machine deletion", "id", ec.ID)
 		} else {
 			ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
@@ -1864,8 +1864,16 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 				provisioningEvents.Liveliness = metal.MachineLivelinessDead
 			}
 		} else {
-			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
+			events := provisioningEvents.Events
+			if len(events) > 0 && events[0].Event == metal.ProvisioningEventPlannedReboot && time.Since(events[0].Time) > metal.MachineDeadAfter {
+				// machine was rebooted but is still sending alive events
+				// probably reclaiming the machine did fail
+				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
+			} else {
+				provisioningEvents.Liveliness = metal.MachineLivelinessAlive
+			}
 		}
+
 		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
 		if err != nil {
 			return provisioningEvents.Liveliness, err
