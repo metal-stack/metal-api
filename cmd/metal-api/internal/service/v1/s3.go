@@ -36,6 +36,7 @@ func (c *S3Client) Connect() error {
 				PartitionID:   "aws",
 				URL:           c.Url,
 				SigningRegion: region,
+				HostnameImmutable: true,
 			}, nil
 		}
 		// returning EndpointNotFoundError will allow the service to fallback to it's default resolution
