@@ -3996,6 +3996,110 @@
         ]
       }
     },
+    "/v1/machine/upload/bios": {
+      "post": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "operationId": "uploadBIOSUpdate",
+        "parameters": [
+          {
+            "description": "the vendor",
+            "in": "query",
+            "name": "vendor",
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "query",
+            "name": "board",
+            "type": "string"
+          },
+          {
+            "description": "the BIOS update revision",
+            "in": "query",
+            "name": "revision",
+            "type": "string"
+          },
+          {
+            "description": "the BIOS update file",
+            "in": "formData",
+            "name": "file",
+            "type": "file"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "upload given BIOS update for given machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/upload/bmc": {
+      "post": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "operationId": "uploadBMCUpdate",
+        "parameters": [
+          {
+            "description": "the vendor",
+            "in": "query",
+            "name": "vendor",
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "query",
+            "name": "board",
+            "type": "string"
+          },
+          {
+            "description": "the BMC update revision",
+            "in": "query",
+            "name": "revision",
+            "type": "string"
+          },
+          {
+            "description": "the BMC update file",
+            "in": "formData",
+            "name": "file",
+            "type": "file"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "upload given BMC update for given machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
     "/v1/machine/{id}": {
       "delete": {
         "consumes": [
@@ -5007,116 +5111,6 @@
           }
         },
         "summary": "sends a bmc update command to the machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/upload/bios": {
-      "post": {
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "operationId": "uploadBIOSUpdate",
-        "parameters": [
-          {
-            "description": "the vendor",
-            "in": "path",
-            "name": "vendor",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the board",
-            "in": "path",
-            "name": "board",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the BIOS update revision",
-            "in": "path",
-            "name": "revision",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the BIOS update file",
-            "in": "formData",
-            "name": "file",
-            "type": "file"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "upload given BIOS update for given machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/upload/bmc": {
-      "post": {
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "operationId": "uploadBMCUpdate",
-        "parameters": [
-          {
-            "description": "the vendor",
-            "in": "path",
-            "name": "vendor",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the board",
-            "in": "path",
-            "name": "board",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the BMC update revision",
-            "in": "path",
-            "name": "revision",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the BMC update file",
-            "in": "formData",
-            "name": "file",
-            "type": "file"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "upload given BMC update for given machine",
         "tags": [
           "machine"
         ]

@@ -399,26 +399,26 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/upload/bios").
+	ws.Route(ws.POST("/upload/bios").
 		To(editor(r.uploadBIOSUpdate)).
 		Operation("uploadBIOSUpdate").
 		Doc("upload given BIOS update for given machine").
-		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
-		Param(ws.PathParameter("board", "the board").DataType("string")).
-		Param(ws.PathParameter("revision", "the BIOS update revision").DataType("string")).
+		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
+		Param(ws.QueryParameter("board", "the board").DataType("string")).
+		Param(ws.QueryParameter("revision", "the BIOS update revision").DataType("string")).
 		Param(ws.FormParameter("file", "the BIOS update file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("multipart/form-data").
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/upload/bmc").
+	ws.Route(ws.POST("/upload/bmc").
 		To(editor(r.uploadBMCUpdate)).
 		Operation("uploadBMCUpdate").
 		Doc("upload given BMC update for given machine").
-		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
-		Param(ws.PathParameter("board", "the board").DataType("string")).
-		Param(ws.PathParameter("revision", "the BMC update revision").DataType("string")).
+		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
+		Param(ws.QueryParameter("board", "the board").DataType("string")).
+		Param(ws.QueryParameter("revision", "the BMC update revision").DataType("string")).
 		Param(ws.FormParameter("file", "the BMC update file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("multipart/form-data").
@@ -2286,9 +2286,9 @@ func (r machineResource) uploadBMCUpdate(request *restful.Request, response *res
 }
 
 func (r machineResource) uploadUpdate(request *restful.Request, response *restful.Response, kind string) {
-	vendor := strings.ToLower(request.PathParameter("vendor"))
-	board := strings.ToUpper(request.PathParameter("board"))
-	revision := request.PathParameter("revision")
+	vendor := strings.ToLower(request.QueryParameter("vendor"))
+	board := strings.ToUpper(request.QueryParameter("board"))
+	revision := request.QueryParameter("revision")
 	file := &bytes.Buffer{}
 	_, err := file.ReadFrom(request.Request.Body)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
