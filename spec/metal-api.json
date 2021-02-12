@@ -3996,7 +3996,7 @@
         ]
       }
     },
-    "/v1/machine/upload/bios": {
+    "/v1/machine/upload/bios/{vendor}/{board}/{revision}": {
       "post": {
         "consumes": [
           "multipart/form-data"
@@ -4005,20 +4005,23 @@
         "parameters": [
           {
             "description": "the vendor",
-            "in": "query",
+            "in": "path",
             "name": "vendor",
+            "required": true,
             "type": "string"
           },
           {
             "description": "the board",
-            "in": "query",
+            "in": "path",
             "name": "board",
+            "required": true,
             "type": "string"
           },
           {
             "description": "the BIOS update revision",
-            "in": "query",
+            "in": "path",
             "name": "revision",
+            "required": true,
             "type": "string"
           },
           {
@@ -4048,7 +4051,7 @@
         ]
       }
     },
-    "/v1/machine/upload/bmc": {
+    "/v1/machine/upload/bmc/{vendor}/{board}/{revision}": {
       "post": {
         "consumes": [
           "multipart/form-data"
@@ -4057,20 +4060,23 @@
         "parameters": [
           {
             "description": "the vendor",
-            "in": "query",
+            "in": "path",
             "name": "vendor",
+            "required": true,
             "type": "string"
           },
           {
             "description": "the board",
-            "in": "query",
+            "in": "path",
             "name": "board",
+            "required": true,
             "type": "string"
           },
           {
             "description": "the BMC update revision",
-            "in": "query",
+            "in": "path",
             "name": "revision",
+            "required": true,
             "type": "string"
           },
           {
