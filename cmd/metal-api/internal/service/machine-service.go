@@ -2289,15 +2289,15 @@ func (r machineResource) uploadUpdate(request *restful.Request, response *restfu
 	vendor := strings.ToLower(request.PathParameter("vendor"))
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
-	var file []byte
-	err := request.ReadEntity(&file)
+	file := &bytes.Buffer{}
+	_, err := file.ReadFrom(request.Request.Body)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	resp, err := r.s3Client.ListBuckets(context.Background(), nil)
-	if err != nil {
-		panic(err)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 	bucketFound := false
 	for _, b := range resp.Buckets {
@@ -2317,7 +2317,7 @@ func (r machineResource) uploadUpdate(request *restful.Request, response *restfu
 
 	key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
 	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Body:   bytes.NewReader(file),
+		Body:   file,
 		Bucket: &vendor,
 		Key:    &key,
 	})
@@ -2350,8 +2350,8 @@ func (r machineResource) availableUpdates(request *restful.Request, response *re
 		Bucket: aws.String(bucketName),
 		Prefix: &prefix,
 	})
-	if err != nil {
-		panic(err)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 	var vv []string
 	for _, c := range r4.Contents {

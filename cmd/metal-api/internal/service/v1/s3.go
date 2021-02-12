@@ -33,9 +33,9 @@ func (c *S3Client) Connect() error {
 	customResolver := aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
 		if c.Region == region {
 			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           c.Url,
-				SigningRegion: region,
+				PartitionID:       "aws",
+				URL:               c.Url,
+				SigningRegion:     region,
 				HostnameImmutable: true,
 			}, nil
 		}
