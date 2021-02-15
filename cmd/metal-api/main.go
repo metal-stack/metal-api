@@ -504,7 +504,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		lf, err := time.ParseDuration(viper.GetString(lfkey))
 		if err != nil {
 			lg.Warnw("illegal value for hmac lifetime, use 30secs as default", "error", err, "val", lfkey)
-			lf = 30 * time.Second
+			lf = 90 * time.Second
 		}
 
 		user := defaultUsers.Get(u)

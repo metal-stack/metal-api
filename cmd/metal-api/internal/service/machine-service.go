@@ -2287,8 +2287,8 @@ func (r machineResource) uploadBMCUpdate(request *restful.Request, response *res
 
 func (r machineResource) uploadUpdate(request *restful.Request, response *restful.Response, kind string) {
 	vendor := strings.ToLower(request.PathParameter("vendor"))
-	//board := strings.ToUpper(request.PathParameter("board"))
-	//revision := request.PathParameter("revision")
+	board := strings.ToUpper(request.PathParameter("board"))
+	revision := request.PathParameter("revision")
 	file := &bytes.Buffer{}
 	_, err := file.ReadFrom(request.Request.Body)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2319,15 +2319,15 @@ func (r machineResource) uploadUpdate(request *restful.Request, response *restfu
 		}
 	}
 
-	//key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
-	//_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-	//	Body:   bytes.NewReader(file.Bytes()),
-	//	Bucket: &vendor,
-	//	Key:    &key,
-	//})
-	//if checkError(request, response, utils.CurrentFuncName(), err) {
-	//	return
-	//}
+	key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
+	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Body:   bytes.NewReader(file.Bytes()),
+		Bucket: &vendor,
+		Key:    &key,
+	})
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 
 	response.WriteHeader(http.StatusOK)
 }

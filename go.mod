@@ -20,7 +20,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/metal-stack/go-ipam v1.7.0
 	github.com/metal-stack/masterdata-api v0.8.4
-	github.com/metal-stack/metal-lib v0.6.6
+	github.com/metal-stack/metal-lib v0.6.9
 	github.com/metal-stack/security v0.4.0
 	github.com/metal-stack/v v1.0.2
 	github.com/nsqio/go-nsq v1.0.8
