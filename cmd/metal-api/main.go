@@ -212,7 +212,7 @@ func init() {
 	rootCmd.Flags().StringP("hmac-view-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("hmac-edit-key", "", "must-be-changed", "the preshared key for hmac security for a editing user")
-	rootCmd.Flags().StringP("hmac-edit-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
+	rootCmd.Flags().StringP("hmac-edit-lifetime", "", "90s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
@@ -504,7 +504,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		lf, err := time.ParseDuration(viper.GetString(lfkey))
 		if err != nil {
 			lg.Warnw("illegal value for hmac lifetime, use 30secs as default", "error", err, "val", lfkey)
-			lf = 90 * time.Second
+			lf = 30 * time.Second
 		}
 
 		user := defaultUsers.Get(u)
