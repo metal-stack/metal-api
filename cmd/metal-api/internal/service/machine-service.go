@@ -2291,16 +2291,20 @@ func (r machineResource) uploadUpdate(request *restful.Request, response *restfu
 	revision := request.PathParameter("revision")
 	file := &bytes.Buffer{}
 	_, err := file.ReadFrom(request.Request.Body)
+	log := utils.Logger(request).Sugar()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		log.Error(err)
 		return
 	}
 	err = request.Request.Body.Close()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		log.Error(err)
 		return
 	}
 
 	resp, err := r.s3Client.ListBuckets(context.Background(), nil)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		log.Error(err)
 		return
 	}
 	bucketFound := false
@@ -2326,6 +2330,7 @@ func (r machineResource) uploadUpdate(request *restful.Request, response *restfu
 		Key:    &key,
 	})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		log.Error(err)
 		return
 	}
 
