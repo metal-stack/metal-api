@@ -1973,6 +1973,10 @@
           "description": "a description why the machine has been updated",
           "type": "string"
         },
+        "kind": {
+          "description": "the firmware kind, i.e. 'bios' of 'bmc'",
+          "type": "string"
+        },
         "revision": {
           "description": "the update revision",
           "type": "string"
@@ -1980,6 +1984,7 @@
       },
       "required": [
         "description",
+        "kind",
         "revision"
       ]
     },
@@ -3997,7 +4002,7 @@
       }
     },
     "/v1/machine/upload-firmware/{vendor}/{board}/{revision}": {
-      "post": {
+      "put": {
         "consumes": [
           "multipart/form-data"
         ],
@@ -4962,13 +4967,6 @@
             "description": "identifier of the machine",
             "in": "path",
             "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
-            "in": "query",
-            "name": "kind",
             "required": true,
             "type": "string"
           },

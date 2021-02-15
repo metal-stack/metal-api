@@ -101,6 +101,7 @@ type MachineAvailableFirmwares struct {
 }
 
 type MachineUpdateFirmware struct {
+	Kind        string `json:"kind" description:"the firmware kind, i.e. 'bios' of 'bmc'"`
 	Revision    string `json:"revision" description:"the update revision"`
 	Description string `json:"description" description:"a description why the machine has been updated"`
 }

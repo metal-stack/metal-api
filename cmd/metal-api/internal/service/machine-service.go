@@ -411,7 +411,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/upload-firmware/{vendor}/{board}/{revision}").
+	ws.Route(ws.PUT("/upload-firmware/{vendor}/{board}/{revision}").
 		To(editor(r.uploadFirmware)).
 		Operation("uploadFirmware").
 		Doc("upload given firmware update for given machine").
@@ -441,7 +441,6 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("updateFirmware").
 		Doc("sends a firmware command to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineUpdateFirmware{}).
 		Writes(v1.MachineResponse{}).
@@ -2023,11 +2022,12 @@ func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, respons
 }
 
 func (r machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
-	kind, err := kindQueryParameter(request)
+	var p v1.MachineUpdateFirmware
+	err := request.ReadEntity(&p)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, kind, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
+	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
