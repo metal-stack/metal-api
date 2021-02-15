@@ -376,11 +376,10 @@ const (
 	MachineBiosCmd           MachineCommand = "BIOS"
 	MachineDiskCmd           MachineCommand = "DISK"
 	MachinePxeCmd            MachineCommand = "PXE"
-	MachineReinstall         MachineCommand = "REINSTALL"
+	MachineReinstallCmd      MachineCommand = "REINSTALL"
 	ChassisIdentifyLEDOnCmd  MachineCommand = "LED-ON"
 	ChassisIdentifyLEDOffCmd MachineCommand = "LED-OFF"
-	BiosUpdate               MachineCommand = "BIOS-UPDATE"
-	BmcUpdate                MachineCommand = "BMC-UPDATE"
+	UpdateFirmwareCmd        MachineCommand = "UPDATE-FIRMWARE"
 )
 
 // A MachineExecCommand can be sent via a MachineEvent to execute

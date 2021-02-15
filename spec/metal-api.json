@@ -997,7 +997,7 @@
         "networkid"
       ]
     },
-    "v1.MachineAvailableUpdates": {
+    "v1.MachineAvailableFirmwares": {
       "properties": {
         "revisions": {
           "description": "list of all available BIOS updates",
@@ -1967,7 +1967,7 @@
         "value"
       ]
     },
-    "v1.MachineUpdate": {
+    "v1.MachineUpdateFirmware": {
       "properties": {
         "description": {
           "description": "a description why the machine has been updated",
@@ -3996,12 +3996,12 @@
         ]
       }
     },
-    "/v1/machine/upload/bios/{vendor}/{board}/{revision}": {
+    "/v1/machine/upload-firmware/{vendor}/{board}/{revision}": {
       "post": {
         "consumes": [
           "multipart/form-data"
         ],
-        "operationId": "uploadBIOSUpdate",
+        "operationId": "uploadFirmware",
         "parameters": [
           {
             "description": "the vendor",
@@ -4018,14 +4018,21 @@
             "type": "string"
           },
           {
-            "description": "the BIOS update revision",
+            "description": "the firmware update revision",
             "in": "path",
             "name": "revision",
             "required": true,
             "type": "string"
           },
           {
-            "description": "the BIOS update file",
+            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the firmware update file",
             "in": "formData",
             "name": "file",
             "type": "file"
@@ -4045,62 +4052,7 @@
             }
           }
         },
-        "summary": "upload given BIOS update for given machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/upload/bmc/{vendor}/{board}/{revision}": {
-      "post": {
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "operationId": "uploadBMCUpdate",
-        "parameters": [
-          {
-            "description": "the vendor",
-            "in": "path",
-            "name": "vendor",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the board",
-            "in": "path",
-            "name": "board",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the BMC update revision",
-            "in": "path",
-            "name": "revision",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the BMC update file",
-            "in": "formData",
-            "name": "file",
-            "type": "file"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "upload given BMC update for given machine",
+        "summary": "upload given firmware update for given machine",
         "tags": [
           "machine"
         ]
@@ -4226,17 +4178,24 @@
         ]
       }
     },
-    "/v1/machine/{id}/available-bios-updates": {
+    "/v1/machine/{id}/available-firmwares": {
       "get": {
         "consumes": [
           "application/json"
         ],
-        "operationId": "availableBIOSUpdates",
+        "operationId": "availableFirmwares",
         "parameters": [
           {
             "description": "identifier of the machine",
             "in": "path",
             "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "in": "query",
+            "name": "kind",
             "required": true,
             "type": "string"
           }
@@ -4248,7 +4207,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineAvailableUpdates"
+              "$ref": "#/definitions/v1.MachineAvailableFirmwares"
             }
           },
           "default": {
@@ -4258,45 +4217,7 @@
             }
           }
         },
-        "summary": "returns all available BIOS updates for the machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/available-bmc-updates": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "availableBMCUpdates",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineAvailableUpdates"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "returns all available BMC updates for the machine",
+        "summary": "returns all available firmwares for the machine",
         "tags": [
           "machine"
         ]
@@ -5030,12 +4951,12 @@
         ]
       }
     },
-    "/v1/machine/{id}/update/bios": {
+    "/v1/machine/{id}/update-firmware": {
       "post": {
         "consumes": [
           "application/json"
         ],
-        "operationId": "updateBIOS",
+        "operationId": "updateFirmware",
         "parameters": [
           {
             "description": "identifier of the machine",
@@ -5045,11 +4966,18 @@
             "type": "string"
           },
           {
+            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "type": "string"
+          },
+          {
             "in": "body",
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.MachineUpdate"
+              "$ref": "#/definitions/v1.MachineUpdateFirmware"
             }
           }
         ],
@@ -5070,53 +4998,7 @@
             }
           }
         },
-        "summary": "sends a BIOS update command to the machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/update/bmc": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "updateBMC",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineUpdate"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "sends a bmc update command to the machine",
+        "summary": "sends a firmware command to the machine",
         "tags": [
           "machine"
         ]

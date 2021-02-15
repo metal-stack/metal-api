@@ -93,6 +93,18 @@ type Allocation <-chan MachineAllocation
 // allocated machines.
 type Allocator func(Allocation) error
 
+type FirmwareKind = string
+
+const (
+	bios FirmwareKind = "bios"
+	bmc  FirmwareKind = "bmc"
+)
+
+var firmwareKinds = []string{
+	bios,
+	bmc,
+}
+
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
 	ds *datastore.RethinkStore,
@@ -399,70 +411,39 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/upload/bios/{vendor}/{board}/{revision}").
-		To(editor(r.uploadBIOSUpdate)).
-		Operation("uploadBIOSUpdate").
-		Doc("upload given BIOS update for given machine").
+	ws.Route(ws.POST("/upload-firmware/{vendor}/{board}/{revision}").
+		To(editor(r.uploadFirmware)).
+		Operation("uploadFirmware").
+		Doc("upload given firmware update for given machine").
 		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.PathParameter("board", "the board").DataType("string")).
-		Param(ws.PathParameter("revision", "the BIOS update revision").DataType("string")).
-		Param(ws.FormParameter("file", "the BIOS update file").DataType("file")).
+		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
+		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
+		Param(ws.FormParameter("file", "the firmware update file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("multipart/form-data").
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/upload/bmc/{vendor}/{board}/{revision}").
-		To(editor(r.uploadBMCUpdate)).
-		Operation("uploadBMCUpdate").
-		Doc("upload given BMC update for given machine").
-		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
-		Param(ws.PathParameter("board", "the board").DataType("string")).
-		Param(ws.PathParameter("revision", "the BMC update revision").DataType("string")).
-		Param(ws.FormParameter("file", "the BMC update file").DataType("file")).
+	ws.Route(ws.GET("/{id}/available-firmwares").
+		To(editor(r.availableFirmwares)).
+		Operation("availableFirmwares").
+		Doc("returns all available firmwares for the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Consumes("multipart/form-data").
-		Returns(http.StatusOK, "OK", nil).
+		Writes(v1.MachineAvailableFirmwares{}).
+		Returns(http.StatusOK, "OK", v1.MachineAvailableFirmwares{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/available-bios-updates").
-		To(editor(r.availableBIOSUpdates)).
-		Operation("availableBIOSUpdates").
-		Doc("returns all available BIOS updates for the machine").
+	ws.Route(ws.POST("/{id}/update-firmware").
+		To(editor(r.updateFirmware)).
+		Operation("updateFirmware").
+		Doc("sends a firmware command to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.MachineAvailableUpdates{}).
-		Returns(http.StatusOK, "OK", v1.MachineAvailableUpdates{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.GET("/{id}/available-bmc-updates").
-		To(editor(r.availableBMCUpdates)).
-		Operation("availableBMCUpdates").
-		Doc("returns all available BMC updates for the machine").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.MachineAvailableUpdates{}).
-		Returns(http.StatusOK, "OK", v1.MachineAvailableUpdates{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/{id}/update/bios").
-		To(editor(r.updateBIOS)).
-		Operation("updateBIOS").
-		Doc("sends a BIOS update command to the machine").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineUpdate{}).
-		Writes(v1.MachineResponse{}).
-		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/{id}/update/bmc").
-		To(editor(r.updateBMC)).
-		Operation("updateBMC").
-		Doc("sends a bmc update command to the machine").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineUpdate{}).
+		Reads(v1.MachineUpdateFirmware{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -1688,9 +1669,9 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 				return
 			}
 
-			err = publishMachineCmd(logger.Sugar(), m, r.Publisher, metal.MachineReinstall)
+			err = publishMachineCmd(logger.Sugar(), m, r.Publisher, metal.MachineReinstallCmd)
 			if err != nil {
-				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstall)), zap.String("machineID", m.ID), zap.Error(err))
+				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstallCmd)), zap.String("machineID", m.ID), zap.Error(err))
 			}
 
 			err = response.WriteHeaderAndEntity(http.StatusOK, resp)
@@ -2041,12 +2022,12 @@ func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, respons
 	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
 }
 
-func (r machineResource) updateBIOS(request *restful.Request, response *restful.Response) {
-	r.machineCmd("updateBIOS", metal.BiosUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
-}
-
-func (r machineResource) updateBMC(request *restful.Request, response *restful.Response) {
-	r.machineCmd("updateBMC", metal.BmcUpdate, request, response, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
+func (r machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
+	kind, err := kindQueryParameter(request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, kind, request.QueryParameter("description"), r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
@@ -2277,20 +2258,16 @@ func (s machineAllocationSpec) autoNetworkN() int {
 	return len(s.Networks) - s.noautoNetworkN()
 }
 
-func (r machineResource) uploadBIOSUpdate(request *restful.Request, response *restful.Response) {
-	r.uploadUpdate(request, response, "bios")
-}
-
-func (r machineResource) uploadBMCUpdate(request *restful.Request, response *restful.Response) {
-	r.uploadUpdate(request, response, "bmc")
-}
-
-func (r machineResource) uploadUpdate(request *restful.Request, response *restful.Response, kind string) {
+func (r machineResource) uploadFirmware(request *restful.Request, response *restful.Response) {
+	kind, err := kindQueryParameter(request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 	vendor := strings.ToLower(request.PathParameter("vendor"))
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
 	file := &bytes.Buffer{}
-	_, err := file.ReadFrom(request.Request.Body)
+	_, err = file.ReadFrom(request.Request.Body)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2332,15 +2309,11 @@ func (r machineResource) uploadUpdate(request *restful.Request, response *restfu
 	response.WriteHeader(http.StatusOK)
 }
 
-func (r machineResource) availableBIOSUpdates(request *restful.Request, response *restful.Response) {
-	r.availableUpdates(request, response, "bios")
-}
-
-func (r machineResource) availableBMCUpdates(request *restful.Request, response *restful.Response) {
-	r.availableUpdates(request, response, "bmc")
-}
-
-func (r machineResource) availableUpdates(request *restful.Request, response *restful.Response, kind string) {
+func (r machineResource) availableFirmwares(request *restful.Request, response *restful.Response) {
+	kind, err := kindQueryParameter(request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2363,11 +2336,21 @@ func (r machineResource) availableUpdates(request *restful.Request, response *re
 		v := parts[len(parts)-1]
 		vv = append(vv, v)
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineAvailableUpdates{
+	err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineAvailableFirmwares{
 		Revisions: vv,
 	})
 	if err != nil {
 		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func kindQueryParameter(request *restful.Request) (string, error) {
+	kind := strings.ToLower(request.PathParameter("kind"))
+	for _, k := range firmwareKinds {
+		if k == kind {
+			return k, nil
+		}
+	}
+	return "", fmt.Errorf("unknown firmware kind %q", kind)
 }
