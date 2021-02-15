@@ -411,14 +411,14 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.PUT("/upload-firmware/{vendor}/{board}/{revision}").
+	ws.Route(ws.PUT("/upload-firmware/{kind}/{vendor}/{board}/{revision}").
 		To(editor(r.uploadFirmware)).
 		Operation("uploadFirmware").
 		Doc("upload given firmware update for given machine").
+		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
 		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.PathParameter("board", "the board").DataType("string")).
 		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
-		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
 		Param(ws.FormParameter("file", "the firmware update file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("multipart/form-data").
@@ -2259,7 +2259,7 @@ func (s machineAllocationSpec) autoNetworkN() int {
 }
 
 func (r machineResource) uploadFirmware(request *restful.Request, response *restful.Response) {
-	kind, err := kindQueryParameter(request)
+	kind, err := checkFirmwareKind(request.PathParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2310,7 +2310,7 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 }
 
 func (r machineResource) availableFirmwares(request *restful.Request, response *restful.Response) {
-	kind, err := kindQueryParameter(request)
+	kind, err := checkFirmwareKind(request.QueryParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2345,10 +2345,9 @@ func (r machineResource) availableFirmwares(request *restful.Request, response *
 	}
 }
 
-func kindQueryParameter(request *restful.Request) (string, error) {
-	kind := strings.ToLower(request.PathParameter("kind"))
+func checkFirmwareKind(kind string) (string, error) {
 	for _, k := range firmwareKinds {
-		if k == kind {
+		if strings.EqualFold(k, kind) {
 			return k, nil
 		}
 	}

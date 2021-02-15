@@ -4001,13 +4001,20 @@
         ]
       }
     },
-    "/v1/machine/upload-firmware/{vendor}/{board}/{revision}": {
+    "/v1/machine/upload-firmware/{kind}/{vendor}/{board}/{revision}": {
       "put": {
         "consumes": [
           "multipart/form-data"
         ],
         "operationId": "uploadFirmware",
         "parameters": [
+          {
+            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "type": "string"
+          },
           {
             "description": "the vendor",
             "in": "path",
@@ -4026,13 +4033,6 @@
             "description": "the firmware update revision",
             "in": "path",
             "name": "revision",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
-            "in": "query",
-            "name": "kind",
             "required": true,
             "type": "string"
           },
