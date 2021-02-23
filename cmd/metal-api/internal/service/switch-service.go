@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -226,7 +227,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("uuid cannot be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("uuid cannot be empty")) {
 			return
 		}
 	}
@@ -249,7 +250,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		s = v1.NewSwitch(requestPayload)
 
 		if len(requestPayload.Nics) != len(s.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("duplicate mac addresses found in nics")) {
+			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
 				return
 			}
 		}
@@ -271,7 +272,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
 		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("duplicate mac addresses found in nics")) {
+			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
 				return
 			}
 		}
@@ -366,7 +367,7 @@ func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 		return nil, fmt.Errorf("old and new switch belong to different racks, old: %v, new: %v", old.RackID, new.RackID)
 	}
 	if twin.Mode == metal.SwitchReplace {
-		return nil, fmt.Errorf("twin switch must not be in replace mode")
+		return nil, errors.New("twin switch must not be in replace mode")
 	}
 	if len(twin.MachineConnections) == 0 {
 		// twin switch has no machine connections, switch may be used immediately, replace mode is unnecessary

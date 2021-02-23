@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -139,7 +140,7 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
 			return
 		}
 	}
@@ -286,7 +287,7 @@ func (r sizeResource) fromHardware(request *restful.Request, response *restful.R
 	}
 
 	if len(lg) < 1 {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("size matching log is empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("size matching log is empty")) {
 			return
 		}
 	}

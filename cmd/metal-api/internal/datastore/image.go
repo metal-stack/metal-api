@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -170,7 +171,7 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 func GetOsAndSemver(id string) (string, *semver.Version, error) {
 	imageParts := strings.Split(id, "-")
 	if len(imageParts) < 2 {
-		return "", nil, fmt.Errorf("image does not contain a version")
+		return "", nil, errors.New("image does not contain a version")
 	}
 
 	parts := len(imageParts) - 1

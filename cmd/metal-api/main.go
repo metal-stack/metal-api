@@ -407,7 +407,7 @@ func connectDataStore(opts ...dsConnectOpt) error {
 		case DataStoreConnectTableInit:
 			initTables = true
 		default:
-			return fmt.Errorf("unsupported datastore connect option")
+			return errors.New("unsupported datastore connect option")
 		}
 	}
 

@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 
@@ -468,7 +469,7 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 	}
 
 	if available == nil || len(available) < 1 {
-		return nil, fmt.Errorf("no machine available")
+		return nil, errors.New("no machine available")
 	}
 
 	// pick a random machine from all available ones

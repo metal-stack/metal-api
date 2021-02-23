@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -174,13 +175,13 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
 			return
 		}
 	}
 
 	if requestPayload.URL == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("url should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("url should not be empty")) {
 			return
 		}
 	}

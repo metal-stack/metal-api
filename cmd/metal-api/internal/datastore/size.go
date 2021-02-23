@@ -1,8 +1,7 @@
 package datastore
 
 import (
-	"fmt"
-
+	"errors"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
@@ -46,7 +45,7 @@ func (rs *RethinkStore) FromHardware(hw metal.MachineHardware) (*metal.Size, []*
 	}
 	if len(sz) < 1 {
 		// this should not happen, so we do not return a notfound
-		return nil, nil, fmt.Errorf("no sizes found in database")
+		return nil, nil, errors.New("no sizes found in database")
 	}
 	var sizes []metal.Size
 	for _, s := range sz {

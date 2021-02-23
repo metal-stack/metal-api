@@ -441,7 +441,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 
 	if machineState != metal.AvailableState && requestPayload.Description == "" {
 		// we want a cause why this machine is not available
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("you must supply a description")) {
 			return
 		}
 	}
@@ -484,7 +484,7 @@ func (r machineResource) setChassisIdentifyLEDState(request *restful.Request, re
 
 	if ledState == metal.LEDStateOff && requestPayload.Description == "" {
 		// we want a cause why this chassis identify LED is off
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("you must supply a description")) {
 			return
 		}
 	}
@@ -522,7 +522,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	}
 
 	if requestPayload.UUID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("uuid cannot be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("uuid cannot be empty")) {
 			return
 		}
 	}
@@ -676,7 +676,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	}
 
 	if requestPayload.PartitionID == "" {
-		err := fmt.Errorf("partition id is empty")
+		err := errors.New("partition id is empty")
 		checkError(request, response, utils.CurrentFuncName(), err)
 		return
 	}
@@ -980,15 +980,15 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	if allocationSpec.ProjectID == "" {
-		return fmt.Errorf("project id must be specified")
+		return errors.New("project id must be specified")
 	}
 
 	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
-		return fmt.Errorf("when no machine id is given, a partition id must be specified")
+		return errors.New("when no machine id is given, a partition id must be specified")
 	}
 
 	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
-		return fmt.Errorf("when no machine id is given, a size id must be specified")
+		return errors.New("when no machine id is given, a size id must be specified")
 	}
 
 	for _, ip := range allocationSpec.IPs {
@@ -1007,12 +1007,12 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	// A firewall must have either IP or Network with auto IP acquire specified.
 	if allocationSpec.IsFirewall {
 		if len(allocationSpec.IPs) == 0 && allocationSpec.autoNetworkN() == 0 {
-			return fmt.Errorf("when no ip is given at least one auto acquire network must be specified")
+			return errors.New("when no ip is given at least one auto acquire network must be specified")
 		}
 	}
 
 	if noautoNetN := allocationSpec.noautoNetworkN(); noautoNetN > len(allocationSpec.IPs) {
-		return fmt.Errorf("missing ip(s) for network(s) without automatic ip allocation")
+		return errors.New("missing ip(s) for network(s) without automatic ip allocation")
 	}
 
 	return nil
@@ -1035,7 +1035,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 		}
 
 		if machine.Allocation != nil {
-			return nil, fmt.Errorf("machine is already allocated")
+			return nil, errors.New("machine is already allocated")
 		}
 		if allocationSpec.PartitionID != "" && machine.PartitionID != allocationSpec.PartitionID {
 			return nil, fmt.Errorf("machine %q is not in the requested partition: %s", machine.ID, allocationSpec.PartitionID)
@@ -1183,7 +1183,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 				privateSharedNetworks = append(privateSharedNetworks, n)
 			} else {
 				if primaryPrivateNetwork != nil {
-					return nil, fmt.Errorf("multiple private networks are specified but there must be only one primary private network that must not be shared")
+					return nil, errors.New("multiple private networks are specified but there must be only one primary private network that must not be shared")
 				}
 				n.networkType = metal.PrivatePrimaryUnshared
 				primaryPrivateNetwork = n
@@ -1195,11 +1195,11 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	}
 
 	if len(specNetworks) != len(allocationSpec.Networks) {
-		return nil, fmt.Errorf("given network ids are not unique")
+		return nil, errors.New("given network ids are not unique")
 	}
 
 	if len(privateNetworks) == 0 {
-		return nil, fmt.Errorf("no private network given")
+		return nil, errors.New("no private network given")
 	}
 
 	// if there is no unshared private network we try to determine a shared one as primary
@@ -1208,10 +1208,10 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		// this is an exception where the primary private network is a shared one.
 		// it must be the only private network
 		if len(privateSharedNetworks) == 0 {
-			return nil, fmt.Errorf("no private shared network found that could be used as primary private network")
+			return nil, errors.New("no private shared network found that could be used as primary private network")
 		}
 		if len(privateSharedNetworks) > 1 {
-			return nil, fmt.Errorf("machines and firewalls are not allowed to be placed into multiple private, shared networks (firewall needs an unshared private network and machines may only reside in one private network)")
+			return nil, errors.New("machines and firewalls are not allowed to be placed into multiple private, shared networks (firewall needs an unshared private network and machines may only reside in one private network)")
 		}
 
 		primaryPrivateNetwork = privateSharedNetworks[0]
@@ -1219,11 +1219,11 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	}
 
 	if !allocationSpec.IsFirewall && len(privateNetworks) > 1 {
-		return nil, fmt.Errorf("machines are not allowed to be placed into multiple private networks")
+		return nil, errors.New("machines are not allowed to be placed into multiple private networks")
 	}
 
 	if primaryPrivateNetwork.network.ProjectID != allocationSpec.ProjectID {
-		return nil, fmt.Errorf("the given private network does not belong to the project, which is not allowed")
+		return nil, errors.New("the given private network does not belong to the project, which is not allowed")
 	}
 
 	for _, ipString := range allocationSpec.IPs {
@@ -1505,7 +1505,7 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 	logger := utils.Logger(request).Sugar()
 
 	if m.Allocation != nil {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot delete machine that is allocated"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("cannot delete machine that is allocated"))
 		return
 	}
 
@@ -1516,7 +1516,7 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 	}
 
 	if !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("can only delete dead machines"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("can only delete dead machines"))
 		return
 	}
 
@@ -1613,7 +1613,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		}
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, fmt.Errorf("machine either locked, not allocated yet or invalid image ID specified")))
+	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, errors.New("machine either locked, not allocated yet or invalid image ID specified")))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
@@ -1740,7 +1740,7 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 	}
 	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(requestPayload.Event)]
 	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unknown provisioning event")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("unknown provisioning event")) {
 			return
 		}
 	}
@@ -2168,8 +2168,8 @@ func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.Suga
 
 func (s machineAllocationSpec) noautoNetworkN() int {
 	result := 0
-	for _, net := range s.Networks {
-		if net.AutoAcquireIP != nil && !*net.AutoAcquireIP {
+	for _, n := range s.Networks {
+		if n.AutoAcquireIP != nil && !*n.AutoAcquireIP {
 			result++
 		}
 	}
