@@ -448,15 +448,27 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		return
 	}
 
+	destPrefixes := metal.Prefixes{}
+	for _, p := range requestPayload.DestinationPrefixes {
+		prefix, err := metal.NewPrefixFromCIDR(p)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+				return
+			}
+		}
+		destPrefixes = append(destPrefixes, *prefix)
+	}
+
 	nwSpec := &metal.Network{
 		Base: metal.Base{
 			Name:        name,
 			Description: description,
 		},
-		PartitionID: partition.ID,
-		ProjectID:   project.GetProject().GetMeta().GetId(),
-		Labels:      requestPayload.Labels,
-		Shared:      shared,
+		PartitionID:         partition.ID,
+		ProjectID:           project.GetProject().GetMeta().GetId(),
+		Labels:              requestPayload.Labels,
+		DestinationPrefixes: destPrefixes,
+		Shared:              shared,
 	}
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
@@ -493,7 +505,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 			Description: nwSpec.Description,
 		},
 		Prefixes:            metal.Prefixes{*childPrefix},
-		DestinationPrefixes: metal.Prefixes{},
+		DestinationPrefixes: nwSpec.DestinationPrefixes,
 		PartitionID:         parent.PartitionID,
 		ProjectID:           nwSpec.ProjectID,
 		Nat:                 false,

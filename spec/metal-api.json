@@ -2000,6 +2000,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "destinationprefixes": {
+          "description": "the destination prefixes of this network",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "labels": {
           "additionalProperties": {
             "type": "string"
