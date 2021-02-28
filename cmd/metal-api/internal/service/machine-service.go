@@ -105,8 +105,6 @@ var firmwareKinds = []string{
 	bmc,
 }
 
-const boundarySeparator = "ed16be5300b4521a9bdf4603b45e6b8ba5cb4e795e8c68829b1c60bc1dc8"
-
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
 	ds *datastore.RethinkStore,
@@ -423,9 +421,10 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
 		Param(ws.FormParameter("file", "the firmware update file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Consumes(fmt.Sprintf("multipart/form-data; boundary=%s", boundarySeparator)).
+		Consumes("multipart/form-data").
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/{id}/available-firmwares").
 		To(editor(r.availableFirmwares)).
 		Operation("availableFirmwares").
@@ -436,6 +435,7 @@ func (r machineResource) webService() *restful.WebService {
 		Writes(v1.MachineAvailableFirmwares{}).
 		Returns(http.StatusOK, "OK", v1.MachineAvailableFirmwares{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.POST("/{id}/update-firmware").
 		To(editor(r.updateFirmware)).
 		Operation("updateFirmware").
@@ -2277,7 +2277,6 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	}
 
 	// trim multi-part delimiters
-	file.Truncate(file.Len() - len(boundarySeparator) - 8)
 	for file.Len() > 0 {
 		l, err := file.ReadString('\n')
 		if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2297,6 +2296,13 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 					break
 				}
 			}
+			break
+		}
+	}
+	bb := file.Bytes()
+	for i := len(bb) - 3; i > 0; i-- {
+		if bb[i] == '\r' {
+			bb = bb[:i]
 			break
 		}
 	}
@@ -2323,7 +2329,7 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 
 	key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
 	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Body:   bytes.NewReader(file.Bytes()),
+		Body:   bytes.NewReader(bb),
 		Bucket: &vendor,
 		Key:    &key,
 	})
