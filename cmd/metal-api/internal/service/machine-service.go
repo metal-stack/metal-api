@@ -105,6 +105,8 @@ var firmwareKinds = []string{
 	bmc,
 }
 
+const boundarySeparator = "ed16be5300b4521a9bdf4603b45e6b8ba5cb4e795e8c68829b1c60bc1dc8"
+
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
 	ds *datastore.RethinkStore,
@@ -421,7 +423,7 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
 		Param(ws.FormParameter("file", "the firmware update file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Consumes("application/octet-stream").
+		Consumes(fmt.Sprintf("multipart/form-data; boundary=%s", boundarySeparator)).
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 	ws.Route(ws.GET("/{id}/available-firmwares").
@@ -2272,6 +2274,31 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	err = request.Request.Body.Close()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	// trim multi-part delimiters
+	file.Truncate(file.Len() - len(boundarySeparator) - 8)
+	for file.Len() > 0 {
+		l, err := file.ReadString('\n')
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if strings.HasPrefix(l, "Content-Type:") {
+			for file.Len() > 0 {
+				b, err := file.ReadByte()
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
+				if b != '\r' && b != '\n' {
+					err = file.UnreadByte()
+					if checkError(request, response, utils.CurrentFuncName(), err) {
+						return
+					}
+					break
+				}
+			}
+			break
+		}
 	}
 
 	resp, err := r.s3Client.ListBuckets(context.Background(), nil)
