@@ -421,10 +421,9 @@ func (r machineResource) webService() *restful.WebService {
 		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
 		Param(ws.FormParameter("file", "the firmware update file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Consumes("multipart/form-data").
+		Consumes("application/octet-stream").
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	ws.Route(ws.GET("/{id}/available-firmwares").
 		To(editor(r.availableFirmwares)).
 		Operation("availableFirmwares").
@@ -435,7 +434,6 @@ func (r machineResource) webService() *restful.WebService {
 		Writes(v1.MachineAvailableFirmwares{}).
 		Returns(http.StatusOK, "OK", v1.MachineAvailableFirmwares{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	ws.Route(ws.POST("/{id}/update-firmware").
 		To(editor(r.updateFirmware)).
 		Operation("updateFirmware").
