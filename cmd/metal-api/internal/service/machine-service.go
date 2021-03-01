@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -2266,18 +2267,15 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	vendor := strings.ToLower(request.PathParameter("vendor"))
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
-	file := &bytes.Buffer{}
-	_, err = file.ReadFrom(request.Request.Body)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = request.Request.Body.Close()
+
+	file, _, err := request.Request.FormFile("file")
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	bb, err := trimMultipartMetadata(file)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	buf := bytes.NewBuffer(nil)
+	_, err = io.Copy(buf, file)
+	if checkError(request, response, utils.CurrentFuncName(), file.Close()) || checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
@@ -2303,7 +2301,7 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 
 	key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
 	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Body:   bytes.NewReader(bb),
+		Body:   bytes.NewReader(buf.Bytes()),
 		Bucket: &vendor,
 		Key:    &key,
 	})
@@ -2357,39 +2355,4 @@ func checkFirmwareKind(kind string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("unknown firmware kind %q", kind)
-}
-
-func trimMultipartMetadata(file *bytes.Buffer) ([]byte, error) {
-	for file.Len() > 0 {
-		l, err := file.ReadString('\n')
-		if err != nil {
-			return nil, err
-		}
-		if strings.HasPrefix(l, "Content-Type:") {
-			for file.Len() > 0 {
-				b, err := file.ReadByte()
-				if err != nil {
-					return nil, err
-				}
-				if b != '\r' && b != '\n' {
-					err = file.UnreadByte()
-					if err != nil {
-						return nil, err
-					}
-					break
-				}
-			}
-			break
-		}
-	}
-
-	bb := file.Bytes()
-	for i := len(bb) - 3; i > 0; i-- {
-		if bb[i] == '\r' {
-			bb = bb[:i]
-			break
-		}
-	}
-
-	return bb, nil
 }
