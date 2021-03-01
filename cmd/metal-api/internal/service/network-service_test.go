@@ -35,6 +35,7 @@ func TestGetNetworks(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -61,6 +62,7 @@ func TestGetNetwork(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -82,6 +84,7 @@ func TestGetNetworkNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -106,6 +109,7 @@ func TestDeleteNetwork(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.NetworkResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -130,6 +134,7 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -165,6 +170,7 @@ func TestCreateNetwork(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.NetworkResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -198,6 +204,7 @@ func TestUpdateNetwork(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Partition
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -222,6 +229,7 @@ func TestSearchNetwork(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var results []v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&results)

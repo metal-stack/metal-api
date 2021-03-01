@@ -121,7 +121,8 @@ func (s *Size) overlaps(so *Size) bool {
 
 // Overlaps returns nil if Size does not overlap with any other size, otherwise returs overlapping Size
 func (s *Size) Overlaps(ss *Sizes) *Size {
-	for _, so := range *ss {
+	for i := range *ss {
+		so := (*ss)[i]
 		if s.Name != so.Name && s.overlaps(&so) {
 			return &so
 		}

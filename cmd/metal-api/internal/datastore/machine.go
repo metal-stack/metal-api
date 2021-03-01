@@ -1,9 +1,12 @@
 package datastore
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/big"
+	mathrand "math/rand"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -107,6 +110,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, tag := range p.Tags {
+		tag := tag
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tags").Contains(r.Expr(tag))
 		})
@@ -143,6 +147,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, id := range p.NetworkIDs {
+		id := id
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("networkid")
@@ -151,6 +156,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, prefix := range p.NetworkPrefixes {
+		prefix := prefix
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("prefixes")
@@ -159,6 +165,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, ip := range p.NetworkIPs {
+		ip := ip
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("ips")
@@ -167,6 +174,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, destPrefix := range p.NetworkDestinationPrefixes {
+		destPrefix := destPrefix
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("destinationprefixes")
@@ -175,6 +183,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, vrf := range p.NetworkVrfs {
+		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("vrf")
@@ -191,6 +200,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, asn := range p.NetworkASNs {
+		asn := asn
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("asn")
@@ -227,6 +237,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, mac := range p.NicsMacAddresses {
+		mac := mac
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("macAddress")
@@ -235,6 +246,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, name := range p.NicsNames {
+		name := name
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("name")
@@ -243,6 +255,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, vrf := range p.NicsVrfs {
+		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("vrf")
@@ -251,6 +264,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, mac := range p.NicsNeighborMacAddresses {
+		mac := mac
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
@@ -261,6 +275,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, name := range p.NicsNames {
+		name := name
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
@@ -271,6 +286,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, vrf := range p.NicsVrfs {
+		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
 				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
@@ -281,6 +297,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, name := range p.DiskNames {
+		name := name
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("name")
@@ -289,6 +306,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, size := range p.DiskSizes {
+		size := size
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("size")
@@ -462,10 +480,10 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 			// fall through, so the rest of the machines is getting evaluated
 			continue
 		}
-		switch ec.Liveliness {
-		case metal.MachineLivelinessAlive:
-			available = append(available, m)
+		if ec.Liveliness != metal.MachineLivelinessAlive {
+			continue
 		}
+		available = append(available, m)
 	}
 
 	if available == nil || len(available) < 1 {
@@ -473,6 +491,13 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 	}
 
 	// pick a random machine from all available ones
-	idx := rand.Intn(len(available))
+	var idx int
+	b, err := rand.Int(rand.Reader, big.NewInt(int64(len(available))))
+	if err != nil {
+		idx = int(b.Uint64())
+	} else {
+		mathrand.Seed(time.Now().UnixNano())
+		idx = mathrand.Intn(len(available))
+	}
 	return &available[idx], nil
 }

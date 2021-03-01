@@ -28,7 +28,8 @@ func TestNotFound(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := NotFound(tt.args.format, tt.args.args...); (err != nil) != tt.wantErr {
 				t.Errorf("NotFound() error = %v, wantErr %v", err, tt.wantErr)
@@ -67,7 +68,8 @@ func TestIsNotFound(t *testing.T) {
 			want: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsNotFound(tt.args.e); got != tt.want {
 				t.Errorf("IsNotFound() = %v, want %v", got, tt.want)

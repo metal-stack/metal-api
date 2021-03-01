@@ -250,14 +250,14 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Session, error) {
 		MaxOpen:   20,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("cannot connect to DB: %v", err)
+		return nil, fmt.Errorf("cannot connect to DB: %w", err)
 	}
 
 	err = r.DBList().Contains(dbname).Do(func(row r.Term) r.Term {
 		return r.Branch(row, nil, r.DBCreate(dbname))
 	}).Exec(session)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create database: %v", err)
+		return nil, fmt.Errorf("cannot create database: %w", err)
 	}
 
 	return session, nil
@@ -280,7 +280,7 @@ tryAgain:
 func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id string) error {
 	res, err := table.Get(id).Run(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot find %v with id %q in database: %v", getEntityName(entity), id, err)
+		return fmt.Errorf("cannot find %v with id %q in database: %w", getEntityName(entity), id, err)
 	}
 	defer res.Close()
 	if res.IsNil() {
@@ -288,7 +288,7 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 	}
 	err = res.One(entity)
 	if err != nil {
-		return fmt.Errorf("more than one %v with same id exists: %v", getEntityName(entity), err)
+		return fmt.Errorf("more than one %v with same id exists: %w", getEntityName(entity), err)
 	}
 	return nil
 }
@@ -296,7 +296,7 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 	res, err := query.Run(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot find %v in database: %v", getEntityName(entity), err)
+		return fmt.Errorf("cannot find %v in database: %w", getEntityName(entity), err)
 	}
 	defer res.Close()
 	if res.IsNil() {
@@ -305,7 +305,7 @@ func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 
 	hasResult := res.Next(entity)
 	if !hasResult {
-		return fmt.Errorf("cannot find %v in database: %v", getEntityName(entity), err)
+		return fmt.Errorf("cannot find %v in database: %w", getEntityName(entity), err)
 	}
 
 	next := map[string]interface{}{}
@@ -320,13 +320,13 @@ func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error {
 	res, err := query.Run(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot search %v in database: %v", getEntityName(entity), err)
+		return fmt.Errorf("cannot search %v in database: %w", getEntityName(entity), err)
 	}
 	defer res.Close()
 
 	err = res.All(entity)
 	if err != nil {
-		return fmt.Errorf("cannot fetch all entities: %v", err)
+		return fmt.Errorf("cannot fetch all entities: %w", err)
 	}
 	return nil
 }
@@ -334,13 +334,13 @@ func (rs *RethinkStore) searchEntities(query *r.Term, entity interface{}) error 
 func (rs *RethinkStore) listEntities(table *r.Term, entity interface{}) error {
 	res, err := table.Run(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot list %v from database: %v", getEntityName(entity), err)
+		return fmt.Errorf("cannot list %v from database: %w", getEntityName(entity), err)
 	}
 	defer res.Close()
 
 	err = res.All(entity)
 	if err != nil {
-		return fmt.Errorf("cannot fetch all entities: %v", err)
+		return fmt.Errorf("cannot fetch all entities: %w", err)
 	}
 	return nil
 }
@@ -353,7 +353,7 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.Entity) error {
 	// TODO: Return metal.Conflict
 	res, err := table.Insert(entity).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot create %v in database: %v", getEntityName(entity), err)
+		return fmt.Errorf("cannot create %v in database: %w", getEntityName(entity), err)
 	}
 
 	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
@@ -373,7 +373,7 @@ func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.Entity) error {
 		Conflict: "replace",
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot upsert %v (%s) in database: %v", getEntityName(entity), entity.GetID(), err)
+		return fmt.Errorf("cannot upsert %v (%s) in database: %w", getEntityName(entity), entity.GetID(), err)
 	}
 
 	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
@@ -385,7 +385,7 @@ func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.Entity) error {
 func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.Entity) error {
 	_, err := table.Get(entity.GetID()).Delete().RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot delete %v with id %q from database: %v", getEntityName(entity), entity.GetID(), err)
+		return fmt.Errorf("cannot delete %v with id %q from database: %w", getEntityName(entity), entity.GetID(), err)
 	}
 	return nil
 }
@@ -396,7 +396,7 @@ func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldE
 		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error("the entity was changed from another, please retry"))
 	}).RunWrite(rs.session)
 	if err != nil {
-		return fmt.Errorf("cannot update %v (%s): %v", getEntityName(newEntity), oldEntity.GetID(), err)
+		return fmt.Errorf("cannot update %v (%s): %w", getEntityName(newEntity), oldEntity.GetID(), err)
 	}
 	return nil
 }

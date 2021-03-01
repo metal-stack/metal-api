@@ -301,6 +301,7 @@ func (te *testEnv) machineWait(uuid string) {
 		resp := w.Result()
 		var response map[string]interface{}
 		err := json.NewDecoder(resp.Body).Decode(&response)
+		resp.Body.Close()
 		if err != nil {
 			panic(err)
 		}
@@ -348,6 +349,7 @@ func webRequest(t *testing.T, method string, service *restful.WebService, user *
 	container.ServeHTTP(w, createReq)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	require.NoError(t, err)

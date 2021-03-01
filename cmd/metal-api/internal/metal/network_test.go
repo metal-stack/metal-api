@@ -7,7 +7,6 @@ import (
 )
 
 func TestNics_ByMac(t *testing.T) {
-
 	// Create Nics
 	var countOfNics = 3
 	nicArray := make([]Nic, countOfNics)
@@ -41,7 +40,8 @@ func TestNics_ByMac(t *testing.T) {
 			want: map1,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.nics.ByMac(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Nics.ByMac() = %v, want %v", got, tt.want)
@@ -107,7 +107,8 @@ func TestPrefix_Equals(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Prefix{
 				IP:     tt.fields.IP,

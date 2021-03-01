@@ -729,7 +729,8 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		resp.Created = append(resp.Created, uuid)
 	}
 	// update machine ipmi data if ipmi ip changed
-	for _, oldMachine := range ms {
+	for i := range ms {
+		oldMachine := ms[i]
 		uuid := oldMachine.ID
 		if uuid == "" {
 			continue
@@ -967,12 +968,12 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
+		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %w", machine.ID, err))
 	}
 
 	err = ws.NotifyAllocated(machine.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to notify machine allocation %q, %v", machine.ID, err)
+		return nil, fmt.Errorf("failed to notify machine allocation %q, %w", machine.ID, err)
 	}
 
 	return machine, nil
@@ -1031,7 +1032,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 		// requesting allocation of a specific, existing machine
 		machine, err = ds.FindMachineByID(allocationSpec.UUID)
 		if err != nil {
-			return nil, fmt.Errorf("machine cannot be found: %v", err)
+			return nil, fmt.Errorf("machine cannot be found: %w", err)
 		}
 
 		if machine.Allocation != nil {
@@ -1051,11 +1052,11 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 func findWaitingMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
 	size, err := ds.FindSize(sizeID)
 	if err != nil {
-		return nil, fmt.Errorf("size cannot be found: %v", err)
+		return nil, fmt.Errorf("size cannot be found: %w", err)
 	}
 	partition, err := ds.FindPartition(partitionID)
 	if err != nil {
-		return nil, fmt.Errorf("partition cannot be found: %v", err)
+		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 	machine, err := ds.FindWaitingMachine(partition.ID, size.ID)
 	if err != nil {
@@ -1091,7 +1092,7 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
 	partition, err := ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
-		return nil, fmt.Errorf("partition cannot be found: %v", err)
+		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 
 	var privateSuperNetworks metal.Networks
@@ -1125,9 +1126,10 @@ func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSp
 
 func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition, privateSuperNetworks metal.Networks) (allocationNetworkMap, error) {
 	var partitionPrivateSuperNetwork *metal.Network
-	for _, privateSuperNetwork := range privateSuperNetworks {
-		if partition.ID == privateSuperNetwork.PartitionID {
-			partitionPrivateSuperNetwork = &privateSuperNetwork
+	for i := range privateSuperNetworks {
+		psn := privateSuperNetworks[i]
+		if partition.ID == psn.PartitionID {
+			partitionPrivateSuperNetwork = &psn
 			break
 		}
 	}
@@ -1268,7 +1270,7 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 		return nil, err
 	}
 	if len(underlays) == 0 {
-		return nil, fmt.Errorf("no underlay found in the given partition: %v", err)
+		return nil, fmt.Errorf("no underlay found in the given partition: %w", err)
 	}
 	if len(underlays) > 1 {
 		return nil, fmt.Errorf("more than one underlay network in partition %s in the database, which should not be the case", partition.ID)
@@ -1286,7 +1288,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	if n.auto {
 		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
 		if err != nil {
-			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", n.network.ID, err)
+			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}
 		ip := &metal.IP{
 			IPAddress:        ipAddress,
@@ -1306,10 +1308,11 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	}
 
 	ipAddresses := []string{}
-	for _, ip := range n.ips {
-		new := ip
-		new.AddMachineId(allocationSpec.UUID)
-		err := ds.UpdateIP(&ip, &new)
+	for i := range n.ips {
+		ip := n.ips[i]
+		newIP := ip
+		newIP.AddMachineId(allocationSpec.UUID)
+		err := ds.UpdateIP(&ip, &newIP)
 		if err != nil {
 			return nil, err
 		}
@@ -1525,21 +1528,22 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 		return
 	}
 
-	for _, old := range switches {
+	for i := range switches {
+		old := switches[i]
 		_, ok := old.MachineConnections[m.ID]
 		if !ok {
 			continue
 		}
 
-		new := old
-		new.MachineConnections = metal.ConnectionMap{}
+		newIP := old
+		newIP.MachineConnections = metal.ConnectionMap{}
 
 		for id, connection := range old.MachineConnections {
-			new.MachineConnections[id] = connection
+			newIP.MachineConnections[id] = connection
 		}
-		delete(new.MachineConnections, m.ID)
+		delete(newIP.MachineConnections, m.ID)
 
-		err = r.ds.UpdateSwitch(&old, &new)
+		err = r.ds.UpdateSwitch(&old, &newIP)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -1810,13 +1814,13 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	unknown := 0
 	alive := 0
 	dead := 0
-	errors := 0
+	errs := 0
 	for _, m := range machines {
 		p := liveliness[m.PartitionID]
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
-			errors++
+			errs++
 			// fall through, so the rest of the machines is getting evaluated
 		}
 		switch lvlness {
@@ -1826,7 +1830,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		case metal.MachineLivelinessDead:
 			dead++
 			p.Dead++
-		default:
+		case metal.MachineLivelinessUnknown:
 			unknown++
 			p.Unknown++
 		}
@@ -1835,7 +1839,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 
 	metrics.ProvideLiveliness(liveliness)
 
-	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errors)
+	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
 	return nil
 }
@@ -1884,7 +1888,8 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 		return err
 	}
 
-	for _, m := range machines {
+	for i := range machines {
+		m := machines[i]
 		if m.Allocation != nil {
 			continue
 		}

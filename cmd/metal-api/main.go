@@ -246,19 +246,19 @@ func init() {
 
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
-		logger.Error("unable to construct root command:%v", err)
+		logger.Error("unable to construct root command:%w", err)
 	}
 
 	err = viper.BindPFlags(rootCmd.PersistentFlags())
 	if err != nil {
-		logger.Error("unable to construct root command:%v", err)
+		logger.Error("unable to construct root command:%w", err)
 	}
 
 	migrateDatabase.Flags().Int("target-version", -1, "the target version of the migration, when set to -1 will migrate to latest version")
 	migrateDatabase.Flags().Bool("dry-run", false, "only shows which migrations would run, but does not execute them")
 	err = viper.BindPFlags(migrateDatabase.Flags())
 	if err != nil {
-		logger.Error("unable to construct migrate command:%v", err)
+		logger.Error("unable to construct migrate command:%w", err)
 	}
 }
 
@@ -413,20 +413,20 @@ func connectDataStore(opts ...dsConnectOpt) error {
 
 	err := ds.Connect()
 	if err != nil {
-		return fmt.Errorf("cannot connect to data store: %v", err)
+		return fmt.Errorf("cannot connect to data store: %w", err)
 	}
 
 	if initTables {
 		err := ds.Initialize()
 		if err != nil {
-			return fmt.Errorf("error initializing data store tables: %v", err)
+			return fmt.Errorf("error initializing data store tables: %w", err)
 		}
 	}
 
 	if demote {
 		err = ds.Demote()
 		if err != nil {
-			return fmt.Errorf("error demoting to data store runtime user: %v", err)
+			return fmt.Errorf("error demoting to data store runtime user: %w", err)
 		}
 	}
 
@@ -736,8 +736,8 @@ func run() error {
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)
 	err := http.ListenAndServe(addr, nil)
-	if err != nil && err != http.ErrServerClosed {
-		return fmt.Errorf("failed to start metal api: %v", err)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("failed to start metal api: %w", err)
 	}
 
 	return nil

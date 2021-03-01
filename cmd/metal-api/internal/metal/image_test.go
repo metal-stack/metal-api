@@ -6,7 +6,6 @@ import (
 )
 
 func TestImages_ByID(t *testing.T) {
-
 	testImages := []Image{
 		{
 			Base: Base{
@@ -48,7 +47,8 @@ func TestImages_ByID(t *testing.T) {
 			want: imageMap,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.ii.ByID(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Images.ByID() = %v, want %v", got, tt.want)

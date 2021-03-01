@@ -155,6 +155,7 @@ func (s *Server) Serve() error {
 			Certificates: []tls.Certificate{serverCert},
 			ClientCAs:    caCertPool,
 			ClientAuth:   tls.RequireAndVerifyClientCert,
+			MinVersion:   tls.VersionTLS12,
 		})
 	}
 

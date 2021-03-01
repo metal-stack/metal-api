@@ -29,12 +29,12 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (
 
 	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, childLength)
 	if err != nil {
-		return nil, fmt.Errorf("error creating new prefix in ipam: %v", err)
+		return nil, fmt.Errorf("error creating new prefix in ipam: %w", err)
 	}
 
 	prefix, err := metal.NewPrefixFromCIDR(ipamPrefix.Cidr)
 	if err != nil {
-		return nil, fmt.Errorf("error creating prefix from ipam prefix: %v", err)
+		return nil, fmt.Errorf("error creating prefix from ipam prefix: %w", err)
 	}
 
 	return prefix, nil
@@ -50,7 +50,7 @@ func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
 
 	err := i.ip.ReleaseChildPrefix(ipamChildPrefix)
 	if err != nil {
-		return fmt.Errorf("error releasing child prefix in ipam: %v", err)
+		return fmt.Errorf("error releasing child prefix in ipam: %w", err)
 	}
 
 	return nil
@@ -60,7 +60,7 @@ func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
 func (i *Ipam) CreatePrefix(prefix metal.Prefix) error {
 	_, err := i.ip.NewPrefix(prefix.String())
 	if err != nil {
-		return fmt.Errorf("unable to create prefix in ipam: %v", err)
+		return fmt.Errorf("unable to create prefix in ipam: %w", err)
 	}
 	return nil
 }
@@ -83,7 +83,7 @@ func (i *Ipam) AllocateIP(prefix metal.Prefix) (string, error) {
 
 	ipamIP, err := i.ip.AcquireIP(ipamPrefix.Cidr)
 	if err != nil {
-		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %v", prefix.String(), err)
+		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %w", prefix.String(), err)
 	}
 	if ipamIP == nil {
 		return "", fmt.Errorf("cannot find free ip to allocate in ipam: %s", prefix.String())
@@ -100,7 +100,7 @@ func (i *Ipam) AllocateSpecificIP(prefix metal.Prefix, specificIP string) (strin
 	}
 	ipamIP, err := i.ip.AcquireSpecificIP(ipamPrefix.Cidr, specificIP)
 	if err != nil {
-		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %v", prefix.String(), err)
+		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %w", prefix.String(), err)
 	}
 	if ipamIP == nil {
 		return "", fmt.Errorf("cannot find free ip to allocate in ipam: %s", prefix.String())

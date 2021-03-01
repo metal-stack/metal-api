@@ -43,7 +43,8 @@ func TestHas(t *testing.T) {
 			wanted: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tags := New(tt.tags)
 			got := tags.Has(tt.tag)
@@ -79,7 +80,8 @@ func TestHasPrefix(t *testing.T) {
 			wanted: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tags := New(tt.tags)
 			got := tags.HasPrefix(tt.prefix)
@@ -113,7 +115,8 @@ func TestRemove(t *testing.T) {
 			wantedReturn: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tags := New(tt.tags)
 			gotReturn := tags.Remove(tt.delete)
@@ -145,7 +148,8 @@ func TestUnique(t *testing.T) {
 			wanted: []string{"1", "2"},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tags := New(tt.tags)
 			got := tags.Unique()

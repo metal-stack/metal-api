@@ -44,7 +44,8 @@ func Test_makeRange(t *testing.T) {
 			want: []integer{{0}},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := makeRange(tt.args.min, tt.args.max); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeRange() = %v, want %v", got, tt.want)
@@ -81,7 +82,8 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
 			ip := rs.GetVRFPool()
@@ -144,7 +146,8 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
 			ip := rs.GetVRFPool()
@@ -210,7 +213,8 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			rs, mock := InitMockDB()
 			ip := rs.GetVRFPool()

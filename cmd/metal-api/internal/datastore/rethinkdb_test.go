@@ -46,7 +46,8 @@ func TestNew(t *testing.T) {
 			want: &rethinkStore1,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := New(tt.args.log, tt.args.dbhost, tt.args.dbname, tt.args.dbuser, tt.args.dbpass); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("New() = %v, want %v", got, tt.want)
@@ -74,7 +75,8 @@ func TestRethinkStore_db(t *testing.T) {
 			want: &theDBTerm,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.rs.db(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.db() = %v, want %v", got, tt.want)
@@ -84,7 +86,6 @@ func TestRethinkStore_db(t *testing.T) {
 }
 
 func TestRethinkStore_Mock(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -101,7 +102,8 @@ func TestRethinkStore_Mock(t *testing.T) {
 			want: r.NewMock(),
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.rs.Mock(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.Mock() = %v, want %v", got, tt.want)
@@ -111,7 +113,6 @@ func TestRethinkStore_Mock(t *testing.T) {
 }
 
 func TestRethinkStore_Close(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -128,7 +129,8 @@ func TestRethinkStore_Close(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.Close(); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.Close() error = %v, wantErr %v", err, tt.wantErr)
@@ -138,7 +140,6 @@ func TestRethinkStore_Close(t *testing.T) {
 }
 
 func Test_connect(t *testing.T) {
-
 	type args struct {
 		hosts  []string
 		dbname string
@@ -153,7 +154,8 @@ func Test_connect(t *testing.T) {
 	}{
 		// Test-Data List / Test Cases:
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := connect(tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
 			if (err != nil) != tt.wantErr {
@@ -182,7 +184,8 @@ func Test_retryConnect(t *testing.T) {
 	}{
 		// Test-Data List / Test Cases:
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got := retryConnect(tt.args.log, tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
 			if !reflect.DeepEqual(got, tt.want) {
@@ -193,7 +196,6 @@ func Test_retryConnect(t *testing.T) {
 }
 
 func TestRethinkStore_sizeTable(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -212,7 +214,8 @@ func TestRethinkStore_sizeTable(t *testing.T) {
 			want: &theWantedTerm,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.rs.sizeTable(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.sizeTable() = %v, want %v", got, tt.want)
@@ -222,7 +225,6 @@ func TestRethinkStore_sizeTable(t *testing.T) {
 }
 
 func TestRethinkStore_imageTable(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -241,7 +243,8 @@ func TestRethinkStore_imageTable(t *testing.T) {
 			want: &theWantedTerm,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.rs.imageTable(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.imageTable() = %v, want %v", got, tt.want)
@@ -251,7 +254,6 @@ func TestRethinkStore_imageTable(t *testing.T) {
 }
 
 func TestRethinkStore_partitionTable(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -270,7 +272,8 @@ func TestRethinkStore_partitionTable(t *testing.T) {
 			want: &theWantedTerm,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.rs.partitionTable(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.partitionTable() = %v, want %v", got, tt.want)
@@ -280,7 +283,6 @@ func TestRethinkStore_partitionTable(t *testing.T) {
 }
 
 func TestRethinkStore_machineTable(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -299,7 +301,8 @@ func TestRethinkStore_machineTable(t *testing.T) {
 			want: &theWantedTerm,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.rs.machineTable(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.machineTable() = %v, want %v", got, tt.want)
@@ -309,7 +312,6 @@ func TestRethinkStore_machineTable(t *testing.T) {
 }
 
 func TestRethinkStore_switchTable(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -328,7 +330,8 @@ func TestRethinkStore_switchTable(t *testing.T) {
 			want: &theWantedTerm,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.rs.switchTable(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RethinkStore.switchTable() = %v, want %v", got, tt.want)

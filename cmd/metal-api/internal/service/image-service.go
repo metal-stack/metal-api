@@ -257,7 +257,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 func checkImageURL(id, url string) error {
 	res, err := http.Head(url)
 	if err != nil {
-		return fmt.Errorf("image:%s is not accessible under:%s error:%v", id, url, err)
+		return fmt.Errorf("image:%s is not accessible under:%s error:%w", id, url, err)
 	}
 	if res.StatusCode >= 400 {
 		return fmt.Errorf("image:%s is not accessible under:%s status:%s", id, url, res.Status)

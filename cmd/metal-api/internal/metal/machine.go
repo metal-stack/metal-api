@@ -177,7 +177,7 @@ type NetworkType struct {
 }
 
 var (
-	PrivatePrimaryUnshared NetworkType = NetworkType{
+	PrivatePrimaryUnshared = NetworkType{
 		Name:           mn.PrivatePrimaryUnshared,
 		Private:        true,
 		PrivatePrimary: true,
@@ -185,7 +185,7 @@ var (
 		Underlay:       false,
 		Supported:      true,
 	}
-	PrivatePrimaryShared NetworkType = NetworkType{
+	PrivatePrimaryShared = NetworkType{
 		Name:           mn.PrivatePrimaryShared,
 		Private:        true,
 		PrivatePrimary: true,
@@ -193,7 +193,7 @@ var (
 		Underlay:       false,
 		Supported:      true,
 	}
-	PrivateSecondaryShared NetworkType = NetworkType{
+	PrivateSecondaryShared = NetworkType{
 		Name:           mn.PrivateSecondaryShared,
 		Private:        true,
 		PrivatePrimary: false,
@@ -202,7 +202,7 @@ var (
 		Supported:      true,
 	}
 	// PrivateSecondaryUnshared this case is not a valid configuration
-	PrivateSecondaryUnshared NetworkType = NetworkType{
+	PrivateSecondaryUnshared = NetworkType{
 		Name:           mn.PrivateSecondaryUnshared,
 		Private:        true,
 		PrivatePrimary: false,
@@ -210,7 +210,7 @@ var (
 		Underlay:       false,
 		Supported:      false,
 	}
-	External NetworkType = NetworkType{
+	External = NetworkType{
 		Name:           mn.External,
 		Private:        false,
 		PrivatePrimary: false,
@@ -218,7 +218,7 @@ var (
 		Underlay:       false,
 		Supported:      true,
 	}
-	Underlay NetworkType = NetworkType{
+	Underlay = NetworkType{
 		Name:           mn.Underlay,
 		Private:        false,
 		PrivatePrimary: false,
@@ -226,7 +226,7 @@ var (
 		Underlay:       true,
 		Supported:      true,
 	}
-	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
+	AllNetworkTypes = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
 )
 
 // Is checks whether the machine network has the given type
@@ -237,7 +237,8 @@ func (mn *MachineNetwork) Is(n NetworkType) bool {
 // NetworkType determines the network type based on the flags stored in the db entity.
 func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
 	var nt *NetworkType
-	for _, t := range AllNetworkTypes {
+	for i := range AllNetworkTypes {
+		t := AllNetworkTypes[i]
 		if mn.Is(t) {
 			nt = &t
 			break

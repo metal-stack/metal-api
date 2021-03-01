@@ -30,9 +30,9 @@ type expectingTopicCreater struct {
 }
 
 func (n expectingTopicCreater) CreateTopic(topicFQN string) error {
-	assert := assert.New(n.t)
-	assert.NotEmpty(topicFQN)
-	assert.Contains(n.expectedTopics, topicFQN, "Expectation %v contains %s failed.", n.expectedTopics, topicFQN)
+	ass := assert.New(n.t)
+	ass.NotEmpty(topicFQN)
+	ass.Contains(n.expectedTopics, topicFQN, "Expectation %v contains %s failed.", n.expectedTopics, topicFQN)
 	return nil
 }
 
@@ -47,6 +47,7 @@ func TestGetPartitions(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -75,6 +76,7 @@ func TestGetPartition(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -96,6 +98,7 @@ func TestGetPartitionNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -117,6 +120,7 @@ func TestDeletePartition(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -158,6 +162,7 @@ func TestCreatePartition(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -201,6 +206,7 @@ func TestUpdatePartition(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -227,6 +233,7 @@ func TestPartitionCapacity(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.PartitionCapacity
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -235,8 +242,8 @@ func TestPartitionCapacity(t *testing.T) {
 	require.Equal(t, testdata.Partition1.ID, result[0].ID)
 	require.NotNil(t, result[0].ServerCapacities)
 	require.Equal(t, 1, len(result[0].ServerCapacities))
-	cap := result[0].ServerCapacities[0]
-	require.Equal(t, "1", cap.Size)
-	require.Equal(t, 5, cap.Total)
-	require.Equal(t, 0, cap.Free)
+	c := result[0].ServerCapacities[0]
+	require.Equal(t, "1", c.Size)
+	require.Equal(t, 5, c.Total)
+	require.Equal(t, 0, c.Free)
 }

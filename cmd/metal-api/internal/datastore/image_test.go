@@ -49,7 +49,8 @@ func TestRethinkStore_FindImage(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FindImage(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -83,7 +84,8 @@ func TestRethinkStore_ListImages(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.ListImages()
 			if (err != nil) != tt.wantErr {
@@ -124,7 +126,8 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.rs.CreateImage(tt.args.i)
 			if (err != nil) != tt.wantErr {
@@ -168,7 +171,8 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.rs.DeleteImage(tt.args.img)
 			if (err != nil) != tt.wantErr {
@@ -213,7 +217,8 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.UpdateImage(tt.args.oldImage, tt.args.newImage); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateImage() error = %v, wantErr %v", err, tt.wantErr)
@@ -291,7 +296,8 @@ func Test_getMostRecentImageFor(t *testing.T) {
 	}
 	rs := &RethinkStore{}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := rs.getMostRecentImageFor(tt.id, tt.images)
 			if (err != nil) != tt.wantErr {
@@ -333,7 +339,8 @@ func Test_getMostRecentImageForFirewall(t *testing.T) {
 	}
 	rs := &RethinkStore{}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := rs.getMostRecentImageFor(tt.id, tt.images)
 			if (err != nil) != tt.wantErr {
@@ -399,7 +406,8 @@ func Test_sortImages(t *testing.T) {
 			want:   []metal.Image{firewall2, firewallubuntu2},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := sortImages(tt.images); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("sortImages() \n%s", cmp.Diff(got, tt.want))
@@ -453,7 +461,8 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 			wantErr:  false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.DeleteOrphanImages(tt.images, tt.machines)
 			if (err != nil) != tt.wantErr {
@@ -525,7 +534,8 @@ func TestGetOsAndSemver(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			os, version, err := GetOsAndSemver(tt.id)
 			if (err != nil) != tt.wantErr {

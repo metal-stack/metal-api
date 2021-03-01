@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -75,7 +76,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 	restful.DefaultContainer.Add(ws)
 
 	// health must be allowed without tenant check
-	httpRequest, _ := http.NewRequest("GET", "http://localhost/health", nil)
+	httpRequest, _ := http.NewRequestWithContext(context.TODO(), "GET", "http://localhost/health", nil)
 	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter := httptest.NewRecorder()
 
@@ -84,7 +85,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 	require.Equal(t, http.StatusOK, httpWriter.Code)
 
 	// liveliness must be allowed without tenant check
-	httpRequest, _ = http.NewRequest("GET", "http://localhost/liveliness", nil)
+	httpRequest, _ = http.NewRequestWithContext(context.TODO(), "GET", "http://localhost/liveliness", nil)
 	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter = httptest.NewRecorder()
 
@@ -93,7 +94,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 	require.Equal(t, http.StatusOK, httpWriter.Code)
 
 	// machine must not be allowed without tenant check
-	httpRequest, _ = http.NewRequest("GET", "http://localhost/machine", nil)
+	httpRequest, _ = http.NewRequestWithContext(context.TODO(), "GET", "http://localhost/machine", nil)
 	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter = httptest.NewRecorder()
 

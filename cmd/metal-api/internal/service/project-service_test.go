@@ -79,7 +79,6 @@ func (m *MockedProjectService) update(pcr *mdmv1.ProjectUpdateRequest, user *sec
 }
 
 func Test_projectResource_findProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -117,8 +116,10 @@ func Test_projectResource_findProject(t *testing.T) {
 			wantErr:    httperrors.UnprocessableEntity(errors.New("project does not have a projectID")),
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, nil)
@@ -141,7 +142,6 @@ func Test_projectResource_findProject(t *testing.T) {
 }
 
 func Test_projectResource_createProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -179,8 +179,10 @@ func Test_projectResource_createProject(t *testing.T) {
 			wantErr:    httperrors.UnprocessableEntity(errors.New("no tenant given")),
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, nil)
@@ -203,7 +205,6 @@ func Test_projectResource_createProject(t *testing.T) {
 }
 
 func Test_projectResource_deleteProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -249,8 +250,10 @@ func Test_projectResource_deleteProject(t *testing.T) {
 			wantErr:    nil,
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, tt.dsMock)
@@ -273,7 +276,6 @@ func Test_projectResource_deleteProject(t *testing.T) {
 }
 
 func Test_projectResource_updateProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -311,8 +313,10 @@ func Test_projectResource_updateProject(t *testing.T) {
 			wantErr:    httperrors.UnprocessableEntity(errors.New("project and project.meta must be specified")),
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, nil)

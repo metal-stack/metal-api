@@ -126,7 +126,8 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	if err != nil {
 		return err
 	}
-	for _, ip := range danglingIPs {
+	for i := range danglingIPs {
+		ip := danglingIPs[i]
 		err = a.disassociateIP(&ip, machine)
 		if err != nil {
 			return err
