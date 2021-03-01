@@ -1554,3 +1554,23 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		})
 	}
 }
+
+func TestTrimMultipartMetadata(t *testing.T) {
+	// given
+	data := "Real data"
+	bb := []byte(data)
+
+	boundarySeparator := "ed16be5300b4521a9bdf4603b45e6b8ba5cb4e795e8c68829b1c60bc1dc8"
+	bb = append([]byte(fmt.Sprintf("--%s\r\nContent-Disposition: form-data; name=%q; filename=%q\r\nContent-Type: application/octet-stream\r\n\r\n", boundarySeparator, "file", "test")), bb...)
+	bb = append(bb, []byte(fmt.Sprintf("\r\n--%s--\r\n", boundarySeparator))...)
+
+	buf := bytes.NewBuffer(bb)
+	var err error
+
+	// when
+	bb, err = trimMultipartMetadata(buf)
+
+	// then
+	require.Nil(t, err)
+	require.Equal(t, data, string(bb))
+}

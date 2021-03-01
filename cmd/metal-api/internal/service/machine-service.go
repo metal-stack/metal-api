@@ -2276,35 +2276,9 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 		return
 	}
 
-	// trim multi-part delimiters
-	for file.Len() > 0 {
-		l, err := file.ReadString('\n')
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		if strings.HasPrefix(l, "Content-Type:") {
-			for file.Len() > 0 {
-				b, err := file.ReadByte()
-				if checkError(request, response, utils.CurrentFuncName(), err) {
-					return
-				}
-				if b != '\r' && b != '\n' {
-					err = file.UnreadByte()
-					if checkError(request, response, utils.CurrentFuncName(), err) {
-						return
-					}
-					break
-				}
-			}
-			break
-		}
-	}
-	bb := file.Bytes()
-	for i := len(bb) - 3; i > 0; i-- {
-		if bb[i] == '\r' {
-			bb = bb[:i]
-			break
-		}
+	bb, err := trimMultipartMetadata(file)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
 	resp, err := r.s3Client.ListBuckets(context.Background(), nil)
@@ -2383,4 +2357,39 @@ func checkFirmwareKind(kind string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("unknown firmware kind %q", kind)
+}
+
+func trimMultipartMetadata(file *bytes.Buffer) ([]byte, error) {
+	for file.Len() > 0 {
+		l, err := file.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		if strings.HasPrefix(l, "Content-Type:") {
+			for file.Len() > 0 {
+				b, err := file.ReadByte()
+				if err != nil {
+					return nil, err
+				}
+				if b != '\r' && b != '\n' {
+					err = file.UnreadByte()
+					if err != nil {
+						return nil, err
+					}
+					break
+				}
+			}
+			break
+		}
+	}
+
+	bb := file.Bytes()
+	for i := len(bb) - 3; i > 0; i-- {
+		if bb[i] == '\r' {
+			bb = bb[:i]
+			break
+		}
+	}
+
+	return bb, nil
 }
