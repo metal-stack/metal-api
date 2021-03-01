@@ -2275,7 +2275,8 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 
 	buf := bytes.NewBuffer(nil)
 	_, err = io.Copy(buf, file)
-	if checkError(request, response, utils.CurrentFuncName(), file.Close()) || checkError(request, response, utils.CurrentFuncName(), err) {
+	if checkError(request, response, utils.CurrentFuncName(), file.Close()) ||
+		checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
