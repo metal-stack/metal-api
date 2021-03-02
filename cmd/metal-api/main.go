@@ -493,7 +493,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 			auths = append(auths, security.WithDex(dx))
 			logger.Info("dex successfully configured")
 		} else {
-			logger.Fatalw("dex is configured, but not initialized")
+			logger.Fatal("dex is configured, but not initialized")
 		}
 	}
 
@@ -546,7 +546,7 @@ func initGrpcServer() {
 func initRestServices(withauth bool) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
-		logger.Fatalf("base path must start and end with a slash")
+		logger.Fatal("base path must start and end with a slash")
 	}
 
 	lg := logger.Desugar()
