@@ -415,9 +415,13 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	if requestPayload.PartitionID != nil {
 		partitionID = *requestPayload.PartitionID
 	}
-	shared := false
+	var shared bool
 	if requestPayload.Shared != nil {
 		shared = *requestPayload.Shared
+	}
+	var nat bool
+	if requestPayload.Nat != nil {
+		nat = *requestPayload.Nat
 	}
 
 	if projectID == "" {
@@ -469,6 +473,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		Labels:              requestPayload.Labels,
 		DestinationPrefixes: destPrefixes,
 		Shared:              shared,
+		Nat:                 nat,
 	}
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
