@@ -85,6 +85,7 @@ func (s *WaitService) initWaitEndpoint() error {
 	} else {
 		s.logger.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
 		mathrand.Seed(time.Now().UnixNano())
+		// nolint
 		r = mathrand.Uint64()
 	}
 	channel := fmt.Sprintf("alloc-%d#ephemeral", r)

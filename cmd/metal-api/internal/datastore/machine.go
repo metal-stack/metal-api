@@ -497,6 +497,7 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		idx = int(b.Uint64())
 	} else {
 		mathrand.Seed(time.Now().UnixNano())
+		// nolint
 		idx = mathrand.Intn(len(available))
 	}
 	return &available[idx], nil
