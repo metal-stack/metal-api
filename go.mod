@@ -7,7 +7,6 @@ require (
 	github.com/Microsoft/hcsshim v0.8.10 // indirect
 	github.com/containerd/continuity v0.0.0-20201119173150-04c754faca46 // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/emicklei/go-restful v2.15.0+incompatible
 	github.com/emicklei/go-restful-openapi/v2 v2.2.1
 	github.com/emicklei/go-restful/v3 v3.4.0
 	github.com/go-openapi/spec v0.19.15
