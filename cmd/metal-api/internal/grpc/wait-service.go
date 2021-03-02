@@ -3,17 +3,19 @@ package grpc
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
+	"math"
+	"math/big"
 	"sync"
 	"time"
+
+	mathrand "math/rand"
+
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
-	"math"
-	"math/big"
-	mathrand "math/rand"
 )
 
 const (

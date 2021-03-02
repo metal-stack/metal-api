@@ -289,5 +289,4 @@ func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore, lo
 	}
 
 	return firewallResponseList
-
 }

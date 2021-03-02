@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"errors"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 

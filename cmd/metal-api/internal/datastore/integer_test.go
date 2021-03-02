@@ -55,7 +55,6 @@ func Test_makeRange(t *testing.T) {
 }
 
 func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
-
 	tests := []struct {
 		name         string
 		value        uint

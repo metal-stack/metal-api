@@ -381,12 +381,10 @@ type imageUsageCollector struct {
 	ir *imageResource
 }
 
-var (
-	usedImageDesc = prometheus.NewDesc(
-		"metal_image_used_total",
-		"The total number of machines using a image",
-		[]string{"imageID", "name", "os", "classification", "created", "expirationDate", "base", "features"}, nil,
-	)
+var usedImageDesc = prometheus.NewDesc(
+	"metal_image_used_total",
+	"The total number of machines using a image",
+	[]string{"imageID", "name", "os", "classification", "created", "expirationDate", "base", "features"}, nil,
 )
 
 func (iuc imageUsageCollector) Describe(ch chan<- *prometheus.Desc) {

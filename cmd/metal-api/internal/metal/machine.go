@@ -18,10 +18,8 @@ const (
 	LockedState    MState = "LOCKED"
 )
 
-var (
-	// AllStates contains all possible values of a machine state
-	AllStates = []MState{AvailableState, ReservedState, LockedState}
-)
+// AllStates contains all possible values of a machine state
+var AllStates = []MState{AvailableState, ReservedState, LockedState}
 
 // A MachineState describes the state of a machine. If the Value is AvailableState,
 // the machine will be available for allocation. In all other cases the allocation

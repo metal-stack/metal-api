@@ -625,7 +625,8 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	config := restfulspec.Config{
 		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
 		APIPath:                       service.BasePath + "apidocs.json",
-		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
+		PostBuildSwaggerObjectHandler: enrichSwaggerObject,
+	}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
 }
@@ -711,7 +712,8 @@ func run() error {
 		AllowedHeaders: []string{"Content-Type", "Accept", "Authorization"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		CookiesAllowed: false,
-		Container:      restful.DefaultContainer}
+		Container:      restful.DefaultContainer,
+	}
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	// catch all other errors
@@ -765,28 +767,36 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 	swo.Tags = []spec.Tag{
 		{TagProps: spec.TagProps{
 			Name:        "image",
-			Description: "Managing image entities"}},
+			Description: "Managing image entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "network",
-			Description: "Managing network entities"}},
+			Description: "Managing network entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "ip",
-			Description: "Managing ip entities"}},
+			Description: "Managing ip entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "size",
-			Description: "Managing size entities"}},
+			Description: "Managing size entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "machine",
-			Description: "Managing machine entities"}},
+			Description: "Managing machine entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "partition",
-			Description: "Managing partition entities"}},
+			Description: "Managing partition entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "project",
-			Description: "Managing project entities"}},
+			Description: "Managing project entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "switch",
-			Description: "Managing switch entities"}},
+			Description: "Managing switch entities",
+		}},
 	}
 	jwtspec := spec.APIKeyAuth("Authorization", "header")
 	jwtspec.Description = "Add a 'Authorization: Bearer ....' header to the request"

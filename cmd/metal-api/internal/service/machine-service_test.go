@@ -429,7 +429,6 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-
 			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
@@ -785,7 +784,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Networks: []v1.MachineAllocationNetwork{
 					{
 						NetworkID:     "network",
-						AutoAcquireIP: &trueValue},
+						AutoAcquireIP: &trueValue,
+					},
 				},
 			},
 			isError: false,
@@ -907,7 +907,6 @@ func Test_validateAllocationSpec(t *testing.T) {
 			ass.NoError(err, "Test: %s", tt.name)
 		}
 	}
-
 }
 
 func Test_makeMachineTags(t *testing.T) {
@@ -1532,7 +1531,6 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 	for i := range tests {
 		test := tests[i]
 		t.Run(test.name, func(t *testing.T) {
-
 			// init tests
 			ds, mock := datastore.InitMockDB()
 			for _, testMock := range test.mocks {
@@ -1542,7 +1540,6 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 
 			// run
 			got, err := gatherNetworksFromSpec(ds, test.allocationSpec, test.partition, test.partitionSuperNetworks)
-
 			// verify
 			if err != nil {
 				if !test.wantErr {

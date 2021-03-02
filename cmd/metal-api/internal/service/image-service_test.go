@@ -144,7 +144,6 @@ func TestCreateImage(t *testing.T) {
 	require.Equal(t, testdata.Img1.URL, *result.URL)
 	require.Equal(t, string(testdata.Img1.Classification), result.Classification)
 	require.False(t, result.ExpirationDate.IsZero())
-
 }
 
 func TestCreateImageWithBrokenURL(t *testing.T) {
@@ -237,7 +236,6 @@ func TestCreateImageWithClassification(t *testing.T) {
 	require.Equal(t, testdata.Img1.URL, *result.URL)
 	require.Equal(t, string(testdata.Img1.Classification), result.Classification)
 	require.False(t, result.ExpirationDate.IsZero())
-
 }
 
 func TestUpdateImage(t *testing.T) {

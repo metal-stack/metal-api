@@ -264,7 +264,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 				t.Errorf("RethinkStore.connectMachineWithSwitches() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
-		//mock.AssertExpectations(t)
+		// mock.AssertExpectations(t)
 	}
 }
 
@@ -519,11 +519,12 @@ func TestMakeSwitchNics(t *testing.T) {
 						},
 					},
 				},
-				ips: metal.IPsMap{"project": metal.IPs{
-					metal.IP{
-						IPAddress: "212.89.1.1",
+				ips: metal.IPsMap{
+					"project": metal.IPs{
+						metal.IP{
+							IPAddress: "212.89.1.1",
+						},
 					},
-				},
 				},
 				images: metal.ImageMap{
 					"fwimg": metal.Image{

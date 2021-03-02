@@ -36,7 +36,8 @@ func TestHas(t *testing.T) {
 			tags:   []string{"t"},
 			tag:    "t",
 			wanted: true,
-		}, {
+		},
+		{
 			name:   "with other tags",
 			tags:   []string{"a", "b", "c"},
 			tag:    "t",
@@ -73,7 +74,8 @@ func TestHasPrefix(t *testing.T) {
 			tags:   []string{""},
 			prefix: "",
 			wanted: true,
-		}, {
+		},
+		{
 			name:   "a tag with prefix",
 			tags:   []string{"b", "c", "key=value"},
 			prefix: "key",

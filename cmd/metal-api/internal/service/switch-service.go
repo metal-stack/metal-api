@@ -501,7 +501,6 @@ func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnect
 	finalNics = append(finalNics, nicsThatAlreadyExist...)
 
 	return finalNics, nil
-
 }
 
 // SetVrfAtSwitches finds the switches connected to the given machine and puts the switch ports into the given vrf.

@@ -1,17 +1,15 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"io/ioutil"
-
-	"bytes"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -28,6 +26,7 @@ func injectViewer(container *restful.Container, rq *http.Request) *restful.Conta
 func injectEditor(container *restful.Container, rq *http.Request) *restful.Container {
 	return injectUser(testUserDirectory.edit, container, rq)
 }
+
 func injectAdmin(container *restful.Container, rq *http.Request) *restful.Container {
 	return injectUser(testUserDirectory.admin, container, rq)
 }

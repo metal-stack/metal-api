@@ -97,7 +97,6 @@ func NewMachine(
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
 	grpcServer *grpc.Server) (*restful.WebService, error) {
-
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
@@ -615,7 +614,8 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
 			Base:                         metal.Base{ID: m.ID},
 			Liveliness:                   metal.MachineLivelinessAlive,
-			IncompleteProvisioningCycles: "0"},
+			IncompleteProvisioningCycles: "0",
+		},
 		)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -1442,7 +1442,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		return
 	}
 
-	var vrf = ""
+	vrf := ""
 	imgs, err := r.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return

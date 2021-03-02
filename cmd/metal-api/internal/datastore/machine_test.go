@@ -29,6 +29,7 @@ func TestRethinkStore_FindMachineByID2(t *testing.T) {
 		t.Error(err)
 	}
 }
+
 func TestRethinkStore_FindMachineByID(t *testing.T) {
 	// Mock the DB:
 	ds, mock := InitMockDB()

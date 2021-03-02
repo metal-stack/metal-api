@@ -16,11 +16,11 @@ const (
 	DemotedUser = "metal"
 )
 
-var (
-	tables = []string{"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration",
-		VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
-		ASNIntegerPool.String(), ASNIntegerPool.String() + "info"}
-)
+var tables = []string{
+	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration",
+	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
+	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
+}
 
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
@@ -138,58 +138,72 @@ func (rs *RethinkStore) sizeTable() *r.Term {
 	res := r.DB(rs.dbname).Table("size")
 	return &res
 }
+
 func (rs *RethinkStore) imageTable() *r.Term {
 	res := r.DB(rs.dbname).Table("image")
 	return &res
 }
+
 func (rs *RethinkStore) partitionTable() *r.Term {
 	res := r.DB(rs.dbname).Table("partition")
 	return &res
 }
+
 func (rs *RethinkStore) machineTable() *r.Term {
 	res := r.DB(rs.dbname).Table("machine")
 	return &res
 }
+
 func (rs *RethinkStore) switchTable() *r.Term {
 	res := r.DB(rs.dbname).Table("switch")
 	return &res
 }
+
 func (rs *RethinkStore) eventTable() *r.Term {
 	res := r.DB(rs.dbname).Table("event")
 	return &res
 }
+
 func (rs *RethinkStore) networkTable() *r.Term {
 	res := r.DB(rs.dbname).Table("network")
 	return &res
 }
+
 func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
 	return &res
 }
+
 func (rs *RethinkStore) asnTable() *r.Term {
 	res := r.DB(rs.dbname).Table(ASNIntegerPool.String())
 	return &res
 }
+
 func (rs *RethinkStore) asnInfoTable() *r.Term {
 	res := r.DB(rs.dbname).Table(ASNIntegerPool.String() + "info")
 	return &res
 }
+
 func (rs *RethinkStore) vrfTable() *r.Term {
 	res := r.DB(rs.dbname).Table(VRFIntegerPool.String())
 	return &res
 }
+
 func (rs *RethinkStore) vrfInfoTable() *r.Term {
 	res := r.DB(rs.dbname).Table(VRFIntegerPool.String() + "info")
 	return &res
 }
+
 func (rs *RethinkStore) migrationTable() *r.Term {
 	res := r.DB(rs.dbname).Table("migration")
 	return &res
 }
+
 func (rs *RethinkStore) userTable() *r.Term {
 	res := r.DB("rethinkdb").Table("users")
 	return &res
 }
+
 func (rs *RethinkStore) db() *r.Term {
 	res := r.DB(rs.dbname)
 	return &res

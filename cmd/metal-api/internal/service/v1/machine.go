@@ -236,6 +236,7 @@ type MachineIpmiReport struct {
 	BIOSVersion string
 	BMCVersion  string
 }
+
 type MachineIpmiReports struct {
 	PartitionID string                       `json:"partitionid,omitempty" description:"the partition id for the ipmi report"`
 	Reports     map[string]MachineIpmiReport `json:"reports,omitempty" description:"uuid to machinereport"`

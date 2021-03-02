@@ -8,7 +8,7 @@ import (
 
 func TestNics_ByMac(t *testing.T) {
 	// Create Nics
-	var countOfNics = 3
+	countOfNics := 3
 	nicArray := make([]Nic, countOfNics)
 	for i := 0; i < countOfNics; i++ {
 		nicArray[i] = Nic{

@@ -14,7 +14,6 @@ import (
 )
 
 func TestRethinkStore_FindImage(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -65,7 +64,6 @@ func TestRethinkStore_FindImage(t *testing.T) {
 }
 
 func TestRethinkStore_ListImages(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -100,7 +98,6 @@ func TestRethinkStore_ListImages(t *testing.T) {
 }
 
 func TestRethinkStore_CreateImage(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -139,7 +136,6 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 }
 
 func TestRethinkStore_DeleteImage(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -184,7 +180,6 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 }
 
 func TestRethinkStore_UpdateImage(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -226,6 +221,7 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 		})
 	}
 }
+
 func Test_getMostRecentImageFor(t *testing.T) {
 	valid := time.Now().Add(time.Hour)
 	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
@@ -429,6 +425,7 @@ func TestSemver(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, v)
 }
+
 func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)

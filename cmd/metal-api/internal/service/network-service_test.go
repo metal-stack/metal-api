@@ -193,7 +193,8 @@ func TestUpdateNetwork(t *testing.T) {
 	updateRequest := &v1.NetworkUpdateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{ID: testdata.Nw1.GetID()},
-			Describable:  v1.Describable{Name: &newName}},
+			Describable:  v1.Describable{Name: &newName},
+		},
 	}
 	js, _ := json.Marshal(updateRequest)
 	body := bytes.NewBuffer(js)

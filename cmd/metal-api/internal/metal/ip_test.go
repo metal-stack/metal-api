@@ -44,6 +44,7 @@ func TestAddMachineId(t *testing.T) {
 		})
 	}
 }
+
 func TestRemoveMachineId(t *testing.T) {
 	tests := []struct {
 		name         string

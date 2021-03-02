@@ -4,15 +4,13 @@ import (
 	"fmt"
 )
 
-var (
-	// UnknownSize is the size to use, when someone requires a size we do not know.
-	UnknownSize = &Size{
-		Base: Base{
-			ID:   "unknown",
-			Name: "unknown",
-		},
-	}
-)
+// UnknownSize is the size to use, when someone requires a size we do not know.
+var UnknownSize = &Size{
+	Base: Base{
+		ID:   "unknown",
+		Name: "unknown",
+	},
+}
 
 // A Size represents a supported machine size.
 type Size struct {

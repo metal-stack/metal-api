@@ -267,15 +267,19 @@ func (te *testEnv) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, 
 func (te *testEnv) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
 	return webRequestPost(t, te.switchService, adminUser, srr, "/v1/switch/register", response)
 }
+
 func (te *testEnv) switchGet(t *testing.T, swid string, response interface{}) int {
 	return webRequestGet(t, te.switchService, adminUser, emptyBody{}, "/v1/switch/"+swid, response)
 }
+
 func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response interface{}) int {
 	return webRequestPut(t, te.imageService, adminUser, icr, "/v1/image/", response)
 }
+
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
 	return webRequestPut(t, te.networkService, adminUser, icr, "/v1/network/", response)
 }
+
 func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, response interface{}) int {
 	return webRequestPost(t, te.networkService, adminUser, nar, "/v1/network/allocate", response)
 }
@@ -287,6 +291,7 @@ func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, 
 func (te *testEnv) machineFree(t *testing.T, uuid string, response interface{}) int {
 	return webRequestDelete(t, te.machineService, adminUser, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
 }
+
 func (te *testEnv) machineRegister(t *testing.T, mrr v1.MachineRegisterRequest, response interface{}) int {
 	return webRequestPost(t, te.machineService, adminUser, mrr, "/v1/machine/register", response)
 }

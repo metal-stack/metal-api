@@ -12,7 +12,7 @@ func TestNotFound(t *testing.T) {
 		args   []interface{}
 	}
 
-	var theargs = args{
+	theargs := args{
 		format: "SomeFormat",
 	}
 
@@ -43,11 +43,11 @@ func TestIsNotFound(t *testing.T) {
 		e error
 	}
 
-	var theargs = args{
+	theargs := args{
 		e: errors.New("Some other Error"),
 	}
 
-	var theargs2 = args{
+	theargs2 := args{
 		e: errNotFound,
 	}
 
