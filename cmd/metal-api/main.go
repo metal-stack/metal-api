@@ -481,8 +481,8 @@ func initMasterData() {
 
 func initIpam() {
 	dbAdapter := viper.GetString("ipam-db")
-	if dbAdapter == "postgres" {
-	tryAgain:
+	switch dbAdapter {
+	case "postgres":
 		pgStorage, err := goipam.NewPostgresStorage(
 			viper.GetString("ipam-db-addr"),
 			viper.GetString("ipam-db-port"),
@@ -493,14 +493,15 @@ func initIpam() {
 		if err != nil {
 			logger.Errorw("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
 			time.Sleep(3 * time.Second)
-			goto tryAgain
+			initIpam()
+			return
 		}
 		ipamInstance := goipam.NewWithStorage(pgStorage)
 		ipamer = ipam.New(ipamInstance)
-	} else if dbAdapter == "memory" {
+	case "memory":
 		ipamInstance := goipam.New()
 		ipamer = ipam.New(ipamInstance)
-	} else {
+	default:
 		logger.Errorw("database not supported", "db", dbAdapter)
 	}
 	logger.Info("ipam initialized")
