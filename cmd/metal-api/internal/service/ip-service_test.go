@@ -332,10 +332,9 @@ func TestUpdateIP(t *testing.T) {
 
 func TestProcessTags(t *testing.T) {
 	tests := []struct {
-		name    string
-		tags    []string
-		wanted  []string
-		wantErr bool
+		name   string
+		tags   []string
+		wanted []string
 	}{
 		{
 			name:   "distinct and sorted",
@@ -346,10 +345,7 @@ func TestProcessTags(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := processTags(tt.tags)
-			if tt.wantErr && err == nil {
-				t.Fatalf("expected error")
-			}
+			got := processTags(tt.tags)
 			if !cmp.Equal(got, tt.wanted) {
 				t.Errorf("%v", cmp.Diff(got, tt.wanted))
 			}

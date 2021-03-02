@@ -916,7 +916,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
 
-	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
+	networks, err := gatherNetworks(ds, allocationSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -1089,7 +1089,7 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	return nil
 }
 
-func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
+func gatherNetworks(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
 	partition, err := ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
 		return nil, fmt.Errorf("partition cannot be found: %w", err)
@@ -1109,7 +1109,7 @@ func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSp
 
 	var underlayNetwork *allocationNetwork
 	if allocationSpec.IsFirewall {
-		underlayNetwork, err = gatherUnderlayNetwork(ds, allocationSpec, partition)
+		underlayNetwork, err = gatherUnderlayNetwork(ds, partition)
 		if err != nil {
 			return nil, err
 		}
@@ -1262,7 +1262,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	return specNetworks, nil
 }
 
-func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition) (*allocationNetwork, error) {
+func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partition) (*allocationNetwork, error) {
 	boolTrue := true
 	var underlays metal.Networks
 	err := ds.SearchNetworks(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &underlays)

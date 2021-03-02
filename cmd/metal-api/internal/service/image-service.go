@@ -150,10 +150,7 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 
 	result := []*v1.ImageResponse{}
 	for i := range imgs {
-		machines, err := ir.machinesByImage(ms, imgs[i].ID)
-		if err != nil {
-			zapup.MustRootLogger().Warn("unable to collect machines for image", zap.Error(err))
-		}
+		machines := ir.machinesByImage(ms, imgs[i].ID)
 		ir := v1.NewImageResponse(&imgs[i])
 		if len(machines) > 0 {
 			ir.UsedBy = machines
@@ -278,10 +275,7 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 
-	machines, err := ir.machinesByImage(ms, img.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
+	machines := ir.machinesByImage(ms, img.ID)
 	if len(machines) > 0 {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)) {
 			return
@@ -363,7 +357,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 	}
 }
 
-func (ir imageResource) machinesByImage(machines metal.Machines, imageID string) ([]string, error) {
+func (ir imageResource) machinesByImage(machines metal.Machines, imageID string) []string {
 	var machinesByImage []string
 	for _, m := range machines {
 		if m.Allocation == nil {
@@ -373,7 +367,7 @@ func (ir imageResource) machinesByImage(machines metal.Machines, imageID string)
 			machinesByImage = append(machinesByImage, m.ID)
 		}
 	}
-	return machinesByImage, nil
+	return machinesByImage
 }
 
 // networkUsageCollector implements the prometheus collector interface.
