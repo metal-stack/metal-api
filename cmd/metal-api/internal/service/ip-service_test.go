@@ -139,7 +139,7 @@ func TestDeleteIP(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/v1/ip/free/"+testdata.IPAMIP.IPAddress, nil)
+			req := httptest.NewRequest("POST", "/v1/ip/free/"+tt.ip, nil)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()

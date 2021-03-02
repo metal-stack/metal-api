@@ -119,7 +119,7 @@ func (i *Ipam) ReleaseIP(ip metal.IP) error {
 	err := i.ip.ReleaseIPFromPrefix(ipamPrefix.Cidr, ip.IPAddress)
 
 	if err != nil {
-		return fmt.Errorf("error release ip %s in prefix %s: %v", ip.IPAddress, ip.ParentPrefixCidr, err)
+		return fmt.Errorf("error release ip %s in prefix %s: %w", ip.IPAddress, ip.ParentPrefixCidr, err)
 	}
 	return nil
 }
