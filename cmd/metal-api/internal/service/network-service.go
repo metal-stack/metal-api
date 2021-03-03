@@ -513,7 +513,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 		DestinationPrefixes: nwSpec.DestinationPrefixes,
 		PartitionID:         parent.PartitionID,
 		ProjectID:           nwSpec.ProjectID,
-		Nat:                 false,
+		Nat:                 nwSpec.Nat,
 		PrivateSuper:        false,
 		Underlay:            false,
 		Shared:              nwSpec.Shared,
