@@ -2282,17 +2282,16 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	bucket := "firmware-updates"
 	bucketFound := false
 	for _, b := range resp.Buckets {
-		if *b.Name == bucket {
+		if *b.Name == s3server.BucketName {
 			bucketFound = true
 			break
 		}
 	}
 	if !bucketFound {
 		_, err = r.s3Client.CreateBucket(context.Background(), &s3.CreateBucketInput{
-			Bucket: &bucket,
+			Bucket: aws.String(s3server.BucketName),
 		})
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -2302,7 +2301,7 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
 	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Body:   file,
-		Bucket: &bucket,
+		Bucket: aws.String(s3server.BucketName),
 		Key:    &key,
 	})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2324,11 +2323,11 @@ func (r machineResource) availableFirmwares(request *restful.Request, response *
 	}
 
 	fru := m.IPMI.Fru
-	bucketName := s3server.BucketName
 	vendor := strings.ToLower(fru.ProductManufacturer)
-	prefix := fmt.Sprintf("%s/%s/%s", kind, vendor, strings.ToUpper(fru.BoardPartNumber))
+	board := strings.ToUpper(fru.BoardPartNumber)
+	prefix := fmt.Sprintf("%s/%s/%s", kind, vendor, board)
 	r4, err := r.s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(s3server.BucketName),
 		Prefix: &prefix,
 	})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
