@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	s32 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
+	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
 	"net"
 	"net/http"
 	"strconv"
@@ -45,7 +45,7 @@ type machineResource struct {
 	mdc        mdm.Client
 	actor      *asyncActor
 	grpcServer *grpc.Server
-	s3Client   *s32.Client
+	s3Client   *s3server.Client
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -113,7 +113,7 @@ func NewMachine(
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
 	grpcServer *grpc.Server,
-	s3Client *s32.Client) (*restful.WebService, error) {
+	s3Client *s3server.Client) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -2324,8 +2324,9 @@ func (r machineResource) availableFirmwares(request *restful.Request, response *
 	}
 
 	fru := m.IPMI.Fru
-	bucketName := strings.ToLower(fru.ProductManufacturer)
-	prefix := fmt.Sprintf("updates/%s/%s", kind, strings.ToUpper(fru.BoardPartNumber))
+	bucketName := s3server.BucketName
+	vendor := strings.ToLower(fru.ProductManufacturer)
+	prefix := fmt.Sprintf("%s/%s/%s", kind, vendor, strings.ToUpper(fru.BoardPartNumber))
 	r4, err := r.s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucketName),
 		Prefix: &prefix,

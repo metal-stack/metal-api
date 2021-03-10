@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const BucketName = "firmware-updates"
+
 type Client struct {
 	*s3.Client
 	Url    string
