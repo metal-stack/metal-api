@@ -13,7 +13,6 @@ import (
 // Test that generates many input data
 // Reference: https://golang.org/pkg/testing/quick/
 func TestRethinkStore_FindMachineByID2(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -30,8 +29,8 @@ func TestRethinkStore_FindMachineByID2(t *testing.T) {
 		t.Error(err)
 	}
 }
-func TestRethinkStore_FindMachineByID(t *testing.T) {
 
+func TestRethinkStore_FindMachineByID(t *testing.T) {
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -84,7 +83,8 @@ func TestRethinkStore_FindMachineByID(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FindMachineByID(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -101,7 +101,6 @@ func TestRethinkStore_FindMachineByID(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -137,7 +136,8 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
 			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsMacAddresses: []string{tt.args.mac}}, &got)
@@ -153,7 +153,6 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine2(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -189,7 +188,8 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
 			err := tt.rs.SearchMachines(&MachineSearchQuery{DiskSizes: []int64{tt.args.size}}, &got)
@@ -205,7 +205,6 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine3(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -241,7 +240,8 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
 			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIDs: []string{tt.args.networkID}}, &got)
@@ -257,7 +257,6 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine4(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -293,7 +292,8 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
 			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIPs: []string{tt.args.ip}}, &got)
@@ -309,7 +309,6 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine5(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -345,7 +344,8 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
 			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkPrefixes: []string{tt.args.prefix}}, &got)
@@ -361,7 +361,6 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine6(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -399,7 +398,8 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
 			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsNeighborMacAddresses: []string{tt.args.mac}}, &got)
@@ -415,7 +415,6 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 }
 
 func TestRethinkStore_ListMachines(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -434,7 +433,8 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.ListMachines()
 			if (err != nil) != tt.wantErr {
@@ -449,7 +449,6 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 }
 
 func TestRethinkStore_CreateMachine(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -473,7 +472,8 @@ func TestRethinkStore_CreateMachine(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.CreateMachine(tt.args.d); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateMachine() error = %v, wantErr %v", err, tt.wantErr)
@@ -483,7 +483,6 @@ func TestRethinkStore_CreateMachine(t *testing.T) {
 }
 
 func TestRethinkStore_DeleteMachine(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -502,7 +501,8 @@ func TestRethinkStore_DeleteMachine(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.rs.DeleteMachine(tt.machine)
 			if (err != nil) != tt.wantErr {
@@ -514,7 +514,6 @@ func TestRethinkStore_DeleteMachine(t *testing.T) {
 }
 
 func TestRethinkStore_UpdateMachine(t *testing.T) {
-
 	// Mock the DB:
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -540,7 +539,8 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.UpdateMachine(tt.args.oldD, tt.args.newD); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateMachine() error = %v, wantErr %v", err, tt.wantErr)

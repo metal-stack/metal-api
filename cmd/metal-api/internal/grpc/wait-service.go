@@ -3,17 +3,19 @@ package grpc
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
+	"math"
+	"math/big"
 	"sync"
 	"time"
+
+	mathrand "math/rand"
+
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
-	"math"
-	"math/big"
-	mathrand "math/rand"
 )
 
 const (
@@ -83,6 +85,7 @@ func (s *WaitService) initWaitEndpoint() error {
 	} else {
 		s.logger.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
 		mathrand.Seed(time.Now().UnixNano())
+		// nolint
 		r = mathrand.Uint64()
 	}
 	channel := fmt.Sprintf("alloc-%d#ephemeral", r)

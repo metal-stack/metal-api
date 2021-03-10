@@ -190,7 +190,6 @@ var (
 )
 
 func TestProvisioning_IncompleteCycles(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		eventContainer ProvisioningEventContainer
@@ -260,7 +259,8 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 			want: "0",
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.eventContainer.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar()); got != tt.want {
 				t.Errorf("CalculateIncompleteCycles() = %v, want %v", got, tt.want)
@@ -295,7 +295,8 @@ func TestProvisioningEventType_Is(t *testing.T) {
 			want:  true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.p.Is(tt.event); got != tt.want {
 				t.Errorf("ProvisioningEventType.Is() = %v, want %v", got, tt.want)

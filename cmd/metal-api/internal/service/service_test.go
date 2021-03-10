@@ -1,16 +1,15 @@
 package service
 
 import (
+	"bytes"
+	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"io/ioutil"
-
-	"bytes"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -27,6 +26,7 @@ func injectViewer(container *restful.Container, rq *http.Request) *restful.Conta
 func injectEditor(container *restful.Container, rq *http.Request) *restful.Container {
 	return injectUser(testUserDirectory.edit, container, rq)
 }
+
 func injectAdmin(container *restful.Container, rq *http.Request) *restful.Container {
 	return injectUser(testUserDirectory.admin, container, rq)
 }
@@ -75,7 +75,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 	restful.DefaultContainer.Add(ws)
 
 	// health must be allowed without tenant check
-	httpRequest, _ := http.NewRequest("GET", "http://localhost/health", nil)
+	httpRequest, _ := http.NewRequestWithContext(context.TODO(), "GET", "http://localhost/health", nil)
 	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter := httptest.NewRecorder()
 
@@ -84,7 +84,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 	require.Equal(t, http.StatusOK, httpWriter.Code)
 
 	// liveliness must be allowed without tenant check
-	httpRequest, _ = http.NewRequest("GET", "http://localhost/liveliness", nil)
+	httpRequest, _ = http.NewRequestWithContext(context.TODO(), "GET", "http://localhost/liveliness", nil)
 	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter = httptest.NewRecorder()
 
@@ -93,7 +93,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 	require.Equal(t, http.StatusOK, httpWriter.Code)
 
 	// machine must not be allowed without tenant check
-	httpRequest, _ = http.NewRequest("GET", "http://localhost/machine", nil)
+	httpRequest, _ = http.NewRequestWithContext(context.TODO(), "GET", "http://localhost/machine", nil)
 	httpRequest.Header.Set("Accept", "application/json")
 	httpWriter = httptest.NewRecorder()
 

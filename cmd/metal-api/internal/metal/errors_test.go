@@ -7,30 +7,22 @@ import (
 )
 
 func TestNotFound(t *testing.T) {
-	type args struct {
-		format string
-		args   []interface{}
-	}
-
-	var theargs = args{
-		format: "SomeFormat",
-	}
-
 	tests := []struct {
 		name    string
-		args    args
+		format  string
+		args    []interface{}
 		wantErr bool
 	}{
-		// Test Data
 		{
 			name:    "TestNotFound 1",
-			args:    theargs,
+			format:  "SomeFormat",
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := NotFound(tt.args.format, tt.args.args...); (err != nil) != tt.wantErr {
+			if err := NotFound(tt.format, tt.args...); (err != nil) != tt.wantErr {
 				t.Errorf("NotFound() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -38,39 +30,96 @@ func TestNotFound(t *testing.T) {
 }
 
 func TestIsNotFound(t *testing.T) {
-	type args struct {
-		e error
-	}
-
-	var theargs = args{
-		e: errors.New("Some other Error"),
-	}
-
-	var theargs2 = args{
-		e: errNotFound,
-	}
-
 	tests := []struct {
 		name string
-		args args
+		err  error
 		want bool
 	}{
-		// Test Data Array:
 		{
 			name: "Test 1",
-			args: theargs,
+			err:  errors.New("Some other Error"),
 			want: false,
 		},
 		{
 			name: "Test 2",
-			args: theargs2,
+			err:  errNotFound,
 			want: true,
 		},
+		{
+			name: "Test 3",
+			err:  nil,
+			want: false,
+		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsNotFound(tt.args.e); got != tt.want {
+			if got := IsNotFound(tt.err); got != tt.want {
 				t.Errorf("IsNotFound() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsConflict(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "Test 1",
+			err:  errors.New("Some other Error"),
+			want: false,
+		},
+		{
+			name: "Test 2",
+			err:  errConflict,
+			want: true,
+		},
+		{
+			name: "Test 3",
+			err:  nil,
+			want: false,
+		},
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsConflict(tt.err); got != tt.want {
+				t.Errorf("IsConflict() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsInternal(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "Test 1",
+			err:  errors.New("Some other Error"),
+			want: false,
+		},
+		{
+			name: "Test 2",
+			err:  errInternal,
+			want: true,
+		},
+		{
+			name: "Test 3",
+			err:  nil,
+			want: false,
+		},
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsInternal(tt.err); got != tt.want {
+				t.Errorf("IsInternal() = %v, want %v", got, tt.want)
 			}
 		})
 	}

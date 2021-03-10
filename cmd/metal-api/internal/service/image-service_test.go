@@ -28,6 +28,7 @@ func TestGetImages(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -53,6 +54,7 @@ func TestGetImage(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -73,6 +75,7 @@ func TestGetImageNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -94,6 +97,7 @@ func TestDeleteImage(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -128,6 +132,7 @@ func TestCreateImage(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -139,7 +144,6 @@ func TestCreateImage(t *testing.T) {
 	require.Equal(t, testdata.Img1.URL, *result.URL)
 	require.Equal(t, string(testdata.Img1.Classification), result.Classification)
 	require.False(t, result.ExpirationDate.IsZero())
-
 }
 
 func TestCreateImageWithBrokenURL(t *testing.T) {
@@ -167,6 +171,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -184,6 +189,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp = w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -218,6 +224,7 @@ func TestCreateImageWithClassification(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -229,7 +236,6 @@ func TestCreateImageWithClassification(t *testing.T) {
 	require.Equal(t, testdata.Img1.URL, *result.URL)
 	require.Equal(t, string(testdata.Img1.Classification), result.Classification)
 	require.False(t, result.ExpirationDate.IsZero())
-
 }
 
 func TestUpdateImage(t *testing.T) {
@@ -262,6 +268,7 @@ func TestUpdateImage(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)

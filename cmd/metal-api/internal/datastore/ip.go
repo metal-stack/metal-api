@@ -59,9 +59,10 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		p.Tags = append(p.Tags, metal.IpTag(tag.MachineID, *p.MachineID))
 	}
 
-	for _, tag := range p.Tags {
+	for _, t := range p.Tags {
+		t := t
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("tags").Contains(r.Expr(tag))
+			return row.Field("tags").Contains(r.Expr(t))
 		})
 	}
 
@@ -99,11 +100,11 @@ func (rs *RethinkStore) ListIPs() (metal.IPs, error) {
 // CreateIP creates a new ip.
 func (rs *RethinkStore) CreateIP(ip *metal.IP) error {
 	if ip.AllocationUUID == "" {
-		uuid, err := uuid.NewRandom()
+		u, err := uuid.NewRandom()
 		if err != nil {
-			return fmt.Errorf("unable to create uuid for IP allocation: %v", err)
+			return fmt.Errorf("unable to create uuid for IP allocation: %w", err)
 		}
-		ip.AllocationUUID = uuid.String()
+		ip.AllocationUUID = u.String()
 	}
 	return rs.createEntity(rs.ipTable(), ip)
 }

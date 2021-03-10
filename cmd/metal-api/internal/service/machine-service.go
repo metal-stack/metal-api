@@ -97,7 +97,6 @@ func NewMachine(
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
 	grpcServer *grpc.Server) (*restful.WebService, error) {
-
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
@@ -441,7 +440,7 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 
 	if machineState != metal.AvailableState && requestPayload.Description == "" {
 		// we want a cause why this machine is not available
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("you must supply a description")) {
 			return
 		}
 	}
@@ -484,7 +483,7 @@ func (r machineResource) setChassisIdentifyLEDState(request *restful.Request, re
 
 	if ledState == metal.LEDStateOff && requestPayload.Description == "" {
 		// we want a cause why this chassis identify LED is off
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("you must supply a description")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("you must supply a description")) {
 			return
 		}
 	}
@@ -522,7 +521,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	}
 
 	if requestPayload.UUID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("uuid cannot be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("uuid cannot be empty")) {
 			return
 		}
 	}
@@ -615,7 +614,8 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
 			Base:                         metal.Base{ID: m.ID},
 			Liveliness:                   metal.MachineLivelinessAlive,
-			IncompleteProvisioningCycles: "0"},
+			IncompleteProvisioningCycles: "0",
+		},
 		)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -676,7 +676,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	}
 
 	if requestPayload.PartitionID == "" {
-		err := fmt.Errorf("partition id is empty")
+		err := errors.New("partition id is empty")
 		checkError(request, response, utils.CurrentFuncName(), err)
 		return
 	}
@@ -729,7 +729,8 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		resp.Created = append(resp.Created, uuid)
 	}
 	// update machine ipmi data if ipmi ip changed
-	for _, oldMachine := range ms {
+	for i := range ms {
+		oldMachine := ms[i]
 		uuid := oldMachine.ID
 		if uuid == "" {
 			continue
@@ -915,7 +916,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
 
-	networks, err := gatherNetworks(ds, ipamer, allocationSpec)
+	networks, err := gatherNetworks(ds, allocationSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -967,12 +968,12 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
-		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %v", machine.ID, err))
+		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %w", machine.ID, err))
 	}
 
 	err = ws.NotifyAllocated(machine.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to notify machine allocation %q, %v", machine.ID, err)
+		return nil, fmt.Errorf("failed to notify machine allocation %q, %w", machine.ID, err)
 	}
 
 	return machine, nil
@@ -980,15 +981,15 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	if allocationSpec.ProjectID == "" {
-		return fmt.Errorf("project id must be specified")
+		return errors.New("project id must be specified")
 	}
 
 	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
-		return fmt.Errorf("when no machine id is given, a partition id must be specified")
+		return errors.New("when no machine id is given, a partition id must be specified")
 	}
 
 	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
-		return fmt.Errorf("when no machine id is given, a size id must be specified")
+		return errors.New("when no machine id is given, a size id must be specified")
 	}
 
 	for _, ip := range allocationSpec.IPs {
@@ -1007,12 +1008,12 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	// A firewall must have either IP or Network with auto IP acquire specified.
 	if allocationSpec.IsFirewall {
 		if len(allocationSpec.IPs) == 0 && allocationSpec.autoNetworkN() == 0 {
-			return fmt.Errorf("when no ip is given at least one auto acquire network must be specified")
+			return errors.New("when no ip is given at least one auto acquire network must be specified")
 		}
 	}
 
 	if noautoNetN := allocationSpec.noautoNetworkN(); noautoNetN > len(allocationSpec.IPs) {
-		return fmt.Errorf("missing ip(s) for network(s) without automatic ip allocation")
+		return errors.New("missing ip(s) for network(s) without automatic ip allocation")
 	}
 
 	return nil
@@ -1031,11 +1032,11 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 		// requesting allocation of a specific, existing machine
 		machine, err = ds.FindMachineByID(allocationSpec.UUID)
 		if err != nil {
-			return nil, fmt.Errorf("machine cannot be found: %v", err)
+			return nil, fmt.Errorf("machine cannot be found: %w", err)
 		}
 
 		if machine.Allocation != nil {
-			return nil, fmt.Errorf("machine is already allocated")
+			return nil, errors.New("machine is already allocated")
 		}
 		if allocationSpec.PartitionID != "" && machine.PartitionID != allocationSpec.PartitionID {
 			return nil, fmt.Errorf("machine %q is not in the requested partition: %s", machine.ID, allocationSpec.PartitionID)
@@ -1051,11 +1052,11 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 func findWaitingMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
 	size, err := ds.FindSize(sizeID)
 	if err != nil {
-		return nil, fmt.Errorf("size cannot be found: %v", err)
+		return nil, fmt.Errorf("size cannot be found: %w", err)
 	}
 	partition, err := ds.FindPartition(partitionID)
 	if err != nil {
-		return nil, fmt.Errorf("partition cannot be found: %v", err)
+		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 	machine, err := ds.FindWaitingMachine(partition.ID, size.ID)
 	if err != nil {
@@ -1088,10 +1089,10 @@ func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec
 	return nil
 }
 
-func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
+func gatherNetworks(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (allocationNetworkMap, error) {
 	partition, err := ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
-		return nil, fmt.Errorf("partition cannot be found: %v", err)
+		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 
 	var privateSuperNetworks metal.Networks
@@ -1108,7 +1109,7 @@ func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSp
 
 	var underlayNetwork *allocationNetwork
 	if allocationSpec.IsFirewall {
-		underlayNetwork, err = gatherUnderlayNetwork(ds, allocationSpec, partition)
+		underlayNetwork, err = gatherUnderlayNetwork(ds, partition)
 		if err != nil {
 			return nil, err
 		}
@@ -1125,9 +1126,10 @@ func gatherNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSp
 
 func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition, privateSuperNetworks metal.Networks) (allocationNetworkMap, error) {
 	var partitionPrivateSuperNetwork *metal.Network
-	for _, privateSuperNetwork := range privateSuperNetworks {
-		if partition.ID == privateSuperNetwork.PartitionID {
-			partitionPrivateSuperNetwork = &privateSuperNetwork
+	for i := range privateSuperNetworks {
+		psn := privateSuperNetworks[i]
+		if partition.ID == psn.PartitionID {
+			partitionPrivateSuperNetwork = &psn
 			break
 		}
 	}
@@ -1183,7 +1185,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 				privateSharedNetworks = append(privateSharedNetworks, n)
 			} else {
 				if primaryPrivateNetwork != nil {
-					return nil, fmt.Errorf("multiple private networks are specified but there must be only one primary private network that must not be shared")
+					return nil, errors.New("multiple private networks are specified but there must be only one primary private network that must not be shared")
 				}
 				n.networkType = metal.PrivatePrimaryUnshared
 				primaryPrivateNetwork = n
@@ -1195,11 +1197,11 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	}
 
 	if len(specNetworks) != len(allocationSpec.Networks) {
-		return nil, fmt.Errorf("given network ids are not unique")
+		return nil, errors.New("given network ids are not unique")
 	}
 
 	if len(privateNetworks) == 0 {
-		return nil, fmt.Errorf("no private network given")
+		return nil, errors.New("no private network given")
 	}
 
 	// if there is no unshared private network we try to determine a shared one as primary
@@ -1208,10 +1210,10 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		// this is an exception where the primary private network is a shared one.
 		// it must be the only private network
 		if len(privateSharedNetworks) == 0 {
-			return nil, fmt.Errorf("no private shared network found that could be used as primary private network")
+			return nil, errors.New("no private shared network found that could be used as primary private network")
 		}
 		if len(privateSharedNetworks) > 1 {
-			return nil, fmt.Errorf("machines and firewalls are not allowed to be placed into multiple private, shared networks (firewall needs an unshared private network and machines may only reside in one private network)")
+			return nil, errors.New("machines and firewalls are not allowed to be placed into multiple private, shared networks (firewall needs an unshared private network and machines may only reside in one private network)")
 		}
 
 		primaryPrivateNetwork = privateSharedNetworks[0]
@@ -1219,11 +1221,11 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	}
 
 	if !allocationSpec.IsFirewall && len(privateNetworks) > 1 {
-		return nil, fmt.Errorf("machines are not allowed to be placed into multiple private networks")
+		return nil, errors.New("machines are not allowed to be placed into multiple private networks")
 	}
 
 	if primaryPrivateNetwork.network.ProjectID != allocationSpec.ProjectID {
-		return nil, fmt.Errorf("the given private network does not belong to the project, which is not allowed")
+		return nil, errors.New("the given private network does not belong to the project, which is not allowed")
 	}
 
 	for _, ipString := range allocationSpec.IPs {
@@ -1260,7 +1262,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	return specNetworks, nil
 }
 
-func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec, partition *metal.Partition) (*allocationNetwork, error) {
+func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partition) (*allocationNetwork, error) {
 	boolTrue := true
 	var underlays metal.Networks
 	err := ds.SearchNetworks(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &underlays)
@@ -1268,7 +1270,7 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, allocationSpec *machineAl
 		return nil, err
 	}
 	if len(underlays) == 0 {
-		return nil, fmt.Errorf("no underlay found in the given partition: %v", err)
+		return nil, fmt.Errorf("no underlay found in the given partition: %w", err)
 	}
 	if len(underlays) > 1 {
 		return nil, fmt.Errorf("more than one underlay network in partition %s in the database, which should not be the case", partition.ID)
@@ -1286,7 +1288,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	if n.auto {
 		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
 		if err != nil {
-			return nil, fmt.Errorf("unable to allocate an ip in network: %s %#v", n.network.ID, err)
+			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}
 		ip := &metal.IP{
 			IPAddress:        ipAddress,
@@ -1306,10 +1308,11 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 	}
 
 	ipAddresses := []string{}
-	for _, ip := range n.ips {
-		new := ip
-		new.AddMachineId(allocationSpec.UUID)
-		err := ds.UpdateIP(&ip, &new)
+	for i := range n.ips {
+		ip := n.ips[i]
+		newIP := ip
+		newIP.AddMachineId(allocationSpec.UUID)
+		err := ds.UpdateIP(&ip, &newIP)
 		if err != nil {
 			return nil, err
 		}
@@ -1439,7 +1442,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		return
 	}
 
-	var vrf = ""
+	vrf := ""
 	imgs, err := r.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -1505,7 +1508,7 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 	logger := utils.Logger(request).Sugar()
 
 	if m.Allocation != nil {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot delete machine that is allocated"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("cannot delete machine that is allocated"))
 		return
 	}
 
@@ -1516,7 +1519,7 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 	}
 
 	if !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("can only delete dead machines"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("can only delete dead machines"))
 		return
 	}
 
@@ -1525,21 +1528,22 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 		return
 	}
 
-	for _, old := range switches {
+	for i := range switches {
+		old := switches[i]
 		_, ok := old.MachineConnections[m.ID]
 		if !ok {
 			continue
 		}
 
-		new := old
-		new.MachineConnections = metal.ConnectionMap{}
+		newIP := old
+		newIP.MachineConnections = metal.ConnectionMap{}
 
 		for id, connection := range old.MachineConnections {
-			new.MachineConnections[id] = connection
+			newIP.MachineConnections[id] = connection
 		}
-		delete(new.MachineConnections, m.ID)
+		delete(newIP.MachineConnections, m.ID)
 
-		err = r.ds.UpdateSwitch(&old, &new)
+		err = r.ds.UpdateSwitch(&old, &newIP)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -1613,7 +1617,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		}
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, fmt.Errorf("machine either locked, not allocated yet or invalid image ID specified")))
+	err = response.WriteHeaderAndEntity(http.StatusBadRequest, httperrors.NewHTTPError(http.StatusBadRequest, errors.New("machine either locked, not allocated yet or invalid image ID specified")))
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
@@ -1740,7 +1744,7 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 	}
 	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(requestPayload.Event)]
 	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unknown provisioning event")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("unknown provisioning event")) {
 			return
 		}
 	}
@@ -1810,13 +1814,13 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	unknown := 0
 	alive := 0
 	dead := 0
-	errors := 0
+	errs := 0
 	for _, m := range machines {
 		p := liveliness[m.PartitionID]
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
-			errors++
+			errs++
 			// fall through, so the rest of the machines is getting evaluated
 		}
 		switch lvlness {
@@ -1826,7 +1830,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		case metal.MachineLivelinessDead:
 			dead++
 			p.Dead++
-		default:
+		case metal.MachineLivelinessUnknown:
 			unknown++
 			p.Unknown++
 		}
@@ -1835,7 +1839,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 
 	metrics.ProvideLiveliness(liveliness)
 
-	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errors)
+	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
 	return nil
 }
@@ -1884,7 +1888,8 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 		return err
 	}
 
-	for _, m := range machines {
+	for i := range machines {
+		m := machines[i]
 		if m.Allocation != nil {
 			continue
 		}
@@ -2168,8 +2173,8 @@ func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.Suga
 
 func (s machineAllocationSpec) noautoNetworkN() int {
 	result := 0
-	for _, net := range s.Networks {
-		if net.AutoAcquireIP != nil && !*net.AutoAcquireIP {
+	for _, n := range s.Networks {
+		if n.AutoAcquireIP != nil && !*n.AutoAcquireIP {
 			result++
 		}
 	}

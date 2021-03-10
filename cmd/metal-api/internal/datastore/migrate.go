@@ -76,7 +76,7 @@ func (ms Migrations) Between(current int, target *int) (Migrations, error) {
 	})
 
 	if target != nil && !targetFound {
-		return nil, fmt.Errorf("target version not found")
+		return nil, errors.New("target version not found")
 	}
 
 	return result, nil

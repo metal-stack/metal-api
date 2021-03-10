@@ -32,7 +32,7 @@ func NewNSQ(publisherConfig *bus.PublisherConfig, logger *zap.Logger, publisherP
 	}
 }
 
-//WaitForPublisher blocks until the given provider is able to provide a non nil publisher.
+// WaitForPublisher blocks until the given provider is able to provide a non nil publisher.
 func (n *NSQClient) WaitForPublisher() {
 	for {
 		publisher, err := n.publisherProvider(n.logger, n.config)
@@ -58,7 +58,7 @@ func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
 	return nil
 }
 
-//WaitForTopicsCreated blocks until the topices are created within the given partitions.
+// WaitForTopicsCreated blocks until the topices are created within the given partitions.
 func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []metal.NSQTopic) {
 	for {
 		if err := n.createTopics(partitions, topics); err != nil {
@@ -70,7 +70,7 @@ func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []me
 	}
 }
 
-//CreateTopic creates a topic with given name.
+// CreateTopic creates a topic with given name.
 func (n NSQClient) CreateTopic(name string) error {
 	if err := n.Publisher.CreateTopic(name); err != nil {
 		n.logger.Sugar().Errorw("cannot create topic", "topic", name)

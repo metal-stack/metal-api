@@ -2,19 +2,22 @@ package grpc
 
 import (
 	"context"
+	"crypto/rand"
+	"errors"
 	"fmt"
+	"io"
+	"math/big"
+	"strconv"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
-	"io"
-	mathrand "math/rand"
-	"strconv"
-	"sync"
-	"testing"
-	"time"
 )
 
 type testCase int
@@ -47,8 +50,6 @@ type test struct {
 }
 
 func TestWaitServer(t *testing.T) {
-	mathrand.Seed(time.Now().UnixNano())
-
 	var tt []*test
 	aa := []int{1, 10}
 	mm := [][]int{{10, 7}}
@@ -123,6 +124,7 @@ func (t *test) run() {
 	}
 
 	switch t.testCase {
+	case happyPath:
 	case serverFailure:
 		t.notReadyMachines.Add(t.numberMachineInstances)
 		t.stopApiInstances()
@@ -221,7 +223,7 @@ func (t *test) startMachineInstances() {
 	}
 	for i := 0; i < t.numberMachineInstances; i++ {
 		machineID := strconv.Itoa(i)
-		port := 50005 + mathrand.Intn(t.numberApiInstances)
+		port := 50005 + t.randNumber(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
 		require.Nil(t, err)
@@ -259,7 +261,7 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 
 		for {
 			_, err := stream.Recv()
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				if !receivedResponse {
 					break
 				}
@@ -295,7 +297,7 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(mathrand.Intn(t.numberMachineInstances))
+	machineID := strconv.Itoa(t.randNumber(t.numberMachineInstances))
 	for _, id := range except {
 		if id == machineID {
 			return t.selectMachine(except)
@@ -308,4 +310,10 @@ func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
 		s.handleAllocation(machineID)
 	}
+}
+
+func (t *test) randNumber(n int) int {
+	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
+	require.Nil(t, err)
+	return int(nBig.Int64())
 }

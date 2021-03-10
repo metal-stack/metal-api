@@ -9,7 +9,6 @@ import (
 )
 
 func TestRethinkStore_FindPartition(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -44,7 +43,8 @@ func TestRethinkStore_FindPartition(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FindPartition(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -59,7 +59,6 @@ func TestRethinkStore_FindPartition(t *testing.T) {
 }
 
 func TestRethinkStore_ListPartitions(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -78,7 +77,8 @@ func TestRethinkStore_ListPartitions(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.ListPartitions()
 			if (err != nil) != tt.wantErr {
@@ -93,7 +93,6 @@ func TestRethinkStore_ListPartitions(t *testing.T) {
 }
 
 func TestRethinkStore_CreatePartition(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -117,7 +116,8 @@ func TestRethinkStore_CreatePartition(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.CreatePartition(tt.args.part); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreatePartition() error = %v, wantErr %v", err, tt.wantErr)
@@ -127,7 +127,6 @@ func TestRethinkStore_CreatePartition(t *testing.T) {
 }
 
 func TestRethinkStore_DeletePartition(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -159,7 +158,8 @@ func TestRethinkStore_DeletePartition(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.rs.DeletePartition(tt.args.p)
 			if (err != nil) != tt.wantErr {
@@ -171,7 +171,6 @@ func TestRethinkStore_DeletePartition(t *testing.T) {
 }
 
 func TestRethinkStore_UpdatePartition(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -204,7 +203,8 @@ func TestRethinkStore_UpdatePartition(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.UpdatePartition(tt.args.oldF, tt.args.newF); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdatePartition() error = %v, wantErr %v", err, tt.wantErr)
