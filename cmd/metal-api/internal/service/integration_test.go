@@ -1,3 +1,4 @@
+//nolint:unused
 package service
 
 import (
@@ -28,7 +29,6 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 )
 
-//nolint:golint,unused
 type testEnv struct {
 	imageService        *restful.WebService
 	switchService       *restful.WebService
@@ -47,7 +47,7 @@ func (te *testEnv) teardown() {
 	_ = te.rethinkContainer.Terminate(te.ctx)
 }
 
-//nolint:golint,unused,deadcode
+//nolint:deadcode
 func createTestEnvironment(t *testing.T) testEnv {
 	require := require.New(t)
 	log, err := zap.NewDevelopment()
@@ -248,7 +248,6 @@ func createTestEnvironment(t *testing.T) testEnv {
 	return te
 }
 
-//nolint:golint,unused
 var adminUser = &security.User{
 	Tenant: "provider",
 	Groups: []security.ResourceAccess{
@@ -319,7 +318,6 @@ func (te *testEnv) machineWait(uuid string) {
 	}
 }
 
-//nolint:golint,unused
 type emptyBody struct{}
 
 func webRequestPut(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
@@ -338,7 +336,6 @@ func webRequestGet(t *testing.T, service *restful.WebService, user *security.Use
 	return webRequest(t, http.MethodGet, service, user, request, path, response)
 }
 
-//nolint:golint,unused
 func webRequest(t *testing.T, method string, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
 	container := restful.NewContainer().Add(service)
 
