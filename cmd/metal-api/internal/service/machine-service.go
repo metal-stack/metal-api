@@ -1,12 +1,11 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"io"
+	s32 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
 	"net"
 	"net/http"
 	"strconv"
@@ -46,7 +45,7 @@ type machineResource struct {
 	mdc        mdm.Client
 	actor      *asyncActor
 	grpcServer *grpc.Server
-	s3Client   *v1.S3Client
+	s3Client   *s32.S3Client
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -114,7 +113,7 @@ func NewMachine(
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
 	grpcServer *grpc.Server,
-	s3Client *v1.S3Client) (*restful.WebService, error) {
+	s3Client *s32.S3Client) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -413,7 +412,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/upload-firmware/{kind}/{vendor}/{board}/{revision}").
-		To(editor(r.uploadFirmware)).
+		To(admin(r.uploadFirmware)).
 		Operation("uploadFirmware").
 		Doc("upload given firmware update for given machine").
 		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
@@ -427,7 +426,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/available-firmwares").
-		To(editor(r.availableFirmwares)).
+		To(admin(r.availableFirmwares)).
 		Operation("availableFirmwares").
 		Doc("returns all available firmwares for the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
@@ -438,7 +437,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/update-firmware").
-		To(editor(r.updateFirmware)).
+		To(admin(r.updateFirmware)).
 		Operation("updateFirmware").
 		Doc("sends a firmware command to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
@@ -2279,13 +2278,6 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 		return
 	}
 
-	buf := bytes.NewBuffer(nil)
-	_, err = io.Copy(buf, file)
-	if checkError(request, response, utils.CurrentFuncName(), file.Close()) ||
-		checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	resp, err := r.s3Client.ListBuckets(context.Background(), nil)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -2308,7 +2300,7 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 
 	key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
 	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Body:   bytes.NewReader(buf.Bytes()),
+		Body:   file,
 		Bucket: &vendor,
 		Key:    &key,
 	})
