@@ -3,50 +3,52 @@ package s3
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"time"
 )
 
-type S3Client struct {
+type Client struct {
 	*s3.Client
-	Region string
 	Url    string
 	Key    string
 	Secret string
 }
 
-func NewS3Client(region, url, key, secret string) *S3Client {
-	return &S3Client{
-		Region: region,
+func NewS3Client(url, key, secret string) *Client {
+	return &Client{
 		Url:    url,
 		Key:    key,
 		Secret: secret,
 	}
 }
 
-func (c *S3Client) Connect() error {
+func (c *Client) Connect() error {
 	if c.Client != nil {
 		return nil
 	}
 
+	dummyRegion := "dummy" // we don't use AWS S3, we don't need a proper region
 	customResolver := aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
-		if c.Region == region {
-			return aws.Endpoint{
-				PartitionID:       "aws",
-				URL:               c.Url,
-				SigningRegion:     region,
-				HostnameImmutable: true,
-			}, nil
-		}
-		// returning EndpointNotFoundError will allow the service to fallback to it's default resolution
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+		return aws.Endpoint{
+			PartitionID:       "aws",
+			URL:               c.Url,
+			SigningRegion:     dummyRegion,
+			HostnameImmutable: true,
+		}, nil
 	})
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithEndpointResolver(customResolver))
+	retryer := func() aws.Retryer {
+		r := retry.AddWithMaxAttempts(retry.NewStandard(), 3)
+		r = retry.AddWithMaxBackoffDelay(r, 10*time.Second)
+		return r
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithEndpointResolver(customResolver), config.WithRetryer(retryer))
 	if err != nil {
 		return err
 	}
-	cfg.Region = c.Region
+	cfg.Region = dummyRegion
 	cfg.Credentials = credentials.NewStaticCredentialsProvider(c.Key, c.Secret, "")
 	c.Client = s3.NewFromConfig(cfg)
 	return nil

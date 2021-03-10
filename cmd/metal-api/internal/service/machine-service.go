@@ -45,7 +45,7 @@ type machineResource struct {
 	mdc        mdm.Client
 	actor      *asyncActor
 	grpcServer *grpc.Server
-	s3Client   *s32.S3Client
+	s3Client   *s32.Client
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -113,7 +113,7 @@ func NewMachine(
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
 	grpcServer *grpc.Server,
-	s3Client *s32.S3Client) (*restful.WebService, error) {
+	s3Client *s32.Client) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -2033,7 +2033,7 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Region, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
+	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {

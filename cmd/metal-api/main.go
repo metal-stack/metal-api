@@ -198,7 +198,6 @@ func init() {
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
-	rootCmd.Flags().StringP("s3-region", "", "", "the region of the s3 server that provides firmware updates")
 	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server that provides firmware updates")
 	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server that provides firmware updates")
 	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server that provides firmware updates")
@@ -599,18 +598,17 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		logger.Fatal(err)
 	}
 
-	var s3Client *s3.S3Client
+	var s3Client *s3.Client
 	s3Address := viper.GetString("s3-address")
 	if s3Address != "" {
-		s3Region := viper.GetString("s3-region")
 		s3Key := viper.GetString("s3-key")
 		s3Secret := viper.GetString("s3-secret")
-		s3Client = s3.NewS3Client(s3Region, s3Address, s3Key, s3Secret)
+		s3Client = s3.NewS3Client(s3Address, s3Key, s3Secret)
 		err = s3Client.Connect()
 		if err != nil {
 			logger.Fatal(err)
 		}
-		logger.Infow("connected to s3 server that provides firmware updates", "address", s3Address, "region", s3Region)
+		logger.Infow("connected to s3 server that provides firmware updates", "address", s3Address)
 	} else {
 		logger.Info("s3 server that provides firmware updates is disabled")
 	}
