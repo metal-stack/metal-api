@@ -2282,26 +2282,27 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	bucket := "firmware-updates"
 	bucketFound := false
 	for _, b := range resp.Buckets {
-		if *b.Name == vendor {
+		if *b.Name == bucket {
 			bucketFound = true
 			break
 		}
 	}
 	if !bucketFound {
 		_, err = r.s3Client.CreateBucket(context.Background(), &s3.CreateBucketInput{
-			Bucket: &vendor,
+			Bucket: &bucket,
 		})
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 	}
 
-	key := fmt.Sprintf("updates/%s/%s/%s", kind, board, revision)
+	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
 	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Body:   file,
-		Bucket: &vendor,
+		Bucket: &bucket,
 		Key:    &key,
 	})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
