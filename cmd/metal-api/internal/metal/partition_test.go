@@ -6,7 +6,6 @@ import (
 )
 
 func TestPartitions_ByID(t *testing.T) {
-
 	testPartitions := []Partition{
 		{
 			Base: Base{
@@ -42,7 +41,8 @@ func TestPartitions_ByID(t *testing.T) {
 			want: map[string]Partition{testPartitions[0].ID: testPartitions[0], testPartitions[1].ID: testPartitions[1], testPartitions[2].ID: testPartitions[2]},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sz.ByID(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Partitions.ByID() = %v, want %v", got, tt.want)

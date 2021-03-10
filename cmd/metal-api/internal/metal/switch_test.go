@@ -81,7 +81,8 @@ func TestSwitch_ConnectMachine(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tt.s.ConnectMachine(tt.args.Machine)
 		})
@@ -176,7 +177,8 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			s := Switch{
 				Base: Base{

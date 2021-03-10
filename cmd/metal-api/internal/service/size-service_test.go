@@ -28,6 +28,7 @@ func TestGetSizes(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -56,6 +57,7 @@ func TestGetSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -78,6 +80,7 @@ func TestGetSizeNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -99,6 +102,7 @@ func TestDeleteSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -148,6 +152,7 @@ func TestCreateSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -194,6 +199,7 @@ func TestUpdateSize(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)

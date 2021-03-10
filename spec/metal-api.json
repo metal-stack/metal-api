@@ -546,6 +546,10 @@
           "description": "the machine an ip address is associated to",
           "type": "string"
         },
+        "name": {
+          "description": "the name of the ip address",
+          "type": "string"
+        },
         "networkid": {
           "description": "the network this ip allocate request address belongs to",
           "type": "string"
@@ -2031,6 +2035,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "destinationprefixes": {
+          "description": "the destination prefixes of this network",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "labels": {
           "additionalProperties": {
             "type": "string"
@@ -2041,6 +2052,10 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "nat": {
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "type": "boolean"
         },
         "partitionid": {
           "description": "the partition this network belongs to",

@@ -133,8 +133,8 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	var result []Prefix
 	for _, p := range n.Prefixes {
 		contains := false
-		for _, prefixToSubstract := range prefixes {
-			if p.Equals(&prefixToSubstract) {
+		for i := range prefixes {
+			if p.Equals(&prefixes[i]) {
 				contains = true
 				break
 			}

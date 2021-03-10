@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -9,8 +10,6 @@ import (
 	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-
-	"fmt"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -155,7 +154,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
 			return
 		}
 	}
@@ -176,7 +175,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.PrivateNetworkPrefixLength != nil {
 		prefixLength = *requestPayload.PrivateNetworkPrefixLength
 		if prefixLength < 16 || prefixLength > 30 {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("private network prefix length is out of range")) {
+			if checkError(request, response, utils.CurrentFuncName(), errors.New("private network prefix length is out of range")) {
 				return
 			}
 		}

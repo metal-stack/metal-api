@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -245,17 +246,18 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 
 	if len(requestPayload.Prefixes) == 0 {
 		// TODO: Should return a bad request 401
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no prefixes given")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("no prefixes given")) {
 			return
 		}
 	}
 	prefixes := metal.Prefixes{}
 	// all Prefixes must be valid
-	for _, p := range requestPayload.Prefixes {
+	for i := range requestPayload.Prefixes {
+		p := requestPayload.Prefixes[i]
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		// TODO: Should return a bad request 401
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)) {
 				return
 			}
 		}
@@ -263,10 +265,11 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 
 	destPrefixes := metal.Prefixes{}
-	for _, p := range requestPayload.DestinationPrefixes {
+	for i := range requestPayload.DestinationPrefixes {
+		p := requestPayload.DestinationPrefixes[i]
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %v", p, err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)) {
 				return
 			}
 		}
@@ -335,7 +338,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 
 	if (privateSuper || underlay) && nat {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("private super or underlay network is not supposed to NAT"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("private super or underlay network is not supposed to NAT"))
 		return
 	}
 
@@ -343,12 +346,12 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		err = acquireVRF(r.ds, vrf)
 		if err != nil {
 			if !metal.IsConflict(err) {
-				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %v", err)) {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %w", err)) {
 					return
 				}
 			}
 			if !vrfShared {
-				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot acquire a unique vrf id twice except vrfShared is set to true: %v", err)) {
+				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("cannot acquire a unique vrf id twice except vrfShared is set to true: %w", err)) {
 					return
 				}
 			}
@@ -415,18 +418,22 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	if requestPayload.PartitionID != nil {
 		partitionID = *requestPayload.PartitionID
 	}
-	shared := false
+	var shared bool
 	if requestPayload.Shared != nil {
 		shared = *requestPayload.Shared
 	}
+	var nat bool
+	if requestPayload.Nat != nil {
+		nat = *requestPayload.Nat
+	}
 
 	if projectID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectid should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("projectid should not be empty")) {
 			return
 		}
 	}
 	if partitionID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("partitionid should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("partitionid should not be empty")) {
 			return
 		}
 	}
@@ -448,15 +455,28 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		return
 	}
 
+	destPrefixes := metal.Prefixes{}
+	for _, p := range requestPayload.DestinationPrefixes {
+		prefix, err := metal.NewPrefixFromCIDR(p)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)) {
+				return
+			}
+		}
+		destPrefixes = append(destPrefixes, *prefix)
+	}
+
 	nwSpec := &metal.Network{
 		Base: metal.Base{
 			Name:        name,
 			Description: description,
 		},
-		PartitionID: partition.ID,
-		ProjectID:   project.GetProject().GetMeta().GetId(),
-		Labels:      requestPayload.Labels,
-		Shared:      shared,
+		PartitionID:         partition.ID,
+		ProjectID:           project.GetProject().GetMeta().GetId(),
+		Labels:              requestPayload.Labels,
+		DestinationPrefixes: destPrefixes,
+		Shared:              shared,
+		Nat:                 nat,
 	}
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
@@ -475,7 +495,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
 	vrf, err := acquireRandomVRF(ds)
 	if err != nil {
-		return nil, fmt.Errorf("Could not acquire a vrf: %v", err)
+		return nil, fmt.Errorf("Could not acquire a vrf: %w", err)
 	}
 
 	childPrefix, err := createChildPrefix(parent.Prefixes, childLength, ipamer)
@@ -493,10 +513,10 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 			Description: nwSpec.Description,
 		},
 		Prefixes:            metal.Prefixes{*childPrefix},
-		DestinationPrefixes: metal.Prefixes{},
+		DestinationPrefixes: nwSpec.DestinationPrefixes,
 		PartitionID:         parent.PartitionID,
 		ProjectID:           nwSpec.ProjectID,
-		Nat:                 false,
+		Nat:                 nwSpec.Nat,
 		PrivateSuper:        false,
 		Underlay:            false,
 		Shared:              nwSpec.Shared,
@@ -543,7 +563,7 @@ func (r networkResource) freeNetwork(request *restful.Request, response *restful
 	if nw.Vrf != 0 {
 		err = releaseVRF(r.ds, nw.Vrf)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %w", err)) {
 				return
 			}
 		}
@@ -588,7 +608,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	}
 
 	if oldNetwork.Shared && !newNetwork.Shared {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("once a network is marked as shared it is not possible to unshare it"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("once a network is marked as shared it is not possible to unshare it"))
 		return
 	}
 
@@ -617,7 +637,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		}
 		err = checkAnyIPOfPrefixesInUse(allIPs, prefixesToBeRemoved)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to update network: %v", err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to update network: %w", err)) {
 				return
 			}
 		}
@@ -667,7 +687,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 	}
 
 	if len(children) != 0 {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("network cannot be deleted because there are children of this network")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("network cannot be deleted because there are children of this network")) {
 			return
 		}
 	}
@@ -679,7 +699,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 
 	err = checkAnyIPOfPrefixesInUse(allIPs, nw.Prefixes)
 	if err != nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to delete network: %v", err)) {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to delete network: %w", err)) {
 			return
 		}
 	}
@@ -694,7 +714,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 	if nw.Vrf != 0 {
 		err = releaseVRF(r.ds, nw.Vrf)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %v", err)) {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not release vrf: %w", err)) {
 				return
 			}
 		}

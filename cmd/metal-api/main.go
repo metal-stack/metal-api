@@ -47,9 +47,16 @@ import (
 	"go.uber.org/zap"
 )
 
+type dsConnectOpt int
+
 const (
 	cfgFileType = "yaml"
 	moduleName  = "metal-api"
+
+	// DataStoreConnectTableInit connects to the data store and then runs data store initialization
+	DataStoreConnectTableInit dsConnectOpt = 0
+	// DataStoreConnectNoDemotion connects to the data store without demoting to runtime user in the end
+	DataStoreConnectNoDemotion dsConnectOpt = 1
 )
 
 var (
@@ -70,16 +77,25 @@ var rootCmd = &cobra.Command{
 	Version:       v.V.String(),
 	SilenceUsage:  true,
 	SilenceErrors: true,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		initLogging()
 		initMetrics()
-		initDataStore()
+
+		var opts []dsConnectOpt
+		if viper.GetBool("init-data-store") {
+			opts = append(opts, DataStoreConnectTableInit)
+		}
+		err := connectDataStore(opts...)
+		if err != nil {
+			return err
+		}
+
 		initEventBus()
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
 		initGrpcServer()
-		run()
+		return run()
 	},
 }
 
@@ -88,7 +104,10 @@ var migrateDatabase = &cobra.Command{
 	Short:   "migrates the database to the latest version",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		connectDataStore()
+		err := connectDataStore(DataStoreConnectNoDemotion)
+		if err != nil {
+			return err
+		}
 		var targetVersion *int
 		specificVersion := viper.GetInt("target-version")
 		if specificVersion != -1 {
@@ -112,9 +131,7 @@ var initDatabase = &cobra.Command{
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		connectDataStore()
-
-		return ds.Initialize()
+		return connectDataStore(DataStoreConnectTableInit, DataStoreConnectNoDemotion)
 	},
 }
 
@@ -143,8 +160,14 @@ var deleteOrphanImagesCmd = &cobra.Command{
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		initLogging()
-		initDataStore()
-		return deleteOrphanImages()
+		err := connectDataStore()
+		if err != nil {
+			return err
+		}
+		initEventBus()
+
+		_, err = ds.DeleteOrphanImages(nil, nil)
+		return err
 	},
 }
 
@@ -171,6 +194,7 @@ func init() {
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
 	rootCmd.Flags().IntP("grpc-port", "", 50051, "the port to serve gRPC on")
+	rootCmd.Flags().Bool("init-data-store", true, "initializes the data store on start (can be switched off when running the init command before starting instances)")
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
@@ -228,19 +252,19 @@ func init() {
 
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
-		logger.Error("unable to construct root command:%v", err)
+		logger.Error("unable to construct root command:%w", err)
 	}
 
 	err = viper.BindPFlags(rootCmd.PersistentFlags())
 	if err != nil {
-		logger.Error("unable to construct root command:%v", err)
+		logger.Error("unable to construct root command:%w", err)
 	}
 
 	migrateDatabase.Flags().Int("target-version", -1, "the target version of the migration, when set to -1 will migrate to latest version")
 	migrateDatabase.Flags().Bool("dry-run", false, "only shows which migrations would run, but does not execute them")
 	err = viper.BindPFlags(migrateDatabase.Flags())
 	if err != nil {
-		logger.Error("unable to construct migrate command:%v", err)
+		logger.Error("unable to construct migrate command:%w", err)
 	}
 }
 
@@ -365,7 +389,7 @@ func waitForPartitions() metal.Partitions {
 	return partitions
 }
 
-func connectDataStore() {
+func connectDataStore(opts ...dsConnectOpt) error {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
 		ds = datastore.New(
@@ -376,30 +400,43 @@ func connectDataStore() {
 			viper.GetString("db-password"),
 		)
 	} else {
-		logger.Error("database not supported", "db", dbAdapter)
+		return fmt.Errorf("database not supported: %v", dbAdapter)
+	}
+
+	initTables := false
+	demote := true
+
+	for _, opt := range opts {
+		switch opt {
+		case DataStoreConnectNoDemotion:
+			demote = false
+		case DataStoreConnectTableInit:
+			initTables = true
+		default:
+			return errors.New("unsupported datastore connect option")
+		}
 	}
 
 	err := ds.Connect()
 	if err != nil {
-		logger.Errorw("cannot connect to data store", "error", err)
-		panic(err)
-	}
-}
-
-func initDataStore() {
-	connectDataStore()
-
-	err := ds.Initialize()
-	if err != nil {
-		logger.Errorw("error initializing data store tables", "error", err)
-		panic(err)
+		return fmt.Errorf("cannot connect to data store: %w", err)
 	}
 
-	err = ds.Demote()
-	if err != nil {
-		logger.Errorw("error demoting to data store runtime user", "error", err)
-		panic(err)
+	if initTables {
+		err := ds.Initialize()
+		if err != nil {
+			return fmt.Errorf("error initializing data store tables: %w", err)
+		}
 	}
+
+	if demote {
+		err = ds.Demote()
+		if err != nil {
+			return fmt.Errorf("error demoting to data store runtime user: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func initMasterData() {
@@ -450,8 +487,8 @@ func initMasterData() {
 
 func initIpam() {
 	dbAdapter := viper.GetString("ipam-db")
-	if dbAdapter == "postgres" {
-	tryAgain:
+	switch dbAdapter {
+	case "postgres":
 		pgStorage, err := goipam.NewPostgresStorage(
 			viper.GetString("ipam-db-addr"),
 			viper.GetString("ipam-db-port"),
@@ -462,14 +499,15 @@ func initIpam() {
 		if err != nil {
 			logger.Errorw("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
 			time.Sleep(3 * time.Second)
-			goto tryAgain
+			initIpam()
+			return
 		}
 		ipamInstance := goipam.NewWithStorage(pgStorage)
 		ipamer = ipam.New(ipamInstance)
-	} else if dbAdapter == "memory" {
+	case "memory":
 		ipamInstance := goipam.New()
 		ipamer = ipam.New(ipamInstance)
-	} else {
+	default:
 		logger.Errorw("database not supported", "db", dbAdapter)
 	}
 	logger.Info("ipam initialized")
@@ -604,7 +642,8 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	config := restfulspec.Config{
 		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
 		APIPath:                       service.BasePath + "apidocs.json",
-		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
+		PostBuildSwaggerObjectHandler: enrichSwaggerObject,
+	}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
 }
@@ -640,7 +679,10 @@ func dumpSwaggerJSON() {
 }
 
 func resurrectDeadMachines() error {
-	initDataStore()
+	err := connectDataStore()
+	if err != nil {
+		return err
+	}
 	initEventBus()
 	initIpam()
 
@@ -650,7 +692,7 @@ func resurrectDeadMachines() error {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	err := service.ResurrectMachines(ds, p, ep, ipamer, logger)
+	err = service.ResurrectMachines(ds, p, ep, ipamer, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to resurrect machines")
 	}
@@ -659,9 +701,12 @@ func resurrectDeadMachines() error {
 }
 
 func evaluateLiveliness() error {
-	initDataStore()
+	err := connectDataStore()
+	if err != nil {
+		return err
+	}
 
-	err := service.MachineLiveliness(ds, logger)
+	err = service.MachineLiveliness(ds, logger)
 	if err != nil {
 		return errors.Wrap(err, "unable to evaluate machine liveliness")
 	}
@@ -669,14 +714,7 @@ func evaluateLiveliness() error {
 	return nil
 }
 
-func deleteOrphanImages() error {
-	initDataStore()
-	initEventBus()
-	_, err := ds.DeleteOrphanImages(nil, nil)
-	return err
-}
-
-func run() {
+func run() error {
 	initRestServices(true)
 
 	// enable OPTIONS-request so clients can query CORS information
@@ -691,7 +729,8 @@ func run() {
 		AllowedHeaders: []string{"Content-Type", "Accept", "Authorization"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		CookiesAllowed: false,
-		Container:      restful.DefaultContainer}
+		Container:      restful.DefaultContainer,
+	}
 	restful.DefaultContainer.Filter(cors.Filter)
 
 	// catch all other errors
@@ -716,9 +755,11 @@ func run() {
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
 	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)
 	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		logger.Errorw("failed to start metal api", "error", err)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("failed to start metal api: %w", err)
 	}
+
+	return nil
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {
@@ -743,28 +784,36 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 	swo.Tags = []spec.Tag{
 		{TagProps: spec.TagProps{
 			Name:        "image",
-			Description: "Managing image entities"}},
+			Description: "Managing image entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "network",
-			Description: "Managing network entities"}},
+			Description: "Managing network entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "ip",
-			Description: "Managing ip entities"}},
+			Description: "Managing ip entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "size",
-			Description: "Managing size entities"}},
+			Description: "Managing size entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "machine",
-			Description: "Managing machine entities"}},
+			Description: "Managing machine entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "partition",
-			Description: "Managing partition entities"}},
+			Description: "Managing partition entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "project",
-			Description: "Managing project entities"}},
+			Description: "Managing project entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "switch",
-			Description: "Managing switch entities"}},
+			Description: "Managing switch entities",
+		}},
 	}
 	jwtspec := spec.APIKeyAuth("Authorization", "header")
 	jwtspec.Description = "Add a 'Authorization: Bearer ....' header to the request"

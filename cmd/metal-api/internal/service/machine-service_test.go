@@ -53,6 +53,7 @@ func TestGetMachines(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -67,7 +68,7 @@ func TestGetMachines(t *testing.T) {
 }
 
 func TestRegisterMachine(t *testing.T) {
-	data := []struct {
+	tests := []struct {
 		name                 string
 		uuid                 string
 		partitionid          string
@@ -155,14 +156,15 @@ func TestRegisterMachine(t *testing.T) {
 		},
 	}
 
-	for _, test := range data {
-		t.Run(test.name, func(t *testing.T) {
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
 			ds, mock := datastore.InitMockDB()
-			mock.On(r.DB("mockdb").Table("partition").Get(test.partitionid)).Return(test.dbpartitions, nil)
+			mock.On(r.DB("mockdb").Table("partition").Get(tt.partitionid)).Return(tt.dbpartitions, nil)
 
-			if len(test.dbmachines) > 0 {
-				mock.On(r.DB("mockdb").Table("size").Get(test.dbmachines[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
-				mock.On(r.DB("mockdb").Table("machine").Get(test.dbmachines[0].ID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
+			if len(tt.dbmachines) > 0 {
+				mock.On(r.DB("mockdb").Table("size").Get(tt.dbmachines[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
+				mock.On(r.DB("mockdb").Table("machine").Get(tt.dbmachines[0].ID).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 			} else {
 				mock.On(r.DB("mockdb").Table("machine").Get("0")).Return(nil, nil)
 				mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{
@@ -176,8 +178,8 @@ func TestRegisterMachine(t *testing.T) {
 			testdata.InitMockDBData(mock)
 
 			registerRequest := &v1.MachineRegisterRequest{
-				UUID:        test.uuid,
-				PartitionID: test.partitionid,
+				UUID:        tt.uuid,
+				PartitionID: tt.partitionid,
 				RackID:      "1",
 				IPMI: v1.MachineIPMI{
 					Address:    testdata.IPMI1.Address,
@@ -196,15 +198,15 @@ func TestRegisterMachine(t *testing.T) {
 				},
 				Hardware: v1.MachineHardwareExtended{
 					MachineHardwareBase: v1.MachineHardwareBase{
-						CPUCores: test.numcores,
-						Memory:   uint64(test.memory),
+						CPUCores: tt.numcores,
+						Memory:   uint64(tt.memory),
 					},
 					Nics: v1.MachineNicsExtended{
 						v1.MachineNicExtended{
 							Neighbors: v1.MachineNicsExtended{
 								v1.MachineNicExtended{
 									MachineNic: v1.MachineNic{
-										MacAddress: string(test.neighbormac1),
+										MacAddress: string(tt.neighbormac1),
 									},
 								},
 							},
@@ -213,7 +215,7 @@ func TestRegisterMachine(t *testing.T) {
 							Neighbors: v1.MachineNicsExtended{
 								v1.MachineNicExtended{
 									MachineNic: v1.MachineNic{
-										MacAddress: string(test.neighbormac2),
+										MacAddress: string(tt.neighbormac2),
 									},
 								},
 							},
@@ -234,26 +236,27 @@ func TestRegisterMachine(t *testing.T) {
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
-			require.Equal(t, test.expectedStatus, resp.StatusCode, w.Body.String())
+			defer resp.Body.Close()
+			require.Equal(t, tt.expectedStatus, resp.StatusCode, w.Body.String())
 
-			if test.expectedStatus > 300 {
+			if tt.expectedStatus > 300 {
 				var result httperrors.HTTPErrorResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
 				require.Nil(t, err)
-				require.Regexp(t, test.expectedErrorMessage, result.Message)
+				require.Regexp(t, tt.expectedErrorMessage, result.Message)
 			} else {
 				var result v1.MachineResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
 				require.Nil(t, err)
 				expectedid := "0"
-				if len(test.dbmachines) > 0 {
-					expectedid = test.dbmachines[0].ID
+				if len(tt.dbmachines) > 0 {
+					expectedid = tt.dbmachines[0].ID
 				}
 				require.Equal(t, expectedid, result.ID)
 				require.Equal(t, "1", result.RackID)
-				require.Equal(t, test.expectedSizeName, *result.Size.Name)
+				require.Equal(t, tt.expectedSizeName, *result.Size.Name)
 				require.Equal(t, testdata.Partition1.Name, *result.Partition.Name)
 			}
 		})
@@ -264,7 +267,7 @@ func TestMachineIPMIReport(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	data := []struct {
+	tests := []struct {
 		name           string
 		input          v1.MachineIpmiReports
 		output         v1.MachineIpmiReportResponse
@@ -296,12 +299,13 @@ func TestMachineIPMIReport(t *testing.T) {
 		},
 	}
 
-	for _, test := range data {
-		t.Run(test.name, func(t *testing.T) {
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
 			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
-			js, _ := json.Marshal(test.input)
+			js, _ := json.Marshal(tt.input)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/machine/ipmi", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -310,18 +314,19 @@ func TestMachineIPMIReport(t *testing.T) {
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
-			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
+			defer resp.Body.Close()
+			require.Equal(t, tt.wantStatusCode, resp.StatusCode, w.Body.String())
 
 			var result v1.MachineIpmiReportResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.Nil(t, err)
-			require.Equal(t, test.output, result)
+			require.Equal(t, tt.output, result)
 		})
 	}
 }
 
 func TestMachineFindIPMI(t *testing.T) {
-	data := []struct {
+	tests := []struct {
 		name           string
 		machine        *metal.Machine
 		wantStatusCode int
@@ -338,10 +343,11 @@ func TestMachineFindIPMI(t *testing.T) {
 		},
 	}
 
-	for _, test := range data {
-		t.Run(test.name, func(t *testing.T) {
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
 			ds, mock := datastore.InitMockDB()
-			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*test.machine}, nil)
+			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*tt.machine}, nil)
 			testdata.InitMockDBData(mock)
 
 			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil)
@@ -349,7 +355,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			container := restful.NewContainer().Add(machineservice)
 
 			query := datastore.MachineSearchQuery{
-				ID: &test.machine.ID,
+				ID: &tt.machine.ID,
 			}
 			js, _ := json.Marshal(query)
 			body := bytes.NewBuffer(js)
@@ -360,7 +366,8 @@ func TestMachineFindIPMI(t *testing.T) {
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
-			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
+			defer resp.Body.Close()
+			require.Equal(t, tt.wantStatusCode, resp.StatusCode, w.Body.String())
 
 			var results []*v1.MachineIPMIResponse
 			err = json.NewDecoder(resp.Body).Decode(&results)
@@ -370,20 +377,20 @@ func TestMachineFindIPMI(t *testing.T) {
 
 			result := results[0]
 
-			require.Equal(t, test.machine.IPMI.Address, result.IPMI.Address)
-			require.Equal(t, test.machine.IPMI.Interface, result.IPMI.Interface)
-			require.Equal(t, test.machine.IPMI.User, result.IPMI.User)
-			require.Equal(t, test.machine.IPMI.Password, result.IPMI.Password)
-			require.Equal(t, test.machine.IPMI.MacAddress, result.IPMI.MacAddress)
+			require.Equal(t, tt.machine.IPMI.Address, result.IPMI.Address)
+			require.Equal(t, tt.machine.IPMI.Interface, result.IPMI.Interface)
+			require.Equal(t, tt.machine.IPMI.User, result.IPMI.User)
+			require.Equal(t, tt.machine.IPMI.Password, result.IPMI.Password)
+			require.Equal(t, tt.machine.IPMI.MacAddress, result.IPMI.MacAddress)
 
-			require.Equal(t, test.machine.IPMI.Fru.ChassisPartNumber, *result.IPMI.Fru.ChassisPartNumber)
-			require.Equal(t, test.machine.IPMI.Fru.ChassisPartSerial, *result.IPMI.Fru.ChassisPartSerial)
-			require.Equal(t, test.machine.IPMI.Fru.BoardMfg, *result.IPMI.Fru.BoardMfg)
-			require.Equal(t, test.machine.IPMI.Fru.BoardMfgSerial, *result.IPMI.Fru.BoardMfgSerial)
-			require.Equal(t, test.machine.IPMI.Fru.BoardPartNumber, *result.IPMI.Fru.BoardPartNumber)
-			require.Equal(t, test.machine.IPMI.Fru.ProductManufacturer, *result.IPMI.Fru.ProductManufacturer)
-			require.Equal(t, test.machine.IPMI.Fru.ProductPartNumber, *result.IPMI.Fru.ProductPartNumber)
-			require.Equal(t, test.machine.IPMI.Fru.ProductSerial, *result.IPMI.Fru.ProductSerial)
+			require.Equal(t, tt.machine.IPMI.Fru.ChassisPartNumber, *result.IPMI.Fru.ChassisPartNumber)
+			require.Equal(t, tt.machine.IPMI.Fru.ChassisPartSerial, *result.IPMI.Fru.ChassisPartSerial)
+			require.Equal(t, tt.machine.IPMI.Fru.BoardMfg, *result.IPMI.Fru.BoardMfg)
+			require.Equal(t, tt.machine.IPMI.Fru.BoardMfgSerial, *result.IPMI.Fru.BoardMfgSerial)
+			require.Equal(t, tt.machine.IPMI.Fru.BoardPartNumber, *result.IPMI.Fru.BoardPartNumber)
+			require.Equal(t, tt.machine.IPMI.Fru.ProductManufacturer, *result.IPMI.Fru.ProductManufacturer)
+			require.Equal(t, tt.machine.IPMI.Fru.ProductPartNumber, *result.IPMI.Fru.ProductPartNumber)
+			require.Equal(t, tt.machine.IPMI.Fru.ProductSerial, *result.IPMI.Fru.ProductSerial)
 		})
 	}
 }
@@ -392,7 +399,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
 
-	data := []struct {
+	tests := []struct {
 		name           string
 		machineID      string
 		wantStatusCode int
@@ -419,9 +426,9 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 		},
 	}
 
-	for _, test := range data {
-		t.Run(test.name, func(t *testing.T) {
-
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
 			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
@@ -432,23 +439,24 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 
 			js, _ := json.Marshal(finalizeRequest)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/%s/finalize-allocation", test.machineID), body)
+			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/%s/finalize-allocation", tt.machineID), body)
 			req.Header.Add("Content-Type", "application/json")
 			container = injectEditor(container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
-			require.Equal(t, test.wantStatusCode, resp.StatusCode, w.Body.String())
+			defer resp.Body.Close()
+			require.Equal(t, tt.wantStatusCode, resp.StatusCode, w.Body.String())
 
-			if test.wantErr {
+			if tt.wantErr {
 				var result httperrors.HTTPErrorResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
 				require.Nil(t, err)
-				require.Equal(t, test.wantStatusCode, result.StatusCode)
-				if test.wantErrMessage != "" {
-					require.Regexp(t, test.wantErrMessage, result.Message)
+				require.Equal(t, tt.wantStatusCode, result.StatusCode)
+				if tt.wantErrMessage != "" {
+					require.Regexp(t, tt.wantErrMessage, result.Message)
 				}
 			} else {
 				var result v1.MachineResponse
@@ -483,6 +491,7 @@ func TestSetMachineState(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -507,6 +516,7 @@ func TestGetMachine(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -533,6 +543,7 @@ func TestGetMachineNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 }
 
@@ -565,6 +576,7 @@ func TestFreeMachine(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -592,6 +604,7 @@ func TestSearchMachine(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var results []v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&results)
@@ -627,6 +640,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.MachineRecentProvisioningEvents
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -641,8 +655,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 }
 
 func TestOnMachine(t *testing.T) {
-
-	data := []struct {
+	tests := []struct {
 		cmd      metal.MachineCommand
 		endpoint string
 		param    string
@@ -685,8 +698,9 @@ func TestOnMachine(t *testing.T) {
 		},
 	}
 
-	for _, d := range data {
-		t.Run("cmd_"+d.endpoint, func(t *testing.T) {
+	for i := range tests {
+		tt := tests[i]
+		t.Run("cmd_"+tt.endpoint, func(t *testing.T) {
 			ds, mock := datastore.InitMockDB()
 			testdata.InitMockDBData(mock)
 
@@ -694,7 +708,7 @@ func TestOnMachine(t *testing.T) {
 			pub.doPublish = func(topic string, data interface{}) error {
 				require.Equal(t, "1-machine", topic)
 				dv := data.(metal.MachineEvent)
-				require.Equal(t, d.cmd, dv.Cmd.Command)
+				require.Equal(t, tt.cmd, dv.Cmd.Command)
 				require.Equal(t, "1", dv.Cmd.TargetMachineID)
 				return nil
 			}
@@ -702,16 +716,17 @@ func TestOnMachine(t *testing.T) {
 			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil)
 			require.NoError(t, err)
 
-			js, _ := json.Marshal([]string{d.param})
+			js, _ := json.Marshal([]string{tt.param})
 			body := bytes.NewBuffer(js)
 			container := restful.NewContainer().Add(machineservice)
-			req := httptest.NewRequest("POST", "/v1/machine/1/power/"+d.endpoint, body)
+			req := httptest.NewRequest("POST", "/v1/machine/1/power/"+tt.endpoint, body)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
+			defer resp.Body.Close()
 			require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 		})
 	}
@@ -736,7 +751,7 @@ func TestParsePublicKey(t *testing.T) {
 }
 
 func Test_validateAllocationSpec(t *testing.T) {
-	assert := assert.New(t)
+	ass := assert.New(t)
 	trueValue := true
 	falseValue := false
 
@@ -769,7 +784,8 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Networks: []v1.MachineAllocationNetwork{
 					{
 						NetworkID:     "network",
-						AutoAcquireIP: &trueValue},
+						AutoAcquireIP: &trueValue,
+					},
 				},
 			},
 			isError: false,
@@ -881,16 +897,16 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateAllocationSpec(&test.spec)
-		if test.isError {
-			assert.Error(err, "Test: %s", test.name)
-			assert.EqualError(err, test.expected, "Test: %s", test.name)
+	for i := range tests {
+		tt := tests[i]
+		err := validateAllocationSpec(&tt.spec)
+		if tt.isError {
+			ass.Error(err, "Test: %s", tt.name)
+			ass.EqualError(err, tt.expected, "Test: %s", tt.name)
 		} else {
-			assert.NoError(err, "Test: %s", test.name)
+			ass.NoError(err, "Test: %s", tt.name)
 		}
 	}
-
 }
 
 func Test_makeMachineTags(t *testing.T) {
@@ -965,7 +981,8 @@ func Test_makeMachineTags(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeMachineTags(tt.args.m, tt.args.userTags)
 
@@ -1511,33 +1528,32 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
+	for i := range tests {
+		test := tests[i]
+		t.Run(test.name, func(t *testing.T) {
 			// init tests
 			ds, mock := datastore.InitMockDB()
-			for _, testMock := range tt.mocks {
+			for _, testMock := range test.mocks {
 				mock.On(testMock.term).Return(testMock.response, testMock.err)
 			}
 			testdata.InitMockDBData(mock)
 
 			// run
-			got, err := gatherNetworksFromSpec(ds, tt.allocationSpec, tt.partition, tt.partitionSuperNetworks)
-
+			got, err := gatherNetworksFromSpec(ds, test.allocationSpec, test.partition, test.partitionSuperNetworks)
 			// verify
 			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("gatherNetworksFromSpec() error = %v, wantErr %v", err, tt.wantErr)
+				if !test.wantErr {
+					t.Errorf("gatherNetworksFromSpec() error = %v, wantErr %v", err, test.wantErr)
 					return
 				}
-				if tt.errRegex != "" {
-					require.Regexp(t, tt.errRegex, err)
+				if test.errRegex != "" {
+					require.Regexp(t, test.errRegex, err)
 				}
 				return
 			}
 
-			require.Len(t, got, len(tt.want), "number of gathered networks is incorrect")
-			for wantNetworkID, wantNetwork := range tt.want {
+			require.Len(t, got, len(test.want), "number of gathered networks is incorrect")
+			for wantNetworkID, wantNetwork := range test.want {
 				require.Contains(t, got, wantNetworkID)
 				gotNetwork := got[wantNetworkID]
 				require.Equal(t, wantNetwork.networkType, gotNetwork.networkType)

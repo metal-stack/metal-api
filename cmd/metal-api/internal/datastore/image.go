@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -79,7 +80,8 @@ func (rs *RethinkStore) DeleteOrphanImages(images metal.Images, machines metal.M
 	firstOSImage := make(map[string]bool)
 	result := metal.Images{}
 	sortedImages := sortImages(images)
-	for _, image := range sortedImages {
+	for i := range sortedImages {
+		image := sortedImages[i]
 		// Always keep the most recent image for one OS even if no machine uses it is not valid anymore
 		// this prevents that there is no image at all left if no new images are pushed.
 		_, ok := firstOSImage[image.OS]
@@ -91,7 +93,7 @@ func (rs *RethinkStore) DeleteOrphanImages(images metal.Images, machines metal.M
 		if isOrphanImage(image, machines) {
 			err := rs.DeleteImage(&image)
 			if err != nil {
-				return nil, fmt.Errorf("unable to delete image:%s err:%v", image.ID, err)
+				return nil, fmt.Errorf("unable to delete image:%s err:%w", image.ID, err)
 			}
 			result = append(result, image)
 		}
@@ -143,7 +145,8 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 
 	var latestImage *metal.Image
 	sortedImages := sortImages(images)
-	for _, image := range sortedImages {
+	for i := range sortedImages {
+		image := sortedImages[i]
 		if os != image.OS {
 			continue
 		}
@@ -170,7 +173,7 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 func GetOsAndSemver(id string) (string, *semver.Version, error) {
 	imageParts := strings.Split(id, "-")
 	if len(imageParts) < 2 {
-		return "", nil, fmt.Errorf("image does not contain a version")
+		return "", nil, errors.New("image does not contain a version")
 	}
 
 	parts := len(imageParts) - 1

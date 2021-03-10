@@ -1,7 +1,7 @@
 package testdata
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -769,18 +769,18 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("size").Get("1")).Return(Sz1, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("2")).Return(Sz2, nil)
 	mock.On(r.DB("mockdb").Table("size").Get("3")).Return(Sz3, nil)
-	mock.On(r.DB("mockdb").Table("size").Get("404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("size").Get("404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("size").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get("1")).Return(Partition1, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get("2")).Return(Partition2, nil)
 	mock.On(r.DB("mockdb").Table("partition").Get("3")).Return(Partition3, nil)
-	mock.On(r.DB("mockdb").Table("partition").Get("404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("partition").Get("404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("partition").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("image-1")).Return(Img1, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("image-2")).Return(Img2, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("image-3")).Return(Img3, nil)
 	mock.On(r.DB("mockdb").Table("image").Get("image-4")).Return(Img4, nil)
-	mock.On(r.DB("mockdb").Table("image").Get("404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("image").Get("404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("image").Get("image-999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Nw1.ID)).Return(Nw1, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Nw2.ID)).Return(Nw2, nil)
@@ -796,14 +796,14 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get(Partition2PrivateSuperNetwork.ID)).Return(Partition2PrivateSuperNetwork, nil)
 	mock.On(r.DB("mockdb").Table("network").Get(Partition2UnderlayNetwork.ID)).Return(Partition2UnderlayNetwork, nil)
 
-	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("network").Get("404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("network").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("network").Filter(func(var_3 r.Term) r.Term { return var_3.Field("partitionid").Eq("1") }).Filter(func(var_4 r.Term) r.Term { return var_4.Field("privatesuper").Eq(true) })).Return(Nw3, nil)
 
 	mock.On(r.DB("mockdb").Table("ip").Get("1.2.3.4")).Return(IP1, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("2.3.4.5")).Return(IP2, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get("3.4.5.6")).Return(IP3, nil)
-	mock.On(r.DB("mockdb").Table("ip").Get("8.8.8.8")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("ip").Get("8.8.8.8")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("ip").Get("9.9.9.9")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(Partition1InternetIP.IPAddress)).Return(Partition1InternetIP, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(Partition2InternetIP.IPAddress)).Return(Partition2InternetIP, nil)
@@ -817,7 +817,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("machine").Get("6")).Return(M6, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("7")).Return(M7, nil)
 	mock.On(r.DB("mockdb").Table("machine").Get("8")).Return(M8, nil)
-	mock.On(r.DB("mockdb").Table("machine").Get("404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("machine").Get("404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("machine").Get("999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(var_1 r.Term) r.Term {
 		return var_1.Field("partitionid").Eq(Partition1.ID)
@@ -825,7 +825,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Get("switch1")).Return(Switch1, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch2")).Return(Switch2, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3")).Return(Switch3, nil)
-	mock.On(r.DB("mockdb").Table("switch").Get("switch404")).Return(nil, fmt.Errorf("Test Error"))
+	mock.On(r.DB("mockdb").Table("switch").Get("switch404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("switch").Get("switch999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
 		map[string]interface{}{"new_val": M3},

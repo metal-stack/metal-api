@@ -10,7 +10,6 @@ import (
 )
 
 func TestRethinkStore_FindSize(t *testing.T) {
-
 	type args struct {
 		id string
 	}
@@ -38,7 +37,8 @@ func TestRethinkStore_FindSize(t *testing.T) {
 		},
 	}
 	// Execute all tests for the test data
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FindSize(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -53,7 +53,6 @@ func TestRethinkStore_FindSize(t *testing.T) {
 }
 
 func TestRethinkStore_ListSizes(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -72,7 +71,8 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.ListSizes()
 			if (err != nil) != tt.wantErr {
@@ -109,7 +109,8 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.CreateSize(tt.args.size); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateSize() error = %v, wantErr %v", err, tt.wantErr)
@@ -119,7 +120,6 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 }
 
 func TestRethinkStore_DeleteSize(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -151,7 +151,8 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.rs.DeleteSize(tt.args.size)
 			if (err != nil) != tt.wantErr {
@@ -195,7 +196,8 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.UpdateSize(tt.args.oldSize, tt.args.newSize); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateSize() error = %v, wantErr %v", err, tt.wantErr)
@@ -205,7 +207,6 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 }
 
 func TestRethinkStore_FromHardware(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -231,7 +232,8 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, _, err := tt.rs.FromHardware(tt.args.hw)
 			if (err != nil) != tt.wantErr {

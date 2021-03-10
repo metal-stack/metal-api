@@ -44,6 +44,7 @@ func TestGetIPs(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.IPResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -71,6 +72,7 @@ func TestGetIP(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.IPResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -93,6 +95,7 @@ func TestGetIPNotFound(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -133,9 +136,10 @@ func TestDeleteIP(t *testing.T) {
 			wantedStatus: http.StatusUnprocessableEntity,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/v1/ip/free/"+testdata.IPAMIP.IPAddress, nil)
+			req := httptest.NewRequest("POST", "/v1/ip/free/"+tt.ip, nil)
 			container = injectEditor(container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -145,10 +149,11 @@ func TestDeleteIP(t *testing.T) {
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
-
 			if tt.wantedStatus != http.StatusUnprocessableEntity {
 				require.Nil(t, err)
 			}
+			err = resp.Body.Close()
+			require.Nil(t, err)
 		})
 	}
 }
@@ -202,7 +207,8 @@ func TestAllocateIP(t *testing.T) {
 			wantedIP:     "10.0.0.2",
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tt.allocateRequest.Describable.Name = &tt.name
 			js, _ := json.Marshal(tt.allocateRequest)
@@ -213,6 +219,7 @@ func TestAllocateIP(t *testing.T) {
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 			resp := w.Result()
+			defer resp.Body.Close()
 
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
 			var result v1.IPResponse
@@ -288,7 +295,8 @@ func TestUpdateIP(t *testing.T) {
 			wantedStatus: http.StatusOK,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			js, _ := json.Marshal(tt.updateRequest)
 			body := bytes.NewBuffer(js)
@@ -299,6 +307,7 @@ func TestUpdateIP(t *testing.T) {
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
+			defer resp.Body.Close()
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
 			var result v1.IPResponse
 			err := json.NewDecoder(resp.Body).Decode(&result)
@@ -323,10 +332,9 @@ func TestUpdateIP(t *testing.T) {
 
 func TestProcessTags(t *testing.T) {
 	tests := []struct {
-		name    string
-		tags    []string
-		wanted  []string
-		wantErr bool
+		name   string
+		tags   []string
+		wanted []string
 	}{
 		{
 			name:   "distinct and sorted",
@@ -334,12 +342,10 @@ func TestProcessTags(t *testing.T) {
 			wanted: []string{"1", "2"},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := processTags(tt.tags)
-			if tt.wantErr && err == nil {
-				t.Fatalf("expected error")
-			}
+			got := processTags(tt.tags)
 			if !cmp.Equal(got, tt.wanted) {
 				t.Errorf("%v", cmp.Diff(got, tt.wanted))
 			}

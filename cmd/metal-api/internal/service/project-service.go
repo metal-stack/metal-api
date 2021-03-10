@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/metal-stack/masterdata-api/api/rest/mapper"
@@ -181,7 +180,7 @@ func (r projectResource) createProject(request *restful.Request, response *restf
 	project := mapper.ToMdmV1Project(&pcr.Project)
 
 	if project.TenantId == "" {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("no tenant given"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("no tenant given"))
 		return
 	}
 
@@ -223,7 +222,7 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 		return
 	}
 	if len(ms) > 0 {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("there are still machines allocated by this project"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("there are still machines allocated by this project"))
 		return
 	}
 
@@ -233,7 +232,7 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 		return
 	}
 	if len(ns) > 0 {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("there are still networks allocated by this project"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("there are still networks allocated by this project"))
 		return
 	}
 
@@ -244,7 +243,7 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 	}
 
 	if len(ips) > 0 {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("there are still ips allocated by this project"))
+		checkError(request, response, utils.CurrentFuncName(), errors.New("there are still ips allocated by this project"))
 		return
 	}
 
@@ -310,7 +309,7 @@ func (r projectResource) updateProject(request *restful.Request, response *restf
 
 func (r projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, error) {
 	if project.Meta == nil {
-		return nil, fmt.Errorf("project does not have a projectID")
+		return nil, errors.New("project does not have a projectID")
 	}
 	projectID := project.Meta.Id
 

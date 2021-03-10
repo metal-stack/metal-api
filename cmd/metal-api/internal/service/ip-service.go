@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -212,7 +213,7 @@ func (ir ipResource) freeIP(request *restful.Request, response *restful.Response
 func validateIPDelete(ip *metal.IP) error {
 	s := ip.GetScope()
 	if s == metal.ScopeMachine {
-		return fmt.Errorf("ip with machine scope can not be deleted")
+		return errors.New("ip with machine scope can not be deleted")
 	}
 	return nil
 }
@@ -225,7 +226,7 @@ func validateIPDelete(ip *metal.IP) error {
 func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	// constraint 1
 	if old.Type == metal.Static && new.Type == metal.Ephemeral {
-		return fmt.Errorf("cannot change type of ip address from static to ephemeral")
+		return errors.New("cannot change type of ip address from static to ephemeral")
 	}
 	os := old.GetScope()
 	ns := new.GetScope()
@@ -240,9 +241,9 @@ func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	return fmt.Errorf("can not use ip of scope %v with scope %v", os, ns)
 }
 
-func processTags(ts []string) ([]string, error) {
+func processTags(ts []string) []string {
 	t := tags.New(ts)
-	return t.Unique(), nil
+	return t.Unique()
 }
 
 func (ir ipResource) allocateIP(request *restful.Request, response *restful.Response) {
@@ -254,12 +255,12 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	}
 
 	if requestPayload.NetworkID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("networkid should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("networkid should not be empty")) {
 			return
 		}
 	}
 	if requestPayload.ProjectID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("projectid should not be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("projectid should not be empty")) {
 			return
 		}
 	}
@@ -300,10 +301,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		tags = append(tags, metal.IpTag(tag.MachineID, *requestPayload.MachineID))
 	}
 
-	tags, err = processTags(tags)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
+	tags = processTags(tags)
 
 	// TODO: Following operations should span a database transaction if possible
 
@@ -382,11 +380,7 @@ func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
 	if err != nil {
 		return err
 	}
-	tags, err := processTags(newIP.Tags)
-	if err != nil {
-		return err
-	}
-	newIP.Tags = tags
+	newIP.Tags = processTags(newIP.Tags)
 
 	err = ir.ds.UpdateIP(oldIP, newIP)
 	if err != nil {
@@ -396,7 +390,7 @@ func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
 }
 
 func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
-	var errors []error
+	var ee []error
 	var err error
 	var ipAddress string
 	var parentPrefixCidr string
@@ -407,7 +401,7 @@ func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (s
 			ipAddress, err = ipamer.AllocateSpecificIP(prefix, specificIP)
 		}
 		if err != nil {
-			errors = append(errors, err)
+			ee = append(ee, err)
 			continue
 		}
 		if ipAddress != "" {
@@ -416,10 +410,10 @@ func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (s
 		}
 	}
 	if ipAddress == "" {
-		if len(errors) > 0 {
-			return "", "", fmt.Errorf("cannot allocate free ip in ipam: %v", errors)
+		if len(ee) > 0 {
+			return "", "", fmt.Errorf("cannot allocate free ip in ipam: %v", ee)
 		}
-		return "", "", fmt.Errorf("cannot allocate free ip in ipam")
+		return "", "", errors.New("cannot allocate free ip in ipam")
 	}
 
 	return ipAddress, parentPrefixCidr, nil

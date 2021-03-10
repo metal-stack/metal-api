@@ -12,6 +12,7 @@ import (
 // IPSearchQuery can be used to search networks.
 type IPSearchQuery struct {
 	IPAddress        *string  `json:"ipaddress" modelDescription:"an ip address that can be attached to a machine" description:"the address (ipv4 or ipv6) of this ip" optional:"true"`
+	Name             *string  `json:"name" description:"the name of the ip address" optional:"true"`
 	ParentPrefixCidr *string  `json:"networkprefix" description:"the prefix of the network this ip address belongs to" optional:"true"`
 	NetworkID        *string  `json:"networkid" description:"the network this ip allocate request address belongs to" optional:"true"`
 	Tags             []string `json:"tags" description:"the tags that are assigned to this ip address" optional:"true"`
@@ -27,6 +28,12 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.IPAddress != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("id").Eq(*p.IPAddress)
+		})
+	}
+
+	if p.Name != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("name").Eq(*p.Name)
 		})
 	}
 
@@ -52,9 +59,10 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		p.Tags = append(p.Tags, metal.IpTag(tag.MachineID, *p.MachineID))
 	}
 
-	for _, tag := range p.Tags {
+	for _, t := range p.Tags {
+		t := t
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("tags").Contains(r.Expr(tag))
+			return row.Field("tags").Contains(r.Expr(t))
 		})
 	}
 
@@ -92,11 +100,11 @@ func (rs *RethinkStore) ListIPs() (metal.IPs, error) {
 // CreateIP creates a new ip.
 func (rs *RethinkStore) CreateIP(ip *metal.IP) error {
 	if ip.AllocationUUID == "" {
-		uuid, err := uuid.NewRandom()
+		u, err := uuid.NewRandom()
 		if err != nil {
-			return fmt.Errorf("unable to create uuid for IP allocation: %v", err)
+			return fmt.Errorf("unable to create uuid for IP allocation: %w", err)
 		}
-		ip.AllocationUUID = uuid.String()
+		ip.AllocationUUID = u.String()
 	}
 	return rs.createEntity(rs.ipTable(), ip)
 }

@@ -9,7 +9,6 @@ import (
 )
 
 func TestRethinkStore_FindNetworkByID(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -44,7 +43,8 @@ func TestRethinkStore_FindNetworkByID(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FindNetworkByID(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -59,7 +59,6 @@ func TestRethinkStore_FindNetworkByID(t *testing.T) {
 }
 
 func TestRethinkStore_ListNetworks(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -78,7 +77,8 @@ func TestRethinkStore_ListNetworks(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.ListNetworks()
 			if (err != nil) != tt.wantErr {

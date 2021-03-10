@@ -56,7 +56,6 @@ func VersionClassificationFrom(classification string) (VersionClassification, er
 		return "", fmt.Errorf("given versionclassification is not valid:%s", classification)
 	}
 	return vc, nil
-
 }
 
 // ImageFeatureType specifies the features of a images
@@ -96,7 +95,6 @@ func (ii Images) ByID() ImageMap {
 // HasFeature returns true if this image has given feature enabled, otherwise false.
 func (i *Image) HasFeature(feature ImageFeatureType) bool {
 	return i.Features[feature]
-
 }
 
 // ImageFeatureTypeFrom a given name to a ImageFeatureType or error.
