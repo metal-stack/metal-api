@@ -916,11 +916,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
 
-	networks, err := gatherNetworks(ds, allocationSpec)
-	if err != nil {
-		return nil, err
-	}
-
 	alloc := &metal.MachineAllocation{
 		Created:         time.Now(),
 		Name:            allocationSpec.Name,
@@ -946,6 +941,11 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 			}
 		}
 		return err
+	}
+
+	networks, err := gatherNetworks(ds, allocationSpec)
+	if err != nil {
+		return nil, err
 	}
 
 	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
@@ -1146,7 +1146,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 	// - user specifies administrative networks, i.e. underlay or privatesuper networks
 	// - user's private network is specified with noauto but no specific IPs are given: this would yield a machine with no ip address
 
-	specNetworks := make(map[string]*allocationNetwork)
+	specNetworks := make(allocationNetworkMap)
 	var primaryPrivateNetwork *allocationNetwork
 	var privateNetworks []*allocationNetwork
 	var privateSharedNetworks []*allocationNetwork
@@ -1183,10 +1183,9 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 			if network.Shared {
 				n.networkType = metal.PrivateSecondaryShared
 				privateSharedNetworks = append(privateSharedNetworks, n)
+			} else if primaryPrivateNetwork != nil {
+				return nil, errors.New("multiple private networks are specified but there must be only one primary private network that must not be shared")
 			} else {
-				if primaryPrivateNetwork != nil {
-					return nil, errors.New("multiple private networks are specified but there must be only one primary private network that must not be shared")
-				}
 				n.networkType = metal.PrivatePrimaryUnshared
 				primaryPrivateNetwork = n
 			}
@@ -1348,12 +1347,12 @@ func makeMachineTags(m *metal.Machine, userTags []string) []string {
 	// - machine.metal-stack.io/chassis=789
 	userLabels := make(map[string]string)
 	actualUserTags := []string{}
-	for _, tag := range userTags {
-		if strings.Contains(tag, "=") {
-			parts := strings.SplitN(tag, "=", 2)
+	for _, userTag := range userTags {
+		if strings.Contains(userTag, "=") {
+			parts := strings.SplitN(userTag, "=", 2)
 			userLabels[parts[0]] = parts[1]
 		} else {
-			actualUserTags = append(actualUserTags, tag)
+			actualUserTags = append(actualUserTags, userTag)
 		}
 	}
 	for k, v := range userLabels {
