@@ -1227,7 +1227,12 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		return nil, errors.New("the given private network does not belong to the project, which is not allowed")
 	}
 
+	// ensure unique ips
+	ips := make(map[string]bool)
 	for _, ipString := range allocationSpec.IPs {
+		ips[ipString] = true
+	}
+	for ipString := range ips {
 		ip, err := ds.FindIPByID(ipString)
 		if err != nil {
 			return nil, err
