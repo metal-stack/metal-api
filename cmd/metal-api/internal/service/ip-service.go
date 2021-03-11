@@ -410,10 +410,14 @@ func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (s
 		}
 	}
 	if ipAddress == "" {
-		if len(ee) > 0 {
-			return "", "", fmt.Errorf("cannot allocate free ip in ipam: %v", ee)
+		ipString := "free ip"
+		if specificIP != "" {
+			ipString = fmt.Sprintf("specific ip %s", specificIP)
 		}
-		return "", "", errors.New("cannot allocate free ip in ipam")
+		if len(ee) > 0 {
+			return "", "", fmt.Errorf("cannot allocate %s in ipam: %v", ipString, ee)
+		}
+		return "", "", fmt.Errorf("cannot allocate %s in ipam", ipString)
 	}
 
 	return ipAddress, parentPrefixCidr, nil
