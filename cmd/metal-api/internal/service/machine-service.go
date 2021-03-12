@@ -2325,6 +2325,10 @@ func (r machineResource) ensureBucket(ctx context.Context, bucket string) error 
 		if errors.As(err, &bae) {
 			return nil
 		}
+		var baoby *types.BucketAlreadyOwnedByYou
+		if errors.As(err, &baoby) {
+			return nil
+		}
 	}
 	return err
 }
