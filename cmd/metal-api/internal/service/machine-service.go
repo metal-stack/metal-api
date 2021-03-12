@@ -1294,7 +1294,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}
-		ip := &metal.IP{
+		ip := metal.IP{
 			IPAddress:        ipAddress,
 			ParentPrefixCidr: ipParentCidr,
 			Name:             allocationSpec.Name,
@@ -1304,11 +1304,11 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 			ProjectID:        allocationSpec.ProjectID,
 		}
 		ip.AddMachineId(allocationSpec.UUID)
-		err = ds.CreateIP(ip)
+		err = ds.CreateIP(&ip)
 		if err != nil {
 			return nil, err
 		}
-		n.ips = append(n.ips, *ip)
+		n.ips = append(n.ips, ip)
 	}
 
 	ipAddresses := []string{}
