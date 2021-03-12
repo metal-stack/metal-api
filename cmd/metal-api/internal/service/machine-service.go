@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
 	"net"
 	"net/http"
@@ -2278,37 +2280,40 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 		return
 	}
 
-	resp, err := r.s3Client.ListBuckets(context.Background(), nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err = r.ensureBucket(ctx, s3server.BucketName)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	bucketFound := false
-	for _, b := range resp.Buckets {
-		if *b.Name == s3server.BucketName {
-			bucketFound = true
-			break
-		}
-	}
-	if !bucketFound {
-		_, err = r.s3Client.CreateBucket(context.Background(), &s3.CreateBucketInput{
-			Bucket: aws.String(s3server.BucketName),
-		})
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
 
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
-	_, err = r.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Body:   file,
+	uploader := manager.NewUploader(r.s3Client)
+	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s3server.BucketName),
 		Key:    &key,
+		Body:   file,
 	})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	response.WriteHeader(http.StatusOK)
+}
+
+func (r machineResource) ensureBucket(ctx context.Context, bucket string) error {
+	params := &s3.CreateBucketInput{
+		Bucket: &bucket,
+	}
+	_, err := r.s3Client.CreateBucket(ctx, params)
+	if err != nil {
+		var bae *types.BucketAlreadyExists
+		if errors.As(err, &bae) {
+			return nil
+		}
+	}
+	return err
 }
 
 func (r machineResource) availableFirmwares(request *restful.Request, response *restful.Response) {

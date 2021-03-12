@@ -4,10 +4,11 @@ go 1.15
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/aws/aws-sdk-go-v2 v1.1.0
-	github.com/aws/aws-sdk-go-v2/config v1.1.0
-	github.com/aws/aws-sdk-go-v2/credentials v1.1.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.1.0
+	github.com/aws/aws-sdk-go-v2 v1.2.0
+	github.com/aws/aws-sdk-go-v2/config v1.1.1
+	github.com/aws/aws-sdk-go-v2/credentials v1.1.1
+	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.0.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.2.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.2.1
 	github.com/emicklei/go-restful/v3 v3.4.0
