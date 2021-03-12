@@ -2321,9 +2321,11 @@ func (r machineResource) ensureBucket(ctx context.Context, bucket string) error 
 	}
 	_, err := r.s3Client.CreateBucket(ctx, params)
 	if err != nil {
-		switch errors.Unwrap(err).(type) {
-		case *types.BucketAlreadyExists:
-		case *types.BucketAlreadyOwnedByYou:
+		var bae *types.BucketAlreadyExists
+		var baoby *types.BucketAlreadyOwnedByYou
+		switch {
+		case errors.As(err, &bae):
+		case errors.As(err, &baoby):
 		default:
 			return err
 		}
