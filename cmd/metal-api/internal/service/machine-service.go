@@ -2330,7 +2330,7 @@ func (r machineResource) ensureBucket(ctx context.Context, bucket string) error 
 			return err
 		}
 	}
-	return err
+	return nil
 }
 
 func (r machineResource) availableFirmwares(request *restful.Request, response *restful.Response) {
