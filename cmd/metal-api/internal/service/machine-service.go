@@ -2035,6 +2035,19 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
+	id := request.PathParameter("id")
+	rr, err := r.getFirmwareRevisions(p.Kind, id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	for _, r := range rr {
+		if r == p.Revision {
+			return
+		}
+	}
+
 	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
 }
 
@@ -2321,10 +2334,26 @@ func (r machineResource) availableFirmwares(request *restful.Request, response *
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
 	id := request.PathParameter("id")
-	m, err := r.ds.FindMachineByID(id)
+	rr, err := r.getFirmwareRevisions(kind, id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineAvailableFirmwares{
+		Revisions: rr,
+	})
+	if err != nil {
+		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r machineResource) getFirmwareRevisions(kind, machineID string) ([]string, error) {
+	m, err := r.ds.FindMachineByID(machineID)
+	if err != nil {
+		return nil, err
 	}
 
 	fru := m.IPMI.Fru
@@ -2335,22 +2364,17 @@ func (r machineResource) availableFirmwares(request *restful.Request, response *
 		Bucket: aws.String(s3server.BucketName),
 		Prefix: &prefix,
 	})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	if err != nil {
+		return nil, err
 	}
-	var vv []string
+
+	var rr []string
 	for _, c := range r4.Contents {
 		parts := strings.Split(*c.Key, "/")
-		v := parts[len(parts)-1]
-		vv = append(vv, v)
+		rev := parts[len(parts)-1]
+		rr = append(rr, rev)
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineAvailableFirmwares{
-		Revisions: vv,
-	})
-	if err != nil {
-		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	return rr, nil
 }
 
 func checkFirmwareKind(kind string) (string, error) {
