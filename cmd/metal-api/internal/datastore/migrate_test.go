@@ -148,7 +148,8 @@ func TestMigrations_Between(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.ms.Between(tt.args.current, tt.args.target)
 			if (err != nil) != tt.wantErr {

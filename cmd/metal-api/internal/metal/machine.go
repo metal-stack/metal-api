@@ -18,10 +18,8 @@ const (
 	LockedState    MState = "LOCKED"
 )
 
-var (
-	// AllStates contains all possible values of a machine state
-	AllStates = []MState{AvailableState, ReservedState, LockedState}
-)
+// AllStates contains all possible values of a machine state
+var AllStates = []MState{AvailableState, ReservedState, LockedState}
 
 // A MachineState describes the state of a machine. If the Value is AvailableState,
 // the machine will be available for allocation. In all other cases the allocation
@@ -177,7 +175,7 @@ type NetworkType struct {
 }
 
 var (
-	PrivatePrimaryUnshared NetworkType = NetworkType{
+	PrivatePrimaryUnshared = NetworkType{
 		Name:           mn.PrivatePrimaryUnshared,
 		Private:        true,
 		PrivatePrimary: true,
@@ -185,7 +183,7 @@ var (
 		Underlay:       false,
 		Supported:      true,
 	}
-	PrivatePrimaryShared NetworkType = NetworkType{
+	PrivatePrimaryShared = NetworkType{
 		Name:           mn.PrivatePrimaryShared,
 		Private:        true,
 		PrivatePrimary: true,
@@ -193,7 +191,7 @@ var (
 		Underlay:       false,
 		Supported:      true,
 	}
-	PrivateSecondaryShared NetworkType = NetworkType{
+	PrivateSecondaryShared = NetworkType{
 		Name:           mn.PrivateSecondaryShared,
 		Private:        true,
 		PrivatePrimary: false,
@@ -202,7 +200,7 @@ var (
 		Supported:      true,
 	}
 	// PrivateSecondaryUnshared this case is not a valid configuration
-	PrivateSecondaryUnshared NetworkType = NetworkType{
+	PrivateSecondaryUnshared = NetworkType{
 		Name:           mn.PrivateSecondaryUnshared,
 		Private:        true,
 		PrivatePrimary: false,
@@ -210,7 +208,7 @@ var (
 		Underlay:       false,
 		Supported:      false,
 	}
-	External NetworkType = NetworkType{
+	External = NetworkType{
 		Name:           mn.External,
 		Private:        false,
 		PrivatePrimary: false,
@@ -218,7 +216,7 @@ var (
 		Underlay:       false,
 		Supported:      true,
 	}
-	Underlay NetworkType = NetworkType{
+	Underlay = NetworkType{
 		Name:           mn.Underlay,
 		Private:        false,
 		PrivatePrimary: false,
@@ -226,7 +224,7 @@ var (
 		Underlay:       true,
 		Supported:      true,
 	}
-	AllNetworkTypes []NetworkType = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
+	AllNetworkTypes = []NetworkType{PrivatePrimaryUnshared, PrivatePrimaryShared, PrivateSecondaryShared, PrivateSecondaryUnshared, External, Underlay}
 )
 
 // Is checks whether the machine network has the given type
@@ -237,7 +235,8 @@ func (mn *MachineNetwork) Is(n NetworkType) bool {
 // NetworkType determines the network type based on the flags stored in the db entity.
 func (mn *MachineNetwork) NetworkType() (*NetworkType, error) {
 	var nt *NetworkType
-	for _, t := range AllNetworkTypes {
+	for i := range AllNetworkTypes {
+		t := AllNetworkTypes[i]
 		if mn.Is(t) {
 			nt = &t
 			break

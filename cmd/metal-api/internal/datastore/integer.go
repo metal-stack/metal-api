@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -116,7 +117,7 @@ func (ip *IntegerPool) String() string {
 func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 	var info integerinfo
 	err := ip.infoTable.ReadOne(&info, ip.session)
-	if err != nil && err != r.ErrEmptyResult {
+	if err != nil && !errors.Is(err, r.ErrEmptyResult) {
 		return err
 	}
 
@@ -195,7 +196,7 @@ func (ip *IntegerPool) genericAcquire(term *r.Term) (uint, error) {
 		}
 
 		if count <= 0 {
-			return 0, metal.Internal(fmt.Errorf("acquisition of a value failed for exhausted pool"), "")
+			return 0, metal.Internal(errors.New("acquisition of a value failed for exhausted pool"), "")
 		}
 		return 0, metal.Conflict("integer is already acquired by another")
 	}

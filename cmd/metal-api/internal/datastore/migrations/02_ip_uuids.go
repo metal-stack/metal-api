@@ -17,19 +17,20 @@ func init() {
 				return err
 			}
 
-			for _, old := range ips {
+			for i := range ips {
+				old := ips[i] // avoids implicit memory aliasing
 				if old.AllocationUUID != "" {
 					continue
 				}
 
-				uuid, err := uuid.NewRandom()
+				u, err := uuid.NewRandom()
 				if err != nil {
 					return err
 				}
 
-				new := old
-				new.AllocationUUID = uuid.String()
-				err = rs.UpdateIP(&old, &new)
+				n := old
+				n.AllocationUUID = u.String()
+				err = rs.UpdateIP(&old, &n)
 				if err != nil {
 					return err
 				}

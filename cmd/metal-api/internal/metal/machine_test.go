@@ -61,7 +61,8 @@ func TestMachine_HasMAC(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.d.HasMAC(tt.mac); got != tt.want {
 				t.Errorf("Machine.HasMAC() = %v, want %v", got, tt.want)
@@ -172,7 +173,8 @@ func TestMachineNetwork_NetworkType(t *testing.T) {
 			want: Underlay,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			mn := &MachineNetwork{
 				PrivatePrimary: tt.fields.PrivatePrimary,

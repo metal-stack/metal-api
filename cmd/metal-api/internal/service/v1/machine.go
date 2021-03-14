@@ -51,15 +51,15 @@ type BootInfo struct {
 }
 
 type MachineNetwork struct {
-	NetworkID string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
-	Prefixes  []string `json:"prefixes" description:"the prefixes of this network"`
-	IPs       []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
-	Vrf       uint     `json:"vrf" description:"the vrf of the allocated machine"`
-	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
-	ASN                 int64    `json:"asn" description:"ASN number for this network in the bgp configuration"`
-	Nat                 bool     `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
+	NetworkID           string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
+	Prefixes            []string `json:"prefixes" description:"the prefixes of this network"`
+	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
 	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	NetworkType         string   `json:"networktype" description:"the network type, types can be looked up in the network package of metal-lib"`
+	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
+	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
+	ASN int64 `json:"asn" description:"ASN number for this network in the bgp configuration"`
+	Nat bool  `json:"nat" description:"if set to true, packets leaving this network get masqueraded behind interface ip"`
 	// Private flag to indicate this is a private network
 	//
 	// Deprecated: can be removed once old machine images without NetworkType are not supported anymore
@@ -236,6 +236,7 @@ type MachineIpmiReport struct {
 	BIOSVersion string
 	BMCVersion  string
 }
+
 type MachineIpmiReports struct {
 	PartitionID string                       `json:"partitionid,omitempty" description:"the partition id for the ipmi report"`
 	Reports     map[string]MachineIpmiReport `json:"reports,omitempty" description:"uuid to machinereport"`

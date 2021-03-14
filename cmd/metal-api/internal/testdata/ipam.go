@@ -19,13 +19,13 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (*ipam.Ipam, error) {
 	for _, prefix := range prefixesIPAM {
 		err := ipamer.CreatePrefix(prefix)
 		if err != nil {
-			return nil, fmt.Errorf("error creating ipam mock data: %v", err)
+			return nil, fmt.Errorf("error creating ipam mock data: %w", err)
 		}
 	}
 	for _, prefix := range []metal.Prefix{prefix1, prefix2, prefix3} {
 		err := ipamer.CreatePrefix(prefix)
 		if err != nil {
-			return nil, fmt.Errorf("error creating ipam mock data: %v", err)
+			return nil, fmt.Errorf("error creating ipam mock data: %w", err)
 		}
 	}
 
@@ -42,7 +42,7 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (*ipam.Ipam, error) {
 	if withIP {
 		ipAddress, err := ipamer.AllocateIP(prefixesIPAM[0])
 		if err != nil {
-			return nil, fmt.Errorf("error creating ipam mock data: %v", err)
+			return nil, fmt.Errorf("error creating ipam mock data: %w", err)
 		}
 		IPAMIP.IPAddress = ipAddress
 		IPAMIP.ParentPrefixCidr = prefixesIPAM[0].String()

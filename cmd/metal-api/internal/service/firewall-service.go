@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -122,7 +123,7 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 	}
 
 	if !fw.IsFirewall(imgs.ByID()) {
-		sendError(utils.Logger(request), response, utils.CurrentFuncName(), httperrors.NotFound(fmt.Errorf("machine is not a firewall")))
+		sendError(utils.Logger(request), response, utils.CurrentFuncName(), httperrors.NotFound(errors.New("machine is not a firewall")))
 		return
 	}
 
@@ -221,7 +222,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		userdata = *requestPayload.UserData
 	}
 	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("network ids cannot be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("network ids cannot be empty")) {
 			return
 		}
 	}
@@ -230,7 +231,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		ha = *requestPayload.HA
 	}
 	if ha {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("highly-available firewall not supported for the time being")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("highly-available firewall not supported for the time being")) {
 			return
 		}
 	}
@@ -288,5 +289,4 @@ func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore, lo
 	}
 
 	return firewallResponseList
-
 }

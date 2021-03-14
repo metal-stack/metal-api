@@ -45,7 +45,8 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.FindSwitch(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -60,7 +61,6 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 }
 
 func TestRethinkStore_FindSwitchByRack(t *testing.T) {
-
 	returnSwitches := []metal.Switch{
 		testdata.Switch2,
 	}
@@ -83,7 +83,8 @@ func TestRethinkStore_FindSwitchByRack(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			ds, mock := InitMockDB()
 
@@ -105,7 +106,6 @@ func TestRethinkStore_FindSwitchByRack(t *testing.T) {
 }
 
 func TestRethinkStore_ListSwitches(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -143,7 +143,8 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.rs.ListSwitches()
 			if (err != nil) != tt.wantErr {
@@ -159,7 +160,6 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 }
 
 func TestRethinkStore_CreateSwitch(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -185,7 +185,8 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.rs.CreateSwitch(tt.args.s)
 			if (err != nil) != tt.wantErr {
@@ -197,7 +198,6 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 }
 
 func TestRethinkStore_DeleteSwitch(t *testing.T) {
-
 	// mock the DBs
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -223,7 +223,8 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.rs.DeleteSwitch(tt.s)
 			if (err != nil) != tt.wantErr {
@@ -235,7 +236,6 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 }
 
 func TestRethinkStore_UpdateSwitch(t *testing.T) {
-
 	// mock the DB
 	ds, mock := InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -268,7 +268,8 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.UpdateSwitch(tt.args.oldSwitch, tt.args.newSwitch); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateSwitch() error = %v, wantErr %v", err, tt.wantErr)
@@ -304,7 +305,8 @@ func TestRethinkStore_FindSwitchByMac(t *testing.T) {
 		return x.Unix() == y.Unix()
 	})
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			ds, mock := InitMockDB()
 			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return([]metal.Switch{

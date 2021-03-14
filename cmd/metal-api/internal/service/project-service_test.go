@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -78,7 +79,6 @@ func (m *MockedProjectService) update(pcr *mdmv1.ProjectUpdateRequest, user *sec
 }
 
 func Test_projectResource_findProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -93,7 +93,7 @@ func Test_projectResource_findProject(t *testing.T) {
 			userScenarios: []security.User{*noUser},
 			id:            "121",
 			wantStatus:    403,
-			wantErr:       httperrors.Forbidden(fmt.Errorf("you are not member in one of [k8s_kaas-view maas-all-all-view k8s_kaas-edit maas-all-all-edit k8s_kaas-admin maas-all-all-admin]")),
+			wantErr:       httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-view maas-all-all-view k8s_kaas-edit maas-all-all-edit k8s_kaas-admin maas-all-all-admin]")),
 		},
 		{
 			name:          "entity allowed for user with view privileges",
@@ -103,7 +103,7 @@ func Test_projectResource_findProject(t *testing.T) {
 				mock.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "122"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(fmt.Errorf("project does not have a projectID")),
+			wantErr:    httperrors.UnprocessableEntity(errors.New("project does not have a projectID")),
 		},
 		{
 			name:          "entity allowed for user with admin privileges",
@@ -113,11 +113,13 @@ func Test_projectResource_findProject(t *testing.T) {
 			},
 			id:         "123",
 			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(fmt.Errorf("project does not have a projectID")),
+			wantErr:    httperrors.UnprocessableEntity(errors.New("project does not have a projectID")),
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, nil)
@@ -140,7 +142,6 @@ func Test_projectResource_findProject(t *testing.T) {
 }
 
 func Test_projectResource_createProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -155,7 +156,7 @@ func Test_projectResource_createProject(t *testing.T) {
 			userScenarios: []security.User{*noUser},
 			pcr:           &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}},
 			wantStatus:    403,
-			wantErr:       httperrors.Forbidden(fmt.Errorf("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
+			wantErr:       httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
 		},
 		{
 			name:          "entity allowed for user with view privileges",
@@ -165,7 +166,7 @@ func Test_projectResource_createProject(t *testing.T) {
 				mock.On("Create", context.Background(), &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 403,
-			wantErr:    httperrors.Forbidden(fmt.Errorf("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
+			wantErr:    httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
 		},
 		{
 			name:          "entity allowed for user with admin privileges",
@@ -175,11 +176,13 @@ func Test_projectResource_createProject(t *testing.T) {
 				mock.On("Create", context.Background(), &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(fmt.Errorf("no tenant given")),
+			wantErr:    httperrors.UnprocessableEntity(errors.New("no tenant given")),
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, nil)
@@ -202,7 +205,6 @@ func Test_projectResource_createProject(t *testing.T) {
 }
 
 func Test_projectResource_deleteProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -218,7 +220,7 @@ func Test_projectResource_deleteProject(t *testing.T) {
 			userScenarios: []security.User{*noUser},
 			id:            "121",
 			wantStatus:    403,
-			wantErr:       httperrors.Forbidden(fmt.Errorf("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
+			wantErr:       httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
 		},
 		{
 			name:          "entity allowed for user with view privileges",
@@ -228,7 +230,7 @@ func Test_projectResource_deleteProject(t *testing.T) {
 				mock.On("Delete", context.Background(), &mdmv1.ProjectDeleteRequest{Id: "122"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 403,
-			wantErr:    httperrors.Forbidden(fmt.Errorf("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
+			wantErr:    httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
 		},
 		{
 			name:          "entity allowed for user with admin privileges",
@@ -248,8 +250,10 @@ func Test_projectResource_deleteProject(t *testing.T) {
 			wantErr:    nil,
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, tt.dsMock)
@@ -272,7 +276,6 @@ func Test_projectResource_deleteProject(t *testing.T) {
 }
 
 func Test_projectResource_updateProject(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		userScenarios      []security.User
@@ -287,7 +290,7 @@ func Test_projectResource_updateProject(t *testing.T) {
 			userScenarios: []security.User{*noUser},
 			pur:           &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}},
 			wantStatus:    403,
-			wantErr:       httperrors.Forbidden(fmt.Errorf("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
+			wantErr:       httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
 		},
 		{
 			name:          "entity allowed for user with view privileges",
@@ -297,7 +300,7 @@ func Test_projectResource_updateProject(t *testing.T) {
 				mock.On("Update", context.Background(), &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 403,
-			wantErr:    httperrors.Forbidden(fmt.Errorf("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
+			wantErr:    httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
 		},
 		{
 			name:          "entity allowed for user with admin privileges",
@@ -307,11 +310,13 @@ func Test_projectResource_updateProject(t *testing.T) {
 				mock.On("Update", context.Background(), &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(fmt.Errorf("project and project.meta must be specified")),
+			wantErr:    httperrors.UnprocessableEntity(errors.New("project and project.meta must be specified")),
 		},
 	}
-	for _, tt := range tests {
-		for _, user := range tt.userScenarios {
+	for i := range tests {
+		tt := tests[i]
+		for j := range tt.userScenarios {
+			user := tt.userScenarios[j]
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedProjectService(t, tt.projectServiceMock, nil)

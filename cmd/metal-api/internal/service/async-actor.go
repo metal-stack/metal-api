@@ -41,7 +41,7 @@ func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore,
 
 func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	if m.State.Value == metal.LockedState {
-		return fmt.Errorf("machine is locked")
+		return errors.New("machine is locked")
 	}
 
 	err := deleteVRFSwitches(a.RethinkStore, m, a.Logger)
@@ -126,7 +126,8 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	if err != nil {
 		return err
 	}
-	for _, ip := range danglingIPs {
+	for i := range danglingIPs {
+		ip := danglingIPs[i]
 		err = a.disassociateIP(&ip, machine)
 		if err != nil {
 			return err
@@ -142,9 +143,9 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 	}
 
 	// disassociate machine from ip
-	new := *ip
-	new.RemoveMachineId(machine.GetID())
-	err := a.UpdateIP(ip, &new)
+	newIP := *ip
+	newIP.RemoveMachineId(machine.GetID())
+	err := a.UpdateIP(ip, &newIP)
 	if err != nil {
 		return err
 	}
@@ -153,7 +154,7 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 		return nil
 	}
 	// ips that are associated to other machines will should not be released automatically
-	if len(new.GetMachineIds()) > 0 {
+	if len(newIP.GetMachineIds()) > 0 {
 		return nil
 	}
 

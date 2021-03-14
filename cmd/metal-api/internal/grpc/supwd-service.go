@@ -2,10 +2,11 @@ package grpc
 
 import (
 	"context"
-	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"strings"
+
+	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"go.uber.org/zap"
 )
 
 type SupwdService struct {

@@ -53,6 +53,7 @@ func TestGetImagesIntegration(t *testing.T) {
 	container.ServeHTTP(w, createReq)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)

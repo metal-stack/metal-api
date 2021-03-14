@@ -1,12 +1,13 @@
 package utils
 
 import (
-	"github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-lib/zapup"
-	"go.uber.org/zap"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/emicklei/go-restful/v3"
+	"github.com/metal-stack/metal-lib/zapup"
+	"go.uber.org/zap"
 )
 
 // Logger returns the request logger from the request.

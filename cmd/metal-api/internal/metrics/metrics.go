@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"fmt"
-
 	"time"
 
 	"github.com/emicklei/go-restful/v3"

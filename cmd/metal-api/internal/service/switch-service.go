@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -226,7 +227,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("uuid cannot be empty")) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("uuid cannot be empty")) {
 			return
 		}
 	}
@@ -249,7 +250,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		s = v1.NewSwitch(requestPayload)
 
 		if len(requestPayload.Nics) != len(s.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("duplicate mac addresses found in nics")) {
+			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
 				return
 			}
 		}
@@ -271,7 +272,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
 		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("duplicate mac addresses found in nics")) {
+			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
 				return
 			}
 		}
@@ -340,14 +341,15 @@ func (r switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, 
 		return nil, fmt.Errorf("could not find any switch in rack: %v", newSwitch.RackID)
 	}
 	var twin *metal.Switch
-	for _, s := range rackSwitches {
-		if s.PartitionID != newSwitch.PartitionID {
+	for i := range rackSwitches {
+		sw := rackSwitches[i]
+		if sw.PartitionID != newSwitch.PartitionID {
 			continue
 		}
 		if twin == nil {
-			twin = &s
+			twin = &sw
 		} else {
-			return nil, fmt.Errorf("found multiple twin switches for %v (%v and %v)", newSwitch.ID, twin.ID, s.ID)
+			return nil, fmt.Errorf("found multiple twin switches for %v (%v and %v)", newSwitch.ID, twin.ID, sw.ID)
 		}
 	}
 	if twin == nil {
@@ -366,7 +368,7 @@ func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 		return nil, fmt.Errorf("old and new switch belong to different racks, old: %v, new: %v", old.RackID, new.RackID)
 	}
 	if twin.Mode == metal.SwitchReplace {
-		return nil, fmt.Errorf("twin switch must not be in replace mode")
+		return nil, errors.New("twin switch must not be in replace mode")
 	}
 	if len(twin.MachineConnections) == 0 {
 		// twin switch has no machine connections, switch may be used immediately, replace mode is unnecessary
@@ -499,7 +501,6 @@ func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnect
 	finalNics = append(finalNics, nicsThatAlreadyExist...)
 
 	return finalNics, nil
-
 }
 
 // SetVrfAtSwitches finds the switches connected to the given machine and puts the switch ports into the given vrf.
@@ -510,7 +511,8 @@ func setVrfAtSwitches(ds *datastore.RethinkStore, m *metal.Machine, vrf string) 
 		return nil, err
 	}
 	newSwitches := make([]metal.Switch, 0)
-	for _, sw := range switches {
+	for i := range switches {
+		sw := switches[i]
 		oldSwitch := sw
 		setVrf(&sw, m.ID, vrf)
 		err := ds.UpdateSwitch(&oldSwitch, &sw)
@@ -586,8 +588,8 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 		}
 	}
 
-	for i, old := range oldSwitches {
-		err = ds.UpdateSwitch(&old, &newSwitches[i])
+	for i := range oldSwitches {
+		err = ds.UpdateSwitch(&oldSwitches[i], &newSwitches[i])
 		if err != nil {
 			return err
 		}
@@ -756,7 +758,8 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 	if err != nil {
 		logger.Errorw("could not find machines")
 	}
-	for _, sw := range ss {
+	for i := range ss {
+		sw := ss[i]
 		var p *metal.Partition
 		if sw.PartitionID != "" {
 			partitionEntity := pMap[sw.PartitionID]

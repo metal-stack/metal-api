@@ -50,6 +50,7 @@ func TestRegisterSwitch(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -89,6 +90,7 @@ func TestRegisterExistingSwitch(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -158,6 +160,7 @@ func TestReplaceSwitch(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -250,7 +253,8 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		ds, mock := datastore.InitMockDB()
 		mock.On(r.DB("mockdb").Table("switch")).Return(testSwitches, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
@@ -260,7 +264,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 				t.Errorf("RethinkStore.connectMachineWithSwitches() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
-		//mock.AssertExpectations(t)
+		// mock.AssertExpectations(t)
 	}
 }
 
@@ -373,7 +377,8 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeBGPFilterFirewall(tt.args.machine)
 			if !reflect.DeepEqual(got, tt.want) {
@@ -458,7 +463,8 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 			want: v1.NewBGPFilter([]string{}, []string{"212.89.42.1/32"}),
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
 			if !reflect.DeepEqual(got, tt.want) {
@@ -513,11 +519,12 @@ func TestMakeSwitchNics(t *testing.T) {
 						},
 					},
 				},
-				ips: metal.IPsMap{"project": metal.IPs{
-					metal.IP{
-						IPAddress: "212.89.1.1",
+				ips: metal.IPsMap{
+					"project": metal.IPs{
+						metal.IP{
+							IPAddress: "212.89.1.1",
+						},
 					},
-				},
 				},
 				images: metal.ImageMap{
 					"fwimg": metal.Image{
@@ -565,7 +572,8 @@ func TestMakeSwitchNics(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.images, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
@@ -765,7 +773,8 @@ func Test_adoptFromTwin(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := adoptFromTwin(tt.args.old, tt.args.twin, tt.args.newSwitch)
 			if (err != nil) != tt.wantErr {
@@ -867,7 +876,8 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := adoptNics(tt.args.twin, tt.args.newSwitch)
 			if (err != nil) != tt.wantErr {
@@ -976,7 +986,8 @@ func Test_adoptMachineConnections(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := adoptMachineConnections(tt.args.twin, tt.args.newSwitch)
 			if (err != nil) != tt.wantErr {
@@ -1131,7 +1142,8 @@ func Test_updateSwitchNics(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := updateSwitchNics(tt.args.oldNics, tt.args.newNics, tt.args.currentConnections)
 			if (err != nil) != tt.wantErr {
@@ -1175,6 +1187,7 @@ func TestUpdateSwitch(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -1207,6 +1220,7 @@ func TestNotifySwitch(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
@@ -1240,6 +1254,7 @@ func TestNotifyErrorSwitch(t *testing.T) {
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)

@@ -59,14 +59,12 @@ var (
 	TopicAllocation = NSQTopic{Name: "allocation", PartitionAgnostic: false}
 )
 
-var (
-	// Topics is a list of topics of which the metal-api is a producer.
-	// metal-api will make sure these topics exist when it is started.
-	Topics = []NSQTopic{
-		TopicMachine,
-		TopicAllocation,
-	}
-)
+// Topics is a list of topics of which the metal-api is a producer.
+// metal-api will make sure these topics exist when it is started.
+var Topics = []NSQTopic{
+	TopicMachine,
+	TopicAllocation,
+}
 
 // GetFQN gets the fully qualified name of a NSQTopic
 func (t NSQTopic) GetFQN(partitionID string) string {

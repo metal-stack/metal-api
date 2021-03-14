@@ -34,7 +34,8 @@ func TestAddMachineId(t *testing.T) {
 			expectedTags: []string{IpTag(tag.MachineID, "1"), IpTag(tag.MachineID, "123")},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tt.ip.AddMachineId("123")
 			if got := tt.ip.Tags; !cmp.Equal(got, tt.expectedTags) {
@@ -43,6 +44,7 @@ func TestAddMachineId(t *testing.T) {
 		})
 	}
 }
+
 func TestRemoveMachineId(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -76,7 +78,8 @@ func TestRemoveMachineId(t *testing.T) {
 			expectedTags: []string{},
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tt.ip.RemoveMachineId("123")
 			if got := tt.ip.Tags; !cmp.Equal(got, tt.expectedTags) {
@@ -117,7 +120,8 @@ func TestGetScope(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.ip.GetScope(); got != tt.expectedScope {
 				t.Errorf("IP.GetScope = %v, want %v", got, tt.expectedScope)

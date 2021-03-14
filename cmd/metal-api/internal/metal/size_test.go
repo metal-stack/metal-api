@@ -221,7 +221,8 @@ func TestSizes_FromHardware(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, _, err := tt.sz.FromHardware(tt.args.hardware)
 			if (err != nil) != tt.wantErr {
@@ -236,7 +237,6 @@ func TestSizes_FromHardware(t *testing.T) {
 }
 
 func TestSizes_ByID(t *testing.T) {
-
 	// Create the SizeMap for the Test data
 	sizeM := make(SizeMap)
 	for i, f := range testSizes {
@@ -255,7 +255,8 @@ func TestSizes_ByID(t *testing.T) {
 			want: sizeM,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sz.ByID(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Sizes.ByID() = %v, want %v", got, tt.want)
@@ -534,7 +535,8 @@ func TestSizes_Overlaps(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.sz.Overlaps(&tt.args.sizes)
 			if !reflect.DeepEqual(got, tt.want) {
