@@ -84,11 +84,12 @@ func Test_tenantResource_getTenant(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		for _, user := range tt.userScenarios {
+			user := user
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedTenantService(t, tt.tenantServiceMock)
-
 				if tt.wantErr != nil {
 					got := httperrors.HTTPErrorResponse{}
 					status := service.get(tt.id, &user, &got)
@@ -144,7 +145,9 @@ func Test_tenantResource_listTenants(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		for _, user := range tt.userScenarios {
+			user := user
 			name := fmt.Sprintf("%s/%s", tt.name, user)
 			t.Run(name, func(t *testing.T) {
 				service := NewMockedTenantService(t, tt.tenantServiceMock)
