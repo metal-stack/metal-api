@@ -2296,11 +2296,6 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err = r.ensureBucket(ctx, s3server.BucketName)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
 	uploader := manager.NewUploader(r.s3Client)
 	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
@@ -2313,24 +2308,6 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	}
 
 	response.WriteHeader(http.StatusOK)
-}
-
-func (r machineResource) ensureBucket(ctx context.Context, bucket string) error {
-	params := &s3.CreateBucketInput{
-		Bucket: &bucket,
-	}
-	_, err := r.s3Client.CreateBucket(ctx, params)
-	if err != nil {
-		var bae *types.BucketAlreadyExists
-		var baoby *types.BucketAlreadyOwnedByYou
-		switch {
-		case errors.As(err, &bae):
-		case errors.As(err, &baoby):
-		default:
-			return err
-		}
-	}
-	return nil
 }
 
 func (r machineResource) availableFirmwares(request *restful.Request, response *restful.Response) {
