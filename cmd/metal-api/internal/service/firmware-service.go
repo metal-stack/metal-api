@@ -93,13 +93,13 @@ func (r firmwareResource) webService() *restful.WebService {
 		To(admin(r.listFirmwares)).
 		Operation("listFirmwares").
 		Doc("returns all firmwares (for a specific machine)").
-		Param(ws.QueryParameter("id", "restrict available firmwares to the machine identified by this query parameter").DataType("string")).
+		Param(ws.QueryParameter("id", "restrict firmwares to the machine identified by this query parameter").DataType("string")).
 		Param(ws.QueryParameter("kind", "the firmware kind [bios|bmc]").DataType("string")).
 		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.QueryParameter("board", "the board").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.AvailableFirmwares{}).
-		Returns(http.StatusOK, "OK", v1.AvailableFirmwares{}).
+		Writes(v1.FirmwaresList{}).
+		Returns(http.StatusOK, "OK", v1.FirmwaresList{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -199,7 +199,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 		return
 	}
 
-	resp := &v1.AvailableFirmwares{
+	resp := &v1.FirmwaresList{
 		Revisions: make(map[string]map[string][]string),
 	}
 	id := request.QueryParameter("id")

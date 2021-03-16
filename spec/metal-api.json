@@ -64,29 +64,6 @@
         "version"
       ]
     },
-    "v1.AvailableFirmwares": {
-      "properties": {
-        "revisions": {
-          "additionalProperties": {
-            "$ref": "#/definitions/v1.AvailableFirmwares.revisions"
-          },
-          "description": "list of all available firmwares",
-          "type": "object"
-        }
-      },
-      "required": [
-        "revisions"
-      ]
-    },
-    "v1.AvailableFirmwares.revisions": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "type": "object"
-    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -513,6 +490,29 @@
         "state",
         "tags"
       ]
+    },
+    "v1.FirmwaresList": {
+      "properties": {
+        "revisions": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.FirmwaresList.revisions"
+          },
+          "description": "list of firmwares per board per vendor",
+          "type": "object"
+        }
+      },
+      "required": [
+        "revisions"
+      ]
+    },
+    "v1.FirmwaresList.revisions": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": "object"
     },
     "v1.IPAllocateRequest": {
       "properties": {
@@ -3257,7 +3257,7 @@
         "operationId": "listFirmwares",
         "parameters": [
           {
-            "description": "restrict available firmwares to the machine identified by this query parameter",
+            "description": "restrict firmwares to the machine identified by this query parameter",
             "in": "query",
             "name": "id",
             "type": "string"
@@ -3288,7 +3288,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.AvailableFirmwares"
+              "$ref": "#/definitions/v1.FirmwaresList"
             }
           },
           "default": {
