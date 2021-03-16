@@ -3249,7 +3249,7 @@
         ]
       }
     },
-    "/v1/firmware/available-firmwares": {
+    "/v1/firmware": {
       "get": {
         "consumes": [
           "application/json"
@@ -3306,7 +3306,7 @@
         ]
       }
     },
-    "/v1/firmware/remove-firmware/{kind}/{vendor}/{board}/{revision}": {
+    "/v1/firmware/{kind}/{vendor}/{board}/{revision}": {
       "delete": {
         "consumes": [
           "application/json"
@@ -3368,9 +3368,7 @@
         "tags": [
           "firmware"
         ]
-      }
-    },
-    "/v1/firmware/upload-firmware/{kind}/{vendor}/{board}/{revision}": {
+      },
       "put": {
         "consumes": [
           "multipart/form-data"

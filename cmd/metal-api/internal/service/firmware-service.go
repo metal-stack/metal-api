@@ -63,7 +63,7 @@ func (r firmwareResource) webService() *restful.WebService {
 
 	tags := []string{"firmware"}
 
-	ws.Route(ws.PUT("/upload-firmware/{kind}/{vendor}/{board}/{revision}").
+	ws.Route(ws.PUT("/{kind}/{vendor}/{board}/{revision}").
 		To(admin(r.uploadFirmware)).
 		Operation("uploadFirmware").
 		Doc("upload given firmware").
@@ -77,7 +77,7 @@ func (r firmwareResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.DELETE("/remove-firmware/{kind}/{vendor}/{board}/{revision}").
+	ws.Route(ws.DELETE("/{kind}/{vendor}/{board}/{revision}").
 		To(admin(r.removeFirmware)).
 		Operation("removeFirmware").
 		Doc("remove given firmware").
@@ -90,7 +90,7 @@ func (r firmwareResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/available-firmwares").
+	ws.Route(ws.GET("/").
 		To(admin(r.availableFirmwares)).
 		Operation("availableFirmwares").
 		Doc("returns all available firmwares as well as all available firmwares for a specific machine").
