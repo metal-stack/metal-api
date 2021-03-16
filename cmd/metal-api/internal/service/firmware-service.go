@@ -239,14 +239,23 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 					return
 				}
 
+				bf := v1.BoardFirmwares{
+					Board:     b,
+					Revisions: rr,
+				}
+				found := false
 				for _, vv := range ff.VendorFirmwares {
 					if v == vv.Vendor {
-						vv.BoardFirmwares = append(vv.BoardFirmwares, v1.BoardFirmwares{
-							Board:     b,
-							Revisions: rr,
-						})
+						vv.BoardFirmwares = append(vv.BoardFirmwares, bf)
+						found = true
 						break
 					}
+				}
+				if !found {
+					ff.VendorFirmwares = append(ff.VendorFirmwares, v1.VendorFirmwares{
+						Vendor:         v,
+						BoardFirmwares: []v1.BoardFirmwares{bf},
+					})
 				}
 			}
 		default:
