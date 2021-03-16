@@ -112,7 +112,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 		}
 	}
 
-	kind, err := checkFirmwareKind(request.PathParameter("kind"))
+	kind, err := strictCheckFirmwareKind(request.PathParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -170,7 +170,7 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 		}
 	}
 
-	kind, err := checkFirmwareKind(request.PathParameter("kind"))
+	kind, err := strictCheckFirmwareKind(request.PathParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -317,6 +317,13 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 }
 
 func checkFirmwareKind(kind string) (string, error) {
+	if kind == "" {
+		return "", nil
+	}
+	return strictCheckFirmwareKind(kind)
+}
+
+func strictCheckFirmwareKind(kind string) (string, error) {
 	for _, k := range firmwareKinds {
 		if strings.EqualFold(k, kind) {
 			return k, nil
