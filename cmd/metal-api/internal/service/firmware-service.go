@@ -128,7 +128,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	}
 	for _, m := range mm {
 		fru := m.IPMI.Fru
-		v := strings.ToLower(fru.ProductManufacturer)
+		v := strings.ToLower(fru.BoardMfg)
 		b := strings.ToUpper(fru.BoardPartNumber)
 		if v == vendor && b == board {
 			validReq = true
@@ -225,7 +225,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			for _, m := range mm {
 				fru := m.IPMI.Fru
 
-				v := strings.ToLower(fru.ProductManufacturer)
+				v := strings.ToLower(fru.BoardMfg)
 				if vendor != "" && vendor != v {
 					continue
 				}
@@ -234,7 +234,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 					continue
 				}
 
-				rr, err := getFirmwareRevisions(r.s3Client, kind, v, b)
+				rr, err := getFirmwareRevisions(r.s3Client, k, v, b)
 				if checkError(request, response, utils.CurrentFuncName(), err) {
 					return
 				}
@@ -263,7 +263,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
-			rr, err := getFirmwareRevisions(r.s3Client, kind, vendor, board)
+			rr, err := getFirmwareRevisions(r.s3Client, k, vendor, board)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
@@ -297,7 +297,7 @@ func getVendorAndBoard(ds *datastore.RethinkStore, machineID string) (string, st
 	}
 
 	fru := m.IPMI.Fru
-	vendor := strings.ToLower(fru.ProductManufacturer)
+	vendor := strings.ToLower(fru.BoardMfg)
 	board := strings.ToUpper(fru.BoardPartNumber)
 	return vendor, board, nil
 }
