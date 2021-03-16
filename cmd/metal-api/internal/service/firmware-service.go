@@ -222,7 +222,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
-			vendorBoards := make(map[string][]string)
+			vendorBoards := make(map[string]map[string]bool)
 			for _, m := range mm {
 				fru := m.IPMI.Fru
 
@@ -234,10 +234,15 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				if board != "" && board != b {
 					continue
 				}
-				vendorBoards[v] = append(vendorBoards[v], b)
+				boardMap, ok := vendorBoards[v]
+				if !ok {
+					boardMap = make(map[string]bool)
+					vendorBoards[v] = boardMap
+				}
+				boardMap[b] = true
 			}
 			for v, bb := range vendorBoards {
-				for _, b := range bb {
+				for b := range bb {
 					rr, err := getFirmwareRevisions(r.s3Client, k, v, b)
 					if checkError(request, response, utils.CurrentFuncName(), err) {
 						return
