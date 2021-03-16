@@ -208,7 +208,8 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	}
 
 	var resp []v1.Firmwares
-	for _, k := range kk {
+	for i := range kk {
+		k := kk[i]
 		ff := v1.Firmwares{
 			Kind: k,
 		}
