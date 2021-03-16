@@ -3254,7 +3254,7 @@
         "consumes": [
           "application/json"
         ],
-        "operationId": "availableFirmwares",
+        "operationId": "listFirmwares",
         "parameters": [
           {
             "description": "restrict available firmwares to the machine identified by this query parameter",
@@ -3263,23 +3263,21 @@
             "type": "string"
           },
           {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "description": "the firmware kind [bios|bmc]",
             "in": "query",
             "name": "kind",
             "type": "string"
           },
           {
             "description": "the vendor",
-            "in": "path",
+            "in": "query",
             "name": "vendor",
-            "required": true,
             "type": "string"
           },
           {
             "description": "the board",
-            "in": "path",
+            "in": "query",
             "name": "board",
-            "required": true,
             "type": "string"
           }
         ],
@@ -3300,7 +3298,7 @@
             }
           }
         },
-        "summary": "returns all available firmwares as well as all available firmwares for a specific machine",
+        "summary": "returns all firmwares (for a specific machine)",
         "tags": [
           "firmware"
         ]
@@ -3314,7 +3312,7 @@
         "operationId": "removeFirmware",
         "parameters": [
           {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "description": "the firmware kind [bios|bmc]",
             "in": "path",
             "name": "kind",
             "required": true,
@@ -3376,7 +3374,7 @@
         "operationId": "uploadFirmware",
         "parameters": [
           {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "description": "the firmware kind [bios|bmc]",
             "in": "path",
             "name": "kind",
             "required": true,

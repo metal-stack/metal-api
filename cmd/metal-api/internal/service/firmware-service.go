@@ -66,7 +66,7 @@ func (r firmwareResource) webService() *restful.WebService {
 		To(admin(r.uploadFirmware)).
 		Operation("uploadFirmware").
 		Doc("upload given firmware").
-		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
+		Param(ws.PathParameter("kind", "the firmware kind [bios|bmc]").DataType("string")).
 		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.PathParameter("board", "the board").DataType("string")).
 		Param(ws.PathParameter("revision", "the firmware revision").DataType("string")).
@@ -80,7 +80,7 @@ func (r firmwareResource) webService() *restful.WebService {
 		To(admin(r.removeFirmware)).
 		Operation("removeFirmware").
 		Doc("remove given firmware").
-		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
+		Param(ws.PathParameter("kind", "the firmware kind [bios|bmc]").DataType("string")).
 		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.PathParameter("board", "the board").DataType("string")).
 		Param(ws.PathParameter("revision", "the firmware revision").DataType("string")).
@@ -90,13 +90,13 @@ func (r firmwareResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(admin(r.availableFirmwares)).
-		Operation("availableFirmwares").
-		Doc("returns all available firmwares as well as all available firmwares for a specific machine").
+		To(admin(r.listFirmwares)).
+		Operation("listFirmwares").
+		Doc("returns all firmwares (for a specific machine)").
 		Param(ws.QueryParameter("id", "restrict available firmwares to the machine identified by this query parameter").DataType("string")).
-		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
-		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
-		Param(ws.PathParameter("board", "the board").DataType("string")).
+		Param(ws.QueryParameter("kind", "the firmware kind [bios|bmc]").DataType("string")).
+		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
+		Param(ws.QueryParameter("board", "the board").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.AvailableFirmwares{}).
 		Returns(http.StatusOK, "OK", v1.AvailableFirmwares{}).
@@ -193,7 +193,7 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 	response.WriteHeader(http.StatusOK)
 }
 
-func (r firmwareResource) availableFirmwares(request *restful.Request, response *restful.Response) {
+func (r firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
 	kind, err := checkFirmwareKind(request.QueryParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -205,18 +205,6 @@ func (r firmwareResource) availableFirmwares(request *restful.Request, response 
 	id := request.QueryParameter("id")
 	switch id {
 	case "":
-		vendor, board, err := getVendorAndBoard(r.ds, id)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		rr, err := getFirmwareRevisions(r.s3Client, kind, vendor, board)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		rm := make(map[string][]string)
-		rm[board] = rr
-		resp.Revisions[vendor] = rm
-	default:
 		vendor := strings.ToLower(request.QueryParameter("vendor"))
 		board := strings.ToUpper(request.QueryParameter("board"))
 
@@ -248,6 +236,18 @@ func (r firmwareResource) availableFirmwares(request *restful.Request, response 
 			}
 			rm[b] = rr
 		}
+	default:
+		vendor, board, err := getVendorAndBoard(r.ds, id)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		rr, err := getFirmwareRevisions(r.s3Client, kind, vendor, board)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		rm := make(map[string][]string)
+		rm[board] = rr
+		resp.Revisions[vendor] = rm
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
