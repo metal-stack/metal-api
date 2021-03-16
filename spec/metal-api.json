@@ -64,29 +64,6 @@
         "version"
       ]
     },
-    "v1.AvailableFirmwares": {
-      "properties": {
-        "revisions": {
-          "additionalProperties": {
-            "$ref": "#/definitions/v1.AvailableFirmwares.revisions"
-          },
-          "description": "list of all available firmwares",
-          "type": "object"
-        }
-      },
-      "required": [
-        "revisions"
-      ]
-    },
-    "v1.AvailableFirmwares.revisions": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "type": "object"
-    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -3857,63 +3834,6 @@
         ]
       }
     },
-    "/v1/machine/available-firmwares": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "availableFirmwares",
-        "parameters": [
-          {
-            "description": "restrict available firmwares to the machine identified by this query parameter",
-            "in": "query",
-            "name": "id",
-            "type": "string"
-          },
-          {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
-            "in": "query",
-            "name": "kind",
-            "type": "string"
-          },
-          {
-            "description": "the vendor",
-            "in": "path",
-            "name": "vendor",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the board",
-            "in": "path",
-            "name": "board",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.AvailableFirmwares"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "returns all available firmwares as well as all available firmwares for a specific machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
     "/v1/machine/find": {
       "post": {
         "consumes": [
@@ -4082,70 +4002,6 @@
         ]
       }
     },
-    "/v1/machine/remove-firmware/{kind}/{vendor}/{board}/{revision}": {
-      "delete": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "removeFirmware",
-        "parameters": [
-          {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
-            "in": "path",
-            "name": "kind",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the vendor",
-            "in": "path",
-            "name": "vendor",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the board",
-            "in": "path",
-            "name": "board",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the firmware revision",
-            "in": "path",
-            "name": "revision",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.EmptyBody"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "remove given firmware",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
     "/v1/machine/update-firmware/{id}": {
       "post": {
         "consumes": [
@@ -4187,68 +4043,6 @@
           }
         },
         "summary": "sends a firmware command to the machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/upload-firmware/{kind}/{vendor}/{board}/{revision}": {
-      "put": {
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "operationId": "uploadFirmware",
-        "parameters": [
-          {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
-            "in": "path",
-            "name": "kind",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the vendor",
-            "in": "path",
-            "name": "vendor",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the board",
-            "in": "path",
-            "name": "board",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the firmware revision",
-            "in": "path",
-            "name": "revision",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the firmware file",
-            "in": "formData",
-            "name": "file",
-            "type": "file"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "upload given firmware",
         "tags": [
           "machine"
         ]
