@@ -98,8 +98,8 @@ func (r firmwareResource) webService() *restful.WebService {
 		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.QueryParameter("board", "the board").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.FirmwaresList{}).
-		Returns(http.StatusOK, "OK", v1.FirmwaresList{}).
+		Writes(v1.Firmwares{}).
+		Returns(http.StatusOK, "OK", v1.Firmwares{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -199,8 +199,8 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 		return
 	}
 
-	resp := &v1.FirmwaresList{
-		Revisions: make(map[string]map[string][]string),
+	resp := &v1.Firmwares{
+		Kind: kind,
 	}
 	id := request.QueryParameter("id")
 	switch id {
@@ -229,12 +229,15 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				return
 			}
 
-			rm, ok := resp.Revisions[v]
-			if !ok {
-				rm = make(map[string][]string)
-				resp.Revisions[v] = rm
+			for _, vv := range resp.VendorFirmwares {
+				if v == vv.Vendor {
+					vv.BoardFirmwares = append(vv.BoardFirmwares, v1.BoardFirmwares{
+						Board:     b,
+						Revisions: rr,
+					})
+					break
+				}
 			}
-			rm[b] = rr
 		}
 	default:
 		vendor, board, err := getVendorAndBoard(r.ds, id)
@@ -245,9 +248,17 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
-		rm := make(map[string][]string)
-		rm[board] = rr
-		resp.Revisions[vendor] = rm
+		resp.VendorFirmwares = []v1.VendorFirmwares{
+			{
+				Vendor: vendor,
+				BoardFirmwares: []v1.BoardFirmwares{
+					{
+						Board:     board,
+						Revisions: rr,
+					},
+				},
+			},
+		}
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)

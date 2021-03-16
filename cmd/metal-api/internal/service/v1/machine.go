@@ -96,8 +96,19 @@ type ChassisIdentifyLEDState struct {
 	Description string `json:"description" description:"a description why this chassis identify LED is in the given state"`
 }
 
-type FirmwaresList struct {
-	Revisions map[string]map[string][]string `json:"revisions" description:"list of firmwares per board per vendor"`
+type Firmwares struct {
+	Kind            string            `json:"kind" description:"the firmware kind to which the contained firmwares belong"`
+	VendorFirmwares []VendorFirmwares `json:"vendor_firmwares" description:"list of firmwares per vendor"`
+}
+
+type VendorFirmwares struct {
+	Vendor         string           `json:"vendor" description:"the vendor to which the contained firmwares belong"`
+	BoardFirmwares []BoardFirmwares `json:"board_firmwares" description:"list of firmwares per board"`
+}
+
+type BoardFirmwares struct {
+	Board     string   `json:"board" description:"the board to which the contained firmwares belong"`
+	Revisions []string `json:"revisions" description:"list of firmwares revisions"`
 }
 
 type MachineUpdateFirmware struct {

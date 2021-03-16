@@ -85,6 +85,25 @@
         "cidrs"
       ]
     },
+    "v1.BoardFirmwares": {
+      "properties": {
+        "board": {
+          "description": "the board to which the contained firmwares belong",
+          "type": "string"
+        },
+        "revisions": {
+          "description": "list of firmwares revisions",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "board",
+        "revisions"
+      ]
+    },
     "v1.BootInfo": {
       "properties": {
         "bootloaderid": {
@@ -491,28 +510,24 @@
         "tags"
       ]
     },
-    "v1.FirmwaresList": {
+    "v1.Firmwares": {
       "properties": {
-        "revisions": {
-          "additionalProperties": {
-            "$ref": "#/definitions/v1.FirmwaresList.revisions"
+        "kind": {
+          "description": "the firmware kind to which the contained firmwares belong",
+          "type": "string"
+        },
+        "vendor_firmwares": {
+          "description": "list of firmwares per vendor",
+          "items": {
+            "$ref": "#/definitions/v1.VendorFirmwares"
           },
-          "description": "list of firmwares per board per vendor",
-          "type": "object"
+          "type": "array"
         }
       },
       "required": [
-        "revisions"
+        "kind",
+        "vendor_firmwares"
       ]
-    },
-    "v1.FirmwaresList.revisions": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "type": "object"
     },
     "v1.IPAllocateRequest": {
       "properties": {
@@ -3083,6 +3098,25 @@
         "id",
         "rack_id"
       ]
+    },
+    "v1.VendorFirmwares": {
+      "properties": {
+        "board_firmwares": {
+          "description": "list of firmwares per board",
+          "items": {
+            "$ref": "#/definitions/v1.BoardFirmwares"
+          },
+          "type": "array"
+        },
+        "vendor": {
+          "description": "the vendor to which the contained firmwares belong",
+          "type": "string"
+        }
+      },
+      "required": [
+        "board_firmwares",
+        "vendor"
+      ]
     }
   },
   "info": {
@@ -3288,7 +3322,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.FirmwaresList"
+              "$ref": "#/definitions/v1.Firmwares"
             }
           },
           "default": {
