@@ -241,29 +241,24 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 					continue
 				}
 				v := parts[1]
-				if vendor != "" && v != vendor {
+				if vendor != "" && vendor != v {
 					continue
 				}
 				b := parts[2]
-				if board != "" && b != board {
+				if board != "" && board != b {
 					continue
 				}
 				boardMap, ok := vendorBoards[v]
 				if !ok {
 					boardMap = make(map[string][]string)
-					vendorBoards[v] = boardMap
 				}
 				rev := parts[3]
 				boardMap[b] = append(boardMap[b], rev)
+				vendorBoards[v] = boardMap
 			}
 
 			for v, bb := range vendorBoards {
-				for b := range bb {
-					rr, err := getFirmwareRevisions(r.s3Client, k, v, b)
-					if checkError(request, response, utils.CurrentFuncName(), err) {
-						return
-					}
-
+				for b, rr := range bb {
 					bf := v1.BoardFirmwares{
 						Board:     b,
 						Revisions: rr,
