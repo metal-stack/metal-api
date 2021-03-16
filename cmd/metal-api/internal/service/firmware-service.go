@@ -307,10 +307,9 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 		return nil, featureDisabledErr
 	}
 
-	prefix := fmt.Sprintf("%s/%s/%s", kind, vendor, board)
 	r4, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: &s3Client.FirmwareBucket,
-		Prefix: &prefix,
+		Prefix: &kind,
 	})
 	if err != nil {
 		return nil, err
@@ -319,7 +318,18 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 	var rr []string
 	for _, c := range r4.Contents {
 		parts := strings.Split(*c.Key, "/")
-		rev := parts[len(parts)-1]
+		if len(parts) != 4 {
+			continue
+		}
+		v := parts[1]
+		if vendor != "" && v != vendor {
+			continue
+		}
+		b := parts[2]
+		if board != "" && b != board {
+			continue
+		}
+		rev := parts[3]
 		rr = append(rr, rev)
 	}
 	return rr, nil
