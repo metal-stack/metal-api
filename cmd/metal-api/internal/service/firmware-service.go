@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
 	"net/http"
 	"strings"
@@ -149,9 +150,18 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	err = r.ensureBucket(ctx, r.s3Client.FirmwareBucket)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
-	uploader := manager.NewUploader(r.s3Client)
-	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+	s, err := r.s3Client.NewSession()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	uploader := s3manager.NewUploader(s)
+	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 		Body:   file,
@@ -161,6 +171,24 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	}
 
 	response.WriteHeader(http.StatusOK)
+}
+
+func (r firmwareResource) ensureBucket(ctx context.Context, bucket string) error {
+	params := &s3.CreateBucketInput{
+		Bucket: &bucket,
+	}
+	_, err := r.s3Client.CreateBucketWithContext(ctx, params)
+	if err != nil {
+		var bae *types.BucketAlreadyExists
+		var baoby *types.BucketAlreadyOwnedByYou
+		switch {
+		case errors.As(err, &bae):
+		case errors.As(err, &baoby):
+		default:
+			return err
+		}
+	}
+	return nil
 }
 
 func (r firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
@@ -182,7 +210,7 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 	defer cancel()
 
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
-	_, err = r.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+	_, err = r.s3Client.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 	})
@@ -227,7 +255,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 
 			vendorBoards := make(map[string]map[string][]string)
 
-			r4, err := r.s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+			r4, err := r.s3Client.ListObjectsWithContext(context.Background(), &s3.ListObjectsInput{
 				Bucket: &r.s3Client.FirmwareBucket,
 				Prefix: &k,
 			})
@@ -329,7 +357,7 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 		return nil, featureDisabledErr
 	}
 
-	r4, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+	r4, err := s3Client.ListObjectsWithContext(context.Background(), &s3.ListObjectsInput{
 		Bucket: &s3Client.FirmwareBucket,
 		Prefix: &kind,
 	})

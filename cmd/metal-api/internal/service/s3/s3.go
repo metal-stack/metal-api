@@ -1,17 +1,16 @@
 package s3
 
 import (
-	"context"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/retry"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"time"
 )
 
 type Client struct {
-	*s3.Client
+	*s3.S3
 	Url            string
 	Key            string
 	Secret         string
@@ -28,30 +27,29 @@ func NewS3Client(url, key, secret, firmwareBucket string) *Client {
 }
 
 func (c *Client) Connect() error {
-	if c.Client != nil {
+	if c.S3 != nil {
 		return nil
 	}
-
-	dummyRegion := "dummy" // we don't use AWS S3, we don't need a proper region
-	customResolver := aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			PartitionID:       "aws",
-			URL:               c.Url,
-			SigningRegion:     dummyRegion,
-			HostnameImmutable: true,
-		}, nil
-	})
-	retryer := func() aws.Retryer {
-		r := retry.AddWithMaxAttempts(retry.NewStandard(), 3)
-		r = retry.AddWithMaxBackoffDelay(r, 10*time.Second)
-		return r
-	}
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithEndpointResolver(customResolver), config.WithRetryer(retryer))
+	s, err := c.NewSession()
 	if err != nil {
 		return err
 	}
-	cfg.Region = dummyRegion
-	cfg.Credentials = credentials.NewStaticCredentialsProvider(c.Key, c.Secret, "")
-	c.Client = s3.NewFromConfig(cfg)
+	c.S3 = s3.New(s)
 	return nil
+}
+
+func (c *Client) NewSession() (client.ConfigProvider, error) {
+	dummyRegion := "dummy" // we don't use AWS S3, we don't need a proper region
+	hostnameImmutable := true
+	return session.NewSession(&aws.Config{
+		Region:           &dummyRegion,
+		Endpoint:         &c.Url,
+		Credentials:      credentials.NewStaticCredentials(c.Key, c.Secret, ""),
+		S3ForcePathStyle: &hostnameImmutable,
+		SleepDelay:       time.Sleep,
+		Retryer: client.DefaultRetryer{
+			NumMaxRetries: 3,
+			MinRetryDelay: 10 * time.Second,
+		},
+	})
 }
