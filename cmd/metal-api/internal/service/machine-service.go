@@ -39,6 +39,8 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 )
 
+var featureDisabledErr = errors.New("this feature is currently disabled")
+
 type machineResource struct {
 	webResource
 	bus.Publisher
@@ -2298,6 +2300,12 @@ func (s machineAllocationSpec) autoNetworkN() int {
 }
 
 func (r machineResource) uploadFirmware(request *restful.Request, response *restful.Response) {
+	if r.s3Client == nil {
+		if checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+			return
+		}
+	}
+
 	kind, err := checkFirmwareKind(request.PathParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -2373,6 +2381,12 @@ func (r machineResource) ensureBucket(ctx context.Context, bucket string) error 
 }
 
 func (r machineResource) removeFirmware(request *restful.Request, response *restful.Response) {
+	if r.s3Client == nil {
+		if checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+			return
+		}
+	}
+
 	kind, err := checkFirmwareKind(request.PathParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -2473,6 +2487,10 @@ func (r machineResource) getVendorAndBoard(machineID string) (string, string, er
 }
 
 func (r machineResource) getFirmwareRevisions(kind, vendor, board string) ([]string, error) {
+	if r.s3Client == nil {
+		return nil, featureDisabledErr
+	}
+
 	prefix := fmt.Sprintf("%s/%s/%s", kind, vendor, board)
 	r4, err := r.s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: &r.s3Client.FirmwareBucket,
