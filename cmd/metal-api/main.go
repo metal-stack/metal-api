@@ -594,7 +594,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	ipservice, err := service.NewIP(ds, ep, ipamer, mdc)
+	ipService, err := service.NewIP(ds, ep, ipamer, mdc)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -614,11 +614,15 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	} else {
 		logger.Info("s3 server that provides firmware is disabled")
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client)
+	firmwareService, err := service.NewFirmware(ds, s3Client)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -627,10 +631,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
-	restful.DefaultContainer.Add(ipservice)
-	restful.DefaultContainer.Add(mservice)
+	restful.DefaultContainer.Add(ipService)
+	restful.DefaultContainer.Add(firmwareService)
+	restful.DefaultContainer.Add(machineService)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
-	restful.DefaultContainer.Add(fservice)
+	restful.DefaultContainer.Add(firewallService)
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
