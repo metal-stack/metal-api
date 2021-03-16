@@ -218,29 +218,44 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			vendor := strings.ToLower(request.QueryParameter("vendor"))
 			board := strings.ToUpper(request.QueryParameter("board"))
 
-			mm, err := r.ds.ListMachines()
+			if r.s3Client == nil {
+				if checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+					return
+				}
+			}
+
+			vendorBoards := make(map[string]map[string][]string)
+
+			r4, err := r.s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+				Bucket: &r.s3Client.FirmwareBucket,
+				Prefix: &k,
+			})
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
-			vendorBoards := make(map[string]map[string]bool)
-			for _, m := range mm {
-				fru := m.IPMI.Fru
 
-				v := strings.ToLower(fru.BoardMfg)
-				if vendor != "" && vendor != v {
+			for _, c := range r4.Contents {
+				parts := strings.Split(*c.Key, "/")
+				if len(parts) != 4 {
 					continue
 				}
-				b := strings.ToUpper(fru.BoardPartNumber)
-				if board != "" && board != b {
+				v := parts[1]
+				if vendor != "" && v != vendor {
+					continue
+				}
+				b := parts[2]
+				if board != "" && b != board {
 					continue
 				}
 				boardMap, ok := vendorBoards[v]
 				if !ok {
-					boardMap = make(map[string]bool)
+					boardMap = make(map[string][]string)
 					vendorBoards[v] = boardMap
 				}
-				boardMap[b] = true
+				rev := parts[3]
+				boardMap[b] = append(boardMap[b], rev)
 			}
+
 			for v, bb := range vendorBoards {
 				for b := range bb {
 					rr, err := getFirmwareRevisions(r.s3Client, k, v, b)
