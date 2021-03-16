@@ -222,6 +222,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
+			vendorBoards := make(map[string][]string)
 			for _, m := range mm {
 				fru := m.IPMI.Fru
 
@@ -233,29 +234,33 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				if board != "" && board != b {
 					continue
 				}
-
-				rr, err := getFirmwareRevisions(r.s3Client, k, v, b)
-				if checkError(request, response, utils.CurrentFuncName(), err) {
-					return
-				}
-
-				bf := v1.BoardFirmwares{
-					Board:     b,
-					Revisions: rr,
-				}
-				found := false
-				for _, vv := range ff.VendorFirmwares {
-					if v == vv.Vendor {
-						vv.BoardFirmwares = append(vv.BoardFirmwares, bf)
-						found = true
-						break
+				vendorBoards[v] = append(vendorBoards[v], b)
+			}
+			for v, bb := range vendorBoards {
+				for _, b := range bb {
+					rr, err := getFirmwareRevisions(r.s3Client, k, v, b)
+					if checkError(request, response, utils.CurrentFuncName(), err) {
+						return
 					}
-				}
-				if !found {
-					ff.VendorFirmwares = append(ff.VendorFirmwares, v1.VendorFirmwares{
-						Vendor:         v,
-						BoardFirmwares: []v1.BoardFirmwares{bf},
-					})
+
+					bf := v1.BoardFirmwares{
+						Board:     b,
+						Revisions: rr,
+					}
+					found := false
+					for _, vv := range ff.VendorFirmwares {
+						if v == vv.Vendor {
+							vv.BoardFirmwares = append(vv.BoardFirmwares, bf)
+							found = true
+							break
+						}
+					}
+					if !found {
+						ff.VendorFirmwares = append(ff.VendorFirmwares, v1.VendorFirmwares{
+							Vendor:         v,
+							BoardFirmwares: []v1.BoardFirmwares{bf},
+						})
+					}
 				}
 			}
 		default:
