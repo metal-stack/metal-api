@@ -96,8 +96,8 @@ type ChassisIdentifyLEDState struct {
 	Description string `json:"description" description:"a description why this chassis identify LED is in the given state"`
 }
 
-type MachineAvailableFirmwares struct {
-	Revisions []string `json:"revisions" description:"list of all available BIOS updates"`
+type AvailableFirmwares struct {
+	Revisions map[string]map[string][]string `json:"revisions" description:"list of all available firmware updates"`
 }
 
 type MachineUpdateFirmware struct {

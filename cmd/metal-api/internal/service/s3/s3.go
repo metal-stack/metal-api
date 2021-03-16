@@ -10,20 +10,20 @@ import (
 	"time"
 )
 
-const BucketName = "firmware-updates"
-
 type Client struct {
 	*s3.Client
-	Url    string
-	Key    string
-	Secret string
+	Url            string
+	Key            string
+	Secret         string
+	FirmwareBucket string
 }
 
-func NewS3Client(url, key, secret string) *Client {
+func NewS3Client(url, key, secret, firmwareBucket string) *Client {
 	return &Client{
-		Url:    url,
-		Key:    key,
-		Secret: secret,
+		Url:            url,
+		Key:            key,
+		Secret:         secret,
+		FirmwareBucket: firmwareBucket,
 	}
 }
 

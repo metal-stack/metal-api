@@ -201,6 +201,7 @@ func init() {
 	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server that provides firmware updates")
 	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server that provides firmware updates")
 	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server that provides firmware updates")
+	rootCmd.Flags().StringP("s3-firmware-bucket", "", "", "the bucket that contains the firmware updates")
 
 	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
@@ -603,7 +604,8 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if s3Address != "" {
 		s3Key := viper.GetString("s3-key")
 		s3Secret := viper.GetString("s3-secret")
-		s3Client = s3.NewS3Client(s3Address, s3Key, s3Secret)
+		s3FirmwareBucket := viper.GetString("s3-firmware-bucket")
+		s3Client = s3.NewS3Client(s3Address, s3Key, s3Secret, s3FirmwareBucket)
 		err = s3Client.Connect()
 		if err != nil {
 			logger.Fatal(err)

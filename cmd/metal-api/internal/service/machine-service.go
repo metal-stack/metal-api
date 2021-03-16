@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
 	"net"
 	"net/http"
@@ -415,8 +415,8 @@ func (r machineResource) webService() *restful.WebService {
 	ws.Route(ws.PUT("/upload-firmware/{kind}/{vendor}/{board}/{revision}").
 		To(admin(r.uploadFirmware)).
 		Operation("uploadFirmware").
-		Doc("upload given firmware update for given machine").
-		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
+		Doc("upload given firmware update").
+		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
 		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.PathParameter("board", "the board").DataType("string")).
 		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
@@ -426,18 +426,33 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/available-firmwares").
-		To(admin(r.availableFirmwares)).
-		Operation("availableFirmwares").
-		Doc("returns all available firmwares for the machine").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string").Required(true)).
+	ws.Route(ws.DELETE("/remove-firmware/{kind}/{vendor}/{board}/{revision}").
+		To(admin(r.removeFirmware)).
+		Operation("removeFirmware").
+		Doc("remove given firmware update").
+		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
+		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
+		Param(ws.PathParameter("board", "the board").DataType("string")).
+		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.MachineAvailableFirmwares{}).
-		Returns(http.StatusOK, "OK", v1.MachineAvailableFirmwares{}).
+		Reads(v1.EmptyBody{}).
+		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/{id}/update-firmware").
+	ws.Route(ws.GET("/available-firmwares").
+		To(admin(r.availableFirmwares)).
+		Operation("availableFirmwares").
+		Doc("returns all available firmwares as well as all available firmwares for a specific machine").
+		Param(ws.QueryParameter("id", "restrict available firmwares to the machine identified by this query parameter").DataType("string")).
+		Param(ws.QueryParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
+		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
+		Param(ws.PathParameter("board", "the board").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.AvailableFirmwares{}).
+		Returns(http.StatusOK, "OK", v1.AvailableFirmwares{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/update-firmware/{id}").
 		To(admin(r.updateFirmware)).
 		Operation("updateFirmware").
 		Doc("sends a firmware command to the machine").
@@ -2036,7 +2051,11 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 	}
 
 	id := request.PathParameter("id")
-	rr, err := r.getFirmwareRevisions(p.Kind, id)
+	vendor, board, err := r.getVendorAndBoard(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	rr, err := r.getFirmwareRevisions(p.Kind, vendor, board)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2047,7 +2066,7 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 		}
 	}
 
-	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret)
+	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, r.s3Client.FirmwareBucket)
 }
 
 func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
@@ -2287,6 +2306,27 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
 
+	// check that at least one machine matches kind, vendor and board
+	validReq := false
+	mm, err := r.ds.ListMachines()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	for _, m := range mm {
+		fru := m.IPMI.Fru
+		v := strings.ToLower(fru.ProductManufacturer)
+		b := strings.ToUpper(fru.BoardPartNumber)
+		if v == vendor && b == board {
+			validReq = true
+			break
+		}
+	}
+	if !validReq {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("there is no machine of vendor %s with board %s", vendor, board)) {
+			return
+		}
+	}
+
 	file, _, err := request.Request.FormFile("file")
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -2295,12 +2335,59 @@ func (r machineResource) uploadFirmware(request *restful.Request, response *rest
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	err = r.ensureBucket(ctx, r.s3Client.FirmwareBucket)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
 	uploader := manager.NewUploader(r.s3Client)
 	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(s3server.BucketName),
+		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 		Body:   file,
+	})
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	response.WriteHeader(http.StatusOK)
+}
+
+func (r machineResource) ensureBucket(ctx context.Context, bucket string) error {
+	params := &s3.CreateBucketInput{
+		Bucket: &bucket,
+	}
+	_, err := r.s3Client.CreateBucket(ctx, params)
+	if err != nil {
+		var bae *types.BucketAlreadyExists
+		var baoby *types.BucketAlreadyOwnedByYou
+		switch {
+		case errors.As(err, &bae):
+		case errors.As(err, &baoby):
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (r machineResource) removeFirmware(request *restful.Request, response *restful.Response) {
+	kind, err := checkFirmwareKind(request.PathParameter("kind"))
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	vendor := strings.ToLower(request.PathParameter("vendor"))
+	board := strings.ToUpper(request.PathParameter("board"))
+	revision := request.PathParameter("revision")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
+	_, err = r.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: &r.s3Client.FirmwareBucket,
+		Key:    &key,
 	})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -2315,33 +2402,80 @@ func (r machineResource) availableFirmwares(request *restful.Request, response *
 		return
 	}
 
-	id := request.PathParameter("id")
-	rr, err := r.getFirmwareRevisions(kind, id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	resp := &v1.AvailableFirmwares{
+		Revisions: make(map[string]map[string][]string),
+	}
+	id := request.QueryParameter("id")
+	switch id {
+	case "":
+		vendor, board, err := r.getVendorAndBoard(id)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		rr, err := r.getFirmwareRevisions(kind, vendor, board)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		rm := make(map[string][]string)
+		rm[board] = rr
+		resp.Revisions[vendor] = rm
+	default:
+		vendor := strings.ToLower(request.QueryParameter("vendor"))
+		board := strings.ToUpper(request.QueryParameter("board"))
+
+		mm, err := r.ds.ListMachines()
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		for _, m := range mm {
+			fru := m.IPMI.Fru
+
+			v := strings.ToLower(fru.ProductManufacturer)
+			if vendor != "" && vendor != v {
+				continue
+			}
+			b := strings.ToUpper(fru.BoardPartNumber)
+			if board != "" && board != b {
+				continue
+			}
+
+			rr, err := r.getFirmwareRevisions(kind, v, b)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+
+			rm, ok := resp.Revisions[v]
+			if !ok {
+				rm = make(map[string][]string)
+				resp.Revisions[v] = rm
+			}
+			rm[b] = rr
+		}
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineAvailableFirmwares{
-		Revisions: rr,
-	})
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
 		return
 	}
 }
 
-func (r machineResource) getFirmwareRevisions(kind, machineID string) ([]string, error) {
+func (r machineResource) getVendorAndBoard(machineID string) (string, string, error) {
 	m, err := r.ds.FindMachineByID(machineID)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	fru := m.IPMI.Fru
 	vendor := strings.ToLower(fru.ProductManufacturer)
 	board := strings.ToUpper(fru.BoardPartNumber)
+	return vendor, board, nil
+}
+
+func (r machineResource) getFirmwareRevisions(kind, vendor, board string) ([]string, error) {
 	prefix := fmt.Sprintf("%s/%s/%s", kind, vendor, board)
 	r4, err := r.s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
-		Bucket: aws.String(s3server.BucketName),
+		Bucket: &r.s3Client.FirmwareBucket,
 		Prefix: &prefix,
 	})
 	if err != nil {

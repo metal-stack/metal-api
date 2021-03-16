@@ -64,6 +64,29 @@
         "version"
       ]
     },
+    "v1.AvailableFirmwares": {
+      "properties": {
+        "revisions": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.AvailableFirmwares.revisions"
+          },
+          "description": "list of all available firmware updates",
+          "type": "object"
+        }
+      },
+      "required": [
+        "revisions"
+      ]
+    },
+    "v1.AvailableFirmwares.revisions": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -999,20 +1022,6 @@
       "required": [
         "autoacquire",
         "networkid"
-      ]
-    },
-    "v1.MachineAvailableFirmwares": {
-      "properties": {
-        "revisions": {
-          "description": "list of all available BIOS updates",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "revisions"
       ]
     },
     "v1.MachineBIOS": {
@@ -3848,6 +3857,63 @@
         ]
       }
     },
+    "/v1/machine/available-firmwares": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "availableFirmwares",
+        "parameters": [
+          {
+            "description": "restrict available firmwares to the machine identified by this query parameter",
+            "in": "query",
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "in": "query",
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "description": "the vendor",
+            "in": "path",
+            "name": "vendor",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "path",
+            "name": "board",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.AvailableFirmwares"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "returns all available firmwares as well as all available firmwares for a specific machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
     "/v1/machine/find": {
       "post": {
         "consumes": [
@@ -4016,6 +4082,116 @@
         ]
       }
     },
+    "/v1/machine/remove-firmware/{kind}/{vendor}/{board}/{revision}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "removeFirmware",
+        "parameters": [
+          {
+            "description": "the kind, i.e. 'bios' or 'bmc'",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the vendor",
+            "in": "path",
+            "name": "vendor",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "path",
+            "name": "board",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the firmware update revision",
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.EmptyBody"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "remove given firmware update",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/update-firmware/{id}": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateFirmware",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineUpdateFirmware"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "sends a firmware command to the machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
     "/v1/machine/upload-firmware/{kind}/{vendor}/{board}/{revision}": {
       "put": {
         "consumes": [
@@ -4072,7 +4248,7 @@
             }
           }
         },
-        "summary": "upload given firmware update for given machine",
+        "summary": "upload given firmware update",
         "tags": [
           "machine"
         ]
@@ -4193,51 +4369,6 @@
           }
         },
         "summary": "abort reinstall this machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/available-firmwares": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "availableFirmwares",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "description": "the kind, i.e. 'bios' or 'bmc'",
-            "in": "query",
-            "name": "kind",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineAvailableFirmwares"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "returns all available firmwares for the machine",
         "tags": [
           "machine"
         ]
@@ -4966,52 +5097,6 @@
           }
         },
         "summary": "set the state of a machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/update-firmware": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "updateFirmware",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineUpdateFirmware"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "sends a firmware command to the machine",
         "tags": [
           "machine"
         ]
