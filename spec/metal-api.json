@@ -70,7 +70,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/v1.AvailableFirmwares.revisions"
           },
-          "description": "list of all available firmware updates",
+          "description": "list of all available firmwares",
           "type": "object"
         }
       },
@@ -4111,7 +4111,7 @@
             "type": "string"
           },
           {
-            "description": "the firmware update revision",
+            "description": "the firmware revision",
             "in": "path",
             "name": "revision",
             "required": true,
@@ -4140,7 +4140,7 @@
             }
           }
         },
-        "summary": "remove given firmware update",
+        "summary": "remove given firmware",
         "tags": [
           "machine"
         ]
@@ -4221,14 +4221,14 @@
             "type": "string"
           },
           {
-            "description": "the firmware update revision",
+            "description": "the firmware revision",
             "in": "path",
             "name": "revision",
             "required": true,
             "type": "string"
           },
           {
-            "description": "the firmware update file",
+            "description": "the firmware file",
             "in": "formData",
             "name": "file",
             "type": "file"
@@ -4248,7 +4248,7 @@
             }
           }
         },
-        "summary": "upload given firmware update",
+        "summary": "upload given firmware",
         "tags": [
           "machine"
         ]

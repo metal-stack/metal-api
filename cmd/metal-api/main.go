@@ -198,10 +198,10 @@ func init() {
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
-	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server that provides firmware updates")
-	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server that provides firmware updates")
-	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server that provides firmware updates")
-	rootCmd.Flags().StringP("s3-firmware-bucket", "", "", "the bucket that contains the firmware updates")
+	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-firmware-bucket", "", "", "the bucket that contains the firmwares")
 
 	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
@@ -610,9 +610,9 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		if err != nil {
 			logger.Fatal(err)
 		}
-		logger.Infow("connected to s3 server that provides firmware updates", "address", s3Address)
+		logger.Infow("connected to s3 server that provides firmwares", "address", s3Address)
 	} else {
-		logger.Info("s3 server that provides firmware updates is disabled")
+		logger.Info("s3 server that provides firmware is disabled")
 	}
 	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client)
 	if err != nil {

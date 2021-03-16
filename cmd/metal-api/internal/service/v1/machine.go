@@ -97,7 +97,7 @@ type ChassisIdentifyLEDState struct {
 }
 
 type AvailableFirmwares struct {
-	Revisions map[string]map[string][]string `json:"revisions" description:"list of all available firmware updates"`
+	Revisions map[string]map[string][]string `json:"revisions" description:"list of all available firmwares"`
 }
 
 type MachineUpdateFirmware struct {

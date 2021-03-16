@@ -415,12 +415,12 @@ func (r machineResource) webService() *restful.WebService {
 	ws.Route(ws.PUT("/upload-firmware/{kind}/{vendor}/{board}/{revision}").
 		To(admin(r.uploadFirmware)).
 		Operation("uploadFirmware").
-		Doc("upload given firmware update").
+		Doc("upload given firmware").
 		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
 		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.PathParameter("board", "the board").DataType("string")).
-		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
-		Param(ws.FormParameter("file", "the firmware update file").DataType("file")).
+		Param(ws.PathParameter("revision", "the firmware revision").DataType("string")).
+		Param(ws.FormParameter("file", "the firmware file").DataType("file")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Consumes("multipart/form-data").
 		Returns(http.StatusOK, "OK", nil).
@@ -429,11 +429,11 @@ func (r machineResource) webService() *restful.WebService {
 	ws.Route(ws.DELETE("/remove-firmware/{kind}/{vendor}/{board}/{revision}").
 		To(admin(r.removeFirmware)).
 		Operation("removeFirmware").
-		Doc("remove given firmware update").
+		Doc("remove given firmware").
 		Param(ws.PathParameter("kind", "the kind, i.e. 'bios' or 'bmc'").DataType("string")).
 		Param(ws.PathParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.PathParameter("board", "the board").DataType("string")).
-		Param(ws.PathParameter("revision", "the firmware update revision").DataType("string")).
+		Param(ws.PathParameter("revision", "the firmware revision").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
 		Returns(http.StatusOK, "OK", nil).
