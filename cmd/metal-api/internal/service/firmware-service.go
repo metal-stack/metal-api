@@ -251,10 +251,10 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				boardMap, ok := vendorBoards[v]
 				if !ok {
 					boardMap = make(map[string][]string)
+					vendorBoards[v] = boardMap
 				}
 				rev := parts[3]
 				boardMap[b] = append(boardMap[b], rev)
-				vendorBoards[v] = boardMap
 			}
 
 			for v, bb := range vendorBoards {
@@ -264,9 +264,10 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 						Revisions: rr,
 					}
 					found := false
-					for _, vv := range ff.VendorFirmwares {
+					for i, vv := range ff.VendorFirmwares {
 						if v == vv.Vendor {
 							vv.BoardFirmwares = append(vv.BoardFirmwares, bf)
+							ff.VendorFirmwares[i] = vv
 							found = true
 							break
 						}
