@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
@@ -179,12 +179,15 @@ func (r firmwareResource) ensureBucket(ctx context.Context, bucket string) error
 	}
 	_, err := r.s3Client.CreateBucketWithContext(ctx, params)
 	if err != nil {
-		var bae *types.BucketAlreadyExists
-		var baoby *types.BucketAlreadyOwnedByYou
-		switch {
-		case errors.As(err, &bae):
-		case errors.As(err, &baoby):
-		default:
+		//nolint
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case s3.ErrCodeBucketAlreadyExists:
+			case s3.ErrCodeBucketAlreadyOwnedByYou:
+			default:
+				return err
+			}
+		} else {
 			return err
 		}
 	}
