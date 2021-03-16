@@ -3322,7 +3322,10 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.Firmwares"
+              "items": {
+                "$ref": "#/definitions/v1.Firmwares"
+              },
+              "type": "array"
             }
           },
           "default": {

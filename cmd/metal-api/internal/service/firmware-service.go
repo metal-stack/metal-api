@@ -98,8 +98,8 @@ func (r firmwareResource) webService() *restful.WebService {
 		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.QueryParameter("board", "the board").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.Firmwares{}).
-		Returns(http.StatusOK, "OK", v1.Firmwares{}).
+		Writes([]v1.Firmwares{}).
+		Returns(http.StatusOK, "OK", []v1.Firmwares{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -198,67 +198,80 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	resp := &v1.Firmwares{
-		Kind: kind,
-	}
-	id := request.QueryParameter("id")
-	switch id {
+	var kk []FirmwareKind
+	switch kind {
 	case "":
-		vendor := strings.ToLower(request.QueryParameter("vendor"))
-		board := strings.ToUpper(request.QueryParameter("board"))
+		kk = append(kk, bmc)
+		kk = append(kk, bios)
+	default:
+		kk = append(kk, kind)
+	}
 
-		mm, err := r.ds.ListMachines()
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+	var resp []v1.Firmwares
+	for _, k := range kk {
+		ff := v1.Firmwares{
+			Kind: k,
 		}
-		for _, m := range mm {
-			fru := m.IPMI.Fru
+		id := request.QueryParameter("id")
+		switch id {
+		case "":
+			vendor := strings.ToLower(request.QueryParameter("vendor"))
+			board := strings.ToUpper(request.QueryParameter("board"))
 
-			v := strings.ToLower(fru.ProductManufacturer)
-			if vendor != "" && vendor != v {
-				continue
-			}
-			b := strings.ToUpper(fru.BoardPartNumber)
-			if board != "" && board != b {
-				continue
-			}
-
-			rr, err := getFirmwareRevisions(r.s3Client, kind, v, b)
+			mm, err := r.ds.ListMachines()
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
+			for _, m := range mm {
+				fru := m.IPMI.Fru
 
-			for _, vv := range resp.VendorFirmwares {
-				if v == vv.Vendor {
-					vv.BoardFirmwares = append(vv.BoardFirmwares, v1.BoardFirmwares{
-						Board:     b,
-						Revisions: rr,
-					})
-					break
+				v := strings.ToLower(fru.ProductManufacturer)
+				if vendor != "" && vendor != v {
+					continue
+				}
+				b := strings.ToUpper(fru.BoardPartNumber)
+				if board != "" && board != b {
+					continue
+				}
+
+				rr, err := getFirmwareRevisions(r.s3Client, kind, v, b)
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
+
+				for _, vv := range ff.VendorFirmwares {
+					if v == vv.Vendor {
+						vv.BoardFirmwares = append(vv.BoardFirmwares, v1.BoardFirmwares{
+							Board:     b,
+							Revisions: rr,
+						})
+						break
+					}
 				}
 			}
-		}
-	default:
-		vendor, board, err := getVendorAndBoard(r.ds, id)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		rr, err := getFirmwareRevisions(r.s3Client, kind, vendor, board)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		resp.VendorFirmwares = []v1.VendorFirmwares{
-			{
-				Vendor: vendor,
-				BoardFirmwares: []v1.BoardFirmwares{
-					{
-						Board:     board,
-						Revisions: rr,
+		default:
+			vendor, board, err := getVendorAndBoard(r.ds, id)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+			rr, err := getFirmwareRevisions(r.s3Client, kind, vendor, board)
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+			ff.VendorFirmwares = []v1.VendorFirmwares{
+				{
+					Vendor: vendor,
+					BoardFirmwares: []v1.BoardFirmwares{
+						{
+							Board:     board,
+							Revisions: rr,
+						},
 					},
 				},
-			},
+			}
 		}
+
+		resp = append(resp, ff)
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
