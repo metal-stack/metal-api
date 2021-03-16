@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
 	"net/http"
 	"strings"
@@ -150,11 +149,6 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err = r.ensureBucket(ctx, r.s3Client.FirmwareBucket)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
 	uploader := manager.NewUploader(r.s3Client)
 	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
@@ -167,24 +161,6 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	}
 
 	response.WriteHeader(http.StatusOK)
-}
-
-func (r firmwareResource) ensureBucket(ctx context.Context, bucket string) error {
-	params := &s3.CreateBucketInput{
-		Bucket: &bucket,
-	}
-	_, err := r.s3Client.CreateBucket(ctx, params)
-	if err != nil {
-		var bae *types.BucketAlreadyExists
-		var baoby *types.BucketAlreadyOwnedByYou
-		switch {
-		case errors.As(err, &bae):
-		case errors.As(err, &baoby):
-		default:
-			return err
-		}
-	}
-	return nil
 }
 
 func (r firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
