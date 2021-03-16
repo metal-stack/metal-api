@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
+	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"net"
 	"net/http"
 	"strconv"

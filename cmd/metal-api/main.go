@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -599,14 +599,13 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		logger.Fatal(err)
 	}
 
-	var s3Client *s3.Client
+	var s3Client *s3client.Client
 	s3Address := viper.GetString("s3-address")
 	if s3Address != "" {
 		s3Key := viper.GetString("s3-key")
 		s3Secret := viper.GetString("s3-secret")
 		s3FirmwareBucket := viper.GetString("s3-firmware-bucket")
-		s3Client = s3.NewS3Client(s3Address, s3Key, s3Secret, s3FirmwareBucket)
-		err = s3Client.Connect()
+		s3Client, err = s3client.New(s3Address, s3Key, s3Secret, s3FirmwareBucket)
 		if err != nil {
 			logger.Fatal(err)
 		}

@@ -1,4 +1,4 @@
-package s3
+package s3client
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,25 +17,19 @@ type Client struct {
 	FirmwareBucket string
 }
 
-func NewS3Client(url, key, secret, firmwareBucket string) *Client {
-	return &Client{
+func New(url, key, secret, firmwareBucket string) (*Client, error) {
+	c := &Client{
 		Url:            url,
 		Key:            key,
 		Secret:         secret,
 		FirmwareBucket: firmwareBucket,
 	}
-}
-
-func (c *Client) Connect() error {
-	if c.S3 != nil {
-		return nil
-	}
 	s, err := c.NewSession()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	c.S3 = s3.New(s)
-	return nil
+	return c, nil
 }
 
 func (c *Client) NewSession() (client.ConfigProvider, error) {
@@ -46,7 +40,6 @@ func (c *Client) NewSession() (client.ConfigProvider, error) {
 		Endpoint:         &c.Url,
 		Credentials:      credentials.NewStaticCredentials(c.Key, c.Secret, ""),
 		S3ForcePathStyle: &hostnameImmutable,
-		SleepDelay:       time.Sleep,
 		Retryer: client.DefaultRetryer{
 			NumMaxRetries: 3,
 			MinRetryDelay: 10 * time.Second,
