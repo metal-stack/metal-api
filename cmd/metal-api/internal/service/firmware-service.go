@@ -126,9 +126,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	}
 	for _, m := range mm {
 		fru := m.IPMI.Fru
-		v := strings.ToLower(fru.BoardMfg)
-		b := strings.ToUpper(fru.BoardPartNumber)
-		if v == vendor && b == board {
+		if strings.EqualFold(fru.BoardMfg, vendor) && strings.EqualFold(fru.BoardPartNumber, board) {
 			validReq = true
 			break
 		}
@@ -210,14 +208,14 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	var resp []v1.Firmwares
 	for i := range kk {
 		k := kk[i]
-		ff := v1.Firmwares{
+		ff := &v1.Firmwares{
 			Kind: k,
 		}
 		id := request.QueryParameter("id")
 		switch id {
 		case "":
-			vendor := strings.ToLower(request.QueryParameter("vendor"))
-			board := strings.ToUpper(request.QueryParameter("board"))
+			vendor := request.QueryParameter("vendor")
+			board := request.QueryParameter("board")
 
 			vendorBoards := make(map[string]map[string][]string)
 
@@ -225,27 +223,8 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				Bucket: &r.s3Client.FirmwareBucket,
 				Prefix: &k,
 			}, func(page *s3.ListObjectsOutput, last bool) bool {
-				// Add the objects to the channel for each page
-				for _, c := range page.Contents {
-					parts := strings.Split(*c.Key, "/")
-					if len(parts) != 4 {
-						continue
-					}
-					v := parts[1]
-					if vendor != "" && vendor != v {
-						continue
-					}
-					b := parts[2]
-					if board != "" && board != b {
-						continue
-					}
-					boardMap, ok := vendorBoards[v]
-					if !ok {
-						boardMap = make(map[string][]string)
-						vendorBoards[v] = boardMap
-					}
-					rev := parts[3]
-					boardMap[b] = append(boardMap[b], rev)
+				for _, p := range page.Contents {
+					insertRevisions(p, vendorBoards, vendor, board)
 				}
 				return true
 			})
@@ -253,29 +232,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				return
 			}
 
-			for v, bb := range vendorBoards {
-				for b, rr := range bb {
-					bf := v1.BoardFirmwares{
-						Board:     b,
-						Revisions: rr,
-					}
-					found := false
-					for i, vv := range ff.VendorFirmwares {
-						if v == vv.Vendor {
-							vv.BoardFirmwares = append(vv.BoardFirmwares, bf)
-							ff.VendorFirmwares[i] = vv
-							found = true
-							break
-						}
-					}
-					if !found {
-						ff.VendorFirmwares = append(ff.VendorFirmwares, v1.VendorFirmwares{
-							Vendor:         v,
-							BoardFirmwares: []v1.BoardFirmwares{bf},
-						})
-					}
-				}
-			}
+			appendVendorBoards(vendorBoards, ff)
 		default:
 			f, err := getFirmware(r.ds, id)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -298,7 +255,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			}
 		}
 
-		resp = append(resp, ff)
+		resp = append(resp, *ff)
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
@@ -337,22 +294,69 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 
 	var rr []string
 	for _, c := range r4.Contents {
-		parts := strings.Split(*c.Key, "/")
-		if len(parts) != 4 {
-			continue
+		rev, ok := filterRevision(*c.Key, vendor, board)
+		if ok {
+			rr = append(rr, rev)
 		}
-		v := parts[1]
-		if vendor != "" && v != vendor {
-			continue
-		}
-		b := parts[2]
-		if board != "" && b != board {
-			continue
-		}
-		rev := parts[3]
-		rr = append(rr, rev)
 	}
 	return rr, nil
+}
+
+func insertRevisions(page *s3.Object, vendorBoards map[string]map[string][]string, vendor, board string) {
+	vendor = strings.ToLower(vendor)
+	board = strings.ToUpper(board)
+	rev, ok := filterRevision(*page.Key, vendor, board)
+	if !ok {
+		return
+	}
+	boardMap, ok := vendorBoards[vendor]
+	if !ok {
+		boardMap = make(map[string][]string)
+		vendorBoards[vendor] = boardMap
+	}
+	boardMap[board] = append(boardMap[board], rev)
+}
+
+func filterRevision(path, vendor, board string) (string, bool) {
+	parts := strings.Split(path, "/")
+	if len(parts) != 4 {
+		return "", false
+	}
+	v := parts[1]
+	if vendor != "" && !strings.EqualFold(v, vendor) {
+		return "", false
+	}
+	b := parts[2]
+	if board != "" && !strings.EqualFold(b, board) {
+		return "", false
+	}
+	return parts[3], true
+}
+
+func appendVendorBoards(vendorBoards map[string]map[string][]string, ff *v1.Firmwares) {
+	for v, bb := range vendorBoards {
+		for b, rr := range bb {
+			bf := v1.BoardFirmwares{
+				Board:     b,
+				Revisions: rr,
+			}
+			found := false
+			for i, vv := range ff.VendorFirmwares {
+				if v == vv.Vendor {
+					vv.BoardFirmwares = append(vv.BoardFirmwares, bf)
+					ff.VendorFirmwares[i] = vv
+					found = true
+					break
+				}
+			}
+			if !found {
+				ff.VendorFirmwares = append(ff.VendorFirmwares, v1.VendorFirmwares{
+					Vendor:         v,
+					BoardFirmwares: []v1.BoardFirmwares{bf},
+				})
+			}
+		}
+	}
 }
 
 func checkFirmwareKind(kind string) (string, error) {
