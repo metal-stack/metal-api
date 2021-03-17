@@ -294,43 +294,45 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 
 	var rr []string
 	for _, c := range r4.Contents {
-		rev, ok := filterRevision(*c.Key, vendor, board)
+		f, ok := filterRevision(*c.Key, vendor, board)
 		if ok {
-			rr = append(rr, rev)
+			rr = append(rr, f.Revision)
 		}
 	}
 	return rr, nil
 }
 
 func insertRevisions(page *s3.Object, vendorBoards map[string]map[string][]string, vendor, board string) {
-	vendor = strings.ToLower(vendor)
-	board = strings.ToUpper(board)
-	rev, ok := filterRevision(*page.Key, vendor, board)
+	f, ok := filterRevision(*page.Key, vendor, board)
 	if !ok {
 		return
 	}
-	boardMap, ok := vendorBoards[vendor]
+	boardMap, ok := vendorBoards[f.Vendor]
 	if !ok {
 		boardMap = make(map[string][]string)
-		vendorBoards[vendor] = boardMap
+		vendorBoards[f.Vendor] = boardMap
 	}
-	boardMap[board] = append(boardMap[board], rev)
+	boardMap[f.Board] = append(boardMap[f.Board], f.Revision)
 }
 
-func filterRevision(path, vendor, board string) (string, bool) {
+func filterRevision(path, vendor, board string) (*v1.Firmware, bool) {
 	parts := strings.Split(path, "/")
 	if len(parts) != 4 {
-		return "", false
+		return nil, false
 	}
 	v := parts[1]
 	if vendor != "" && !strings.EqualFold(v, vendor) {
-		return "", false
+		return nil, false
 	}
 	b := parts[2]
 	if board != "" && !strings.EqualFold(b, board) {
-		return "", false
+		return nil, false
 	}
-	return parts[3], true
+	return &v1.Firmware{
+		Vendor:   v,
+		Board:    b,
+		Revision: parts[3],
+	}, true
 }
 
 func appendVendorBoards(vendorBoards map[string]map[string][]string, ff v1.Firmwares) v1.Firmwares {

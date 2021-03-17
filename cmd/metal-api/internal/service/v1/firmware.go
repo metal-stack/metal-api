@@ -5,6 +5,7 @@ type Firmware struct {
 	Board       string
 	BmcVersion  string
 	BiosVersion string
+	Revision    string
 }
 
 type Firmwares struct {
