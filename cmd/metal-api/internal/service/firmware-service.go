@@ -224,7 +224,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				Prefix: &k,
 			}, func(page *s3.ListObjectsOutput, last bool) bool {
 				for _, p := range page.Contents {
-					insertRevisions(p, vendorBoards, vendor, board)
+					insertRevisions(*p.Key, vendorBoards, vendor, board)
 				}
 				return true
 			})
@@ -302,8 +302,8 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 	return rr, nil
 }
 
-func insertRevisions(page *s3.Object, vendorBoards map[string]map[string][]string, vendor, board string) {
-	f, ok := filterRevision(*page.Key, vendor, board)
+func insertRevisions(path string, vendorBoards map[string]map[string][]string, vendor, board string) {
+	f, ok := filterRevision(path, vendor, board)
 	if !ok {
 		return
 	}
@@ -311,6 +311,11 @@ func insertRevisions(page *s3.Object, vendorBoards map[string]map[string][]strin
 	if !ok {
 		boardMap = make(map[string][]string)
 		vendorBoards[f.Vendor] = boardMap
+	}
+	for _, rev := range boardMap[f.Board] {
+		if rev == f.Revision {
+			return
+		}
 	}
 	boardMap[f.Board] = append(boardMap[f.Board], f.Revision)
 }
