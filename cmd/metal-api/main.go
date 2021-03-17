@@ -473,9 +473,9 @@ func initMasterData() {
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
 		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
 		if err == nil {
+			cancel()
 			break
 		}
 		logger.Errorw("unable to initialize masterdata-api client, retrying...", "error", err)

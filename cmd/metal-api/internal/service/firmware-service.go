@@ -142,12 +142,9 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
 	uploader := s3manager.NewUploader(r.s3Client.Session)
-	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
+	_, err = uploader.UploadWithContext(context.Background(), &s3manager.UploadInput{
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 		Body:   file,
@@ -172,11 +169,8 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
-	_, err = r.s3Client.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
+	_, err = r.s3Client.DeleteObjectWithContext(context.Background(), &s3.DeleteObjectInput{
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 	})
