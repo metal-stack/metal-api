@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
@@ -150,11 +149,6 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err = r.ensureBucket(ctx, r.s3Client.FirmwareBucket)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
 	s, err := r.s3Client.NewSession()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -171,27 +165,6 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	}
 
 	response.WriteHeader(http.StatusOK)
-}
-
-func (r firmwareResource) ensureBucket(ctx context.Context, bucket string) error {
-	params := &s3.CreateBucketInput{
-		Bucket: &bucket,
-	}
-	_, err := r.s3Client.CreateBucketWithContext(ctx, params)
-	if err != nil {
-		//nolint
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case s3.ErrCodeBucketAlreadyExists:
-			case s3.ErrCodeBucketAlreadyOwnedByYou:
-			default:
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-	return nil
 }
 
 func (r firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
