@@ -106,10 +106,8 @@ func (r firmwareResource) webService() *restful.WebService {
 }
 
 func (r firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil {
-		if checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
-			return
-		}
+	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+		return
 	}
 
 	kind, err := strictCheckFirmwareKind(request.PathParameter("kind"))
@@ -150,11 +148,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	defer cancel()
 
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
-	s, err := r.s3Client.NewSession()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	uploader := s3manager.NewUploader(s)
+	uploader := s3manager.NewUploader(r.s3Client.Session)
 	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
@@ -168,10 +162,8 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 }
 
 func (r firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil {
-		if checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
-			return
-		}
+	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+		return
 	}
 
 	kind, err := strictCheckFirmwareKind(request.PathParameter("kind"))
@@ -198,6 +190,10 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 }
 
 func (r firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
+	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+		return
+	}
+
 	kind, err := checkFirmwareKind(request.QueryParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -223,42 +219,38 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			vendor := strings.ToLower(request.QueryParameter("vendor"))
 			board := strings.ToUpper(request.QueryParameter("board"))
 
-			if r.s3Client == nil {
-				if checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
-					return
-				}
-			}
-
 			vendorBoards := make(map[string]map[string][]string)
 
-			r4, err := r.s3Client.ListObjectsWithContext(context.Background(), &s3.ListObjectsInput{
+			err := r.s3Client.ListObjectsPagesWithContext(context.Background(), &s3.ListObjectsInput{
 				Bucket: &r.s3Client.FirmwareBucket,
 				Prefix: &k,
+			}, func(page *s3.ListObjectsOutput, last bool) bool {
+				// Add the objects to the channel for each page
+				for _, c := range page.Contents {
+					parts := strings.Split(*c.Key, "/")
+					if len(parts) != 4 {
+						continue
+					}
+					v := parts[1]
+					if vendor != "" && vendor != v {
+						continue
+					}
+					b := parts[2]
+					if board != "" && board != b {
+						continue
+					}
+					boardMap, ok := vendorBoards[v]
+					if !ok {
+						boardMap = make(map[string][]string)
+						vendorBoards[v] = boardMap
+					}
+					rev := parts[3]
+					boardMap[b] = append(boardMap[b], rev)
+				}
+				return true
 			})
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
-			}
-
-			for _, c := range r4.Contents {
-				parts := strings.Split(*c.Key, "/")
-				if len(parts) != 4 {
-					continue
-				}
-				v := parts[1]
-				if vendor != "" && vendor != v {
-					continue
-				}
-				b := parts[2]
-				if board != "" && board != b {
-					continue
-				}
-				boardMap, ok := vendorBoards[v]
-				if !ok {
-					boardMap = make(map[string][]string)
-					vendorBoards[v] = boardMap
-				}
-				rev := parts[3]
-				boardMap[b] = append(boardMap[b], rev)
 			}
 
 			for v, bb := range vendorBoards {
@@ -285,20 +277,20 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				}
 			}
 		default:
-			vendor, board, err := getVendorAndBoard(r.ds, id)
+			f, err := getFirmware(r.ds, id)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
-			rr, err := getFirmwareRevisions(r.s3Client, k, vendor, board)
+			rr, err := getFirmwareRevisions(r.s3Client, k, f.Vendor, f.Board)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
 			ff.VendorFirmwares = []v1.VendorFirmwares{
 				{
-					Vendor: vendor,
+					Vendor: f.Vendor,
 					BoardFirmwares: []v1.BoardFirmwares{
 						{
-							Board:     board,
+							Board:     f.Board,
 							Revisions: rr,
 						},
 					},
@@ -316,23 +308,25 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	}
 }
 
-func getVendorAndBoard(ds *datastore.RethinkStore, machineID string) (string, string, error) {
+func getFirmware(ds *datastore.RethinkStore, machineID string) (*v1.Firmware, error) {
 	m, err := ds.FindMachineByID(machineID)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	fru := m.IPMI.Fru
 	vendor := strings.ToLower(fru.BoardMfg)
 	board := strings.ToUpper(fru.BoardPartNumber)
-	return vendor, board, nil
+
+	return &v1.Firmware{
+		Vendor:      vendor,
+		Board:       board,
+		BmcVersion:  m.IPMI.BMCVersion,
+		BiosVersion: m.BIOS.Version,
+	}, nil
 }
 
 func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string) ([]string, error) {
-	if s3Client == nil {
-		return nil, featureDisabledErr
-	}
-
 	r4, err := s3Client.ListObjectsWithContext(context.Background(), &s3.ListObjectsInput{
 		Bucket: &s3Client.FirmwareBucket,
 		Prefix: &kind,

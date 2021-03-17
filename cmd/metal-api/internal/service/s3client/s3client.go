@@ -11,6 +11,7 @@ import (
 
 type Client struct {
 	*s3.S3
+	Session        client.ConfigProvider
 	Url            string
 	Key            string
 	Secret         string
@@ -24,15 +25,16 @@ func New(url, key, secret, firmwareBucket string) (*Client, error) {
 		Secret:         secret,
 		FirmwareBucket: firmwareBucket,
 	}
-	s, err := c.NewSession()
+	s, err := c.newSession()
 	if err != nil {
 		return nil, err
 	}
 	c.S3 = s3.New(s)
+	c.Session = s
 	return c, nil
 }
 
-func (c *Client) NewSession() (client.ConfigProvider, error) {
+func (c *Client) newSession() (client.ConfigProvider, error) {
 	dummyRegion := "dummy" // we don't use AWS S3, we don't need a proper region
 	hostnameImmutable := true
 	return session.NewSession(&aws.Config{

@@ -1989,6 +1989,10 @@ func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, respons
 }
 
 func (r machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
+	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+		return
+	}
+
 	var p v1.MachineUpdateFirmware
 	err := request.ReadEntity(&p)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1996,19 +2000,36 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 	}
 
 	id := request.PathParameter("id")
-	vendor, board, err := getVendorAndBoard(r.ds, id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	rr, err := getFirmwareRevisions(r.s3Client, p.Kind, vendor, board)
+	f, err := getFirmware(r.ds, id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
+	alreadyInstalled := false
+	switch p.Kind {
+	case bmc:
+		alreadyInstalled = f.BiosVersion == p.Revision
+	case bios:
+		alreadyInstalled = f.BmcVersion == p.Revision
+	}
+	if alreadyInstalled && checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine's %s version is already equal %s", p.Kind, p.Revision)) {
+		return
+	}
+
+	rr, err := getFirmwareRevisions(r.s3Client, p.Kind, f.Vendor, f.Board)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	notAvailable := true
 	for _, rev := range rr {
 		if rev == p.Revision {
-			return
+			notAvailable = false
+			break
 		}
+	}
+	if notAvailable && checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine's %s firmware in version %s is not available", p.Kind, p.Revision)) {
+		return
 	}
 
 	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, r.s3Client.FirmwareBucket)
