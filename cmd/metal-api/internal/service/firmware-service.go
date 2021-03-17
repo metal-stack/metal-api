@@ -208,7 +208,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	var resp []v1.Firmwares
 	for i := range kk {
 		k := kk[i]
-		ff := &v1.Firmwares{
+		ff := v1.Firmwares{
 			Kind: k,
 		}
 		id := request.QueryParameter("id")
@@ -232,7 +232,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				return
 			}
 
-			appendVendorBoards(vendorBoards, ff)
+			ff = appendVendorBoards(vendorBoards, ff)
 		default:
 			f, err := getFirmware(r.ds, id)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -255,7 +255,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			}
 		}
 
-		resp = append(resp, *ff)
+		resp = append(resp, ff)
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
@@ -333,7 +333,7 @@ func filterRevision(path, vendor, board string) (string, bool) {
 	return parts[3], true
 }
 
-func appendVendorBoards(vendorBoards map[string]map[string][]string, ff *v1.Firmwares) {
+func appendVendorBoards(vendorBoards map[string]map[string][]string, ff v1.Firmwares) v1.Firmwares {
 	for v, bb := range vendorBoards {
 		for b, rr := range bb {
 			bf := v1.BoardFirmwares{
@@ -357,6 +357,7 @@ func appendVendorBoards(vendorBoards map[string]map[string][]string, ff *v1.Firm
 			}
 		}
 	}
+	return ff
 }
 
 func checkFirmwareKind(kind string) (string, error) {
