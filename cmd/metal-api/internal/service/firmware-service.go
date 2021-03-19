@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"net/http"
 	"strings"
@@ -143,8 +142,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	}
 
 	key := fmt.Sprintf("%s/%s/%s/%s", kind, vendor, board, revision)
-	uploader := s3manager.NewUploader(r.s3Client.Session)
-	_, err = uploader.UploadWithContext(context.Background(), &s3manager.UploadInput{
+	_, err = r.s3Client.PutObjectWithContext(context.Background(), &s3.PutObjectInput{
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 		Body:   file,

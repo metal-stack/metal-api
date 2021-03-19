@@ -11,7 +11,6 @@ import (
 
 type Client struct {
 	*s3.S3
-	Session        client.ConfigProvider
 	Url            string
 	Key            string
 	Secret         string
@@ -30,7 +29,6 @@ func New(url, key, secret, firmwareBucket string) (*Client, error) {
 		return nil, err
 	}
 	c.S3 = s3.New(s)
-	c.Session = s
 	return c, nil
 }
 
