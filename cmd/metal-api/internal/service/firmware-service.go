@@ -195,14 +195,11 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	}
 
 	resp := v1.FirmwaresResponse{
-		Firmwares: make(map[string]v1.FirmwaresRevisions),
+		Revisions: make(map[string]map[string]map[string][]string),
 	}
 	for i := range kk {
 		k := kk[i]
-		resp.Firmwares[k] = v1.FirmwaresRevisions{
-			Kind:      k,
-			Revisions: make(map[string]map[string][]string),
-		}
+		resp.Revisions[k] = make(map[string]map[string][]string)
 		machineID := request.QueryParameter("machine-id")
 		switch machineID {
 		case "":
@@ -214,7 +211,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				Prefix: &k,
 			}, func(page *s3.ListObjectsOutput, last bool) bool {
 				for _, p := range page.Contents {
-					insertRevisions(*p.Key, resp.Firmwares[k].Revisions, vendor, board)
+					insertRevisions(*p.Key, resp.Revisions[k], vendor, board)
 				}
 				return true
 			})
@@ -233,7 +230,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			case bmc:
 				bb[f.Board] = []string{f.BmcVersion}
 			}
-			resp.Firmwares[k].Revisions[f.Vendor] = bb
+			resp.Revisions[k][f.Vendor] = bb
 		}
 	}
 
