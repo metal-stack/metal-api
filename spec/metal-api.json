@@ -85,25 +85,6 @@
         "cidrs"
       ]
     },
-    "v1.BoardFirmwares": {
-      "properties": {
-        "board": {
-          "description": "the board to which the contained firmwares belong",
-          "type": "string"
-        },
-        "revisions": {
-          "description": "list of firmwares revisions",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "board",
-        "revisions"
-      ]
-    },
     "v1.BootInfo": {
       "properties": {
         "bootloaderid": {
@@ -510,24 +491,33 @@
         "tags"
       ]
     },
-    "v1.Firmwares": {
+    "v1.FirmwaresResponse": {
       "properties": {
+        "firmwares": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.FirmwaresResponse.firmwares"
+          },
+          "description": "list of firmwares per board per vendor",
+          "type": "object"
+        },
         "kind": {
           "description": "the firmware kind to which the contained firmwares belong",
           "type": "string"
-        },
-        "vendor_firmwares": {
-          "description": "list of firmwares per vendor",
-          "items": {
-            "$ref": "#/definitions/v1.VendorFirmwares"
-          },
-          "type": "array"
         }
       },
       "required": [
-        "kind",
-        "vendor_firmwares"
+        "firmwares",
+        "kind"
       ]
+    },
+    "v1.FirmwaresResponse.firmwares": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": "object"
     },
     "v1.IPAllocateRequest": {
       "properties": {
@@ -1995,7 +1985,7 @@
         "value"
       ]
     },
-    "v1.MachineUpdateFirmware": {
+    "v1.MachineUpdateFirmwareRequest": {
       "properties": {
         "description": {
           "description": "a description why the machine has been updated",
@@ -3098,25 +3088,6 @@
         "id",
         "rack_id"
       ]
-    },
-    "v1.VendorFirmwares": {
-      "properties": {
-        "board_firmwares": {
-          "description": "list of firmwares per board",
-          "items": {
-            "$ref": "#/definitions/v1.BoardFirmwares"
-          },
-          "type": "array"
-        },
-        "vendor": {
-          "description": "the vendor to which the contained firmwares belong",
-          "type": "string"
-        }
-      },
-      "required": [
-        "board_firmwares",
-        "vendor"
-      ]
     }
   },
   "info": {
@@ -3291,9 +3262,9 @@
         "operationId": "listFirmwares",
         "parameters": [
           {
-            "description": "restrict firmwares to the machine identified by this query parameter",
+            "description": "restrict firmwares to the given machine",
             "in": "query",
-            "name": "id",
+            "name": "machine-id",
             "type": "string"
           },
           {
@@ -3323,7 +3294,7 @@
             "description": "OK",
             "schema": {
               "items": {
-                "$ref": "#/definitions/v1.Firmwares"
+                "$ref": "#/definitions/v1.FirmwaresResponse"
               },
               "type": "array"
             }
@@ -4260,7 +4231,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.MachineUpdateFirmware"
+              "$ref": "#/definitions/v1.MachineUpdateFirmwareRequest"
             }
           }
         ],
