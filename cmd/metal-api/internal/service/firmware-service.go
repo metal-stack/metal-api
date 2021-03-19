@@ -97,8 +97,8 @@ func (r firmwareResource) webService() *restful.WebService {
 		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.QueryParameter("board", "the board").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.FirmwaresResponse{}).
-		Returns(http.StatusOK, "OK", []v1.FirmwaresResponse{}).
+		Writes(v1.FirmwaresResponse{}).
+		Returns(http.StatusOK, "OK", v1.FirmwaresResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -194,11 +194,14 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 		kk = append(kk, kind)
 	}
 
-	var resp []v1.FirmwaresResponse
+	resp := v1.FirmwaresResponse{
+		Firmwares: make(map[string]v1.FirmwaresRevisions),
+	}
 	for i := range kk {
 		k := kk[i]
-		ff := v1.FirmwaresResponse{
-			Kind: k,
+		resp.Firmwares[k] = v1.FirmwaresRevisions{
+			Kind:      k,
+			Revisions: make(map[string]map[string][]string),
 		}
 		machineID := request.QueryParameter("machine-id")
 		switch machineID {
@@ -211,7 +214,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				Prefix: &k,
 			}, func(page *s3.ListObjectsOutput, last bool) bool {
 				for _, p := range page.Contents {
-					insertRevisions(*p.Key, ff.FirmwareRevisions, vendor, board)
+					insertRevisions(*p.Key, resp.Firmwares[k].Revisions, vendor, board)
 				}
 				return true
 			})
@@ -230,11 +233,8 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			case bmc:
 				bb[f.Board] = []string{f.BmcVersion}
 			}
-			ff.FirmwareRevisions = make(map[string]map[string][]string)
-			ff.FirmwareRevisions[f.Vendor] = bb
+			resp.Firmwares[k].Revisions[f.Vendor] = bb
 		}
-
-		resp = append(resp, ff)
 	}
 
 	err := response.WriteHeaderAndEntity(http.StatusOK, resp)
@@ -281,15 +281,15 @@ func getFirmwareRevisions(s3Client *s3server.Client, kind, vendor, board string)
 	return rr, nil
 }
 
-func insertRevisions(path string, vendorBoards map[string]map[string][]string, vendor, board string) {
+func insertRevisions(path string, revisions map[string]map[string][]string, vendor, board string) {
 	f, ok := filterRevision(path, vendor, board)
 	if !ok {
 		return
 	}
-	boardMap, ok := vendorBoards[f.Vendor]
+	boardMap, ok := revisions[f.Vendor]
 	if !ok {
 		boardMap = make(map[string][]string)
-		vendorBoards[f.Vendor] = boardMap
+		revisions[f.Vendor] = boardMap
 	}
 	for _, rev := range boardMap[f.Board] {
 		if rev == f.Revision {

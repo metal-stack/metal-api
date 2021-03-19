@@ -9,8 +9,12 @@ type Firmware struct {
 }
 
 type FirmwaresResponse struct {
-	Kind              string                         `json:"kind" description:"the firmware kind to which the contained firmwares belong"`
-	FirmwareRevisions map[string]map[string][]string `json:"firmwares" description:"list of firmwares per board per vendor"`
+	Firmwares map[string]FirmwaresRevisions `json:"firmwares" description:"map of firmware revisions per kind"`
+}
+
+type FirmwaresRevisions struct {
+	Kind      string                         `json:"kind" description:"the firmware kind to which the contained firmwares belong"`
+	Revisions map[string]map[string][]string `json:"revisions" description:"list of firmwares per board per vendor"`
 }
 
 type MachineUpdateFirmwareRequest struct {

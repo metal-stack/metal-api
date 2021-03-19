@@ -495,22 +495,36 @@
       "properties": {
         "firmwares": {
           "additionalProperties": {
-            "$ref": "#/definitions/v1.FirmwaresResponse.firmwares"
+            "$ref": "#/definitions/v1.FirmwaresRevisions"
           },
-          "description": "list of firmwares per board per vendor",
+          "description": "map of firmware revisions per kind",
           "type": "object"
-        },
-        "kind": {
-          "description": "the firmware kind to which the contained firmwares belong",
-          "type": "string"
         }
       },
       "required": [
-        "firmwares",
-        "kind"
+        "firmwares"
       ]
     },
-    "v1.FirmwaresResponse.firmwares": {
+    "v1.FirmwaresRevisions": {
+      "properties": {
+        "kind": {
+          "description": "the firmware kind to which the contained firmwares belong",
+          "type": "string"
+        },
+        "revisions": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.FirmwaresRevisions.revisions"
+          },
+          "description": "list of firmwares per board per vendor",
+          "type": "object"
+        }
+      },
+      "required": [
+        "kind",
+        "revisions"
+      ]
+    },
+    "v1.FirmwaresRevisions.revisions": {
       "additionalProperties": {
         "items": {
           "type": "string"
@@ -3293,10 +3307,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "items": {
-                "$ref": "#/definitions/v1.FirmwaresResponse"
-              },
-              "type": "array"
+              "$ref": "#/definitions/v1.FirmwaresResponse"
             }
           },
           "default": {

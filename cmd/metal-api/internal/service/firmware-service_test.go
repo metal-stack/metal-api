@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestFirmwareManagement(t *testing.T) {
+func TestInsertRevisions(t *testing.T) {
 	// given
 	paths := []string{
 		"bucket/v/b/vb1",
@@ -17,16 +17,16 @@ func TestFirmwareManagement(t *testing.T) {
 		"bucket/x/y/xy1",
 		"bucket/x/y/xy2",
 	}
-	vendorBoards := make(map[string]map[string][]string)
+	revisions := make(map[string]map[string][]string)
 
 	// when
 	for _, path := range paths {
-		insertRevisions(path, vendorBoards, "v", "b")
+		insertRevisions(path, revisions, "v", "b")
 	}
 
 	// then
-	require.Equal(t, 1, len(vendorBoards))
-	boardRevisions, ok := vendorBoards["v"]
+	require.Equal(t, 1, len(revisions))
+	boardRevisions, ok := revisions["v"]
 	require.True(t, ok)
 	require.Equal(t, 1, len(boardRevisions))
 	rr, ok := boardRevisions["b"]
@@ -35,16 +35,16 @@ func TestFirmwareManagement(t *testing.T) {
 	require.Equal(t, []string{"vb1", "vb2", "vb3"}, rr)
 
 	// given
-	vendorBoards = make(map[string]map[string][]string)
+	revisions = make(map[string]map[string][]string)
 
 	// when
 	for _, path := range paths {
-		insertRevisions(path, vendorBoards, "", "b")
+		insertRevisions(path, revisions, "", "b")
 	}
 
 	// then
-	require.Equal(t, 1, len(vendorBoards))
-	boardRevisions, ok = vendorBoards["v"]
+	require.Equal(t, 1, len(revisions))
+	boardRevisions, ok = revisions["v"]
 	require.True(t, ok)
 	require.Equal(t, 1, len(boardRevisions))
 	rr, ok = boardRevisions["b"]
@@ -54,12 +54,12 @@ func TestFirmwareManagement(t *testing.T) {
 
 	// when
 	for _, path := range paths {
-		insertRevisions(path, vendorBoards, "v", "")
+		insertRevisions(path, revisions, "v", "")
 	}
 
 	// then
-	require.Equal(t, 1, len(vendorBoards))
-	boardRevisions, ok = vendorBoards["v"]
+	require.Equal(t, 1, len(revisions))
+	boardRevisions, ok = revisions["v"]
 	require.True(t, ok)
 	require.Equal(t, 2, len(boardRevisions))
 	rr, ok = boardRevisions["b"]
@@ -73,12 +73,12 @@ func TestFirmwareManagement(t *testing.T) {
 
 	// when
 	for _, path := range paths {
-		insertRevisions(path, vendorBoards, "", "")
+		insertRevisions(path, revisions, "", "")
 	}
 
 	// then
-	require.Equal(t, 2, len(vendorBoards))
-	boardRevisions, ok = vendorBoards["v"]
+	require.Equal(t, 2, len(revisions))
+	boardRevisions, ok = revisions["v"]
 	require.True(t, ok)
 	require.Equal(t, 2, len(boardRevisions))
 	rr, ok = boardRevisions["b"]
@@ -90,7 +90,7 @@ func TestFirmwareManagement(t *testing.T) {
 	sort.Strings(rr)
 	require.Equal(t, []string{"vc1", "vc2"}, rr)
 
-	boardRevisions, ok = vendorBoards["x"]
+	boardRevisions, ok = revisions["x"]
 	require.True(t, ok)
 	require.Equal(t, 1, len(boardRevisions))
 	rr, ok = boardRevisions["y"]
