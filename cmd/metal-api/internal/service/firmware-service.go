@@ -93,13 +93,13 @@ func (r firmwareResource) webService() *restful.WebService {
 		To(admin(r.listFirmwares)).
 		Operation("listFirmwares").
 		Doc("returns all firmwares (for a specific machine)").
-		Param(ws.QueryParameter("id", "restrict firmwares to the machine identified by this query parameter").DataType("string")).
+		Param(ws.QueryParameter("machine-id", "restrict firmwares to the given machine").DataType("string")).
 		Param(ws.QueryParameter("kind", "the firmware kind [bios|bmc]").DataType("string")).
 		Param(ws.QueryParameter("vendor", "the vendor").DataType("string")).
 		Param(ws.QueryParameter("board", "the board").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.Firmwares{}).
-		Returns(http.StatusOK, "OK", []v1.Firmwares{}).
+		Writes([]v1.FirmwaresResponse{}).
+		Returns(http.StatusOK, "OK", []v1.FirmwaresResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -110,7 +110,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 		return
 	}
 
-	kind, err := strictCheckFirmwareKind(request.PathParameter("kind"))
+	kind, err := toFirmwareKind(request.PathParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -161,7 +161,7 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 		return
 	}
 
-	kind, err := strictCheckFirmwareKind(request.PathParameter("kind"))
+	kind, err := toFirmwareKind(request.PathParameter("kind"))
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -186,10 +186,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 		return
 	}
 
-	kind, err := checkFirmwareKind(request.QueryParameter("kind"))
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
+	kind := guessFirmwareKind(request.QueryParameter("kind"))
 	var kk []FirmwareKind
 	switch kind {
 	case "":
@@ -199,60 +196,50 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 		kk = append(kk, kind)
 	}
 
-	var resp []v1.Firmwares
+	var resp []v1.FirmwaresResponse
 	for i := range kk {
 		k := kk[i]
-		ff := v1.Firmwares{
+		ff := v1.FirmwaresResponse{
 			Kind: k,
 		}
-		id := request.QueryParameter("id")
-		switch id {
+		machineID := request.QueryParameter("machine-id")
+		switch machineID {
 		case "":
 			vendor := request.QueryParameter("vendor")
 			board := request.QueryParameter("board")
-
-			vendorBoards := make(map[string]map[string][]string)
 
 			err := r.s3Client.ListObjectsPagesWithContext(context.Background(), &s3.ListObjectsInput{
 				Bucket: &r.s3Client.FirmwareBucket,
 				Prefix: &k,
 			}, func(page *s3.ListObjectsOutput, last bool) bool {
 				for _, p := range page.Contents {
-					insertRevisions(*p.Key, vendorBoards, vendor, board)
+					insertRevisions(*p.Key, ff.FirmwareRevisions, vendor, board)
 				}
 				return true
 			})
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
-
-			ff = appendVendorBoards(vendorBoards, ff)
 		default:
-			f, err := getFirmware(r.ds, id)
+			f, err := getFirmware(r.ds, machineID)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
-			rr, err := getFirmwareRevisions(r.s3Client, k, f.Vendor, f.Board)
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
+			bb := make(map[string][]string)
+			switch k {
+			case bios:
+				bb[f.Board] = []string{f.BiosVersion}
+			case bmc:
+				bb[f.Board] = []string{f.BmcVersion}
 			}
-			ff.VendorFirmwares = []v1.VendorFirmwares{
-				{
-					Vendor: f.Vendor,
-					BoardFirmwares: []v1.BoardFirmwares{
-						{
-							Board:     f.Board,
-							Revisions: rr,
-						},
-					},
-				},
-			}
+			ff.FirmwareRevisions = make(map[string]map[string][]string)
+			ff.FirmwareRevisions[f.Vendor] = bb
 		}
 
 		resp = append(resp, ff)
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	err := response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
 		return
@@ -334,41 +321,18 @@ func filterRevision(path, vendor, board string) (*v1.Firmware, bool) {
 	}, true
 }
 
-func appendVendorBoards(vendorBoards map[string]map[string][]string, ff v1.Firmwares) v1.Firmwares {
-	for v, bb := range vendorBoards {
-		for b, rr := range bb {
-			bf := v1.BoardFirmwares{
-				Board:     b,
-				Revisions: rr,
-			}
-			found := false
-			for i, vv := range ff.VendorFirmwares {
-				if v == vv.Vendor {
-					vv.BoardFirmwares = append(vv.BoardFirmwares, bf)
-					ff.VendorFirmwares[i] = vv
-					found = true
-					break
-				}
-			}
-			if !found {
-				ff.VendorFirmwares = append(ff.VendorFirmwares, v1.VendorFirmwares{
-					Vendor:         v,
-					BoardFirmwares: []v1.BoardFirmwares{bf},
-				})
-			}
-		}
-	}
-	return ff
-}
-
-func checkFirmwareKind(kind string) (string, error) {
+func guessFirmwareKind(kind string) string {
 	if kind == "" {
-		return "", nil
+		return ""
 	}
-	return strictCheckFirmwareKind(kind)
+	fk, err := toFirmwareKind(kind)
+	if err != nil {
+		return ""
+	}
+	return fk
 }
 
-func strictCheckFirmwareKind(kind string) (string, error) {
+func toFirmwareKind(kind string) (string, error) {
 	for _, k := range firmwareKinds {
 		if strings.EqualFold(k, kind) {
 			return k, nil

@@ -403,7 +403,7 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("sends a firmware command to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineUpdateFirmware{}).
+		Reads(v1.MachineUpdateFirmwareRequest{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -1993,7 +1993,7 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 		return
 	}
 
-	var p v1.MachineUpdateFirmware
+	var p v1.MachineUpdateFirmwareRequest
 	err := request.ReadEntity(&p)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
