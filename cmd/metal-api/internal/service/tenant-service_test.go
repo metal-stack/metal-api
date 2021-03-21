@@ -67,7 +67,7 @@ func Test_tenantResource_getTenant(t *testing.T) {
 			tenantServiceMock: func(mock *mdmv1mock.TenantServiceClient) {
 				mock.On("Get", context.Background(), &mdmv1.TenantGetRequest{Id: "122"}).Return(&mdmv1.TenantResponse{Tenant: &mdmv1.Tenant{Name: "t122"}}, nil)
 			},
-			want:       &v1.TenantResponse{Tenant: &v1.Tenant{Name: "t122"}},
+			want:       &v1.TenantResponse{Tenant: v1.Tenant{Name: "t122"}},
 			wantStatus: 200,
 			wantErr:    nil,
 		},
@@ -78,7 +78,7 @@ func Test_tenantResource_getTenant(t *testing.T) {
 				mock.On("Get", context.Background(), &mdmv1.TenantGetRequest{Id: "123"}).Return(&mdmv1.TenantResponse{Tenant: &mdmv1.Tenant{Name: "t123"}}, nil)
 			},
 			id:         "123",
-			want:       &v1.TenantResponse{Tenant: &v1.Tenant{Name: "t123"}},
+			want:       &v1.TenantResponse{Tenant: v1.Tenant{Name: "t123"}},
 			wantStatus: 200,
 			wantErr:    nil,
 		},

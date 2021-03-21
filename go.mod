@@ -21,9 +21,9 @@ require (
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/metal-stack/go-ipam v1.7.0
-	github.com/metal-stack/masterdata-api v0.8.5-0.20210314210718-a84ea1237894
-	github.com/metal-stack/metal-lib v0.6.10-0.20210304213016-322afb5d76fa
-	github.com/metal-stack/security v0.5.1
+	github.com/metal-stack/masterdata-api v0.8.5-0.20210316100414-b71c1715a9fb
+	github.com/metal-stack/metal-lib v0.7.1-0.20210319173938-8e68d8bd43f5
+	github.com/metal-stack/security v0.5.2
 	github.com/metal-stack/v v1.0.3
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/nsqio/go-nsq v1.0.8

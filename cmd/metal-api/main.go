@@ -240,7 +240,7 @@ func init() {
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
-	rootCmd.Flags().StringP("issuerCacheInterval", "", "6h", "issuer cache invalidation interval, e.g. 60s, 30m, 2h45m - default 6h")
+	rootCmd.Flags().StringP("issuerCacheInterval", "", "30m", "issuer cache invalidation interval, e.g. 60s, 30m, 2h45m - default 30m")
 
 	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
@@ -552,12 +552,13 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 			if t.IamConfig.IdmConfig != nil {
 				directory = t.IamConfig.IdmConfig.IdmType
 			}
+			tenantID := t.Meta.Id
 			return []*security.IssuerConfig{
 				&security.IssuerConfig{
 					Annotations: map[string]string{
 						sec.OidcDirectory: directory,
 					},
-					Tenant:   t.Name,
+					Tenant:   tenantID,
 					Issuer:   t.IamConfig.IssuerConfig.Url,
 					ClientID: t.IamConfig.IssuerConfig.ClientId,
 				}}, nil

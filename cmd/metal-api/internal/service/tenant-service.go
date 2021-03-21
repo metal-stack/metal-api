@@ -70,7 +70,7 @@ func (r tenantResource) getTenant(request *restful.Request, response *restful.Re
 	}
 
 	v1t := mapper.ToV1Tenant(tres.Tenant)
-	err = response.WriteHeaderAndEntity(http.StatusOK, &v1.TenantResponse{Tenant: v1t})
+	err = response.WriteHeaderAndEntity(http.StatusOK, &v1t)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return

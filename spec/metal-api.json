@@ -844,7 +844,7 @@
     },
     "v1.IssuerConfig": {
       "properties": {
-        "clientID": {
+        "client_id": {
           "type": "string"
         },
         "url": {
@@ -3067,7 +3067,7 @@
         "rack_id"
       ]
     },
-    "v1.Tenant": {
+    "v1.TenantResponse": {
       "properties": {
         "default_quotas": {
           "$ref": "#/definitions/v1.QuotaSet"
@@ -3086,13 +3086,6 @@
         },
         "quotas": {
           "$ref": "#/definitions/v1.QuotaSet"
-        }
-      }
-    },
-    "v1.TenantResponse": {
-      "properties": {
-        "tenant": {
-          "$ref": "#/definitions/v1.Tenant"
         }
       }
     }
