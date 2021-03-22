@@ -536,8 +536,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
 	issuerCache, err := security.NewMultiIssuerCache(func() ([]*security.IssuerConfig, error) {
-
-		logger.Infof("loading tenants for issuercache, providerTenant %s", providerTenant)
+		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
 		// get provider tenant from masterdata
 		ts, err := mdc.Tenant().Find(context.Background(), &v1.TenantFindRequest{
@@ -552,7 +551,6 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		}
 
 		t := ts.Tenants[0]
-
 		if t.IamConfig != nil {
 			directory := ""
 			if t.IamConfig.IdmConfig != nil {
@@ -560,16 +558,16 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 			}
 			tenantID := t.Meta.Id
 			return []*security.IssuerConfig{
-				&security.IssuerConfig{
+				{
 					Annotations: map[string]string{
 						sec.OidcDirectory: directory,
 					},
 					Tenant:   tenantID,
 					Issuer:   t.IamConfig.IssuerConfig.Url,
 					ClientID: t.IamConfig.IssuerConfig.ClientId,
-				}}, nil
+				},
+			}, nil
 		}
-
 		return []*security.IssuerConfig{}, nil
 	}, func(ic *security.IssuerConfig) (security.UserGetter, error) {
 		return security.NewGenericOIDC(ic, security.GenericUserExtractor(plugin.GenericOIDCExtractUserProcessGroups))
