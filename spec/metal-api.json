@@ -520,6 +520,23 @@
       },
       "type": "object"
     },
+    "v1.IAMConfig": {
+      "properties": {
+        "idm_config": {
+          "$ref": "#/definitions/v1.IDMConfig"
+        },
+        "issuer_config": {
+          "$ref": "#/definitions/v1.IssuerConfig"
+        }
+      }
+    },
+    "v1.IDMConfig": {
+      "properties": {
+        "idm_type": {
+          "type": "string"
+        }
+      }
+    },
     "v1.IPAllocateRequest": {
       "properties": {
         "description": {
@@ -853,6 +870,16 @@
         "expirationDate",
         "id"
       ]
+    },
+    "v1.IssuerConfig": {
+      "properties": {
+        "client_id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
     },
     "v1.MachineAbortReinstallRequest": {
       "properties": {
@@ -1993,7 +2020,7 @@
           "type": "string"
         },
         "kind": {
-          "description": "the firmware kind, i.e. 'bios' of 'bmc'",
+          "description": "the firmware kind, i.e. [bios|bmc]",
           "type": "string"
         },
         "revision": {
@@ -3089,6 +3116,28 @@
         "id",
         "rack_id"
       ]
+    },
+    "v1.TenantResponse": {
+      "properties": {
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
     }
   },
   "info": {
@@ -6353,6 +6402,76 @@
         "summary": "notify the metal-api about a configuration change of a switch",
         "tags": [
           "switch"
+        ]
+      }
+    },
+    "/v1/tenant": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listTenants",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.TenantResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all tenants",
+        "tags": [
+          "tenant"
+        ]
+      }
+    },
+    "/v1/tenant/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getTenant",
+        "parameters": [
+          {
+            "description": "identifier of the tenant",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get tenant by id",
+        "tags": [
+          "tenant"
         ]
       }
     },
