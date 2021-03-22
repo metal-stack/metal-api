@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -197,6 +198,11 @@ func init() {
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
+	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-firmware-bucket", "", "", "the bucket that contains the firmwares")
+
 	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
 	rootCmd.PersistentFlags().StringP("db-addr", "", "", "the database address string to use")
@@ -233,7 +239,7 @@ func init() {
 	rootCmd.Flags().StringP("hmac-edit-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
-	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
+	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "90s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
 
@@ -467,9 +473,9 @@ func initMasterData() {
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
 		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
 		if err == nil {
+			cancel()
 			break
 		}
 		logger.Errorw("unable to initialize masterdata-api client, retrying...", "error", err)
@@ -525,7 +531,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 			auths = append(auths, security.WithDex(dx))
 			logger.Info("dex successfully configured")
 		} else {
-			logger.Fatalw("dex is configured, but not initialized")
+			logger.Fatal("dex is configured, but not initialized")
 		}
 	}
 
@@ -578,7 +584,7 @@ func initGrpcServer() {
 func initRestServices(withauth bool) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
-		logger.Fatalf("base path must start and end with a slash")
+		logger.Fatal("base path must start and end with a slash")
 	}
 
 	lg := logger.Desugar()
@@ -588,15 +594,34 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	ipservice, err := service.NewIP(ds, ep, ipamer, mdc)
+	ipService, err := service.NewIP(ds, ep, ipamer, mdc)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer)
+
+	var s3Client *s3client.Client
+	s3Address := viper.GetString("s3-address")
+	if s3Address != "" {
+		s3Key := viper.GetString("s3-key")
+		s3Secret := viper.GetString("s3-secret")
+		s3FirmwareBucket := viper.GetString("s3-firmware-bucket")
+		s3Client, err = s3client.New(s3Address, s3Key, s3Secret, s3FirmwareBucket)
+		if err != nil {
+			logger.Fatal(err)
+		}
+		logger.Infow("connected to s3 server that provides firmwares", "address", s3Address)
+	} else {
+		logger.Info("s3 server that provides firmware is disabled")
+	}
+	firmwareService, err := service.NewFirmware(ds, s3Client)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -605,10 +630,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
-	restful.DefaultContainer.Add(ipservice)
-	restful.DefaultContainer.Add(mservice)
+	restful.DefaultContainer.Add(ipService)
+	restful.DefaultContainer.Add(firmwareService)
+	restful.DefaultContainer.Add(machineService)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
-	restful.DefaultContainer.Add(fservice)
+	restful.DefaultContainer.Add(firewallService)
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
