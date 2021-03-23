@@ -85,6 +85,22 @@
         "cidrs"
       ]
     },
+    "v1.BoardRevisions": {
+      "properties": {
+        "BoardRevisions": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "BoardRevisions"
+      ]
+    },
     "v1.BootInfo": {
       "properties": {
         "bootloaderid": {
@@ -495,7 +511,7 @@
       "properties": {
         "revisions": {
           "additionalProperties": {
-            "$ref": "#/definitions/v1.FirmwaresResponse.revisions"
+            "$ref": "#/definitions/v1.VendorRevisions"
           },
           "description": "list of firmwares per board per vendor per kind",
           "type": "object"
@@ -504,21 +520,6 @@
       "required": [
         "revisions"
       ]
-    },
-    "v1.FirmwaresResponse.revisions": {
-      "additionalProperties": {
-        "$ref": "#/definitions/v1.FirmwaresResponse.revisions.value"
-      },
-      "type": "object"
-    },
-    "v1.FirmwaresResponse.revisions.value": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "type": "object"
     },
     "v1.IPAllocateRequest": {
       "properties": {
@@ -1993,7 +1994,7 @@
           "type": "string"
         },
         "kind": {
-          "description": "the firmware kind, i.e. 'bios' of 'bmc'",
+          "description": "the firmware kind, i.e. [bios|bmc]",
           "type": "string"
         },
         "revision": {
@@ -3088,6 +3089,19 @@
       "required": [
         "id",
         "rack_id"
+      ]
+    },
+    "v1.VendorRevisions": {
+      "properties": {
+        "VendorRevisions": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.BoardRevisions"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "VendorRevisions"
       ]
     }
   },
