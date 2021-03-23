@@ -9,7 +9,15 @@ type Firmware struct {
 }
 
 type FirmwaresResponse struct {
-	Revisions map[string]map[string]map[string][]string `json:"revisions" description:"list of firmwares per board per vendor per kind"`
+	Revisions map[string]VendorRevisions `json:"revisions" description:"list of firmwares per board per vendor per kind"`
+}
+
+type VendorRevisions struct {
+	VendorRevisions map[string]BoardRevisions
+}
+
+type BoardRevisions struct {
+	BoardRevisions map[string][]string
 }
 
 type MachineUpdateFirmwareRequest struct {
