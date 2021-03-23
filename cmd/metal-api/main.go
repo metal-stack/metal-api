@@ -246,7 +246,7 @@ func init() {
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "90s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
-	rootCmd.Flags().StringP("issuerCacheInterval", "", "30m", "issuer cache invalidation interval, e.g. 60s, 30m, 2h45m - default 30m")
+	rootCmd.Flags().StringP("issuercache-interval", "", "30m", "issuercache invalidation interval, e.g. 60s, 30m, 2h45m - default 30m")
 
 	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
@@ -529,9 +529,9 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 	plugin := sec.NewPlugin(grpr)
 
-	issuerCacheInterval, err := time.ParseDuration(viper.GetString("issuerCacheInterval"))
+	issuerCacheInterval, err := time.ParseDuration(viper.GetString("issuercache-interval"))
 	if err != nil {
-		logger.Fatalw("error parsing issuerCacheInterval", "error", err)
+		logger.Fatalw("error parsing issuercache-interval", "error", err)
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
