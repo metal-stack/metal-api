@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -12,6 +14,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/go-logr/zapr"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
@@ -242,6 +246,7 @@ func init() {
 	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "90s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
+	rootCmd.Flags().StringP("issuercache-interval", "", "30m", "issuercache invalidation interval, e.g. 60s, 30m, 2h45m - default 30m")
 
 	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
@@ -518,6 +523,63 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 	providerTenant := viper.GetString("provider-tenant")
 
+	grpr, err := grp.NewGrpr(grp.Config{ProviderTenant: providerTenant})
+	if err != nil {
+		logger.Fatalw("error creating grpr", "error", err)
+	}
+	plugin := sec.NewPlugin(grpr)
+
+	issuerCacheInterval, err := time.ParseDuration(viper.GetString("issuercache-interval"))
+	if err != nil {
+		logger.Fatalw("error parsing issuercache-interval", "error", err)
+	}
+
+	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
+	issuerCache, err := security.NewMultiIssuerCache(func() ([]*security.IssuerConfig, error) {
+		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
+
+		// get provider tenant from masterdata
+		ts, err := mdc.Tenant().Find(context.Background(), &v1.TenantFindRequest{
+			Id: wrapperspb.String(providerTenant),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(ts.Tenants) != 1 {
+			return nil, fmt.Errorf("no masterdata for tenant %s found", providerTenant)
+		}
+
+		t := ts.Tenants[0]
+		if t.IamConfig != nil {
+			directory := ""
+			if t.IamConfig.IdmConfig != nil {
+				directory = t.IamConfig.IdmConfig.IdmType
+			}
+			tenantID := t.Meta.Id
+			return []*security.IssuerConfig{
+				{
+					Annotations: map[string]string{
+						sec.OidcDirectory: directory,
+					},
+					Tenant:   tenantID,
+					Issuer:   t.IamConfig.IssuerConfig.Url,
+					ClientID: t.IamConfig.IssuerConfig.ClientId,
+				},
+			}, nil
+		}
+		return []*security.IssuerConfig{}, nil
+	}, func(ic *security.IssuerConfig) (security.UserGetter, error) {
+		return security.NewGenericOIDC(ic, security.GenericUserExtractor(plugin.GenericOIDCExtractUserProcessGroups))
+	}, security.IssuerReloadInterval(issuerCacheInterval), security.Logger(zapr.NewLogger(logger.Desugar())))
+
+	if err != nil || issuerCache == nil {
+		logger.Fatalw("error creating dynamic oidc resolver", "error", err)
+	}
+	logger.Info("dynamic oidc resolver successfully initialized")
+
+	var ugsOpts []security.UserGetterProxyOption
+	dexClientID := viper.GetString("dex-clientid")
 	dexAddr := viper.GetString("dex-addr")
 	if dexAddr != "" {
 		dx, err := security.NewDex(dexAddr)
@@ -526,14 +588,19 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		}
 		if dx != nil {
 			// use custom user extractor and group processor
-			plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
 			dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
-			auths = append(auths, security.WithDex(dx))
+			ugsOpts = append(ugsOpts, security.UserGetterProxyMapping(dexAddr, dexClientID, dx))
 			logger.Info("dex successfully configured")
 		} else {
 			logger.Fatal("dex is configured, but not initialized")
 		}
 	}
+
+	// UserGetterProxy with dynamic oidc as default and legacy dex as explicit mapping
+	ugp := security.NewUserGetterProxy(issuerCache, ugsOpts...)
+
+	// add UserGetterProxy as CredsOpt
+	auths = append(auths, security.WithDex(ugp))
 
 	defaultUsers := service.NewUserDirectory(providerTenant)
 	for _, u := range defaultUsers.UserNames() {
@@ -634,6 +701,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(firmwareService)
 	restful.DefaultContainer.Add(machineService)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
+	restful.DefaultContainer.Add(service.NewTenant(mdc))
 	restful.DefaultContainer.Add(firewallService)
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
