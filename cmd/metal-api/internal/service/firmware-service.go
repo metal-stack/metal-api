@@ -194,12 +194,10 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 		kk = append(kk, kind)
 	}
 
-	resp := v1.FirmwaresResponse{
-		Revisions: make(map[string]map[string]map[string][]string),
-	}
+	rr := make(map[string]map[string]map[string][]string)
 	for i := range kk {
 		k := kk[i]
-		resp.Revisions[k] = make(map[string]map[string][]string)
+		rr[k] = make(map[string]map[string][]string)
 		machineID := request.QueryParameter("machine-id")
 		switch machineID {
 		case "":
@@ -211,7 +209,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				Prefix: &k,
 			}, func(page *s3.ListObjectsOutput, last bool) bool {
 				for _, p := range page.Contents {
-					insertRevisions(*p.Key, resp.Revisions[k], vendor, board)
+					insertRevisions(*p.Key, rr[k], vendor, board)
 				}
 				return true
 			})
@@ -230,10 +228,11 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 			case bmc:
 				bb[f.Board] = []string{f.BmcVersion}
 			}
-			resp.Revisions[k][f.Vendor] = bb
+			rr[k][f.Vendor] = bb
 		}
 	}
 
+	resp := mapToFirmwareResponse(rr)
 	err := response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
@@ -334,4 +333,24 @@ func toFirmwareKind(kind string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("unknown firmware kind %q", kind)
+}
+
+func mapToFirmwareResponse(m map[string]map[string]map[string][]string) *v1.FirmwaresResponse {
+	resp := &v1.FirmwaresResponse{
+		Revisions: make(map[string]v1.VendorRevisions),
+	}
+	for k, vv := range m {
+		resp.Revisions[k] = v1.VendorRevisions{
+			VendorRevisions: make(map[string]v1.BoardRevisions),
+		}
+		for v, bb := range vv {
+			resp.Revisions[k].VendorRevisions[v] = v1.BoardRevisions{
+				BoardRevisions: make(map[string][]string),
+			}
+			for b, rr := range bb {
+				resp.Revisions[k].VendorRevisions[v].BoardRevisions[b] = rr
+			}
+		}
+	}
+	return resp
 }
