@@ -592,10 +592,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			Allocation:  nil,
 			SizeID:      size.ID,
 			PartitionID: partition.ID,
-			// the RackID is calculated by the switch connections
-			// a metal-core instance might respond to pxe requests from all racks
-			//RackID:      requestPayload.RackID,
-			Hardware: machineHardware,
+			Hardware:    machineHardware,
 			BIOS: metal.BIOS{
 				Version: requestPayload.BIOS.Version,
 				Vendor:  requestPayload.BIOS.Vendor,
@@ -624,9 +621,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 
 		m.SizeID = size.ID
 		m.PartitionID = partition.ID
-		// the RackID is calculated by the switch connections
-		// a metal-core instance might respond to pxe requests from all racks
-		//m.RackID = requestPayload.RackID,
 		m.Hardware = machineHardware
 		m.BIOS.Version = requestPayload.BIOS.Version
 		m.BIOS.Vendor = requestPayload.BIOS.Vendor
