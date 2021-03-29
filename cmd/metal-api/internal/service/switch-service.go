@@ -547,7 +547,7 @@ func setVrf(s *metal.Switch, mid, vrf string) {
 }
 
 func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) error {
-	switches, err := ds.SearchSwitches(m.RackID, nil)
+	switches, err := ds.SearchSwitches("", nil)
 	if err != nil {
 		return err
 	}
@@ -573,6 +573,12 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	if len(cons1) != len(cons2) {
 		return connectionMapError
 	}
+
+	if s1.RackID != s2.RackID {
+		return fmt.Errorf("connected switches of a machine must reside in the same rack, rack of switch %s: %s, rack of switch %s: %s, machine: %s", s1.Name, s1.RackID, s2.Name, s2.RackID, m.ID)
+	}
+	// We detect the rackID of a machine by connections to leaf switches
+	m.RackID = s1.RackID
 
 	byNicName, err := s2.MachineConnections.ByNicName()
 	if err != nil {

@@ -3,12 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
-	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/pkg/errors"
@@ -591,7 +592,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 			Allocation:  nil,
 			SizeID:      size.ID,
 			PartitionID: partition.ID,
-			RackID:      requestPayload.RackID,
 			Hardware:    machineHardware,
 			BIOS: metal.BIOS{
 				Version: requestPayload.BIOS.Version,
@@ -621,7 +621,6 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 
 		m.SizeID = size.ID
 		m.PartitionID = partition.ID
-		m.RackID = requestPayload.RackID
 		m.Hardware = machineHardware
 		m.BIOS.Version = requestPayload.BIOS.Version
 		m.BIOS.Vendor = requestPayload.BIOS.Vendor
@@ -653,10 +652,17 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		}
 	}
 
+	old := *m
 	err = connectMachineWithSwitches(r.ds, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
+	err = r.ds.UpdateMachine(&old, m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = response.WriteHeaderAndEntity(returnCode, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
