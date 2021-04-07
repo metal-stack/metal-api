@@ -14,11 +14,10 @@ func init() {
 		Up: func(db *r.Term, session r.QueryExecutor, rs *datastore.RethinkStore) error {
 			_, err := rs.FindSize("unknown")
 			if err != nil {
-				return err
-			}
-			err = rs.CreateSize(metal.UnknownSize)
-			if err != nil {
-				return err
+				err = rs.CreateSize(metal.UnknownSize)
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
