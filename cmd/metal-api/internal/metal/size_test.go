@@ -189,7 +189,7 @@ func TestSizes_FromHardware(t *testing.T) {
 					Memory:   1024,
 				},
 			},
-			want:    nil,
+			want:    UnknownSize,
 			wantErr: true,
 		},
 		{
@@ -201,7 +201,7 @@ func TestSizes_FromHardware(t *testing.T) {
 					Memory:   2500,
 				},
 			},
-			want:    nil,
+			want:    UnknownSize,
 			wantErr: true,
 		},
 		{
