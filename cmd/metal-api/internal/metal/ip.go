@@ -82,6 +82,13 @@ func (ip *IP) SetCreated(created time.Time) {
 	ip.Created = created
 }
 
+func (ip *IP) GetProjectID() string {
+	return ip.ProjectID
+}
+func (ip *IP) GetTenantID() string {
+	return "" //FIXME
+}
+
 // GetScope determines the scope of an ip address
 func (ip *IP) GetScope() IPScope {
 	if ip.ProjectID == "" {

@@ -12,6 +12,66 @@ import (
 )
 
 // GetImage return a image for a given id without semver matching.
+func (rs *RethinkStore) GetImageV2(id string, scope ResourceScope) (*metal.Image, error) {
+	q := scope.Apply(*rs.imageTable())
+	var i metal.Image
+	err := rs.findEntityByIDV2(&q, &i, id)
+	if err != nil {
+		return nil, err
+	}
+	return &i, nil
+}
+
+// FindImage returns an image for the given image id.
+func (rs *RethinkStore) FindImageV2(id string, scope ResourceScope) (*metal.Image, error) {
+	allImages, err := rs.ListImagesV2(scope)
+	if err != nil {
+		return nil, err
+	}
+	i, err := rs.getMostRecentImageFor(id, allImages)
+	if err != nil {
+		return nil, metal.NotFound("no image for id:%s found:%v", id, err)
+	}
+	if i == nil {
+		return nil, metal.NotFound("no image for id:%s found", id)
+	}
+	return i, nil
+}
+
+// ListImages returns all images.
+func (rs *RethinkStore) ListImagesV2(scope ResourceScope) (metal.Images, error) {
+	q := scope.Apply(*rs.imageTable())
+
+	imgs := make(metal.Images, 0)
+	err := rs.listEntities(&q, &imgs)
+	return imgs, err
+}
+
+// CreateImage creates a new image.
+func (rs *RethinkStore) CreateImageV2(i *metal.Image, scope ResourceScope) error {
+	if !scope.Allows(i) {
+		return metal.Forbidden("not allowed")
+	}
+	return rs.createEntity(rs.imageTable(), i)
+}
+
+// DeleteImage deletes an image.
+func (rs *RethinkStore) DeleteImageV2(i *metal.Image, scope ResourceScope) error {
+	if !scope.Allows(i) {
+		return metal.Forbidden("not allowed")
+	}
+	return rs.deleteEntity(rs.imageTable(), i)
+}
+
+// UpdateImage updates an image.
+func (rs *RethinkStore) UpdateImageV2(oldImage *metal.Image, newImage *metal.Image, scope ResourceScope) error {
+	if !scope.Allows(newImage) {
+		return metal.Forbidden("not allowed")
+	}
+	return rs.updateEntity(rs.imageTable(), newImage, oldImage)
+}
+
+// GetImage return a image for a given id without semver matching.
 func (rs *RethinkStore) GetImage(id string) (*metal.Image, error) {
 	var i metal.Image
 	err := rs.findEntityByID(rs.imageTable(), &i, id)

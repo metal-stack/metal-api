@@ -24,9 +24,13 @@ protoc:
 protoc-docker:
 	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
 
+.PHONY: test-opa
+test-opa:
+	opa test ./cmd/metal-api/internal/service/v1 -v
+
 .PHONY: mini-lab-push
-mini-lab-push:
-	docker build -t metalstack/metal-api:latest .
-	kind --name metal-control-plane load docker-image metalstack/metal-api:latest
-	kubectl --kubeconfig=$(MINI_LAB_KUBECONFIG) patch deployments.apps -n metal-control-plane metal-api --patch='{"spec":{"template":{"spec":{"containers":[{"name": "metal-api","imagePullPolicy":"IfNotPresent","image":"metalstack/metal-api:latest"}]}}}}'
+mini-lab-push: all
+	docker build -f Dockerfile.dev -t ghcr.io/metal-stack/metal-api:latest .
+	kind --name metal-control-plane load docker-image ghcr.io/metal-stack/metal-api:latest
+	kubectl --kubeconfig=$(MINI_LAB_KUBECONFIG) patch deployments.apps -n metal-control-plane metal-api --patch='{"spec":{"template":{"spec":{"containers":[{"name": "metal-api","imagePullPolicy":"IfNotPresent","image":"ghcr.io/metal-stack/metal-api:latest"}]}}}}'
 	kubectl --kubeconfig=$(MINI_LAB_KUBECONFIG) delete pod -n metal-control-plane -l app=metal-api

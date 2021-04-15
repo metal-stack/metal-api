@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	v1 "github.com/metal-stack/masterdata-api/api/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -14,6 +11,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/permissions"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/go-logr/zapr"
 
@@ -710,11 +712,21 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
 	if withauth {
-		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
-		providerTenant := viper.GetString("provider-tenant")
-		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
-		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
-		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
+		userGetter := initAuth(lg.Sugar())
+		p, err := permissions.NewPermissionsHandler(logger, service.BasePath, userGetter)
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		// FIXME Just for devel
+		// restful.DefaultContainer.Filter( rest.UserAuth(userGetter))
+		// providerTenant := viper.GetString("provider-tenant")
+		// excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
+		// ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
+		// restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
+
+		restful.DefaultContainer.Filter(p.Authz)
+
 	}
 
 	config := restfulspec.Config{

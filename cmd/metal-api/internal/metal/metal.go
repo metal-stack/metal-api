@@ -74,6 +74,17 @@ func (t NSQTopic) GetFQN(partitionID string) string {
 	return fmt.Sprintf("%s-%s", partitionID, t.Name)
 }
 
+type Visibility string
+
+const (
+	VisibilityPublic  Visibility = "public"
+	VisibilityPrivate Visibility = "private"
+)
+
+func (v Visibility) String() string {
+	return string(v)
+}
+
 // Base implements common fields for most basic entity types (not all).
 type Base struct {
 	ID          string    `rethinkdb:"id,omitempty" json:"id,omitempty"`
@@ -81,6 +92,10 @@ type Base struct {
 	Description string    `rethinkdb:"description" json:"description"`
 	Created     time.Time `rethinkdb:"created" json:"created"`
 	Changed     time.Time `rethinkdb:"changed" json:"changed"`
+
+	ProjectID  string     `rethinkdb:"projectid"`
+	TenantID   string     `rethinkdb:"tenantid"`
+	Visibility Visibility `rethinkdb:"visibility"`
 }
 
 // Entity is an interface that allows metal entities to be created and stored into the database with the generic creation and update functions.
@@ -97,6 +112,9 @@ type Entity interface {
 	GetCreated() time.Time
 	// SetCreated sets the entity's creation time
 	SetCreated(created time.Time)
+
+	GetProjectID() string
+	GetTenantID() string
 }
 
 // GetID returns the ID of the entity
@@ -127,4 +145,11 @@ func (b *Base) GetCreated() time.Time {
 // SetCreated sets the creation timestamp of the entity
 func (b *Base) SetCreated(created time.Time) {
 	b.Created = created
+}
+
+func (b *Base) GetProjectID() string {
+	return b.ProjectID
+}
+func (b *Base) GetTenantID() string {
+	return b.TenantID
 }

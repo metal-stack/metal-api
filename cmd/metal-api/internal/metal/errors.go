@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	errNotFound = errors.New("NotFound")
-	errConflict = errors.New("Conflict")
+	errNotFound  = errors.New("NotFound")
+	errConflict  = errors.New("Conflict")
+	errForbidden = errors.New("Forbidden")
 	// TODO refactor implementations of fmt.Errorf to metal.Internal() in datastore and service
 	errInternal = errors.New("Internal")
 )
@@ -39,4 +40,14 @@ func Internal(err error, format string, args ...interface{}) error {
 // IsInternal checks if an error is a Internal error.
 func IsInternal(e error) bool {
 	return errors.Is(errors.Cause(e), errInternal)
+}
+
+// Forbidden creates a new forbidden error with a given error message.
+func Forbidden(format string, args ...interface{}) error {
+	return errors.Wrapf(errForbidden, format, args...)
+}
+
+// IsForbidden checks if an error is a forbidden error.
+func IsForbidden(e error) bool {
+	return errors.Is(errors.Cause(e), errForbidden)
 }
