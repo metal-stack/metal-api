@@ -174,6 +174,11 @@ func (rs *RethinkStore) ipTable() *r.Term {
 	return &res
 }
 
+func (rs *RethinkStore) filesystemLayoutTable() *r.Term {
+	res := r.DB(rs.dbname).Table("filesystemlayout")
+	return &res
+}
+
 func (rs *RethinkStore) asnTable() *r.Term {
 	res := r.DB(rs.dbname).Table(ASNIntegerPool.String())
 	return &res

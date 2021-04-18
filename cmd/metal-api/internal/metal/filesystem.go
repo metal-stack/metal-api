@@ -53,11 +53,11 @@ type (
 		Disks []Disk
 		// Raid if not empty, create raid arrays out of the individual disks, to place filesystems onto
 		Raid []Raid
-		// Constraint which must match to select this Layout
-		Constraint FilesystemLayoutConstraint
+		// Constraints which must match to select this Layout
+		Constraints FilesystemLayoutConstraints
 	}
 
-	FilesystemLayoutConstraint struct {
+	FilesystemLayoutConstraints struct {
 		// Sizes defines the list of sizes this layout applies to
 		Sizes map[string]bool
 		// Images defines a list of image glob patterns this layout should apply
@@ -65,11 +65,6 @@ type (
 		Images []string
 	}
 
-	FilesystemLayoutConstraintLog struct {
-		Log    string
-		Sizes  Size
-		Images Image
-	}
 	FilesystemOption string
 	MountOption      string
 	RaidOption       string
@@ -141,7 +136,7 @@ type (
 	}
 )
 
-func (c *FilesystemLayoutConstraint) Matches(size Size, image Image) bool {
+func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
 	sizeEnabled, ok := c.Sizes[size.ID]
 	if !ok {
 		return false
@@ -166,12 +161,40 @@ func (c *FilesystemLayoutConstraint) Matches(size Size, image Image) bool {
 
 func (fls FilesystemLayouts) From(size Size, image Image) (*FilesystemLayout, error) {
 	for _, fl := range fls {
-		if fl.Constraint.Matches(size, image) {
+		if fl.Constraints.Matches(size, image) {
 			return &fl, nil
 		}
 	}
 	return nil, fmt.Errorf("could not find a matchin filesystemLayout for size:%s and image:%s", size.ID, image.ID)
 }
+
+// Matches the specific FilesystemLayout against the selected Hardware
+func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
+	requiredDevices := make(map[string]bool)
+	existingDevices := make(map[string]bool)
+	for _, disk := range fl.Disks {
+		requiredDevices[string(disk.Device)] = true
+	}
+	for _, disk := range fl.Raid {
+		for _, device := range disk.Devices {
+			requiredDevices[string(device)] = true
+		}
+	}
+	for _, disk := range hardware.Disks {
+		existingDevices[disk.Name] = true
+	}
+
+	for required := range requiredDevices {
+		_, ok := existingDevices[required]
+		if !ok {
+			return false, fmt.Errorf("device:%s does not exist on given hardware", required)
+		}
+	}
+	return true, nil
+}
+
+// FIXME implement overlapping filesystemlayout detection
+// FIXME implement check if selected machine hardware matches with selected filesystemlayout
 
 func sortImageGlobs(globs []string) []string {
 	var sorted []string

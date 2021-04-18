@@ -87,7 +87,7 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &FilesystemLayoutConstraint{
+			c := &FilesystemLayoutConstraints{
 				Sizes:  tt.c.Sizes,
 				Images: tt.c.Images,
 			}
@@ -115,14 +115,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 			fls: FilesystemLayouts{
 				FilesystemLayout{
 					Base: Base{ID: "default"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"firewall*"},
 					},
@@ -140,14 +140,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 			fls: FilesystemLayouts{
 				FilesystemLayout{
 					Base: Base{ID: "default"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"firewall*"},
 					},
@@ -165,14 +165,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 			fls: FilesystemLayouts{
 				FilesystemLayout{
 					Base: Base{ID: "default"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"firewall*"},
 					},
@@ -190,14 +190,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 			fls: FilesystemLayouts{
 				FilesystemLayout{
 					Base: Base{ID: "default"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
-					Constraint: FilesystemLayoutConstraint{
+					Constraints: FilesystemLayoutConstraints{
 						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
 						Images: []string{"firewall*"},
 					},
@@ -233,4 +233,62 @@ func TestFilesystemLayouts_From(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+func TestFilesystemLayout_Matches(t *testing.T) {
+	type fields struct {
+		Disks []Disk
+		Raid  []Raid
+	}
+	type args struct {
+		hardware MachineHardware
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		want      bool
+		wantErr   bool
+		errString string
+	}{
+		{
+			name: "simple match",
+			fields: fields{
+				Disks: []Disk{{Device: "/dev/sda"}, {Device: "/dev/sdb"}},
+			},
+			args:    args{hardware: MachineHardware{Disks: []BlockDevice{{Name: "/dev/sda"}, {Name: "/dev/sdb"}}}},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "simple no match",
+			fields: fields{
+				Disks: []Disk{{Device: "/dev/sda"}, {Device: "/dev/sdb"}},
+			},
+			args:      args{hardware: MachineHardware{Disks: []BlockDevice{{Name: "/dev/sda"}, {Name: "/dev/sdc"}}}},
+			want:      false,
+			wantErr:   true,
+			errString: "device:/dev/sdb does not exist on given hardware",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fl := &FilesystemLayout{
+				Disks: tt.fields.Disks,
+				Raid:  tt.fields.Raid,
+			}
+			got, err := fl.Matches(tt.args.hardware)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FilesystemLayout.Matches() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && err.Error() != tt.errString {
+				t.Errorf("FilesystemLayout.Matches() error = %v, errString %v", err, tt.errString)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("FilesystemLayout.Matches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
