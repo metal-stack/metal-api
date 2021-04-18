@@ -126,9 +126,9 @@ type (
 		Number int
 		// Label to enhance readability
 		Label *string
-		// Size given in kubernetes resource metrics
+		// Size of this partition in bytes
 		// if "-1" is given the rest of the device will be used, this requires Number to be the highest in this partition
-		Size string
+		Size int64
 		// GUID of this partition
 		GUID *GUID
 		// GPTType defines the GPT partition type
@@ -170,24 +170,31 @@ func (fls FilesystemLayouts) From(size Size, image Image) (*FilesystemLayout, er
 
 // Matches the specific FilesystemLayout against the selected Hardware
 func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
-	requiredDevices := make(map[string]bool)
-	existingDevices := make(map[string]bool)
+	requiredDevices := make(map[string]int64)
+	existingDevices := make(map[string]int64)
 	for _, disk := range fl.Disks {
-		requiredDevices[string(disk.Device)] = true
-	}
-	for _, disk := range fl.Raid {
-		for _, device := range disk.Devices {
-			requiredDevices[string(device)] = true
+		var requiredSize int64
+		for _, partition := range disk.Partitions {
+			requiredSize += partition.Size
 		}
+		requiredDevices[string(disk.Device)] = requiredSize
 	}
+	// for _, disk := range fl.Raid {
+	// 	for _, device := range disk.Devices {
+	// 		requiredDevices[string(device)] = true
+	// 	}
+	// }
 	for _, disk := range hardware.Disks {
-		existingDevices[disk.Name] = true
+		existingDevices[disk.Name] = int64(disk.Size)
 	}
 
-	for required := range requiredDevices {
-		_, ok := existingDevices[required]
+	for requiredDevice, requiredSize := range requiredDevices {
+		existingSize, ok := existingDevices[requiredDevice]
 		if !ok {
-			return false, fmt.Errorf("device:%s does not exist on given hardware", required)
+			return false, fmt.Errorf("device:%s does not exist on given hardware", requiredDevice)
+		}
+		if existingSize < requiredSize {
+			return false, fmt.Errorf("device:%s is not big enough required:%d, existing:%d", requiredDevice, requiredSize, existingSize)
 		}
 	}
 	return true, nil
