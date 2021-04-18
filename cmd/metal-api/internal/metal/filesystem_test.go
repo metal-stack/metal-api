@@ -1,6 +1,9 @@
 package metal
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 var (
 	s1 = Size{
@@ -93,4 +96,141 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFilesystemLayouts_From(t *testing.T) {
+	type args struct {
+		size  Size
+		image Image
+	}
+	tests := []struct {
+		name    string
+		fls     FilesystemLayouts
+		args    args
+		want    *string
+		wantErr bool
+	}{
+		{
+			name: "simple match debian",
+			fls: FilesystemLayouts{
+				FilesystemLayout{
+					Base: Base{ID: "default"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"ubuntu*", "debian*"},
+					},
+				},
+				FilesystemLayout{
+					Base: Base{ID: "firewall"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"firewall*"},
+					},
+				},
+			},
+			args: args{
+				size:  s1,
+				image: i1,
+			},
+			want:    strPtr("default"),
+			wantErr: false,
+		},
+		{
+			name: "simple match firewall",
+			fls: FilesystemLayouts{
+				FilesystemLayout{
+					Base: Base{ID: "default"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"ubuntu*", "debian*"},
+					},
+				},
+				FilesystemLayout{
+					Base: Base{ID: "firewall"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"firewall*"},
+					},
+				},
+			},
+			args: args{
+				size:  s1,
+				image: i3,
+			},
+			want:    strPtr("firewall"),
+			wantErr: false,
+		},
+		{
+			name: "no match, wrong size",
+			fls: FilesystemLayouts{
+				FilesystemLayout{
+					Base: Base{ID: "default"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"ubuntu*", "debian*"},
+					},
+				},
+				FilesystemLayout{
+					Base: Base{ID: "firewall"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"firewall*"},
+					},
+				},
+			},
+			args: args{
+				size:  s3,
+				image: i1,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "no match, wrong image",
+			fls: FilesystemLayouts{
+				FilesystemLayout{
+					Base: Base{ID: "default"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"ubuntu*", "debian*"},
+					},
+				},
+				FilesystemLayout{
+					Base: Base{ID: "firewall"},
+					Constraint: FilesystemLayoutConstraint{
+						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Images: []string{"firewall*"},
+					},
+				},
+			},
+			args: args{
+				size:  s1,
+				image: i4,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.fls.From(tt.args.size, tt.args.image)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FilesystemLayouts.From() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got == nil {
+				if tt.want != nil {
+					t.Errorf("FilesystemLayouts.From() got nil was not expected")
+				}
+				return
+			}
+			if !reflect.DeepEqual(got.Base.ID, *tt.want) {
+				t.Errorf("FilesystemLayouts.From() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func strPtr(s string) *string {
+	return &s
 }

@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"fmt"
 	"path/filepath"
 )
 
@@ -41,6 +42,8 @@ var (
 )
 
 type (
+	// FilesystemLayouts is a slice of FilesystemLayout
+	FilesystemLayouts []FilesystemLayout
 	// FilesystemLayout to be created on the given machine
 	FilesystemLayout struct {
 		Base
@@ -159,6 +162,15 @@ func (c *FilesystemLayoutConstraint) Matches(size Size, image Image) bool {
 	}
 
 	return false
+}
+
+func (fls FilesystemLayouts) From(size Size, image Image) (*FilesystemLayout, error) {
+	for _, fl := range fls {
+		if fl.Constraint.Matches(size, image) {
+			return &fl, nil
+		}
+	}
+	return nil, fmt.Errorf("could not find a matchin filesystemLayout for size:%s and image:%s", size.ID, image.ID)
 }
 
 func sortImageGlobs(globs []string) []string {
