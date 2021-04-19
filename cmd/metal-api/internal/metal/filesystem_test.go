@@ -6,25 +6,12 @@ import (
 )
 
 var (
-	s1 = Size{
-		Base: Base{ID: "c1-large-x86"},
-	}
-	s2 = Size{
-		Base: Base{ID: "c1-xlarge-x86"},
-	}
-	s3 = Size{
-		Base: Base{ID: "s3-large-x86"},
-	}
-
-	i1 = Image{
-		Base: Base{ID: "debian-10"},
-	}
-	i3 = Image{
-		Base: Base{ID: "firewall-2"},
-	}
-	i4 = Image{
-		Base: Base{ID: "centos-7"},
-	}
+	s1 = "c1-large-x86"
+	s2 = "c1-xlarge-x86"
+	s3 = "s3-large-x86"
+	i1 = "debian-10"
+	i3 = "firewall-2"
+	i4 = "centos-7"
 
 	GPTInvalid = GPTType("ff00")
 )
@@ -35,8 +22,8 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 		Images []string
 	}
 	type args struct {
-		size  Size
-		image Image
+		size  string
+		image string
 	}
 	tests := []struct {
 		name string
@@ -97,8 +84,8 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 
 func TestFilesystemLayouts_From(t *testing.T) {
 	type args struct {
-		size  Size
-		image Image
+		size  string
+		image string
 	}
 	tests := []struct {
 		name    string

@@ -112,19 +112,20 @@ func (m *Machine) IsFirewall(iMap ImageMap) bool {
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
-	Created         time.Time         `rethinkdb:"created" json:"created"`
-	Name            string            `rethinkdb:"name" json:"name"`
-	Description     string            `rethinkdb:"description" json:"description"`
-	Project         string            `rethinkdb:"project" json:"project"`
-	ImageID         string            `rethinkdb:"imageid" json:"imageid"`
-	MachineNetworks []*MachineNetwork `rethinkdb:"networks" json:"networks"`
-	Hostname        string            `rethinkdb:"hostname" json:"hostname"`
-	SSHPubKeys      []string          `rethinkdb:"sshPubKeys" json:"sshPubKeys"`
-	UserData        string            `rethinkdb:"userdata" json:"userdata"`
-	ConsolePassword string            `rethinkdb:"console_password" json:"console_password"`
-	Succeeded       bool              `rethinkdb:"succeeded" json:"succeeded"`
-	Reinstall       bool              `rethinkdb:"reinstall" json:"reinstall"`
-	MachineSetup    *MachineSetup     `rethinkdb:"setup" json:"setup"`
+	Created          time.Time         `rethinkdb:"created" json:"created"`
+	Name             string            `rethinkdb:"name" json:"name"`
+	Description      string            `rethinkdb:"description" json:"description"`
+	Project          string            `rethinkdb:"project" json:"project"`
+	ImageID          string            `rethinkdb:"imageid" json:"imageid"`
+	FilesystemLayout *FilesystemLayout `rethinkdb:"filesystemlayout" json:"filesystemlayout"`
+	MachineNetworks  []*MachineNetwork `rethinkdb:"networks" json:"networks"`
+	Hostname         string            `rethinkdb:"hostname" json:"hostname"`
+	SSHPubKeys       []string          `rethinkdb:"sshPubKeys" json:"sshPubKeys"`
+	UserData         string            `rethinkdb:"userdata" json:"userdata"`
+	ConsolePassword  string            `rethinkdb:"console_password" json:"console_password"`
+	Succeeded        bool              `rethinkdb:"succeeded" json:"succeeded"`
+	Reinstall        bool              `rethinkdb:"reinstall" json:"reinstall"`
+	MachineSetup     *MachineSetup     `rethinkdb:"setup" json:"setup"`
 }
 
 // A MachineSetup stores the data used for machine reinstallations.

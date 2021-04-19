@@ -228,14 +228,14 @@ func (d Disk) validate() error {
 }
 
 // Matches decides if for given size and image the constraints will match
-func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
-	_, ok := sizeMap(c.Sizes)[size.ID]
+func (c *FilesystemLayoutConstraints) Matches(sizeID, imageID string) bool {
+	_, ok := sizeMap(c.Sizes)[sizeID]
 	if !ok {
 		return false
 	}
 	// Size matches
 	for _, i := range c.Images {
-		matches, err := filepath.Match(i, image.ID)
+		matches, err := filepath.Match(i, imageID)
 		if err != nil {
 			return false
 		}
@@ -249,13 +249,13 @@ func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
 }
 
 // From will pick a filesystemlayout from all filesystemlayouts which matches given size and image
-func (fls FilesystemLayouts) From(size Size, image Image) (*FilesystemLayout, error) {
+func (fls FilesystemLayouts) From(size, image string) (*FilesystemLayout, error) {
 	for _, fl := range fls {
 		if fl.Constraints.Matches(size, image) {
 			return &fl, nil
 		}
 	}
-	return nil, fmt.Errorf("could not find a matchin filesystemLayout for size:%s and image:%s", size.ID, image.ID)
+	return nil, fmt.Errorf("could not find a matchin filesystemLayout for size:%s and image:%s", size, image)
 }
 
 // Matches the specific FilesystemLayout against the selected Hardware

@@ -49,21 +49,22 @@ type machineResource struct {
 
 // machineAllocationSpec is a specification for a machine allocation
 type machineAllocationSpec struct {
-	UUID        string
-	Name        string
-	Description string
-	Hostname    string
-	ProjectID   string
-	PartitionID string
-	SizeID      string
-	Image       *metal.Image
-	SSHPubKeys  []string
-	UserData    string
-	Tags        []string
-	Networks    v1.MachineAllocationNetworks
-	IPs         []string
-	HA          bool
-	IsFirewall  bool
+	UUID               string
+	Name               string
+	Description        string
+	Hostname           string
+	ProjectID          string
+	PartitionID        string
+	SizeID             string
+	Image              *metal.Image
+	FilesystemLayoutID string
+	SSHPubKeys         []string
+	UserData           string
+	Tags               []string
+	Networks           v1.MachineAllocationNetworks
+	IPs                []string
+	HA                 bool
+	IsFirewall         bool
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -878,21 +879,22 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 
 	spec := machineAllocationSpec{
-		UUID:        uuid,
-		Name:        name,
-		Description: description,
-		Hostname:    hostname,
-		ProjectID:   requestPayload.ProjectID,
-		PartitionID: requestPayload.PartitionID,
-		SizeID:      requestPayload.SizeID,
-		Image:       image,
-		SSHPubKeys:  requestPayload.SSHPubKeys,
-		UserData:    userdata,
-		Tags:        requestPayload.Tags,
-		Networks:    requestPayload.Networks,
-		IPs:         requestPayload.IPs,
-		HA:          false,
-		IsFirewall:  false,
+		UUID:               uuid,
+		Name:               name,
+		Description:        description,
+		Hostname:           hostname,
+		ProjectID:          requestPayload.ProjectID,
+		PartitionID:        requestPayload.PartitionID,
+		SizeID:             requestPayload.SizeID,
+		Image:              image,
+		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
+		SSHPubKeys:         requestPayload.SSHPubKeys,
+		UserData:           userdata,
+		Tags:               requestPayload.Tags,
+		Networks:           requestPayload.Networks,
+		IPs:                requestPayload.IPs,
+		HA:                 false,
+		IsFirewall:         false,
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
@@ -958,16 +960,43 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		return nil, err
 	}
 
+	var fsl *metal.FilesystemLayout
+	if allocationSpec.FilesystemLayoutID == "" {
+		fsls, err := ds.ListFilesystemLayouts()
+		if err != nil {
+			return nil, err
+		}
+
+		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		fsl, err = ds.FindFilesystemLayout(allocationSpec.FilesystemLayoutID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ok, err := fsl.Matches(machineCandidate.Hardware)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("selected filesystemlayout:%s does not match hardware of machine:%s", fsl.ID, machineCandidate.ID)
+
+	}
 	alloc := &metal.MachineAllocation{
-		Created:         time.Now(),
-		Name:            allocationSpec.Name,
-		Description:     allocationSpec.Description,
-		Hostname:        allocationSpec.Hostname,
-		Project:         projectID,
-		ImageID:         allocationSpec.Image.ID,
-		UserData:        allocationSpec.UserData,
-		SSHPubKeys:      allocationSpec.SSHPubKeys,
-		MachineNetworks: []*metal.MachineNetwork{},
+		Created:          time.Now(),
+		Name:             allocationSpec.Name,
+		Description:      allocationSpec.Description,
+		Hostname:         allocationSpec.Hostname,
+		Project:          projectID,
+		ImageID:          allocationSpec.Image.ID,
+		FilesystemLayout: fsl,
+		UserData:         allocationSpec.UserData,
+		SSHPubKeys:       allocationSpec.SSHPubKeys,
+		MachineNetworks:  []*metal.MachineNetwork{},
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {

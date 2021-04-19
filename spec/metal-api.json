@@ -409,6 +409,10 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "filesystemlayoutid": {
+          "description": "the filesystemlayout id to assing to this machine",
+          "type": "string"
+        },
         "ha": {
           "description": "if set to true, this firewall is set up in a High Available manner",
           "type": "boolean"
@@ -475,6 +479,7 @@
         }
       },
       "required": [
+        "filesystemlayoutid",
         "imageid",
         "partitionid",
         "projectid",
@@ -1143,6 +1148,10 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "filesystemlayoutid": {
+          "description": "the filesystemlayout id to assing to this machine",
+          "type": "string"
+        },
         "hostname": {
           "description": "the hostname for the allocated machine (defaults to metal)",
           "type": "string"
@@ -1205,6 +1214,7 @@
         }
       },
       "required": [
+        "filesystemlayoutid",
         "imageid",
         "partitionid",
         "projectid",
@@ -1230,6 +1240,10 @@
         "description": {
           "description": "a description for this machine",
           "type": "string"
+        },
+        "filesystemlayout": {
+          "$ref": "#/definitions/v1.FilesystemLayoutResponse",
+          "description": "filesystemlayout to create on this machine"
         },
         "hostname": {
           "description": "the hostname which will be used when creating the machine",
