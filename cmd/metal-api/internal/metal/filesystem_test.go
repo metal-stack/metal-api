@@ -88,6 +88,7 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			c := &FilesystemLayoutConstraints{
 				Sizes:  tt.c.Sizes,
@@ -214,6 +215,7 @@ func TestFilesystemLayouts_From(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.fls.From(tt.args.size, tt.args.image)
 			if (err != nil) != tt.wantErr {
@@ -289,6 +291,7 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			fl := &FilesystemLayout{
 				Disks: tt.fields.Disks,
@@ -448,6 +451,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			f := &FilesystemLayout{
 				Constraints: tt.fields.Constraints,
@@ -515,6 +519,7 @@ func TestDisk_validate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			d := Disk{
 				Device:          tt.fields.Device,
