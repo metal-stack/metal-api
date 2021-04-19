@@ -59,6 +59,7 @@ type (
 
 	FilesystemLayoutConstraints struct {
 		// Sizes defines the list of sizes this layout applies to
+		// TODO just a slize ?
 		Sizes map[string]bool
 		// Images defines a list of image glob patterns this layout should apply
 		// the most specific combination of sizes and images will be picked fo a allocation
@@ -123,7 +124,7 @@ type (
 	// FIXME overlaps with DiskPartition in machine.go which is part of reinstall feature
 	DiskPartition2 struct {
 		// Number of this partition, will be added to partitionprefix
-		Number int
+		Number uint8
 		// Label to enhance readability
 		Label *string
 		// Size of this partition in bytes
@@ -136,6 +137,69 @@ type (
 	}
 )
 
+// Validate a existing FilesystemLayout
+func (f *FilesystemLayout) Validate() (bool, error) {
+	// check disk partitions for correct partition order of variable partition
+	for _, disk := range f.Disks {
+		err := disk.validate()
+		if err != nil {
+			return false, err
+		}
+	}
+
+	// check device existence from disk.partition -> raid.device -> filesystem
+	// collect all provided devices
+	providedDevices := make(map[string]bool)
+	for _, disk := range f.Disks {
+		for _, partition := range disk.Partitions {
+			devname := fmt.Sprintf("%s%d", disk.PartitionPrefix, partition.Number)
+			providedDevices[devname] = true
+		}
+	}
+
+	for _, raid := range f.Raid {
+		for _, device := range raid.Devices {
+			providedDevices[string(device)] = true
+		}
+	}
+
+	// check if all fs devices are provided
+	for _, fs := range f.Filesystems {
+		_, ok := providedDevices[string(fs.Device)]
+		if !ok {
+			return false, fmt.Errorf("device:%s for filesystem:%s is not configured as raid or device", fs.Device, *fs.Path)
+		}
+	}
+
+	return true, nil
+}
+
+// validate disk for
+// - variable sized partition must be the last
+func (d Disk) validate() error {
+	partNumbers := make(map[uint8]bool)
+	parts := make([]int64, len(d.Partitions)+1)
+	hasVariablePartition := false
+	for _, partition := range d.Partitions {
+		if partition.Size == -1 {
+			hasVariablePartition = true
+		}
+		parts[partition.Number] = partition.Size
+
+		_, ok := partNumbers[partition.Number]
+		if ok {
+			return fmt.Errorf("device:%s partition number:%d given more than once", d.Device, partition.Number)
+		}
+
+		partNumbers[partition.Number] = true
+	}
+	if hasVariablePartition && (parts[len(parts)-1] != -1) {
+		return fmt.Errorf("device:%s variable sized partition not the last one", d.Device)
+	}
+	return nil
+}
+
+// Matches decides if for given size and image the constraints will match
 func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
 	sizeEnabled, ok := c.Sizes[size.ID]
 	if !ok {
@@ -159,6 +223,7 @@ func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
 	return false
 }
 
+// From will pick a filesystemlayout from all filesystemlayouts which matches given size and image
 func (fls FilesystemLayouts) From(size Size, image Image) (*FilesystemLayout, error) {
 	for _, fl := range fls {
 		if fl.Constraints.Matches(size, image) {
@@ -179,11 +244,7 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 		}
 		requiredDevices[string(disk.Device)] = requiredSize
 	}
-	// for _, disk := range fl.Raid {
-	// 	for _, device := range disk.Devices {
-	// 		requiredDevices[string(device)] = true
-	// 	}
-	// }
+
 	for _, disk := range hardware.Disks {
 		existingDevices[disk.Name] = int64(disk.Size)
 	}

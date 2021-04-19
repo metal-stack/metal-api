@@ -307,3 +307,122 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 		})
 	}
 }
+
+func TestFilesystemLayout_Validate(t *testing.T) {
+	type fields struct {
+		Filesystems []Filesystem
+		Disks       []Disk
+		Raid        []Raid
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		want      bool
+		wantErr   bool
+		errString string
+	}{
+		{
+			name: "valid layout",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
+				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "invalid layout /dev/sda2 is missing",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}, {Path: strPtr("/"), Device: "/dev/sda2"}},
+				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "device:/dev/sda2 for filesystem:/ is not configured as raid or device",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &FilesystemLayout{
+				Filesystems: tt.fields.Filesystems,
+				Disks:       tt.fields.Disks,
+				Raid:        tt.fields.Raid,
+			}
+			got, err := f.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FilesystemLayout.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && err.Error() != tt.errString {
+				t.Errorf("FilesystemLayout.Validate()  error = %v, errString %v", err, tt.errString)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("FilesystemLayout.Validate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDisk_validate(t *testing.T) {
+	type fields struct {
+		Device          Device
+		PartitionPrefix string
+		Partitions      []DiskPartition2
+		Wipe            bool
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:    "simple",
+			fields:  fields{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+			wantErr: false,
+		},
+		{
+			name: "fails because not last partition is variable",
+			fields: fields{
+				Device: "/dev/sda", PartitionPrefix: "/dev/sda",
+				Partitions: []DiskPartition2{
+					{Number: 1, Size: 100},
+					{Number: 2, Size: -1},
+					{Number: 3, Size: 100},
+				}},
+			wantErr:   true,
+			errString: "device:/dev/sda variable sized partition not the last one",
+		},
+		{
+			name: "fails because not duplicate partition number",
+			fields: fields{
+				Device: "/dev/sda", PartitionPrefix: "/dev/sda",
+				Partitions: []DiskPartition2{
+					{Number: 1, Size: 100},
+					{Number: 2, Size: 100},
+					{Number: 2, Size: 100},
+				}},
+			wantErr:   true,
+			errString: "device:/dev/sda partition number:2 given more than once",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := Disk{
+				Device:          tt.fields.Device,
+				PartitionPrefix: tt.fields.PartitionPrefix,
+				Partitions:      tt.fields.Partitions,
+				Wipe:            tt.fields.Wipe,
+			}
+			err := d.validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Disk.validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if (err != nil) && err.Error() != tt.errString {
+				t.Errorf("Disk.validate()  error = %v, errString %v", err, tt.errString)
+				return
+			}
+		})
+	}
+}
