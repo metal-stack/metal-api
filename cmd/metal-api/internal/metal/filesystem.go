@@ -139,27 +139,18 @@ type (
 
 // Validate a existing FilesystemLayout
 func (f *FilesystemLayout) Validate() (bool, error) {
-	// check disk partitions for correct partition order of variable partition
+	// check device existence from disk.partition -> raid.device -> filesystem
+	// collect all provided devices
+	providedDevices := make(map[string]bool)
 	for _, disk := range f.Disks {
 		err := disk.validate()
 		if err != nil {
 			return false, err
 		}
-	}
-
-	// check device existence from disk.partition -> raid.device -> filesystem
-	// collect all provided devices
-	providedDevices := make(map[string]bool)
-	for _, disk := range f.Disks {
 		for _, partition := range disk.Partitions {
 			devname := fmt.Sprintf("%s%d", disk.PartitionPrefix, partition.Number)
 			providedDevices[devname] = true
-			if partition.GPTType != nil {
-				_, ok := SupportedGPTTypes[*partition.GPTType]
-				if !ok {
-					return false, fmt.Errorf("given GPTType:%s for partition:%d on disk:%s is not supported", *partition.GPTType, partition.Number, disk.Device)
-				}
-			}
+
 		}
 	}
 
@@ -181,10 +172,15 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 	}
 
 	// check if all fs devices are provided
+	// format must be supported
 	for _, fs := range f.Filesystems {
 		_, ok := providedDevices[string(fs.Device)]
 		if !ok {
 			return false, fmt.Errorf("device:%s for filesystem:%s is not configured as raid or device", fs.Device, *fs.Path)
+		}
+		_, ok = SupportedFormats[fs.Format]
+		if !ok {
+			return false, fmt.Errorf("filesystem:%s format:%s is not supported", *fs.Path, fs.Format)
 		}
 	}
 
@@ -201,19 +197,12 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 		}
 	}
 
-	// check for support Formats
-	for _, fs := range f.Filesystems {
-		_, ok := SupportedFormats[fs.Format]
-		if !ok {
-			return false, fmt.Errorf("filesystem:%s format:%s is not supported", *fs.Path, fs.Format)
-		}
-	}
-
 	return true, nil
 }
 
 // validate disk for
 // - variable sized partition must be the last
+// - GPTType is supported
 func (d Disk) validate() error {
 	partNumbers := make(map[uint8]bool)
 	parts := make([]int64, len(d.Partitions)+1)
@@ -230,6 +219,13 @@ func (d Disk) validate() error {
 		}
 
 		partNumbers[partition.Number] = true
+
+		if partition.GPTType != nil {
+			_, ok := SupportedGPTTypes[*partition.GPTType]
+			if !ok {
+				return fmt.Errorf("given GPTType:%s for partition:%d on disk:%s is not supported", *partition.GPTType, partition.Number, d.Device)
+			}
+		}
 	}
 	if hasVariablePartition && (parts[len(parts)-1] != -1) {
 		return fmt.Errorf("device:%s variable sized partition not the last one", d.Device)

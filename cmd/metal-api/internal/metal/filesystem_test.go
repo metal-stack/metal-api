@@ -341,7 +341,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout, wildcard image",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: []string{"*"}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			want:      false,
@@ -352,7 +352,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout, wildcard size",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: []string{"debian*"}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			want:      false,
@@ -362,7 +362,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		{
 			name: "invalid layout /dev/sda2 is missing",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}, {Path: strPtr("/"), Device: "/dev/sda2"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}, {Path: strPtr("/"), Device: "/dev/sda2", Format: EXT4}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			want:      false,
