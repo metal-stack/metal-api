@@ -31,6 +31,8 @@ var (
 	i4 = Image{
 		Base: Base{ID: "centos-7"},
 	}
+
+	GPTInvalid = GPTType("ff00")
 )
 
 func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
@@ -326,7 +328,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "valid layout",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: []string{"ubuntu*"}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: EXT4}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			want:    true,
@@ -344,7 +346,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "just '*' is not allowed as image constraint",
 		},
 		{
-			name: "invalid layout, wildcard image",
+			name: "invalid layout, wildcard size",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: []string{"debian*"}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
@@ -365,19 +367,55 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "device:/dev/sda2 for filesystem:/ is not configured as raid or device",
 		},
 		{
+			name: "invalid layout wrong Format",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "xfs"}},
+				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "filesystem:/boot format:xfs is not supported",
+		},
+		{
+			name: "invalid layout wrong GPTType",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "vfat"}},
+				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1, GPTType: &GPTInvalid}}}},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "given GPTType:ff00 for partition:1 on disk:/dev/sda is not supported",
+		},
+		{
 			name: "valid raid layout",
 			fields: fields{
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
 				Disks: []Disk{
 					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []Device{"/dev/sda1", "/dev/sdb1"}},
+					{Name: "/dev/md1", Devices: []Device{"/dev/sda1", "/dev/sdb1"}, Level: RaidLevel1},
 				},
 			},
 			want:    true,
 			wantErr: false,
+		},
+		{
+			name: "invalid raid layout wrong level",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
+				Disks: []Disk{
+					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+				},
+				Raid: []Raid{
+					{Name: "/dev/md1", Devices: []Device{"/dev/sda1", "/dev/sdb1"}, Level: "6"},
+				},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "given raidlevel:6 is not supported",
 		},
 		{
 			name: "invalid layout raid device missing",
@@ -401,7 +439,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []Device{"/dev/sda2", "/dev/sdb2"}},
+					{Name: "/dev/md1", Devices: []Device{"/dev/sda2", "/dev/sdb2"}, Level: RaidLevel1},
 				},
 			},
 			want:      false,

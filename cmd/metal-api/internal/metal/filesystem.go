@@ -36,10 +36,10 @@ const (
 )
 
 var (
-	SupportedFormats    = []Format{VFAT, EXT3, EXT4, SWAP, NONE}
-	SupportedGPTTypes   = []GPTType{GPTBoot, GPTLinux, GPTLinuxLVM, GPTLinuxRaid}
-	SupportedGUIDs      = []GUID{EFISystemPartition}
-	SupportedRaidLevels = []RaidLevel{RaidLevel0, RaidLevel1}
+	SupportedFormats    = map[Format]bool{VFAT: true, EXT3: true, EXT4: true, SWAP: true, NONE: true}
+	SupportedGPTTypes   = map[GPTType]bool{GPTBoot: true, GPTLinux: true, GPTLinuxLVM: true, GPTLinuxRaid: true}
+	SupportedGUIDs      = map[GUID]bool{EFISystemPartition: true}
+	SupportedRaidLevels = map[RaidLevel]bool{RaidLevel0: true, RaidLevel1: true}
 )
 
 type (
@@ -154,10 +154,17 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 		for _, partition := range disk.Partitions {
 			devname := fmt.Sprintf("%s%d", disk.PartitionPrefix, partition.Number)
 			providedDevices[devname] = true
+			if partition.GPTType != nil {
+				_, ok := SupportedGPTTypes[*partition.GPTType]
+				if !ok {
+					return false, fmt.Errorf("given GPTType:%s for partition:%d on disk:%s is not supported", *partition.GPTType, partition.Number, disk.Device)
+				}
+			}
 		}
 	}
 
 	// Raid should also be checked if devices are provided
+	// Raidlevel must be in the supported range
 	for _, raid := range f.Raid {
 		for _, device := range raid.Devices {
 			_, ok := providedDevices[string(device)]
@@ -166,6 +173,11 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 			}
 		}
 		providedDevices[raid.Name] = true
+
+		_, ok := SupportedRaidLevels[raid.Level]
+		if !ok {
+			return false, fmt.Errorf("given raidlevel:%s is not supported", raid.Level)
+		}
 	}
 
 	// check if all fs devices are provided
@@ -186,6 +198,14 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 	for _, s := range f.Constraints.Sizes {
 		if strings.Contains(s, "*") {
 			return false, fmt.Errorf("no wildcard allowed in size constraint")
+		}
+	}
+
+	// check for support Formats
+	for _, fs := range f.Filesystems {
+		_, ok := SupportedFormats[fs.Format]
+		if !ok {
+			return false, fmt.Errorf("filesystem:%s format:%s is not supported", *fs.Path, fs.Format)
 		}
 	}
 
