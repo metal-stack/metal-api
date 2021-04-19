@@ -340,6 +340,50 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr:   true,
 			errString: "device:/dev/sda2 for filesystem:/ is not configured as raid or device",
 		},
+		{
+			name: "valid raid layout",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
+				Disks: []Disk{
+					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+				},
+				Raid: []Raid{
+					{Name: "/dev/md1", Devices: []Device{"/dev/sda1", "/dev/sdb1"}},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "invalid layout raid device missing",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
+				Disks: []Disk{
+					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+				},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "device:/dev/md1 for filesystem:/boot is not configured as raid or device",
+		},
+		{
+			name: "invalid layout device of raid missing",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
+				Disks: []Disk{
+					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+				},
+				Raid: []Raid{
+					{Name: "/dev/md1", Devices: []Device{"/dev/sda2", "/dev/sdb2"}},
+				},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "device:/dev/sda2 not provided by disk in raid:/dev/md1",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

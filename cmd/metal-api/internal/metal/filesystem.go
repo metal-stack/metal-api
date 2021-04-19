@@ -156,10 +156,15 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 		}
 	}
 
+	// Raid should also be checked if devices are provided
 	for _, raid := range f.Raid {
 		for _, device := range raid.Devices {
-			providedDevices[string(device)] = true
+			_, ok := providedDevices[string(device)]
+			if !ok {
+				return false, fmt.Errorf("device:%s not provided by disk in raid:%s", device, raid.Name)
+			}
 		}
+		providedDevices[raid.Name] = true
 	}
 
 	// check if all fs devices are provided
@@ -200,11 +205,8 @@ func (d Disk) validate() error {
 
 // Matches decides if for given size and image the constraints will match
 func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
-	sizeEnabled, ok := sizeMap(c.Sizes)[size.ID]
+	_, ok := sizeMap(c.Sizes)[size.ID]
 	if !ok {
-		return false
-	}
-	if !sizeEnabled {
 		return false
 	}
 	// Size matches
