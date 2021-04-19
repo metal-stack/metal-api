@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	v1 "github.com/metal-stack/masterdata-api/api/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -14,6 +11,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/go-logr/zapr"
 
@@ -703,6 +704,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
 	restful.DefaultContainer.Add(service.NewTenant(mdc))
 	restful.DefaultContainer.Add(firewallService)
+	restful.DefaultContainer.Add(service.NewFilesystemLayout(ds))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))

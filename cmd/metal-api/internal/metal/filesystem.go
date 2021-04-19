@@ -27,7 +27,7 @@ const (
 	// GPTLinux Linux Partition
 	GPTLinuxLVM = GPTType("8e00")
 	// EFISystemPartition see https://en.wikipedia.org/wiki/EFI_system_partition
-	EFISystemPartition = GUID("C12A7328-F81F-11D2-BA4B-00A0C93EC93B")
+	EFISystemPartition = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
 
 	// RaidLevel0 is a stripe of two or more disks
 	RaidLevel0 = RaidLevel("0")
@@ -38,7 +38,6 @@ const (
 var (
 	SupportedFormats    = map[Format]bool{VFAT: true, EXT3: true, EXT4: true, SWAP: true, NONE: true}
 	SupportedGPTTypes   = map[GPTType]bool{GPTBoot: true, GPTLinux: true, GPTLinuxLVM: true, GPTLinuxRaid: true}
-	SupportedGUIDs      = map[GUID]bool{EFISystemPartition: true}
 	SupportedRaidLevels = map[RaidLevel]bool{RaidLevel0: true, RaidLevel1: true}
 )
 
@@ -66,35 +65,30 @@ type (
 		Images []string
 	}
 
-	FilesystemOption string
-	MountOption      string
-	RaidOption       string
-	RaidLevel        string
-	Device           string
-	Format           string
-	GUID             string
-	GPTType          string
+	RaidLevel string
+	Format    string
+	GPTType   string
 
 	// Filesystem defines a single filesystem to be mounted
 	Filesystem struct {
 		// Path defines the mountpoint, if nil, it will not be mounted
 		Path *string
 		// Device where the filesystem is created on, must be the full device path seen by the OS
-		Device Device
+		Device string
 		// Format is the type of filesystem should be created
 		Format Format
 		// Label is optional enhances readability
 		Label *string
 		// MountOptions which might be required
-		MountOptions []MountOption
+		MountOptions []string
 		// Options during filesystem creation
-		Options []FilesystemOption
+		Options []string
 	}
 
 	// Disk represents a single block device visible from the OS, required
 	Disk struct {
 		// Device is the full device path
-		Device Device
+		Device string
 		// PartitionPrefix specifies which prefix is used if device is partitioned
 		// e.g. device /dev/sda, first partition will be /dev/sda1, prefix is therefore /dev/sda
 		// for nvme drives this is different, the prefix there is typically /dev/nvme0n1p
@@ -111,11 +105,11 @@ type (
 		// Name of the raid device, most often this will be /dev/md0 and so forth
 		Name string
 		// Devices the devices to form a raid device
-		Devices []Device
+		Devices []string
 		// Level the raidlevel to use, can be one of 0,1
 		Level RaidLevel
 		// Options required during raid creation, example: --metadata=1.0 for uefi boot partition
-		Options []RaidOption
+		Options []string
 		// Spares defaults to 0
 		Spares int
 	}
@@ -131,7 +125,7 @@ type (
 		// if "-1" is given the rest of the device will be used, this requires Number to be the highest in this partition
 		Size int64
 		// GUID of this partition
-		GUID *GUID
+		GUID *string
 		// GPTType defines the GPT partition type
 		GPTType *GPTType
 	}
@@ -158,7 +152,7 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 	// Raidlevel must be in the supported range
 	for _, raid := range f.Raid {
 		for _, device := range raid.Devices {
-			_, ok := providedDevices[string(device)]
+			_, ok := providedDevices[device]
 			if !ok {
 				return false, fmt.Errorf("device:%s not provided by disk in raid:%s", device, raid.Name)
 			}
@@ -174,7 +168,7 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 	// check if all fs devices are provided
 	// format must be supported
 	for _, fs := range f.Filesystems {
-		_, ok := providedDevices[string(fs.Device)]
+		_, ok := providedDevices[fs.Device]
 		if !ok {
 			return false, fmt.Errorf("device:%s for filesystem:%s is not configured as raid or device", fs.Device, *fs.Path)
 		}
@@ -273,7 +267,7 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 		for _, partition := range disk.Partitions {
 			requiredSize += partition.Size
 		}
-		requiredDevices[string(disk.Device)] = requiredSize
+		requiredDevices[disk.Device] = requiredSize
 	}
 
 	for _, disk := range hardware.Disks {
@@ -290,6 +284,33 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func ToFormat(format string) (*Format, error) {
+	f := Format(format)
+	_, ok := SupportedFormats[f]
+	if !ok {
+		return nil, fmt.Errorf("given format:%s is not supported", format)
+	}
+	return &f, nil
+}
+
+func ToGPTType(gptType string) (*GPTType, error) {
+	g := GPTType(gptType)
+	_, ok := SupportedGPTTypes[g]
+	if !ok {
+		return nil, fmt.Errorf("given GPTType:%s is not supported", gptType)
+	}
+	return &g, nil
+}
+
+func ToRaidLevel(level string) (*RaidLevel, error) {
+	l := RaidLevel(level)
+	_, ok := SupportedRaidLevels[l]
+	if !ok {
+		return nil, fmt.Errorf("given raidlevel:%s is not supported", level)
+	}
+	return &l, nil
 }
 
 // FIXME implement overlapping filesystemlayout detection

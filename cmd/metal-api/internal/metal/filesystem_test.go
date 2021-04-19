@@ -398,7 +398,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []Device{"/dev/sda1", "/dev/sdb1"}, Level: RaidLevel1},
+					{Name: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: RaidLevel1},
 				},
 			},
 			want:    true,
@@ -413,7 +413,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []Device{"/dev/sda1", "/dev/sdb1"}, Level: "6"},
+					{Name: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: "6"},
 				},
 			},
 			want:      false,
@@ -442,7 +442,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []Device{"/dev/sda2", "/dev/sdb2"}, Level: RaidLevel1},
+					{Name: "/dev/md1", Devices: []string{"/dev/sda2", "/dev/sdb2"}, Level: RaidLevel1},
 				},
 			},
 			want:      false,
@@ -477,7 +477,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 
 func TestDisk_validate(t *testing.T) {
 	type fields struct {
-		Device          Device
+		Device          string
 		PartitionPrefix string
 		Partitions      []DiskPartition2
 		Wipe            bool

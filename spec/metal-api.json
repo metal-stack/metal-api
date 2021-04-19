@@ -158,7 +158,251 @@
         "value"
       ]
     },
+    "v1.Disk": {
+      "properties": {
+        "Device": {
+          "type": "string"
+        },
+        "PartitionPrefix": {
+          "type": "string"
+        },
+        "Partitions": {
+          "items": {
+            "$ref": "#/definitions/v1.DiskPartition"
+          },
+          "type": "array"
+        },
+        "Wipe": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "Device",
+        "PartitionPrefix",
+        "Partitions",
+        "Wipe"
+      ]
+    },
+    "v1.DiskPartition": {
+      "properties": {
+        "GPTType": {
+          "type": "string"
+        },
+        "GUID": {
+          "type": "string"
+        },
+        "Label": {
+          "type": "string"
+        },
+        "Number": {
+          "format": "byte",
+          "type": "integer"
+        },
+        "Size": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "GPTType",
+        "GUID",
+        "Label",
+        "Number",
+        "Size"
+      ]
+    },
     "v1.EmptyBody": {},
+    "v1.Filesystem": {
+      "properties": {
+        "Device": {
+          "type": "string"
+        },
+        "Format": {
+          "type": "string"
+        },
+        "Label": {
+          "type": "string"
+        },
+        "MountOptions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Options": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Device",
+        "Format",
+        "Label",
+        "MountOptions",
+        "Options",
+        "Path"
+      ]
+    },
+    "v1.FilesystemLayoutConstraints": {
+      "properties": {
+        "Images": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Sizes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "Images",
+        "Sizes"
+      ]
+    },
+    "v1.FilesystemLayoutCreateRequest": {
+      "properties": {
+        "Constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints"
+        },
+        "Disks": {
+          "items": {
+            "$ref": "#/definitions/v1.Disk"
+          },
+          "type": "array"
+        },
+        "Filesystems": {
+          "items": {
+            "$ref": "#/definitions/v1.Filesystem"
+          },
+          "type": "array"
+        },
+        "Raid": {
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "Constraints",
+        "Disks",
+        "Filesystems",
+        "Raid",
+        "id"
+      ]
+    },
+    "v1.FilesystemLayoutResponse": {
+      "properties": {
+        "Constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints"
+        },
+        "Disks": {
+          "items": {
+            "$ref": "#/definitions/v1.Disk"
+          },
+          "type": "array"
+        },
+        "Filesystems": {
+          "items": {
+            "$ref": "#/definitions/v1.Filesystem"
+          },
+          "type": "array"
+        },
+        "Raid": {
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "Constraints",
+        "Disks",
+        "Filesystems",
+        "Raid",
+        "id"
+      ]
+    },
+    "v1.FilesystemLayoutUpdateRequest": {
+      "properties": {
+        "Constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints"
+        },
+        "Disks": {
+          "items": {
+            "$ref": "#/definitions/v1.Disk"
+          },
+          "type": "array"
+        },
+        "Filesystems": {
+          "items": {
+            "$ref": "#/definitions/v1.Filesystem"
+          },
+          "type": "array"
+        },
+        "Raid": {
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "Constraints",
+        "Disks",
+        "Filesystems",
+        "Raid",
+        "id"
+      ]
+    },
     "v1.FirewallCreateRequest": {
       "properties": {
         "description": {
@@ -2673,6 +2917,39 @@
         }
       }
     },
+    "v1.Raid": {
+      "properties": {
+        "Devices": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Level": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Options": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Spares": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "Devices",
+        "Level",
+        "Name",
+        "Options",
+        "Spares"
+      ]
+    },
     "v1.ServerCapacity": {
       "properties": {
         "allocated": {
@@ -3167,6 +3444,198 @@
     "title": "metal-api"
   },
   "paths": {
+    "/v1/filesystemlayout": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listFilesystemLayouts",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all filesystemlayouts",
+        "tags": [
+          "filesystemlayout"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "func3",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a filesystemlayout. if the filesystemlayout was changed since this one was read, a conflict is returned",
+        "tags": [
+          "filesystemlayout"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "func2",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a filesystemlayout. if the given ID already exists a conflict is returned",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
+    "/v1/filesystemlayout/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "func1",
+        "parameters": [
+          {
+            "description": "identifier of the filesystemlayout",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes an filesystemlayout and returns the deleted entity",
+        "tags": [
+          "filesystemlayout"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findFilesystemLayout",
+        "parameters": [
+          {
+            "description": "identifier of the filesystemlayout",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get filesystemlayout by id",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
     "/v1/firewall": {
       "get": {
         "consumes": [
