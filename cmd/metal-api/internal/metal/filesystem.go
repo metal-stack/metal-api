@@ -59,8 +59,7 @@ type (
 
 	FilesystemLayoutConstraints struct {
 		// Sizes defines the list of sizes this layout applies to
-		// TODO just a slize ?
-		Sizes map[string]bool
+		Sizes []string
 		// Images defines a list of image glob patterns this layout should apply
 		// the most specific combination of sizes and images will be picked fo a allocation
 		Images []string
@@ -201,7 +200,7 @@ func (d Disk) validate() error {
 
 // Matches decides if for given size and image the constraints will match
 func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
-	sizeEnabled, ok := c.Sizes[size.ID]
+	sizeEnabled, ok := sizeMap(c.Sizes)[size.ID]
 	if !ok {
 		return false
 	}
@@ -278,4 +277,12 @@ func sortImageGlobs(globs []string) []string {
 		sorted = append(sorted, "*")
 	}
 	return sorted
+}
+
+func sizeMap(sizes []string) map[string]bool {
+	sm := make(map[string]bool)
+	for _, s := range sizes {
+		sm[s] = true
+	}
+	return sm
 }

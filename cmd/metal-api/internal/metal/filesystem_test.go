@@ -35,7 +35,7 @@ var (
 
 func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 	type constraints struct {
-		Sizes  map[string]bool
+		Sizes  []string
 		Images []string
 	}
 	type args struct {
@@ -51,7 +51,7 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 		{
 			name: "default layout",
 			c: constraints{
-				Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 				Images: []string{"ubuntu*", "debian*"},
 			},
 			args: args{
@@ -63,7 +63,7 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 		{
 			name: "firewall layout no match",
 			c: constraints{
-				Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 				Images: []string{"firewall*"},
 			},
 			args: args{
@@ -75,7 +75,7 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 		{
 			name: "firewall layout match",
 			c: constraints{
-				Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 				Images: []string{"firewall*"},
 			},
 			args: args{
@@ -116,14 +116,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 				FilesystemLayout{
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"firewall*"},
 					},
 				},
@@ -141,14 +141,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 				FilesystemLayout{
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"firewall*"},
 					},
 				},
@@ -166,14 +166,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 				FilesystemLayout{
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"firewall*"},
 					},
 				},
@@ -191,14 +191,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 				FilesystemLayout{
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"ubuntu*", "debian*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
-						Sizes:  map[string]bool{"c1-large-x86": true, "c1-xlarge-x86": true},
+						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
 						Images: []string{"firewall*"},
 					},
 				},
