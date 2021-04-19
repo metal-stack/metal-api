@@ -3,6 +3,7 @@ package metal
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -175,6 +176,19 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 		}
 	}
 
+	// no pure wildcard in images
+	for _, img := range f.Constraints.Images {
+		if img == "*" {
+			return false, fmt.Errorf("just '*' is not allowed as image constraint")
+		}
+	}
+	// no wildcard in size
+	for _, s := range f.Constraints.Sizes {
+		if strings.Contains(s, "*") {
+			return false, fmt.Errorf("no wildcard allowed in size constraint")
+		}
+	}
+
 	return true, nil
 }
 
@@ -210,7 +224,7 @@ func (c *FilesystemLayoutConstraints) Matches(size Size, image Image) bool {
 		return false
 	}
 	// Size matches
-	for _, i := range sortImageGlobs(c.Images) {
+	for _, i := range c.Images {
 		matches, err := filepath.Match(i, image.ID)
 		if err != nil {
 			return false
@@ -264,22 +278,6 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 
 // FIXME implement overlapping filesystemlayout detection
 // FIXME implement check if selected machine hardware matches with selected filesystemlayout
-
-func sortImageGlobs(globs []string) []string {
-	var sorted []string
-	appendStar := false
-	for _, i := range globs {
-		if i == "*" {
-			appendStar = true
-			continue
-		}
-		sorted = append(sorted, i)
-	}
-	if appendStar {
-		sorted = append(sorted, "*")
-	}
-	return sorted
-}
 
 func sizeMap(sizes []string) map[string]bool {
 	sm := make(map[string]bool)

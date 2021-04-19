@@ -310,6 +310,7 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 
 func TestFilesystemLayout_Validate(t *testing.T) {
 	type fields struct {
+		Constraints FilesystemLayoutConstraints
 		Filesystems []Filesystem
 		Disks       []Disk
 		Raid        []Raid
@@ -324,11 +325,34 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		{
 			name: "valid layout",
 			fields: fields{
+				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: []string{"ubuntu*"}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			want:    true,
 			wantErr: false,
+		},
+		{
+			name: "invalid layout, wildcard image",
+			fields: fields{
+				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: []string{"*"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
+				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "just '*' is not allowed as image constraint",
+		},
+		{
+			name: "invalid layout, wildcard image",
+			fields: fields{
+				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: []string{"debian*"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1"}},
+				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+			},
+			want:      false,
+			wantErr:   true,
+			errString: "no wildcard allowed in size constraint",
 		},
 		{
 			name: "invalid layout /dev/sda2 is missing",
@@ -388,6 +412,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &FilesystemLayout{
+				Constraints: tt.fields.Constraints,
 				Filesystems: tt.fields.Filesystems,
 				Disks:       tt.fields.Disks,
 				Raid:        tt.fields.Raid,
