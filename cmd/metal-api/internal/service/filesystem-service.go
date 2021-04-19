@@ -197,6 +197,9 @@ func (r filesystemResource) updateFilesystemLayout(request *restful.Request, res
 	}
 
 	newFilesystemLayout, err := v1.NewFilesystemLayout(v1.FilesystemLayoutCreateRequest(requestPayload))
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 
 	ok, err := newFilesystemLayout.Validate()
 	if checkError(request, response, utils.CurrentFuncName(), err) {

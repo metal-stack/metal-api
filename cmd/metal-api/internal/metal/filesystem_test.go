@@ -15,15 +15,9 @@ var (
 	s3 = Size{
 		Base: Base{ID: "s3-large-x86"},
 	}
-	s4 = Size{
-		Base: Base{ID: "s2-large-x86"},
-	}
 
 	i1 = Image{
 		Base: Base{ID: "debian-10"},
-	}
-	i2 = Image{
-		Base: Base{ID: "ubuntu-20.04"},
 	}
 	i3 = Image{
 		Base: Base{ID: "firewall-2"},
