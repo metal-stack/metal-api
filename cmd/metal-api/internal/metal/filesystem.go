@@ -95,8 +95,9 @@ type (
 		PartitionPrefix string
 		// Partitions to create on this device
 		Partitions []DiskPartition2
-		// Wipe, if set to true the partition table will be erase before new partitions will be created
-		Wipe bool
+		// WipeOnReinstall, if set to true the whole disk will be erased if reinstall happens
+		// during fresh install all disks are wiped
+		WipeOnReinstall bool
 	}
 
 	// Raid is optional, if given the devices must match.
