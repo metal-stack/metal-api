@@ -43,7 +43,7 @@ type (
 		Device          string
 		PartitionPrefix string
 		Partitions      []DiskPartition
-		Wipe            bool
+		WipeOnReinstall bool
 	}
 	Raid struct {
 		Name    string
@@ -104,7 +104,7 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 			Device:          string(disk.Device),
 			PartitionPrefix: disk.PartitionPrefix,
 			Partitions:      parts,
-			Wipe:            disk.Wipe,
+			WipeOnReinstall: disk.WipeOnReinstall,
 		}
 		ds = append(ds, d)
 	}
@@ -179,7 +179,7 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 			Device:          string(disk.Device),
 			PartitionPrefix: disk.PartitionPrefix,
 			Partitions:      parts,
-			Wipe:            disk.Wipe,
+			WipeOnReinstall: disk.WipeOnReinstall,
 		}
 		ds = append(ds, d)
 	}

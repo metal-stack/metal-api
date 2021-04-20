@@ -506,7 +506,7 @@ func TestDisk_validate(t *testing.T) {
 				Device:          tt.fields.Device,
 				PartitionPrefix: tt.fields.PartitionPrefix,
 				Partitions:      tt.fields.Partitions,
-				Wipe:            tt.fields.Wipe,
+				WipeOnReinstall: tt.fields.Wipe,
 			}
 			err := d.validate()
 			if (err != nil) != tt.wantErr {
