@@ -172,7 +172,7 @@
           },
           "type": "array"
         },
-        "Wipe": {
+        "WipeOnReinstall": {
           "type": "boolean"
         }
       },
@@ -180,7 +180,7 @@
         "Device",
         "PartitionPrefix",
         "Partitions",
-        "Wipe"
+        "WipeOnReinstall"
       ]
     },
     "v1.DiskPartition": {
