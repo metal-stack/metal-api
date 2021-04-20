@@ -227,8 +227,8 @@ func (d Disk) validate() error {
 	return nil
 }
 
-// Matches decides if for given size and image the constraints will match
-func (c *FilesystemLayoutConstraints) Matches(sizeID, imageID string) bool {
+// matches decides if for given size and image the constraints will match
+func (c *FilesystemLayoutConstraints) matches(sizeID, imageID string) bool {
 	_, ok := sizeMap(c.Sizes)[sizeID]
 	if !ok {
 		return false
@@ -251,7 +251,7 @@ func (c *FilesystemLayoutConstraints) Matches(sizeID, imageID string) bool {
 // From will pick a filesystemlayout from all filesystemlayouts which matches given size and image
 func (fls FilesystemLayouts) From(size, image string) (*FilesystemLayout, error) {
 	for _, fl := range fls {
-		if fl.Constraints.Matches(size, image) {
+		if fl.Constraints.matches(size, image) {
 			return &fl, nil
 		}
 	}

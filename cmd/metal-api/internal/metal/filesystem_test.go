@@ -75,7 +75,7 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 				Sizes:  tt.c.Sizes,
 				Images: tt.c.Images,
 			}
-			if got := c.Matches(tt.args.size, tt.args.image); got != tt.want {
+			if got := c.matches(tt.args.size, tt.args.image); got != tt.want {
 				t.Errorf("FilesystemLayoutConstraint.Matches() = %v, want %v", got, tt.want)
 			}
 		})
