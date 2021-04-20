@@ -55,7 +55,7 @@ type (
 	DiskPartition struct {
 		Number  uint8
 		Label   *string
-		Size    int64
+		Size    uint64
 		GUID    *string
 		GPTType *string
 	}

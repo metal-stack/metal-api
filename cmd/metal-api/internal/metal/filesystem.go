@@ -122,8 +122,8 @@ type (
 		// Label to enhance readability
 		Label *string
 		// Size of this partition in bytes
-		// if "-1" is given the rest of the device will be used, this requires Number to be the highest in this partition
-		Size int64
+		// if "0" is given the rest of the device will be used, this requires Number to be the highest in this partition
+		Size uint64
 		// GUID of this partition
 		GUID *string
 		// GPTType defines the GPT partition type
@@ -199,10 +199,10 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 // - GPTType is supported
 func (d Disk) validate() error {
 	partNumbers := make(map[uint8]bool)
-	parts := make([]int64, len(d.Partitions)+1)
+	parts := make([]uint64, len(d.Partitions)+1)
 	hasVariablePartition := false
 	for _, partition := range d.Partitions {
-		if partition.Size == -1 {
+		if partition.Size == 0 {
 			hasVariablePartition = true
 		}
 		parts[partition.Number] = partition.Size
@@ -221,7 +221,7 @@ func (d Disk) validate() error {
 			}
 		}
 	}
-	if hasVariablePartition && (parts[len(parts)-1] != -1) {
+	if hasVariablePartition && (parts[len(parts)-1] != 0) {
 		return fmt.Errorf("device:%s variable sized partition not the last one", d.Device)
 	}
 	return nil
@@ -260,10 +260,10 @@ func (fls FilesystemLayouts) From(size, image string) (*FilesystemLayout, error)
 
 // Matches the specific FilesystemLayout against the selected Hardware
 func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
-	requiredDevices := make(map[string]int64)
-	existingDevices := make(map[string]int64)
+	requiredDevices := make(map[string]uint64)
+	existingDevices := make(map[string]uint64)
 	for _, disk := range fl.Disks {
-		var requiredSize int64
+		var requiredSize uint64
 		for _, partition := range disk.Partitions {
 			requiredSize += partition.Size
 		}
@@ -271,7 +271,7 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 	}
 
 	for _, disk := range hardware.Disks {
-		existingDevices[disk.Name] = int64(disk.Size)
+		existingDevices[disk.Name] = disk.Size
 	}
 
 	for requiredDevice, requiredSize := range requiredDevices {

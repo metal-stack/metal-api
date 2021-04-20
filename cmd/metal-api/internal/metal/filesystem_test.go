@@ -480,7 +480,7 @@ func TestDisk_validate(t *testing.T) {
 				Device: "/dev/sda", PartitionPrefix: "/dev/sda",
 				Partitions: []DiskPartition2{
 					{Number: 1, Size: 100},
-					{Number: 2, Size: -1},
+					{Number: 2, Size: 0},
 					{Number: 3, Size: 100},
 				}},
 			wantErr:   true,

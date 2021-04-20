@@ -199,7 +199,7 @@
           "type": "integer"
         },
         "Size": {
-          "format": "int64",
+          "format": "integer",
           "type": "integer"
         }
       },
