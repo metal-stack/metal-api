@@ -3532,6 +3532,15 @@
           "application/json"
         ],
         "operationId": "listImages",
+        "parameters": [
+          {
+            "default": "shared",
+            "description": "comma-separated list of visbilities (private, shared, public, admin)",
+            "in": "query",
+            "name": "visibility",
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -3693,6 +3702,13 @@
             "name": "id",
             "required": true,
             "type": "string"
+          },
+          {
+            "default": "shared",
+            "description": "comma-separated list of visbilities (private, shared, public, admin)",
+            "in": "query",
+            "name": "visibility",
+            "type": "string"
           }
         ],
         "produces": [
@@ -3730,6 +3746,13 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "type": "string"
+          },
+          {
+            "default": "shared",
+            "description": "comma-separated list of visbilities (private, shared, public, admin)",
+            "in": "query",
+            "name": "visibility",
             "type": "string"
           }
         ],

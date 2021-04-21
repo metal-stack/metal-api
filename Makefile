@@ -26,7 +26,7 @@ protoc-docker:
 
 .PHONY: test-opa
 test-opa:
-	opa test ./cmd/metal-api/internal/service/v1 -v
+	opa test ./cmd/metal-api/internal/service/v1 -v --explain full
 
 .PHONY: mini-lab-push
 mini-lab-push: all

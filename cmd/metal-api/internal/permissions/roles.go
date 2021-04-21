@@ -27,17 +27,27 @@ func (rs Roles) MergePermissions() Permissions {
 func mockRoles(u *security.User) Roles {
 	return Roles{
 		{
-			Name:   "Metal Image Lister",
+			Name:   "Metal Image Reader",
 			Status: "active",
 			Permissions: Permissions{
+				"metal.v1.image.get":  true,
 				"metal.v1.image.list": true,
 			},
 		},
 		{
-			Name:   "Metal Image Getter",
+			Name:   "Metal Image Writer",
 			Status: "active",
 			Permissions: Permissions{
-				"metal.v1.image.get": true,
+				"metal.v1.image.create": true,
+				"metal.v1.image.delete": true,
+			},
+		},
+		{
+			Name:   "Metal Image Admin Writer",
+			Status: "active",
+			Permissions: Permissions{
+				"metal.v1.image.create.admin": true,
+				"metal.v1.image.delete.admin": true,
 			},
 		},
 	}

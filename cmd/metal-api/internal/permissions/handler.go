@@ -1,6 +1,7 @@
 package permissions
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
@@ -43,20 +44,27 @@ func (p *PermissionsHandler) Authz(req *restful.Request, resp *restful.Response,
 	// TODO: How to get permissions? Must be composed from roles!
 	permissions := mockRoles(u).MergePermissions() // FIXME
 
-	err = p.decider.Decide(req.Request.Context(), req.Request, u, permissions)
+	isAdmin, err := p.decider.Decide(req.Request.Context(), req.Request, u, permissions)
 	if err != nil {
 		_ = resp.WriteHeaderAndEntity(http.StatusForbidden, httperrors.Forbidden(err))
 		return
 	}
 
 	scope := datastore.ResourceScope{
-		Projects:  datastore.Predicates{"project-a"},                   // FIXME // TODO: How to always get latest projects here?
-		Tenants:   datastore.Predicates{datastore.Predicate(u.Tenant)}, // FIXME // TODO: How to always get all latest tenants (on behalf) here?
-		Resources: datastore.Predicates{datastore.ScopeAllResources},   // FIXME // TODO: Do we want to go this far? Where to get these?
+		Projects:  datastore.Predicates{"*"}, // FIXME // TODO: How to always get latest projects here?
+		Tenants:   datastore.Predicates{"*"}, // FIXME // TODO: How to always get all latest tenants (on behalf) here?
+		Resources: datastore.Predicates{"*"}, // FIXME // TODO: Do we want to go this far? Where to get these?
+
+		IsAdmin: isAdmin,
 	}
 	// scope := datastore.EverythingScope // FIXME
-	req.SetAttribute(datastore.ScopeRequestAttributeKey, scope)
+	req.SetAttribute("scope", scope)
 	p.log.Debugw("set request attribute", "scope", scope)
 
 	chain.ProcessFilter(req, resp)
+}
+
+// ListPermissions lists all permissions handled by the permissions handler
+func (p *PermissionsHandler) ListPermissions(ctx context.Context) ([]string, error) {
+	return p.decider.ListPermissions(ctx)
 }

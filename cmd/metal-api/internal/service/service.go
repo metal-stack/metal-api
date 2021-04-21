@@ -110,6 +110,10 @@ func checkError(rq *restful.Request, rsp *restful.Response, opname string, err e
 			sendErrorImpl(log, rsp, opname, httperrors.InternalServerError(err), 2)
 			return true
 		}
+		if metal.IsForbidden(err) {
+			sendErrorImpl(log, rsp, opname, httperrors.Forbidden(err), 2)
+			return true
+		}
 		if mdmv1.IsNotFound(err) {
 			sendErrorImpl(log, rsp, opname, httperrors.NotFound(err), 2)
 			return true

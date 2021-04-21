@@ -13,8 +13,8 @@ import (
 
 // GetImage return a image for a given id without semver matching.
 func (rs *RethinkStore) GetImageV2(id string, scope ResourceScope) (*metal.Image, error) {
-	q := scope.Apply(*rs.imageTable())
 	var i metal.Image
+	q := scope.Apply(&i, *rs.imageTable())
 	err := rs.findEntityByIDV2(&q, &i, id)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,9 @@ func (rs *RethinkStore) FindImageV2(id string, scope ResourceScope) (*metal.Imag
 
 // ListImages returns all images.
 func (rs *RethinkStore) ListImagesV2(scope ResourceScope) (metal.Images, error) {
-	q := scope.Apply(*rs.imageTable())
+	q := scope.Apply(&metal.Image{}, *rs.imageTable())
+
+	rs.Debugw("executing list", "q", q.ToJSON())
 
 	imgs := make(metal.Images, 0)
 	err := rs.listEntities(&q, &imgs)
@@ -49,24 +51,24 @@ func (rs *RethinkStore) ListImagesV2(scope ResourceScope) (metal.Images, error) 
 
 // CreateImage creates a new image.
 func (rs *RethinkStore) CreateImageV2(i *metal.Image, scope ResourceScope) error {
-	if !scope.Allows(i) {
-		return metal.Forbidden("not allowed")
+	if err := scope.AllowsWriteOn(i); err != nil {
+		return metal.Forbidden(err.Error())
 	}
 	return rs.createEntity(rs.imageTable(), i)
 }
 
 // DeleteImage deletes an image.
 func (rs *RethinkStore) DeleteImageV2(i *metal.Image, scope ResourceScope) error {
-	if !scope.Allows(i) {
-		return metal.Forbidden("not allowed")
+	if err := scope.AllowsWriteOn(i); err != nil {
+		return metal.Forbidden(err.Error())
 	}
 	return rs.deleteEntity(rs.imageTable(), i)
 }
 
 // UpdateImage updates an image.
 func (rs *RethinkStore) UpdateImageV2(oldImage *metal.Image, newImage *metal.Image, scope ResourceScope) error {
-	if !scope.Allows(newImage) {
-		return metal.Forbidden("not allowed")
+	if err := scope.AllowsWriteOn(oldImage, newImage); err != nil {
+		return metal.Forbidden(err.Error())
 	}
 	return rs.updateEntity(rs.imageTable(), newImage, oldImage)
 }

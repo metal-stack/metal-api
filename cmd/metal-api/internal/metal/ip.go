@@ -45,6 +45,7 @@ type IP struct {
 	Name             string    `rethinkdb:"name" json:"name"`
 	Description      string    `rethinkdb:"description" json:"description"`
 	ProjectID        string    `rethinkdb:"projectid" json:"projectid"`
+	TenantID         string    `rethinkdb:"tenantid" json:"tenantid"`
 	NetworkID        string    `rethinkdb:"networkid" json:"networkid"`
 	Type             IPType    `rethinkdb:"type" json:"type"`
 	Tags             []string  `rethinkdb:"tags" json:"tags"`
@@ -82,11 +83,23 @@ func (ip *IP) SetCreated(created time.Time) {
 	ip.Created = created
 }
 
+// GetProjectID returns the entity's project id
 func (ip *IP) GetProjectID() string {
 	return ip.ProjectID
 }
+
+// GetTenantID returns the entity's tenant id
 func (ip *IP) GetTenantID() string {
-	return "" //FIXME
+	return ip.TenantID
+}
+
+// GetFieldNames returns the some base database field names
+func (ip *IP) GetFieldNames() EntityBaseFields {
+	return EntityBaseFields{
+		ID:        "id",
+		ProjectID: "projectid",
+		TenantID:  "tenantid",
+	}
 }
 
 // GetScope determines the scope of an ip address

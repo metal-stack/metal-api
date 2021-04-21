@@ -18,9 +18,10 @@ import (
 // ideas are taken from: https://www.openpolicyagent.org/docs/latest/integration/#integrating-with-the-go-api
 
 type regoDecider struct {
-	log      *zap.SugaredLogger
-	q        *rego.PreparedEvalQuery
-	basePath string
+	log          *zap.SugaredLogger
+	qDecision    *rego.PreparedEvalQuery
+	qPermissions *rego.PreparedEvalQuery
+	basePath     string
 }
 
 func (r *regoDecider) newRegoInput(req *http.Request, u *security.User, permissions Permissions) (map[string]interface{}, error) {
@@ -36,59 +37,105 @@ func (r *regoDecider) newRegoInput(req *http.Request, u *security.User, permissi
 }
 
 func newRegoDecider(log *zap.SugaredLogger, basePath string) (*regoDecider, error) {
-	options := []func(r *rego.Rego){
-		rego.Query("x = data.api.v1.metalstack.io.authz.allow"),
-	}
-
 	files, err := v1.RegoPolicies.ReadDir("policies")
 	if err != nil {
 		return nil, err
 	}
 
+	var moduleLoads []func(r *rego.Rego)
 	for _, f := range files {
 		data, err := v1.RegoPolicies.ReadFile("policies/" + f.Name())
 		if err != nil {
 			return nil, err
 		}
-		options = append(options, rego.Module(f.Name(), string(data)))
+		moduleLoads = append(moduleLoads, rego.Module(f.Name(), string(data)))
 	}
 
-	query, err := rego.New(
-		options...,
+	qDecision, err := rego.New(
+		append(moduleLoads, rego.Query("x = data.api.v1.metalstack.io.authz.decision"))...,
+	).PrepareForEval(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	qPermissions, err := rego.New(
+		append(moduleLoads, rego.Query("x = data.api.v1.metalstack.io.authz.permissions"))...,
 	).PrepareForEval(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
 	return &regoDecider{
-		q:        &query,
-		log:      log,
-		basePath: basePath,
+		qDecision:    &qDecision,
+		qPermissions: &qPermissions,
+		log:          log,
+		basePath:     basePath,
 	}, nil
 }
 
-func (r *regoDecider) Decide(ctx context.Context, req *http.Request, u *security.User, permissions Permissions) error {
+func (r *regoDecider) Decide(ctx context.Context, req *http.Request, u *security.User, permissions Permissions) (bool, error) {
 	input, err := r.newRegoInput(req, u, permissions)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	r.log.Debugw("rego evaluation", "input", input)
 
-	results, err := r.q.Eval(ctx, rego.EvalInput(input))
+	results, err := r.qDecision.Eval(ctx, rego.EvalInput(input))
 	if err != nil {
-		return errors.Wrap(err, "error evaluating rego result set")
-	} else if len(results) == 0 {
-		return fmt.Errorf("error evaluating rego result set: results have no length")
-	} else if allowed, ok := results[0].Bindings["x"].(bool); !ok {
-		return fmt.Errorf("error evaluating rego result set: unexpected response type")
-	} else {
-		r.log.Debugw("made auth decision", "results", results)
+		return false, errors.Wrap(err, "error evaluating rego result set")
+	}
 
-		if !allowed {
-			return fmt.Errorf("access denied")
+	if len(results) == 0 {
+		return false, fmt.Errorf("error evaluating rego result set: results have no length")
+	}
+
+	decision, ok := results[0].Bindings["x"].(map[string]interface{})
+	if !ok {
+		return false, fmt.Errorf("error evaluating rego result set: unexpected response type")
+	}
+
+	allow, ok := decision["allow"].(bool)
+	if !ok {
+		return false, fmt.Errorf("error evaluating rego result set: unexpected response type")
+	}
+
+	isAdmin, ok := decision["isAdmin"].(bool)
+	if !ok {
+		return false, fmt.Errorf("error evaluating rego result set: unexpected response type")
+	}
+
+	r.log.Debugw("made auth decision", "results", results)
+
+	if !allow {
+		reason, ok := decision["reason"].(string)
+		if ok {
+			return false, fmt.Errorf("access denied: %s", reason)
+		}
+		return false, fmt.Errorf("access denied")
+	}
+
+	return isAdmin, nil
+}
+
+func (r *regoDecider) ListPermissions(ctx context.Context) ([]string, error) {
+	results, err := r.qPermissions.Eval(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "error evaluating rego result set")
+	} else if len(results) == 0 {
+		return nil, fmt.Errorf("error evaluating rego result set: results have no length")
+	} else {
+		set, ok := results[0].Bindings["x"].([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("error evaluating rego result set: unexpected response type")
 		}
 
-		return nil
+		var ps []string
+		for _, p := range set {
+			p := p.(string)
+			ps = append(ps, p)
+		}
+
+		return ps, nil
 	}
 }

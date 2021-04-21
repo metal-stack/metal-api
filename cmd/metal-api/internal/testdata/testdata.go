@@ -848,7 +848,6 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("size")).Return(TestSizes, nil)
 	mock.On(r.DB("mockdb").Table("partition")).Return(TestPartitions, nil)
 	mock.On(r.DB("mockdb").Table("image")).Return(TestImages, nil)
-	mock.On(r.DB("mockdb").Table("image").Union(r.DB("mockdb").Table("image").Filter(map[string]interface{}{"visibility": metal.VisibilityPublic}))).Return(TestImages, nil)
 	mock.On(r.DB("mockdb").Table("network")).Return(TestNetworks, nil)
 	mock.On(r.DB("mockdb").Table("ip")).Return(TestIPs, nil)
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)

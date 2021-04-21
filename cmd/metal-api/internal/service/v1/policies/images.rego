@@ -1,48 +1,34 @@
 package api.v1.metalstack.io.authz
 
-default allow = false
-
-allow {
+e = permissions["metal.v1.image.list"] {
     input.path = ["v1", "image"]
     input.method = "GET"
-
-    _ = input.permissions["metal.v1.image.list"]
 }
 
-allow {
+e = permissions["metal.v1.image.get"] {
     some id
     input.path = ["v1", "image", id]
     input.method = "GET"
-
-    _ = input.permissions["metal.v1.image.get"]
 }
 
-allow {
+e = permissions["metal.v1.image.get-latest"] {
     some id
     input.path = ["v1", "image", id, "latest"]
     input.method = "GET"
-
-    _ = input.permissions["metal.v1.image.get-latest"]
 }
 
-allow {
+e = permissions["metal.v1.image.delete"] {
     some id
     input.path = ["v1", "image", id]
     input.method = "DELETE"
-
-    _ = input.permissions["metal.v1.image.delete"]
 }
 
-allow {
+e = permissions["metal.v1.image.create"] {
     input.method = "PUT"
     input.path = ["v1", "image"]
-
-    _ = input.permissions["metal.v1.image.create"]
 }
 
-allow {
+e = permissions["metal.v1.image.update"] {
     input.method = "POST"
     input.path = ["v1", "image"]
-
-    _ = input.permissions["metal.v1.image.update"]
 }
