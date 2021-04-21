@@ -15,6 +15,8 @@ const (
 	EXT4 = Format("ext4")
 	// SWAP is for the swap partition
 	SWAP = Format("swap")
+	// TMPFS is used for a memory filesystem typically /tmp
+	TMPFS = Format("tmpfs")
 	// None
 	NONE = Format("none")
 
@@ -36,7 +38,7 @@ const (
 )
 
 var (
-	SupportedFormats    = map[Format]bool{VFAT: true, EXT3: true, EXT4: true, SWAP: true, NONE: true}
+	SupportedFormats    = map[Format]bool{VFAT: true, EXT3: true, EXT4: true, SWAP: true, TMPFS: true, NONE: true}
 	SupportedGPTTypes   = map[GPTType]bool{GPTBoot: true, GPTLinux: true, GPTLinuxLVM: true, GPTLinuxRaid: true}
 	SupportedRaidLevels = map[RaidLevel]bool{RaidLevel0: true, RaidLevel1: true}
 )
@@ -169,6 +171,9 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 	// check if all fs devices are provided
 	// format must be supported
 	for _, fs := range f.Filesystems {
+		if fs.Format == TMPFS {
+			continue
+		}
 		_, ok := providedDevices[fs.Device]
 		if !ok {
 			return false, fmt.Errorf("device:%s for filesystem:%s is not configured as raid or device", fs.Device, *fs.Path)

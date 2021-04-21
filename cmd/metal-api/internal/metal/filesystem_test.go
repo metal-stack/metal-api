@@ -312,7 +312,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "valid layout",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: []string{"ubuntu*"}},
-				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: EXT4}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: EXT4}, {Path: strPtr("/tmp"), Device: "tmpfs", Format: TMPFS}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			want:    true,
