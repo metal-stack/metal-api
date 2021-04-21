@@ -24,7 +24,7 @@ func (rs Roles) MergePermissions() Permissions {
 	return result
 }
 
-func mockRoles(u *security.User) Roles {
+func mockRoles(_ *security.User) Roles {
 	return Roles{
 		{
 			Name:   "Metal Image Reader",

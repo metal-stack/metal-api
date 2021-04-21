@@ -155,6 +155,7 @@ func Test_regoDecider_Decide(t *testing.T) {
 	}
 }
 
+// nolint
 func mustParseURL(u string) *url.URL {
 	url, err := url.Parse(u)
 	if err != nil {

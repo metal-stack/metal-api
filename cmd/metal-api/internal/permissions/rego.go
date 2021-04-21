@@ -24,7 +24,7 @@ type regoDecider struct {
 	basePath     string
 }
 
-func (r *regoDecider) newRegoInput(req *http.Request, u *security.User, permissions Permissions) (map[string]interface{}, error) {
+func (r *regoDecider) newRegoInput(req *http.Request, u *security.User, permissions Permissions) map[string]interface{} {
 	return map[string]interface{}{
 		"method": req.Method,
 		"path":   strings.Split(strings.TrimPrefix(req.URL.Path, r.basePath), "/"),
@@ -33,7 +33,7 @@ func (r *regoDecider) newRegoInput(req *http.Request, u *security.User, permissi
 			"groups": u.Groups,
 		},
 		"permissions": permissions,
-	}, nil
+	}
 }
 
 func newRegoDecider(log *zap.SugaredLogger, basePath string) (*regoDecider, error) {
@@ -74,10 +74,7 @@ func newRegoDecider(log *zap.SugaredLogger, basePath string) (*regoDecider, erro
 }
 
 func (r *regoDecider) Decide(ctx context.Context, req *http.Request, u *security.User, permissions Permissions) (bool, error) {
-	input, err := r.newRegoInput(req, u, permissions)
-	if err != nil {
-		return false, err
-	}
+	input := r.newRegoInput(req, u, permissions)
 
 	r.log.Debugw("rego evaluation", "input", input)
 
