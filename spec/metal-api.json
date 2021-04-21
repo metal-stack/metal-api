@@ -3489,7 +3489,7 @@
         "consumes": [
           "application/json"
         ],
-        "operationId": "func3",
+        "operationId": "updateFilesystemLayout",
         "parameters": [
           {
             "in": "body",
@@ -3532,7 +3532,7 @@
         "consumes": [
           "application/json"
         ],
-        "operationId": "func2",
+        "operationId": "createFilesystemLayout",
         "parameters": [
           {
             "in": "body",
@@ -3577,7 +3577,7 @@
         "consumes": [
           "application/json"
         ],
-        "operationId": "func1",
+        "operationId": "deleteFilesystemLayout",
         "parameters": [
           {
             "description": "identifier of the filesystemlayout",
@@ -3613,7 +3613,7 @@
         "consumes": [
           "application/json"
         ],
-        "operationId": "findFilesystemLayout",
+        "operationId": "getFilesystemLayout",
         "parameters": [
           {
             "description": "identifier of the filesystemlayout",

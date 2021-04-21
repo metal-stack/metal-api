@@ -41,6 +41,7 @@ func (r filesystemResource) webService() *restful.WebService {
 
 	ws.Route(ws.GET("/{id}").
 		To(r.findFilesystemLayout).
+		Operation("getFilesystemLayout").
 		Doc("get filesystemlayout by id").
 		Param(ws.PathParameter("id", "identifier of the filesystemlayout").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -50,6 +51,7 @@ func (r filesystemResource) webService() *restful.WebService {
 
 	ws.Route(ws.GET("/").
 		To(r.listFilesystemLayouts).
+		Operation("listFilesystemLayouts").
 		Doc("get all filesystemlayouts").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]v1.FilesystemLayoutResponse{}).
@@ -58,6 +60,7 @@ func (r filesystemResource) webService() *restful.WebService {
 
 	ws.Route(ws.DELETE("/{id}").
 		To(admin(r.deleteFilesystemLayout)).
+		Operation("deleteFilesystemLayout").
 		Doc("deletes an filesystemlayout and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the filesystemlayout").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -67,6 +70,7 @@ func (r filesystemResource) webService() *restful.WebService {
 
 	ws.Route(ws.PUT("/").
 		To(admin(r.createFilesystemLayout)).
+		Operation("createFilesystemLayout").
 		Doc("create a filesystemlayout. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.FilesystemLayoutCreateRequest{}).
@@ -76,6 +80,7 @@ func (r filesystemResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/").
 		To(admin(r.updateFilesystemLayout)).
+		Operation("updateFilesystemLayout").
 		Doc("updates a filesystemlayout. if the filesystemlayout was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.FilesystemLayoutUpdateRequest{}).
