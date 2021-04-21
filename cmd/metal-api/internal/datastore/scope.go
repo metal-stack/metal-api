@@ -24,23 +24,30 @@ func (p Predicate) String() string {
 
 type Predicates []Predicate
 
+// ResourceScope contains predicates for filtering resources on the database.
 type ResourceScope struct {
-	Tenants   Predicates
-	Projects  Predicates
+	// Tenants includes predicates that need to match the resource's tenant field
+	Tenants Predicates
+	// Tenants includes predicates that need to match the resource's project field
+	Projects Predicates
+	// Tenants includes predicates that need to match the resource's id field
 	Resources Predicates
-
+	// IsAdmin decides whether public resources (i.e. resources with empty tenant and project) can be written .
 	IsAdmin bool
 
 	visibility Predicates
 }
 
+// EverythingScope has all permissions on all resources.
+// Should only be used for internal, technical purposes.
 var EverythingScope = ResourceScope{
 	Tenants:   Predicates{ScopeAllTenants},
 	Projects:  Predicates{ScopeAllProjects},
 	Resources: Predicates{ScopeAllResources},
-	IsAdmin:   true,
 
-	visibility: Predicates{VisibilityAdmin},
+	IsAdmin: true,
+
+	visibility: Predicates{VisibilityPrivate, VisibilityShared, VisibilityPublic, VisibilityAdmin},
 }
 
 const (
@@ -94,7 +101,7 @@ func visibilityFromName(input string) (Predicates, error) {
 //
 // The attributes are typically defined in the request filter chain before reaching the business logic.
 //
-// It also extracts a common query parameter for including sight of resources with public visibility.
+// It also extracts a common query parameter "visibility" for additional scoping on resource visibility.
 func (rs *RethinkStore) NewResourceScopeFromRequestAttributes(req *restful.Request) (*ResourceScope, error) {
 	scope, ok := req.Attribute("scope").(ResourceScope)
 	if !ok {
@@ -172,7 +179,7 @@ func (scope *ResourceScope) Apply(e metal.Entity, q r.Term) r.Term {
 	return res
 }
 
-// Allows returns true if the resource scope allows the given entities for writing.
+// AllowsWriteOn returns true if the resource scope allows the given entities for writing.
 func (scope *ResourceScope) AllowsWriteOn(es ...metal.Entity) error {
 	for _, e := range es {
 		if err := scope.allows(e); err != nil {
