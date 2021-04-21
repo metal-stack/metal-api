@@ -26,26 +26,35 @@ type Predicates []Predicate
 
 // ResourceScope contains predicates for filtering resources on the database.
 type ResourceScope struct {
-	// Tenants includes predicates that need to match the resource's tenant field
-	Tenants Predicates
-	// Tenants includes predicates that need to match the resource's project field
-	Projects Predicates
-	// Tenants includes predicates that need to match the resource's id field
-	Resources Predicates
-	// IsAdmin decides whether public resources (i.e. resources with empty tenant and project) can be written .
-	IsAdmin bool
+	// tenants includes predicates that need to match the resource's tenant field
+	tenants Predicates
+	// projects includes predicates that need to match the resource's project field
+	projects Predicates
+	// resources includes predicates that need to match the resource's id field
+	resources Predicates
+	// isAdmin decides whether public resources (i.e. resources with empty tenant and project) can be written .
+	isAdmin bool
 
 	visibility Predicates
+}
+
+func NewResourceScope(tenants Predicates, projects Predicates, resources Predicates, isAdmin bool) ResourceScope {
+	return ResourceScope{
+		tenants:   tenants,
+		projects:  projects,
+		resources: resources,
+		isAdmin:   isAdmin,
+	}
 }
 
 // EverythingScope has all permissions on all resources.
 // Should only be used for internal, technical purposes.
 var EverythingScope = ResourceScope{
-	Tenants:   Predicates{ScopeAllTenants},
-	Projects:  Predicates{ScopeAllProjects},
-	Resources: Predicates{ScopeAllResources},
+	tenants:   Predicates{ScopeAllTenants},
+	projects:  Predicates{ScopeAllProjects},
+	resources: Predicates{ScopeAllResources},
 
-	IsAdmin: true,
+	isAdmin: true,
 
 	visibility: Predicates{VisibilityPrivate, VisibilityShared, VisibilityPublic, VisibilityAdmin},
 }
@@ -114,11 +123,11 @@ func (rs *RethinkStore) NewResourceScopeFromRequestAttributes(req *restful.Reque
 	}
 	scope.visibility = v
 
-	if v.Contains(VisibilityAdmin) && !scope.IsAdmin {
+	if v.Contains(VisibilityAdmin) && !scope.isAdmin {
 		return nil, fmt.Errorf("not allowed to view resources with admin visibility")
 	}
 
-	rs.Debugw("created new resource scope", "predicates", scope, "visibilities", scope.visibility)
+	rs.Debugw("created new resource scope", "visibilities", scope.visibility)
 
 	return &scope, nil
 }
@@ -135,19 +144,19 @@ func (scope *ResourceScope) Apply(e metal.Entity, q r.Term) r.Term {
 			base := q
 			if !scope.allTenants() {
 				base = base.Filter(func(row r.Term) r.Term {
-					return r.Expr(scope.Tenants).Contains(row.Field(fields.TenantID))
+					return r.Expr(scope.tenants).Contains(row.Field(fields.TenantID))
 				})
 			}
 
 			if !scope.allProjects() {
 				base = base.Filter(func(row r.Term) r.Term {
-					return r.Expr(scope.Projects).Contains(row.Field(fields.ProjectID))
+					return r.Expr(scope.projects).Contains(row.Field(fields.ProjectID))
 				})
 			}
 
 			if !scope.allResources() {
 				base = base.Filter(func(row r.Term) r.Term {
-					return r.Expr(scope.Resources).Contains(row.Field(fields.ID))
+					return r.Expr(scope.resources).Contains(row.Field(fields.ID))
 				})
 			}
 
@@ -190,19 +199,19 @@ func (scope *ResourceScope) AllowsWriteOn(es ...metal.Entity) error {
 }
 
 func (scope *ResourceScope) allows(e metal.Entity) error {
-	if (e.GetProjectID() == "" || e.GetTenantID() == "") && !scope.IsAdmin {
+	if (e.GetProjectID() == "" || e.GetTenantID() == "") && !scope.isAdmin {
 		return fmt.Errorf("no write access on admin resources")
 	}
 
-	if !scope.allTenants() && !scope.Tenants.Contains(Predicate(e.GetTenantID())) {
+	if !scope.allTenants() && !scope.tenants.Contains(Predicate(e.GetTenantID())) {
 		return fmt.Errorf("tenant not allowed")
 	}
 
-	if !scope.allProjects() && !scope.Projects.Contains(Predicate(e.GetProjectID())) {
+	if !scope.allProjects() && !scope.projects.Contains(Predicate(e.GetProjectID())) {
 		return fmt.Errorf("project not allowed")
 	}
 
-	if !scope.allResources() && !scope.Resources.Contains(Predicate(e.GetID())) {
+	if !scope.allResources() && !scope.resources.Contains(Predicate(e.GetID())) {
 		return fmt.Errorf("id not allowed")
 	}
 
@@ -210,15 +219,15 @@ func (scope *ResourceScope) allows(e metal.Entity) error {
 }
 
 func (scope *ResourceScope) allTenants() bool {
-	return scope.Tenants.Contains(ScopeAllTenants)
+	return scope.tenants.Contains(ScopeAllTenants)
 }
 
 func (scope *ResourceScope) allProjects() bool {
-	return scope.Projects.Contains(ScopeAllProjects)
+	return scope.projects.Contains(ScopeAllProjects)
 }
 
 func (scope *ResourceScope) allResources() bool {
-	return scope.Resources.Contains(ScopeAllResources)
+	return scope.resources.Contains(ScopeAllResources)
 }
 
 // Contains returns true when a given predicate is contained in the slice of predicates.

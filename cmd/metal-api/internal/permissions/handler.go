@@ -50,14 +50,14 @@ func (p *PermissionsHandler) Authz(req *restful.Request, resp *restful.Response,
 		return
 	}
 
-	scope := datastore.ResourceScope{
-		Projects:  datastore.Predicates{"*"}, // FIXME // TODO: How to always get latest projects here?
-		Tenants:   datastore.Predicates{"*"}, // FIXME // TODO: How to always get all latest tenants (on behalf) here?
-		Resources: datastore.Predicates{"*"}, // FIXME // TODO: Do we want to go this far? Where to get these?
-
-		IsAdmin: isAdmin,
-	}
+	scope := datastore.NewResourceScope(
+		datastore.Predicates{"*"}, // FIXME // TODO: How to always get all latest tenants (on behalf) here?
+		datastore.Predicates{"*"}, // FIXME // TODO: How to always get latest projects here?
+		datastore.Predicates{"*"}, // FIXME // TODO: Do we want to go this far? Where to get these?
+		isAdmin,
+	)
 	// scope := datastore.EverythingScope // FIXME
+
 	req.SetAttribute("scope", scope)
 	p.log.Debugw("set request attribute", "scope", scope)
 
