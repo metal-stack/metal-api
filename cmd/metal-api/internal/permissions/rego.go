@@ -114,20 +114,22 @@ func (r *regoDecider) ListPermissions(ctx context.Context) ([]string, error) {
 	results, err := r.qPermissions.Eval(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "error evaluating rego result set")
-	} else if len(results) == 0 {
-		return nil, fmt.Errorf("error evaluating rego result set: results have no length")
-	} else {
-		set, ok := results[0].Bindings["x"].([]interface{})
-		if !ok {
-			return nil, fmt.Errorf("error evaluating rego result set: unexpected response type")
-		}
-
-		var ps []string
-		for _, p := range set {
-			p := p.(string)
-			ps = append(ps, p)
-		}
-
-		return ps, nil
 	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("error evaluating rego result set: results have no length")
+	}
+
+	set, ok := results[0].Bindings["x"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error evaluating rego result set: unexpected response type")
+	}
+
+	var ps []string
+	for _, p := range set {
+		p := p.(string)
+		ps = append(ps, p)
+	}
+
+	return ps, nil
 }
