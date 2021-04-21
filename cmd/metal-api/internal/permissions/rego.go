@@ -97,11 +97,6 @@ func (r *regoDecider) Decide(ctx context.Context, req *http.Request, u *security
 		return false, fmt.Errorf("error evaluating rego result set: unexpected response type")
 	}
 
-	isAdmin, ok := decision["isAdmin"].(bool)
-	if !ok {
-		return false, fmt.Errorf("error evaluating rego result set: unexpected response type")
-	}
-
 	r.log.Debugw("made auth decision", "results", results)
 
 	if !allow {
@@ -112,7 +107,7 @@ func (r *regoDecider) Decide(ctx context.Context, req *http.Request, u *security
 		return false, fmt.Errorf("access denied")
 	}
 
-	return isAdmin, nil
+	return decision["isAdmin"].(bool), nil
 }
 
 func (r *regoDecider) ListPermissions(ctx context.Context) ([]string, error) {
