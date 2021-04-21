@@ -83,40 +83,49 @@ func (scope *ResourceScope) Apply(e metal.Entity, q r.Term) r.Term {
 	fields := e.GetFieldNames()
 
 	var subTerms []r.Term
-	for _, v := range scope.visibility {
-		switch v {
-		case VisibilityPrivate:
-			base := q
-			if !scope.allTenants() {
-				base = base.Filter(func(row r.Term) r.Term {
-					return r.Expr(scope.tenants).Contains(row.Field(fields.TenantID))
-				})
-			}
 
-			if !scope.allProjects() {
-				base = base.Filter(func(row r.Term) r.Term {
-					return r.Expr(scope.projects).Contains(row.Field(fields.ProjectID))
-				})
-			}
+	if scope.visibility.Contains(VisibilityPrivate) {
+		qPrivate := q
 
-			if !scope.allResources() {
-				base = base.Filter(func(row r.Term) r.Term {
-					return r.Expr(scope.resources).Contains(row.Field(fields.ID))
-				})
-			}
-
-			subTerms = append(subTerms, base)
-		case VisibilityShared:
-			// FIXME: How to do this?
-
-		case VisibilityPublic:
-			subTerms = append(subTerms, q.Filter(map[string]interface{}{fields.ProjectID: "", fields.TenantID: ""}))
-
-		case VisibilityAdmin:
-			// FIXME: How to do this?
+		if !scope.allTenants() {
+			qPrivate = qPrivate.Filter(func(row r.Term) r.Term {
+				return r.Expr(scope.tenants).Contains(row.Field(fields.TenantID))
+			})
 		}
 
+		if !scope.allProjects() {
+			qPrivate = qPrivate.Filter(func(row r.Term) r.Term {
+				return r.Expr(scope.projects).Contains(row.Field(fields.ProjectID))
+			})
+		}
+
+		if !scope.allResources() {
+			qPrivate = qPrivate.Filter(func(row r.Term) r.Term {
+				return r.Expr(scope.resources).Contains(row.Field(fields.ID))
+			})
+		}
+
+		subTerms = append(subTerms, qPrivate)
 	}
+
+	if scope.visibility.Contains(VisibilityShared) {
+		qShared := q
+
+		qShared = qShared.Filter(func(row r.Term) r.Term {
+			// FIXME shared needs field getter
+			return row.Field("shared").Eq(true)
+		})
+
+		subTerms = append(subTerms, qShared)
+	}
+
+	if scope.visibility.Contains(VisibilityPublic) {
+		subTerms = append(subTerms, q.Filter(map[string]interface{}{fields.ProjectID: "", fields.TenantID: ""}))
+	}
+
+	// if scope.visibility.Contains(VisibilityAdmin) {
+	// FIXME what to do here?
+	// }
 
 	if len(subTerms) == 0 {
 		return r.Expr(map[string]interface{}{})

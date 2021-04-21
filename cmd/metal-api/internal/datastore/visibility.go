@@ -6,17 +6,17 @@ import (
 )
 
 const (
-	// VisibilityPrivate includes resources that are bound to a specific tenants and projects.
+	// VisibilityPrivate includes database entities that are bound to specific tenants and projects.
 	// (e.g. private machine networks)
 	VisibilityPrivate Predicate = "private"
-	// VisibilityShared includes resources that are bound to a specific tenants and projects when
-	// they have set a special "shared" flag. These entities can be read and used by other
-	// tenants in other projects. (e.g. private shared networks)
+	// VisibilityShared includes database entities that are bound to specific tenants and projects when
+	// they have set a special "shared" flag. These entities can be read and used by in projects of
+	// arbitrary tenants. (e.g. private shared networks)
 	VisibilityShared Predicate = "shared"
-	// VisibilityPublic includes resources provided by administrators that can be read and used
-	// by arbitrary tenants in arbitrary projects. (e.g. public machine images)
+	// VisibilityPublic includes database entities provided by administrators that can be read and used
+	// by projects of arbitrary tenants. (e.g. public machine images)
 	VisibilityPublic Predicate = "public"
-	// VisibilityAdmin includes resources that can only be read and used by administrators.
+	// VisibilityAdmin includes database entities that can only be read and used by administrators.
 	// (e.g. IPMI console data, machine firmware management, ...)
 	VisibilityAdmin Predicate = "admin"
 )
