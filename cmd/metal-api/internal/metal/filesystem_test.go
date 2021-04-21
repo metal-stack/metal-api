@@ -246,6 +246,15 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "simple match with old device naming",
+			fields: fields{
+				Disks: []Disk{{Device: "/dev/sda"}, {Device: "/dev/sdb"}},
+			},
+			args:    args{hardware: MachineHardware{Disks: []BlockDevice{{Name: "sda"}, {Name: "sdb"}}}},
+			want:    true,
+			wantErr: false,
+		},
+		{
 			name: "simple no match device missing",
 			fields: fields{
 				Disks: []Disk{{Device: "/dev/sda"}, {Device: "/dev/sdb"}},

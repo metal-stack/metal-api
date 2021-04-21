@@ -277,7 +277,11 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 	}
 
 	for _, disk := range hardware.Disks {
-		existingDevices[disk.Name] = disk.Size
+		diskName := disk.Name
+		if !strings.HasPrefix(diskName, "/dev/") {
+			diskName = fmt.Sprintf("/dev/%s", disk.Name)
+		}
+		existingDevices[diskName] = disk.Size
 	}
 
 	for requiredDevice, requiredSize := range requiredDevices {
