@@ -56,7 +56,6 @@ type (
 		Number  uint8
 		Label   *string
 		Size    uint64
-		GUID    *string
 		GPTType *string
 	}
 )
@@ -89,7 +88,6 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 				Number: p.Number,
 				Size:   p.Size,
 				Label:  p.Label,
-				GUID:   p.GUID,
 			}
 			if p.GPTType != nil {
 				gptType, err := metal.ToGPTType(*p.GPTType)
@@ -170,7 +168,6 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 				Number:  p.Number,
 				Size:    p.Size,
 				Label:   p.Label,
-				GUID:    (*string)(p.GUID),
 				GPTType: (*string)(p.GPTType),
 			}
 			parts = append(parts, part)

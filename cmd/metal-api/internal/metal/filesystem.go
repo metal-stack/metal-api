@@ -28,8 +28,6 @@ const (
 	GPTLinuxRaid = GPTType("fd00")
 	// GPTLinux Linux Partition
 	GPTLinuxLVM = GPTType("8e00")
-	// EFISystemPartition see https://en.wikipedia.org/wiki/EFI_system_partition
-	EFISystemPartition = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B"
 
 	// RaidLevel0 is a stripe of two or more disks
 	RaidLevel0 = RaidLevel("0")
@@ -127,8 +125,6 @@ type (
 		// Size of this partition in bytes
 		// if "0" is given the rest of the device will be used, this requires Number to be the highest in this partition
 		Size uint64
-		// GUID of this partition
-		GUID *string
 		// GPTType defines the GPT partition type
 		GPTType *GPTType
 	}
