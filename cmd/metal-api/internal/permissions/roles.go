@@ -1,12 +1,19 @@
 package permissions
 
-import "github.com/metal-stack/security"
+import (
+	"context"
+)
 
 type Roles []Role
 type Role struct {
 	Name        string
 	Status      string
 	Permissions Permissions
+}
+
+// ListRoles lists all roles handled by the permissions handler
+func (p *PermissionsHandler) ListRoles(ctx context.Context) (Roles, error) {
+	return mockRoles(), nil // FIXME
 }
 
 func (rs Roles) MergePermissions() Permissions {
@@ -24,7 +31,8 @@ func (rs Roles) MergePermissions() Permissions {
 	return result
 }
 
-func mockRoles(_ *security.User) Roles {
+// FIXME This is only for testing / development
+func mockRoles() Roles {
 	return Roles{
 		{
 			Name:   "Metal Image Reader",

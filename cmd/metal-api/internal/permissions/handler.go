@@ -1,7 +1,6 @@
 package permissions
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/emicklei/go-restful/v3"
@@ -41,10 +40,16 @@ func (p *PermissionsHandler) Authz(req *restful.Request, resp *restful.Response,
 		return
 	}
 
-	// TODO: How to get permissions? Must be composed from roles!
-	permissions := mockRoles(u).MergePermissions() // FIXME
+	ctx := req.Request.Context()
 
-	isAdmin, err := p.decider.Decide(req.Request.Context(), req.Request, u, permissions)
+	// TODO: How to get permissions? Must be composed from roles!
+	roles, err := p.ListRoles(ctx)
+	if err != nil {
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, httperrors.InternalServerError(err))
+		return
+	}
+
+	isAdmin, err := p.decider.Decide(ctx, req.Request, u, roles.MergePermissions())
 	if err != nil {
 		_ = resp.WriteHeaderAndEntity(http.StatusForbidden, httperrors.Forbidden(err))
 		return
@@ -62,9 +67,4 @@ func (p *PermissionsHandler) Authz(req *restful.Request, resp *restful.Response,
 	p.log.Debugw("set request attribute", "scope", scope)
 
 	chain.ProcessFilter(req, resp)
-}
-
-// ListPermissions lists all permissions handled by the permissions handler
-func (p *PermissionsHandler) ListPermissions(ctx context.Context) ([]string, error) {
-	return p.decider.ListPermissions(ctx)
 }
