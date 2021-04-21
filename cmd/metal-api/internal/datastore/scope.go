@@ -2,7 +2,6 @@ package datastore
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -11,18 +10,13 @@ import (
 
 const (
 	// FIXME prevent tenants, projects and resources to be named "*"
-	ScopeAllTenants   = "*"
-	ScopeAllProjects  = "*"
-	ScopeAllResources = "*"
+	// scopeAllTenants is a scope wildcard for tenant predicates
+	scopeAllTenants = "*"
+	// scopeAllProjects is a scope wildcard for project predicates
+	scopeAllProjects = "*"
+	// scopeAllResources is a scope wildcard for resource predicates
+	scopeAllResources = "*"
 )
-
-type Predicate string
-
-func (p Predicate) String() string {
-	return string(p)
-}
-
-type Predicates []Predicate
 
 // ResourceScope contains predicates for filtering resources on the database.
 type ResourceScope struct {
@@ -50,60 +44,11 @@ func NewResourceScope(tenants Predicates, projects Predicates, resources Predica
 // EverythingScope has all permissions on all resources.
 // Should only be used for internal, technical purposes.
 var EverythingScope = ResourceScope{
-	tenants:   Predicates{ScopeAllTenants},
-	projects:  Predicates{ScopeAllProjects},
-	resources: Predicates{ScopeAllResources},
-
-	isAdmin: true,
-
+	tenants:    Predicates{scopeAllTenants},
+	projects:   Predicates{scopeAllProjects},
+	resources:  Predicates{scopeAllResources},
+	isAdmin:    true,
 	visibility: Predicates{VisibilityPrivate, VisibilityShared, VisibilityPublic, VisibilityAdmin},
-}
-
-const (
-	// VisibilityPrivate includes resources that are bound to a specific tenants and projects.
-	// (e.g. private machine networks)
-	VisibilityPrivate Predicate = "private"
-	// VisibilityShared includes resources that are bound to a specific tenants and projects when
-	// they have set a special "shared" flag. These entities can be read and used by other
-	// tenants in other projects. (e.g. private shared networks)
-	VisibilityShared Predicate = "shared"
-	// VisibilityPublic includes resources provided by administrators that can be read and used
-	// by arbitrary tenants in arbitrary projects. (e.g. public machine images)
-	VisibilityPublic Predicate = "public"
-	// VisibilityAdmin includes resources that can only be read and used by administrators.
-	// (e.g. IPMI console data, machine firmware management, ...)
-	VisibilityAdmin Predicate = "admin"
-)
-
-func visibilityFromName(input string) (Predicates, error) {
-	if input == "" {
-		return Predicates{VisibilityPrivate, VisibilityShared}, nil
-	}
-
-	names := strings.Split(input, ",")
-
-	ps := map[Predicate]bool{}
-	for _, name := range names {
-		switch name {
-		case VisibilityPrivate.String():
-			ps[VisibilityPrivate] = true
-		case VisibilityShared.String():
-			ps[VisibilityShared] = true
-		case VisibilityPublic.String():
-			ps[VisibilityPublic] = true
-		case VisibilityAdmin.String():
-			ps[VisibilityAdmin] = true
-		default:
-			return nil, fmt.Errorf("unsupported visibility: %s", name)
-		}
-	}
-
-	var result Predicates
-	for p := range ps {
-		result = append(result, p)
-	}
-
-	return result, nil
 }
 
 // NewResourceScopeFromRequestAttributes extracts the resource scope from the request attributes.
@@ -219,27 +164,13 @@ func (scope *ResourceScope) allows(e metal.Entity) error {
 }
 
 func (scope *ResourceScope) allTenants() bool {
-	return scope.tenants.Contains(ScopeAllTenants)
+	return scope.tenants.Contains(scopeAllTenants)
 }
 
 func (scope *ResourceScope) allProjects() bool {
-	return scope.projects.Contains(ScopeAllProjects)
+	return scope.projects.Contains(scopeAllProjects)
 }
 
 func (scope *ResourceScope) allResources() bool {
-	return scope.resources.Contains(ScopeAllResources)
-}
-
-// Contains returns true when a given predicate is contained in the slice of predicates.
-func (ps Predicates) Contains(p Predicate) bool {
-	for _, pp := range ps {
-		if pp == p {
-			return true
-		}
-	}
-	return false
-}
-
-func (p Predicate) Is(pp Predicate) bool {
-	return string(p) == string(pp)
+	return scope.resources.Contains(scopeAllResources)
 }
