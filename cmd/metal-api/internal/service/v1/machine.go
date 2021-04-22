@@ -451,17 +451,18 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 
 		allocation = &MachineAllocation{
-			Created:         m.Allocation.Created,
-			Name:            m.Allocation.Name,
-			Description:     m.Allocation.Description,
-			Image:           NewImageResponse(i),
-			Project:         m.Allocation.Project,
-			Hostname:        m.Allocation.Hostname,
-			SSHPubKeys:      m.Allocation.SSHPubKeys,
-			UserData:        m.Allocation.UserData,
-			ConsolePassword: consolePassword,
-			MachineNetworks: networks,
-			Succeeded:       m.Allocation.Succeeded,
+			Created:          m.Allocation.Created,
+			Name:             m.Allocation.Name,
+			Description:      m.Allocation.Description,
+			Image:            NewImageResponse(i),
+			Project:          m.Allocation.Project,
+			Hostname:         m.Allocation.Hostname,
+			SSHPubKeys:       m.Allocation.SSHPubKeys,
+			UserData:         m.Allocation.UserData,
+			ConsolePassword:  consolePassword,
+			MachineNetworks:  networks,
+			Succeeded:        m.Allocation.Succeeded,
+			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
