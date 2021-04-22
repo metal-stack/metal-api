@@ -17,7 +17,7 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration",
+	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration", "filesystemlayout",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
