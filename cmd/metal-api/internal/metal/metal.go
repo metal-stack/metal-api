@@ -81,6 +81,8 @@ type Base struct {
 	Description string    `rethinkdb:"description" json:"description"`
 	Created     time.Time `rethinkdb:"created" json:"created"`
 	Changed     time.Time `rethinkdb:"changed" json:"changed"`
+	ProjectID   string    `rethinkdb:"projectid" json:"projectid"`
+	TenantID    string    `rethinkdb:"tenantid" json:"tenantid"`
 }
 
 // Entity is an interface that allows metal entities to be created and stored into the database with the generic creation and update functions.
@@ -97,6 +99,18 @@ type Entity interface {
 	GetCreated() time.Time
 	// SetCreated sets the entity's creation time
 	SetCreated(created time.Time)
+	// GetProjectID returns the entity's project id
+	GetProjectID() string
+	// GetTenantID returns the entity's tenant id
+	GetTenantID() string
+	// GetFieldNames returns the some base database field names
+	GetFieldNames() EntityBaseFields
+}
+
+type EntityBaseFields struct {
+	ID        string
+	ProjectID string
+	TenantID  string
 }
 
 // GetID returns the ID of the entity
@@ -127,4 +141,23 @@ func (b *Base) GetCreated() time.Time {
 // SetCreated sets the creation timestamp of the entity
 func (b *Base) SetCreated(created time.Time) {
 	b.Created = created
+}
+
+// GetProjectID returns the entity's project id
+func (b *Base) GetProjectID() string {
+	return b.ProjectID
+}
+
+// GetTenantID returns the entity's tenant id
+func (b *Base) GetTenantID() string {
+	return b.TenantID
+}
+
+// GetFieldNames returns the some base database field names
+func (b *Base) GetFieldNames() EntityBaseFields {
+	return EntityBaseFields{
+		ID:        "id",
+		ProjectID: "projectid",
+		TenantID:  "tenantid",
+	}
 }

@@ -1,6 +1,6 @@
 module github.com/metal-stack/metal-api
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
@@ -24,6 +24,7 @@ require (
 	github.com/metal-stack/v v1.0.3
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/nsqio/go-nsq v1.0.8
+	github.com/open-policy-agent/opa v0.27.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
 	github.com/smartystreets/assertions v1.2.0 // indirect

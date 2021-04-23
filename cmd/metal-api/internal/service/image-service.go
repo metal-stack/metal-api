@@ -43,7 +43,8 @@ func (ir imageResource) webService() *restful.WebService {
 	ws.
 		Path(BasePath + "v1/image").
 		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON)
+		Produces(restful.MIME_JSON).
+		ApiVersion("v1")
 
 	tags := []string{"image"}
 
@@ -52,6 +53,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("findImage").
 		Doc("get image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
+		Param(ws.QueryParameter("visibility", "comma-separated list of resource visibilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
@@ -62,6 +64,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("findLatestImage").
 		Doc("find latest image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
+		Param(ws.QueryParameter("visibility", "comma-separated list of resource visibilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
@@ -71,13 +74,14 @@ func (ir imageResource) webService() *restful.WebService {
 		To(ir.listImages).
 		Operation("listImages").
 		Doc("get all images").
+		Param(ws.QueryParameter("visibility", "comma-separated list of resource visibilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
-		To(admin(ir.deleteImage)).
+		To(ir.deleteImage).
 		Operation("deleteImage").
 		Doc("deletes an image and returns the deleted entity").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
@@ -87,7 +91,7 @@ func (ir imageResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.PUT("/").
-		To(admin(ir.createImage)).
+		To(ir.createImage).
 		Operation("createImage").
 		Doc("create an image. if the given ID already exists a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -97,7 +101,7 @@ func (ir imageResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").
-		To(admin(ir.updateImage)).
+		To(ir.updateImage).
 		Operation("updateImage").
 		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -112,10 +116,16 @@ func (ir imageResource) webService() *restful.WebService {
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.GetImage(id)
+	scope, err := ir.ds.NewResourceScopeFromRequestAttributes(request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
+	img, err := ir.ds.GetImageV2(id, *scope)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -126,10 +136,16 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 func (ir imageResource) findLatestImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	scope, err := ir.ds.NewResourceScopeFromRequestAttributes(request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
+	img, err := ir.ds.FindImageV2(id, *scope)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -138,7 +154,12 @@ func (ir imageResource) findLatestImage(request *restful.Request, response *rest
 }
 
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
-	imgs, err := ir.ds.ListImages()
+	scope, err := ir.ds.NewResourceScopeFromRequestAttributes(request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	imgs, err := ir.ds.ListImagesV2(*scope)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -165,8 +186,14 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 }
 
 func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
+	// FIXME How can a private image be specified?
+	scope, err := ir.ds.NewResourceScopeFromRequestAttributes(request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	var requestPayload v1.ImageCreateRequest
-	err := request.ReadEntity(&requestPayload)
+	err = request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -240,7 +267,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		Classification: vc,
 	}
 
-	err = ir.ds.CreateImage(img)
+	err = ir.ds.CreateImageV2(img, *scope)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -264,9 +291,15 @@ func checkImageURL(id, url string) error {
 }
 
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
+	// FIXME How can a private image be specified?
+	scope, err := ir.ds.NewResourceScopeFromRequestAttributes(request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.GetImage(id)
+	img, err := ir.ds.GetImageV2(id, *scope)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -283,7 +316,7 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		}
 	}
 
-	err = ir.ds.DeleteImage(img)
+	err = ir.ds.DeleteImageV2(img, *scope)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -295,8 +328,14 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 }
 
 func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
+	// FIXME How can a private image be specified?
+	scope, err := ir.ds.NewResourceScopeFromRequestAttributes(request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	var requestPayload v1.ImageUpdateRequest
-	err := request.ReadEntity(&requestPayload)
+	err = request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -347,7 +386,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.ExpirationDate = *requestPayload.ExpirationDate
 	}
 
-	err = ir.ds.UpdateImage(oldImage, &newImage)
+	err = ir.ds.UpdateImageV2(oldImage, &newImage, *scope)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

@@ -307,6 +307,25 @@ func (rs *RethinkStore) findEntityByID(table *r.Term, entity interface{}, id str
 	return nil
 }
 
+func (rs *RethinkStore) findEntityByIDV2(term *r.Term, entity metal.Entity, id string) error {
+	fields := entity.GetFieldNames()
+
+	res, err := term.Filter(map[string]interface{}{fields.ID: id}).Run(rs.session)
+	if err != nil {
+		return fmt.Errorf("cannot find %v with id %q in database: %w", getEntityName(entity), id, err)
+	}
+	defer res.Close()
+	if res.IsNil() {
+		return metal.NotFound("no %v with id %q found", getEntityName(entity), id)
+	}
+
+	err = res.One(entity)
+	if err != nil {
+		return fmt.Errorf("more than one %v with same id exists: %w", getEntityName(entity), err)
+	}
+	return nil
+}
+
 func (rs *RethinkStore) findEntity(query *r.Term, entity interface{}) error {
 	res, err := query.Run(rs.session)
 	if err != nil {
