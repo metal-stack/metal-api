@@ -388,7 +388,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: RaidLevel1},
+					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: RaidLevel1},
 				},
 			},
 			want:    true,
@@ -403,7 +403,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: "6"},
+					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: "6"},
 				},
 			},
 			want:      false,
@@ -432,7 +432,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
-					{Name: "/dev/md1", Devices: []string{"/dev/sda2", "/dev/sdb2"}, Level: RaidLevel1},
+					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda2", "/dev/sdb2"}, Level: RaidLevel1},
 				},
 			},
 			want:      false,

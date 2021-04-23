@@ -3,60 +3,57 @@ package v1
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 type (
+	FilesystemLayoutBase struct {
+		Filesystems []Filesystem                `json:"filesystems" description:"list of filesystems to create"`
+		Disks       []Disk                      `json:"disks" description:"list of disks to to modify"`
+		Raid        []Raid                      `json:"raid" description:"list of raid arrays to create"`
+		Constraints FilesystemLayoutConstraints `json:"constraints" description:"constraints which must match that this layout is taken"`
+	}
 	FilesystemLayoutResponse struct {
 		Common
-		Filesystems []Filesystem
-		Disks       []Disk
-		Raid        []Raid
-		Constraints FilesystemLayoutConstraints
+		FilesystemLayoutBase
 	}
 
 	FilesystemLayoutCreateRequest struct {
 		Common
-		Filesystems []Filesystem
-		Disks       []Disk
-		Raid        []Raid
-		Constraints FilesystemLayoutConstraints
+		FilesystemLayoutBase
 	}
 
 	FilesystemLayoutUpdateRequest struct {
 		Common
-		Filesystems []Filesystem
-		Disks       []Disk
-		Raid        []Raid
-		Constraints FilesystemLayoutConstraints
+		FilesystemLayoutBase
 	}
 
 	FilesystemLayoutConstraints struct {
-		Sizes  []string
-		Images []string
+		Sizes  []string `json:"sizes" description:"list of sizes this layout applies to"`
+		Images []string `json:"images" description:"list of images this layout applies to"`
 	}
 	Filesystem struct {
-		Path         *string
-		Device       string
-		Format       string
-		Label        *string
-		MountOptions []string
-		Options      []string
+		Path          *string  `json:"path" description:"the mountpoint where this filesystem should be mounted on"`
+		Device        string   `json:"device" description:"the underlaying device where this filesystem should be created"`
+		Format        string   `json:"format" description:"the filesystem format"`
+		Label         *string  `json:"label" description:"optional label for this this filesystem"`
+		MountOptions  []string `json:"mountoptions" description:"the options to use to mount this filesystem"`
+		CreateOptions []string `json:"createoptions" description:"the options to use to create (mkfs) this filesystem"`
 	}
 	Disk struct {
-		Device          string
-		PartitionPrefix string
-		Partitions      []DiskPartition
-		WipeOnReinstall bool
+		Device          string          `json:"device" description:"the device to create the partitions"`
+		PartitionPrefix string          `json:"partitionprefix" description:"if a partition is created on device partitionprefix defines how individual devices from a partition are numbered"`
+		Partitions      []DiskPartition `json:"partitions" description:"list of partitions to create on this disk"`
+		WipeOnReinstall bool            `json:"wipeonreinstall" description:"if set to true, this disk will be wiped before reinstallation"`
 	}
 	Raid struct {
-		Name    string
-		Devices []string
-		Level   string
-		Options []string
-		Spares  int
+		ArrayName     string   `json:"arrayname" description:"the name of the resulting array device"`
+		Devices       []string `json:"devices" description:"list of devices to form the raid array from"`
+		Level         string   `json:"level" description:"raid level to create, should be 0 or 1"`
+		CreateOptions []string `json:"createoptions" description:"the options to use to create the raid array"`
+		Spares        int      `json:"spares" description:"number of spares for the raid array"`
 	}
 	DiskPartition struct {
-		Number  uint8
-		Label   *string
-		Size    uint64
-		GPTType *string
+		Number  uint8   `json:"number" description:"partition number, will be appended to partitionprefix to create the final devicename"`
+		Label   *string `json:"label" description:"optional label for this this partition"`
+		Size    uint64  `json:"size" description:"size in mebibytes of this partition"`
+		GPTType *string `json:"gpttype" description:"the gpt partition table type of this partition"`
 	}
 )
 
@@ -72,12 +69,12 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 			return nil, err
 		}
 		v1fs := metal.Filesystem{
-			Path:         fs.Path,
-			Device:       string(fs.Device),
-			Format:       *format,
-			Label:        fs.Label,
-			MountOptions: fs.MountOptions,
-			Options:      fs.Options,
+			Path:          fs.Path,
+			Device:        string(fs.Device),
+			Format:        *format,
+			Label:         fs.Label,
+			MountOptions:  fs.MountOptions,
+			CreateOptions: fs.CreateOptions,
 		}
 		fss = append(fss, v1fs)
 	}
@@ -112,11 +109,11 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 			return nil, err
 		}
 		r := metal.Raid{
-			Name:    raid.Name,
-			Devices: raid.Devices,
-			Level:   *level,
-			Options: raid.Options,
-			Spares:  raid.Spares,
+			ArrayName:     raid.ArrayName,
+			Devices:       raid.Devices,
+			Level:         *level,
+			CreateOptions: raid.CreateOptions,
+			Spares:        raid.Spares,
 		}
 		rs = append(rs, r)
 	}
@@ -152,12 +149,12 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 	)
 	for _, fs := range f.Filesystems {
 		v1fs := Filesystem{
-			Path:         fs.Path,
-			Device:       string(fs.Device),
-			Format:       string(fs.Format),
-			Label:        fs.Label,
-			MountOptions: fs.MountOptions,
-			Options:      fs.Options,
+			Path:          fs.Path,
+			Device:        string(fs.Device),
+			Format:        string(fs.Format),
+			Label:         fs.Label,
+			MountOptions:  fs.MountOptions,
+			CreateOptions: fs.CreateOptions,
 		}
 		fss = append(fss, v1fs)
 	}
@@ -182,11 +179,11 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 	}
 	for _, raid := range f.Raid {
 		r := Raid{
-			Name:    raid.Name,
-			Devices: raid.Devices,
-			Level:   string(raid.Level),
-			Options: raid.Options,
-			Spares:  raid.Spares,
+			ArrayName:     raid.ArrayName,
+			Devices:       raid.Devices,
+			Level:         string(raid.Level),
+			CreateOptions: raid.CreateOptions,
+			Spares:        raid.Spares,
 		}
 		rs = append(rs, r)
 	}
@@ -200,12 +197,14 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 				Description: &f.Description,
 			},
 		},
-		Filesystems: fss,
-		Disks:       ds,
-		Raid:        rs,
-		Constraints: FilesystemLayoutConstraints{
-			Sizes:  f.Constraints.Sizes,
-			Images: f.Constraints.Images,
+		FilesystemLayoutBase: FilesystemLayoutBase{
+			Filesystems: fss,
+			Disks:       ds,
+			Raid:        rs,
+			Constraints: FilesystemLayoutConstraints{
+				Sizes:  f.Constraints.Sizes,
+				Images: f.Constraints.Images,
+			},
 		},
 	}
 	return flr

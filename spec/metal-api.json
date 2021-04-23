@@ -160,99 +160,115 @@
     },
     "v1.Disk": {
       "properties": {
-        "Device": {
+        "device": {
+          "description": "the device to create the partitions",
           "type": "string"
         },
-        "PartitionPrefix": {
+        "partitionprefix": {
+          "description": "if a partition is created on device partitionprefix defines how individual devices from a partition are numbered",
           "type": "string"
         },
-        "Partitions": {
+        "partitions": {
+          "description": "list of partitions to create on this disk",
           "items": {
             "$ref": "#/definitions/v1.DiskPartition"
           },
           "type": "array"
         },
-        "WipeOnReinstall": {
+        "wipeonreinstall": {
+          "description": "if set to true, this disk will be wiped before reinstallation",
           "type": "boolean"
         }
       },
       "required": [
-        "Device",
-        "PartitionPrefix",
-        "Partitions",
-        "WipeOnReinstall"
+        "device",
+        "partitionprefix",
+        "partitions",
+        "wipeonreinstall"
       ]
     },
     "v1.DiskPartition": {
       "properties": {
-        "GPTType": {
+        "gpttype": {
+          "description": "the gpt partition table type of this partition",
           "type": "string"
         },
-        "Label": {
+        "label": {
+          "description": "optional label for this this partition",
           "type": "string"
         },
-        "Number": {
+        "number": {
+          "description": "partition number, will be appended to partitionprefix to create the final devicename",
           "format": "byte",
           "type": "integer"
         },
-        "Size": {
+        "size": {
+          "description": "size in mebibytes of this partition",
           "format": "integer",
           "type": "integer"
         }
       },
       "required": [
-        "GPTType",
-        "Label",
-        "Number",
-        "Size"
+        "gpttype",
+        "label",
+        "number",
+        "size"
       ]
     },
     "v1.EmptyBody": {},
     "v1.Filesystem": {
       "properties": {
-        "Device": {
-          "type": "string"
-        },
-        "Format": {
-          "type": "string"
-        },
-        "Label": {
-          "type": "string"
-        },
-        "MountOptions": {
+        "createoptions": {
+          "description": "the options to use to create (mkfs) this filesystem",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
-        "Options": {
+        "device": {
+          "description": "the underlaying device where this filesystem should be created",
+          "type": "string"
+        },
+        "format": {
+          "description": "the filesystem format",
+          "type": "string"
+        },
+        "label": {
+          "description": "optional label for this this filesystem",
+          "type": "string"
+        },
+        "mountoptions": {
+          "description": "the options to use to mount this filesystem",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
-        "Path": {
+        "path": {
+          "description": "the mountpoint where this filesystem should be mounted on",
           "type": "string"
         }
       },
       "required": [
-        "Device",
-        "Format",
-        "Label",
-        "MountOptions",
-        "Options",
-        "Path"
+        "createoptions",
+        "device",
+        "format",
+        "label",
+        "mountoptions",
+        "path"
       ]
     },
     "v1.FilesystemLayoutConstraints": {
       "properties": {
-        "Images": {
+        "images": {
+          "description": "list of images this layout applies to",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
-        "Sizes": {
+        "sizes": {
+          "description": "list of sizes this layout applies to",
           "items": {
             "type": "string"
           },
@@ -260,36 +276,33 @@
         }
       },
       "required": [
-        "Images",
-        "Sizes"
+        "images",
+        "sizes"
       ]
     },
     "v1.FilesystemLayoutCreateRequest": {
       "properties": {
-        "Constraints": {
-          "$ref": "#/definitions/v1.FilesystemLayoutConstraints"
+        "constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
+          "description": "constraints which must match that this layout is taken"
         },
-        "Disks": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "disks": {
+          "description": "list of disks to to modify",
           "items": {
             "$ref": "#/definitions/v1.Disk"
           },
           "type": "array"
         },
-        "Filesystems": {
+        "filesystems": {
+          "description": "list of filesystems to create",
           "items": {
             "$ref": "#/definitions/v1.Filesystem"
           },
           "type": "array"
-        },
-        "Raid": {
-          "items": {
-            "$ref": "#/definitions/v1.Raid"
-          },
-          "type": "array"
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
         },
         "id": {
           "description": "the unique ID of this entity",
@@ -299,42 +312,46 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "raid": {
+          "description": "list of raid arrays to create",
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "Constraints",
-        "Disks",
-        "Filesystems",
-        "Raid",
-        "id"
+        "constraints",
+        "disks",
+        "filesystems",
+        "id",
+        "raid"
       ]
     },
     "v1.FilesystemLayoutResponse": {
       "properties": {
-        "Constraints": {
-          "$ref": "#/definitions/v1.FilesystemLayoutConstraints"
+        "constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
+          "description": "constraints which must match that this layout is taken"
         },
-        "Disks": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "disks": {
+          "description": "list of disks to to modify",
           "items": {
             "$ref": "#/definitions/v1.Disk"
           },
           "type": "array"
         },
-        "Filesystems": {
+        "filesystems": {
+          "description": "list of filesystems to create",
           "items": {
             "$ref": "#/definitions/v1.Filesystem"
           },
           "type": "array"
-        },
-        "Raid": {
-          "items": {
-            "$ref": "#/definitions/v1.Raid"
-          },
-          "type": "array"
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
         },
         "id": {
           "description": "the unique ID of this entity",
@@ -344,42 +361,46 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "raid": {
+          "description": "list of raid arrays to create",
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "Constraints",
-        "Disks",
-        "Filesystems",
-        "Raid",
-        "id"
+        "constraints",
+        "disks",
+        "filesystems",
+        "id",
+        "raid"
       ]
     },
     "v1.FilesystemLayoutUpdateRequest": {
       "properties": {
-        "Constraints": {
-          "$ref": "#/definitions/v1.FilesystemLayoutConstraints"
+        "constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
+          "description": "constraints which must match that this layout is taken"
         },
-        "Disks": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "disks": {
+          "description": "list of disks to to modify",
           "items": {
             "$ref": "#/definitions/v1.Disk"
           },
           "type": "array"
         },
-        "Filesystems": {
+        "filesystems": {
+          "description": "list of filesystems to create",
           "items": {
             "$ref": "#/definitions/v1.Filesystem"
           },
           "type": "array"
-        },
-        "Raid": {
-          "items": {
-            "$ref": "#/definitions/v1.Raid"
-          },
-          "type": "array"
-        },
-        "description": {
-          "description": "a description for this entity",
-          "type": "string"
         },
         "id": {
           "description": "the unique ID of this entity",
@@ -389,14 +410,21 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "raid": {
+          "description": "list of raid arrays to create",
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "Constraints",
-        "Disks",
-        "Filesystems",
-        "Raid",
-        "id"
+        "constraints",
+        "disks",
+        "filesystems",
+        "id",
+        "raid"
       ]
     },
     "v1.FirewallCreateRequest": {
@@ -2929,35 +2957,40 @@
     },
     "v1.Raid": {
       "properties": {
-        "Devices": {
+        "arrayname": {
+          "description": "the name of the resulting array device",
+          "type": "string"
+        },
+        "createoptions": {
+          "description": "the options to use to create the raid array",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
-        "Level": {
-          "type": "string"
-        },
-        "Name": {
-          "type": "string"
-        },
-        "Options": {
+        "devices": {
+          "description": "list of devices to form the raid array from",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
-        "Spares": {
+        "level": {
+          "description": "raid level to create, should be 0 or 1",
+          "type": "string"
+        },
+        "spares": {
+          "description": "number of spares for the raid array",
           "format": "int32",
           "type": "integer"
         }
       },
       "required": [
-        "Devices",
-        "Level",
-        "Name",
-        "Options",
-        "Spares"
+        "arrayname",
+        "createoptions",
+        "devices",
+        "level",
+        "spares"
       ]
     },
     "v1.ServerCapacity": {

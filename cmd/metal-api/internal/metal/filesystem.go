@@ -81,8 +81,8 @@ type (
 		Label *string
 		// MountOptions which might be required
 		MountOptions []string
-		// Options during filesystem creation
-		Options []string
+		// CreateOptions during filesystem creation
+		CreateOptions []string
 	}
 
 	// Disk represents a single block device visible from the OS, required
@@ -103,14 +103,14 @@ type (
 	// Raid is optional, if given the devices must match.
 	// TODO inherit GPTType from underlay device ?
 	Raid struct {
-		// Name of the raid device, most often this will be /dev/md0 and so forth
-		Name string
+		// ArrayName of the raid device, most often this will be /dev/md0 and so forth
+		ArrayName string
 		// Devices the devices to form a raid device
 		Devices []string
 		// Level the raidlevel to use, can be one of 0,1
 		Level RaidLevel
-		// Options required during raid creation, example: --metadata=1.0 for uefi boot partition
-		Options []string
+		// CreateOptions required during raid creation, example: --metadata=1.0 for uefi boot partition
+		CreateOptions []string
 		// Spares defaults to 0
 		Spares int
 	}
@@ -153,10 +153,10 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 		for _, device := range raid.Devices {
 			_, ok := providedDevices[device]
 			if !ok {
-				return false, fmt.Errorf("device:%s not provided by disk in raid:%s", device, raid.Name)
+				return false, fmt.Errorf("device:%s not provided by disk in raid:%s", device, raid.ArrayName)
 			}
 		}
-		providedDevices[raid.Name] = true
+		providedDevices[raid.ArrayName] = true
 
 		_, ok := SupportedRaidLevels[raid.Level]
 		if !ok {
