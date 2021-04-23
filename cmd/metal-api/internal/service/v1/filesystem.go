@@ -52,7 +52,7 @@ type (
 	DiskPartition struct {
 		Number  uint8   `json:"number" description:"partition number, will be appended to partitionprefix to create the final devicename"`
 		Label   *string `json:"label" description:"optional label for this this partition"`
-		Size    uint64  `json:"size" description:"size in mebibytes of this partition"`
+		Size    uint64  `json:"size" description:"size in mebibytes (MiB) of this partition"`
 		GPTType *string `json:"gpttype" description:"the gpt partition table type of this partition"`
 	}
 )

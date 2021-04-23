@@ -268,16 +268,16 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 			name: "simple no match device to small",
 			fields: fields{
 				Disks: []Disk{
-					{Device: "/dev/sda", Partitions: []DiskPartition2{{Size: 100000}, {Size: 100000}}},
-					{Device: "/dev/sdb", Partitions: []DiskPartition2{{Size: 100000}, {Size: 100000}}}},
+					{Device: "/dev/sda", Partitions: []DiskPartition2{{Size: 100}, {Size: 100}}},
+					{Device: "/dev/sdb", Partitions: []DiskPartition2{{Size: 100}, {Size: 100}}}},
 			},
 			args: args{hardware: MachineHardware{Disks: []BlockDevice{
-				{Name: "/dev/sda", Size: 300000},
-				{Name: "/dev/sdb", Size: 100000},
+				{Name: "/dev/sda", Size: 300000000},
+				{Name: "/dev/sdb", Size: 100000000},
 			}}},
 			want:      false,
 			wantErr:   true,
-			errString: "device:/dev/sdb is not big enough required:200000, existing:100000",
+			errString: "device:/dev/sdb is not big enough required:200MiB, existing:95MiB",
 		},
 	}
 	for _, tt := range tests {

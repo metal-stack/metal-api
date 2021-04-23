@@ -122,7 +122,7 @@ type (
 		Number uint8
 		// Label to enhance readability
 		Label *string
-		// Size of this partition in bytes
+		// Size of this partition in mebibytes (MiB)
 		// if "0" is given the rest of the device will be used, this requires Number to be the highest in this partition
 		Size uint64
 		// GPTType defines the GPT partition type
@@ -277,7 +277,9 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 		if !strings.HasPrefix(diskName, "/dev/") {
 			diskName = fmt.Sprintf("/dev/%s", disk.Name)
 		}
-		existingDevices[diskName] = disk.Size
+		// convert bytes to mebibytes
+		size := disk.Size / (1024 * 1024)
+		existingDevices[diskName] = size
 	}
 
 	for requiredDevice, requiredSize := range requiredDevices {
@@ -286,7 +288,7 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 			return false, fmt.Errorf("device:%s does not exist on given hardware", requiredDevice)
 		}
 		if existingSize < requiredSize {
-			return false, fmt.Errorf("device:%s is not big enough required:%d, existing:%d", requiredDevice, requiredSize, existingSize)
+			return false, fmt.Errorf("device:%s is not big enough required:%dMiB, existing:%dMiB", requiredDevice, requiredSize, existingSize)
 		}
 	}
 	return true, nil
