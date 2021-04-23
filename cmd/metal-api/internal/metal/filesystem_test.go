@@ -528,3 +528,72 @@ func TestDisk_validate(t *testing.T) {
 		})
 	}
 }
+
+func TestFilesystemLayouts_Validate(t *testing.T) {
+	tests := []struct {
+		name      string
+		fls       FilesystemLayouts
+		want      bool
+		wantErr   bool
+		errString string
+	}{
+		{
+			name: "simple valid",
+			fls: FilesystemLayouts{
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "valid with open layout",
+			fls: FilesystemLayouts{
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
+				FilesystemLayout{Base: Base{ID: "develop-1"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{}, Images: []string{}}},
+				FilesystemLayout{Base: Base{ID: "develop-2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{}, Images: []string{}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "simple not overlapping, different sizes, same images",
+			fls: FilesystemLayouts{
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"s1-large", "s1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "overlapping, different sizes, same images",
+			fls: FilesystemLayouts{
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+			},
+			want:      true,
+			wantErr:   true,
+			errString: "combination of size:c1-large and image:ubuntu already exists",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.fls.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FilesystemLayouts.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && err.Error() != tt.errString {
+				t.Errorf("FilesystemLayouts.Validate()  error = %v, errString %v", err, tt.errString)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("FilesystemLayouts.Validate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

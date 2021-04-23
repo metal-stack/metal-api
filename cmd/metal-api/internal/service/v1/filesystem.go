@@ -7,7 +7,7 @@ type (
 		Filesystems []Filesystem                `json:"filesystems" description:"list of filesystems to create"`
 		Disks       []Disk                      `json:"disks" description:"list of disks to to modify"`
 		Raid        []Raid                      `json:"raid" description:"list of raid arrays to create"`
-		Constraints FilesystemLayoutConstraints `json:"constraints" description:"constraints which must match that this layout is taken"`
+		Constraints FilesystemLayoutConstraints `json:"constraints" description:"constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"`
 	}
 	FilesystemLayoutResponse struct {
 		Common

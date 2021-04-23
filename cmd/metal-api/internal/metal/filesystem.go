@@ -196,6 +196,34 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 	return true, nil
 }
 
+// Validate ensures that for all Filesystemlayouts not more than one constraint matches the same size and image constraint
+func (fls FilesystemLayouts) Validate() (bool, error) {
+	var allConstraints []FilesystemLayoutConstraints
+	for _, fl := range fls {
+		allConstraints = append(allConstraints, fl.Constraints)
+	}
+
+	sizeToImage := make(map[string]bool)
+	for _, c := range allConstraints {
+		// if both size and image is empty, overlapping is possible because to be able to develop layouts
+		if len(c.Sizes) == 0 && len(c.Images) == 0 {
+			continue
+		}
+		for _, s := range c.Sizes {
+			for _, i := range c.Images {
+				sizeAndImage := s + i
+				_, ok := sizeToImage[sizeAndImage]
+				if !ok {
+					sizeToImage[sizeAndImage] = true
+					continue
+				}
+				return true, fmt.Errorf("combination of size:%s and image:%s already exists", s, i)
+			}
+		}
+	}
+	return false, nil
+}
+
 // validate disk for
 // - variable sized partition must be the last
 // - GPTType is supported

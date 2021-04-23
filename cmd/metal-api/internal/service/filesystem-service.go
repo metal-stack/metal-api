@@ -155,6 +155,20 @@ func (r filesystemResource) createFilesystemLayout(request *restful.Request, res
 			return
 		}
 	}
+	fsls, err := r.ds.ListFilesystemLayouts()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	fsls = append(fsls, *fsl)
+	overlaps, err := fsls.Validate()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if overlaps {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("filesystemlayout:%s is not valid", fsl.ID)) {
+			return
+		}
+	}
 
 	err = r.ds.CreateFilesystemLayout(fsl)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -208,6 +222,21 @@ func (r filesystemResource) updateFilesystemLayout(request *restful.Request, res
 		return
 	}
 	if !ok {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("filesystemlayout:%s is not valid", newFilesystemLayout.ID)) {
+			return
+		}
+	}
+
+	fsls, err := r.ds.ListFilesystemLayouts()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	fsls = append(fsls, *newFilesystemLayout)
+	overlaps, err := fsls.Validate()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if overlaps {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("filesystemlayout:%s is not valid", newFilesystemLayout.ID)) {
 			return
 		}
