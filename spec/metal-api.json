@@ -3534,7 +3534,7 @@
         "operationId": "listImages",
         "parameters": [
           {
-            "default": "shared",
+            "default": "private,shared",
             "description": "comma-separated list of visbilities (private, shared, public, admin)",
             "in": "query",
             "name": "visibility",
@@ -3704,7 +3704,7 @@
             "type": "string"
           },
           {
-            "default": "shared",
+            "default": "private,shared",
             "description": "comma-separated list of visbilities (private, shared, public, admin)",
             "in": "query",
             "name": "visibility",
@@ -3749,7 +3749,7 @@
             "type": "string"
           },
           {
-            "default": "shared",
+            "default": "private,shared",
             "description": "comma-separated list of visbilities (private, shared, public, admin)",
             "in": "query",
             "name": "visibility",

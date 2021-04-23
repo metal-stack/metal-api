@@ -13,6 +13,7 @@ import (
 	"time"
 
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/audit"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/permissions"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -708,6 +709,15 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
+
+	auditOutput := audit.NewAuditLogOutput(lg.Sugar())
+	auditHandler, err := audit.NewAuditHandler(lg.Sugar(), auditOutput)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	auditHandler.WithReadActions()
+	restful.DefaultContainer.Filter(auditHandler.Audit)
+
 	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
@@ -726,7 +736,6 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		// restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 
 		restful.DefaultContainer.Filter(p.Authz)
-
 	}
 
 	config := restfulspec.Config{

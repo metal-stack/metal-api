@@ -97,7 +97,8 @@ func (r *regoDecider) Decide(ctx context.Context, req *http.Request, u *security
 		return false, fmt.Errorf("error evaluating rego result set: unexpected response type")
 	}
 
-	r.log.Debugw("made auth decision", "results", results)
+	// TODO remove, only for devel:
+	// r.log.Debugw("made auth decision", "results", results)
 
 	if !allow {
 		reason, ok := decision["reason"].(string)

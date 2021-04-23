@@ -63,8 +63,9 @@ func (p *PermissionsHandler) Authz(req *restful.Request, resp *restful.Response,
 	)
 	// scope := datastore.EverythingScope // FIXME
 
+	req.SetAttribute("user", u)
 	req.SetAttribute("scope", scope)
-	p.log.Debugw("set request attribute", "scope", scope)
+	p.log.Debugw("set request attributes", "scope", scope, "user", u)
 
 	chain.ProcessFilter(req, resp)
 }

@@ -43,7 +43,8 @@ func (ir imageResource) webService() *restful.WebService {
 	ws.
 		Path(BasePath + "v1/image").
 		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON)
+		Produces(restful.MIME_JSON).
+		ApiVersion("v1")
 
 	tags := []string{"image"}
 

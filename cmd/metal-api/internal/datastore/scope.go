@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/emicklei/go-restful/v3"
@@ -41,6 +42,23 @@ func NewResourceScope(tenants Predicates, projects Predicates, resources Predica
 	}
 }
 
+func (r *ResourceScope) String() string {
+	enc, _ := json.Marshal(struct {
+		Tenants    Predicates
+		Projects   Predicates
+		Resources  Predicates
+		IsAdmin    bool
+		Visibility Predicates
+	}{
+		Tenants:    r.tenants,
+		Projects:   r.projects,
+		Resources:  r.resources,
+		IsAdmin:    r.isAdmin,
+		Visibility: r.visibility,
+	})
+	return string(enc)
+}
+
 // EverythingScope has all permissions on all resources.
 // Should only be used for internal, technical purposes.
 var EverythingScope = ResourceScope{
@@ -67,12 +85,13 @@ func (rs *RethinkStore) NewResourceScopeFromRequestAttributes(req *restful.Reque
 		return nil, err
 	}
 	scope.visibility = v
+	req.SetAttribute("scope", scope)
 
 	if v.Contains(VisibilityAdmin) && !scope.isAdmin {
 		return nil, fmt.Errorf("not allowed to view resources with admin visibility")
 	}
 
-	rs.Debugw("created new resource scope", "visibilities", scope.visibility)
+	rs.Debugw("created new resource scope", "scope", scope.String())
 
 	return &scope, nil
 }

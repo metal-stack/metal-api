@@ -13,16 +13,21 @@ user(e) {
 }
 
 decision = {"allow": true, "isAdmin": false} {
-	user(e)
-    not admin(e)
+	user(e.permission)
+    not admin(e.permission)
 }
 
 decision = {"allow": true, "isAdmin": true} {
-    admin(e)
+    admin(e.permission)
 }
 
 decision = {"allow": false, "isAdmin": false, "reason": reason} {
-    not user(e)
-    not admin(e)
-    reason := sprintf("missing permission on %s", [e])
+    not user(e.permission)
+    not admin(e.permission)
+    not e.public
+    reason := sprintf("missing permission on %s", [e.permission])
+}
+
+decision = {"allow": true, "isAdmin": false} {
+    e.public
 }

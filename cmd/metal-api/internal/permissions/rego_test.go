@@ -138,6 +138,18 @@ func Test_regoDecider_Decide(t *testing.T) {
 			},
 			wantErr: fmt.Errorf("access denied"),
 		},
+		{
+			name: "access health endpoint that needs no permissions",
+			req: &http.Request{
+				URL:    mustParseURL("https://api.metal-stack.io/v1/health"),
+				Method: http.MethodGet,
+			},
+			u: &security.User{
+				Name: "metal-stack-user",
+			},
+			permissions: Permissions{},
+			wantErr:     nil,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
