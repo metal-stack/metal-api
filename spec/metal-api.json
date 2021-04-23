@@ -3535,7 +3535,7 @@
         "parameters": [
           {
             "default": "private,shared",
-            "description": "comma-separated list of visbilities (private, shared, public, admin)",
+            "description": "comma-separated list of resource visibilities (private, shared, public, admin)",
             "in": "query",
             "name": "visibility",
             "type": "string"
@@ -3705,7 +3705,7 @@
           },
           {
             "default": "private,shared",
-            "description": "comma-separated list of visbilities (private, shared, public, admin)",
+            "description": "comma-separated list of resource visibilities (private, shared, public, admin)",
             "in": "query",
             "name": "visibility",
             "type": "string"
@@ -3750,7 +3750,7 @@
           },
           {
             "default": "private,shared",
-            "description": "comma-separated list of visbilities (private, shared, public, admin)",
+            "description": "comma-separated list of resource visibilities (private, shared, public, admin)",
             "in": "query",
             "name": "visibility",
             "type": "string"

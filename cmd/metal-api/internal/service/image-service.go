@@ -53,7 +53,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("findImage").
 		Doc("get image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
-		Param(ws.QueryParameter("visibility", "comma-separated list of visbilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
+		Param(ws.QueryParameter("visibility", "comma-separated list of resource visibilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
@@ -64,7 +64,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("findLatestImage").
 		Doc("find latest image by id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
-		Param(ws.QueryParameter("visibility", "comma-separated list of visbilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
+		Param(ws.QueryParameter("visibility", "comma-separated list of resource visibilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
@@ -74,7 +74,7 @@ func (ir imageResource) webService() *restful.WebService {
 		To(ir.listImages).
 		Operation("listImages").
 		Doc("get all images").
-		Param(ws.QueryParameter("visibility", "comma-separated list of visbilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
+		Param(ws.QueryParameter("visibility", "comma-separated list of resource visibilities (private, shared, public, admin)").DataType("string").DefaultValue("private,shared")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
