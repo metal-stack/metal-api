@@ -978,13 +978,9 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 	}
 
-	ok, err := fsl.Matches(machineCandidate.Hardware)
+	err = fsl.Matches(machineCandidate.Hardware)
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		return nil, fmt.Errorf("selected filesystemlayout:%s does not match hardware of machine:%s", fsl.ID, machineCandidate.ID)
-
 	}
 	alloc := &metal.MachineAllocation{
 		Created:          time.Now(),

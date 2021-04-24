@@ -131,14 +131,14 @@ type (
 )
 
 // Validate a existing FilesystemLayout
-func (f *FilesystemLayout) Validate() (bool, error) {
+func (f *FilesystemLayout) Validate() error {
 	// check device existence from disk.partition -> raid.device -> filesystem
 	// collect all provided devices
 	providedDevices := make(map[string]bool)
 	for _, disk := range f.Disks {
 		err := disk.validate()
 		if err != nil {
-			return false, err
+			return err
 		}
 		for _, partition := range disk.Partitions {
 			devname := fmt.Sprintf("%s%d", disk.PartitionPrefix, partition.Number)
@@ -153,14 +153,14 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 		for _, device := range raid.Devices {
 			_, ok := providedDevices[device]
 			if !ok {
-				return false, fmt.Errorf("device:%s not provided by disk in raid:%s", device, raid.ArrayName)
+				return fmt.Errorf("device:%s not provided by disk in raid:%s", device, raid.ArrayName)
 			}
 		}
 		providedDevices[raid.ArrayName] = true
 
 		_, ok := SupportedRaidLevels[raid.Level]
 		if !ok {
-			return false, fmt.Errorf("given raidlevel:%s is not supported", raid.Level)
+			return fmt.Errorf("given raidlevel:%s is not supported", raid.Level)
 		}
 	}
 
@@ -172,32 +172,32 @@ func (f *FilesystemLayout) Validate() (bool, error) {
 		}
 		_, ok := providedDevices[fs.Device]
 		if !ok {
-			return false, fmt.Errorf("device:%s for filesystem:%s is not configured as raid or device", fs.Device, *fs.Path)
+			return fmt.Errorf("device:%s for filesystem:%s is not configured as raid or device", fs.Device, *fs.Path)
 		}
 		_, ok = SupportedFormats[fs.Format]
 		if !ok {
-			return false, fmt.Errorf("filesystem:%s format:%s is not supported", *fs.Path, fs.Format)
+			return fmt.Errorf("filesystem:%s format:%s is not supported", *fs.Path, fs.Format)
 		}
 	}
 
 	// no pure wildcard in images
 	for _, img := range f.Constraints.Images {
 		if img == "*" {
-			return false, fmt.Errorf("just '*' is not allowed as image constraint")
+			return fmt.Errorf("just '*' is not allowed as image constraint")
 		}
 	}
 	// no wildcard in size
 	for _, s := range f.Constraints.Sizes {
 		if strings.Contains(s, "*") {
-			return false, fmt.Errorf("no wildcard allowed in size constraint")
+			return fmt.Errorf("no wildcard allowed in size constraint")
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 // Validate ensures that for all Filesystemlayouts not more than one constraint matches the same size and image constraint
-func (fls FilesystemLayouts) Validate() (bool, error) {
+func (fls FilesystemLayouts) Validate() error {
 	var allConstraints []FilesystemLayoutConstraints
 	for _, fl := range fls {
 		allConstraints = append(allConstraints, fl.Constraints)
@@ -217,11 +217,11 @@ func (fls FilesystemLayouts) Validate() (bool, error) {
 					sizeToImage[sizeAndImage] = true
 					continue
 				}
-				return true, fmt.Errorf("combination of size:%s and image:%s already exists", s, i)
+				return fmt.Errorf("combination of size:%s and image:%s already exists", s, i)
 			}
 		}
 	}
-	return false, nil
+	return nil
 }
 
 // validate disk for
@@ -289,7 +289,7 @@ func (fls FilesystemLayouts) From(size, image string) (*FilesystemLayout, error)
 }
 
 // Matches the specific FilesystemLayout against the selected Hardware
-func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
+func (fl *FilesystemLayout) Matches(hardware MachineHardware) error {
 	requiredDevices := make(map[string]uint64)
 	existingDevices := make(map[string]uint64)
 	for _, disk := range fl.Disks {
@@ -313,13 +313,13 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) (bool, error) {
 	for requiredDevice, requiredSize := range requiredDevices {
 		existingSize, ok := existingDevices[requiredDevice]
 		if !ok {
-			return false, fmt.Errorf("device:%s does not exist on given hardware", requiredDevice)
+			return fmt.Errorf("device:%s does not exist on given hardware", requiredDevice)
 		}
 		if existingSize < requiredSize {
-			return false, fmt.Errorf("device:%s is not big enough required:%dMiB, existing:%dMiB", requiredDevice, requiredSize, existingSize)
+			return fmt.Errorf("device:%s is not big enough required:%dMiB, existing:%dMiB", requiredDevice, requiredSize, existingSize)
 		}
 	}
-	return true, nil
+	return nil
 }
 
 func ToFormat(format string) (*Format, error) {

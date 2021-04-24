@@ -232,7 +232,6 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 		name      string
 		fields    fields
 		args      args
-		want      bool
 		wantErr   bool
 		errString string
 	}{
@@ -242,7 +241,6 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 				Disks: []Disk{{Device: "/dev/sda"}, {Device: "/dev/sdb"}},
 			},
 			args:    args{hardware: MachineHardware{Disks: []BlockDevice{{Name: "/dev/sda"}, {Name: "/dev/sdb"}}}},
-			want:    true,
 			wantErr: false,
 		},
 		{
@@ -251,7 +249,6 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 				Disks: []Disk{{Device: "/dev/sda"}, {Device: "/dev/sdb"}},
 			},
 			args:    args{hardware: MachineHardware{Disks: []BlockDevice{{Name: "sda"}, {Name: "sdb"}}}},
-			want:    true,
 			wantErr: false,
 		},
 		{
@@ -260,7 +257,6 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 				Disks: []Disk{{Device: "/dev/sda"}, {Device: "/dev/sdb"}},
 			},
 			args:      args{hardware: MachineHardware{Disks: []BlockDevice{{Name: "/dev/sda"}, {Name: "/dev/sdc"}}}},
-			want:      false,
 			wantErr:   true,
 			errString: "device:/dev/sdb does not exist on given hardware",
 		},
@@ -275,7 +271,6 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 				{Name: "/dev/sda", Size: 300000000},
 				{Name: "/dev/sdb", Size: 100000000},
 			}}},
-			want:      false,
 			wantErr:   true,
 			errString: "device:/dev/sdb is not big enough required:200MiB, existing:95MiB",
 		},
@@ -287,7 +282,7 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 				Disks: tt.fields.Disks,
 				Raid:  tt.fields.Raid,
 			}
-			got, err := fl.Matches(tt.args.hardware)
+			err := fl.Matches(tt.args.hardware)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FilesystemLayout.Matches() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -295,9 +290,6 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 			if (err != nil) && err.Error() != tt.errString {
 				t.Errorf("FilesystemLayout.Matches() error = %v, errString %v", err, tt.errString)
 				return
-			}
-			if got != tt.want {
-				t.Errorf("FilesystemLayout.Matches() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -313,7 +305,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 	tests := []struct {
 		name      string
 		fields    fields
-		want      bool
 		wantErr   bool
 		errString string
 	}{
@@ -324,7 +315,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: EXT4}, {Path: strPtr("/tmp"), Device: "tmpfs", Format: TMPFS}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
-			want:    true,
 			wantErr: false,
 		},
 		{
@@ -334,7 +324,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "just '*' is not allowed as image constraint",
 		},
@@ -345,7 +334,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "no wildcard allowed in size constraint",
 		},
@@ -355,7 +343,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}, {Path: strPtr("/"), Device: "/dev/sda2", Format: EXT4}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "device:/dev/sda2 for filesystem:/ is not configured as raid or device",
 		},
@@ -365,7 +352,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "xfs"}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "filesystem:/boot format:xfs is not supported",
 		},
@@ -375,7 +361,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "vfat"}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1, GPTType: &GPTInvalid}}}},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "given GPTType:ff00 for partition:1 on disk:/dev/sda is not supported",
 		},
@@ -391,7 +376,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: RaidLevel1},
 				},
 			},
-			want:    true,
 			wantErr: false,
 		},
 		{
@@ -406,7 +390,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: "6"},
 				},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "given raidlevel:6 is not supported",
 		},
@@ -419,7 +402,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "device:/dev/md1 for filesystem:/boot is not configured as raid or device",
 		},
@@ -435,7 +417,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda2", "/dev/sdb2"}, Level: RaidLevel1},
 				},
 			},
-			want:      false,
 			wantErr:   true,
 			errString: "device:/dev/sda2 not provided by disk in raid:/dev/md1",
 		},
@@ -449,7 +430,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Disks:       tt.fields.Disks,
 				Raid:        tt.fields.Raid,
 			}
-			got, err := f.Validate()
+			err := f.Validate()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FilesystemLayout.Validate() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -457,9 +438,6 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			if (err != nil) && err.Error() != tt.errString {
 				t.Errorf("FilesystemLayout.Validate()  error = %v, errString %v", err, tt.errString)
 				return
-			}
-			if got != tt.want {
-				t.Errorf("FilesystemLayout.Validate() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -533,7 +511,6 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 	tests := []struct {
 		name      string
 		fls       FilesystemLayouts
-		want      bool
 		wantErr   bool
 		errString string
 	}{
@@ -543,7 +520,6 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
 			},
-			want:    false,
 			wantErr: false,
 		},
 		{
@@ -554,7 +530,6 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 				FilesystemLayout{Base: Base{ID: "develop-2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{}, Images: []string{}}},
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
 			},
-			want:    false,
 			wantErr: false,
 		},
 		{
@@ -564,7 +539,6 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"s1-large", "s1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
 			},
-			want:    false,
 			wantErr: false,
 		},
 		{
@@ -574,7 +548,6 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
 			},
-			want:      true,
 			wantErr:   true,
 			errString: "combination of size:c1-large and image:ubuntu already exists",
 		},
@@ -582,7 +555,7 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.fls.Validate()
+			err := tt.fls.Validate()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FilesystemLayouts.Validate() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -590,9 +563,6 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 			if (err != nil) && err.Error() != tt.errString {
 				t.Errorf("FilesystemLayouts.Validate()  error = %v, errString %v", err, tt.errString)
 				return
-			}
-			if got != tt.want {
-				t.Errorf("FilesystemLayouts.Validate() = %v, want %v", got, tt.want)
 			}
 		})
 	}
