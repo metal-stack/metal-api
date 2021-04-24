@@ -101,7 +101,6 @@ type (
 	}
 
 	// Raid is optional, if given the devices must match.
-	// TODO inherit GPTType from underlay device ?
 	Raid struct {
 		// ArrayName of the raid device, most often this will be /dev/md0 and so forth
 		ArrayName string
@@ -203,6 +202,7 @@ func (fls FilesystemLayouts) Validate() error {
 		allConstraints = append(allConstraints, fl.Constraints)
 	}
 
+	// FIXME switch to semver
 	sizeToImage := make(map[string]bool)
 	for _, c := range allConstraints {
 		// if both size and image is empty, overlapping is possible because to be able to develop layouts
@@ -265,6 +265,7 @@ func (c *FilesystemLayoutConstraints) matches(sizeID, imageID string) bool {
 	}
 	// Size matches
 	for _, i := range c.Images {
+		// FIXME switch to semver
 		matches, err := filepath.Match(i, imageID)
 		if err != nil {
 			return false
@@ -350,7 +351,6 @@ func ToRaidLevel(level string) (*RaidLevel, error) {
 }
 
 // FIXME implement overlapping filesystemlayout detection
-// FIXME implement check if selected machine hardware matches with selected filesystemlayout
 
 func sizeMap(sizes []string) map[string]bool {
 	sm := make(map[string]bool)
