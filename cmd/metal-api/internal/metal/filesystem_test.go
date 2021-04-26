@@ -3,6 +3,8 @@ package metal
 import (
 	"reflect"
 	"testing"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 var (
@@ -606,7 +608,7 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 			name: "overlapping, different sizes, same images",
 			fls: FilesystemLayouts{
 				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": ">= 10"}}},
-				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "> 10"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "< 10"}}},
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr:   true,
@@ -623,6 +625,108 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 			}
 			if (err != nil) && err.Error() != tt.errString {
 				t.Errorf("FilesystemLayouts.Validate()  error = %v, errString %v", err, tt.errString)
+				return
+			}
+		})
+	}
+}
+
+func Test_convertToOpAndVersion(t *testing.T) {
+	tests := []struct {
+		name              string
+		versionconstraint string
+		op                string
+		version           *semver.Version
+		wantErr           bool
+		errString         string
+	}{
+		{
+			name:              "simple",
+			versionconstraint: ">= 10.0.1",
+			op:                ">=",
+			version:           semver.MustParse("10.0.1"),
+			wantErr:           false,
+		},
+		{
+			name:              "invalid no space",
+			versionconstraint: ">=10.0.1",
+			op:                "",
+			version:           nil,
+			wantErr:           true,
+			errString:         "given imageconstraint:>=10.0.1 is not valid, missing space between op and version? Invalid Semantic Version",
+		},
+		{
+			name:              "invalid version",
+			versionconstraint: ">= 10.x.1",
+			op:                "",
+			version:           nil,
+			wantErr:           true,
+			errString:         "given version:10.x.1 is not valid:Invalid Semantic Version",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1, err := convertToOpAndVersion(tt.versionconstraint)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("convertToOpAndVersion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && err.Error() != tt.errString {
+				t.Errorf("convertToOpAndVersion  error = %v, errString %v", err, tt.errString)
+				return
+			}
+			if got != tt.op {
+				t.Errorf("convertToOpAndVersion() got = %v, want %v", got, tt.op)
+			}
+			if !reflect.DeepEqual(got1, tt.version) {
+				t.Errorf("convertToOpAndVersion() got1 = %v, want %v", got1, tt.version)
+			}
+		})
+	}
+}
+
+func Test_hasCollisions(t *testing.T) {
+	tests := []struct {
+		name               string
+		versionConstraints []string
+		wantErr            bool
+		errString          string
+	}{
+		{
+			name:               "simple",
+			versionConstraints: []string{">= 10", "<= 9.9"},
+			wantErr:            false,
+		},
+		{
+			name:               "simple star match",
+			versionConstraints: []string{">= 10", "<= 9.9", "*"},
+			wantErr:            true,
+			errString:          "at least one `*` and more than one constraint",
+		},
+		{
+			name:               "simple versions overlap",
+			versionConstraints: []string{">= 10", "<= 9.9", ">= 9.8"},
+			wantErr:            true,
+			errString:          "constraint:>=9.8 overlaps:>=10",
+		},
+		{
+			name:               "simple versions overlap reverse",
+			versionConstraints: []string{">= 9.8", "<= 9.9", ">= 10"},
+			wantErr:            true,
+			errString:          "constraint:>=9.8 overlaps:<=9.9",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			err := hasCollisions(tt.versionConstraints)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("hasCollisions() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && err.Error() != tt.errString {
+				t.Errorf("hasCollisions  error = %v, errString %v", err, tt.errString)
 				return
 			}
 		})

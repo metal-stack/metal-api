@@ -180,20 +180,66 @@ func (f *FilesystemLayout) Validate() error {
 		}
 	}
 
+	// validate constraints
+	err := f.Constraints.validate()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *FilesystemLayoutConstraints) validate() error {
 	// no pure wildcard in images
-	for os := range f.Constraints.Images {
+	for os, vc := range c.Images {
 		if os == "*" {
 			return fmt.Errorf("just '*' is not allowed as image os constraint")
 		}
+		// a single "*" is possible
+		if strings.TrimSpace(vc) == "*" {
+			continue
+		}
+		_, _, err := convertToOpAndVersion(vc)
+		if err != nil {
+			return err
+		}
+
 	}
 	// no wildcard in size
-	for _, s := range f.Constraints.Sizes {
+	for _, s := range c.Sizes {
 		if strings.Contains(s, "*") {
 			return fmt.Errorf("no wildcard allowed in size constraint")
 		}
 	}
-
 	return nil
+}
+
+var validOPS = map[string]bool{"=": true, "!=": true, ">": true, "<": true, ">=": true, "=>": true, "<=": true, "=<": true, "~": true, "~>": true, "^": true}
+
+func convertToOpAndVersion(versionconstraint string) (string, *semver.Version, error) {
+	// a version constrain op is given it must be seperated by a whitespace
+	parts := strings.SplitN(versionconstraint, " ", 2)
+	// might be a single specific version, then it must parse into a semver
+	if len(parts) == 1 {
+		version, err := semver.NewVersion(parts[0])
+		if err != nil {
+			return "", nil, fmt.Errorf("given imageconstraint:%s is not valid, missing space between op and version? %w", parts[0], err)
+		}
+		return "", version, nil
+	}
+	if len(parts) >= 2 {
+		op := parts[0]
+		_, ok := validOPS[op]
+		if !ok {
+			return "", nil, fmt.Errorf("given imageconstraint op:%s is not supported", op)
+		}
+		version, err := semver.NewVersion(parts[1])
+		if err != nil {
+			return "", nil, fmt.Errorf("given version:%s is not valid:%w", parts[1], err)
+		}
+		return op, version, nil
+	}
+	return "", nil, fmt.Errorf("could not find a valid op or version in:%s", versionconstraint)
 }
 
 // Validate ensures that for all Filesystemlayouts not more than one constraint matches the same size and image constraint
@@ -203,22 +249,67 @@ func (fls FilesystemLayouts) Validate() error {
 		allConstraints = append(allConstraints, fl.Constraints)
 	}
 
-	sizeToImage := make(map[string]bool)
+	sizeAndImageOSToConstraint := make(map[string][]string)
 	for _, c := range allConstraints {
 		// if both size and image is empty, overlapping is possible because to be able to develop layouts
 		if len(c.Sizes) == 0 && len(c.Images) == 0 {
 			continue
 		}
 		for _, s := range c.Sizes {
-			for os, versionconstraint := range c.Images {
-				// FIXME compare semver constraint overlap
-				sizeAndImage := s + os + versionconstraint
-				_, ok := sizeToImage[sizeAndImage]
+			for os, versionConstraint := range c.Images {
+				sizeAndImageOS := s + os
+				versionConstraints, ok := sizeAndImageOSToConstraint[sizeAndImageOS]
 				if !ok {
-					sizeToImage[sizeAndImage] = true
-					continue
+					sizeAndImageOSToConstraint[sizeAndImageOS] = []string{}
 				}
-				return fmt.Errorf("combination of size:%s and image os:%s versionconstraint:%s already exists", s, os, versionconstraint)
+				versionConstraints = append(versionConstraints, versionConstraint)
+
+				err := hasCollisions(versionConstraints)
+				if err != nil {
+					return fmt.Errorf("combination of size:%s and image os:%s versionconstraint:%s already exists", s, os, versionConstraint)
+				}
+
+				sizeAndImageOSToConstraint[sizeAndImageOS] = versionConstraints
+			}
+		}
+	}
+	return nil
+}
+
+func hasCollisions(versionConstraints []string) error {
+	// simple exclusion
+	for _, vc := range versionConstraints {
+		if strings.TrimSpace(vc) == "*" && len(versionConstraints) > 1 {
+			return fmt.Errorf("at least one `*` and more than one constraint")
+		}
+	}
+
+	for _, vci := range versionConstraints {
+		for _, vcj := range versionConstraints {
+			if vci == vcj {
+				continue
+			}
+			constrainti, err := semver.NewConstraint(vci)
+			if err != nil {
+				return err
+			}
+			constraintj, err := semver.NewConstraint(vcj)
+			if err != nil {
+				return err
+			}
+			_, versioni, err := convertToOpAndVersion(vci)
+			if err != nil {
+				return err
+			}
+			_, versionj, err := convertToOpAndVersion(vcj)
+			if err != nil {
+				return err
+			}
+			if constrainti.Check(versionj) {
+				return fmt.Errorf("constraint:%s overlaps:%s", constrainti, constraintj)
+			}
+			if constraintj.Check(versioni) {
+				return fmt.Errorf("constraint:%s overlaps:%s", constraintj, constrainti)
 			}
 		}
 	}
