@@ -203,7 +203,7 @@
           "type": "integer"
         },
         "size": {
-          "description": "size in mebibytes of this partition",
+          "description": "size in mebibytes (MiB) of this partition",
           "format": "integer",
           "type": "integer"
         }
@@ -261,11 +261,11 @@
     "v1.FilesystemLayoutConstraints": {
       "properties": {
         "images": {
-          "description": "list of images this layout applies to",
-          "items": {
+          "additionalProperties": {
             "type": "string"
           },
-          "type": "array"
+          "description": "list of images this layout applies to",
+          "type": "object"
         },
         "sizes": {
           "description": "list of sizes this layout applies to",
@@ -284,7 +284,7 @@
       "properties": {
         "constraints": {
           "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
-          "description": "constraints which must match that this layout is taken"
+          "description": "constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"
         },
         "description": {
           "description": "a description for this entity",
@@ -333,7 +333,7 @@
       "properties": {
         "constraints": {
           "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
-          "description": "constraints which must match that this layout is taken"
+          "description": "constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"
         },
         "description": {
           "description": "a description for this entity",
@@ -382,7 +382,7 @@
       "properties": {
         "constraints": {
           "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
-          "description": "constraints which must match that this layout is taken"
+          "description": "constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"
         },
         "description": {
           "description": "a description for this entity",

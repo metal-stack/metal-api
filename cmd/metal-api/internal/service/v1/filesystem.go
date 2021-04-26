@@ -25,8 +25,8 @@ type (
 	}
 
 	FilesystemLayoutConstraints struct {
-		Sizes  []string `json:"sizes" description:"list of sizes this layout applies to"`
-		Images []string `json:"images" description:"list of images this layout applies to"`
+		Sizes  []string          `json:"sizes" description:"list of sizes this layout applies to"`
+		Images map[string]string `json:"images" description:"list of images this layout applies to"`
 	}
 	Filesystem struct {
 		Path          *string  `json:"path" description:"the mountpoint where this filesystem should be mounted on"`

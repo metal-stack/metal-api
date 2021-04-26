@@ -10,6 +10,7 @@ var (
 	s2 = "c1-xlarge-x86"
 	s3 = "s3-large-x86"
 	i1 = "debian-10"
+	i2 = "debian-10.0.20210101"
 	i3 = "firewall-2"
 	i4 = "centos-7"
 
@@ -19,7 +20,7 @@ var (
 func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 	type constraints struct {
 		Sizes  []string
-		Images []string
+		Images map[string]string
 	}
 	type args struct {
 		size  string
@@ -35,7 +36,7 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 			name: "default layout",
 			c: constraints{
 				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-				Images: []string{"ubuntu*", "debian*"},
+				Images: map[string]string{"ubuntu": "*", "debian": "*"},
 			},
 			args: args{
 				size:  s1,
@@ -44,10 +45,46 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "default layout specific image",
+			c: constraints{
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
+				Images: map[string]string{"ubuntu": "*", "debian": "*"},
+			},
+			args: args{
+				size:  s1,
+				image: i2,
+			},
+			want: true,
+		},
+		{
+			name: "default layout specific image constraint",
+			c: constraints{
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
+				Images: map[string]string{"ubuntu": "*", "debian": ">= 10.0.20210101"},
+			},
+			args: args{
+				size:  s1,
+				image: i2,
+			},
+			want: true,
+		},
+		{
+			name: "default layout specific image constraint no match",
+			c: constraints{
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
+				Images: map[string]string{"ubuntu": "*", "debian": ">= 10.0.20210201"},
+			},
+			args: args{
+				size:  s1,
+				image: i2,
+			},
+			want: false,
+		},
+		{
 			name: "firewall layout no match",
 			c: constraints{
 				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-				Images: []string{"firewall*"},
+				Images: map[string]string{"firewall": "*"},
 			},
 			args: args{
 				size:  s2,
@@ -59,13 +96,37 @@ func TestFilesystemLayoutConstraint_Matches(t *testing.T) {
 			name: "firewall layout match",
 			c: constraints{
 				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-				Images: []string{"firewall*"},
+				Images: map[string]string{"firewall": "*"},
 			},
 			args: args{
 				size:  s2,
 				image: i3,
 			},
 			want: true,
+		},
+		{
+			name: "firewall more specific layout match",
+			c: constraints{
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
+				Images: map[string]string{"firewall": ">= 2"},
+			},
+			args: args{
+				size:  s2,
+				image: i3,
+			},
+			want: true,
+		},
+		{
+			name: "firewall more specific layout no match",
+			c: constraints{
+				Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
+				Images: map[string]string{"firewall": ">= 3"},
+			},
+			args: args{
+				size:  s2,
+				image: i3,
+			},
+			want: false,
 		},
 	}
 	for _, tt := range tests {
@@ -101,14 +162,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"ubuntu*", "debian*"},
+						Images: map[string]string{"ubuntu": "*", "debian": "*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"firewall*"},
+						Images: map[string]string{"firewall": "*"},
 					},
 				},
 			},
@@ -126,14 +187,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"ubuntu*", "debian*"},
+						Images: map[string]string{"ubuntu": "*", "debian": "*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"firewall*"},
+						Images: map[string]string{"firewall": "*"},
 					},
 				},
 			},
@@ -151,14 +212,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"ubuntu*", "debian*"},
+						Images: map[string]string{"ubuntu": "*", "debian": "*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"firewall*"},
+						Images: map[string]string{"firewall": "*"},
 					},
 				},
 			},
@@ -176,14 +237,14 @@ func TestFilesystemLayouts_From(t *testing.T) {
 					Base: Base{ID: "default"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"ubuntu*", "debian*"},
+						Images: map[string]string{"ubuntu": "*", "debian": "*"},
 					},
 				},
 				FilesystemLayout{
 					Base: Base{ID: "firewall"},
 					Constraints: FilesystemLayoutConstraints{
 						Sizes:  []string{"c1-large-x86", "c1-xlarge-x86"},
-						Images: []string{"firewall*"},
+						Images: map[string]string{"firewall": "*"},
 					},
 				},
 			},
@@ -311,7 +372,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		{
 			name: "valid layout",
 			fields: fields{
-				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: []string{"ubuntu*"}},
+				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"ubuntu": "*"}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: EXT4}, {Path: strPtr("/tmp"), Device: "tmpfs", Format: TMPFS}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
@@ -320,17 +381,17 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		{
 			name: "invalid layout, wildcard image",
 			fields: fields{
-				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: []string{"*"}},
+				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"*": ""}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			wantErr:   true,
-			errString: "just '*' is not allowed as image constraint",
+			errString: "just '*' is not allowed as image os constraint",
 		},
 		{
 			name: "invalid layout, wildcard size",
 			fields: fields{
-				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: []string{"debian*"}},
+				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: map[string]string{"debian": "*"}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
@@ -517,39 +578,39 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 		{
 			name: "simple valid",
 			fls: FilesystemLayouts{
-				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
-				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr: false,
 		},
 		{
 			name: "valid with open layout",
 			fls: FilesystemLayouts{
-				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
-				FilesystemLayout{Base: Base{ID: "develop-1"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{}, Images: []string{}}},
-				FilesystemLayout{Base: Base{ID: "develop-2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{}, Images: []string{}}},
-				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
+				FilesystemLayout{Base: Base{ID: "develop-1"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{}, Images: map[string]string{}}},
+				FilesystemLayout{Base: Base{ID: "develop-2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{}, Images: map[string]string{}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr: false,
 		},
 		{
 			name: "simple not overlapping, different sizes, same images",
 			fls: FilesystemLayouts{
-				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
-				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"s1-large", "s1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
-				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr: false,
 		},
 		{
 			name: "overlapping, different sizes, same images",
 			fls: FilesystemLayouts{
-				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
-				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: []string{"ubuntu", "debian"}}},
-				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: []string{"firewall"}}},
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
+				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr:   true,
-			errString: "combination of size:c1-large and image:ubuntu already exists",
+			errString: "combination of size:c1-large and image os:ubuntu versionconstraint:* already exists",
 		},
 	}
 	for _, tt := range tests {

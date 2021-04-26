@@ -2,8 +2,11 @@ package metal
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
+
+	"errors"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 const (
@@ -60,9 +63,9 @@ type (
 	FilesystemLayoutConstraints struct {
 		// Sizes defines the list of sizes this layout applies to
 		Sizes []string
-		// Images defines a list of image glob patterns this layout should apply
-		// the most specific combination of sizes and images will be picked fo a allocation
-		Images []string
+		// Images defines a map from os to versionconstraint
+		// the combination of os and versionconstraint per size must be conflict free over all filesystemlayouts
+		Images map[string]string
 	}
 
 	RaidLevel string
@@ -180,9 +183,9 @@ func (f *FilesystemLayout) Validate() error {
 	}
 
 	// no pure wildcard in images
-	for _, img := range f.Constraints.Images {
-		if img == "*" {
-			return fmt.Errorf("just '*' is not allowed as image constraint")
+	for os := range f.Constraints.Images {
+		if os == "*" {
+			return fmt.Errorf("just '*' is not allowed as image os constraint")
 		}
 	}
 	// no wildcard in size
@@ -202,7 +205,6 @@ func (fls FilesystemLayouts) Validate() error {
 		allConstraints = append(allConstraints, fl.Constraints)
 	}
 
-	// FIXME switch to semver
 	sizeToImage := make(map[string]bool)
 	for _, c := range allConstraints {
 		// if both size and image is empty, overlapping is possible because to be able to develop layouts
@@ -210,14 +212,15 @@ func (fls FilesystemLayouts) Validate() error {
 			continue
 		}
 		for _, s := range c.Sizes {
-			for _, i := range c.Images {
-				sizeAndImage := s + i
+			for os, versionconstraint := range c.Images {
+				// FIXME compare semver constraint overlap
+				sizeAndImage := s + os + versionconstraint
 				_, ok := sizeToImage[sizeAndImage]
 				if !ok {
 					sizeToImage[sizeAndImage] = true
 					continue
 				}
-				return fmt.Errorf("combination of size:%s and image:%s already exists", s, i)
+				return fmt.Errorf("combination of size:%s and image os:%s versionconstraint:%s already exists", s, os, versionconstraint)
 			}
 		}
 	}
@@ -264,14 +267,19 @@ func (c *FilesystemLayoutConstraints) matches(sizeID, imageID string) bool {
 		return false
 	}
 	// Size matches
-	for _, i := range c.Images {
-		// FIXME switch to semver
-		matches, err := filepath.Match(i, imageID)
+	for os, versionconstraint := range c.Images {
+		imageos, version, err := getOsAndSemver(imageID)
 		if err != nil {
 			return false
 		}
-		// Image matches
-		if matches {
+		if os != imageos {
+			continue
+		}
+		c, err := semver.NewConstraint(versionconstraint)
+		if err != nil {
+			return false
+		}
+		if c.Check(version) {
 			return true
 		}
 	}
@@ -350,12 +358,32 @@ func ToRaidLevel(level string) (*RaidLevel, error) {
 	return &l, nil
 }
 
-// FIXME implement overlapping filesystemlayout detection
-
 func sizeMap(sizes []string) map[string]bool {
 	sm := make(map[string]bool)
 	for _, s := range sizes {
 		sm[s] = true
 	}
 	return sm
+}
+
+// getOsAndSemver parses a imageID to OS and Semver, or returns an error
+// the last part must be the semantic version, valid ids are:
+// ubuntu-19.04                 os: ubuntu version: 19.04
+// ubuntu-19.04.20200408        os: ubuntu version: 19.04.20200408
+// ubuntu-small-19.04.20200408  os: ubuntu-small version: 19.04.20200408
+// FIXME duplicate of datastore.GetOsAndSemver in image.go
+func getOsAndSemver(id string) (string, *semver.Version, error) {
+	imageParts := strings.Split(id, "-")
+	if len(imageParts) < 2 {
+		return "", nil, errors.New("image does not contain a version")
+	}
+
+	parts := len(imageParts) - 1
+	os := strings.Join(imageParts[:parts], "-")
+	version := strings.Join(imageParts[parts:], "")
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return "", nil, err
+	}
+	return os, v, nil
 }
