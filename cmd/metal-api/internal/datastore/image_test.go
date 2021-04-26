@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/stretchr/testify/assert"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -534,7 +535,7 @@ func TestGetOsAndSemver(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			os, version, err := GetOsAndSemver(tt.id)
+			os, version, err := utils.GetOsAndSemverFromImage(tt.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetOsAndSemver() error = %v, wantErr %v", err, tt.wantErr)
 				return

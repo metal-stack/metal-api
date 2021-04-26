@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"errors"
-
 	"github.com/Masterminds/semver/v3"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 )
 
 const (
@@ -145,7 +144,6 @@ func (f *FilesystemLayout) Validate() error {
 		for _, partition := range disk.Partitions {
 			devname := fmt.Sprintf("%s%d", disk.PartitionPrefix, partition.Number)
 			providedDevices[devname] = true
-
 		}
 	}
 
@@ -167,7 +165,7 @@ func (f *FilesystemLayout) Validate() error {
 	}
 
 	// check if all fs devices are provided
-	// format must be supported
+	// given format must be supported
 	for _, fs := range f.Filesystems {
 		if fs.Format == TMPFS {
 			continue
@@ -268,7 +266,7 @@ func (c *FilesystemLayoutConstraints) matches(sizeID, imageID string) bool {
 	}
 	// Size matches
 	for os, versionconstraint := range c.Images {
-		imageos, version, err := getOsAndSemver(imageID)
+		imageos, version, err := utils.GetOsAndSemverFromImage(imageID)
 		if err != nil {
 			return false
 		}
@@ -294,7 +292,7 @@ func (fls FilesystemLayouts) From(size, image string) (*FilesystemLayout, error)
 			return &fl, nil
 		}
 	}
-	return nil, fmt.Errorf("could not find a matchin filesystemLayout for size:%s and image:%s", size, image)
+	return nil, fmt.Errorf("could not find a matching filesystemLayout for size:%s and image:%s", size, image)
 }
 
 // Matches the specific FilesystemLayout against the selected Hardware
@@ -364,26 +362,4 @@ func sizeMap(sizes []string) map[string]bool {
 		sm[s] = true
 	}
 	return sm
-}
-
-// getOsAndSemver parses a imageID to OS and Semver, or returns an error
-// the last part must be the semantic version, valid ids are:
-// ubuntu-19.04                 os: ubuntu version: 19.04
-// ubuntu-19.04.20200408        os: ubuntu version: 19.04.20200408
-// ubuntu-small-19.04.20200408  os: ubuntu-small version: 19.04.20200408
-// FIXME duplicate of datastore.GetOsAndSemver in image.go
-func getOsAndSemver(id string) (string, *semver.Version, error) {
-	imageParts := strings.Split(id, "-")
-	if len(imageParts) < 2 {
-		return "", nil, errors.New("image does not contain a version")
-	}
-
-	parts := len(imageParts) - 1
-	os := strings.Join(imageParts[:parts], "-")
-	version := strings.Join(imageParts[parts:], "")
-	v, err := semver.NewVersion(version)
-	if err != nil {
-		return "", nil, err
-	}
-	return os, v, nil
 }
