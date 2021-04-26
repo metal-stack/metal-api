@@ -605,8 +605,8 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 		{
 			name: "overlapping, different sizes, same images",
 			fls: FilesystemLayouts{
-				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
-				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "*"}}},
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": ">= 10"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "> 10"}}},
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr:   true,
