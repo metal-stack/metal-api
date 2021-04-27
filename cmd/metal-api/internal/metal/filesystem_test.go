@@ -360,10 +360,12 @@ func TestFilesystemLayout_Matches(t *testing.T) {
 
 func TestFilesystemLayout_Validate(t *testing.T) {
 	type fields struct {
-		Constraints FilesystemLayoutConstraints
-		Filesystems []Filesystem
-		Disks       []Disk
-		Raid        []Raid
+		Constraints    FilesystemLayoutConstraints
+		Filesystems    []Filesystem
+		Disks          []Disk
+		Raid           []Raid
+		VolumeGroups   []VolumeGroup
+		LogicalVolumes []LogicalVolume
 	}
 	tests := []struct {
 		name      string
@@ -407,7 +409,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			wantErr:   true,
-			errString: "device:/dev/sda2 for filesystem:/ is not configured as raid or device",
+			errString: "device:/dev/sda2 for filesystem:/ is not configured",
 		},
 		{
 			name: "invalid layout wrong Format",
@@ -466,7 +468,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errString: "device:/dev/md1 for filesystem:/boot is not configured as raid or device",
+			errString: "device:/dev/md1 for filesystem:/boot is not configured",
 		},
 		{
 			name: "invalid layout device of raid missing",
@@ -481,17 +483,54 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errString: "device:/dev/sda2 not provided by disk in raid:/dev/md1",
+			errString: "device:/dev/sda2 not provided by disk for raid:/dev/md1",
+		},
+		{
+			name: "valid lvm layout",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Disks: []Disk{
+					{Device: "/dev/sda"},
+					{Device: "/dev/sdb"},
+				},
+				VolumeGroups: []VolumeGroup{
+					{Name: "vgroot", Devices: []string{"/dev/sda", "/dev/sdb"}},
+				},
+				LogicalVolumes: []LogicalVolume{
+					{Name: "boot", VolumeGroup: "vgroot", Size: 100000000, LVMType: LVMTypeRaid1},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid lvm layout",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vg00/boot", Format: VFAT}},
+				Disks: []Disk{
+					{Device: "/dev/sda"},
+					{Device: "/dev/sdb"},
+				},
+				VolumeGroups: []VolumeGroup{
+					{Name: "vgroot", Devices: []string{"/dev/sda", "/dev/sdb"}},
+				},
+				LogicalVolumes: []LogicalVolume{
+					{Name: "boot", VolumeGroup: "vgroot", Size: 100, LVMType: LVMTypeRaid1},
+				},
+			},
+			wantErr:   true,
+			errString: "device:/dev/vg00/boot for filesystem:/boot is not configured",
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			f := &FilesystemLayout{
-				Constraints: tt.fields.Constraints,
-				Filesystems: tt.fields.Filesystems,
-				Disks:       tt.fields.Disks,
-				Raid:        tt.fields.Raid,
+				Constraints:    tt.fields.Constraints,
+				Filesystems:    tt.fields.Filesystems,
+				Disks:          tt.fields.Disks,
+				Raid:           tt.fields.Raid,
+				VolumeGroups:   tt.fields.VolumeGroups,
+				LogicalVolumes: tt.fields.LogicalVolumes,
 			}
 			err := f.Validate()
 			if (err != nil) != tt.wantErr {

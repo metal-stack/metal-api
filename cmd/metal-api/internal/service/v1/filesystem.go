@@ -4,10 +4,12 @@ import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 type (
 	FilesystemLayoutBase struct {
-		Filesystems []Filesystem                `json:"filesystems" description:"list of filesystems to create"`
-		Disks       []Disk                      `json:"disks" description:"list of disks to to modify"`
-		Raid        []Raid                      `json:"raid" description:"list of raid arrays to create"`
-		Constraints FilesystemLayoutConstraints `json:"constraints" description:"constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"`
+		Filesystems    []Filesystem                `json:"filesystems" description:"list of filesystems to create"`
+		Disks          []Disk                      `json:"disks" description:"list of disks to to modify"`
+		Raid           []Raid                      `json:"raid" description:"list of raid arrays to create"`
+		VolumeGroups   []VolumeGroup               `json:"volumegroups" description:"list of volumegroups to create"`
+		LogicalVolumes []LogicalVolume             `json:"logicalvolumes" description:"list of logicalvolumes to create"`
+		Constraints    FilesystemLayoutConstraints `json:"constraints" description:"constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"`
 	}
 	FilesystemLayoutResponse struct {
 		Common
@@ -55,6 +57,18 @@ type (
 		Size    uint64  `json:"size" description:"size in mebibytes (MiB) of this partition"`
 		GPTType *string `json:"gpttype" description:"the gpt partition table type of this partition"`
 	}
+	VolumeGroup struct {
+		Name    string   `json:"name" description:"the name of the resulting volume group"`
+		Devices []string `json:"devices" description:"list of devices to form the volume group from"`
+		Tags    []string `json:"tags" description:"list of tags to add to the volume group"`
+	}
+
+	LogicalVolume struct {
+		Name        string `json:"name" description:"the name of the logical volume"`
+		VolumeGroup string `json:"volumegroup" description:"the name of the volume group where to create the logical volume onto"`
+		Size        uint64 `json:"size" description:"size in mebibytes (MiB) of this volume"`
+		LVMType     string `json:"lvmtype" description:"the type of this logical volume can be either striped|raid1"`
+	}
 )
 
 func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayout, error) {
@@ -62,6 +76,8 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 		fss []metal.Filesystem
 		ds  []metal.Disk
 		rs  []metal.Raid
+		vgs []metal.VolumeGroup
+		lvs []metal.LogicalVolume
 	)
 	for _, fs := range f.Filesystems {
 		format, err := metal.ToFormat(fs.Format)
@@ -117,13 +133,32 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 		}
 		rs = append(rs, r)
 	}
+	for _, v := range f.VolumeGroups {
+		vg := metal.VolumeGroup{
+			Name:    v.Name,
+			Devices: v.Devices,
+			Tags:    v.Tags,
+		}
+		vgs = append(vgs, vg)
+	}
+	for _, l := range f.LogicalVolumes {
+		lv := metal.LogicalVolume{
+			Name:        l.Name,
+			VolumeGroup: l.VolumeGroup,
+			Size:        l.Size,
+			LVMType:     metal.LVMType(l.LVMType),
+		}
+		lvs = append(lvs, lv)
+	}
 	fl := &metal.FilesystemLayout{
 		Base: metal.Base{
 			ID: f.ID,
 		},
-		Filesystems: fss,
-		Disks:       ds,
-		Raid:        rs,
+		Filesystems:    fss,
+		Disks:          ds,
+		Raid:           rs,
+		VolumeGroups:   vgs,
+		LogicalVolumes: lvs,
 		Constraints: metal.FilesystemLayoutConstraints{
 			Sizes:  f.Constraints.Sizes,
 			Images: f.Constraints.Images,
@@ -146,6 +181,8 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 		fss []Filesystem
 		ds  []Disk
 		rs  []Raid
+		vgs []VolumeGroup
+		lvs []LogicalVolume
 	)
 	for _, fs := range f.Filesystems {
 		v1fs := Filesystem{
@@ -187,6 +224,23 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 		}
 		rs = append(rs, r)
 	}
+	for _, v := range f.VolumeGroups {
+		vg := VolumeGroup{
+			Name:    v.Name,
+			Devices: v.Devices,
+			Tags:    v.Tags,
+		}
+		vgs = append(vgs, vg)
+	}
+	for _, l := range f.LogicalVolumes {
+		lv := LogicalVolume{
+			Name:        l.Name,
+			VolumeGroup: l.VolumeGroup,
+			Size:        l.Size,
+			LVMType:     string(l.LVMType),
+		}
+		lvs = append(lvs, lv)
+	}
 	flr := &FilesystemLayoutResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -198,9 +252,11 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 			},
 		},
 		FilesystemLayoutBase: FilesystemLayoutBase{
-			Filesystems: fss,
-			Disks:       ds,
-			Raid:        rs,
+			Filesystems:    fss,
+			Disks:          ds,
+			Raid:           rs,
+			VolumeGroups:   vgs,
+			LogicalVolumes: lvs,
 			Constraints: FilesystemLayoutConstraints{
 				Sizes:  f.Constraints.Sizes,
 				Images: f.Constraints.Images,

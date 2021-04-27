@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -35,12 +36,18 @@ const (
 	RaidLevel0 = RaidLevel("0")
 	// RaidLevel1 is a mirror of two disks
 	RaidLevel1 = RaidLevel("1")
+
+	// LVMTypeStripe stripe across all physical volumes
+	LVMTypeStripe = LVMType("striped")
+	// LVMTypeStripe mirror with raid across all physical volumes
+	LVMTypeRaid1 = LVMType("raid1")
 )
 
 var (
 	SupportedFormats    = map[Format]bool{VFAT: true, EXT3: true, EXT4: true, SWAP: true, TMPFS: true, NONE: true}
 	SupportedGPTTypes   = map[GPTType]bool{GPTBoot: true, GPTLinux: true, GPTLinuxLVM: true, GPTLinuxRaid: true}
 	SupportedRaidLevels = map[RaidLevel]bool{RaidLevel0: true, RaidLevel1: true}
+	SupportedLVMTypes   = map[LVMType]bool{LVMTypeStripe: true, LVMTypeRaid1: true}
 )
 
 type (
@@ -55,6 +62,10 @@ type (
 		Disks []Disk
 		// Raid if not empty, create raid arrays out of the individual disks, to place filesystems onto
 		Raid []Raid
+		// VolumeGroups to create
+		VolumeGroups []VolumeGroup
+		// LogicalVolumes to create on top of VolumeGroups
+		LogicalVolumes []LogicalVolume
 		// Constraints which must match to select this Layout
 		Constraints FilesystemLayoutConstraints
 	}
@@ -70,6 +81,7 @@ type (
 	RaidLevel string
 	Format    string
 	GPTType   string
+	LVMType   string
 
 	// Filesystem defines a single filesystem to be mounted
 	Filesystem struct {
@@ -116,6 +128,28 @@ type (
 		Spares int
 	}
 
+	// VolumeGroup is optional, if given the devices must match.
+	VolumeGroup struct {
+		// Name of the volumegroup without the /dev prefix
+		Name string
+		// Devices the devices to form a volumegroup device
+		Devices []string
+		// Tags to attach to the volumegroup
+		Tags []string
+	}
+
+	// LogicalVolume is a block devices created with lvm on top of a volumegroup
+	LogicalVolume struct {
+		// Name the name of the logical volume, without /dev prefix, will be accessible at /dev/vgname/lvname
+		Name string
+		// VolumeGroup the name of the volumegroup
+		VolumeGroup string
+		// Size of this LV in mebibytes (MiB)
+		Size uint64
+		// LVMType can be either striped or raid1
+		LVMType LVMType
+	}
+
 	// DiskPartition is a single partition on a device, only GPT partition types are supported
 	// FIXME overlaps with DiskPartition in machine.go which is part of reinstall feature
 	DiskPartition2 struct {
@@ -141,6 +175,7 @@ func (f *FilesystemLayout) Validate() error {
 		if err != nil {
 			return err
 		}
+		providedDevices[disk.Device] = true
 		for _, partition := range disk.Partitions {
 			devname := fmt.Sprintf("%s%d", disk.PartitionPrefix, partition.Number)
 			providedDevices[devname] = true
@@ -153,7 +188,7 @@ func (f *FilesystemLayout) Validate() error {
 		for _, device := range raid.Devices {
 			_, ok := providedDevices[device]
 			if !ok {
-				return fmt.Errorf("device:%s not provided by disk in raid:%s", device, raid.ArrayName)
+				return fmt.Errorf("device:%s not provided by disk for raid:%s", device, raid.ArrayName)
 			}
 		}
 		providedDevices[raid.ArrayName] = true
@@ -164,6 +199,27 @@ func (f *FilesystemLayout) Validate() error {
 		}
 	}
 
+	vgdevices := make(map[string]bool)
+	// VolumeGroups may be on top of disks, partitions and raid devices
+	for _, vg := range f.VolumeGroups {
+		for _, device := range vg.Devices {
+			_, ok := providedDevices[device]
+			if !ok {
+				return fmt.Errorf("device:%s not provided by machine for vg:%s", device, vg.Name)
+			}
+		}
+		vgdevices[vg.Name] = true
+	}
+
+	// LogicalVolumes must be on top of volumegroups
+	for _, lv := range f.LogicalVolumes {
+		_, ok := vgdevices[lv.VolumeGroup]
+		if !ok {
+			return fmt.Errorf("volumegroup:%s not configured for lv:%s", lv.VolumeGroup, lv.Name)
+		}
+		providedDevices[path.Join("/dev/", lv.VolumeGroup, lv.Name)] = true
+	}
+
 	// check if all fs devices are provided
 	// given format must be supported
 	for _, fs := range f.Filesystems {
@@ -172,7 +228,7 @@ func (f *FilesystemLayout) Validate() error {
 		}
 		_, ok := providedDevices[fs.Device]
 		if !ok {
-			return fmt.Errorf("device:%s for filesystem:%s is not configured as raid or device", fs.Device, *fs.Path)
+			return fmt.Errorf("device:%s for filesystem:%s is not configured", fs.Device, *fs.Path)
 		}
 		_, ok = SupportedFormats[fs.Format]
 		if !ok {

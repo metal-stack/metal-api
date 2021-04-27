@@ -309,6 +309,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "logicalvolumes": {
+          "description": "list of logicalvolumes to create",
+          "items": {
+            "$ref": "#/definitions/v1.LogicalVolume"
+          },
+          "type": "array"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -319,6 +326,13 @@
             "$ref": "#/definitions/v1.Raid"
           },
           "type": "array"
+        },
+        "volumegroups": {
+          "description": "list of volumegroups to create",
+          "items": {
+            "$ref": "#/definitions/v1.VolumeGroup"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -326,7 +340,9 @@
         "disks",
         "filesystems",
         "id",
-        "raid"
+        "logicalvolumes",
+        "raid",
+        "volumegroups"
       ]
     },
     "v1.FilesystemLayoutResponse": {
@@ -358,6 +374,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "logicalvolumes": {
+          "description": "list of logicalvolumes to create",
+          "items": {
+            "$ref": "#/definitions/v1.LogicalVolume"
+          },
+          "type": "array"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -368,6 +391,13 @@
             "$ref": "#/definitions/v1.Raid"
           },
           "type": "array"
+        },
+        "volumegroups": {
+          "description": "list of volumegroups to create",
+          "items": {
+            "$ref": "#/definitions/v1.VolumeGroup"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -375,7 +405,9 @@
         "disks",
         "filesystems",
         "id",
-        "raid"
+        "logicalvolumes",
+        "raid",
+        "volumegroups"
       ]
     },
     "v1.FilesystemLayoutUpdateRequest": {
@@ -407,6 +439,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "logicalvolumes": {
+          "description": "list of logicalvolumes to create",
+          "items": {
+            "$ref": "#/definitions/v1.LogicalVolume"
+          },
+          "type": "array"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -417,6 +456,13 @@
             "$ref": "#/definitions/v1.Raid"
           },
           "type": "array"
+        },
+        "volumegroups": {
+          "description": "list of volumegroups to create",
+          "items": {
+            "$ref": "#/definitions/v1.VolumeGroup"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -424,7 +470,9 @@
         "disks",
         "filesystems",
         "id",
-        "raid"
+        "logicalvolumes",
+        "raid",
+        "volumegroups"
       ]
     },
     "v1.FirewallCreateRequest": {
@@ -1154,6 +1202,33 @@
           "type": "string"
         }
       }
+    },
+    "v1.LogicalVolume": {
+      "properties": {
+        "lvmtype": {
+          "description": "the type of this logical volume can be either striped|raid1",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of the logical volume",
+          "type": "string"
+        },
+        "size": {
+          "description": "size in mebibytes (MiB) of this volume",
+          "format": "integer",
+          "type": "integer"
+        },
+        "volumegroup": {
+          "description": "the name of the volume group where to create the logical volume onto",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lvmtype",
+        "name",
+        "size",
+        "volumegroup"
+      ]
     },
     "v1.MachineAbortReinstallRequest": {
       "properties": {
@@ -3471,6 +3546,33 @@
       },
       "required": [
         "VendorRevisions"
+      ]
+    },
+    "v1.VolumeGroup": {
+      "properties": {
+        "devices": {
+          "description": "list of devices to form the volume group from",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "the name of the resulting volume group",
+          "type": "string"
+        },
+        "tags": {
+          "description": "list of tags to add to the volume group",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "devices",
+        "name",
+        "tags"
       ]
     }
   },
