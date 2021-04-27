@@ -322,7 +322,7 @@ func (fls FilesystemLayouts) Validate() error {
 
 				err := hasCollisions(versionConstraints)
 				if err != nil {
-					return fmt.Errorf("combination of size:%s and image os:%s versionconstraint:%s already exists", s, os, versionConstraint)
+					return fmt.Errorf("combination of size:%s and image: %s %s already exists", s, os, versionConstraint)
 				}
 
 				sizeAndImageOSToConstraint[sizeAndImageOS] = versionConstraints

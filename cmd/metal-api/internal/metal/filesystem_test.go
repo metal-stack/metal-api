@@ -651,7 +651,7 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr:   true,
-			errString: "combination of size:c1-large and image os:ubuntu versionconstraint:* already exists",
+			errString: "combination of size:c1-large and image: ubuntu * already exists",
 		},
 	}
 	for _, tt := range tests {
