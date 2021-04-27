@@ -37,8 +37,8 @@ const (
 	// RaidLevel1 is a mirror of two disks
 	RaidLevel1 = RaidLevel("1")
 
-	// LVMTypeStripe stripe across all physical volumes
-	LVMTypeStripe = LVMType("striped")
+	// LVMTypeLinear stripe across all physical volumes
+	LVMTypeLinear = LVMType("linear")
 	// LVMTypeStripe mirror with raid across all physical volumes
 	LVMTypeRaid1 = LVMType("raid1")
 )
@@ -47,7 +47,7 @@ var (
 	SupportedFormats    = map[Format]bool{VFAT: true, EXT3: true, EXT4: true, SWAP: true, TMPFS: true, NONE: true}
 	SupportedGPTTypes   = map[GPTType]bool{GPTBoot: true, GPTLinux: true, GPTLinuxLVM: true, GPTLinuxRaid: true}
 	SupportedRaidLevels = map[RaidLevel]bool{RaidLevel0: true, RaidLevel1: true}
-	SupportedLVMTypes   = map[LVMType]bool{LVMTypeStripe: true, LVMTypeRaid1: true}
+	SupportedLVMTypes   = map[LVMType]bool{LVMTypeLinear: true, LVMTypeRaid1: true}
 )
 
 type (
