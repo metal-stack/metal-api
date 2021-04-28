@@ -142,11 +142,15 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 		vgs = append(vgs, vg)
 	}
 	for _, l := range f.LogicalVolumes {
+		lvmtype, err := metal.ToLVMType(l.LVMType)
+		if err != nil {
+			return nil, err
+		}
 		lv := metal.LogicalVolume{
 			Name:        l.Name,
 			VolumeGroup: l.VolumeGroup,
 			Size:        l.Size,
-			LVMType:     metal.LVMType(l.LVMType),
+			LVMType:     *lvmtype,
 		}
 		lvs = append(lvs, lv)
 	}

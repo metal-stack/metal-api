@@ -507,6 +507,15 @@ func ToRaidLevel(level string) (*RaidLevel, error) {
 	return &l, nil
 }
 
+func ToLVMType(lvmtype string) (*LVMType, error) {
+	l := LVMType(lvmtype)
+	_, ok := SupportedLVMTypes[l]
+	if !ok {
+		return nil, fmt.Errorf("given lvmtype:%s is not supported", lvmtype)
+	}
+	return &l, nil
+}
+
 func sizeMap(sizes []string) map[string]bool {
 	sm := make(map[string]bool)
 	for _, s := range sizes {
