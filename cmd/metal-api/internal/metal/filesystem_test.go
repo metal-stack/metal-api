@@ -644,14 +644,23 @@ func TestFilesystemLayouts_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "overlapping, different sizes, same images",
+			name: "one overlapping, different sizes, same images",
 			fls: FilesystemLayouts{
 				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": ">= 10"}}},
-				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "< 10"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "s1-large", "s1-xlarge"}, Images: map[string]string{"ubuntu": "*", "debian": "< 9"}}},
 				FilesystemLayout{Base: Base{ID: "firewall"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-xlarge"}, Images: map[string]string{"firewall": "*"}}},
 			},
 			wantErr:   true,
-			errString: "combination of size:c1-large and image: ubuntu * already exists",
+			errString: "these combinations already exist:c1-large->[ubuntu *]",
+		},
+		{
+			name: "one overlapping, same sizes, different images",
+			// FIXME fails
+			fls: FilesystemLayouts{
+				FilesystemLayout{Base: Base{ID: "default"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"debian": ">= 10"}}},
+				FilesystemLayout{Base: Base{ID: "default2"}, Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"debian": "< 10"}}},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -738,6 +747,11 @@ func Test_hasCollisions(t *testing.T) {
 			wantErr:            false,
 		},
 		{
+			name:               "simple 2",
+			versionConstraints: []string{">= 10", "< 10"},
+			wantErr:            false,
+		},
+		{
 			name:               "simple star match",
 			versionConstraints: []string{">= 10", "<= 9.9", "*"},
 			wantErr:            true,
@@ -747,7 +761,7 @@ func Test_hasCollisions(t *testing.T) {
 			name:               "simple versions overlap",
 			versionConstraints: []string{">= 10", "<= 9.9", ">= 9.8"},
 			wantErr:            true,
-			errString:          "constraint:>=9.8 overlaps:>=10",
+			errString:          "constraint:<=9.9 overlaps:>=9.8",
 		},
 		{
 			name:               "simple versions overlap reverse",

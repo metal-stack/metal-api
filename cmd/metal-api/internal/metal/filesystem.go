@@ -37,8 +37,10 @@ const (
 	// RaidLevel1 is a mirror of two disks
 	RaidLevel1 = RaidLevel("1")
 
-	// LVMTypeLinear stripe across all physical volumes
+	// LVMTypeLinear append across all physical volumes
 	LVMTypeLinear = LVMType("linear")
+	// LVMTypeStriped stripe across all physical volumes
+	LVMTypeStriped = LVMType("striped")
 	// LVMTypeStripe mirror with raid across all physical volumes
 	LVMTypeRaid1 = LVMType("raid1")
 )
@@ -47,7 +49,7 @@ var (
 	SupportedFormats    = map[Format]bool{VFAT: true, EXT3: true, EXT4: true, SWAP: true, TMPFS: true, NONE: true}
 	SupportedGPTTypes   = map[GPTType]bool{GPTBoot: true, GPTLinux: true, GPTLinuxLVM: true, GPTLinuxRaid: true}
 	SupportedRaidLevels = map[RaidLevel]bool{RaidLevel0: true, RaidLevel1: true}
-	SupportedLVMTypes   = map[LVMType]bool{LVMTypeLinear: true, LVMTypeRaid1: true}
+	SupportedLVMTypes   = map[LVMType]bool{LVMTypeLinear: true, LVMTypeStriped: true, LVMTypeRaid1: true}
 )
 
 type (
@@ -305,6 +307,7 @@ func (fls FilesystemLayouts) Validate() error {
 		allConstraints = append(allConstraints, fl.Constraints)
 	}
 
+	violations := []string{}
 	sizeAndImageOSToConstraint := make(map[string][]string)
 	for _, c := range allConstraints {
 		// if both size and image is empty, overlapping is possible because to be able to develop layouts
@@ -322,13 +325,17 @@ func (fls FilesystemLayouts) Validate() error {
 
 				err := hasCollisions(versionConstraints)
 				if err != nil {
-					return fmt.Errorf("combination of size:%s and image: %s %s already exists", s, os, versionConstraint)
+					violations = append(violations, fmt.Sprintf("%s->[%s %s]", s, os, versionConstraint))
 				}
 
 				sizeAndImageOSToConstraint[sizeAndImageOS] = versionConstraints
 			}
 		}
 	}
+	if len(violations) > 0 {
+		return fmt.Errorf("these combinations already exist:%s", strings.Join(violations, ","))
+	}
+
 	return nil
 }
 
@@ -361,11 +368,8 @@ func hasCollisions(versionConstraints []string) error {
 			if err != nil {
 				return err
 			}
-			if constrainti.Check(versionj) {
+			if constrainti.Check(versionj) && constraintj.Check(versioni) {
 				return fmt.Errorf("constraint:%s overlaps:%s", constrainti, constraintj)
-			}
-			if constraintj.Check(versioni) {
-				return fmt.Errorf("constraint:%s overlaps:%s", constraintj, constrainti)
 			}
 		}
 	}
