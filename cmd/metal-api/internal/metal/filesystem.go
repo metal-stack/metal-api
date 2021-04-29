@@ -302,9 +302,9 @@ func convertToOpAndVersion(versionconstraint string) (string, *semver.Version, e
 
 // Validate ensures that for all Filesystemlayouts not more than one constraint matches the same size and image constraint
 func (fls FilesystemLayouts) Validate() error {
-	var allConstraints []FilesystemLayoutConstraints
+	allConstraints := make(map[string]FilesystemLayoutConstraints)
 	for _, fl := range fls {
-		allConstraints = append(allConstraints, fl.Constraints)
+		allConstraints[fl.ID] = fl.Constraints
 	}
 
 	violations := []string{}
