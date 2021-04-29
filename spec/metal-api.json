@@ -1438,17 +1438,6 @@
           "description": "the name of this block device",
           "type": "string"
         },
-        "partitions": {
-          "description": "the partitions of this disk",
-          "items": {
-            "$ref": "#/definitions/v1.MachineDiskPartition"
-          },
-          "type": "array"
-        },
-        "primary": {
-          "description": "whether this disk has the OS installed",
-          "type": "boolean"
-        },
         "size": {
           "description": "the size of this block device",
           "format": "integer",
@@ -1457,71 +1446,6 @@
       },
       "required": [
         "name",
-        "primary",
-        "size"
-      ]
-    },
-    "v1.MachineDiskPartition": {
-      "properties": {
-        "device": {
-          "description": "the partition device name, e.g. sda1",
-          "type": "string"
-        },
-        "filesystem": {
-          "description": "the partition filesystem",
-          "type": "string"
-        },
-        "gptguid": {
-          "description": "the partition GPT guid",
-          "type": "string"
-        },
-        "gpttyoe": {
-          "description": "the partition GPT type",
-          "type": "string"
-        },
-        "label": {
-          "description": "the partition label",
-          "type": "string"
-        },
-        "mountoptions": {
-          "description": "the partition mount options",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "mountpoint": {
-          "description": "the partition mount point",
-          "type": "string"
-        },
-        "number": {
-          "description": "the partition number",
-          "format": "integer",
-          "type": "integer"
-        },
-        "properties": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "the partition properties",
-          "type": "object"
-        },
-        "size": {
-          "description": "the partition size",
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "device",
-        "filesystem",
-        "gptguid",
-        "gpttyoe",
-        "label",
-        "mountoptions",
-        "mountpoint",
-        "number",
-        "properties",
         "size"
       ]
     },

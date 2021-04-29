@@ -94,9 +94,9 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 		fss = append(fss, v1fs)
 	}
 	for _, disk := range f.Disks {
-		var parts []metal.DiskPartition2
+		var parts []metal.DiskPartition
 		for _, p := range disk.Partitions {
-			part := metal.DiskPartition2{
+			part := metal.DiskPartition{
 				Number: p.Number,
 				Size:   p.Size,
 				Label:  p.Label,

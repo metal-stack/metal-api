@@ -106,7 +106,7 @@ type (
 		// Device is the full device path
 		Device string
 		// Partitions to create on this device
-		Partitions []DiskPartition2
+		Partitions []DiskPartition
 		// WipeOnReinstall, if set to true the whole disk will be erased if reinstall happens
 		// during fresh install all disks are wiped
 		WipeOnReinstall bool
@@ -150,7 +150,7 @@ type (
 
 	// DiskPartition is a single partition on a device, only GPT partition types are supported
 	// FIXME overlaps with DiskPartition in machine.go which is part of reinstall feature
-	DiskPartition2 struct {
+	DiskPartition struct {
 		// Number of this partition, will be added to partitionprefix
 		Number uint8
 		// Label to enhance readability

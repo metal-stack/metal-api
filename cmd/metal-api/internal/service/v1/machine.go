@@ -98,10 +98,8 @@ type ChassisIdentifyLEDState struct {
 }
 
 type MachineBlockDevice struct {
-	Name       string                `json:"name" description:"the name of this block device"`
-	Size       uint64                `json:"size" description:"the size of this block device"`
-	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk" optional:"true"`
-	Primary    bool                  `json:"primary" description:"whether this disk has the OS installed"`
+	Name string `json:"name" description:"the name of this block device"`
+	Size uint64 `json:"size" description:"the size of this block device"`
 }
 
 type MachineRecentProvisioningEvents struct {
@@ -190,22 +188,6 @@ type MachineAllocationNetwork struct {
 	NetworkID     string `json:"networkid" description:"the id of the network that this machine will be placed in"`
 	AutoAcquireIP *bool  `json:"autoacquire" description:"will automatically acquire an ip in this network if set to true, default is true"`
 }
-
-type MachineDiskPartitions []MachineDiskPartition
-
-type MachineDiskPartition struct {
-	Label        string            `json:"label" description:"the partition label"`
-	Device       string            `json:"device" description:"the partition device name, e.g. sda1"`
-	Number       uint              `json:"number" description:"the partition number"`
-	MountPoint   string            `json:"mountpoint" description:"the partition mount point"`
-	MountOptions []string          `json:"mountoptions" description:"the partition mount options"`
-	Size         int64             `json:"size" description:"the partition size"`
-	Filesystem   string            `json:"filesystem" description:"the partition filesystem"`
-	GPTType      string            `json:"gpttyoe" description:"the partition GPT type"`
-	GPTGuid      string            `json:"gptguid" description:"the partition GPT guid"`
-	Properties   map[string]string `json:"properties" description:"the partition properties"`
-}
-
 type MachineFinalizeAllocationRequest struct {
 	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
 	PrimaryDisk     string `json:"primarydisk" description:"the device name of the primary disk"`
@@ -280,23 +262,8 @@ func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 	var disks []metal.BlockDevice
 	for _, d := range r.Disks {
 		disk := metal.BlockDevice{
-			Name:    d.Name,
-			Size:    d.Size,
-			Primary: d.Primary,
-		}
-		for _, p := range d.Partitions {
-			disk.Partitions = append(disk.Partitions, &metal.DiskPartition{
-				Label:        p.Label,
-				Device:       p.Device,
-				Number:       p.Number,
-				MountPoint:   p.MountPoint,
-				MountOptions: p.MountOptions,
-				Size:         p.Size,
-				Filesystem:   p.Filesystem,
-				GPTType:      p.GPTType,
-				GPTGuid:      p.GPTGuid,
-				Properties:   p.Properties,
-			})
+			Name: d.Name,
+			Size: d.Size,
 		}
 		disks = append(disks, disk)
 	}

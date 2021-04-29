@@ -304,24 +304,8 @@ func (hw *MachineHardware) ReadableSpec() string {
 
 // BlockDevice information.
 type BlockDevice struct {
-	Name       string           `rethinkdb:"name" json:"name"`
-	Size       uint64           `rethinkdb:"size" json:"size"`
-	Partitions []*DiskPartition `rethinkdb:"partitions" json:"partitions"`
-	Primary    bool             `rethinkdb:"primary" json:"primary"`
-}
-
-// DiskPartition defines a disk partition
-type DiskPartition struct {
-	Label        string            `rethinkdb:"label" json:"label"`
-	Device       string            `rethinkdb:"device" json:"device"`
-	Number       uint              `rethinkdb:"number" json:"number"`
-	MountPoint   string            `rethinkdb:"mountpoint" json:"mountpoint"`
-	MountOptions []string          `rethinkdb:"mountoptions" json:"mountoptions"`
-	Size         int64             `rethinkdb:"size" json:"size"`
-	Filesystem   string            `rethinkdb:"filesystem" json:"filesystem"`
-	GPTType      string            `rethinkdb:"gpttyoe" json:"gpttyoe"`
-	GPTGuid      string            `rethinkdb:"gptguid" json:"gptguid"`
-	Properties   map[string]string `rethinkdb:"properties" json:"properties"`
+	Name string `rethinkdb:"name" json:"name"`
+	Size uint64 `rethinkdb:"size" json:"size"`
 }
 
 // Fru (Field Replaceable Unit) data
