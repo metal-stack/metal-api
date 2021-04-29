@@ -40,7 +40,6 @@ type (
 	}
 	Disk struct {
 		Device          string          `json:"device" description:"the device to create the partitions"`
-		PartitionPrefix string          `json:"partitionprefix" description:"if a partition is created on device partitionprefix defines how individual devices from a partition are numbered"`
 		Partitions      []DiskPartition `json:"partitions" description:"list of partitions to create on this disk"`
 		WipeOnReinstall bool            `json:"wipeonreinstall" description:"if set to true, this disk will be wiped before reinstallation"`
 	}
@@ -67,7 +66,7 @@ type (
 		Name        string `json:"name" description:"the name of the logical volume"`
 		VolumeGroup string `json:"volumegroup" description:"the name of the volume group where to create the logical volume onto"`
 		Size        uint64 `json:"size" description:"size in mebibytes (MiB) of this volume"`
-		LVMType     string `json:"lvmtype" description:"the type of this logical volume can be either linear|raid1"`
+		LVMType     string `json:"lvmtype" description:"the type of this logical volume can be either linear|striped|raid1"`
 	}
 )
 
@@ -113,7 +112,6 @@ func NewFilesystemLayout(f FilesystemLayoutCreateRequest) (*metal.FilesystemLayo
 		}
 		d := metal.Disk{
 			Device:          string(disk.Device),
-			PartitionPrefix: disk.PartitionPrefix,
 			Partitions:      parts,
 			WipeOnReinstall: disk.WipeOnReinstall,
 		}
@@ -212,7 +210,6 @@ func NewFilesystemLayoutResponse(f *metal.FilesystemLayout) *FilesystemLayoutRes
 		}
 		d := Disk{
 			Device:          string(disk.Device),
-			PartitionPrefix: disk.PartitionPrefix,
 			Partitions:      parts,
 			WipeOnReinstall: disk.WipeOnReinstall,
 		}

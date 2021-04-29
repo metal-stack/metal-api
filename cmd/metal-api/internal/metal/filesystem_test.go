@@ -378,7 +378,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"ubuntu": "*"}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: EXT4}, {Path: strPtr("/tmp"), Device: "tmpfs", Format: TMPFS}},
-				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			wantErr: false,
 		},
@@ -387,7 +387,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"*": ""}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
-				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			wantErr:   true,
 			errString: "just '*' is not allowed as image os constraint",
@@ -397,7 +397,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: map[string]string{"debian": "*"}},
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
-				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			wantErr:   true,
 			errString: "no wildcard allowed in size constraint",
@@ -406,7 +406,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout /dev/sda2 is missing",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}, {Path: strPtr("/"), Device: "/dev/sda2", Format: EXT4}},
-				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			wantErr:   true,
 			errString: "device:/dev/sda2 for filesystem:/ is not configured",
@@ -415,7 +415,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout wrong Format",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "xfs"}},
-				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
+				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}}},
 			},
 			wantErr:   true,
 			errString: "filesystem:/boot format:xfs is not supported",
@@ -424,7 +424,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			name: "invalid layout wrong GPTType",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "vfat"}},
-				Disks:       []Disk{{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1, GPTType: &GPTInvalid}}}},
+				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1, GPTType: &GPTInvalid}}}},
 			},
 			wantErr:   true,
 			errString: "given GPTType:ff00 for partition:1 on disk:/dev/sda is not supported",
@@ -434,8 +434,8 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
 				Disks: []Disk{
-					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
-					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
 					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: RaidLevel1},
@@ -448,8 +448,8 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
 				Disks: []Disk{
-					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
-					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
 					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda1", "/dev/sdb1"}, Level: "6"},
@@ -463,8 +463,8 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
 				Disks: []Disk{
-					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
-					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 			},
 			wantErr:   true,
@@ -475,8 +475,8 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
 				Disks: []Disk{
-					{Device: "/dev/sda", PartitionPrefix: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
-					{Device: "/dev/sdb", PartitionPrefix: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sda", Partitions: []DiskPartition2{{Number: 1}}},
+					{Device: "/dev/sdb", Partitions: []DiskPartition2{{Number: 1}}},
 				},
 				Raid: []Raid{
 					{ArrayName: "/dev/md1", Devices: []string{"/dev/sda2", "/dev/sdb2"}, Level: RaidLevel1},
@@ -593,7 +593,6 @@ func TestDisk_validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			d := Disk{
 				Device:          tt.fields.Device,
-				PartitionPrefix: tt.fields.PartitionPrefix,
 				Partitions:      tt.fields.Partitions,
 				WipeOnReinstall: tt.fields.Wipe,
 			}

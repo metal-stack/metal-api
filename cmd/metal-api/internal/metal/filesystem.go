@@ -105,10 +105,6 @@ type (
 	Disk struct {
 		// Device is the full device path
 		Device string
-		// PartitionPrefix specifies which prefix is used if device is partitioned
-		// e.g. device /dev/sda, first partition will be /dev/sda1, prefix is therefore /dev/sda
-		// for nvme drives this is different, the prefix there is typically /dev/nvme0n1p
-		PartitionPrefix string
 		// Partitions to create on this device
 		Partitions []DiskPartition2
 		// WipeOnReinstall, if set to true the whole disk will be erased if reinstall happens
@@ -148,7 +144,7 @@ type (
 		VolumeGroup string
 		// Size of this LV in mebibytes (MiB)
 		Size uint64
-		// LVMType can be either striped or raid1
+		// LVMType can be either linear, striped or raid1
 		LVMType LVMType
 	}
 
@@ -179,7 +175,11 @@ func (f *FilesystemLayout) Validate() error {
 		}
 		providedDevices[disk.Device] = true
 		for _, partition := range disk.Partitions {
-			devname := fmt.Sprintf("%s%d", disk.PartitionPrefix, partition.Number)
+			partitionPrefix := ""
+			if strings.HasPrefix(disk.Device, "/dev/nvme") {
+				partitionPrefix = "p"
+			}
+			devname := fmt.Sprintf("%s%s%d", disk.Device, partitionPrefix, partition.Number)
 			providedDevices[devname] = true
 		}
 	}

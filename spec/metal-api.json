@@ -164,10 +164,6 @@
           "description": "the device to create the partitions",
           "type": "string"
         },
-        "partitionprefix": {
-          "description": "if a partition is created on device partitionprefix defines how individual devices from a partition are numbered",
-          "type": "string"
-        },
         "partitions": {
           "description": "list of partitions to create on this disk",
           "items": {
@@ -182,7 +178,6 @@
       },
       "required": [
         "device",
-        "partitionprefix",
         "partitions",
         "wipeonreinstall"
       ]
@@ -1206,7 +1201,7 @@
     "v1.LogicalVolume": {
       "properties": {
         "lvmtype": {
-          "description": "the type of this logical volume can be either striped|raid1",
+          "description": "the type of this logical volume can be either linear|striped|raid1",
           "type": "string"
         },
         "name": {
