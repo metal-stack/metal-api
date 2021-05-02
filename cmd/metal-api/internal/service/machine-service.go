@@ -1644,6 +1644,12 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 	if m.Allocation != nil && m.State.Value != metal.LockedState {
 		old := *m
 
+		if m.Allocation.FilesystemLayout == nil {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine:%s does not have a filesystemlayout reinstall not possible", id)) {
+				return
+			}
+		}
+
 		m.Allocation.Reinstall = true
 		m.Allocation.ImageID = requestPayload.ImageID
 
