@@ -14,13 +14,16 @@ func init() {
 		Name:    "add a filesystemlayout to already allocated machines",
 		Version: 3,
 		Up: func(db *r.Term, session r.QueryExecutor, rs *datastore.RethinkStore) error {
+			legacyDefaultID := "legacy-default"
+			legacyS2ID := "legacy-s2"
+			legacyS3ID := "legacy-s3"
 			gptboot := metal.GPTBoot
 			gptlinux := metal.GPTLinux
 			gptraid := metal.GPTLinuxRaid
 			tmpfs := metal.Filesystem{Path: strPtr("/tmp"), Device: "tmpfs", Format: metal.TMPFS, MountOptions: []string{"defaults", "noatime", "nosuid", "nodev", "noexec", "mode=1777", "size=512M"}}
 			fsls := metal.FilesystemLayouts{}
 			legacyDefault := &metal.FilesystemLayout{
-				Base: metal.Base{ID: "legacy-default", Name: "legacy filesystemlayout"},
+				Base: metal.Base{ID: legacyDefaultID, Name: "legacy filesystemlayout"},
 				Disks: []metal.Disk{
 					{
 						Device:          "/dev/sda",
@@ -40,7 +43,7 @@ func init() {
 				},
 			}
 			legacyS2 := &metal.FilesystemLayout{
-				Base: metal.Base{ID: "legacy-s2", Name: "legacy filesystemlayout for s2 machines"},
+				Base: metal.Base{ID: legacyS2ID, Name: "legacy filesystemlayout for s2 machines"},
 				Disks: []metal.Disk{
 					{
 						Device:          "/dev/sde",
@@ -60,7 +63,7 @@ func init() {
 				},
 			}
 			legacyS3 := &metal.FilesystemLayout{
-				Base: metal.Base{ID: "legacy-s3", Name: "legacy filesystemlayout for s3 machines"},
+				Base: metal.Base{ID: legacyS3ID, Name: "legacy filesystemlayout for s3 machines"},
 				Disks: []metal.Disk{
 					{
 						Device:          "/dev/sda",
@@ -124,17 +127,17 @@ func init() {
 				var err error
 				switch old.SizeID {
 				case "s2-xlarge-x86":
-					fsl, err = rs.FindFilesystemLayout("legacy-s2")
+					fsl, err = rs.FindFilesystemLayout(legacyS2ID)
 					if err != nil {
 						return fmt.Errorf("unable to select filesystemlayout for machine:%s size:%s error,%w", old.ID, old.SizeID, err)
 					}
 				case "s3-xlarge-x86":
-					fsl, err = rs.FindFilesystemLayout("legacy-s3")
+					fsl, err = rs.FindFilesystemLayout(legacyS3ID)
 					if err != nil {
 						return fmt.Errorf("unable to select filesystemlayout for machine:%s size:%s error,%w", old.ID, old.SizeID, err)
 					}
 				default:
-					fsl, err = rs.FindFilesystemLayout("legacy-default")
+					fsl, err = rs.FindFilesystemLayout(legacyDefaultID)
 					if err != nil {
 						return fmt.Errorf("unable to select filesystemlayout for machine:%s size:%s error,%w", old.ID, old.SizeID, err)
 					}
