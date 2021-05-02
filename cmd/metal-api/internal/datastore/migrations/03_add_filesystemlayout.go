@@ -17,6 +17,7 @@ func init() {
 			gptboot := metal.GPTBoot
 			gptlinux := metal.GPTLinux
 			gptraid := metal.GPTLinuxRaid
+			tmpfs := metal.Filesystem{Path: strPtr("/tmp"), Device: "tmpfs", Format: metal.TMPFS, MountOptions: []string{"defaults", "noatime", "nosuid", "nodev", "noexec", "mode=1777", "size=512M"}}
 			fsls := metal.FilesystemLayouts{}
 			legacyDefault := &metal.FilesystemLayout{
 				Base: metal.Base{ID: "legacy-default", Name: "legacy filesystemlayout"},
@@ -34,7 +35,7 @@ func init() {
 					{Path: strPtr("/boot/efi"), Device: "/dev/sda1", Format: metal.VFAT, Label: strPtr("efi"), CreateOptions: []string{"-F", "32"}},
 					{Path: strPtr("/"), Device: "/dev/sda2", Format: metal.EXT4, Label: strPtr("root")},
 					{Path: strPtr("/var/lib"), Device: "/dev/sda2", Format: metal.EXT4, Label: strPtr("varlib")},
-					{Path: strPtr("/tmp"), Device: "tmpfs", Format: metal.TMPFS, MountOptions: []string{"defaults", "noatime", "nosuid", "nodev", "noexec", "mode=1777", "size=512M"}},
+					tmpfs,
 				},
 			}
 			legacyS2 := &metal.FilesystemLayout{
@@ -53,7 +54,7 @@ func init() {
 					{Path: strPtr("/boot/efi"), Device: "/dev/sde1", Format: metal.VFAT, Label: strPtr("efi"), CreateOptions: []string{"-F", "32"}},
 					{Path: strPtr("/"), Device: "/dev/sde2", Format: metal.EXT4, Label: strPtr("root")},
 					{Path: strPtr("/var/lib"), Device: "/dev/sde2", Format: metal.EXT4, Label: strPtr("varlib")},
-					{Path: strPtr("/tmp"), Device: "tmpfs", Format: metal.TMPFS, MountOptions: []string{"defaults", "noatime", "nosuid", "nodev", "noexec", "mode=1777", "size=512M"}},
+					tmpfs,
 				},
 			}
 			legacyS3 := &metal.FilesystemLayout{
@@ -85,7 +86,7 @@ func init() {
 					{Path: strPtr("/boot/efi"), Device: "/dev/md1", Format: metal.VFAT, Label: strPtr("efi"), CreateOptions: []string{"-F", "32"}},
 					{Path: strPtr("/"), Device: "/dev/md2", Format: metal.EXT4, Label: strPtr("root")},
 					{Path: strPtr("/var"), Device: "/dev/md3", Format: metal.EXT4, Label: strPtr("varlib")},
-					{Path: strPtr("/tmp"), Device: "tmpfs", Format: metal.TMPFS, MountOptions: []string{"defaults", "noatime", "nosuid", "nodev", "noexec", "mode=1777", "size=512M"}},
+					tmpfs,
 				},
 			}
 			fsls = append(fsls, *legacyDefault)
