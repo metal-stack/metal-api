@@ -22,7 +22,7 @@ func init() {
 			gptraid := metal.GPTLinuxRaid
 			tmpfs := metal.Filesystem{Path: strPtr("/tmp"), Device: "tmpfs", Format: metal.TMPFS, MountOptions: []string{"defaults", "noatime", "nosuid", "nodev", "noexec", "mode=1777", "size=512M"}}
 			fsls := metal.FilesystemLayouts{}
-			legacyDefault := &metal.FilesystemLayout{
+			legacyDefault := metal.FilesystemLayout{
 				Base: metal.Base{ID: legacyDefaultID, Name: "legacy filesystemlayout"},
 				Disks: []metal.Disk{
 					{
@@ -51,7 +51,7 @@ func init() {
 					},
 				},
 			}
-			legacyS2 := &metal.FilesystemLayout{
+			legacyS2 := metal.FilesystemLayout{
 				Base: metal.Base{ID: legacyS2ID, Name: "legacy filesystemlayout for s2 machines"},
 				Disks: []metal.Disk{
 					{
@@ -79,7 +79,7 @@ func init() {
 					},
 				},
 			}
-			legacyS3 := &metal.FilesystemLayout{
+			legacyS3 := metal.FilesystemLayout{
 				Base: metal.Base{ID: legacyS3ID, Name: "legacy filesystemlayout for s3 machines"},
 				Disks: []metal.Disk{
 					{
@@ -121,9 +121,9 @@ func init() {
 					},
 				},
 			}
-			fsls = append(fsls, *legacyDefault)
-			fsls = append(fsls, *legacyS2)
-			fsls = append(fsls, *legacyS3)
+			fsls = append(fsls, legacyDefault)
+			fsls = append(fsls, legacyS2)
+			fsls = append(fsls, legacyS3)
 
 			err := fsls.Validate()
 			if err != nil {
@@ -141,6 +141,7 @@ func init() {
 				if err != nil {
 					return err
 				}
+				rs.SugaredLogger.Infow("created filesystemlayout", "id", fsl.ID)
 			}
 
 			machines, err := rs.ListMachines()
