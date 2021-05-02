@@ -125,8 +125,17 @@ func init() {
 			fsls = append(fsls, *legacyS2)
 			fsls = append(fsls, *legacyS3)
 
+			err := fsls.Validate()
+			if err != nil {
+				return err
+			}
+
 			for i := range fsls {
 				fsl := fsls[i]
+				fsl.Validate()
+				if err != nil {
+					return err
+				}
 				rs.SugaredLogger.Infow("create filesystemlayout", "id", fsl.ID)
 				err := rs.CreateFilesystemLayout(&fsl)
 				if err != nil {
