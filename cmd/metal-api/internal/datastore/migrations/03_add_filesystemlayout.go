@@ -23,7 +23,8 @@ func init() {
 				Base: metal.Base{ID: "legacy-default", Name: "legacy filesystemlayout"},
 				Disks: []metal.Disk{
 					{
-						Device: "/dev/sda",
+						Device:          "/dev/sda",
+						WipeOnReinstall: true,
 						Partitions: []metal.DiskPartition{
 							{Number: 1, Label: strPtr("efi"), Size: 500, GPTType: &gptboot},
 							{Number: 2, Label: strPtr("root"), Size: 5000, GPTType: &gptlinux},
@@ -42,7 +43,8 @@ func init() {
 				Base: metal.Base{ID: "legacy-s2", Name: "legacy filesystemlayout for s2 machines"},
 				Disks: []metal.Disk{
 					{
-						Device: "/dev/sde",
+						Device:          "/dev/sde",
+						WipeOnReinstall: true,
 						Partitions: []metal.DiskPartition{
 							{Number: 1, Label: strPtr("efi"), Size: 500, GPTType: &gptboot},
 							{Number: 2, Label: strPtr("root"), Size: 5000, GPTType: &gptlinux},
@@ -61,7 +63,8 @@ func init() {
 				Base: metal.Base{ID: "legacy-s3", Name: "legacy filesystemlayout for s3 machines"},
 				Disks: []metal.Disk{
 					{
-						Device: "/dev/sda",
+						Device:          "/dev/sda",
+						WipeOnReinstall: false, // FIXME what to do here
 						Partitions: []metal.DiskPartition{
 							{Number: 1, Label: strPtr("efi"), Size: 500, GPTType: &gptraid},
 							{Number: 2, Label: strPtr("root"), Size: 50000, GPTType: &gptraid},
@@ -69,7 +72,8 @@ func init() {
 						},
 					},
 					{
-						Device: "/dev/sdb",
+						Device:          "/dev/sdb",
+						WipeOnReinstall: false, // FIXME what to do here
 						Partitions: []metal.DiskPartition{
 							{Number: 1, Label: strPtr("efi"), Size: 500, GPTType: &gptraid},
 							{Number: 2, Label: strPtr("root"), Size: 50000, GPTType: &gptraid},
