@@ -132,12 +132,12 @@ func init() {
 
 			for i := range fsls {
 				fsl := fsls[i]
-				fsl.Validate()
+				err := fsl.Validate()
 				if err != nil {
 					return err
 				}
 				rs.SugaredLogger.Infow("create filesystemlayout", "id", fsl.ID)
-				err := rs.CreateFilesystemLayout(&fsl)
+				err = rs.CreateFilesystemLayout(&fsl)
 				if err != nil {
 					return err
 				}
