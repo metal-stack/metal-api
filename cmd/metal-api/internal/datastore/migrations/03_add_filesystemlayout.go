@@ -132,12 +132,13 @@ func init() {
 
 			for i := range fsls {
 				fsl := fsls[i]
-				// err := fsl.Validate()
-				// if err != nil {
-				// 	return err
-				// }
+				// FIXME enable this validation breaks fsl creation with duplicate key
+				err := fsl.Validate()
+				if err != nil {
+					return err
+				}
 				rs.SugaredLogger.Infow("create filesystemlayout", "id", fsl.ID)
-				err := rs.CreateFilesystemLayout(&fsl)
+				err = rs.CreateFilesystemLayout(&fsl)
 				if err != nil {
 					return fmt.Errorf("unable to create filesystemlayout:%s error:%w", fsl.ID, err)
 				}

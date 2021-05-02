@@ -164,7 +164,7 @@ type (
 )
 
 // Validate a existing FilesystemLayout
-func (f *FilesystemLayout) Validate() error {
+func (f FilesystemLayout) Validate() error {
 	// check device existence from disk.partition -> raid.device -> filesystem
 	// collect all provided devices
 	providedDevices := make(map[string]bool)
