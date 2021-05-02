@@ -41,6 +41,15 @@ func init() {
 					{Path: strPtr("/var/lib"), Device: "/dev/sda2", Format: metal.EXT4, Label: strPtr("varlib")},
 					tmpfs,
 				},
+				Constraints: metal.FilesystemLayoutConstraints{
+					Sizes: []string{"c1-large-x86", "c1-xlarge-x86"},
+					Images: map[string]string{
+						"debian":   "<= 10.20210501",
+						"ubuntu":   "<= 20.04.20210501",
+						"firewall": "<= 2.20210501",
+						"centos":   "<= 7.20210501",
+					},
+				},
 			}
 			legacyS2 := &metal.FilesystemLayout{
 				Base: metal.Base{ID: legacyS2ID, Name: "legacy filesystemlayout for s2 machines"},
@@ -60,6 +69,14 @@ func init() {
 					{Path: strPtr("/"), Device: "/dev/sde2", Format: metal.EXT4, Label: strPtr("root")},
 					{Path: strPtr("/var/lib"), Device: "/dev/sde2", Format: metal.EXT4, Label: strPtr("varlib")},
 					tmpfs,
+				},
+				Constraints: metal.FilesystemLayoutConstraints{
+					Sizes: []string{"s2-xlarge-x86"},
+					Images: map[string]string{
+						"debian":   "<= 10.20210501",
+						"ubuntu":   "<= 20.04.20210501",
+						"firewall": "<= 2.20210501",
+					},
 				},
 			}
 			legacyS3 := &metal.FilesystemLayout{
@@ -94,6 +111,14 @@ func init() {
 					{Path: strPtr("/"), Device: "/dev/md2", Format: metal.EXT4, Label: strPtr("root")},
 					{Path: strPtr("/var"), Device: "/dev/md3", Format: metal.EXT4, Label: strPtr("varlib")},
 					tmpfs,
+				},
+				Constraints: metal.FilesystemLayoutConstraints{
+					Sizes: []string{"s3-large-x86"},
+					Images: map[string]string{
+						"debian": "<= 10.20210501",
+						"ubuntu": "<= 20.04.20210501",
+						"centos": "<= 7.20210501",
+					},
 				},
 			}
 			fsls = append(fsls, *legacyDefault)
