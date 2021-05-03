@@ -1645,9 +1645,20 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		old := *m
 
 		if m.Allocation.FilesystemLayout == nil {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine:%s does not have a filesystemlayout reinstall not possible", id)) {
-				return
+			fsls, err := r.ds.ListFilesystemLayouts()
+			if err != nil {
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
 			}
+
+			fsl, err := fsls.From(m.SizeID, m.Allocation.ImageID)
+			if err != nil {
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
+			}
+			m.Allocation.FilesystemLayout = fsl
 		}
 
 		m.Allocation.Reinstall = true
