@@ -434,7 +434,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 			container := restful.NewContainer().Add(machineservice)
 
 			finalizeRequest := v1.MachineFinalizeAllocationRequest{
-				ConsolePassword: "blubber",
+				Kernel: "vmlinuz",
 			}
 
 			js, _ := json.Marshal(finalizeRequest)
@@ -463,7 +463,6 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
 				require.Nil(t, err)
-				require.Equal(t, finalizeRequest.ConsolePassword, *result.Allocation.ConsolePassword)
 			}
 		})
 	}

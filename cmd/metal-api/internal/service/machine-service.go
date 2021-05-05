@@ -141,6 +141,16 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.GET("/consolepassword").
+		To(viewer(r.getMachineConsolePassword)).
+		Operation("getMachineConsolePassword").
+		Doc("get consolepassword for machine by id").
+		Reads(v1.MachineConsolePasswordRequest{}).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineConsolePasswordResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineConsolePasswordResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/").
 		To(viewer(r.listMachines)).
 		Operation("listMachines").
@@ -432,6 +442,45 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 		return
 	}
 	resp := makeMachineResponse(m, r.ds, utils.Logger(request).Sugar())
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r machineResource) getMachineConsolePassword(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineConsolePasswordRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if len(requestPayload.Reason) < 5 {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("reason must be at least 5 characters long")) {
+			return
+		}
+	}
+
+	m, err := r.ds.FindMachineByID(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	consolePassword := ""
+	if m.Allocation != nil && m.Allocation.ConsolePassword != "" {
+		consolePassword = m.Allocation.ConsolePassword
+	}
+
+	resp := v1.MachineConsolePasswordResponse{
+		Common:          v1.Common{Identifiable: v1.Identifiable{ID: m.ID}, Describable: v1.Describable{Name: &m.Name, Description: &m.Description}},
+		ConsolePassword: consolePassword,
+	}
+
+	// FIXME howto gather user info here
+	user := "unknown"
+	zapup.MustRootLogger().Sugar().Infow("consolepassword requested", "machine", m.ID, "user", user, "reason", requestPayload.Reason)
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
