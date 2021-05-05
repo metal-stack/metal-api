@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
+	"github.com/avast/retry-go"
 	"github.com/emicklei/go-restful/v3"
 	goipam "github.com/metal-stack/go-ipam"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -76,10 +78,6 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		restful.NewContainer().Add(ms3),
 	}
 
-	for i := range mss {
-		getMachine(mss[i], t)
-	}
-
 	ar := v1.MachineAllocateRequest{
 		SizeID:      "s1",
 		PartitionID: "p1",
@@ -90,9 +88,46 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	g, _ := errgroup.WithContext(context.Background())
 
-	for i := 0; i < 5; i++ {
+	mu := sync.Mutex{}
+	ips := make(map[string]string)
+	for i := 0; i < 3; i++ {
+
+		ms := mss[i]
 		g.Go(func() error {
-			return allocMachine(mss[1], ar, t)
+			var ma v1.MachineResponse
+			err := retry.Do(
+				func() error {
+					var err2 error
+					ma, err2 = allocMachine(ms, ar, t)
+					if err2 != nil {
+						t.Logf("machine allocation failed, retrying:%v", err)
+						return err2
+					}
+					return nil
+				},
+				retry.Attempts(10),
+				retry.LastErrorOnly(true),
+			)
+			if err != nil {
+				return err
+			}
+
+			if len(ma.Allocation.MachineNetworks) < 1 {
+				return fmt.Errorf("did not get a machine network")
+			}
+			if len(ma.Allocation.MachineNetworks[0].IPs) < 1 {
+				return fmt.Errorf("did not get a private IP for machine")
+			}
+			ip := ma.Allocation.MachineNetworks[0].IPs[0]
+
+			mu.Lock()
+			existingmachine, ok := ips[ip]
+			if ok {
+				return fmt.Errorf("got a ip of a already allocated machine:%s", existingmachine)
+			}
+			mu.Unlock()
+			ips[ip] = ma.ID
+			return nil
 		})
 	}
 
@@ -138,22 +173,7 @@ func createTestdata(rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing
 
 }
 
-func getMachine(container *restful.Container, t *testing.T) {
-	req := httptest.NewRequest("GET", "/v1/machine", nil)
-	container = injectViewer(container, req)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result []v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
-
-	require.Nil(t, err)
-}
-
-func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t *testing.T) error {
+func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t *testing.T) (v1.MachineResponse, error) {
 	js, _ := json.Marshal(ar)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
@@ -164,12 +184,12 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t 
 
 	resp := w.Result()
 	defer resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	if resp.StatusCode != http.StatusOK {
+		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
+	}
 	var result v1.MachineResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
-
-	require.Nil(t, err)
-	return nil
+	return result, err
 }
 
 type NopPublisher struct {
