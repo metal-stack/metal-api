@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -11,6 +14,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/go-logr/zapr"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
@@ -197,6 +202,11 @@ func init() {
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
+	rootCmd.Flags().StringP("s3-address", "", "", "the address of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-key", "", "", "the key of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-secret", "", "", "the secret of the s3 server that provides firmwares")
+	rootCmd.Flags().StringP("s3-firmware-bucket", "", "", "the bucket that contains the firmwares")
+
 	rootCmd.PersistentFlags().StringP("db", "", "rethinkdb", "the database adapter to use")
 	rootCmd.PersistentFlags().StringP("db-name", "", "metalapi", "the database name to use")
 	rootCmd.PersistentFlags().StringP("db-addr", "", "", "the database address string to use")
@@ -233,9 +243,10 @@ func init() {
 	rootCmd.Flags().StringP("hmac-edit-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("hmac-admin-key", "", "must-be-changed", "the preshared key for hmac security for a admin user")
-	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "30s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
+	rootCmd.Flags().StringP("hmac-admin-lifetime", "", "90s", "the timestamp in the header for the HMAC must not be older than this value. a value of 0 means no limit")
 
 	rootCmd.Flags().StringP("provider-tenant", "", "", "the tenant of the maas-provider who operates the whole thing")
+	rootCmd.Flags().StringP("issuercache-interval", "", "30m", "issuercache invalidation interval, e.g. 60s, 30m, 2h45m - default 30m")
 
 	rootCmd.Flags().StringP("masterdata-hmac", "", "must-be-changed", "the preshared key for hmac security to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-hostname", "", "", "the hostname of the masterdata-api")
@@ -467,9 +478,9 @@ func initMasterData() {
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
 		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
 		if err == nil {
+			cancel()
 			break
 		}
 		logger.Errorw("unable to initialize masterdata-api client, retrying...", "error", err)
@@ -512,6 +523,63 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 
 	providerTenant := viper.GetString("provider-tenant")
 
+	grpr, err := grp.NewGrpr(grp.Config{ProviderTenant: providerTenant})
+	if err != nil {
+		logger.Fatalw("error creating grpr", "error", err)
+	}
+	plugin := sec.NewPlugin(grpr)
+
+	issuerCacheInterval, err := time.ParseDuration(viper.GetString("issuercache-interval"))
+	if err != nil {
+		logger.Fatalw("error parsing issuercache-interval", "error", err)
+	}
+
+	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
+	issuerCache, err := security.NewMultiIssuerCache(func() ([]*security.IssuerConfig, error) {
+		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
+
+		// get provider tenant from masterdata
+		ts, err := mdc.Tenant().Find(context.Background(), &v1.TenantFindRequest{
+			Id: wrapperspb.String(providerTenant),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(ts.Tenants) != 1 {
+			return nil, fmt.Errorf("no masterdata for tenant %s found", providerTenant)
+		}
+
+		t := ts.Tenants[0]
+		if t.IamConfig != nil {
+			directory := ""
+			if t.IamConfig.IdmConfig != nil {
+				directory = t.IamConfig.IdmConfig.IdmType
+			}
+			tenantID := t.Meta.Id
+			return []*security.IssuerConfig{
+				{
+					Annotations: map[string]string{
+						sec.OidcDirectory: directory,
+					},
+					Tenant:   tenantID,
+					Issuer:   t.IamConfig.IssuerConfig.Url,
+					ClientID: t.IamConfig.IssuerConfig.ClientId,
+				},
+			}, nil
+		}
+		return []*security.IssuerConfig{}, nil
+	}, func(ic *security.IssuerConfig) (security.UserGetter, error) {
+		return security.NewGenericOIDC(ic, security.GenericUserExtractor(plugin.GenericOIDCExtractUserProcessGroups))
+	}, security.IssuerReloadInterval(issuerCacheInterval), security.Logger(zapr.NewLogger(logger.Desugar())))
+
+	if err != nil || issuerCache == nil {
+		logger.Fatalw("error creating dynamic oidc resolver", "error", err)
+	}
+	logger.Info("dynamic oidc resolver successfully initialized")
+
+	var ugsOpts []security.UserGetterProxyOption
+	dexClientID := viper.GetString("dex-clientid")
 	dexAddr := viper.GetString("dex-addr")
 	if dexAddr != "" {
 		dx, err := security.NewDex(dexAddr)
@@ -520,14 +588,19 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		}
 		if dx != nil {
 			// use custom user extractor and group processor
-			plugin := sec.NewPlugin(grp.MustNewGrpr(grp.Config{ProviderTenant: providerTenant}))
 			dx.With(security.UserExtractor(plugin.ExtractUserProcessGroups))
-			auths = append(auths, security.WithDex(dx))
+			ugsOpts = append(ugsOpts, security.UserGetterProxyMapping(dexAddr, dexClientID, dx))
 			logger.Info("dex successfully configured")
 		} else {
-			logger.Fatalw("dex is configured, but not initialized")
+			logger.Fatal("dex is configured, but not initialized")
 		}
 	}
+
+	// UserGetterProxy with dynamic oidc as default and legacy dex as explicit mapping
+	ugp := security.NewUserGetterProxy(issuerCache, ugsOpts...)
+
+	// add UserGetterProxy as CredsOpt
+	auths = append(auths, security.WithDex(ugp))
 
 	defaultUsers := service.NewUserDirectory(providerTenant)
 	for _, u := range defaultUsers.UserNames() {
@@ -578,7 +651,7 @@ func initGrpcServer() {
 func initRestServices(withauth bool) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
-		logger.Fatalf("base path must start and end with a slash")
+		logger.Fatal("base path must start and end with a slash")
 	}
 
 	lg := logger.Desugar()
@@ -588,15 +661,34 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	ipservice, err := service.NewIP(ds, ep, ipamer, mdc)
+	ipService, err := service.NewIP(ds, ep, ipamer, mdc)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	mservice, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer)
+
+	var s3Client *s3client.Client
+	s3Address := viper.GetString("s3-address")
+	if s3Address != "" {
+		s3Key := viper.GetString("s3-key")
+		s3Secret := viper.GetString("s3-secret")
+		s3FirmwareBucket := viper.GetString("s3-firmware-bucket")
+		s3Client, err = s3client.New(s3Address, s3Key, s3Secret, s3FirmwareBucket)
+		if err != nil {
+			logger.Fatal(err)
+		}
+		logger.Infow("connected to s3 server that provides firmwares", "address", s3Address)
+	} else {
+		logger.Info("s3 server that provides firmware is disabled")
+	}
+	firmwareService, err := service.NewFirmware(ds, s3Client)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	fservice, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -605,10 +697,12 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
-	restful.DefaultContainer.Add(ipservice)
-	restful.DefaultContainer.Add(mservice)
+	restful.DefaultContainer.Add(ipService)
+	restful.DefaultContainer.Add(firmwareService)
+	restful.DefaultContainer.Add(machineService)
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
-	restful.DefaultContainer.Add(fservice)
+	restful.DefaultContainer.Add(service.NewTenant(mdc))
+	restful.DefaultContainer.Add(firewallService)
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))

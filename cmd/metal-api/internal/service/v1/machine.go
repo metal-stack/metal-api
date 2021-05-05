@@ -157,13 +157,14 @@ type MachineFru struct {
 }
 
 type MachineRegisterRequest struct {
-	UUID        string                  `json:"uuid" description:"the product uuid of the machine to register"`
-	PartitionID string                  `json:"partitionid" description:"the partition id to register this machine with"`
-	RackID      string                  `json:"rackid" description:"the rack id where this machine is connected to"`
-	Hardware    MachineHardwareExtended `json:"hardware" description:"the hardware of this machine"`
-	BIOS        MachineBIOS             `json:"bios" description:"bios information of this machine"`
-	IPMI        MachineIPMI             `json:"ipmi" description:"the ipmi access infos"`
-	Tags        []string                `json:"tags" description:"tags for this machine"`
+	UUID        string `json:"uuid" description:"the product uuid of the machine to register"`
+	PartitionID string `json:"partitionid" description:"the partition id to register this machine with"`
+	// Deprecated: RackID is not used any longer, it is calculated by the switch connections of a machine. A metal-core instance might respond to pxe requests from all racks
+	RackID   string                  `json:"rackid" description:"the rack id where this machine is connected to"`
+	Hardware MachineHardwareExtended `json:"hardware" description:"the hardware of this machine"`
+	BIOS     MachineBIOS             `json:"bios" description:"bios information of this machine"`
+	IPMI     MachineIPMI             `json:"ipmi" description:"the ipmi access infos"`
+	Tags     []string                `json:"tags" description:"tags for this machine"`
 }
 
 type MachineAllocateRequest struct {

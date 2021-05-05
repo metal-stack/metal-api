@@ -85,6 +85,22 @@
         "cidrs"
       ]
     },
+    "v1.BoardRevisions": {
+      "properties": {
+        "BoardRevisions": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "BoardRevisions"
+      ]
+    },
     "v1.BootInfo": {
       "properties": {
         "bootloaderid": {
@@ -491,6 +507,37 @@
         "tags"
       ]
     },
+    "v1.FirmwaresResponse": {
+      "properties": {
+        "revisions": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.VendorRevisions"
+          },
+          "description": "list of firmwares per board per vendor per kind",
+          "type": "object"
+        }
+      },
+      "required": [
+        "revisions"
+      ]
+    },
+    "v1.IAMConfig": {
+      "properties": {
+        "idm_config": {
+          "$ref": "#/definitions/v1.IDMConfig"
+        },
+        "issuer_config": {
+          "$ref": "#/definitions/v1.IssuerConfig"
+        }
+      }
+    },
+    "v1.IDMConfig": {
+      "properties": {
+        "idm_type": {
+          "type": "string"
+        }
+      }
+    },
     "v1.IPAllocateRequest": {
       "properties": {
         "description": {
@@ -824,6 +871,16 @@
         "expirationDate",
         "id"
       ]
+    },
+    "v1.IssuerConfig": {
+      "properties": {
+        "client_id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
     },
     "v1.MachineAbortReinstallRequest": {
       "properties": {
@@ -1957,6 +2014,27 @@
         "value"
       ]
     },
+    "v1.MachineUpdateFirmwareRequest": {
+      "properties": {
+        "description": {
+          "description": "a description why the machine has been updated",
+          "type": "string"
+        },
+        "kind": {
+          "description": "the firmware kind, i.e. [bios|bmc]",
+          "type": "string"
+        },
+        "revision": {
+          "description": "the update revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "kind",
+        "revision"
+      ]
+    },
     "v1.Meta": {
       "properties": {
         "annotations": {
@@ -3039,6 +3117,41 @@
         "id",
         "rack_id"
       ]
+    },
+    "v1.TenantResponse": {
+      "properties": {
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
+    },
+    "v1.VendorRevisions": {
+      "properties": {
+        "VendorRevisions": {
+          "additionalProperties": {
+            "$ref": "#/definitions/v1.BoardRevisions"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "VendorRevisions"
+      ]
     }
   },
   "info": {
@@ -3202,6 +3315,185 @@
         "summary": "get firewall by id",
         "tags": [
           "firewall"
+        ]
+      }
+    },
+    "/v1/firmware": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listFirmwares",
+        "parameters": [
+          {
+            "description": "restrict firmwares to the given machine",
+            "in": "query",
+            "name": "machine-id",
+            "type": "string"
+          },
+          {
+            "description": "the firmware kind [bios|bmc]",
+            "in": "query",
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "description": "the vendor",
+            "in": "query",
+            "name": "vendor",
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "query",
+            "name": "board",
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FirmwaresResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "returns all firmwares (for a specific machine)",
+        "tags": [
+          "firmware"
+        ]
+      }
+    },
+    "/v1/firmware/{kind}/{vendor}/{board}/{revision}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "removeFirmware",
+        "parameters": [
+          {
+            "description": "the firmware kind [bios|bmc]",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the vendor",
+            "in": "path",
+            "name": "vendor",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "path",
+            "name": "board",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the firmware revision",
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.EmptyBody"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "remove given firmware",
+        "tags": [
+          "firmware"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "operationId": "uploadFirmware",
+        "parameters": [
+          {
+            "description": "the firmware kind [bios|bmc]",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the vendor",
+            "in": "path",
+            "name": "vendor",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the board",
+            "in": "path",
+            "name": "board",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the firmware revision",
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "description": "the firmware file",
+            "in": "formData",
+            "name": "file",
+            "type": "file"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "upload given firmware",
+        "tags": [
+          "firmware"
         ]
       }
     },
@@ -3976,6 +4268,52 @@
           }
         },
         "summary": "register a machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/update-firmware/{id}": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateFirmware",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineUpdateFirmwareRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "sends a firmware command to the machine",
         "tags": [
           "machine"
         ]
@@ -6078,6 +6416,76 @@
         "summary": "notify the metal-api about a configuration change of a switch",
         "tags": [
           "switch"
+        ]
+      }
+    },
+    "/v1/tenant": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listTenants",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.TenantResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all tenants",
+        "tags": [
+          "tenant"
+        ]
+      }
+    },
+    "/v1/tenant/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getTenant",
+        "parameters": [
+          {
+            "description": "identifier of the tenant",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get tenant by id",
+        "tags": [
+          "tenant"
         ]
       }
     },
