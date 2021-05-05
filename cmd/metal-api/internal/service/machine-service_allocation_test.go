@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,6 +23,7 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestMachineAllocationIntegration(t *testing.T) {
@@ -47,7 +49,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	for i := range rss {
 		rs := rss[i]
-		rs.Connect()
+		err = rs.Connect()
+		require.NoError(t, err)
 		defer rs.Close()
 	}
 	err = rs1.Initialize()
@@ -58,15 +61,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	mdc := mdm.NewMock(psc, nil)
 
 	ipamer := goipam.New()
-	super, err := ipamer.NewPrefix("10.0.0.0/14")
-	require.NoError(t, err)
-	private, err := ipamer.AcquireChildPrefix(super.Cidr, 22)
-	require.NoError(t, err)
-	privateIP, err := metal.NewPrefixFromCIDR(private.Cidr)
-	require.NoError(t, err)
 
-	err = createTestdata(rs1, *privateIP, t)
-	require.NoError(t, err)
+	createTestdata(rs1, ipamer, t)
 
 	ms1, err := NewMachine(rs1, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
 	require.NoError(t, err)
@@ -92,34 +88,54 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		Networks:    v1.MachineAllocationNetworks{{NetworkID: "private"}},
 	}
 
-	allocMachine(mss[1], ar, t)
+	g, _ := errgroup.WithContext(context.Background())
+
+	for i := 0; i < 5; i++ {
+		g.Go(func() error {
+			return allocMachine(mss[1], ar, t)
+		})
+	}
+
+	err = g.Wait()
+	require.NoError(t, err)
+
 }
 
-func createTestdata(rs *datastore.RethinkStore, privateIP metal.Prefix, t *testing.T) error {
-	m1 := &metal.Machine{
-		Base:        metal.Base{ID: "M1"},
-		SizeID:      "s1",
-		PartitionID: "p1",
-		Waiting:     true,
-		State:       metal.MachineState{Value: metal.AvailableState},
+func createTestdata(rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
+	for i := 0; i < 3; i++ {
+		id := fmt.Sprintf("M%d", i)
+		m := &metal.Machine{
+			Base:        metal.Base{ID: id},
+			SizeID:      "s1",
+			PartitionID: "p1",
+			Waiting:     true,
+			State:       metal.MachineState{Value: metal.AvailableState},
+		}
+		err := rs.CreateMachine(m)
+		require.NoError(t, err)
+		err = rs.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{Base: metal.Base{ID: id}, Liveliness: metal.MachineLivelinessAlive})
+		require.NoError(t, err)
 	}
-	err := rs.CreateMachine(m1)
+	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
-	err = rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
+
+	super, err := ipamer.NewPrefix("10.0.0.0/14")
 	require.NoError(t, err)
+	private, err := ipamer.AcquireChildPrefix(super.Cidr, 22)
+	require.NoError(t, err)
+	privateNetwork, err := metal.NewPrefixFromCIDR(private.Cidr)
+	require.NoError(t, err)
+	require.NotNil(t, privateNetwork)
+
 	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "super"}, PrivateSuper: true, PartitionID: "p1", Prefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}}})
 	require.NoError(t, err)
-	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "private"}, ParentNetworkID: "super", ProjectID: "pr1", PartitionID: "p1", Prefixes: metal.Prefixes{privateIP}})
+	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "private"}, ParentNetworkID: "super", ProjectID: "pr1", PartitionID: "p1", Prefixes: metal.Prefixes{*privateNetwork}})
 	require.NoError(t, err)
 	err = rs.CreatePartition(&metal.Partition{Base: metal.Base{ID: "p1"}})
 	require.NoError(t, err)
 	err = rs.CreateSize(&metal.Size{Base: metal.Base{ID: "s1"}})
 	require.NoError(t, err)
 
-	err = rs.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{Base: metal.Base{ID: "M1"}, Liveliness: metal.MachineLivelinessAlive})
-	require.NoError(t, err)
-
-	return nil
 }
 
 func getMachine(container *restful.Container, t *testing.T) {
@@ -137,7 +153,7 @@ func getMachine(container *restful.Container, t *testing.T) {
 	require.Nil(t, err)
 }
 
-func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t *testing.T) {
+func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t *testing.T) error {
 	js, _ := json.Marshal(ar)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
@@ -153,6 +169,7 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t 
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
 	require.Nil(t, err)
+	return nil
 }
 
 type NopPublisher struct {
