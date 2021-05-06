@@ -39,46 +39,10 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
-	datastore.VRFPoolRangeMax = 1000
-	datastore.ASNPoolRangeMax = 1000
+	machineCount := 200
 
-	_, c, err := test.StartRethink()
-	require.NoError(t, err)
-	log := zaptest.NewLogger(t)
-
-	ws := &grpc.Server{
-		WaitService: &grpc.WaitService{
-			Publisher: NopPublisher{},
-			Logger:    log.Sugar(),
-		},
-	}
-
-	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	err = rs.Connect()
-	require.NoError(t, err)
+	rs, container := setupTestEnvironment(machineCount, t)
 	defer rs.Close()
-	err = rs.Initialize()
-	require.NoError(t, err)
-
-	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
-	mdc := mdm.NewMock(psc, nil)
-
-	_, pg, err := test.StartPostgres()
-	require.NoError(t, err)
-	pgStorage, err := goipam.NewPostgresStorage(pg.IP, pg.Port, pg.User, pg.Password, pg.DB, goipam.SSLModeDisable)
-	require.NoError(t, err)
-
-	ipamer := goipam.NewWithStorage(pgStorage)
-
-	machineCount := 420
-	createTestdata(machineCount, rs, ipamer, t)
-
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
-	require.NoError(t, err)
-	container := restful.NewContainer().Add(ms)
-	usergetter := security.NewCreds(security.WithHMAC(hma))
-	container.Filter(rest.UserAuth(usergetter))
 
 	ar := v1.MachineAllocateRequest{
 		SizeID:      "s1",
@@ -102,12 +66,13 @@ func TestMachineAllocationIntegration(t *testing.T) {
 					var err2 error
 					ma, err2 = allocMachine(container, ar, t)
 					if err2 != nil {
-						t.Logf("machine allocation failed, retrying:%v", err)
+						t.Logf("machine allocation failed, retrying:%v", err2)
 						return err2
 					}
 					return nil
 				},
 				retry.Attempts(10),
+				// to have even more stress, comment the next line
 				retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 				retry.LastErrorOnly(true),
 			)
@@ -134,11 +99,53 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		})
 	}
 
-	err = g.Wait()
+	err := g.Wait()
 	require.NoError(t, err)
 
 	require.Equal(t, len(ips), machineCount)
 	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
+}
+
+func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
+	log := zaptest.NewLogger(t)
+	datastore.VRFPoolRangeMax = 1000
+	datastore.ASNPoolRangeMax = 1000
+
+	_, c, err := test.StartRethink()
+	require.NoError(t, err)
+
+	ws := &grpc.Server{
+		WaitService: &grpc.WaitService{
+			Publisher: NopPublisher{},
+			Logger:    log.Sugar(),
+		},
+	}
+
+	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	err = rs.Connect()
+	require.NoError(t, err)
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	psc := &mdmv1mock.ProjectServiceClient{}
+	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+	mdc := mdm.NewMock(psc, nil)
+
+	_, pg, err := test.StartPostgres()
+	require.NoError(t, err)
+	pgStorage, err := goipam.NewPostgresStorage(pg.IP, pg.Port, pg.User, pg.Password, pg.DB, goipam.SSLModeDisable)
+	require.NoError(t, err)
+
+	ipamer := goipam.NewWithStorage(pgStorage)
+
+	createTestdata(machineCount, rs, ipamer, t)
+
+	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
+	require.NoError(t, err)
+	container := restful.NewContainer().Add(ms)
+	usergetter := security.NewCreds(security.WithHMAC(hma))
+	container.Filter(rest.UserAuth(usergetter))
+	return rs, container
 }
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
