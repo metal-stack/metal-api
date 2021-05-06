@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
@@ -944,7 +945,21 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 	}
 
-	machineCandidate, err := findMachineCandidate(ds, allocationSpec)
+	var machineCandidate *metal.Machine
+
+	err = retry.Do(
+		func() error {
+			var err2 error
+			machineCandidate, err2 = findMachineCandidate(ds, allocationSpec)
+			return err2
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), "the entity was changed from another, please retry")
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1002,6 +1017,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	old := *machine
 	machine.Allocation = alloc
 	machine.Tags = makeMachineTags(machine, allocationSpec.Tags)
+	machine.PreAllocated = false
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
@@ -1337,6 +1353,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 			ProjectID:        allocationSpec.ProjectID,
 		}
 		ip.AddMachineId(allocationSpec.UUID)
+		ds.Infow("create ip", "machine", allocationSpec.UUID, "ip", ipAddress)
 		err = ds.CreateIP(ip)
 		if err != nil {
 			return nil, err
@@ -1344,6 +1361,7 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		n.ips = append(n.ips, *ip)
 	}
 
+	// FIXME why add machine tag to all ips in this network ?
 	ipAddresses := []string{}
 	for i := range n.ips {
 		ip := n.ips[i]

@@ -27,7 +27,8 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (
 		return nil, fmt.Errorf("error finding parent prefix in ipam: %s", parentPrefix.String())
 	}
 
-	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, childLength)
+	// FIXME no cast
+	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, uint8(childLength))
 	if err != nil {
 		return nil, fmt.Errorf("error creating new prefix in ipam: %w", err)
 	}
@@ -132,10 +133,11 @@ func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	usage := prefix.Usage()
 
 	return &metal.NetworkUsage{
-		AvailableIPs:      usage.AvailableIPs,
-		UsedIPs:           usage.AcquiredIPs,
-		AvailablePrefixes: usage.AvailablePrefixes,
-		UsedPrefixes:      usage.AcquiredPrefixes,
+		AvailableIPs: usage.AvailableIPs,
+		UsedIPs:      usage.AcquiredIPs,
+		// FIXME
+		// AvailablePrefixes: usage.AvailablePrefixes,
+		UsedPrefixes: usage.AcquiredPrefixes,
 	}, nil
 }
 
