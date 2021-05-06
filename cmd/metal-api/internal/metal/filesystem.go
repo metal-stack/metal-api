@@ -59,25 +59,25 @@ type (
 	FilesystemLayout struct {
 		Base
 		// Filesystems to create on the server
-		Filesystems []Filesystem
+		Filesystems []Filesystem `rethinkdb:"filesystems" json:"filesystem"`
 		// Disks to configure in the server with their partitions
-		Disks []Disk
+		Disks []Disk `rethinkdb:"disks" json:"disks"`
 		// Raid if not empty, create raid arrays out of the individual disks, to place filesystems onto
-		Raid []Raid
+		Raid []Raid `rethinkdb:"raid" json:"raid"`
 		// VolumeGroups to create
-		VolumeGroups []VolumeGroup
+		VolumeGroups []VolumeGroup `rethinkdb:"volumegroups" json:"volumegroups"`
 		// LogicalVolumes to create on top of VolumeGroups
-		LogicalVolumes []LogicalVolume
+		LogicalVolumes []LogicalVolume `rethinkdb:"logicalvolumes" json:"logicalvolumes"`
 		// Constraints which must match to select this Layout
-		Constraints FilesystemLayoutConstraints
+		Constraints FilesystemLayoutConstraints `rethinkdb:"constraints" json:"constraints"`
 	}
 
 	FilesystemLayoutConstraints struct {
 		// Sizes defines the list of sizes this layout applies to
-		Sizes []string
+		Sizes []string `rethinkdb:"sizes" json:"sizes"`
 		// Images defines a map from os to versionconstraint
 		// the combination of os and versionconstraint per size must be conflict free over all filesystemlayouts
-		Images map[string]string
+		Images map[string]string `rethinkdb:"images" json:"images"`
 	}
 
 	RaidLevel string
@@ -88,78 +88,77 @@ type (
 	// Filesystem defines a single filesystem to be mounted
 	Filesystem struct {
 		// Path defines the mountpoint, if nil, it will not be mounted
-		Path *string
+		Path *string `rethinkdb:"path" json:"path"`
 		// Device where the filesystem is created on, must be the full device path seen by the OS
-		Device string
+		Device string `rethinkdb:"device" json:"device"`
 		// Format is the type of filesystem should be created
-		Format Format
+		Format Format `rethinkdb:"format" json:"format"`
 		// Label is optional enhances readability
-		Label *string
+		Label *string `rethinkdb:"label" json:"label"`
 		// MountOptions which might be required
-		MountOptions []string
+		MountOptions []string `rethinkdb:"mountoptions" json:"mountoptions"`
 		// CreateOptions during filesystem creation
-		CreateOptions []string
+		CreateOptions []string `rethinkdb:"createoptions" json:"createoptions"`
 	}
 
 	// Disk represents a single block device visible from the OS, required
 	Disk struct {
 		// Device is the full device path
-		Device string
+		Device string `rethinkdb:"device" json:"device"`
 		// Partitions to create on this device
-		Partitions []DiskPartition
+		Partitions []DiskPartition `rethinkdb:"partitions" json:"partitions"`
 		// WipeOnReinstall, if set to true the whole disk will be erased if reinstall happens
 		// during fresh install all disks are wiped
-		WipeOnReinstall bool
+		WipeOnReinstall bool `rethinkdb:"wipeonreinstall" json:"wipeonreinstall"`
 	}
 
 	// Raid is optional, if given the devices must match.
 	Raid struct {
 		// ArrayName of the raid device, most often this will be /dev/md0 and so forth
-		ArrayName string
+		ArrayName string `rethinkdb:"arrayname" json:"arrayname"`
 		// Devices the devices to form a raid device
-		Devices []string
+		Devices []string `rethinkdb:"devices" json:"devices"`
 		// Level the raidlevel to use, can be one of 0,1
-		Level RaidLevel
+		Level RaidLevel `rethinkdb:"raidlevel" json:"raidlevel"`
 		// CreateOptions required during raid creation, example: --metadata=1.0 for uefi boot partition
-		CreateOptions []string
+		CreateOptions []string `rethinkdb:"createoptions" json:"createoptions"`
 		// Spares defaults to 0
-		Spares int
+		Spares int `rethinkdb:"spares" json:"spares"`
 	}
 
 	// VolumeGroup is optional, if given the devices must match.
 	VolumeGroup struct {
 		// Name of the volumegroup without the /dev prefix
-		Name string
+		Name string `rethinkdb:"name" json:"name"`
 		// Devices the devices to form a volumegroup device
-		Devices []string
+		Devices []string `rethinkdb:"devices" json:"devices"`
 		// Tags to attach to the volumegroup
-		Tags []string
+		Tags []string `rethinkdb:"tags" json:"tags"`
 	}
 
 	// LogicalVolume is a block devices created with lvm on top of a volumegroup
 	LogicalVolume struct {
 		// Name the name of the logical volume, without /dev prefix, will be accessible at /dev/vgname/lvname
-		Name string
+		Name string `rethinkdb:"name" json:"name"`
 		// VolumeGroup the name of the volumegroup
-		VolumeGroup string
+		VolumeGroup string `rethinkdb:"volumegroup" json:"volumegroup"`
 		// Size of this LV in mebibytes (MiB)
-		Size uint64
+		Size uint64 `rethinkdb:"size" json:"size"`
 		// LVMType can be either linear, striped or raid1
-		LVMType LVMType
+		LVMType LVMType `rethinkdb:"lvmtype" json:"lvmtype"`
 	}
 
 	// DiskPartition is a single partition on a device, only GPT partition types are supported
-	// FIXME overlaps with DiskPartition in machine.go which is part of reinstall feature
 	DiskPartition struct {
 		// Number of this partition, will be added to partitionprefix
-		Number uint8
+		Number uint8 `rethinkdb:"number" json:"number"`
 		// Label to enhance readability
-		Label *string
+		Label *string `rethinkdb:"label" json:"label"`
 		// Size of this partition in mebibytes (MiB)
 		// if "0" is given the rest of the device will be used, this requires Number to be the highest in this partition
-		Size uint64
+		Size uint64 `rethinkdb:"size" json:"size"`
 		// GPTType defines the GPT partition type
-		GPTType *GPTType
+		GPTType *GPTType `rethinkdb:"gpttype" json:"gpttype"`
 	}
 )
 

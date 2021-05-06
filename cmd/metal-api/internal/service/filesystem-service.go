@@ -40,7 +40,7 @@ func (r filesystemResource) webService() *restful.WebService {
 	tags := []string{"filesystemlayout"}
 
 	ws.Route(ws.GET("/{id}").
-		To(r.findFilesystemLayout).
+		To(viewer(r.findFilesystemLayout)).
 		Operation("getFilesystemLayout").
 		Doc("get filesystemlayout by id").
 		Param(ws.PathParameter("id", "identifier of the filesystemlayout").DataType("string")).
@@ -50,7 +50,7 @@ func (r filesystemResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(r.listFilesystemLayouts).
+		To(viewer(r.listFilesystemLayouts)).
 		Operation("listFilesystemLayouts").
 		Doc("get all filesystemlayouts").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -134,9 +134,12 @@ func (r filesystemResource) createFilesystemLayout(request *restful.Request, res
 			return
 		}
 	}
-	existing, _ := r.ds.FindFilesystemLayout(requestPayload.ID)
+	existing, err := r.ds.FindFilesystemLayout(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 	if existing != nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("filesystemlayout:%s already exists", existing.ID)) {
+		if checkError(request, response, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusConflict, fmt.Errorf("filesystemlayout:%s already exists", existing.ID))) {
 			return
 		}
 	}

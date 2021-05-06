@@ -5,7 +5,7 @@ import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 type (
 	FilesystemLayoutBase struct {
 		Filesystems    []Filesystem                `json:"filesystems" description:"list of filesystems to create"`
-		Disks          []Disk                      `json:"disks" description:"list of disks to to modify"`
+		Disks          []Disk                      `json:"disks" description:"list of disks that belong to this layout"`
 		Raid           []Raid                      `json:"raid" description:"list of raid arrays to create"`
 		VolumeGroups   []VolumeGroup               `json:"volumegroups" description:"list of volumegroups to create"`
 		LogicalVolumes []LogicalVolume             `json:"logicalvolumes" description:"list of logicalvolumes to create"`
