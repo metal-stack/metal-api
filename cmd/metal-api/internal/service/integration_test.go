@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -12,21 +13,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+
+	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/zapup"
 	"github.com/metal-stack/security"
+	"github.com/testcontainers/testcontainers-go"
+	"go.uber.org/zap/zaptest"
 
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
-	"go.uber.org/zap"
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
+
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
 )
 
 type testEnv struct {
@@ -37,6 +45,7 @@ type testEnv struct {
 	partitionService    *restful.WebService
 	machineService      *restful.WebService
 	ipService           *restful.WebService
+	ws                  *metalgrpc.WaitService
 	privateSuperNetwork *v1.NetworkResponse
 	privateNetwork      *v1.NetworkResponse
 	rethinkContainer    testcontainers.Container
@@ -50,30 +59,42 @@ func (te *testEnv) teardown() {
 //nolint:deadcode
 func createTestEnvironment(t *testing.T) testEnv {
 	require := require.New(t)
-	log, err := zap.NewDevelopment()
-	require.NoError(err)
 
 	ipamer := ipam.InitTestIpam(t)
-	nsq := eventbus.InitTestPublisher(t)
 	ds, rc, ctx := datastore.InitTestDB(t)
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	mdc, err := mdm.NewClient(timeoutCtx, "localhost", 50051, "certs/client.pem", "certs/client-key.pem", "certs/ca.pem", "hmac", log)
-	require.NoError(err)
-	grpcServer, err := grpc.NewServer(&grpc.ServerConfig{
-		Datasource: ds,
-		Publisher:  nsq.Publisher,
+
+	psc := &mdmv1mock.ProjectServiceClient{}
+	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
+		Meta: &mdmv1.Meta{
+			Id: "test-project-1",
+		},
+	}}, nil)
+	mdc := mdm.NewMock(psc, nil)
+
+	log := zaptest.NewLogger(t)
+	grpcServer, err := metalgrpc.NewServer(&metalgrpc.ServerConfig{
+		Datasource:       ds,
+		Logger:           log.Sugar(),
+		GrpcPort:         50005,
+		TlsEnabled:       false,
+		ResponseInterval: 2 * time.Millisecond,
+		CheckInterval:    1 * time.Hour,
 	})
 	require.NoError(err)
+	go func() {
+		err := grpcServer.Serve()
+		require.Nil(t, err)
+	}()
+	grpcServer.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
 
-	machineService, err := NewMachine(ds, nsq.Publisher, nsq.Endpoints, ipamer, mdc, grpcServer, nil)
+	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil)
 	require.NoError(err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
 	sizeService := NewSize(ds)
 	networkService := NewNetwork(ds, ipamer, mdc)
-	partitionService := NewPartition(ds, nsq)
-	ipService, err := NewIP(ds, nsq.Endpoints, ipamer, mdc)
+	partitionService := NewPartition(ds, &emptyPublisher{})
+	ipService, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(err)
 
 	te := testEnv{
@@ -84,11 +105,12 @@ func createTestEnvironment(t *testing.T) testEnv {
 		partitionService: partitionService,
 		machineService:   machineService,
 		ipService:        ipService,
+		ws:               grpcServer.WaitService,
 		rethinkContainer: rc,
 		ctx:              ctx,
 	}
 
-	imageID := "test-image"
+	imageID := "test-image-1.0.0"
 	imageName := "testimage"
 	imageDesc := "Test Image"
 	image := v1.ImageCreateRequest{
@@ -101,7 +123,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 				Description: &imageDesc,
 			},
 		},
-		URL:      "https://blobstore/image",
+		URL:      "https://metal-stack.io", // not good to rely on this page
 		Features: []string{string(metal.ImageFeatureMachine)},
 	}
 	var createdImage v1.ImageResponse
@@ -186,6 +208,33 @@ func createTestEnvironment(t *testing.T) testEnv {
 		PartitionID: "test-partition",
 	}
 	var createdSwitch v1.SwitchResponse
+
+	status = te.switchRegister(t, sw, &createdSwitch)
+	require.Equal(http.StatusCreated, status)
+	require.NotNil(createdSwitch)
+	require.Equal(sw.ID, createdSwitch.ID)
+	require.Len(sw.Nics, 1)
+	require.Equal(sw.Nics[0].Name, createdSwitch.Nics[0].Name)
+	require.Equal(sw.Nics[0].MacAddress, createdSwitch.Nics[0].MacAddress)
+
+	switchID = "test-switch02"
+	sw = v1.SwitchRegisterRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: switchID,
+			},
+		},
+		SwitchBase: v1.SwitchBase{
+			RackID: "test-rack",
+		},
+		Nics: v1.SwitchNics{
+			{
+				MacAddress: "aa:bb:aa:aa:aa:aa",
+				Name:       "swp1",
+			},
+		},
+		PartitionID: "test-partition",
+	}
 
 	status = te.switchRegister(t, sw, &createdSwitch)
 	require.Equal(http.StatusCreated, status)
@@ -295,26 +344,53 @@ func (te *testEnv) machineRegister(t *testing.T, mrr v1.MachineRegisterRequest, 
 	return webRequestPost(t, te.machineService, adminUser, mrr, "/v1/machine/register", response)
 }
 
-func (te *testEnv) machineWait(uuid string) {
-	container := restful.NewContainer().Add(te.machineService)
-	createReq := httptest.NewRequest(http.MethodGet, "/v1/machine/"+uuid+"/wait", nil)
-	container = injectAdmin(container, createReq)
-	w := httptest.NewRecorder()
-	for {
-		container.ServeHTTP(w, createReq)
-		resp := w.Result()
-		var response map[string]interface{}
-		err := json.NewDecoder(resp.Body).Decode(&response)
-		resp.Body.Close()
+func (te *testEnv) machineWait(uuid string) error {
+	kacp := keepalive.ClientParameters{
+		Time:                5 * time.Millisecond,
+		Timeout:             20 * time.Millisecond,
+		PermitWithoutStream: true,
+	}
+	opts := []grpc.DialOption{
+		grpc.WithKeepaliveParams(kacp),
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+	}
+
+	machineID := "test-uuid"
+	port := 50005
+	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("localhost:%d", port), opts...)
+	if err != nil {
+		return err
+	}
+
+	isWaiting := make(chan bool)
+
+	go func() {
+		waitClient := grpcv1.NewWaitClient(conn)
+		err := waitForAllocation(machineID, waitClient, context.Background())
+		isWaiting <- true
 		if err != nil {
-			panic(err)
+			return
 		}
-		if resp.StatusCode == http.StatusOK {
-			break
+	}()
+
+	<-isWaiting
+
+	return nil
+}
+
+func waitForAllocation(machineID string, c grpcv1.WaitClient, ctx context.Context) error {
+	req := &grpcv1.WaitRequest{
+		MachineID: machineID,
+	}
+
+	for {
+		_, err := c.Wait(ctx, req)
+		time.Sleep(5 * time.Millisecond)
+		if err != nil {
+			continue
 		}
-		if resp.StatusCode == http.StatusInternalServerError {
-			break
-		}
+		return nil
 	}
 }
 

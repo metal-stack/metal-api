@@ -65,5 +65,7 @@ func InitTestDB(t *testing.T) (*RethinkStore, testcontainers.Container, context.
 	VRFPoolRangeMax = 10010
 	err = rs.Connect()
 	assert.NoError(t, err)
+	err = rs.Initialize()
+	assert.NoError(t, err)
 	return rs, c, ctx
 }
