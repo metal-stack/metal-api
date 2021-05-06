@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/avast/retry-go"
 	"github.com/emicklei/go-restful/v3"
@@ -23,15 +24,23 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/rest"
+	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 )
 
-func TestMachineAllocationIntegration(t *testing.T) {
+var (
+	hma = security.NewHMACAuth(testUserDirectory.edit.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.edit))
+)
 
-	datastore.VRFPoolRangeMax = 100
-	datastore.ASNPoolRangeMax = 100
+func TestMachineAllocationIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	datastore.VRFPoolRangeMax = 1000
+	datastore.ASNPoolRangeMax = 1000
 
 	_, c, err := test.StartRethink()
 	require.NoError(t, err)
@@ -55,14 +64,21 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
-	ipamer := goipam.New()
+	_, pg, err := test.StartPostgres()
+	require.NoError(t, err)
+	pgStorage, err := goipam.NewPostgresStorage(pg.IP, pg.Port, pg.User, pg.Password, pg.DB, goipam.SSLModeDisable)
+	require.NoError(t, err)
 
-	machineCount := 3
+	ipamer := goipam.NewWithStorage(pgStorage)
+
+	machineCount := 420
 	createTestdata(machineCount, rs, ipamer, t)
 
 	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
+	usergetter := security.NewCreds(security.WithHMAC(hma))
+	container.Filter(rest.UserAuth(usergetter))
 
 	ar := v1.MachineAllocateRequest{
 		SizeID:      "s1",
@@ -76,6 +92,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	mu := sync.Mutex{}
 	ips := make(map[string]string)
+
+	start := time.Now()
 	for i := 0; i < machineCount; i++ {
 		g.Go(func() error {
 			var ma v1.MachineResponse
@@ -90,6 +108,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 					return nil
 				},
 				retry.Attempts(10),
+				retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 				retry.LastErrorOnly(true),
 			)
 			if err != nil {
@@ -109,8 +128,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			if ok {
 				return fmt.Errorf("%s got a ip of a already allocated machine:%s", ma.ID, existingmachine)
 			}
-			mu.Unlock()
 			ips[ip] = ma.ID
+			mu.Unlock()
 			return nil
 		})
 	}
@@ -118,6 +137,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	err = g.Wait()
 	require.NoError(t, err)
 
+	require.Equal(t, len(ips), machineCount)
+	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
 }
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
@@ -138,7 +159,7 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
 
-	super, err := ipamer.NewPrefix("10.0.0.0/14")
+	super, err := ipamer.NewPrefix("10.0.0.0/20")
 	require.NoError(t, err)
 	private, err := ipamer.AcquireChildPrefix(super.Cidr, 22)
 	require.NoError(t, err)
@@ -146,7 +167,7 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	require.NoError(t, err)
 	require.NotNil(t, privateNetwork)
 
-	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "super"}, PrivateSuper: true, PartitionID: "p1", Prefixes: metal.Prefixes{{IP: "10.0.0.0", Length: "8"}}})
+	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "super"}, PrivateSuper: true, PartitionID: "p1"})
 	require.NoError(t, err)
 	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "private"}, ParentNetworkID: "super", ProjectID: "pr1", PartitionID: "p1", Prefixes: metal.Prefixes{*privateNetwork}})
 	require.NoError(t, err)
@@ -162,7 +183,7 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t 
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	hma.AddAuth(req, time.Now(), js)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
