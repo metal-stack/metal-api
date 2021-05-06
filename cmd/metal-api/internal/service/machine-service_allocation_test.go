@@ -64,7 +64,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			err := retry.Do(
 				func() error {
 					var err2 error
-					ma, err2 = allocMachine(container, ar, t)
+					ma, err2 = allocMachine(container, ar)
 					if err2 != nil {
 						t.Logf("machine allocation failed, retrying:%v", err2)
 						return err2
@@ -108,7 +108,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 // Methods under Test ---------------------------------------------------------------------------------------
 
-func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t *testing.T) (v1.MachineResponse, error) {
+func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v1.MachineResponse, error) {
 	js, _ := json.Marshal(ar)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)

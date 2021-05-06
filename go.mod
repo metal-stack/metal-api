@@ -18,7 +18,7 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/metal-stack/go-ipam v1.8.3
+	github.com/metal-stack/go-ipam v1.8.4
 	github.com/metal-stack/masterdata-api v0.8.5
 	github.com/metal-stack/metal-lib v0.7.2
 	github.com/metal-stack/security v0.5.3
