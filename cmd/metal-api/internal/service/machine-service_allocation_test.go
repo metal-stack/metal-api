@@ -106,6 +106,29 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
 }
 
+// Methods under Test ---------------------------------------------------------------------------------------
+
+func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t *testing.T) (v1.MachineResponse, error) {
+	js, _ := json.Marshal(ar)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
+	req.Header.Add("Content-Type", "application/json")
+	hma.AddAuth(req, time.Now(), js)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
+	}
+	var result v1.MachineResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	return result, err
+}
+
+// Helper -----------------------------------------------------------------------------------------------
+
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
 	log := zaptest.NewLogger(t)
 	datastore.VRFPoolRangeMax = 1000
@@ -150,7 +173,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
 	for i := 0; i < machineCount; i++ {
-		id := fmt.Sprintf("M%d", i)
+		id := fmt.Sprintf("WaitingMaschine%d", i)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
 			SizeID:      "s1",
@@ -182,26 +205,6 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	require.NoError(t, err)
 	err = rs.CreateSize(&metal.Size{Base: metal.Base{ID: "s1"}})
 	require.NoError(t, err)
-
-}
-
-func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest, t *testing.T) (v1.MachineResponse, error) {
-	js, _ := json.Marshal(ar)
-	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
-	req.Header.Add("Content-Type", "application/json")
-	hma.AddAuth(req, time.Now(), js)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
-	}
-	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
-	return result, err
 }
 
 type NopPublisher struct {
