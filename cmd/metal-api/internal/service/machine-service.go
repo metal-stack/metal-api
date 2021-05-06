@@ -1661,6 +1661,11 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 			m.Allocation.FilesystemLayout = fsl
 		}
 
+		if !m.Allocation.FilesystemLayout.IsReinstallable() {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("filesystemlayout:%s is no reinstallable, abort reinstallation", m.Allocation.FilesystemLayout.ID)) {
+				return
+			}
+		}
 		m.Allocation.Reinstall = true
 		m.Allocation.ImageID = requestPayload.ImageID
 

@@ -446,6 +446,16 @@ func (fls FilesystemLayouts) From(size, image string) (*FilesystemLayout, error)
 	return nil, fmt.Errorf("could not find a matching filesystemLayout for size:%s and image:%s", size, image)
 }
 
+// IsReinstallable returns true if at least one disk configures has WipeOnReInstall set, otherwise false
+func (fl *FilesystemLayout) IsReinstallable() bool {
+	for _, d := range fl.Disks {
+		if d.WipeOnReinstall {
+			return true
+		}
+	}
+	return false
+}
+
 // Matches the specific FilesystemLayout against the selected Hardware
 func (fl *FilesystemLayout) Matches(hardware MachineHardware) error {
 	requiredDevices := make(map[string]uint64)
