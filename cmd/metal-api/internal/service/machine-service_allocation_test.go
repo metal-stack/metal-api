@@ -44,18 +44,11 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		},
 	}
 
-	rs1 := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	rs2 := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	rs3 := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
-	rss := []*datastore.RethinkStore{rs1, rs2, rs3}
-
-	for i := range rss {
-		rs := rss[i]
-		err = rs.Connect()
-		require.NoError(t, err)
-		defer rs.Close()
-	}
-	err = rs1.Initialize()
+	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	err = rs.Connect()
+	require.NoError(t, err)
+	defer rs.Close()
+	err = rs.Initialize()
 	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
@@ -64,19 +57,12 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	ipamer := goipam.New()
 
-	createTestdata(rs1, ipamer, t)
+	machineCount := 3
+	createTestdata(machineCount, rs, ipamer, t)
 
-	ms1, err := NewMachine(rs1, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
+	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
 	require.NoError(t, err)
-	ms2, err := NewMachine(rs2, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
-	require.NoError(t, err)
-	ms3, err := NewMachine(rs3, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil)
-	require.NoError(t, err)
-	mss := []*restful.Container{
-		restful.NewContainer().Add(ms1),
-		restful.NewContainer().Add(ms2),
-		restful.NewContainer().Add(ms3),
-	}
+	container := restful.NewContainer().Add(ms)
 
 	ar := v1.MachineAllocateRequest{
 		SizeID:      "s1",
@@ -90,15 +76,13 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	mu := sync.Mutex{}
 	ips := make(map[string]string)
-	for i := 0; i < 3; i++ {
-
-		ms := mss[i]
+	for i := 0; i < machineCount; i++ {
 		g.Go(func() error {
 			var ma v1.MachineResponse
 			err := retry.Do(
 				func() error {
 					var err2 error
-					ma, err2 = allocMachine(ms, ar, t)
+					ma, err2 = allocMachine(container, ar, t)
 					if err2 != nil {
 						t.Logf("machine allocation failed, retrying:%v", err)
 						return err2
@@ -123,7 +107,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			mu.Lock()
 			existingmachine, ok := ips[ip]
 			if ok {
-				return fmt.Errorf("got a ip of a already allocated machine:%s", existingmachine)
+				return fmt.Errorf("%s got a ip of a already allocated machine:%s", ma.ID, existingmachine)
 			}
 			mu.Unlock()
 			ips[ip] = ma.ID
@@ -136,8 +120,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 }
 
-func createTestdata(rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
-	for i := 0; i < 3; i++ {
+func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
+	for i := 0; i < machineCount; i++ {
 		id := fmt.Sprintf("M%d", i)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
