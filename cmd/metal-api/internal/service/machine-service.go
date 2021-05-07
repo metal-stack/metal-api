@@ -946,7 +946,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	}
 
 	var machineCandidate *metal.Machine
-
 	err = retry.Do(
 		func() error {
 			var err2 error
@@ -967,11 +966,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.UUID = machineCandidate.ID
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
-
-	networks, err := gatherNetworks(ds, allocationSpec)
-	if err != nil {
-		return nil, err
-	}
 
 	alloc := &metal.MachineAllocation{
 		Created:         time.Now(),
@@ -999,7 +993,10 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 		return err
 	}
-
+	networks, err := gatherNetworks(ds, allocationSpec)
+	if err != nil {
+		return nil, rollbackOnError(err)
+	}
 	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(err)
@@ -1353,7 +1350,6 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 			ProjectID:        allocationSpec.ProjectID,
 		}
 		ip.AddMachineId(allocationSpec.UUID)
-		ds.Infow("create ip", "machine", allocationSpec.UUID, "ip", ipAddress)
 		err = ds.CreateIP(ip)
 		if err != nil {
 			return nil, err
@@ -1361,7 +1357,8 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		n.ips = append(n.ips, *ip)
 	}
 
-	// FIXME why add machine tag to all ips in this network ?
+	// from the makeNetworks call, a lot of ips might be set in this network
+	// add a machine tag to all of them
 	ipAddresses := []string{}
 	for i := range n.ips {
 		ip := n.ips[i]

@@ -209,16 +209,3 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	err = rs.CreateSize(&metal.Size{Base: metal.Base{ID: "s1"}})
 	require.NoError(t, err)
 }
-
-type NopPublisher struct {
-}
-
-func (p NopPublisher) Publish(topic string, data interface{}) error {
-	return nil
-}
-
-func (p NopPublisher) CreateTopic(topic string) error {
-	return nil
-}
-
-func (p NopPublisher) Stop() {}

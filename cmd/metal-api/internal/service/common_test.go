@@ -63,3 +63,16 @@ func MockAuth(user *security.User) restful.FilterFunction {
 		chain.ProcessFilter(req, resp)
 	}
 }
+
+type NopPublisher struct {
+}
+
+func (p NopPublisher) Publish(topic string, data interface{}) error {
+	return nil
+}
+
+func (p NopPublisher) CreateTopic(topic string) error {
+	return nil
+}
+
+func (p NopPublisher) Stop() {}
