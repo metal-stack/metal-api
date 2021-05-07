@@ -7,6 +7,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
 
+	"github.com/avast/retry-go"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -27,14 +28,14 @@ const (
 )
 
 var (
-	// VRFPoolRangeMin the minimum integer to get from the vrf pool
-	VRFPoolRangeMin = uint(1)
-	// VRFPoolRangeMax the maximum integer to get from the vrf pool
-	VRFPoolRangeMax = uint(131072)
-	// ASNPoolRangeMin the minimum integer to get from the asn pool
-	ASNPoolRangeMin = uint(1)
-	// ASNPoolRangeMax the maximum integer to get from the asn pool
-	ASNPoolRangeMax = uint(131072)
+	// DefaultVRFPoolRangeMin the default minimum integer to get from the vrf pool
+	DefaultVRFPoolRangeMin = uint(1)
+	// DefaultVRFPoolRangeMax the default maximum integer to get from the vrf pool
+	DefaultVRFPoolRangeMax = uint(131072)
+	// DefaultASNPoolRangeMin the default minimum integer to get from the asn pool
+	DefaultASNPoolRangeMin = uint(1)
+	// DefaultASNPoolRangeMax the default maximum integer to get from the asn pool
+	DefaultASNPoolRangeMax = uint(131072)
 )
 
 // IntegerPool manages unique integers
@@ -61,8 +62,8 @@ func (rs *RethinkStore) GetVRFPool() *IntegerPool {
 	return &IntegerPool{
 		poolType:  VRFIntegerPool,
 		session:   rs.session,
-		min:       VRFPoolRangeMin,
-		max:       VRFPoolRangeMax,
+		min:       rs.VRFPoolRangeMin,
+		max:       rs.VRFPoolRangeMax,
 		poolTable: rs.vrfTable(),
 		infoTable: rs.vrfInfoTable(),
 	}
@@ -72,8 +73,8 @@ func (rs *RethinkStore) GetASNPool() *IntegerPool {
 	return &IntegerPool{
 		poolType:  ASNIntegerPool,
 		session:   rs.session,
-		min:       ASNPoolRangeMin,
-		max:       ASNPoolRangeMax,
+		min:       rs.ASNPoolRangeMin,
+		max:       rs.ASNPoolRangeMax,
 		poolTable: rs.asnTable(),
 		infoTable: rs.asnInfoTable(),
 	}
@@ -147,7 +148,20 @@ func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
 func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
 	t := ip.poolTable.Limit(1)
-	return ip.genericAcquire(&t)
+
+	var integer uint
+	err := retry.Do(
+		func() error {
+			var err2 error
+			integer, err2 = ip.genericAcquire(&t)
+			return err2
+		},
+		retry.Attempts(10),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
+
+	return integer, err
 }
 
 // AcquireUniqueInteger returns a unique integer from the pool.

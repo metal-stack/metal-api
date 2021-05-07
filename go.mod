@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/aws/aws-sdk-go v1.37.32
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.2.1
@@ -17,7 +18,7 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/metal-stack/go-ipam v1.7.0
+	github.com/metal-stack/go-ipam v1.8.4
 	github.com/metal-stack/masterdata-api v0.8.5
 	github.com/metal-stack/metal-lib v0.7.2
 	github.com/metal-stack/security v0.5.3
@@ -36,7 +37,8 @@ require (
 	github.com/testcontainers/testcontainers-go v0.10.0
 	go.uber.org/zap v1.16.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
+	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1

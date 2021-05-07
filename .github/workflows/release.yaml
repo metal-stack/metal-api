@@ -22,7 +22,12 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v2
       with:
+<<<<<<< HEAD
         args: -p bugs -p unused --timeout=3m
+=======
+        version: v1.32.2
+        args: --build-tags integration -p bugs -p unused --timeout=3m
+>>>>>>> 2ae0dd0c84c640bcbee48d3d048b6f8a3861af96
 
     - name: Build and push Docker image
       run: |

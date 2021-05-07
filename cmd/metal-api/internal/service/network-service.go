@@ -492,7 +492,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	}
 }
 
-func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength int) (*metal.Network, error) {
+func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
 	vrf, err := acquireRandomVRF(ds)
 	if err != nil {
 		return nil, fmt.Errorf("Could not acquire a vrf: %w", err)
@@ -749,7 +749,7 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 	return usage
 }
 
-func createChildPrefix(parentPrefixes metal.Prefixes, childLength int, ipamer ipam.IPAMer) (*metal.Prefix, error) {
+func createChildPrefix(parentPrefixes metal.Prefixes, childLength uint8, ipamer ipam.IPAMer) (*metal.Prefix, error) {
 	var errors []error
 	var err error
 	var childPrefix *metal.Prefix

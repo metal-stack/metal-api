@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	DemotedUser = "metal"
+	DemotedUser                       = "metal"
+	EntityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
 )
 
 var tables = []string{
@@ -32,6 +33,11 @@ type RethinkStore struct {
 	dbuser string
 	dbpass string
 	dbhost string
+
+	VRFPoolRangeMin uint
+	VRFPoolRangeMax uint
+	ASNPoolRangeMin uint
+	ASNPoolRangeMax uint
 }
 
 // New creates a new rethink store.
@@ -42,6 +48,11 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 		dbname:        dbname,
 		dbuser:        dbuser,
 		dbpass:        dbpass,
+
+		VRFPoolRangeMin: DefaultVRFPoolRangeMin,
+		VRFPoolRangeMax: DefaultVRFPoolRangeMax,
+		ASNPoolRangeMin: DefaultASNPoolRangeMin,
+		ASNPoolRangeMax: DefaultASNPoolRangeMax,
 	}
 }
 
@@ -412,7 +423,7 @@ func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.Entity) error {
 func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldEntity metal.Entity) error {
 	newEntity.SetChanged(time.Now())
 	_, err := table.Get(oldEntity.GetID()).Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error("the entity was changed from another, please retry"))
+		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error(EntityAlreadyModifiedErrorMessage))
 	}).RunWrite(rs.session)
 	if err != nil {
 		return fmt.Errorf("cannot update %v (%s): %w", getEntityName(newEntity), oldEntity.GetID(), err)
