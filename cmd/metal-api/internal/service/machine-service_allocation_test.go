@@ -1,3 +1,5 @@
+// +build integration
+
 package service
 
 import (
@@ -131,8 +133,6 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v
 
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
 	log := zaptest.NewLogger(t)
-	datastore.VRFPoolRangeMax = 1000
-	datastore.ASNPoolRangeMax = 1000
 
 	_, c, err := test.StartRethink()
 	require.NoError(t, err)
@@ -145,6 +145,9 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	}
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs.VRFPoolRangeMax = 1000
+	rs.ASNPoolRangeMax = 1000
+
 	err = rs.Connect()
 	require.NoError(t, err)
 	err = rs.Initialize()

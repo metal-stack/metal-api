@@ -3,7 +3,11 @@
 package datastore
 
 import (
+	"context"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/test"
+	"go.uber.org/zap/zaptest"
 
 	"testing"
 
@@ -12,36 +16,78 @@ import (
 )
 
 func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
-	rs, c, ctx := InitTestDB(t)
-	defer c.Terminate(ctx)
-	got, err := rs.AcquireRandomUniqueInteger()
+	container, c, err := test.StartRethink()
+	require.NoError(t, err)
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
+
+	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs.VRFPoolRangeMin = 10000
+	rs.VRFPoolRangeMax = 10010
+
+	err = rs.Connect()
+	require.NoError(t, err)
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	pool := rs.GetVRFPool()
+	got, err := pool.AcquireRandomUniqueInteger()
 	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, got, uint(IntegerPoolRangeMin))
-	assert.LessOrEqual(t, got, uint(IntegerPoolRangeMax))
+	assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
+	assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
 }
 
 func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
-	rs, c, ctx := InitTestDB(t)
-	defer c.Terminate(ctx)
-	got, err := rs.AcquireUniqueInteger(10000)
+	container, c, err := test.StartRethink()
+	require.NoError(t, err)
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
+
+	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs.VRFPoolRangeMin = 10000
+	rs.VRFPoolRangeMax = 10010
+
+	err = rs.Connect()
+	require.NoError(t, err)
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	pool := rs.GetVRFPool()
+	got, err := pool.AcquireUniqueInteger(10000)
 	require.NoError(t, err)
 	assert.Equal(t, got, uint(10000))
 
-	_, err = rs.AcquireUniqueInteger(10000)
+	_, err = pool.AcquireUniqueInteger(10000)
 	assert.True(t, metal.IsConflict(err))
 }
 
 func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T) {
-	rs, c, ctx := InitTestDB(t)
-	defer c.Terminate(ctx)
+	container, c, err := test.StartRethink()
+	require.NoError(t, err)
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
 
-	for i := IntegerPoolRangeMin; i <= IntegerPoolRangeMax; i++ {
-		got, err := rs.AcquireRandomUniqueInteger()
+	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs.VRFPoolRangeMin = 10000
+	rs.VRFPoolRangeMax = 10010
+
+	err = rs.Connect()
+	require.NoError(t, err)
+	err = rs.Initialize()
+	require.NoError(t, err)
+
+	pool := rs.GetVRFPool()
+
+	for i := rs.VRFPoolRangeMin; i <= rs.VRFPoolRangeMax; i++ {
+		got, err := pool.AcquireRandomUniqueInteger()
 		require.NoError(t, err)
-		assert.GreaterOrEqual(t, got, uint(IntegerPoolRangeMin))
-		assert.LessOrEqual(t, got, uint(IntegerPoolRangeMax))
+		assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
+		assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
 	}
 
-	_, err := rs.AcquireRandomUniqueInteger()
+	_, err = pool.AcquireRandomUniqueInteger()
 	assert.True(t, metal.IsInternal(err))
 }
