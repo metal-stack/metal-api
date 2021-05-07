@@ -955,7 +955,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		},
 		retry.Attempts(10),
 		retry.RetryIf(func(err error) bool {
-			return strings.Contains(err.Error(), "the entity was changed from another, please retry")
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
 		}),
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
