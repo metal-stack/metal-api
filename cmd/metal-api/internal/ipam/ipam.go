@@ -20,15 +20,14 @@ func New(ip ipam.Ipamer) *Ipam {
 }
 
 // AllocateChildPrefix creates a child prefix from a parent prefix in the IPAM.
-func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (*metal.Prefix, error) {
+func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
 	ipamParentPrefix := i.ip.PrefixFrom(parentPrefix.String())
 
 	if ipamParentPrefix == nil {
 		return nil, fmt.Errorf("error finding parent prefix in ipam: %s", parentPrefix.String())
 	}
 
-	// FIXME no cast
-	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, uint8(childLength))
+	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, childLength)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new prefix in ipam: %w", err)
 	}
