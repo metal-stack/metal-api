@@ -24,7 +24,9 @@ import (
 func TestGetImagesIntegration(t *testing.T) {
 	rethinkContainer, c, err := test.StartRethink()
 	require.NoError(t, err)
-	defer rethinkContainer.Terminate(context.Background())
+	defer func() {
+		_ = rethinkContainer.Terminate(context.Background())
+	}()
 
 	ds := datastore.New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000

@@ -18,7 +18,9 @@ import (
 func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
 	container, c, err := test.StartRethink()
 	require.NoError(t, err)
-	defer container.Terminate(context.Background())
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
 
 	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
@@ -39,7 +41,9 @@ func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
 func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
 	container, c, err := test.StartRethink()
 	require.NoError(t, err)
-	defer container.Terminate(context.Background())
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
 
 	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
@@ -62,7 +66,9 @@ func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
 func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T) {
 	container, c, err := test.StartRethink()
 	require.NoError(t, err)
-	defer container.Terminate(context.Background())
+	defer func() {
+		_ = container.Terminate(context.Background())
+	}()
 
 	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000

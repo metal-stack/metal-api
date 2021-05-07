@@ -365,7 +365,6 @@ func (te *testEnv) machineWait(uuid string) error {
 		grpc.WithBlock(),
 	}
 
-	machineID := "test-uuid"
 	port := 50005
 	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("localhost:%d", port), opts...)
 	if err != nil {
@@ -376,11 +375,8 @@ func (te *testEnv) machineWait(uuid string) error {
 
 	go func() {
 		waitClient := grpcv1.NewWaitClient(conn)
-		err := waitForAllocation(machineID, waitClient, context.Background())
+		waitForAllocation(uuid, waitClient, context.Background())
 		isWaiting <- true
-		if err != nil {
-			return
-		}
 	}()
 
 	<-isWaiting
@@ -388,7 +384,7 @@ func (te *testEnv) machineWait(uuid string) error {
 	return nil
 }
 
-func waitForAllocation(machineID string, c grpcv1.WaitClient, ctx context.Context) error {
+func waitForAllocation(machineID string, c grpcv1.WaitClient, ctx context.Context) {
 	req := &grpcv1.WaitRequest{
 		MachineID: machineID,
 	}
@@ -399,6 +395,6 @@ func waitForAllocation(machineID string, c grpcv1.WaitClient, ctx context.Contex
 		if err != nil {
 			continue
 		}
-		return nil
+		return
 	}
 }

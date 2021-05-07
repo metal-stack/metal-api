@@ -2,16 +2,13 @@ package test
 
 import (
 	"context"
-	"sync"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 var (
-	rtOnce      sync.Once
 	rtContainer testcontainers.Container
-	pgOnce      sync.Once
 	pgContainer testcontainers.Container
 )
 
