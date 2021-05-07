@@ -20,7 +20,7 @@ func New(ip ipam.Ipamer) *Ipam {
 }
 
 // AllocateChildPrefix creates a child prefix from a parent prefix in the IPAM.
-func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength int) (*metal.Prefix, error) {
+func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
 	ipamParentPrefix := i.ip.PrefixFrom(parentPrefix.String())
 
 	if ipamParentPrefix == nil {
@@ -132,9 +132,10 @@ func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	usage := prefix.Usage()
 
 	return &metal.NetworkUsage{
-		AvailableIPs:      usage.AvailableIPs,
-		UsedIPs:           usage.AcquiredIPs,
-		AvailablePrefixes: usage.AvailablePrefixes,
+		AvailableIPs: usage.AvailableIPs,
+		UsedIPs:      usage.AcquiredIPs,
+		// FIXME add usage.AvailablePrefixList as already done here https://github.com/metal-stack/metal-api/pull/152/files#diff-fe05f7f1480be933b5c482b74af28c8b9ca7ef2591f8341eb6e6663cbaeda7baR828
+		AvailablePrefixes: usage.AvailableSmallestPrefixes,
 		UsedPrefixes:      usage.AcquiredPrefixes,
 	}, nil
 }

@@ -54,6 +54,7 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 	if p == nil {
 		return nil
 	}
+	prefixLength := int(p.PrivateNetworkPrefixLength)
 	return &PartitionResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -66,7 +67,7 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 		},
 		PartitionBase: PartitionBase{
 			MgmtServiceAddress:         &p.MgmtServiceAddress,
-			PrivateNetworkPrefixLength: &p.PrivateNetworkPrefixLength,
+			PrivateNetworkPrefixLength: &prefixLength,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,

@@ -76,17 +76,18 @@ type ChassisIdentifyLEDState struct {
 // be filled. Any unallocated (free) machine won't have such values.
 type Machine struct {
 	Base
-	Allocation  *MachineAllocation      `rethinkdb:"allocation" json:"allocation"`
-	PartitionID string                  `rethinkdb:"partitionid" json:"partitionid"`
-	SizeID      string                  `rethinkdb:"sizeid" json:"sizeid"`
-	RackID      string                  `rethinkdb:"rackid" json:"rackid"`
-	Waiting     bool                    `rethinkdb:"waiting" json:"waiting"`
-	Hardware    MachineHardware         `rethinkdb:"hardware" json:"hardware"`
-	State       MachineState            `rethinkdb:"state" json:"state"`
-	LEDState    ChassisIdentifyLEDState `rethinkdb:"ledstate" json:"ledstate"`
-	Tags        []string                `rethinkdb:"tags" json:"tags"`
-	IPMI        IPMI                    `rethinkdb:"ipmi" json:"ipmi"`
-	BIOS        BIOS                    `rethinkdb:"bios" json:"bios"`
+	Allocation   *MachineAllocation      `rethinkdb:"allocation" json:"allocation"`
+	PartitionID  string                  `rethinkdb:"partitionid" json:"partitionid"`
+	SizeID       string                  `rethinkdb:"sizeid" json:"sizeid"`
+	RackID       string                  `rethinkdb:"rackid" json:"rackid"`
+	Waiting      bool                    `rethinkdb:"waiting" json:"waiting"`
+	PreAllocated bool                    `rethinkdb:"preallocated" json:"preallocated"`
+	Hardware     MachineHardware         `rethinkdb:"hardware" json:"hardware"`
+	State        MachineState            `rethinkdb:"state" json:"state"`
+	LEDState     ChassisIdentifyLEDState `rethinkdb:"ledstate" json:"ledstate"`
+	Tags         []string                `rethinkdb:"tags" json:"tags"`
+	IPMI         IPMI                    `rethinkdb:"ipmi" json:"ipmi"`
+	BIOS         BIOS                    `rethinkdb:"bios" json:"bios"`
 }
 
 // Machines is a slice of Machine
