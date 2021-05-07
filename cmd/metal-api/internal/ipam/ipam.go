@@ -134,9 +134,9 @@ func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	return &metal.NetworkUsage{
 		AvailableIPs: usage.AvailableIPs,
 		UsedIPs:      usage.AcquiredIPs,
-		// FIXME
-		// AvailablePrefixes: usage.AvailablePrefixes,
-		UsedPrefixes: usage.AcquiredPrefixes,
+		// FIXME add usage.AvailablePrefixList as already done here https://github.com/metal-stack/metal-api/pull/152/files#diff-fe05f7f1480be933b5c482b74af28c8b9ca7ef2591f8341eb6e6663cbaeda7baR828
+		AvailablePrefixes: usage.AvailableSmallestPrefixes,
+		UsedPrefixes:      usage.AcquiredPrefixes,
 	}, nil
 }
 
