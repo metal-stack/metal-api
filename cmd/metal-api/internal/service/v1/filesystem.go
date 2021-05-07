@@ -26,6 +26,10 @@ type (
 		FilesystemLayoutBase
 	}
 
+	FilesystemLayoutTryRequest struct {
+		Size  string `json:"size" description:"machine size to try"`
+		Image string `json:"image" description:"image to try"`
+	}
 	FilesystemLayoutConstraints struct {
 		Sizes  []string          `json:"sizes" description:"list of sizes this layout applies to"`
 		Images map[string]string `json:"images" description:"list of images this layout applies to"`

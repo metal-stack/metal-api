@@ -286,7 +286,7 @@
           "type": "string"
         },
         "disks": {
-          "description": "list of disks to to modify",
+          "description": "list of disks that belong to this layout",
           "items": {
             "$ref": "#/definitions/v1.Disk"
           },
@@ -351,7 +351,7 @@
           "type": "string"
         },
         "disks": {
-          "description": "list of disks to to modify",
+          "description": "list of disks that belong to this layout",
           "items": {
             "$ref": "#/definitions/v1.Disk"
           },
@@ -405,6 +405,22 @@
         "volumegroups"
       ]
     },
+    "v1.FilesystemLayoutTryRequest": {
+      "properties": {
+        "image": {
+          "description": "image to try",
+          "type": "string"
+        },
+        "size": {
+          "description": "machine size to try",
+          "type": "string"
+        }
+      },
+      "required": [
+        "image",
+        "size"
+      ]
+    },
     "v1.FilesystemLayoutUpdateRequest": {
       "properties": {
         "constraints": {
@@ -416,7 +432,7 @@
           "type": "string"
         },
         "disks": {
-          "description": "list of disks to to modify",
+          "description": "list of disks that belong to this layout",
           "items": {
             "$ref": "#/definitions/v1.Disk"
           },
@@ -3621,6 +3637,51 @@
           }
         },
         "summary": "create a filesystemlayout. if the given ID already exists a conflict is returned",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
+    "/v1/filesystemlayout/try": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "tryFilesystemLayout",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutTryRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "try to detect a filesystemlayout based on given size and image.",
         "tags": [
           "filesystemlayout"
         ]

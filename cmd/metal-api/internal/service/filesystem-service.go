@@ -88,6 +88,16 @@ func (r filesystemResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/try").
+		To(admin(r.tryFilesystemLayout)).
+		Operation("tryFilesystemLayout").
+		Doc("try to detect a filesystemlayout based on given size and image.").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.FilesystemLayoutTryRequest{}).
+		Returns(http.StatusOK, "OK", v1.FilesystemLayoutResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
 }
 
@@ -231,6 +241,29 @@ func (r filesystemResource) updateFilesystemLayout(request *restful.Request, res
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(newFilesystemLayout))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r filesystemResource) tryFilesystemLayout(request *restful.Request, response *restful.Response) {
+	var try v1.FilesystemLayoutTryRequest
+	err := request.ReadEntity(&try)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	ss, err := r.ds.ListFilesystemLayouts()
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	fsl, err := ss.From(try.Size, try.Image)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
