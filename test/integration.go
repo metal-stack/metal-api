@@ -30,25 +30,22 @@ type ConnectionDetails struct {
 
 func StartRethink() (container testcontainers.Container, c *ConnectionDetails, err error) {
 	ctx := context.Background()
-	rtOnce.Do(func() {
-		var err error
-		req := testcontainers.ContainerRequest{
-			Image:        "rethinkdb:2.4.0",
-			ExposedPorts: []string{"8080/tcp", "28015/tcp"},
-			Env:          map[string]string{"RETHINKDB_PASSWORD": "rethink"},
-			WaitingFor: wait.ForAll(
-				wait.ForListeningPort("28015/tcp"),
-			),
-			Cmd: []string{"rethinkdb", "--bind", "all", "--directory", "/tmp", "--initial-password", "rethink", "--io-threads", "500"},
-		}
-		rtContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-			ContainerRequest: req,
-			Started:          true,
-		})
-		if err != nil {
-			panic(err.Error())
-		}
+	req := testcontainers.ContainerRequest{
+		Image:        "rethinkdb:2.4.0",
+		ExposedPorts: []string{"8080/tcp", "28015/tcp"},
+		Env:          map[string]string{"RETHINKDB_PASSWORD": "rethink"},
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("28015/tcp"),
+		),
+		Cmd: []string{"rethinkdb", "--bind", "all", "--directory", "/tmp", "--initial-password", "rethink", "--io-threads", "500"},
+	}
+	rtContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
 	})
+	if err != nil {
+		panic(err.Error())
+	}
 	ip, err := rtContainer.Host(ctx)
 	if err != nil {
 		return rtContainer, nil, err
@@ -71,26 +68,23 @@ func StartRethink() (container testcontainers.Container, c *ConnectionDetails, e
 
 func StartPostgres() (container testcontainers.Container, c *ConnectionDetails, err error) {
 	ctx := context.Background()
-	pgOnce.Do(func() {
-		var err error
-		req := testcontainers.ContainerRequest{
-			Image:        "postgres:13-alpine",
-			ExposedPorts: []string{"5432/tcp"},
-			Env:          map[string]string{"POSTGRES_PASSWORD": "password"},
-			WaitingFor: wait.ForAll(
-				wait.ForLog("database system is ready to accept connections"),
-				wait.ForListeningPort("5432/tcp"),
-			),
-			Cmd: []string{"postgres", "-c", "max_connections=500"},
-		}
-		pgContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-			ContainerRequest: req,
-			Started:          true,
-		})
-		if err != nil {
-			panic(err.Error())
-		}
+	req := testcontainers.ContainerRequest{
+		Image:        "postgres:13-alpine",
+		ExposedPorts: []string{"5432/tcp"},
+		Env:          map[string]string{"POSTGRES_PASSWORD": "password"},
+		WaitingFor: wait.ForAll(
+			wait.ForLog("database system is ready to accept connections"),
+			wait.ForListeningPort("5432/tcp"),
+		),
+		Cmd: []string{"postgres", "-c", "max_connections=500"},
+	}
+	pgContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
 	})
+	if err != nil {
+		panic(err.Error())
+	}
 	ip, err := pgContainer.Host(ctx)
 	if err != nil {
 		return pgContainer, nil, err

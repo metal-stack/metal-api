@@ -32,6 +32,11 @@ type RethinkStore struct {
 	dbuser string
 	dbpass string
 	dbhost string
+
+	VRFPoolRangeMin uint
+	VRFPoolRangeMax uint
+	ASNPoolRangeMin uint
+	ASNPoolRangeMax uint
 }
 
 // New creates a new rethink store.
@@ -42,6 +47,11 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 		dbname:        dbname,
 		dbuser:        dbuser,
 		dbpass:        dbpass,
+
+		VRFPoolRangeMin: DefaultVRFPoolRangeMin,
+		VRFPoolRangeMax: DefaultVRFPoolRangeMax,
+		ASNPoolRangeMin: DefaultASNPoolRangeMin,
+		ASNPoolRangeMax: DefaultASNPoolRangeMax,
 	}
 }
 

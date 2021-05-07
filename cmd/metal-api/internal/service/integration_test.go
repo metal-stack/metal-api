@@ -1,15 +1,12 @@
-//nolint:unused
+// +build integration
+
 package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -17,8 +14,8 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
-	"github.com/metal-stack/metal-lib/zapup"
 	"github.com/metal-stack/security"
 	"github.com/testcontainers/testcontainers-go"
 	"go.uber.org/zap/zaptest"
@@ -46,6 +43,7 @@ type testEnv struct {
 	machineService      *restful.WebService
 	ipService           *restful.WebService
 	ws                  *metalgrpc.WaitService
+	ds                  *datastore.RethinkStore
 	privateSuperNetwork *v1.NetworkResponse
 	privateNetwork      *v1.NetworkResponse
 	rethinkContainer    testcontainers.Container
@@ -61,7 +59,17 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require := require.New(t)
 
 	ipamer := ipam.InitTestIpam(t)
-	ds, rc, ctx := datastore.InitTestDB(t)
+	rethinkContainer, c, err := test.StartRethink()
+	require.NoError(err)
+
+	ds := datastore.New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	err = ds.Connect()
+	require.NoError(err)
+	err = ds.Initialize()
+	require.NoError(err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
@@ -105,9 +113,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 		partitionService: partitionService,
 		machineService:   machineService,
 		ipService:        ipService,
+		ds:               ds,
 		ws:               grpcServer.WaitService,
-		rethinkContainer: rc,
-		ctx:              ctx,
+		rethinkContainer: rethinkContainer,
+		ctx:              context.TODO(),
 	}
 
 	imageID := "test-image-1.0.0"
@@ -123,7 +132,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 				Description: &imageDesc,
 			},
 		},
-		URL:      "https://metal-stack.io", // not good to rely on this page
+		URL:      "https://www.google.com", // not good to rely on this page
 		Features: []string{string(metal.ImageFeatureMachine)},
 	}
 	var createdImage v1.ImageResponse
@@ -391,55 +400,5 @@ func waitForAllocation(machineID string, c grpcv1.WaitClient, ctx context.Contex
 			continue
 		}
 		return nil
-	}
-}
-
-type emptyBody struct{}
-
-func webRequestPut(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodPut, service, user, request, path, response)
-}
-
-func webRequestPost(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodPost, service, user, request, path, response)
-}
-
-func webRequestDelete(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodDelete, service, user, request, path, response)
-}
-
-func webRequestGet(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
-	return webRequest(t, http.MethodGet, service, user, request, path, response)
-}
-
-func webRequest(t *testing.T, method string, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
-	container := restful.NewContainer().Add(service)
-
-	jsonBody, err := json.Marshal(request)
-	require.NoError(t, err)
-	body := ioutil.NopCloser(strings.NewReader(string(jsonBody)))
-	createReq := httptest.NewRequest(method, path, body)
-	createReq.Header.Set("Content-Type", "application/json")
-
-	container.Filter(MockAuth(user))
-
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, createReq)
-
-	resp := w.Result()
-	defer resp.Body.Close()
-
-	err = json.NewDecoder(resp.Body).Decode(response)
-	require.NoError(t, err)
-	return resp.StatusCode
-}
-
-func MockAuth(user *security.User) restful.FilterFunction {
-	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
-		log := zapup.RequestLogger(req.Request)
-		rq := req.Request
-		ctx := security.PutUserInContext(zapup.PutLogger(rq.Context(), log), user)
-		req.Request = rq.WithContext(ctx)
-		chain.ProcessFilter(req, resp)
 	}
 }

@@ -1,3 +1,5 @@
+// +build integration
+
 package service
 
 import (
@@ -5,7 +7,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
@@ -105,8 +106,8 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert.Len(allocatedMachine.Allocation.MachineNetworks, 1)
 	assert.Equal(allocatedMachine.Allocation.MachineNetworks[0].NetworkType, metal.PrivatePrimaryUnshared.String())
 	assert.NotEmpty(allocatedMachine.Allocation.MachineNetworks[0].Vrf)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.VRFPoolRangeMin)
-	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.VRFPoolRangeMax)
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMin)
+	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMax)
 	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(ASNBase))
 	assert.Len(allocatedMachine.Allocation.MachineNetworks[0].IPs, 1)
 	_, ipnet, _ := net.ParseCIDR(te.privateNetwork.Prefixes[0])
@@ -144,8 +145,8 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert.Len(allocatedMachine.Allocation.MachineNetworks, 1)
 	assert.Equal(allocatedMachine.Allocation.MachineNetworks[0].NetworkType, metal.PrivatePrimaryUnshared.String())
 	assert.NotEmpty(allocatedMachine.Allocation.MachineNetworks[0].Vrf)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.VRFPoolRangeMin)
-	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.VRFPoolRangeMax)
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMin)
+	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMax)
 	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(ASNBase))
 	assert.Len(allocatedMachine.Allocation.MachineNetworks[0].IPs, 1)
 	_, ipnet, _ = net.ParseCIDR(te.privateNetwork.Prefixes[0])

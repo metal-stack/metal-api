@@ -2,8 +2,8 @@ name: Build image from pull request
 
 on:
   pull_request:
-    branches:
-      - master
+    # branches:
+    #   - master
 
 jobs:
   build:
@@ -33,6 +33,10 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t ghcr.io/metal-stack/metal-api:pr-${GITHUB_HEAD_REF##*/} .
+
+    - name: Run integration tests
+      run: |
+        go test -tags=integration -timeout 180s -p 1 ./...
 
     - name: Push Docker image
       run: |

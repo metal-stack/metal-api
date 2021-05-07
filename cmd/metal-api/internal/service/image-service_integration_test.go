@@ -3,6 +3,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -14,18 +15,30 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	"github.com/metal-stack/metal-api/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestGetImagesIntegration(t *testing.T) {
-	ds, c, ctx := datastore.InitTestDB(t)
-	defer c.Terminate(ctx)
+	rethinkContainer, c, err := test.StartRethink()
+	require.NoError(t, err)
+	defer rethinkContainer.Terminate(context.Background())
+
+	ds := datastore.New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	err = ds.Connect()
+	require.NoError(t, err)
+	err = ds.Initialize()
+	require.NoError(t, err)
 
 	imageservice := NewImage(ds)
 	container := restful.NewContainer().Add(imageservice)
 
-	imageID := "test-image"
+	imageID := "test-image-1.0.0"
 	imageName := "testimage"
 	imageDesc := "Test Image"
 	newImage := v1.ImageCreateRequest{
@@ -38,7 +51,7 @@ func TestGetImagesIntegration(t *testing.T) {
 				Description: &imageDesc,
 			},
 		},
-		URL:      "https://blobstore/image",
+		URL:      "https://www.google.com", // not good to rely on this page
 		Features: []string{string(metal.ImageFeatureMachine)},
 	}
 
@@ -64,5 +77,4 @@ func TestGetImagesIntegration(t *testing.T) {
 	assert.Equal(t, newImage.URL, *result.URL)
 	require.Len(t, result.Features, 1)
 	assert.Equal(t, newImage.Features[0], result.Features[0])
-
 }

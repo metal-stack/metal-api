@@ -28,14 +28,14 @@ const (
 )
 
 var (
-	// VRFPoolRangeMin the minimum integer to get from the vrf pool
-	VRFPoolRangeMin = uint(1)
-	// VRFPoolRangeMax the maximum integer to get from the vrf pool
-	VRFPoolRangeMax = uint(131072)
-	// ASNPoolRangeMin the minimum integer to get from the asn pool
-	ASNPoolRangeMin = uint(1)
-	// ASNPoolRangeMax the maximum integer to get from the asn pool
-	ASNPoolRangeMax = uint(131072)
+	// DefaultVRFPoolRangeMin the default minimum integer to get from the vrf pool
+	DefaultVRFPoolRangeMin = uint(1)
+	// DefaultVRFPoolRangeMax the default maximum integer to get from the vrf pool
+	DefaultVRFPoolRangeMax = uint(131072)
+	// DefaultASNPoolRangeMin the default minimum integer to get from the asn pool
+	DefaultASNPoolRangeMin = uint(1)
+	// DefaultASNPoolRangeMax the default maximum integer to get from the asn pool
+	DefaultASNPoolRangeMax = uint(131072)
 )
 
 // IntegerPool manages unique integers
@@ -62,8 +62,8 @@ func (rs *RethinkStore) GetVRFPool() *IntegerPool {
 	return &IntegerPool{
 		poolType:  VRFIntegerPool,
 		session:   rs.session,
-		min:       VRFPoolRangeMin,
-		max:       VRFPoolRangeMax,
+		min:       rs.VRFPoolRangeMin,
+		max:       rs.VRFPoolRangeMax,
 		poolTable: rs.vrfTable(),
 		infoTable: rs.vrfInfoTable(),
 	}
@@ -73,8 +73,8 @@ func (rs *RethinkStore) GetASNPool() *IntegerPool {
 	return &IntegerPool{
 		poolType:  ASNIntegerPool,
 		session:   rs.session,
-		min:       ASNPoolRangeMin,
-		max:       ASNPoolRangeMax,
+		min:       rs.ASNPoolRangeMin,
+		max:       rs.ASNPoolRangeMax,
 		poolTable: rs.asnTable(),
 		infoTable: rs.asnInfoTable(),
 	}
