@@ -41,7 +41,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
-	machineCount := 200
+	machineCount := 50
 
 	rs, container := setupTestEnvironment(machineCount, t)
 	defer rs.Close()
