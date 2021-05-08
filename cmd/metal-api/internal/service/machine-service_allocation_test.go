@@ -208,4 +208,6 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	require.NoError(t, err)
 	err = rs.CreateSize(&metal.Size{Base: metal.Base{ID: "s1"}})
 	require.NoError(t, err)
+	err = rs.CreateFilesystemLayout(&metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"s1"}, Images: map[string]string{"i": "*"}}})
+	require.NoError(t, err)
 }
