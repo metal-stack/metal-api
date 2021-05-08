@@ -28,10 +28,6 @@ jobs:
       run: |
         docker build -t ghcr.io/metal-stack/metal-api .
 
-    - name: Run integration tests
-      run: |
-        go test -tags=integration -timeout 600s -p 1 ./...
-
     - name: Push Docker image
       run: |
         docker push ghcr.io/metal-stack/metal-api
@@ -39,3 +35,12 @@ jobs:
     - uses: release-drafter/release-drafter@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Run integration tests
+      run: |
+        go test -tags=integration -timeout 600s -p 1 ./...
