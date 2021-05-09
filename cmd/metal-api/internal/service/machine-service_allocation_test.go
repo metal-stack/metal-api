@@ -106,6 +106,37 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	require.Equal(t, len(ips), machineCount)
 	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
+
+	// Now free them all
+	f, _ := errgroup.WithContext(context.Background())
+	for _, id := range ips {
+		f.Go(func() error {
+			err := retry.Do(
+				func() error {
+					// TODO add switch config in testdata to have switch updates covered
+					var err2 error
+					_, err2 = freeMachine(container, id)
+					if err2 != nil {
+						t.Logf("machine free failed, retrying:%v", err2)
+						return err2
+					}
+					return nil
+				},
+				retry.Attempts(10),
+				// to have even more stress, comment the next line
+				retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+				retry.LastErrorOnly(true),
+			)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+	}
+	err = f.Wait()
+	require.NoError(t, err)
+
 }
 
 // Methods under Test ---------------------------------------------------------------------------------------
@@ -114,6 +145,25 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v
 	js, _ := json.Marshal(ar)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
+	req.Header.Add("Content-Type", "application/json")
+	hma.AddAuth(req, time.Now(), js)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
+	}
+	var result v1.MachineResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	return result, err
+}
+
+func freeMachine(container *restful.Container, id string) (v1.MachineResponse, error) {
+	js, _ := json.Marshal("")
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/v1/machine/%s/free", id), body)
 	req.Header.Add("Content-Type", "application/json")
 	hma.AddAuth(req, time.Now(), js)
 	w := httptest.NewRecorder()
