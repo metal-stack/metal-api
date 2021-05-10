@@ -95,7 +95,15 @@ func (r filesystemResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.FilesystemLayoutTryRequest{}).
 		Returns(http.StatusOK, "OK", v1.FilesystemLayoutResponse{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/matches").
+		To(admin(r.matchFilesystemLayout)).
+		Operation("matchFilesystemLayout").
+		Doc("check if the given machine id satisfies the disk requirements of the filesystemlayout in question").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.FilesystemLayoutMatchRequest{}).
+		Returns(http.StatusOK, "OK", v1.FilesystemLayoutResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -259,6 +267,34 @@ func (r filesystemResource) tryFilesystemLayout(request *restful.Request, respon
 	}
 
 	fsl, err := ss.From(try.Size, try.Image)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r filesystemResource) matchFilesystemLayout(request *restful.Request, response *restful.Response) {
+	var match v1.FilesystemLayoutMatchRequest
+	err := request.ReadEntity(&match)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	fsl, err := r.ds.FindFilesystemLayout(match.FilesystemLayout)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	machine, err := r.ds.FindMachineByID(match.Machine)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = fsl.Matches(machine.Hardware)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

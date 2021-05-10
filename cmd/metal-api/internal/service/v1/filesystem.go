@@ -30,6 +30,12 @@ type (
 		Size  string `json:"size" description:"machine size to try"`
 		Image string `json:"image" description:"image to try"`
 	}
+
+	FilesystemLayoutMatchRequest struct {
+		Machine          string `json:"machine" description:"machine id to check"`
+		FilesystemLayout string `json:"filesystemlayout" description:"filesystemlayout id to check"`
+	}
+
 	FilesystemLayoutConstraints struct {
 		Sizes  []string          `json:"sizes" description:"list of sizes this layout applies to"`
 		Images map[string]string `json:"images" description:"list of images this layout applies to"`

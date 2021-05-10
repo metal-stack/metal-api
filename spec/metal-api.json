@@ -340,6 +340,22 @@
         "volumegroups"
       ]
     },
+    "v1.FilesystemLayoutMatchRequest": {
+      "properties": {
+        "filesystemlayout": {
+          "description": "filesystemlayout id to check",
+          "type": "string"
+        },
+        "machine": {
+          "description": "machine id to check",
+          "type": "string"
+        }
+      },
+      "required": [
+        "filesystemlayout",
+        "machine"
+      ]
+    },
     "v1.FilesystemLayoutResponse": {
       "properties": {
         "constraints": {
@@ -3642,6 +3658,45 @@
         ]
       }
     },
+    "/v1/filesystemlayout/matches": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "matchFilesystemLayout",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutMatchRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "check if the given machine id satisfies the disk requirements of the filesystemlayout in question",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
     "/v1/filesystemlayout/try": {
       "post": {
         "consumes": [
@@ -3666,12 +3721,6 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/v1.FilesystemLayoutResponse"
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           },
           "default": {
