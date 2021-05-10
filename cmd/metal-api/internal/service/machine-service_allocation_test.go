@@ -110,6 +110,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	// Now free them all
 	f, _ := errgroup.WithContext(context.Background())
 	for _, id := range ips {
+		id := id
 		f.Go(func() error {
 			err := retry.Do(
 				func() error {
