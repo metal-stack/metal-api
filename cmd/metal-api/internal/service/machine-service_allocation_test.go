@@ -239,6 +239,11 @@ func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest)
 
 // Helper -----------------------------------------------------------------------------------------------
 
+const (
+	swp1MacPrefix = "bb:ca"
+	swp2MacPrefix = "bb:cb"
+)
+
 func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 	return v1.MachineRegisterRequest{
 		UUID:        fmt.Sprintf("WaitingMachine%d", i),
@@ -255,7 +260,7 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 						{
 							MachineNic: v1.MachineNic{
 								Name:       fmt.Sprintf("swp-%d", i),
-								MacAddress: fmt.Sprintf("bb:ca:%d", i),
+								MacAddress: fmt.Sprintf("%s:%d", swp1MacPrefix, i),
 							},
 						},
 					},
@@ -269,7 +274,7 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 						{
 							MachineNic: v1.MachineNic{
 								Name:       fmt.Sprintf("swp-%d", i),
-								MacAddress: fmt.Sprintf("bb:cb:%d", i),
+								MacAddress: fmt.Sprintf("%s:%d", swp2MacPrefix, i),
 							},
 						},
 					},
@@ -362,11 +367,11 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	for j := 0; j < machineCount; j++ {
 		sw1nic := metal.Nic{
 			Name:       fmt.Sprintf("swp-%d", j),
-			MacAddress: metal.MacAddress(fmt.Sprintf("bb:ca:%d", j)),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j)),
 		}
 		sw2nic := metal.Nic{
 			Name:       fmt.Sprintf("swp-%d", j),
-			MacAddress: metal.MacAddress(fmt.Sprintf("bb:cb:%d", j)),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp2MacPrefix, j)),
 		}
 		sw1nics = append(sw1nics, sw1nic)
 		sw2nics = append(sw2nics, sw2nic)
