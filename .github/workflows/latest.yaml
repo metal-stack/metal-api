@@ -22,16 +22,11 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v2
       with:
-        version: v1.32.2
         args: --build-tags integration -p bugs -p unused --timeout=3m
 
     - name: Build Docker image
       run: |
         docker build -t ghcr.io/metal-stack/metal-api .
-
-    - name: Run integration tests
-      run: |
-        go test -tags=integration -timeout 600s -p 1 ./...
 
     - name: Push Docker image
       run: |
@@ -40,3 +35,12 @@ jobs:
     - uses: release-drafter/release-drafter@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Run integration tests
+      run: |
+        go test -tags=integration -timeout 600s -p 1 ./...
