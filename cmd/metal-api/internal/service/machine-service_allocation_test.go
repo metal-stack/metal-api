@@ -43,9 +43,49 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	}
 	machineCount := 50
 
+	// Setup
 	rs, container := setupTestEnvironment(machineCount, t)
 	defer rs.Close()
 
+	// Register
+	e, _ := errgroup.WithContext(context.Background())
+	for i := 0; i < machineCount; i++ {
+		i := i
+		e.Go(func() error {
+			var ma v1.MachineResponse
+			mr := createMachineRegisterRequest(i)
+			err := retry.Do(
+				func() error {
+					var err2 error
+					ma, err2 = registerMachine(container, mr)
+					if err2 != nil {
+						// FIXME err is a machineResponse ?
+						// t.Logf("machine registration failed, retrying:%v", err2.Error())
+						return err2
+					}
+					return nil
+				},
+				retry.Attempts(10),
+				// to have even more stress, comment the next line
+				retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+				retry.LastErrorOnly(true),
+			)
+			if err != nil {
+				return err
+			}
+			nics := ma.Hardware.Nics
+			if len(nics) < 2 {
+				return fmt.Errorf("did not get 2 nics")
+			}
+			t.Logf("machine:%s registered", ma.ID)
+			return nil
+		})
+	}
+	err := e.Wait()
+	require.NoError(t, err)
+
+	// Allocate
+	g, _ := errgroup.WithContext(context.Background())
 	ar := v1.MachineAllocateRequest{
 		SizeID:      "s1",
 		PartitionID: "p1",
@@ -53,9 +93,6 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		ImageID:     "i-1.0.0",
 		Networks:    v1.MachineAllocationNetworks{{NetworkID: "private"}},
 	}
-
-	g, _ := errgroup.WithContext(context.Background())
-
 	mu := sync.Mutex{}
 	ips := make(map[string]string)
 
@@ -97,15 +134,48 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			}
 			ips[ip] = ma.ID
 			mu.Unlock()
+			t.Logf("machine:%s allocated", ma.ID)
 			return nil
 		})
 	}
-
-	err := g.Wait()
+	err = g.Wait()
 	require.NoError(t, err)
-
 	require.Equal(t, len(ips), machineCount)
 	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
+
+	// Free
+	f, _ := errgroup.WithContext(context.Background())
+	for _, id := range ips {
+		id := id
+		f.Go(func() error {
+			var ma v1.MachineResponse
+			err := retry.Do(
+				func() error {
+					// TODO add switch config in testdata to have switch updates covered
+					var err2 error
+					_, err2 = freeMachine(container, id)
+					if err2 != nil {
+						t.Logf("machine free failed, retrying:%v", err2)
+						return err2
+					}
+					return nil
+				},
+				retry.Attempts(10),
+				// to have even more stress, comment the next line
+				retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+				retry.LastErrorOnly(true),
+			)
+			if err != nil {
+				return err
+			}
+			t.Logf("machine:%s freed", ma.ID)
+
+			return nil
+		})
+	}
+	err = f.Wait()
+	require.NoError(t, err)
+
 }
 
 // Methods under Test ---------------------------------------------------------------------------------------
@@ -129,7 +199,90 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v
 	return result, err
 }
 
+func freeMachine(container *restful.Container, id string) (v1.MachineResponse, error) {
+	js, _ := json.Marshal("")
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("DELETE", fmt.Sprintf("/v1/machine/%s/free", id), body)
+	req.Header.Add("Content-Type", "application/json")
+	hma.AddAuth(req, time.Now(), js)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
+	}
+	var result v1.MachineResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	return result, err
+}
+
+func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest) (v1.MachineResponse, error) {
+	js, _ := json.Marshal(rm)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/register", body)
+	req.Header.Add("Content-Type", "application/json")
+	hma.AddAuth(req, time.Now(), js)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
+	}
+	var result v1.MachineResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	return result, err
+}
+
 // Helper -----------------------------------------------------------------------------------------------
+
+const (
+	swp1MacPrefix = "bb:ca"
+	swp2MacPrefix = "bb:cb"
+)
+
+func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
+	return v1.MachineRegisterRequest{
+		UUID:        fmt.Sprintf("WaitingMachine%d", i),
+		PartitionID: "p1",
+		Hardware: v1.MachineHardwareExtended{
+			MachineHardwareBase: v1.MachineHardwareBase{Memory: 4, CPUCores: 4},
+			Nics: v1.MachineNicsExtended{
+				{
+					MachineNic: v1.MachineNic{
+						Name:       "lan0",
+						MacAddress: fmt.Sprintf("aa:ba:%d", i),
+					},
+					Neighbors: v1.MachineNicsExtended{
+						{
+							MachineNic: v1.MachineNic{
+								Name:       fmt.Sprintf("swp-%d", i),
+								MacAddress: fmt.Sprintf("%s:%d", swp1MacPrefix, i),
+							},
+						},
+					},
+				},
+				{
+					MachineNic: v1.MachineNic{
+						Name:       "lan1",
+						MacAddress: fmt.Sprintf("aa:bb:%d", i),
+					},
+					Neighbors: v1.MachineNicsExtended{
+						{
+							MachineNic: v1.MachineNic{
+								Name:       fmt.Sprintf("swp-%d", i),
+								MacAddress: fmt.Sprintf("%s:%d", swp2MacPrefix, i),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
 
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
 	log := zaptest.NewLogger(t)
@@ -206,6 +359,25 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	require.NoError(t, err)
 	err = rs.CreatePartition(&metal.Partition{Base: metal.Base{ID: "p1"}})
 	require.NoError(t, err)
-	err = rs.CreateSize(&metal.Size{Base: metal.Base{ID: "s1"}})
+	err = rs.CreateSize(&metal.Size{Base: metal.Base{ID: "s1"}, Constraints: []metal.Constraint{{Type: metal.MemoryConstraint, Min: 4, Max: 4}, {Type: metal.CoreConstraint, Min: 4, Max: 4}}})
+	require.NoError(t, err)
+
+	sw1nics := metal.Nics{}
+	sw2nics := metal.Nics{}
+	for j := 0; j < machineCount; j++ {
+		sw1nic := metal.Nic{
+			Name:       fmt.Sprintf("swp-%d", j),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j)),
+		}
+		sw2nic := metal.Nic{
+			Name:       fmt.Sprintf("swp-%d", j),
+			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp2MacPrefix, j)),
+		}
+		sw1nics = append(sw1nics, sw1nic)
+		sw2nics = append(sw2nics, sw2nic)
+	}
+	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw1"}, PartitionID: "p1", Nics: sw1nics, MachineConnections: metal.ConnectionMap{}})
+	require.NoError(t, err)
+	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw2"}, PartitionID: "p1", Nics: sw2nics, MachineConnections: metal.ConnectionMap{}})
 	require.NoError(t, err)
 }
