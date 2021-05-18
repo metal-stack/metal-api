@@ -174,7 +174,7 @@ type MachineAllocateRequest struct {
 	PartitionID        string                    `json:"partitionid" description:"the partition id to assign this machine to"`
 	SizeID             string                    `json:"sizeid" description:"the size id to assign this machine to"`
 	ImageID            string                    `json:"imageid" description:"the image id to assign this machine to"`
-	FilesystemLayoutID string                    `json:"filesystemlayoutid" description:"the filesystemlayout id to assing to this machine"`
+	FilesystemLayoutID *string                   `json:"filesystemlayoutid" description:"the filesystemlayout id to assing to this machine" optional:"true"`
 	SSHPubKeys         []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
 	UserData           *string                   `json:"user_data" description:"cloud-init.io compatible userdata must be base64 encoded" optional:"true"`
 	Tags               []string                  `json:"tags" description:"tags for this machine" optional:"true"`

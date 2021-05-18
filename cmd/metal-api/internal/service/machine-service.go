@@ -58,7 +58,7 @@ type machineAllocationSpec struct {
 	PartitionID        string
 	SizeID             string
 	Image              *metal.Image
-	FilesystemLayoutID string
+	FilesystemLayoutID *string
 	SSHPubKeys         []string
 	UserData           string
 	Tags               []string
@@ -970,7 +970,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.SizeID = machineCandidate.SizeID
 
 	var fsl *metal.FilesystemLayout
-	if allocationSpec.FilesystemLayoutID == "" {
+	if allocationSpec.FilesystemLayoutID == nil {
 		fsls, err := ds.ListFilesystemLayouts()
 		if err != nil {
 			return nil, err
@@ -981,7 +981,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 			return nil, err
 		}
 	} else {
-		fsl, err = ds.FindFilesystemLayout(allocationSpec.FilesystemLayoutID)
+		fsl, err = ds.FindFilesystemLayout(*allocationSpec.FilesystemLayoutID)
 		if err != nil {
 			return nil, err
 		}
