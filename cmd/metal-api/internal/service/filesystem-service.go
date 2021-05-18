@@ -152,10 +152,7 @@ func (r filesystemResource) createFilesystemLayout(request *restful.Request, res
 			return
 		}
 	}
-	existing, err := r.ds.FindFilesystemLayout(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
+	existing, _ := r.ds.FindFilesystemLayout(requestPayload.ID)
 	if existing != nil {
 		if checkError(request, response, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusConflict, fmt.Errorf("filesystemlayout:%s already exists", existing.ID))) {
 			return
