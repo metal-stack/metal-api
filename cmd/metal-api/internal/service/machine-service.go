@@ -969,39 +969,16 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
 
-	var fsl *metal.FilesystemLayout
-	if allocationSpec.FilesystemLayoutID == nil {
-		fsls, err := ds.ListFilesystemLayouts()
-		if err != nil {
-			return nil, err
-		}
-
-		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		fsl, err = ds.FindFilesystemLayout(*allocationSpec.FilesystemLayoutID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = fsl.Matches(machineCandidate.Hardware)
-	if err != nil {
-		return nil, err
-	}
 	alloc := &metal.MachineAllocation{
-		Created:          time.Now(),
-		Name:             allocationSpec.Name,
-		Description:      allocationSpec.Description,
-		Hostname:         allocationSpec.Hostname,
-		Project:          projectID,
-		ImageID:          allocationSpec.Image.ID,
-		FilesystemLayout: fsl,
-		UserData:         allocationSpec.UserData,
-		SSHPubKeys:       allocationSpec.SSHPubKeys,
-		MachineNetworks:  []*metal.MachineNetwork{},
+		Created:         time.Now(),
+		Name:            allocationSpec.Name,
+		Description:     allocationSpec.Description,
+		Hostname:        allocationSpec.Hostname,
+		Project:         projectID,
+		ImageID:         allocationSpec.Image.ID,
+		UserData:        allocationSpec.UserData,
+		SSHPubKeys:      allocationSpec.SSHPubKeys,
+		MachineNetworks: []*metal.MachineNetwork{},
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
@@ -1018,6 +995,31 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 		return err
 	}
+
+	var fsl *metal.FilesystemLayout
+	if allocationSpec.FilesystemLayoutID == nil {
+		fsls, err := ds.ListFilesystemLayouts()
+		if err != nil {
+			return nil, rollbackOnError(err)
+		}
+
+		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
+		if err != nil {
+			return nil, rollbackOnError(err)
+		}
+	} else {
+		fsl, err = ds.FindFilesystemLayout(*allocationSpec.FilesystemLayoutID)
+		if err != nil {
+			return nil, rollbackOnError(err)
+		}
+	}
+
+	err = fsl.Matches(machineCandidate.Hardware)
+	if err != nil {
+		return nil, rollbackOnError(err)
+	}
+	alloc.FilesystemLayout = fsl
+
 	networks, err := gatherNetworks(ds, allocationSpec)
 	if err != nil {
 		return nil, rollbackOnError(err)

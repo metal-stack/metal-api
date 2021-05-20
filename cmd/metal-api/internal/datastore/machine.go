@@ -440,7 +440,7 @@ func (rs *RethinkStore) DeleteMachine(m *metal.Machine) error {
 }
 
 // UpdateMachine replaces a machine in the database if the 'changed' field of
-// the old value equals the 'changed' field of the recored in the database.
+// the old value equals the 'changed' field of the recorded in the database.
 func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *metal.Machine) error {
 	return rs.updateEntity(rs.machineTable(), newMachine, oldMachine)
 }
