@@ -26,6 +26,7 @@ protoc:
 
 .PHONY: protoc-docker
 protoc-docker:
+	docker pull metalstack/builder
 	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
 
 .PHONY: mini-lab-push
