@@ -476,14 +476,15 @@ func (r machineResource) getMachineConsolePassword(request *restful.Request, res
 		return
 	}
 
-	consolePassword := ""
-	if m.Allocation != nil && m.Allocation.ConsolePassword != "" {
-		consolePassword = m.Allocation.ConsolePassword
+	if m.Allocation == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine is not allocated, no consolepassword present")) {
+			return
+		}
 	}
 
 	resp := v1.MachineConsolePasswordResponse{
 		Common:          v1.Common{Identifiable: v1.Identifiable{ID: m.ID}, Describable: v1.Describable{Name: &m.Name, Description: &m.Description}},
-		ConsolePassword: consolePassword,
+		ConsolePassword: m.Allocation.ConsolePassword,
 	}
 
 	zapup.MustRootLogger().Sugar().Infow("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
