@@ -685,7 +685,10 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	userGetter := initAuth(lg.Sugar())
+	var userGetter security.UserGetter
+	if withauth {
+		userGetter = initAuth(lg.Sugar())
+	}
 	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client, userGetter)
 	if err != nil {
 		logger.Fatal(err)

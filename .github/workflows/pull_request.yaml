@@ -29,11 +29,6 @@ jobs:
       with:
         args: --build-tags integration -p bugs -p unused --timeout=3m
 
-    - name: Check if spec was generated
-      run: |
-        make spec
-        git diff --exit-code
-
     - name: Build Docker image
       run: |
         docker build -t ghcr.io/metal-stack/metal-api:pr-${GITHUB_HEAD_REF##*/} .
