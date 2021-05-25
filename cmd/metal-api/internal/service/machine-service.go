@@ -10,6 +10,7 @@ import (
 	"time"
 
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"github.com/metal-stack/security"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type machineResource struct {
 	actor      *asyncActor
 	grpcServer *grpc.Server
 	s3Client   *s3server.Client
+	userGetter security.UserGetter
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -100,7 +102,8 @@ func NewMachine(
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
 	grpcServer *grpc.Server,
-	s3Client *s3server.Client) (*restful.WebService, error) {
+	s3Client *s3server.Client,
+	userGetter security.UserGetter) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
@@ -111,6 +114,7 @@ func NewMachine(
 		mdc:        mdc,
 		grpcServer: grpcServer,
 		s3Client:   s3Client,
+		userGetter: userGetter,
 	}
 	var err error
 	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
@@ -461,6 +465,10 @@ func (r machineResource) getMachineConsolePassword(request *restful.Request, res
 			return
 		}
 	}
+	user, err := r.userGetter.User(request.Request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 
 	m, err := r.ds.FindMachineByID(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -477,9 +485,7 @@ func (r machineResource) getMachineConsolePassword(request *restful.Request, res
 		ConsolePassword: consolePassword,
 	}
 
-	// FIXME howto gather user info here
-	user := "unknown"
-	zapup.MustRootLogger().Sugar().Infow("consolepassword requested", "machine", m.ID, "user", user, "reason", requestPayload.Reason)
+	zapup.MustRootLogger().Sugar().Infow("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
