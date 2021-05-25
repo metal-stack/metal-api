@@ -5,11 +5,15 @@ MINI_LAB_KUBECONFIG := $(shell pwd)/../mini-lab/.kubeconfig
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: protoc spec all ;
+release:: protoc spec spec-diff all ;
 
 .PHONY: spec
 spec: all
 	bin/$(BINARY) dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
+
+.PHONY: spec-diff
+spec-diff: spec
+	git diff --exit-code spec
 
 .PHONY: redoc
 redoc:
