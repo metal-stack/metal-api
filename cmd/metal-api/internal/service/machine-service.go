@@ -147,7 +147,7 @@ func (r machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/consolepassword").
-		To(viewer(r.getMachineConsolePassword)).
+		To(editor(r.getMachineConsolePassword)).
 		Operation("getMachineConsolePassword").
 		Doc("get consolepassword for machine by id").
 		Reads(v1.MachineConsolePasswordRequest{}).
