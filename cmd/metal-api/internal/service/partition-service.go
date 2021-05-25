@@ -171,9 +171,9 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.MgmtServiceAddress != nil {
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
-	prefixLength := 22
+	prefixLength := uint8(22)
 	if requestPayload.PrivateNetworkPrefixLength != nil {
-		prefixLength = *requestPayload.PrivateNetworkPrefixLength
+		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength)
 		if prefixLength < 16 || prefixLength > 30 {
 			if checkError(request, response, utils.CurrentFuncName(), errors.New("private network prefix length is out of range")) {
 				return

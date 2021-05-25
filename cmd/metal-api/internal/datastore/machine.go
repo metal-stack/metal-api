@@ -457,7 +457,8 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
-		"waiting": true,
+		"waiting":      true,
+		"preallocated": false,
 	})
 
 	var candidates metal.Machines
@@ -500,5 +501,13 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		// nolint
 		idx = mathrand.Intn(len(available))
 	}
-	return &available[idx], nil
+
+	oldMachine := available[idx]
+	newMachine := oldMachine
+	newMachine.PreAllocated = true
+	err = rs.updateEntity(rs.machineTable(), &newMachine, &oldMachine)
+	if err != nil {
+		return nil, err
+	}
+	return &newMachine, nil
 }

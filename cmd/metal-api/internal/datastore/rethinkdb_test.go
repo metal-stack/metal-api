@@ -16,6 +16,11 @@ var rethinkStore1 = RethinkStore{
 	dbname:        "dbname",
 	dbuser:        "dbuser",
 	dbpass:        "password",
+
+	VRFPoolRangeMin: DefaultVRFPoolRangeMin,
+	VRFPoolRangeMax: DefaultVRFPoolRangeMax,
+	ASNPoolRangeMin: DefaultASNPoolRangeMin,
+	ASNPoolRangeMax: DefaultASNPoolRangeMax,
 }
 
 func TestNew(t *testing.T) {

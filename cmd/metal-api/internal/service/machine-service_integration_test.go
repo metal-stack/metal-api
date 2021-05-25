@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
@@ -15,24 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testPrivateSuperCidr = "192.168.0.0/20"
-
-func TestMachineAllocationIntegration(t *testing.T) {
+func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 	te := createTestEnvironment(t)
 	defer te.teardown()
 
-	// Empty DB with empty alloc request
-	machine := v1.MachineAllocateRequest{}
-
 	// Register a machine
 	mrr := v1.MachineRegisterRequest{
 		UUID:        "test-uuid",
 		PartitionID: "test-partition",
-		RackID:      "test-rack",
 		Hardware: v1.MachineHardwareExtended{
-			v1.MachineHardwareBase{
+			MachineHardwareBase: v1.MachineHardwareBase{
 				CPUCores: 8,
 				Memory:   1500,
 				Disks: []v1.MachineBlockDevice{
@@ -42,19 +35,34 @@ func TestMachineAllocationIntegration(t *testing.T) {
 					},
 				},
 			},
-			v1.MachineNicsExtended{
+			Nics: v1.MachineNicsExtended{
 				{
-					v1.MachineNic{
+					MachineNic: v1.MachineNic{
 						Name:       "eth0",
 						MacAddress: "aa:aa:aa:aa:aa:aa",
 					},
-					v1.MachineNicsExtended{
+					Neighbors: v1.MachineNicsExtended{
 						{
-							v1.MachineNic{
+							MachineNic: v1.MachineNic{
 								Name:       "swp1",
 								MacAddress: "bb:aa:aa:aa:aa:aa",
 							},
-							v1.MachineNicsExtended{},
+							Neighbors: v1.MachineNicsExtended{},
+						},
+					},
+				},
+				{
+					MachineNic: v1.MachineNic{
+						Name:       "eth1",
+						MacAddress: "aa:aa:aa:aa:aa:aa",
+					},
+					Neighbors: v1.MachineNicsExtended{
+						{
+							MachineNic: v1.MachineNic{
+								Name:       "swp1",
+								MacAddress: "aa:bb:aa:aa:aa:aa",
+							},
+							Neighbors: v1.MachineNicsExtended{},
 						},
 					},
 				},
@@ -67,19 +75,24 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	require.Equal(http.StatusCreated, status)
 	require.NotNil(registeredMachine)
 	assert.Equal(mrr.PartitionID, registeredMachine.Partition.ID)
-	assert.Equal(mrr.RackID, registeredMachine.RackID)
-	assert.Equal("test-size", registeredMachine.Size.ID)
-	assert.Len(mrr.Hardware.Nics, 1)
+	assert.Equal(registeredMachine.RackID, "test-rack")
+	assert.Len(mrr.Hardware.Nics, 2)
 	assert.Equal(mrr.Hardware.Nics[0].MachineNic.MacAddress, registeredMachine.Hardware.Nics[0].MacAddress)
 
-	go te.machineWait("test-uuid")
+	err := te.machineWait("test-uuid")
+	require.Nil(err)
 
 	// DB contains at least a machine which is allocatable
-	machine = v1.MachineAllocateRequest{
-		ImageID:     "test-image",
+	machine := v1.MachineAllocateRequest{
+		ImageID:     "test-image-1.0.0",
 		PartitionID: "test-partition",
-		ProjectID:   te.project.ID,
+		ProjectID:   "test-project-1",
 		SizeID:      "test-size",
+		Networks: v1.MachineAllocationNetworks{
+			{
+				NetworkID: te.privateNetwork.ID,
+			},
+		},
 	}
 
 	var allocatedMachine v1.MachineResponse
@@ -91,13 +104,13 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	assert.Equal(machine.ImageID, allocatedMachine.Allocation.Image.ID)
 	assert.Equal(machine.ProjectID, allocatedMachine.Allocation.Project)
 	assert.Len(allocatedMachine.Allocation.MachineNetworks, 1)
-	assert.True(allocatedMachine.Allocation.MachineNetworks[0].Private)
+	assert.Equal(allocatedMachine.Allocation.MachineNetworks[0].NetworkType, metal.PrivatePrimaryUnshared.String())
 	assert.NotEmpty(allocatedMachine.Allocation.MachineNetworks[0].Vrf)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.IntegerPoolRangeMin)
-	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.IntegerPoolRangeMax)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, metal.ASNBase)
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMin)
+	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMax)
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(ASNBase))
 	assert.Len(allocatedMachine.Allocation.MachineNetworks[0].IPs, 1)
-	_, ipnet, _ := net.ParseCIDR(testPrivateSuperCidr)
+	_, ipnet, _ := net.ParseCIDR(te.privateNetwork.Prefixes[0])
 	ip := net.ParseIP(allocatedMachine.Allocation.MachineNetworks[0].IPs[0])
 	assert.True(ipnet.Contains(ip), "%s must be within %s", ip, ipnet)
 
@@ -105,13 +118,14 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	status = te.machineFree(t, "test-uuid", &v1.MachineResponse{})
 	require.Equal(http.StatusOK, status)
 
-	go te.machineWait("test-uuid")
+	err = te.machineWait("test-uuid")
+	require.Nil(err)
 
 	// DB contains at least a machine which is allocatable
 	machine = v1.MachineAllocateRequest{
-		ImageID:     "test-image",
+		ImageID:     "test-image-1.0.0",
 		PartitionID: "test-partition",
-		ProjectID:   te.project.ID,
+		ProjectID:   "test-project-1",
 		SizeID:      "test-size",
 		Networks: v1.MachineAllocationNetworks{
 			{
@@ -129,11 +143,11 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	assert.Equal(machine.ImageID, allocatedMachine.Allocation.Image.ID)
 	assert.Equal(machine.ProjectID, allocatedMachine.Allocation.Project)
 	assert.Len(allocatedMachine.Allocation.MachineNetworks, 1)
-	assert.True(allocatedMachine.Allocation.MachineNetworks[0].Private)
+	assert.Equal(allocatedMachine.Allocation.MachineNetworks[0].NetworkType, metal.PrivatePrimaryUnshared.String())
 	assert.NotEmpty(allocatedMachine.Allocation.MachineNetworks[0].Vrf)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.IntegerPoolRangeMin)
-	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, datastore.IntegerPoolRangeMax)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, metal.ASNBase)
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMin)
+	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMax)
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(ASNBase))
 	assert.Len(allocatedMachine.Allocation.MachineNetworks[0].IPs, 1)
 	_, ipnet, _ = net.ParseCIDR(te.privateNetwork.Prefixes[0])
 	ip = net.ParseIP(allocatedMachine.Allocation.MachineNetworks[0].IPs[0])

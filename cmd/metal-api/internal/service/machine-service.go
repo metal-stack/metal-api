@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
@@ -999,7 +1000,20 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 	}
 
-	machineCandidate, err := findMachineCandidate(ds, allocationSpec)
+	var machineCandidate *metal.Machine
+	err = retry.Do(
+		func() error {
+			var err2 error
+			machineCandidate, err2 = findMachineCandidate(ds, allocationSpec)
+			return err2
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1007,11 +1021,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.UUID = machineCandidate.ID
 	allocationSpec.PartitionID = machineCandidate.PartitionID
 	allocationSpec.SizeID = machineCandidate.SizeID
-
-	networks, err := gatherNetworks(ds, allocationSpec)
-	if err != nil {
-		return nil, err
-	}
 
 	alloc := &metal.MachineAllocation{
 		Created:         time.Now(),
@@ -1039,7 +1048,10 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 		return err
 	}
-
+	networks, err := gatherNetworks(ds, allocationSpec)
+	if err != nil {
+		return nil, rollbackOnError(err)
+	}
 	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(err)
@@ -1057,6 +1069,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	old := *machine
 	machine.Allocation = alloc
 	machine.Tags = makeMachineTags(machine, allocationSpec.Tags)
+	machine.PreAllocated = false
 
 	err = ds.UpdateMachine(&old, machine)
 	if err != nil {
@@ -1399,6 +1412,8 @@ func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocati
 		n.ips = append(n.ips, *ip)
 	}
 
+	// from the makeNetworks call, a lot of ips might be set in this network
+	// add a machine tag to all of them
 	ipAddresses := []string{}
 	for i := range n.ips {
 		ip := n.ips[i]

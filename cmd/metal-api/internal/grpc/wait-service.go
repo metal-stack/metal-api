@@ -26,7 +26,7 @@ const (
 type WaitService struct {
 	bus.Publisher
 	consumer         *bus.Consumer
-	logger           *zap.SugaredLogger
+	Logger           *zap.SugaredLogger
 	ds               Datasource
 	queueLock        *sync.RWMutex
 	queue            map[string]chan bool
@@ -49,7 +49,7 @@ func NewWaitService(cfg *ServerConfig) (*WaitService, error) {
 		Publisher:        cfg.Publisher,
 		consumer:         c,
 		ds:               cfg.Datasource,
-		logger:           cfg.Logger,
+		Logger:           cfg.Logger,
 		queueLock:        new(sync.RWMutex),
 		queue:            make(map[string]chan bool),
 		responseInterval: cfg.ResponseInterval,
@@ -67,9 +67,9 @@ func NewWaitService(cfg *ServerConfig) (*WaitService, error) {
 func (s *WaitService) NotifyAllocated(machineID string) error {
 	err := s.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machineID})
 	if err != nil {
-		s.logger.Errorw("failed to publish machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID, "error", err)
+		s.Logger.Errorw("failed to publish machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID, "error", err)
 	} else {
-		s.logger.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID)
+		s.Logger.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID)
 	}
 	return err
 }
@@ -83,7 +83,7 @@ func (s *WaitService) initWaitEndpoint() error {
 	if err == nil {
 		r = b.Uint64()
 	} else {
-		s.logger.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
+		s.Logger.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
 		mathrand.Seed(time.Now().UnixNano())
 		// nolint
 		r = mathrand.Uint64()
@@ -93,20 +93,20 @@ func (s *WaitService) initWaitEndpoint() error {
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {
 			evt := message.(*metal.AllocationEvent)
-			s.logger.Debugw("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
+			s.Logger.Debugw("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
 			s.handleAllocation(evt.MachineID)
 			return nil
 		}, 5, bus.Timeout(receiverHandlerTimeout, s.timeoutHandler), bus.TTL(allocationTopicTTL))
 }
 
 func (s *WaitService) timeoutHandler(err bus.TimeoutError) error {
-	s.logger.Error("Timeout processing event", "event", err.Event())
+	s.Logger.Error("Timeout processing event", "event", err.Event())
 	return nil
 }
 
 func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	machineID := req.MachineID
-	s.logger.Infow("wait for allocation called by", "machineID", machineID)
+	s.Logger.Infow("wait for allocation called by", "machineID", machineID)
 
 	m, err := s.ds.FindMachineByID(machineID)
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		}
 		err := s.updateWaitingFlag(machineID, false)
 		if err != nil {
-			s.logger.Errorw("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
+			s.Logger.Errorw("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
 		}
 	}()
 

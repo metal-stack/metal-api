@@ -67,6 +67,7 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 
 	m.Allocation = nil
 	m.Tags = nil
+	m.PreAllocated = false
 
 	err = a.UpdateMachine(&old, m)
 	if err != nil {

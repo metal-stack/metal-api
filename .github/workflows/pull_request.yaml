@@ -27,8 +27,7 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v2
       with:
-        version: v1.32.2
-        args: -p bugs -p unused --timeout=3m
+        args: --build-tags integration -p bugs -p unused --timeout=3m
 
     - name: Build Docker image
       run: |
@@ -39,3 +38,12 @@ jobs:
         # pull request images are prefixed with 'pr' to prevent them from overriding released images
         docker push ghcr.io/metal-stack/metal-api:pr-${GITHUB_HEAD_REF##*/}
       if: steps.fork.outputs.is_fork_pr == 'false'
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Run integration tests
+      run: |
+        go test -tags=integration -timeout 600s -p 1 ./...
