@@ -178,7 +178,6 @@
       },
       "required": [
         "device",
-        "partitions",
         "wipeonreinstall"
       ]
     },
@@ -244,10 +243,8 @@
         }
       },
       "required": [
-        "createoptions",
         "device",
-        "format",
-        "mountoptions"
+        "format"
       ]
     },
     "v1.FilesystemLayoutConstraints": {
@@ -268,8 +265,7 @@
         }
       },
       "required": [
-        "images",
-        "sizes"
+        "images"
       ]
     },
     "v1.FilesystemLayoutCreateRequest": {
@@ -329,12 +325,7 @@
       },
       "required": [
         "constraints",
-        "disks",
-        "filesystems",
-        "id",
-        "logicalvolumes",
-        "raid",
-        "volumegroups"
+        "id"
       ]
     },
     "v1.FilesystemLayoutMatchRequest": {
@@ -410,12 +401,7 @@
       },
       "required": [
         "constraints",
-        "disks",
-        "filesystems",
-        "id",
-        "logicalvolumes",
-        "raid",
-        "volumegroups"
+        "id"
       ]
     },
     "v1.FilesystemLayoutTryRequest": {
@@ -491,12 +477,7 @@
       },
       "required": [
         "constraints",
-        "disks",
-        "filesystems",
-        "id",
-        "logicalvolumes",
-        "raid",
-        "volumegroups"
+        "id"
       ]
     },
     "v1.FirewallCreateRequest": {
@@ -3008,8 +2989,6 @@
       },
       "required": [
         "arrayname",
-        "createoptions",
-        "devices",
         "level",
         "spares"
       ]
@@ -3516,9 +3495,7 @@
         }
       },
       "required": [
-        "devices",
-        "name",
-        "tags"
+        "name"
       ]
     }
   },

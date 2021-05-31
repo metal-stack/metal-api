@@ -4,11 +4,11 @@ import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 type (
 	FilesystemLayoutBase struct {
-		Filesystems    []Filesystem                `json:"filesystems" description:"list of filesystems to create"`
-		Disks          []Disk                      `json:"disks" description:"list of disks that belong to this layout"`
-		Raid           []Raid                      `json:"raid" description:"list of raid arrays to create"`
-		VolumeGroups   []VolumeGroup               `json:"volumegroups" description:"list of volumegroups to create"`
-		LogicalVolumes []LogicalVolume             `json:"logicalvolumes" description:"list of logicalvolumes to create"`
+		Filesystems    []Filesystem                `json:"filesystems" description:"list of filesystems to create" optional:"true"`
+		Disks          []Disk                      `json:"disks" description:"list of disks that belong to this layout" optional:"true"`
+		Raid           []Raid                      `json:"raid" description:"list of raid arrays to create" optional:"true"`
+		VolumeGroups   []VolumeGroup               `json:"volumegroups" description:"list of volumegroups to create" optional:"true"`
+		LogicalVolumes []LogicalVolume             `json:"logicalvolumes" description:"list of logicalvolumes to create" optional:"true"`
 		Constraints    FilesystemLayoutConstraints `json:"constraints" description:"constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"`
 	}
 	FilesystemLayoutResponse struct {
@@ -37,7 +37,7 @@ type (
 	}
 
 	FilesystemLayoutConstraints struct {
-		Sizes  []string          `json:"sizes" description:"list of sizes this layout applies to"`
+		Sizes  []string          `json:"sizes" description:"list of sizes this layout applies to" optional:"true"`
 		Images map[string]string `json:"images" description:"list of images this layout applies to"`
 	}
 	Filesystem struct {
@@ -45,19 +45,19 @@ type (
 		Device        string   `json:"device" description:"the underlaying device where this filesystem should be created"`
 		Format        string   `json:"format" description:"the filesystem format"`
 		Label         *string  `json:"label" description:"optional label for this this filesystem" optional:"true"`
-		MountOptions  []string `json:"mountoptions" description:"the options to use to mount this filesystem"`
-		CreateOptions []string `json:"createoptions" description:"the options to use to create (mkfs) this filesystem"`
+		MountOptions  []string `json:"mountoptions" description:"the options to use to mount this filesystem" optional:"true"`
+		CreateOptions []string `json:"createoptions" description:"the options to use to create (mkfs) this filesystem" optional:"true"`
 	}
 	Disk struct {
 		Device          string          `json:"device" description:"the device to create the partitions"`
-		Partitions      []DiskPartition `json:"partitions" description:"list of partitions to create on this disk"`
+		Partitions      []DiskPartition `json:"partitions" description:"list of partitions to create on this disk" optional:"true"`
 		WipeOnReinstall bool            `json:"wipeonreinstall" description:"if set to true, this disk will be wiped before reinstallation"`
 	}
 	Raid struct {
 		ArrayName     string   `json:"arrayname" description:"the name of the resulting array device"`
-		Devices       []string `json:"devices" description:"list of devices to form the raid array from"`
+		Devices       []string `json:"devices" description:"list of devices to form the raid array from" optional:"true"`
 		Level         string   `json:"level" description:"raid level to create, should be 0 or 1"`
-		CreateOptions []string `json:"createoptions" description:"the options to use to create the raid array"`
+		CreateOptions []string `json:"createoptions" description:"the options to use to create the raid array" optional:"true"`
 		Spares        int      `json:"spares" description:"number of spares for the raid array"`
 	}
 	DiskPartition struct {
@@ -68,8 +68,8 @@ type (
 	}
 	VolumeGroup struct {
 		Name    string   `json:"name" description:"the name of the resulting volume group"`
-		Devices []string `json:"devices" description:"list of devices to form the volume group from"`
-		Tags    []string `json:"tags" description:"list of tags to add to the volume group"`
+		Devices []string `json:"devices" description:"list of devices to form the volume group from" optional:"true"`
+		Tags    []string `json:"tags" description:"list of tags to add to the volume group" optional:"true"`
 	}
 
 	LogicalVolume struct {
