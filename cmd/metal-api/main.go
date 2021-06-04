@@ -200,6 +200,7 @@ func init() {
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
 	rootCmd.Flags().IntP("grpc-port", "", 50051, "the port to serve gRPC on")
 	rootCmd.Flags().Bool("init-data-store", true, "initializes the data store on start (can be switched off when running the init command before starting instances)")
+	rootCmd.Flags().UintP("password-reason-minlength", "", 0, "if machine console password is requested this defines if and how long the given reason must be")
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
@@ -689,7 +690,9 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if withauth {
 		userGetter = initAuth(lg.Sugar())
 	}
-	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client, userGetter)
+	reasonMinLength := viper.GetUint("password-reason-minlength")
+
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client, userGetter, reasonMinLength)
 	if err != nil {
 		logger.Fatal(err)
 	}

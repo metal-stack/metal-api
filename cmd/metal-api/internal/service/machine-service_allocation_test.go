@@ -319,7 +319,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 	createTestdata(machineCount, rs, ipamer, t)
 
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, nil)
+	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, nil, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	usergetter := security.NewCreds(security.WithHMAC(hma))

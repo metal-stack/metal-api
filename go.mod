@@ -12,7 +12,6 @@ require (
 	github.com/go-logr/zapr v0.4.0
 	github.com/go-openapi/spec v0.19.15
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect

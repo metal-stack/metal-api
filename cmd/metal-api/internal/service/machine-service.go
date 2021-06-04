@@ -42,12 +42,13 @@ import (
 type machineResource struct {
 	webResource
 	bus.Publisher
-	ipamer     ipam.IPAMer
-	mdc        mdm.Client
-	actor      *asyncActor
-	grpcServer *grpc.Server
-	s3Client   *s3server.Client
-	userGetter security.UserGetter
+	ipamer          ipam.IPAMer
+	mdc             mdm.Client
+	actor           *asyncActor
+	grpcServer      *grpc.Server
+	s3Client        *s3server.Client
+	userGetter      security.UserGetter
+	reasonMinLength uint
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -104,18 +105,20 @@ func NewMachine(
 	mdc mdm.Client,
 	grpcServer *grpc.Server,
 	s3Client *s3server.Client,
-	userGetter security.UserGetter) (*restful.WebService, error) {
+	userGetter security.UserGetter,
+	reasonMinLength uint) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
 		},
-		Publisher:  pub,
-		ipamer:     ipamer,
-		mdc:        mdc,
-		grpcServer: grpcServer,
-		s3Client:   s3Client,
-		userGetter: userGetter,
+		Publisher:       pub,
+		ipamer:          ipamer,
+		mdc:             mdc,
+		grpcServer:      grpcServer,
+		s3Client:        s3Client,
+		userGetter:      userGetter,
+		reasonMinLength: reasonMinLength,
 	}
 	var err error
 	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
@@ -461,8 +464,8 @@ func (r machineResource) getMachineConsolePassword(request *restful.Request, res
 		return
 	}
 
-	if len(requestPayload.Reason) < 5 {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("reason must be at least 5 characters long")) {
+	if uint(len(requestPayload.Reason)) < r.reasonMinLength {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("reason must be at least %d characters long", r.reasonMinLength)) {
 			return
 		}
 	}

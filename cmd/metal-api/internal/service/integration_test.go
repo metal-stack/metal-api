@@ -95,7 +95,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	}()
 	grpcServer.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
 
-	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, nil)
+	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, nil, 0)
 	require.NoError(err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
