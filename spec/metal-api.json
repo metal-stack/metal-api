@@ -1330,10 +1330,6 @@
           "$ref": "#/definitions/v1.BootInfo",
           "description": "information required for booting the machine from HD"
         },
-        "console_password": {
-          "description": "the console password which was generated while provisioning",
-          "type": "string"
-        },
         "created": {
           "description": "the time when the machine was created",
           "format": "date-time",
@@ -1455,6 +1451,47 @@
       "required": [
         "name",
         "size"
+      ]
+    },
+    "v1.MachineConsolePasswordRequest": {
+      "properties": {
+        "id": {
+          "description": "id of the machine to get the consolepassword for",
+          "type": "string"
+        },
+        "reason": {
+          "description": "reason why the consolepassword is requested, typically a incident number with short description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "reason"
+      ]
+    },
+    "v1.MachineConsolePasswordResponse": {
+      "properties": {
+        "console_password": {
+          "description": "the console password which was generated while provisioning",
+          "type": "string"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "console_password",
+        "id"
       ]
     },
     "v1.MachineFinalizeAllocationRequest": {
@@ -4715,6 +4752,45 @@
           }
         },
         "summary": "allocate a machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/consolepassword": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getMachineConsolePassword",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineConsolePasswordRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineConsolePasswordResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get consolepassword for machine by id",
         "tags": [
           "machine"
         ]

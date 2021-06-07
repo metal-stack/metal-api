@@ -35,7 +35,6 @@ type MachineAllocation struct {
 	Hostname         string                    `json:"hostname" description:"the hostname which will be used when creating the machine"`
 	SSHPubKeys       []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
 	UserData         string                    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
-	ConsolePassword  *string                   `json:"console_password" description:"the console password which was generated while provisioning" optional:"true"`
 	Succeeded        bool                      `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
@@ -206,6 +205,15 @@ type MachineResponse struct {
 	Common
 	MachineBase
 	Timestamps
+}
+
+type MachineConsolePasswordRequest struct {
+	ID     string `json:"id" description:"id of the machine to get the consolepassword for"`
+	Reason string `json:"reason" description:"reason why the consolepassword is requested, typically a incident number with short description"`
+}
+type MachineConsolePasswordResponse struct {
+	Common
+	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
 }
 
 type MachineIPMIResponse struct {
@@ -412,11 +420,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			networks = append(networks, network)
 		}
 
-		var consolePassword *string
-		if m.Allocation.ConsolePassword != "" {
-			consolePassword = &m.Allocation.ConsolePassword
-		}
-
 		allocation = &MachineAllocation{
 			Created:          m.Allocation.Created,
 			Name:             m.Allocation.Name,
@@ -426,7 +429,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Hostname:         m.Allocation.Hostname,
 			SSHPubKeys:       m.Allocation.SSHPubKeys,
 			UserData:         m.Allocation.UserData,
-			ConsolePassword:  consolePassword,
 			MachineNetworks:  networks,
 			Succeeded:        m.Allocation.Succeeded,
 			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),

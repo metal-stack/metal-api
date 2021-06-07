@@ -11,6 +11,7 @@ import (
 
 	"github.com/avast/retry-go"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"github.com/metal-stack/security"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/pkg/errors"
@@ -41,11 +42,13 @@ import (
 type machineResource struct {
 	webResource
 	bus.Publisher
-	ipamer     ipam.IPAMer
-	mdc        mdm.Client
-	actor      *asyncActor
-	grpcServer *grpc.Server
-	s3Client   *s3server.Client
+	ipamer          ipam.IPAMer
+	mdc             mdm.Client
+	actor           *asyncActor
+	grpcServer      *grpc.Server
+	s3Client        *s3server.Client
+	userGetter      security.UserGetter
+	reasonMinLength uint
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -102,17 +105,21 @@ func NewMachine(
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
 	grpcServer *grpc.Server,
-	s3Client *s3server.Client) (*restful.WebService, error) {
+	s3Client *s3server.Client,
+	userGetter security.UserGetter,
+	reasonMinLength uint) (*restful.WebService, error) {
 
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
 		},
-		Publisher:  pub,
-		ipamer:     ipamer,
-		mdc:        mdc,
-		grpcServer: grpcServer,
-		s3Client:   s3Client,
+		Publisher:       pub,
+		ipamer:          ipamer,
+		mdc:             mdc,
+		grpcServer:      grpcServer,
+		s3Client:        s3Client,
+		userGetter:      userGetter,
+		reasonMinLength: reasonMinLength,
 	}
 	var err error
 	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
@@ -141,6 +148,16 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/consolepassword").
+		To(editor(r.getMachineConsolePassword)).
+		Operation("getMachineConsolePassword").
+		Doc("get consolepassword for machine by id").
+		Reads(v1.MachineConsolePasswordRequest{}).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.MachineConsolePasswordResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineConsolePasswordResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
@@ -434,6 +451,48 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 		return
 	}
 	resp := makeMachineResponse(m, r.ds, utils.Logger(request).Sugar())
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r machineResource) getMachineConsolePassword(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineConsolePasswordRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if uint(len(requestPayload.Reason)) < r.reasonMinLength {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("reason must be at least %d characters long", r.reasonMinLength)) {
+			return
+		}
+	}
+	user, err := r.userGetter.User(request.Request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	m, err := r.ds.FindMachineByID(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if m.Allocation == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine is not allocated, no consolepassword present")) {
+			return
+		}
+	}
+
+	resp := v1.MachineConsolePasswordResponse{
+		Common:          v1.Common{Identifiable: v1.Identifiable{ID: m.ID}, Describable: v1.Describable{Name: &m.Name, Description: &m.Description}},
+		ConsolePassword: m.Allocation.ConsolePassword,
+	}
+
+	zapup.MustRootLogger().Sugar().Infow("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
