@@ -5,11 +5,15 @@ MINI_LAB_KUBECONFIG := $(shell pwd)/../mini-lab/.kubeconfig
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: protoc spec all ;
+release:: protoc spec check-diff all ;
 
 .PHONY: spec
 spec: all
 	bin/$(BINARY) dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
+
+.PHONY: check-diff
+check-diff: spec
+	git diff --exit-code spec pkg
 
 .PHONY: redoc
 redoc:
@@ -22,6 +26,7 @@ protoc:
 
 .PHONY: protoc-docker
 protoc-docker:
+	docker pull metalstack/builder
 	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
 
 .PHONY: mini-lab-push

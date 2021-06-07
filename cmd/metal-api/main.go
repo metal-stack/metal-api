@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	v1 "github.com/metal-stack/masterdata-api/api/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -14,6 +11,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/go-logr/zapr"
 
@@ -199,6 +200,7 @@ func init() {
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
 	rootCmd.Flags().IntP("grpc-port", "", 50051, "the port to serve gRPC on")
 	rootCmd.Flags().Bool("init-data-store", true, "initializes the data store on start (can be switched off when running the init command before starting instances)")
+	rootCmd.Flags().UintP("password-reason-minlength", "", 0, "if machine console password is requested this defines if and how long the given reason must be")
 
 	rootCmd.Flags().StringP("base-path", "", "/", "the base path of the api server")
 
@@ -684,7 +686,13 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client)
+	var userGetter security.UserGetter
+	if withauth {
+		userGetter = initAuth(lg.Sugar())
+	}
+	reasonMinLength := viper.GetUint("password-reason-minlength")
+
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client, userGetter, reasonMinLength)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -710,7 +718,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
 	if withauth {
-		restful.DefaultContainer.Filter(rest.UserAuth(initAuth(lg.Sugar())))
+		restful.DefaultContainer.Filter(rest.UserAuth(userGetter))
 		providerTenant := viper.GetString("provider-tenant")
 		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
 		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
