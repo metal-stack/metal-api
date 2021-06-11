@@ -25,18 +25,19 @@ type MachineBase struct {
 }
 
 type MachineAllocation struct {
-	Created         time.Time        `json:"created" description:"the time when the machine was created"`
-	Name            string           `json:"name" description:"the name of the machine"`
-	Description     string           `json:"description,omitempty" description:"a description for this machine" optional:"true"`
-	Project         string           `json:"project" description:"the project id that this machine is assigned to" `
-	Image           *ImageResponse   `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
-	MachineNetworks []MachineNetwork `json:"networks" description:"the networks of this machine"`
-	Hostname        string           `json:"hostname" description:"the hostname which will be used when creating the machine"`
-	SSHPubKeys      []string         `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-	UserData        string           `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
-	Succeeded       bool             `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
-	Reinstall       bool             `json:"reinstall" description:"indicates whether to reinstall the machine"`
-	BootInfo        *BootInfo        `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
+	Created          time.Time                 `json:"created" description:"the time when the machine was created"`
+	Name             string                    `json:"name" description:"the name of the machine"`
+	Description      string                    `json:"description,omitempty" description:"a description for this machine" optional:"true"`
+	Project          string                    `json:"project" description:"the project id that this machine is assigned to" `
+	Image            *ImageResponse            `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
+	FilesystemLayout *FilesystemLayoutResponse `json:"filesystemlayout" description:"filesystemlayout to create on this machine" optional:"true"`
+	MachineNetworks  []MachineNetwork          `json:"networks" description:"the networks of this machine"`
+	Hostname         string                    `json:"hostname" description:"the hostname which will be used when creating the machine"`
+	SSHPubKeys       []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	UserData         string                    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
+	Succeeded        bool                      `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
+	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
+	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
 }
 
 type BootInfo struct {
@@ -96,10 +97,8 @@ type ChassisIdentifyLEDState struct {
 }
 
 type MachineBlockDevice struct {
-	Name       string                `json:"name" description:"the name of this block device"`
-	Size       uint64                `json:"size" description:"the size of this block device"`
-	Partitions MachineDiskPartitions `json:"partitions" description:"the partitions of this disk" optional:"true"`
-	Primary    bool                  `json:"primary" description:"whether this disk has the OS installed"`
+	Name string `json:"name" description:"the name of this block device"`
+	Size uint64 `json:"size" description:"the size of this block device"`
 }
 
 type MachineRecentProvisioningEvents struct {
@@ -169,16 +168,17 @@ type MachineRegisterRequest struct {
 type MachineAllocateRequest struct {
 	UUID *string `json:"uuid" description:"if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition" optional:"true"`
 	Describable
-	Hostname    *string                   `json:"hostname" description:"the hostname for the allocated machine (defaults to metal)" optional:"true"`
-	ProjectID   string                    `json:"projectid" description:"the project id to assign this machine to"`
-	PartitionID string                    `json:"partitionid" description:"the partition id to assign this machine to"`
-	SizeID      string                    `json:"sizeid" description:"the size id to assign this machine to"`
-	ImageID     string                    `json:"imageid" description:"the image id to assign this machine to"`
-	SSHPubKeys  []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-	UserData    *string                   `json:"user_data" description:"cloud-init.io compatible userdata must be base64 encoded" optional:"true"`
-	Tags        []string                  `json:"tags" description:"tags for this machine" optional:"true"`
-	Networks    MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
-	IPs         []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
+	Hostname           *string                   `json:"hostname" description:"the hostname for the allocated machine (defaults to metal)" optional:"true"`
+	ProjectID          string                    `json:"projectid" description:"the project id to assign this machine to"`
+	PartitionID        string                    `json:"partitionid" description:"the partition id to assign this machine to"`
+	SizeID             string                    `json:"sizeid" description:"the size id to assign this machine to"`
+	ImageID            string                    `json:"imageid" description:"the image id to assign this machine to"`
+	FilesystemLayoutID *string                   `json:"filesystemlayoutid" description:"the filesystemlayout id to assing to this machine" optional:"true"`
+	SSHPubKeys         []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	UserData           *string                   `json:"user_data" description:"cloud-init.io compatible userdata must be base64 encoded" optional:"true"`
+	Tags               []string                  `json:"tags" description:"tags for this machine" optional:"true"`
+	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
+	IPs                []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
 }
 
 type MachineAllocationNetworks []MachineAllocationNetwork
@@ -187,22 +187,6 @@ type MachineAllocationNetwork struct {
 	NetworkID     string `json:"networkid" description:"the id of the network that this machine will be placed in"`
 	AutoAcquireIP *bool  `json:"autoacquire" description:"will automatically acquire an ip in this network if set to true, default is true"`
 }
-
-type MachineDiskPartitions []MachineDiskPartition
-
-type MachineDiskPartition struct {
-	Label        string            `json:"label" description:"the partition label"`
-	Device       string            `json:"device" description:"the partition device name, e.g. sda1"`
-	Number       uint              `json:"number" description:"the partition number"`
-	MountPoint   string            `json:"mountpoint" description:"the partition mount point"`
-	MountOptions []string          `json:"mountoptions" description:"the partition mount options"`
-	Size         int64             `json:"size" description:"the partition size"`
-	Filesystem   string            `json:"filesystem" description:"the partition filesystem"`
-	GPTType      string            `json:"gpttyoe" description:"the partition GPT type"`
-	GPTGuid      string            `json:"gptguid" description:"the partition GPT guid"`
-	Properties   map[string]string `json:"properties" description:"the partition properties"`
-}
-
 type MachineFinalizeAllocationRequest struct {
 	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
 	PrimaryDisk     string `json:"primarydisk" description:"the device name of the primary disk"`
@@ -286,23 +270,8 @@ func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
 	var disks []metal.BlockDevice
 	for _, d := range r.Disks {
 		disk := metal.BlockDevice{
-			Name:    d.Name,
-			Size:    d.Size,
-			Primary: d.Primary,
-		}
-		for _, p := range d.Partitions {
-			disk.Partitions = append(disk.Partitions, &metal.DiskPartition{
-				Label:        p.Label,
-				Device:       p.Device,
-				Number:       p.Number,
-				MountPoint:   p.MountPoint,
-				MountOptions: p.MountOptions,
-				Size:         p.Size,
-				Filesystem:   p.Filesystem,
-				GPTType:      p.GPTType,
-				GPTGuid:      p.GPTGuid,
-				Properties:   p.Properties,
-			})
+			Name: d.Name,
+			Size: d.Size,
 		}
 		disks = append(disks, disk)
 	}
@@ -452,16 +421,17 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 
 		allocation = &MachineAllocation{
-			Created:         m.Allocation.Created,
-			Name:            m.Allocation.Name,
-			Description:     m.Allocation.Description,
-			Image:           NewImageResponse(i),
-			Project:         m.Allocation.Project,
-			Hostname:        m.Allocation.Hostname,
-			SSHPubKeys:      m.Allocation.SSHPubKeys,
-			UserData:        m.Allocation.UserData,
-			MachineNetworks: networks,
-			Succeeded:       m.Allocation.Succeeded,
+			Created:          m.Allocation.Created,
+			Name:             m.Allocation.Name,
+			Description:      m.Allocation.Description,
+			Image:            NewImageResponse(i),
+			Project:          m.Allocation.Project,
+			Hostname:         m.Allocation.Hostname,
+			SSHPubKeys:       m.Allocation.SSHPubKeys,
+			UserData:         m.Allocation.UserData,
+			MachineNetworks:  networks,
+			Succeeded:        m.Allocation.Succeeded,
+			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall

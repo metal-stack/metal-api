@@ -53,21 +53,22 @@ type machineResource struct {
 
 // machineAllocationSpec is a specification for a machine allocation
 type machineAllocationSpec struct {
-	UUID        string
-	Name        string
-	Description string
-	Hostname    string
-	ProjectID   string
-	PartitionID string
-	SizeID      string
-	Image       *metal.Image
-	SSHPubKeys  []string
-	UserData    string
-	Tags        []string
-	Networks    v1.MachineAllocationNetworks
-	IPs         []string
-	HA          bool
-	IsFirewall  bool
+	UUID               string
+	Name               string
+	Description        string
+	Hostname           string
+	ProjectID          string
+	PartitionID        string
+	SizeID             string
+	Image              *metal.Image
+	FilesystemLayoutID *string
+	SSHPubKeys         []string
+	UserData           string
+	Tags               []string
+	Networks           v1.MachineAllocationNetworks
+	IPs                []string
+	HA                 bool
+	IsFirewall         bool
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -938,21 +939,22 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 
 	spec := machineAllocationSpec{
-		UUID:        uuid,
-		Name:        name,
-		Description: description,
-		Hostname:    hostname,
-		ProjectID:   requestPayload.ProjectID,
-		PartitionID: requestPayload.PartitionID,
-		SizeID:      requestPayload.SizeID,
-		Image:       image,
-		SSHPubKeys:  requestPayload.SSHPubKeys,
-		UserData:    userdata,
-		Tags:        requestPayload.Tags,
-		Networks:    requestPayload.Networks,
-		IPs:         requestPayload.IPs,
-		HA:          false,
-		IsFirewall:  false,
+		UUID:               uuid,
+		Name:               name,
+		Description:        description,
+		Hostname:           hostname,
+		ProjectID:          requestPayload.ProjectID,
+		PartitionID:        requestPayload.PartitionID,
+		SizeID:             requestPayload.SizeID,
+		Image:              image,
+		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
+		SSHPubKeys:         requestPayload.SSHPubKeys,
+		UserData:           userdata,
+		Tags:               requestPayload.Tags,
+		Networks:           requestPayload.Networks,
+		IPs:                requestPayload.IPs,
+		HA:                 false,
+		IsFirewall:         false,
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
@@ -1052,6 +1054,31 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 		return err
 	}
+
+	var fsl *metal.FilesystemLayout
+	if allocationSpec.FilesystemLayoutID == nil {
+		fsls, err := ds.ListFilesystemLayouts()
+		if err != nil {
+			return nil, rollbackOnError(err)
+		}
+
+		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
+		if err != nil {
+			return nil, rollbackOnError(err)
+		}
+	} else {
+		fsl, err = ds.FindFilesystemLayout(*allocationSpec.FilesystemLayoutID)
+		if err != nil {
+			return nil, rollbackOnError(err)
+		}
+	}
+
+	err = fsl.Matches(machineCandidate.Hardware)
+	if err != nil {
+		return nil, rollbackOnError(err)
+	}
+	alloc.FilesystemLayout = fsl
+
 	networks, err := gatherNetworks(ds, allocationSpec)
 	if err != nil {
 		return nil, rollbackOnError(err)
@@ -1693,6 +1720,28 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 	if m.Allocation != nil && m.State.Value != metal.LockedState {
 		old := *m
 
+		if m.Allocation.FilesystemLayout == nil {
+			fsls, err := r.ds.ListFilesystemLayouts()
+			if err != nil {
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
+			}
+
+			fsl, err := fsls.From(m.SizeID, m.Allocation.ImageID)
+			if err != nil {
+				if checkError(request, response, utils.CurrentFuncName(), err) {
+					return
+				}
+			}
+			m.Allocation.FilesystemLayout = fsl
+		}
+
+		if !m.Allocation.FilesystemLayout.IsReinstallable() {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("filesystemlayout:%s is not reinstallable, abort reinstallation", m.Allocation.FilesystemLayout.ID)) {
+				return
+			}
+		}
 		m.Allocation.Reinstall = true
 		m.Allocation.ImageID = requestPayload.ImageID
 

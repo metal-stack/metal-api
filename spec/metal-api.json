@@ -158,11 +158,336 @@
         "value"
       ]
     },
+    "v1.Disk": {
+      "properties": {
+        "device": {
+          "description": "the device to create the partitions",
+          "type": "string"
+        },
+        "partitions": {
+          "description": "list of partitions to create on this disk",
+          "items": {
+            "$ref": "#/definitions/v1.DiskPartition"
+          },
+          "type": "array"
+        },
+        "wipeonreinstall": {
+          "description": "if set to true, this disk will be wiped before reinstallation",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "device",
+        "wipeonreinstall"
+      ]
+    },
+    "v1.DiskPartition": {
+      "properties": {
+        "gpttype": {
+          "description": "the gpt partition table type of this partition",
+          "type": "string"
+        },
+        "label": {
+          "description": "optional label for this this partition",
+          "type": "string"
+        },
+        "number": {
+          "description": "partition number, will be appended to partitionprefix to create the final devicename",
+          "format": "byte",
+          "type": "integer"
+        },
+        "size": {
+          "description": "size in mebibytes (MiB) of this partition",
+          "format": "integer",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "gpttype",
+        "number",
+        "size"
+      ]
+    },
     "v1.EmptyBody": {},
+    "v1.Filesystem": {
+      "properties": {
+        "createoptions": {
+          "description": "the options to use to create (mkfs) this filesystem",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "device": {
+          "description": "the underlaying device where this filesystem should be created",
+          "type": "string"
+        },
+        "format": {
+          "description": "the filesystem format",
+          "type": "string"
+        },
+        "label": {
+          "description": "optional label for this this filesystem",
+          "type": "string"
+        },
+        "mountoptions": {
+          "description": "the options to use to mount this filesystem",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "path": {
+          "description": "the mountpoint where this filesystem should be mounted on",
+          "type": "string"
+        }
+      },
+      "required": [
+        "device",
+        "format"
+      ]
+    },
+    "v1.FilesystemLayoutConstraints": {
+      "properties": {
+        "images": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "list of images this layout applies to",
+          "type": "object"
+        },
+        "sizes": {
+          "description": "list of sizes this layout applies to",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "images"
+      ]
+    },
+    "v1.FilesystemLayoutCreateRequest": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
+          "description": "constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "disks": {
+          "description": "list of disks that belong to this layout",
+          "items": {
+            "$ref": "#/definitions/v1.Disk"
+          },
+          "type": "array"
+        },
+        "filesystems": {
+          "description": "list of filesystems to create",
+          "items": {
+            "$ref": "#/definitions/v1.Filesystem"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "logicalvolumes": {
+          "description": "list of logicalvolumes to create",
+          "items": {
+            "$ref": "#/definitions/v1.LogicalVolume"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "raid": {
+          "description": "list of raid arrays to create",
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
+        },
+        "volumegroups": {
+          "description": "list of volumegroups to create",
+          "items": {
+            "$ref": "#/definitions/v1.VolumeGroup"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "constraints",
+        "id"
+      ]
+    },
+    "v1.FilesystemLayoutMatchRequest": {
+      "properties": {
+        "filesystemlayout": {
+          "description": "filesystemlayout id to check",
+          "type": "string"
+        },
+        "machine": {
+          "description": "machine id to check",
+          "type": "string"
+        }
+      },
+      "required": [
+        "filesystemlayout",
+        "machine"
+      ]
+    },
+    "v1.FilesystemLayoutResponse": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
+          "description": "constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "disks": {
+          "description": "list of disks that belong to this layout",
+          "items": {
+            "$ref": "#/definitions/v1.Disk"
+          },
+          "type": "array"
+        },
+        "filesystems": {
+          "description": "list of filesystems to create",
+          "items": {
+            "$ref": "#/definitions/v1.Filesystem"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "logicalvolumes": {
+          "description": "list of logicalvolumes to create",
+          "items": {
+            "$ref": "#/definitions/v1.LogicalVolume"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "raid": {
+          "description": "list of raid arrays to create",
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
+        },
+        "volumegroups": {
+          "description": "list of volumegroups to create",
+          "items": {
+            "$ref": "#/definitions/v1.VolumeGroup"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "constraints",
+        "id"
+      ]
+    },
+    "v1.FilesystemLayoutTryRequest": {
+      "properties": {
+        "image": {
+          "description": "image to try",
+          "type": "string"
+        },
+        "size": {
+          "description": "machine size to try",
+          "type": "string"
+        }
+      },
+      "required": [
+        "image",
+        "size"
+      ]
+    },
+    "v1.FilesystemLayoutUpdateRequest": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
+          "description": "constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "disks": {
+          "description": "list of disks that belong to this layout",
+          "items": {
+            "$ref": "#/definitions/v1.Disk"
+          },
+          "type": "array"
+        },
+        "filesystems": {
+          "description": "list of filesystems to create",
+          "items": {
+            "$ref": "#/definitions/v1.Filesystem"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "logicalvolumes": {
+          "description": "list of logicalvolumes to create",
+          "items": {
+            "$ref": "#/definitions/v1.LogicalVolume"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        },
+        "raid": {
+          "description": "list of raid arrays to create",
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
+        },
+        "volumegroups": {
+          "description": "list of volumegroups to create",
+          "items": {
+            "$ref": "#/definitions/v1.VolumeGroup"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "constraints",
+        "id"
+      ]
+    },
     "v1.FirewallCreateRequest": {
       "properties": {
         "description": {
           "description": "a description for this entity",
+          "type": "string"
+        },
+        "filesystemlayoutid": {
+          "description": "the filesystemlayout id to assing to this machine",
           "type": "string"
         },
         "ha": {
@@ -882,6 +1207,33 @@
         }
       }
     },
+    "v1.LogicalVolume": {
+      "properties": {
+        "lvmtype": {
+          "description": "the type of this logical volume can be either linear|striped|raid1",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of the logical volume",
+          "type": "string"
+        },
+        "size": {
+          "description": "size in mebibytes (MiB) of this volume",
+          "format": "integer",
+          "type": "integer"
+        },
+        "volumegroup": {
+          "description": "the name of the volume group where to create the logical volume onto",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lvmtype",
+        "name",
+        "size",
+        "volumegroup"
+      ]
+    },
     "v1.MachineAbortReinstallRequest": {
       "properties": {
         "primary_disk_wiped": {
@@ -897,6 +1249,10 @@
       "properties": {
         "description": {
           "description": "a description for this entity",
+          "type": "string"
+        },
+        "filesystemlayoutid": {
+          "description": "the filesystemlayout id to assing to this machine",
           "type": "string"
         },
         "hostname": {
@@ -982,6 +1338,10 @@
         "description": {
           "description": "a description for this machine",
           "type": "string"
+        },
+        "filesystemlayout": {
+          "$ref": "#/definitions/v1.FilesystemLayoutResponse",
+          "description": "filesystemlayout to create on this machine"
         },
         "hostname": {
           "description": "the hostname which will be used when creating the machine",
@@ -1082,17 +1442,6 @@
           "description": "the name of this block device",
           "type": "string"
         },
-        "partitions": {
-          "description": "the partitions of this disk",
-          "items": {
-            "$ref": "#/definitions/v1.MachineDiskPartition"
-          },
-          "type": "array"
-        },
-        "primary": {
-          "description": "whether this disk has the OS installed",
-          "type": "boolean"
-        },
         "size": {
           "description": "the size of this block device",
           "format": "integer",
@@ -1101,7 +1450,6 @@
       },
       "required": [
         "name",
-        "primary",
         "size"
       ]
     },
@@ -1144,70 +1492,6 @@
       "required": [
         "console_password",
         "id"
-      ]
-    },
-    "v1.MachineDiskPartition": {
-      "properties": {
-        "device": {
-          "description": "the partition device name, e.g. sda1",
-          "type": "string"
-        },
-        "filesystem": {
-          "description": "the partition filesystem",
-          "type": "string"
-        },
-        "gptguid": {
-          "description": "the partition GPT guid",
-          "type": "string"
-        },
-        "gpttyoe": {
-          "description": "the partition GPT type",
-          "type": "string"
-        },
-        "label": {
-          "description": "the partition label",
-          "type": "string"
-        },
-        "mountoptions": {
-          "description": "the partition mount options",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "mountpoint": {
-          "description": "the partition mount point",
-          "type": "string"
-        },
-        "number": {
-          "description": "the partition number",
-          "format": "integer",
-          "type": "integer"
-        },
-        "properties": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "the partition properties",
-          "type": "object"
-        },
-        "size": {
-          "description": "the partition size",
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "device",
-        "filesystem",
-        "gptguid",
-        "gpttyoe",
-        "label",
-        "mountoptions",
-        "mountpoint",
-        "number",
-        "properties",
-        "size"
       ]
     },
     "v1.MachineFinalizeAllocationRequest": {
@@ -2710,6 +2994,42 @@
         }
       }
     },
+    "v1.Raid": {
+      "properties": {
+        "arrayname": {
+          "description": "the name of the resulting array device",
+          "type": "string"
+        },
+        "createoptions": {
+          "description": "the options to use to create the raid array",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "devices": {
+          "description": "list of devices to form the raid array from",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "level": {
+          "description": "raid level to create, should be 0 or 1",
+          "type": "string"
+        },
+        "spares": {
+          "description": "number of spares for the raid array",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "arrayname",
+        "level",
+        "spares"
+      ]
+    },
     "v1.ServerCapacity": {
       "properties": {
         "allocated": {
@@ -3189,6 +3509,31 @@
       "required": [
         "VendorRevisions"
       ]
+    },
+    "v1.VolumeGroup": {
+      "properties": {
+        "devices": {
+          "description": "list of devices to form the volume group from",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "the name of the resulting volume group",
+          "type": "string"
+        },
+        "tags": {
+          "description": "list of tags to add to the volume group",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ]
     }
   },
   "info": {
@@ -3204,6 +3549,276 @@
     "title": "metal-api"
   },
   "paths": {
+    "/v1/filesystemlayout": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listFilesystemLayouts",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all filesystemlayouts",
+        "tags": [
+          "filesystemlayout"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateFilesystemLayout",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a filesystemlayout. if the filesystemlayout was changed since this one was read, a conflict is returned",
+        "tags": [
+          "filesystemlayout"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "createFilesystemLayout",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a filesystemlayout. if the given ID already exists a conflict is returned",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
+    "/v1/filesystemlayout/matches": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "matchFilesystemLayout",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutMatchRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "check if the given machine id satisfies the disk requirements of the filesystemlayout in question",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
+    "/v1/filesystemlayout/try": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "tryFilesystemLayout",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutTryRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "try to detect a filesystemlayout based on given size and image.",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
+    "/v1/filesystemlayout/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteFilesystemLayout",
+        "parameters": [
+          {
+            "description": "identifier of the filesystemlayout",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes an filesystemlayout and returns the deleted entity",
+        "tags": [
+          "filesystemlayout"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getFilesystemLayout",
+        "parameters": [
+          {
+            "description": "identifier of the filesystemlayout",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.FilesystemLayoutResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get filesystemlayout by id",
+        "tags": [
+          "filesystemlayout"
+        ]
+      }
+    },
     "/v1/firewall": {
       "get": {
         "consumes": [

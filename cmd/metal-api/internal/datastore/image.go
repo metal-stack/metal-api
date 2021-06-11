@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 )
 
 // GetImage return a image for a given id without semver matching.
@@ -128,7 +128,7 @@ func isOrphanImage(image metal.Image, machines metal.Machines) bool {
 // then the most recent ubuntu image (ubuntu-19.10.20200407) is returned
 // If patch is specified e.g. ubuntu-20.04.20200502 then this exact image is searched.
 func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*metal.Image, error) {
-	os, sv, err := GetOsAndSemver(id)
+	os, sv, err := utils.GetOsAndSemverFromImage(id)
 	if err != nil {
 		return nil, err
 	}
@@ -163,27 +163,6 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 		return latestImage, nil
 	}
 	return nil, fmt.Errorf("no image for os:%s version:%s found", os, sv)
-}
-
-// GetOsAndSemver parses a imageID to OS and Semver, or returns an error
-// the last part must be the semantic version, valid ids are:
-// ubuntu-19.04                 os: ubuntu version: 19.04
-// ubuntu-19.04.20200408        os: ubuntu version: 19.04.20200408
-// ubuntu-small-19.04.20200408  os: ubuntu-small version: 19.04.20200408
-func GetOsAndSemver(id string) (string, *semver.Version, error) {
-	imageParts := strings.Split(id, "-")
-	if len(imageParts) < 2 {
-		return "", nil, errors.New("image does not contain a version")
-	}
-
-	parts := len(imageParts) - 1
-	os := strings.Join(imageParts[:parts], "-")
-	version := strings.Join(imageParts[parts:], "")
-	v, err := semver.NewVersion(version)
-	if err != nil {
-		return "", nil, err
-	}
-	return os, v, nil
 }
 
 func sortImages(images []metal.Image) []metal.Image {

@@ -711,6 +711,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
 	restful.DefaultContainer.Add(service.NewTenant(mdc))
 	restful.DefaultContainer.Add(firewallService)
+	restful.DefaultContainer.Add(service.NewFilesystemLayout(ds))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(rest.NewHealth(lg, service.BasePath, ds.Health))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))

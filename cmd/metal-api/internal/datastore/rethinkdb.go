@@ -18,7 +18,7 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration",
+	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration", "filesystemlayout",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
@@ -182,6 +182,11 @@ func (rs *RethinkStore) networkTable() *r.Term {
 
 func (rs *RethinkStore) ipTable() *r.Term {
 	res := r.DB(rs.dbname).Table("ip")
+	return &res
+}
+
+func (rs *RethinkStore) filesystemLayoutTable() *r.Term {
+	res := r.DB(rs.dbname).Table("filesystemlayout")
 	return &res
 }
 
