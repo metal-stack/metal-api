@@ -1047,9 +1047,18 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 				},
 				Allocation: alloc,
 			}
-			rollbackError := actor.machineReleaser(cleanupMachine)
+			rollbackError := actor.machineNetworkReleaser(cleanupMachine)
 			if rollbackError != nil {
 				logger.Errorw("cannot call async machine cleanup", "error", rollbackError)
+			}
+			old := machineCandidate
+			machineCandidate.Allocation = nil
+			machineCandidate.Tags = nil
+			machineCandidate.PreAllocated = false
+
+			rollbackError = ds.UpdateMachine(old, machineCandidate)
+			if rollbackError != nil {
+				logger.Errorw("cannot update machinecandidate to reset allocation", "error", rollbackError)
 			}
 		}
 		return err

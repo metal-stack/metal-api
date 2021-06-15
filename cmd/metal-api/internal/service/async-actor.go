@@ -17,7 +17,7 @@ type asyncActor struct {
 	*zap.Logger
 	ipam.IPAMer
 	*datastore.RethinkStore
-	machineReleaser bus.Func
+	machineNetworkReleaser bus.Func
 	ipReleaser      bus.Func
 }
 
@@ -28,7 +28,7 @@ func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore,
 		RethinkStore: ds,
 	}
 	var err error
-	_, actor.machineReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
+	_, actor.machineNetworkReleaser, err = ep.Function("releaseMachineNetworks", actor.releaseMachineNetworks)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async bus function for machine releasing: %w", err)
 	}
@@ -55,7 +55,7 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	}
 
 	// call the releaser async
-	err = a.machineReleaser(m)
+	err = a.machineNetworkReleaser(m)
 	if err != nil {
 		// log error, but what should we do here? we already called
 		// deleteVRFSwitches and publishDeleteEvent, so should we return
