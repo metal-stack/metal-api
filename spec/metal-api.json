@@ -1,6 +1,276 @@
 {
   "basePath": "/",
   "definitions": {
+    "datastore.IPSearchQuery": {
+      "description": "an ip address that can be attached to a machine",
+      "properties": {
+        "ipaddress": {
+          "description": "the address (ipv4 or ipv6) of this ip",
+          "type": "string"
+        },
+        "machineid": {
+          "description": "the machine an ip address is associated to",
+          "type": "string"
+        },
+        "name": {
+          "description": "the name of the ip address",
+          "type": "string"
+        },
+        "networkid": {
+          "description": "the network this ip allocate request address belongs to",
+          "type": "string"
+        },
+        "networkprefix": {
+          "description": "the prefix of the network this ip address belongs to",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project this ip address belongs to, empty if not strong coupled",
+          "type": "string"
+        },
+        "tags": {
+          "description": "the tags that are assigned to this ip address",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "description": "the type of the ip address, ephemeral or static",
+          "type": "string"
+        }
+      }
+    },
+    "datastore.MachineSearchQuery": {
+      "properties": {
+        "allocation_hostname": {
+          "type": "string"
+        },
+        "allocation_image_id": {
+          "type": "string"
+        },
+        "allocation_name": {
+          "type": "string"
+        },
+        "allocation_project": {
+          "type": "string"
+        },
+        "allocation_succeeded": {
+          "type": "boolean"
+        },
+        "disk_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "disk_sizes": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "fru_board_mfg": {
+          "type": "string"
+        },
+        "fru_board_mfg_serial": {
+          "type": "string"
+        },
+        "fru_board_part_number": {
+          "type": "string"
+        },
+        "fru_chassis_part_number": {
+          "type": "string"
+        },
+        "fru_chassis_part_serial": {
+          "type": "string"
+        },
+        "fru_product_manufacturer": {
+          "type": "string"
+        },
+        "fru_product_part_number": {
+          "type": "string"
+        },
+        "fru_product_serial": {
+          "type": "string"
+        },
+        "hardware_cpu_cores": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "hardware_memory": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "ipmi_address": {
+          "type": "string"
+        },
+        "ipmi_interface": {
+          "type": "string"
+        },
+        "ipmi_mac_address": {
+          "type": "string"
+        },
+        "ipmi_user": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "network_asns": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "network_destination_prefixes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_ips": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_nat": {
+          "type": "boolean"
+        },
+        "network_prefixes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_private": {
+          "type": "boolean"
+        },
+        "network_underlay": {
+          "type": "boolean"
+        },
+        "network_vrfs": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "nics_mac_addresses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_neighbor_mac_addresses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_neighbor_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_neighbor_vrfs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_vrfs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "partition_id": {
+          "type": "string"
+        },
+        "rackid": {
+          "type": "string"
+        },
+        "sizeid": {
+          "type": "string"
+        },
+        "state_value": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      }
+    },
+    "datastore.NetworkSearchQuery": {
+      "properties": {
+        "destinationprefixes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nat": {
+          "type": "boolean"
+        },
+        "parentnetworkid": {
+          "type": "string"
+        },
+        "partitionid": {
+          "type": "string"
+        },
+        "prefixes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "privatesuper": {
+          "type": "boolean"
+        },
+        "projectid": {
+          "type": "string"
+        },
+        "underlay": {
+          "type": "boolean"
+        },
+        "vrf": {
+          "format": "int64",
+          "type": "integer"
+        }
+      }
+    },
     "httperrors.HTTPErrorResponse": {
       "properties": {
         "message": {
@@ -158,6 +428,38 @@
         "value"
       ]
     },
+    "v1.Common": {
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "v1.Describable": {
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      }
+    },
     "v1.Disk": {
       "properties": {
         "device": {
@@ -245,6 +547,52 @@
       "required": [
         "device",
         "format"
+      ]
+    },
+    "v1.FilesystemLayoutBase": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.FilesystemLayoutConstraints",
+          "description": "constraints which must match that this layout is taken, if sizes and images are empty these are develop layouts"
+        },
+        "disks": {
+          "description": "list of disks that belong to this layout",
+          "items": {
+            "$ref": "#/definitions/v1.Disk"
+          },
+          "type": "array"
+        },
+        "filesystems": {
+          "description": "list of filesystems to create",
+          "items": {
+            "$ref": "#/definitions/v1.Filesystem"
+          },
+          "type": "array"
+        },
+        "logicalvolumes": {
+          "description": "list of logicalvolumes to create",
+          "items": {
+            "$ref": "#/definitions/v1.LogicalVolume"
+          },
+          "type": "array"
+        },
+        "raid": {
+          "description": "list of raid arrays to create",
+          "items": {
+            "$ref": "#/definitions/v1.Raid"
+          },
+          "type": "array"
+        },
+        "volumegroups": {
+          "description": "list of volumegroups to create",
+          "items": {
+            "$ref": "#/definitions/v1.VolumeGroup"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "constraints"
       ]
     },
     "v1.FilesystemLayoutConstraints": {
@@ -908,6 +1256,39 @@
         "type"
       ]
     },
+    "v1.IPBase": {
+      "properties": {
+        "networkid": {
+          "description": "the network this ip allocate request address belongs to",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project this ip address belongs to",
+          "type": "string"
+        },
+        "tags": {
+          "description": "free tags that you associate with this ip.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "default": "static",
+          "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
+          "enum": [
+            "ephemeral",
+            "static"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "networkid",
+        "projectid",
+        "type"
+      ]
+    },
     "v1.IPFindRequest": {
       "properties": {
         "ipaddress": {
@@ -946,6 +1327,24 @@
           "type": "string"
         }
       }
+    },
+    "v1.IPIdentifiable": {
+      "description": "an ip address that can be attached to a machine",
+      "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
+        "ipaddress": {
+          "description": "the address (ipv4 or ipv6) of this ip",
+          "type": "string",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "allocationuuid",
+        "ipaddress"
+      ]
     },
     "v1.IPResponse": {
       "properties": {
@@ -1046,6 +1445,53 @@
       "required": [
         "ipaddress",
         "type"
+      ]
+    },
+    "v1.Identifiable": {
+      "properties": {
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "v1.ImageBase": {
+      "description": "an image that can be attached to a machine",
+      "properties": {
+        "classification": {
+          "description": "classification of this image",
+          "type": "string"
+        },
+        "expirationDate": {
+          "description": "expirationDate of this image",
+          "format": "date-time",
+          "type": "string"
+        },
+        "features": {
+          "description": "features of this image",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "url": {
+          "description": "the url of this image",
+          "type": "string"
+        },
+        "usedby": {
+          "description": "machines where this image is in use",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "expirationDate"
       ]
     },
     "v1.ImageCreateRequest": {
@@ -1436,6 +1882,70 @@
         "version"
       ]
     },
+    "v1.MachineBase": {
+      "description": "A machine representing a bare metal machine.",
+      "properties": {
+        "allocation": {
+          "$ref": "#/definitions/v1.MachineAllocation",
+          "description": "the allocation data of an allocated machine"
+        },
+        "bios": {
+          "$ref": "#/definitions/v1.MachineBIOS",
+          "description": "bios information of this machine"
+        },
+        "events": {
+          "$ref": "#/definitions/v1.MachineRecentProvisioningEvents",
+          "description": "recent events of this machine during provisioning"
+        },
+        "hardware": {
+          "$ref": "#/definitions/v1.MachineHardware",
+          "description": "the hardware of this machine"
+        },
+        "ledstate": {
+          "$ref": "#/definitions/v1.ChassisIdentifyLEDState",
+          "description": "the state of this chassis identify LED"
+        },
+        "liveliness": {
+          "description": "the liveliness of this machine",
+          "type": "string"
+        },
+        "partition": {
+          "$ref": "#/definitions/v1.PartitionResponse",
+          "description": "the partition assigned to this machine",
+          "readOnly": true
+        },
+        "rackid": {
+          "description": "the rack assigned to this machine",
+          "readOnly": true,
+          "type": "string"
+        },
+        "size": {
+          "$ref": "#/definitions/v1.SizeResponse",
+          "description": "the size of this machine",
+          "readOnly": true
+        },
+        "state": {
+          "$ref": "#/definitions/v1.MachineState",
+          "description": "the state of this machine"
+        },
+        "tags": {
+          "description": "tags for this machine",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "bios",
+        "events",
+        "hardware",
+        "ledstate",
+        "liveliness",
+        "state",
+        "tags"
+      ]
+    },
     "v1.MachineBlockDevice": {
       "properties": {
         "name": {
@@ -1784,6 +2294,32 @@
         "disks",
         "memory",
         "nics"
+      ]
+    },
+    "v1.MachineHardwareBase": {
+      "properties": {
+        "cpu_cores": {
+          "description": "the number of cpu cores",
+          "format": "int32",
+          "type": "integer"
+        },
+        "disks": {
+          "description": "the list of block devices of this machine",
+          "items": {
+            "$ref": "#/definitions/v1.MachineBlockDevice"
+          },
+          "type": "array"
+        },
+        "memory": {
+          "description": "the total memory of the machine",
+          "format": "integer",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cpu_cores",
+        "disks",
+        "memory"
       ]
     },
     "v1.MachineHardwareExtended": {
@@ -2435,6 +2971,29 @@
         }
       }
     },
+    "v1.NetworkBase": {
+      "properties": {
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
+        },
+        "partitionid": {
+          "description": "the partition this network belongs to",
+          "type": "string"
+        },
+        "projectid": {
+          "description": "the project id this network belongs to, can be empty if globally available",
+          "type": "string"
+        },
+        "shared": {
+          "description": "marks a network as shareable.",
+          "type": "boolean"
+        }
+      }
+    },
     "v1.NetworkCreateRequest": {
       "properties": {
         "description": {
@@ -2567,6 +3126,57 @@
           "type": "integer"
         }
       }
+    },
+    "v1.NetworkImmutable": {
+      "description": "a network which contains prefixes from which IP addresses can be allocated\nprefixes that are reachable within this network",
+      "properties": {
+        "destinationprefixes": {
+          "description": "the destination prefixes of this network",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nat": {
+          "description": "if set to true, packets leaving this network get masqueraded behind interface ip",
+          "type": "boolean"
+        },
+        "parentnetworkid": {
+          "description": "the id of the parent network",
+          "type": "string"
+        },
+        "prefixes": {
+          "description": "the prefixes of this network",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "privatesuper": {
+          "description": "if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition",
+          "type": "boolean"
+        },
+        "underlay": {
+          "description": "if set to true, this network can be used for underlay communication",
+          "type": "boolean"
+        },
+        "vrf": {
+          "description": "the vrf this network is associated with",
+          "format": "integer",
+          "type": "integer"
+        },
+        "vrfshared": {
+          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "destinationprefixes",
+        "nat",
+        "prefixes",
+        "privatesuper",
+        "underlay"
+      ]
     },
     "v1.NetworkResponse": {
       "properties": {
@@ -2736,6 +3346,21 @@
         "used_prefixes"
       ]
     },
+    "v1.PartitionBase": {
+      "properties": {
+        "mgmtserviceaddress": {
+          "description": "the address to the management service of this partition",
+          "type": "string"
+        },
+        "privatenetworkprefixlength": {
+          "description": "the length of private networks for the machine's child networks in this partition, default 22",
+          "format": "int32",
+          "maximum": 30,
+          "minimum": 16,
+          "type": "integer"
+        }
+      }
+    },
     "v1.PartitionBootConfiguration": {
       "description": "a partition has a distinct location in a data center, individual entities belong to a partition",
       "properties": {
@@ -2892,6 +3517,25 @@
       "required": [
         "id"
       ]
+    },
+    "v1.Project": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "tenant_id": {
+          "type": "string"
+        }
+      }
     },
     "v1.ProjectCreateRequest": {
       "properties": {
@@ -3257,6 +3901,22 @@
         "id"
       ]
     },
+    "v1.SwitchBase": {
+      "description": "A switch that can register at the api.",
+      "properties": {
+        "mode": {
+          "description": "the mode the switch currently has",
+          "type": "string"
+        },
+        "rack_id": {
+          "description": "the id of the rack in which this switch is located",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rack_id"
+      ]
+    },
     "v1.SwitchConnection": {
       "properties": {
         "machine_id": {
@@ -3475,6 +4135,28 @@
         "rack_id"
       ]
     },
+    "v1.Tenant": {
+      "properties": {
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
+    },
     "v1.TenantResponse": {
       "properties": {
         "default_quotas": {
@@ -3494,6 +4176,22 @@
         },
         "quotas": {
           "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
+    },
+    "v1.Timestamps": {
+      "properties": {
+        "changed": {
+          "description": "the last changed timestamp of this entity",
+          "format": "date-time",
+          "readOnly": true,
+          "type": "string"
+        },
+        "created": {
+          "description": "the creation time of this entity",
+          "format": "date-time",
+          "readOnly": true,
+          "type": "string"
         }
       }
     },
