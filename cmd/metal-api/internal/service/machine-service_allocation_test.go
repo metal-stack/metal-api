@@ -119,6 +119,10 @@ func TestMachineAllocationIntegration(t *testing.T) {
 				return err
 			}
 
+			if ma.Allocation.Creator != editUserEmail {
+				return fmt.Errorf("unexpected machine creator: %s, expected: %s", ma.Allocation.Creator, editUserEmail)
+			}
+
 			if len(ma.Allocation.MachineNetworks) < 1 {
 				return fmt.Errorf("did not get a machine network")
 			}
@@ -319,10 +323,10 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 	createTestdata(machineCount, rs, ipamer, t)
 
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, nil, 0)
+	usergetter := security.NewCreds(security.WithHMAC(hma))
+	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
-	usergetter := security.NewCreds(security.WithHMAC(hma))
 	container.Filter(rest.UserAuth(usergetter))
 	return rs, container
 }

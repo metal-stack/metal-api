@@ -19,6 +19,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	viewUserEmail  = "metal-view@metal-stack.io"
+	editUserEmail  = "metal-edit@metal-stack.io"
+	adminUserEmail = "metal-admin@metal-stack.io"
+)
+
 // BasePath is the URL base path for the metal-api
 var BasePath = "/"
 
@@ -41,19 +47,19 @@ func NewUserDirectory(providerTenant string) *UserDirectory {
 
 	// User.Name is used as AuthType for HMAC
 	ud.viewer = security.User{
-		EMail:  "metal-view@metal-stack.io",
+		EMail:  viewUserEmail,
 		Name:   "Metal-View",
 		Groups: sec.MergeResourceAccess(metal.ViewGroups),
 		Tenant: providerTenant,
 	}
 	ud.edit = security.User{
-		EMail:  "metal-edit@metal-stack.io",
+		EMail:  editUserEmail,
 		Name:   "Metal-Edit",
 		Groups: sec.MergeResourceAccess(metal.EditGroups),
 		Tenant: providerTenant,
 	}
 	ud.admin = security.User{
-		EMail:  "metal-admin@metal-stack.io",
+		EMail:  adminUserEmail,
 		Name:   "Metal-Admin",
 		Groups: sec.MergeResourceAccess(metal.AdminGroups),
 		Tenant: providerTenant,
