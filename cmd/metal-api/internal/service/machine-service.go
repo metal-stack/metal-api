@@ -53,6 +53,7 @@ type machineResource struct {
 
 // machineAllocationSpec is a specification for a machine allocation
 type machineAllocationSpec struct {
+	Creator            string
 	UUID               string
 	Name               string
 	Description        string
@@ -938,7 +939,13 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		}
 	}
 
+	user, err := r.userGetter.User(request.Request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	spec := machineAllocationSpec{
+		Creator:            user.EMail,
 		UUID:               uuid,
 		Name:               name,
 		Description:        description,
@@ -1029,6 +1036,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.SizeID = machineCandidate.SizeID
 
 	alloc := &metal.MachineAllocation{
+		Creator:         allocationSpec.Creator,
 		Created:         time.Now(),
 		Name:            allocationSpec.Name,
 		Description:     allocationSpec.Description,
