@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/security"
 
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/zapup"
@@ -30,6 +31,7 @@ type firewallResource struct {
 	ipamer     ipam.IPAMer
 	mdc        mdm.Client
 	grpcServer *grpc.Server
+	userGetter security.UserGetter
 	actor      *asyncActor
 }
 
@@ -39,7 +41,9 @@ func NewFirewall(
 	ipamer ipam.IPAMer,
 	ep *bus.Endpoints,
 	mdc mdm.Client,
-	grpcServer *grpc.Server) (*restful.WebService, error) {
+	grpcServer *grpc.Server,
+	userGetter security.UserGetter,
+) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
 			ds: ds,
@@ -47,6 +51,7 @@ func NewFirewall(
 		ipamer:     ipamer,
 		mdc:        mdc,
 		grpcServer: grpcServer,
+		userGetter: userGetter,
 	}
 
 	var err error
@@ -247,7 +252,13 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		}
 	}
 
+	user, err := r.userGetter.User(request.Request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	spec := machineAllocationSpec{
+		Creator:     user.EMail,
 		UUID:        uuid,
 		Name:        name,
 		Description: description,

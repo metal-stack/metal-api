@@ -108,8 +108,8 @@ func NewMachine(
 	grpcServer *grpc.Server,
 	s3Client *s3server.Client,
 	userGetter security.UserGetter,
-	reasonMinLength uint) (*restful.WebService, error) {
-
+	reasonMinLength uint,
+) (*restful.WebService, error) {
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
@@ -1143,6 +1143,10 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 
 	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
 		return errors.New("when no machine id is given, a size id must be specified")
+	}
+
+	if allocationSpec.Creator == "" {
+		return errors.New("creator should be specified")
 	}
 
 	for _, ip := range allocationSpec.IPs {

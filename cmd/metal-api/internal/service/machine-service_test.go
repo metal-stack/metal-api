@@ -23,6 +23,10 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+const (
+	testEmail = "test@test.example"
+)
+
 type emptyPublisher struct {
 	doPublish func(topic string, data interface{}) error
 }
@@ -763,6 +767,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:       "gopher-uuid",
+				Creator:    testEmail,
 				ProjectID:  "123",
 				IsFirewall: false,
 				Networks: []v1.MachineAllocationNetwork{
@@ -779,6 +784,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:      "gopher-uuid",
+				Creator:   testEmail,
 				ProjectID: "123",
 				Networks: []v1.MachineAllocationNetwork{
 					{
@@ -793,6 +799,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:       "gopher-uuid",
+				Creator:    testEmail,
 				ProjectID:  "123",
 				IsFirewall: false,
 			},
@@ -802,6 +809,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
+				Creator:     testEmail,
 				PartitionID: "42",
 				ProjectID:   "123",
 				SizeID:      "42",
@@ -811,6 +819,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
+				Creator:     testEmail,
 				PartitionID: "42",
 				ProjectID:   "123",
 			},
@@ -820,6 +829,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
+				Creator:   testEmail,
 				SizeID:    "42",
 				ProjectID: "123",
 			},
@@ -836,6 +846,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:       "gopher-uuid",
+				Creator:    testEmail,
 				ProjectID:  "123",
 				IsFirewall: false,
 				Networks: []v1.MachineAllocationNetwork{
@@ -852,6 +863,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:      "42",
+				Creator:   testEmail,
 				ProjectID: "123",
 				IPs:       []string{"42"},
 			},
@@ -862,6 +874,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:       "42",
+				Creator:    testEmail,
 				ProjectID:  "123",
 				IsFirewall: true,
 			},
@@ -872,6 +885,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:       "42",
+				Creator:    testEmail,
 				ProjectID:  "123",
 				SSHPubKeys: []string{"42"},
 			},
@@ -882,6 +896,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				UUID:       "gopher-uuid",
+				Creator:    testEmail,
 				ProjectID:  "123",
 				IsFirewall: false,
 				Networks: []v1.MachineAllocationNetwork{
