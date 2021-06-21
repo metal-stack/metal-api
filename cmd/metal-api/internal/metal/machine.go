@@ -113,6 +113,7 @@ func (m *Machine) IsFirewall(iMap ImageMap) bool {
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
+	Creator          string            `rethinkdb:"creator" json:"creator"`
 	Created          time.Time         `rethinkdb:"created" json:"created"`
 	Name             string            `rethinkdb:"name" json:"name"`
 	Description      string            `rethinkdb:"description" json:"description"`

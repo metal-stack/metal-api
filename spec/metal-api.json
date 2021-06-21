@@ -1781,6 +1781,10 @@
           "format": "date-time",
           "type": "string"
         },
+        "creator": {
+          "description": "email of machine creator",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this machine",
           "type": "string"
@@ -1835,6 +1839,7 @@
       },
       "required": [
         "created",
+        "creator",
         "hostname",
         "name",
         "networks",

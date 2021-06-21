@@ -25,6 +25,7 @@ type MachineBase struct {
 }
 
 type MachineAllocation struct {
+	Creator          string                    `json:"creator" description:"email of machine creator"`
 	Created          time.Time                 `json:"created" description:"the time when the machine was created"`
 	Name             string                    `json:"name" description:"the name of the machine"`
 	Description      string                    `json:"description,omitempty" description:"a description for this machine" optional:"true"`
@@ -421,6 +422,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 
 		allocation = &MachineAllocation{
+			Creator:          m.Allocation.Creator,
 			Created:          m.Allocation.Created,
 			Name:             m.Allocation.Name,
 			Description:      m.Allocation.Description,

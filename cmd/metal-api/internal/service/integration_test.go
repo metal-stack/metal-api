@@ -95,7 +95,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 	}()
 	grpcServer.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
 
-	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, nil, 0)
+	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
+	usergetter := security.NewCreds(security.WithHMAC(hma))
+	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, usergetter, 0)
 	require.NoError(err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
@@ -309,51 +311,44 @@ func createTestEnvironment(t *testing.T) testEnv {
 	return te
 }
 
-var adminUser = &security.User{
-	Tenant: "provider",
-	Groups: []security.ResourceAccess{
-		"maas-all-all-admin",
-	},
-}
-
 func (te *testEnv) sizeCreate(t *testing.T, icr v1.SizeCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.sizeService, adminUser, icr, "/v1/size/", response)
+	return webRequestPut(t, te.sizeService, &testUserDirectory.admin, icr, "/v1/size/", response)
 }
 
 func (te *testEnv) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.partitionService, adminUser, icr, "/v1/partition/", response)
+	return webRequestPut(t, te.partitionService, &testUserDirectory.admin, icr, "/v1/partition/", response)
 }
 
 func (te *testEnv) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
-	return webRequestPost(t, te.switchService, adminUser, srr, "/v1/switch/register", response)
+	return webRequestPost(t, te.switchService, &testUserDirectory.admin, srr, "/v1/switch/register", response)
 }
 
 func (te *testEnv) switchGet(t *testing.T, swid string, response interface{}) int {
-	return webRequestGet(t, te.switchService, adminUser, emptyBody{}, "/v1/switch/"+swid, response)
+	return webRequestGet(t, te.switchService, &testUserDirectory.admin, emptyBody{}, "/v1/switch/"+swid, response)
 }
 
 func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.imageService, adminUser, icr, "/v1/image/", response)
+	return webRequestPut(t, te.imageService, &testUserDirectory.admin, icr, "/v1/image/", response)
 }
 
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.networkService, adminUser, icr, "/v1/network/", response)
+	return webRequestPut(t, te.networkService, &testUserDirectory.admin, icr, "/v1/network/", response)
 }
 
 func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, response interface{}) int {
-	return webRequestPost(t, te.networkService, adminUser, nar, "/v1/network/allocate", response)
+	return webRequestPost(t, te.networkService, &testUserDirectory.admin, nar, "/v1/network/allocate", response)
 }
 
 func (te *testEnv) machineAllocate(t *testing.T, mar v1.MachineAllocateRequest, response interface{}) int {
-	return webRequestPost(t, te.machineService, adminUser, mar, "/v1/machine/allocate", response)
+	return webRequestPost(t, te.machineService, &testUserDirectory.admin, mar, "/v1/machine/allocate", response)
 }
 
 func (te *testEnv) machineFree(t *testing.T, uuid string, response interface{}) int {
-	return webRequestDelete(t, te.machineService, adminUser, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
+	return webRequestDelete(t, te.machineService, &testUserDirectory.admin, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
 }
 
 func (te *testEnv) machineRegister(t *testing.T, mrr v1.MachineRegisterRequest, response interface{}) int {
-	return webRequestPost(t, te.machineService, adminUser, mrr, "/v1/machine/register", response)
+	return webRequestPost(t, te.machineService, &testUserDirectory.admin, mrr, "/v1/machine/register", response)
 }
 
 func (te *testEnv) machineWait(uuid string) error {

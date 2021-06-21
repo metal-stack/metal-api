@@ -53,6 +53,7 @@ type machineResource struct {
 
 // machineAllocationSpec is a specification for a machine allocation
 type machineAllocationSpec struct {
+	Creator            string
 	UUID               string
 	Name               string
 	Description        string
@@ -107,8 +108,8 @@ func NewMachine(
 	grpcServer *grpc.Server,
 	s3Client *s3server.Client,
 	userGetter security.UserGetter,
-	reasonMinLength uint) (*restful.WebService, error) {
-
+	reasonMinLength uint,
+) (*restful.WebService, error) {
 	r := machineResource{
 		webResource: webResource{
 			ds: ds,
@@ -938,7 +939,13 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		}
 	}
 
+	user, err := r.userGetter.User(request.Request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	spec := machineAllocationSpec{
+		Creator:            user.EMail,
 		UUID:               uuid,
 		Name:               name,
 		Description:        description,
@@ -1029,6 +1036,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.SizeID = machineCandidate.SizeID
 
 	alloc := &metal.MachineAllocation{
+		Creator:         allocationSpec.Creator,
 		Created:         time.Now(),
 		Name:            allocationSpec.Name,
 		Description:     allocationSpec.Description,
@@ -1135,6 +1143,10 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 
 	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
 		return errors.New("when no machine id is given, a size id must be specified")
+	}
+
+	if allocationSpec.Creator == "" {
+		return errors.New("creator should be specified")
 	}
 
 	for _, ip := range allocationSpec.IPs {
