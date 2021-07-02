@@ -500,11 +500,10 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 
 func TestMakeSwitchNics(t *testing.T) {
 	type args struct {
-		s                *metal.Switch
-		ips              metal.IPsMap
-		images           metal.ImageMap
-		machines         metal.Machines
-		privateSuperNets metal.Networks
+		s        *metal.Switch
+		ips      metal.IPsMap
+		images   metal.ImageMap
+		machines metal.Machines
 	}
 	tests := []struct {
 		name string
