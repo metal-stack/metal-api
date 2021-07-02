@@ -115,17 +115,7 @@ func (n *Network) FindPrefix(cidr string) *Prefix {
 
 // ContainsIP checks whether the given ip is included in the networks prefixes
 func (n *MachineNetwork) ContainsIP(ip string) bool {
-	pip := net.ParseIP(ip)
-	for _, p := range n.Prefixes {
-		_, n, err := net.ParseCIDR(p)
-		if err != nil {
-			continue
-		}
-		if n.Contains(pip) {
-			return true
-		}
-	}
-	return false
+	return containsIP(n.Prefixes, ip)
 }
 
 // SubstractPrefixes returns the prefixes of the network minus the prefixes passed in the arguments
@@ -145,6 +135,25 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 		result = append(result, p)
 	}
 	return result
+}
+
+// ContainsIP checks whether the given ip is included in the networks prefixes
+func (n *Network) ContainsIP(ip string) bool {
+	return containsIP(n.Prefixes.String(), ip)
+}
+
+func containsIP(prefixes []string, ip string) bool {
+	pip := net.ParseIP(ip)
+	for _, p := range prefixes {
+		_, n, err := net.ParseCIDR(p)
+		if err != nil {
+			continue
+		}
+		if n.Contains(pip) {
+			return true
+		}
+	}
+	return false
 }
 
 type NicMap map[MacAddress]*Nic

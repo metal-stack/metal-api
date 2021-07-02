@@ -390,8 +390,9 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 
 func TestMakeBGPFilterMachine(t *testing.T) {
 	type args struct {
-		machine metal.Machine
-		ipsMap  metal.IPsMap
+		machine          metal.Machine
+		ipsMap           metal.IPsMap
+		privateSuperNets metal.Networks
 	}
 	tests := []struct {
 		name string
@@ -414,7 +415,20 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 					metal.IP{
 						IPAddress: "10.1.0.1",
 					},
+					metal.IP{
+						IPAddress: "10.1.2.3",
+					},
 				}},
+				privateSuperNets: metal.Networks{
+					{
+						Prefixes: metal.Prefixes{
+							{
+								IP:     "10.0.0.0",
+								Length: "8",
+							},
+						},
+					},
+				},
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
@@ -431,8 +445,9 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 								Underlay: true,
 							},
 							{
-								IPs: []string{"212.89.42.2", "212.89.42.1"},
-								Vrf: 104009,
+								IPs:      []string{"212.89.42.2", "212.89.42.1"},
+								Prefixes: []string{"212.89.42.0/24"},
+								Vrf:      104009,
 							},
 						},
 					},
@@ -448,13 +463,24 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 						IPAddress: "212.89.42.1",
 					},
 				}},
+				privateSuperNets: metal.Networks{
+					{
+						Prefixes: metal.Prefixes{
+							{
+								IP:     "10.0.0.0",
+								Length: "8",
+							},
+						},
+					},
+				},
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
 							{
-								IPs: []string{"212.89.42.2", "212.89.42.1"},
-								Vrf: 104009,
+								IPs:      []string{"212.89.42.2", "212.89.42.1"},
+								Prefixes: []string{"212.89.42.0/24"},
+								Vrf:      104009,
 							},
 						},
 					},
@@ -466,7 +492,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
+			got := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap, tt.args.privateSuperNets)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
 			}
@@ -476,10 +502,11 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 
 func TestMakeSwitchNics(t *testing.T) {
 	type args struct {
-		s        *metal.Switch
-		ips      metal.IPsMap
-		images   metal.ImageMap
-		machines metal.Machines
+		s                *metal.Switch
+		ips              metal.IPsMap
+		images           metal.ImageMap
+		machines         metal.Machines
+		privateSuperNets metal.Networks
 	}
 	tests := []struct {
 		name string
@@ -575,7 +602,7 @@ func TestMakeSwitchNics(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.images, tt.args.machines)
+			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.images, tt.args.machines, tt.args.privateSuperNets)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
 			}
