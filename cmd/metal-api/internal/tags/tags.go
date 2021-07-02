@@ -1,8 +1,9 @@
 package tags
 
 import (
-	"sort"
 	"strings"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 )
 
 // Tags holds tags.
@@ -72,14 +73,5 @@ func (t *Tags) Values(prefix string) []string {
 
 // Unique returns the distinct tag values as sorted slice.
 func (t *Tags) Unique() []string {
-	tagSet := make(map[string]bool)
-	for _, t := range t.tags {
-		tagSet[t] = true
-	}
-	uniqueTags := []string{}
-	for k := range tagSet {
-		uniqueTags = append(uniqueTags, k)
-	}
-	sort.Strings(uniqueTags)
-	return uniqueTags
+	return utils.UniqueSorted(t.tags)
 }

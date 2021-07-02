@@ -605,8 +605,8 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 }
 
 func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.SwitchResponse {
-	p, ips, iMap, machines, privateSuperNetworks := findSwitchReferencedEntites(s, ds, logger)
-	nics := makeSwitchNics(s, ips, iMap, machines, privateSuperNetworks)
+	p, ips, iMap, machines := findSwitchReferencedEntites(s, ds, logger)
+	nics := makeSwitchNics(s, ips, iMap, machines)
 	cons := makeSwitchCons(s)
 	return v1.NewSwitchResponse(s, p, nics, cons)
 }
@@ -628,53 +628,51 @@ func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 	return v1.NewBGPFilter(vnis, cidrs)
 }
 
-func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap, privateSuperNetworks metal.Networks) v1.BGPFilter {
+func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap, fwNetworks []*metal.MachineNetwork) v1.BGPFilter {
 	vnis := []string{}
 	cidrs := []string{}
 
-	var private *metal.MachineNetwork
-	var underlay *metal.MachineNetwork
+	privateNets := []string{}
 	for _, n := range m.Allocation.MachineNetworks {
 		nt, _ := n.NetworkType()
 		if nt == nil {
 			continue
 		}
 
-		if *nt == metal.PrivatePrimaryUnshared || *nt == metal.PrivatePrimaryShared {
-			private = n
-			continue
-		}
-
-		if *nt == metal.Underlay {
-			underlay = n
-			continue
+		if nt.Private {
+			privateNets = append(privateNets, n.Prefixes...)
 		}
 	}
 
-	// Allow all prefixes of the private network
-	if private != nil {
-		cidrs = append(cidrs, private.Prefixes...)
+	externalNets := []string{}
+	for _, fwNet := range fwNetworks {
+		nt, _ := fwNet.NetworkType()
+		if nt == nil {
+			continue
+		}
+
+		if nt.Private {
+			privateNets = append(privateNets, fwNet.Prefixes...)
+		} else if nt.Name == "external" {
+			externalNets = append(externalNets, fwNet.Prefixes...)
+		}
 	}
 
-nextIP:
+	// Allow all prefixes of private networks attached directly to the machine
+	// or via firewall
+	cidrs = append(cidrs, privateNets...)
+
+	// Allow all prefixes of external networks allocated for the project
 	for _, i := range ips[m.Allocation.Project] {
-		if underlay != nil && underlay.ContainsIP(i.IPAddress) {
-			continue nextIP
+		if metal.ContainsIP(externalNets, i.IPAddress) {
+			cidrs = append(cidrs, fmt.Sprintf("%s/32", i.IPAddress))
 		}
-
-		for _, ps := range privateSuperNetworks {
-			if ps.ContainsIP(i.IPAddress) {
-				continue nextIP
-			}
-		}
-
-		// Allow all other ip addresses allocated for the project.
-		cidrs = append(cidrs, fmt.Sprintf("%s/32", i.IPAddress))
 	}
-	return v1.NewBGPFilter(vnis, cidrs)
+
+	return v1.NewBGPFilter(vnis, utils.UniqueSorted(cidrs))
 }
 
-func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.ImageMap, privateSuperNetworks metal.Networks) v1.BGPFilter {
+func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.ImageMap, fwNetworks []*metal.MachineNetwork) v1.BGPFilter {
 	var filter v1.BGPFilter
 	if m.IsFirewall(iMap) {
 		// vrf "default" means: the firewall was successfully allocated and the switch port configured
@@ -683,12 +681,42 @@ func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.Ima
 			filter = makeBGPFilterFirewall(m)
 		}
 	} else {
-		filter = makeBGPFilterMachine(m, ips, privateSuperNetworks)
+		filter = makeBGPFilterMachine(m, ips, fwNetworks)
 	}
 	return filter
 }
 
-func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, machines metal.Machines, privateSuperNetworks metal.Networks) v1.SwitchNics {
+func findFirewallNetworks(m *metal.Machine, machines metal.Machines, iMap metal.ImageMap) (firewallNetworks []*metal.MachineNetwork) {
+	var primaryNetworkID string
+	for _, m := range m.Allocation.MachineNetworks {
+		nt, _ := m.NetworkType()
+		if nt == nil {
+			continue
+		}
+		if *nt == metal.PrivatePrimaryShared || *nt == metal.PrivatePrimaryUnshared {
+			primaryNetworkID = m.NetworkID
+		}
+	}
+
+	if primaryNetworkID == "" {
+		return
+	}
+
+	for _, n := range machines {
+		if n.Allocation == nil || !n.IsFirewall(iMap) {
+			continue
+		}
+		for _, fwn := range n.Allocation.MachineNetworks {
+			if fwn.NetworkID == primaryNetworkID {
+				firewallNetworks = n.Allocation.MachineNetworks
+				return
+			}
+		}
+	}
+	return
+}
+
+func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, machines metal.Machines) v1.SwitchNics {
 	machinesByID := map[string]*metal.Machine{}
 	for i, m := range machines {
 		machinesByID[m.ID] = &machines[i]
@@ -707,7 +735,8 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, mach
 		m := machinesBySwp[n.Name]
 		var filter *v1.BGPFilter
 		if m != nil && m.Allocation != nil {
-			f := makeBGPFilter(*m, n.Vrf, ips, iMap, privateSuperNetworks)
+			fwNetworks := findFirewallNetworks(m, machines, iMap)
+			f := makeBGPFilter(*m, n.Vrf, ips, iMap, fwNetworks)
 			filter = &f
 		}
 		nic := v1.SwitchNic{
@@ -740,7 +769,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.ImageMap, metal.Machines, metal.Networks) {
+func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.ImageMap, metal.Machines) {
 	var err error
 
 	var p *metal.Partition
@@ -767,18 +796,11 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, lo
 		logger.Errorw("images could not be listed", "error", err)
 	}
 
-	boolTrue := true
-	var privateSuperNetworks metal.Networks
-	err = ds.SearchNetworks(&datastore.NetworkSearchQuery{PrivateSuper: &boolTrue}, &privateSuperNetworks)
-	if err != nil {
-		logger.Errorw("private super networks could not be searched", "error", err)
-	}
-
-	return p, ips.ByProjectID(), imgs.ByID(), m, privateSuperNetworks
+	return p, ips.ByProjectID(), imgs.ByID(), m
 }
 
 func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.SwitchResponse {
-	pMap, ips, iMap, privateSuperNetworks := getSwitchReferencedEntityMaps(ds, logger)
+	pMap, ips, iMap := getSwitchReferencedEntityMaps(ds, logger)
 	result := []*v1.SwitchResponse{}
 	m, err := ds.ListMachines()
 	if err != nil {
@@ -793,7 +815,7 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 			p = &partitionEntity
 		}
 
-		nics := makeSwitchNics(&sw, ips, iMap, m, privateSuperNetworks)
+		nics := makeSwitchNics(&sw, ips, iMap, m)
 		cons := makeSwitchCons(&sw)
 		result = append(result, v1.NewSwitchResponse(&sw, p, nics, cons))
 	}
@@ -801,7 +823,7 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 	return result
 }
 
-func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.PartitionMap, metal.IPsMap, metal.ImageMap, metal.Networks) {
+func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.PartitionMap, metal.IPsMap, metal.ImageMap) {
 	p, err := ds.ListPartitions()
 	if err != nil {
 		logger.Errorw("partitions could not be listed", "error", err)
@@ -817,12 +839,5 @@ func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.Sugar
 		logger.Errorw("images could not be listed", "error", err)
 	}
 
-	boolTrue := true
-	var privateSuperNetworks metal.Networks
-	err = ds.SearchNetworks(&datastore.NetworkSearchQuery{PrivateSuper: &boolTrue}, &privateSuperNetworks)
-	if err != nil {
-		logger.Errorw("private super networks could not be searched", "error", err)
-	}
-
-	return p.ByID(), ips.ByProjectID(), imgs.ByID(), privateSuperNetworks
+	return p.ByID(), ips.ByProjectID(), imgs.ByID()
 }

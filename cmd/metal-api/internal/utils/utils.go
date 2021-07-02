@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -70,4 +71,17 @@ func GetOsAndSemverFromImage(id string) (string, *semver.Version, error) {
 		return "", nil, err
 	}
 	return os, v, nil
+}
+
+func UniqueSorted(i []string) []string {
+	set := make(map[string]bool)
+	for _, e := range i {
+		set[e] = true
+	}
+	unique := []string{}
+	for k := range set {
+		unique = append(unique, k)
+	}
+	sort.Strings(unique)
+	return unique
 }
