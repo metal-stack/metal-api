@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
@@ -30,7 +30,7 @@ func (s *SupwdService) FetchSuperUserPassword(ctx context.Context, req *v1.Super
 		return resp, nil
 	}
 
-	bb, err := ioutil.ReadFile(s.pwdFile)
+	bb, err := os.ReadFile(s.pwdFile)
 	if err != nil {
 		s.logger.Errorw("failed to lookup BMC superuser password", "password file", s.pwdFile, "error", err)
 		return nil, err
