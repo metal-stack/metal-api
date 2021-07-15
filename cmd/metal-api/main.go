@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	httppprof "net/http/pprof"
@@ -24,7 +25,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	nsq2 "github.com/nsqio/go-nsq"
-	"github.com/pkg/errors"
 
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
@@ -781,7 +781,7 @@ func resurrectDeadMachines() error {
 	}
 	err = service.ResurrectMachines(ds, p, ep, ipamer, logger)
 	if err != nil {
-		return errors.Wrap(err, "unable to resurrect machines")
+		return fmt.Errorf("unable to resurrect machines: %w", err)
 	}
 
 	return nil
@@ -795,7 +795,7 @@ func evaluateLiveliness() error {
 
 	err = service.MachineLiveliness(ds, logger)
 	if err != nil {
-		return errors.Wrap(err, "unable to evaluate machine liveliness")
+		return fmt.Errorf("unable to evaluate machine liveliness: %w", err)
 	}
 
 	return nil

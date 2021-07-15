@@ -5,7 +5,7 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -59,7 +59,7 @@ func TestGetImagesIntegration(t *testing.T) {
 
 	ji, err := json.Marshal(newImage)
 	require.NoError(t, err)
-	body := ioutil.NopCloser(strings.NewReader(string(ji)))
+	body := io.NopCloser(strings.NewReader(string(ji)))
 	createReq := httptest.NewRequest(http.MethodPut, "/v1/image", body)
 	createReq.Header.Set("Content-Type", "application/json")
 

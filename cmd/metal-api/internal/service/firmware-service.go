@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/s3"
-	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/aws/aws-sdk-go/service/s3"
+	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/metal-stack/metal-lib/httperrors"
 	"go.uber.org/zap"

@@ -10,7 +10,6 @@ import (
 
 	mathrand "math/rand"
 
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -42,7 +41,7 @@ type Datasource interface {
 func NewWaitService(cfg *ServerConfig) (*WaitService, error) {
 	c, err := bus.NewConsumer(cfg.Logger.Desugar(), cfg.NsqTlsConfig, cfg.NsqlookupdHttpAddress)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot connect to NSQ")
+		return nil, fmt.Errorf("cannot connect to NSQ: %w", err)
 	}
 
 	s := &WaitService{

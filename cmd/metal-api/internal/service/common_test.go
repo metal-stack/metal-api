@@ -2,7 +2,7 @@ package service
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -37,7 +37,7 @@ func webRequest(t *testing.T, method string, service *restful.WebService, user *
 
 	jsonBody, err := json.Marshal(request)
 	require.NoError(t, err)
-	body := ioutil.NopCloser(strings.NewReader(string(jsonBody)))
+	body := io.NopCloser(strings.NewReader(string(jsonBody)))
 	createReq := httptest.NewRequest(method, path, body)
 	createReq.Header.Set("Content-Type", "application/json")
 

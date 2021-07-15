@@ -1,9 +1,8 @@
 package metal
 
 import (
+	"errors"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func TestNotFound(t *testing.T) {

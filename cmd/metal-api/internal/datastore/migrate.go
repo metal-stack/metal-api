@@ -1,11 +1,12 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/pkg/errors"
-	"go4.org/sort"
+	"sort"
+
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -142,14 +143,14 @@ func (rs *RethinkStore) Migrate(targetVersion *int, dry bool) error {
 		rs.SugaredLogger.Infow("running database migration", "version", m.Version, "name", m.Name)
 		err = m.Up(rs.db(), rs.session, rs)
 		if err != nil {
-			return errors.Wrap(err, "error running database migration")
+			return fmt.Errorf("error running database migration: %w", err)
 		}
 
 		_, err := rs.migrationTable().Insert(MigrationVersionEntry{Version: m.Version, Name: m.Name}, r.InsertOpts{
 			Conflict: "replace",
 		}).RunWrite(rs.session)
 		if err != nil {
-			return errors.Wrap(err, "error updating database migration version")
+			return fmt.Errorf("error updating database migration version: %w", err)
 		}
 	}
 
