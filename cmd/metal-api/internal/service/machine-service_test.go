@@ -676,6 +676,10 @@ func TestOnMachine(t *testing.T) {
 			endpoint: "reset",
 		},
 		{
+			cmd:      metal.MachineCycleCmd,
+			endpoint: "cycle",
+		},
+		{
 			cmd:      metal.MachineBiosCmd,
 			endpoint: "bios",
 		},
