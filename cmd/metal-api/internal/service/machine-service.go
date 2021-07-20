@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"github.com/metal-stack/security"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh"
 
@@ -1267,7 +1267,7 @@ func gatherNetworks(ds *datastore.RethinkStore, allocationSpec *machineAllocatio
 	boolTrue := true
 	err = ds.SearchNetworks(&datastore.NetworkSearchQuery{PrivateSuper: &boolTrue}, &privateSuperNetworks)
 	if err != nil {
-		return nil, errors.Wrap(err, "partition has no private super network")
+		return nil, fmt.Errorf("partition has no private super network: %w", err)
 	}
 
 	specNetworks, err := gatherNetworksFromSpec(ds, allocationSpec, partition, privateSuperNetworks)

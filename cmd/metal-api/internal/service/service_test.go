@@ -3,7 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,10 +37,10 @@ func injectUser(u security.User, container *restful.Container, rq *http.Request)
 	container.Filter(rest.UserAuth(usergetter))
 	var body []byte
 	if rq.Body != nil {
-		data, _ := ioutil.ReadAll(rq.Body)
+		data, _ := io.ReadAll(rq.Body)
 		body = data
 		rq.Body.Close()
-		rq.Body = ioutil.NopCloser(bytes.NewReader(data))
+		rq.Body = io.NopCloser(bytes.NewReader(data))
 	}
 	hma.AddAuth(rq, time.Now(), body)
 	return container

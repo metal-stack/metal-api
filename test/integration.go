@@ -14,7 +14,7 @@ var (
 
 func init() {
 	// prevent testcontainer logging mangle test and benchmark output
-	// log.SetOutput(ioutil.Discard)
+	// log.SetOutput(io.Discard)
 }
 
 type ConnectionDetails struct {
