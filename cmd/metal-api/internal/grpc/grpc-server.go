@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -128,11 +128,11 @@ func (s *Server) Serve() error {
 	}
 
 	if s.tlsEnabled {
-		cert, err := ioutil.ReadFile(s.serverCertFile)
+		cert, err := os.ReadFile(s.serverCertFile)
 		if err != nil {
 			s.logger.Fatalw("failed to serve gRPC", "error", err)
 		}
-		key, err := ioutil.ReadFile(s.serverKeyFile)
+		key, err := os.ReadFile(s.serverKeyFile)
 		if err != nil {
 			s.logger.Fatalw("failed to serve gRPC", "error", err)
 		}
@@ -141,7 +141,7 @@ func (s *Server) Serve() error {
 			return err
 		}
 
-		caCert, err := ioutil.ReadFile(s.caCertFile)
+		caCert, err := os.ReadFile(s.caCertFile)
 		if err != nil {
 			return err
 		}

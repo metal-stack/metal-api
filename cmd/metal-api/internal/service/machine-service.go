@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"github.com/metal-stack/security"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh"
 
@@ -354,6 +354,17 @@ func (r machineResource) webService() *restful.WebService {
 		To(editor(r.machineReset)).
 		Operation("machineReset").
 		Doc("sends a reset to the machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.EmptyBody{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/power/cycle").
+		To(editor(r.machineCycle)).
+		Operation("machineCycle").
+		Doc("sends a power cycle to the machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.EmptyBody{}).
@@ -1256,7 +1267,7 @@ func gatherNetworks(ds *datastore.RethinkStore, allocationSpec *machineAllocatio
 	boolTrue := true
 	err = ds.SearchNetworks(&datastore.NetworkSearchQuery{PrivateSuper: &boolTrue}, &privateSuperNetworks)
 	if err != nil {
-		return nil, errors.Wrap(err, "partition has no private super network")
+		return nil, fmt.Errorf("partition has no private super network: %w", err)
 	}
 
 	specNetworks, err := gatherNetworksFromSpec(ds, allocationSpec, partition, privateSuperNetworks)
@@ -2118,6 +2129,10 @@ func (r machineResource) machineReset(request *restful.Request, response *restfu
 	r.machineCmd("machineReset", metal.MachineResetCmd, request, response)
 }
 
+func (r machineResource) machineCycle(request *restful.Request, response *restful.Response) {
+	r.machineCmd("machineCycle", metal.MachineCycleCmd, request, response)
+}
+
 func (r machineResource) machineBios(request *restful.Request, response *restful.Response) {
 	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
 }
@@ -2195,7 +2210,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 	}
 
 	switch op {
-	case "machineReset", "machineOff":
+	case "machineReset", "machineOff", "machineCycle":
 		event := string(metal.ProvisioningEventPlannedReboot)
 		_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: op})
 		if checkError(request, response, utils.CurrentFuncName(), err) {

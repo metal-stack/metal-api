@@ -359,6 +359,7 @@ const (
 	MachineOnCmd             MachineCommand = "ON"
 	MachineOffCmd            MachineCommand = "OFF"
 	MachineResetCmd          MachineCommand = "RESET"
+	MachineCycleCmd          MachineCommand = "CYCLE"
 	MachineBiosCmd           MachineCommand = "BIOS"
 	MachineDiskCmd           MachineCommand = "DISK"
 	MachinePxeCmd            MachineCommand = "PXE"
