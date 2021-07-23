@@ -142,8 +142,8 @@ func (ir imageResource) findImages(request *restful.Request, response *restful.R
 	}
 	result := []*v1.ImageResponse{}
 
-	for _, i := range img {
-		result = append(result, v1.NewImageResponse(&i))
+	for i := range img {
+		result = append(result, v1.NewImageResponse(&img[i]))
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
