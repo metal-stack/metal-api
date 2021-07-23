@@ -1684,13 +1684,16 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 
 	ec, err := r.ds.FindProvisioningEventContainer(id)
 
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	// when there's no event container, we delete the machine anyway
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 	}
-
-	if !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
-		checkError(request, response, utils.CurrentFuncName(), errors.New("can only delete dead machines"))
-		return
+	if err == nil && !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
+		if checkError(request, response, utils.CurrentFuncName(), errors.New("can only delete dead machines")) {
+			return
+		}
 	}
 
 	switches, err := r.ds.SearchSwitchesConnectedToMachine(m)
