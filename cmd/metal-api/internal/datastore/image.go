@@ -27,19 +27,12 @@ func (rs *RethinkStore) FindImages(id string) ([]metal.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	os, _, err := utils.GetOsAndSemverFromImage(id)
+	imgs, err := getImagesFor(id, allImages)
 	if err != nil {
-		return nil, metal.NotFound("no image for id:%s found:%v", id, err)
+		return nil, metal.NotFound("no images for id:%s found:%v", id, err)
 	}
 
-	result := []metal.Image{}
-	for _, img := range allImages {
-		if img.OS == os {
-			result = append(result, img)
-		}
-	}
-
-	return result, nil
+	return imgs, nil
 }
 
 // FindImage returns an image for the given image id.
@@ -184,6 +177,49 @@ func (rs *RethinkStore) getMostRecentImageFor(id string, images metal.Images) (*
 		return latestImage, nil
 	}
 	return nil, fmt.Errorf("no image for os:%s version:%s found", os, sv)
+}
+
+// getImagesFor
+// the id is in the form of: <name>-<version>
+// where name is for example ubuntu or firewall
+// version must be a semantic version, see https://semver.org/
+// we decided to specify the version in the form of major.minor.patch,
+// where patch is in the form of YYYYMMDD
+// If version is not fully specified, e.g. ubuntu-19.10 or ubuntu-19.10
+// then all ubuntu images (ubuntu-19.10.*) are returned
+// If patch is specified e.g. ubuntu-20.04.20200502 then this exact image is searched.
+func getImagesFor(id string, images metal.Images) ([]metal.Image, error) {
+	os, sv, err := utils.GetOsAndSemverFromImage(id)
+	if err != nil {
+		return nil, err
+	}
+
+	matcher := "~"
+	// if patch is given return a exact match
+	if sv.Patch() > 0 {
+		matcher = "="
+	}
+	constraint, err := semver.NewConstraint(matcher + sv.String())
+	if err != nil {
+		return nil, fmt.Errorf("could not create constraint of image version:%s err:%w", sv, err)
+	}
+
+	result := []metal.Image{}
+	for i := range images {
+		image := images[i]
+		if os != image.OS {
+			continue
+		}
+		v, err := semver.NewVersion(image.Version)
+		if err != nil {
+			continue
+		}
+		if !constraint.Check(v) {
+			continue
+		}
+		result = append(result, image)
+	}
+	return result, nil
 }
 
 func sortImages(images []metal.Image) []metal.Image {
