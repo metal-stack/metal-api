@@ -21,6 +21,27 @@ func (rs *RethinkStore) GetImage(id string) (*metal.Image, error) {
 	return &i, nil
 }
 
+// FindImages returns all images for the given image id.
+func (rs *RethinkStore) FindImages(id string) ([]metal.Image, error) {
+	allImages, err := rs.ListImages()
+	if err != nil {
+		return nil, err
+	}
+	os, _, err := utils.GetOsAndSemverFromImage(id)
+	if err != nil {
+		return nil, metal.NotFound("no image for id:%s found:%v", id, err)
+	}
+
+	result := []metal.Image{}
+	for _, img := range allImages {
+		if img.OS == os {
+			result = append(result, img)
+		}
+	}
+
+	return result, nil
+}
+
 // FindImage returns an image for the given image id.
 func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 	allImages, err := rs.ListImages()
