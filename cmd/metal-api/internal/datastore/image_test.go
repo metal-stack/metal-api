@@ -351,6 +351,83 @@ func Test_getMostRecentImageForFirewall(t *testing.T) {
 	}
 }
 
+func Test_getImagesFor(t *testing.T) {
+	valid := time.Now().Add(time.Hour)
+	ubuntu14_1 := metal.Image{Base: metal.Base{ID: "ubuntu-14.1"}, OS: "ubuntu", Version: "14.1", ExpirationDate: valid}
+	ubuntu14_04 := metal.Image{Base: metal.Base{ID: "ubuntu-14.04"}, OS: "ubuntu", Version: "14.04", ExpirationDate: valid}
+	ubuntu17_04 := metal.Image{Base: metal.Base{ID: "ubuntu-17.04"}, OS: "ubuntu", Version: "17.04", ExpirationDate: valid}
+	ubuntu17_10 := metal.Image{Base: metal.Base{ID: "ubuntu-17.10"}, OS: "ubuntu", Version: "17.10", ExpirationDate: valid}
+	ubuntu18_04 := metal.Image{Base: metal.Base{ID: "ubuntu-18.04"}, OS: "ubuntu", Version: "18.04", ExpirationDate: valid}
+	ubuntu19_04 := metal.Image{Base: metal.Base{ID: "ubuntu-19.04"}, OS: "ubuntu", Version: "19.4", ExpirationDate: valid}
+	ubuntu19_10 := metal.Image{Base: metal.Base{ID: "ubuntu-19.10"}, OS: "ubuntu", Version: "19.10", ExpirationDate: valid}
+	ubuntu20_04_20200401 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200401"}, OS: "ubuntu", Version: "20.04.20200401", ExpirationDate: valid}
+	ubuntu20_04_20200501 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200501"}, OS: "ubuntu", Version: "20.04.20200501", ExpirationDate: valid}
+	ubuntu20_04_20200502 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200502"}, OS: "ubuntu", Version: "20.04.20200502", ExpirationDate: valid}
+	ubuntu20_04_20200603 := metal.Image{Base: metal.Base{ID: "ubuntu-20.04.20200603"}, OS: "ubuntu", Version: "20.04.20200603", ExpirationDate: valid}
+
+	alpine3_9 := metal.Image{Base: metal.Base{ID: "alpine-3.9"}, OS: "alpine", Version: "3.9", ExpirationDate: valid}
+	alpine3_9_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.9.20191012"}, OS: "alpine", Version: "3.9.20191012", ExpirationDate: valid}
+	alpine3_10 := metal.Image{Base: metal.Base{ID: "alpine-3.10"}, OS: "alpine", Version: "3.10", ExpirationDate: valid}
+	alpine3_10_20191012 := metal.Image{Base: metal.Base{ID: "alpine-3.10.20191012"}, OS: "alpine", Version: "3.10.20191012", ExpirationDate: valid}
+	tests := []struct {
+		name    string
+		id      string
+		images  []metal.Image
+		want    []metal.Image
+		wantErr bool
+	}{
+		{
+			name:    "simple",
+			id:      "ubuntu-20.04",
+			images:  []metal.Image{ubuntu20_04_20200502, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603},
+			want:    []metal.Image{ubuntu20_04_20200502, ubuntu20_04_20200401, ubuntu20_04_20200501, ubuntu20_04_20200603},
+			wantErr: false,
+		},
+		{
+			name:    "patch given with no match",
+			id:      "ubuntu-20.04.2020",
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    []metal.Image{},
+			wantErr: false,
+		},
+		{
+			name:    "patch given with match",
+			id:      "ubuntu-20.04.20200502",
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    []metal.Image{ubuntu20_04_20200502},
+			wantErr: false,
+		},
+		{
+			name:    "alpine",
+			id:      "alpine-3.10",
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, alpine3_10_20191012, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, alpine3_10, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    []metal.Image{alpine3_10_20191012, alpine3_10},
+			wantErr: false,
+		},
+		{
+			name:    "alpine II",
+			id:      "alpine-3.9",
+			images:  []metal.Image{ubuntu20_04_20200502, alpine3_9, ubuntu19_10, ubuntu17_04, alpine3_10_20191012, ubuntu20_04_20200401, ubuntu19_04, ubuntu14_1, ubuntu20_04_20200501, ubuntu18_04, alpine3_10, ubuntu14_04, ubuntu17_10, ubuntu20_04_20200603, alpine3_9_20191012},
+			want:    []metal.Image{alpine3_9, alpine3_9_20191012},
+			wantErr: false,
+		},
+	}
+
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getImagesFor(tt.id, tt.images)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getImagesFor() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getImagesFor() %s\n", cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
 func Test_sortImages(t *testing.T) {
 	firewall2 := metal.Image{Base: metal.Base{ID: "firewall-2.0.20200331"}, OS: "firewall", Version: "2.0.20200331"}
 	firewallubuntu2 := metal.Image{Base: metal.Base{ID: "firewall-ubuntu-2.0.20200331"}, OS: "firewall-ubuntu", Version: "2.0.20200331"}
