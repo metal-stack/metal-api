@@ -57,10 +57,10 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/list").
+	ws.Route(ws.GET("/{id}/query").
 		To(ir.findImages).
 		Operation("findImages by id").
-		Doc("finda all images by id").
+		Doc("query all images which match at least id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]v1.ImageResponse{}).
