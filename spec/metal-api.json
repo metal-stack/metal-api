@@ -5111,12 +5111,12 @@
         ]
       }
     },
-    "/v1/image/{id}/list": {
+    "/v1/image/{id}/query": {
       "get": {
         "consumes": [
           "application/json"
         ],
-        "operationId": "findImages by id",
+        "operationId": "queryImages by id",
         "parameters": [
           {
             "description": "identifier of the image",
@@ -5146,7 +5146,7 @@
             }
           }
         },
-        "summary": "finda all images by id",
+        "summary": "query all images which match at least id",
         "tags": [
           "image"
         ]

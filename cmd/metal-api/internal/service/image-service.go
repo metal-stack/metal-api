@@ -58,8 +58,8 @@ func (ir imageResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/{id}/query").
-		To(ir.findImages).
-		Operation("findImages by id").
+		To(ir.queryImages).
+		Operation("queryImages by id").
 		Doc("query all images which match at least id").
 		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -133,7 +133,7 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 	}
 }
 
-func (ir imageResource) findImages(request *restful.Request, response *restful.Response) {
+func (ir imageResource) queryImages(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	img, err := ir.ds.FindImages(id)
