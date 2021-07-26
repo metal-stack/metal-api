@@ -57,6 +57,16 @@ func (ir imageResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.GET("/{id}/query").
+		To(ir.queryImages).
+		Operation("queryImages by id").
+		Doc("query all images which match at least id").
+		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.GET("/{id}/latest").
 		To(ir.findLatestImage).
 		Operation("findLatestImage").
@@ -117,6 +127,25 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (ir imageResource) queryImages(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	img, err := ir.ds.FindImages(id)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	result := []*v1.ImageResponse{}
+
+	for i := range img {
+		result = append(result, v1.NewImageResponse(&img[i]))
+	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
