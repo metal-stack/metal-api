@@ -390,9 +390,11 @@ func TestMakeBGPFilterFirewall(t *testing.T) {
 
 func TestMakeBGPFilterMachine(t *testing.T) {
 	type args struct {
-		machine metal.Machine
-		ipsMap  metal.IPsMap
+		machine    metal.Machine
+		ipsMap     metal.IPsMap
+		fwNetworks []*metal.MachineNetwork
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -414,7 +416,22 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 					metal.IP{
 						IPAddress: "10.1.0.1",
 					},
+					metal.IP{
+						IPAddress: "10.1.2.3",
+					},
 				}},
+				fwNetworks: []*metal.MachineNetwork{
+					{
+						Prefixes: []string{"10.2.0.0/22", "10.1.0.0/22"},
+						Private:  true,
+					},
+					{
+						Prefixes: []string{"212.89.42.0/24"},
+					},
+					{
+						Prefixes: []string{"100.127.1.0/24"},
+					},
+				},
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
@@ -431,8 +448,9 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 								Underlay: true,
 							},
 							{
-								IPs: []string{"212.89.42.2", "212.89.42.1"},
-								Vrf: 104009,
+								IPs:      []string{"212.89.42.2", "212.89.42.1"},
+								Prefixes: []string{"212.89.42.0/24"},
+								Vrf:      104009,
 							},
 						},
 					},
@@ -448,13 +466,19 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 						IPAddress: "212.89.42.1",
 					},
 				}},
+				fwNetworks: []*metal.MachineNetwork{
+					{
+						Prefixes: []string{"212.89.42.0/24"},
+					},
+				},
 				machine: metal.Machine{
 					Allocation: &metal.MachineAllocation{
 						Project: "project",
 						MachineNetworks: []*metal.MachineNetwork{
 							{
-								IPs: []string{"212.89.42.2", "212.89.42.1"},
-								Vrf: 104009,
+								IPs:      []string{"212.89.42.2", "212.89.42.1"},
+								Prefixes: []string{"212.89.42.0/24"},
+								Vrf:      104009,
 							},
 						},
 					},
@@ -466,7 +490,7 @@ func TestMakeBGPFilterMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap)
+			got := makeBGPFilterMachine(tt.args.machine, tt.args.ipsMap, tt.args.fwNetworks)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeBGPFilterMachine() = %v, want %v", got, tt.want)
 			}
@@ -524,6 +548,9 @@ func TestMakeSwitchNics(t *testing.T) {
 						metal.IP{
 							IPAddress: "212.89.1.1",
 						},
+						metal.IP{
+							IPAddress: "10.0.0.1",
+						},
 					},
 				},
 				images: metal.ImageMap{
@@ -537,6 +564,15 @@ func TestMakeSwitchNics(t *testing.T) {
 						Base: metal.Base{ID: "m1"},
 						Allocation: &metal.MachineAllocation{
 							Project: "project",
+							MachineNetworks: []*metal.MachineNetwork{
+								{
+									NetworkID:      "private",
+									Vrf:            2,
+									Private:        true,
+									PrivatePrimary: true,
+									IPs:            []string{"10.0.0.1"},
+								},
+							},
 						},
 					},
 					metal.Machine{
@@ -545,8 +581,22 @@ func TestMakeSwitchNics(t *testing.T) {
 							Project: "p",
 							ImageID: "fwimg",
 							MachineNetworks: []*metal.MachineNetwork{
-								{Vrf: 1},
-								{Vrf: 2},
+								{
+									NetworkID: "underlay",
+									Vrf:       1,
+								},
+								{
+									NetworkID:      "private",
+									Vrf:            2,
+									Private:        true,
+									PrivatePrimary: true,
+									Prefixes:       []string{"10.0.0.1/24"},
+								},
+								{
+									NetworkID: "external",
+									Vrf:       3,
+									Prefixes:  []string{"212.89.1.0/24"},
+								},
 							},
 						},
 					},
@@ -557,7 +607,7 @@ func TestMakeSwitchNics(t *testing.T) {
 					Name: "swp1",
 					Vrf:  "vrf1",
 					BGPFilter: &v1.BGPFilter{
-						CIDRs: []string{"212.89.1.1/32"},
+						CIDRs: []string{"10.0.0.1/24", "212.89.1.1/32"},
 						VNIs:  []string{},
 					},
 				},
@@ -566,7 +616,7 @@ func TestMakeSwitchNics(t *testing.T) {
 					Vrf:  "default",
 					BGPFilter: &v1.BGPFilter{
 						CIDRs: []string{},
-						VNIs:  []string{"1", "2"},
+						VNIs:  []string{"1", "2", "3"},
 					},
 				},
 			},
@@ -577,7 +627,8 @@ func TestMakeSwitchNics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.images, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
+
+				t.Errorf("makeSwitchNics() = %v, want %v, diff: %s", got, tt.want, cmp.Diff(got, tt.want))
 			}
 		})
 	}

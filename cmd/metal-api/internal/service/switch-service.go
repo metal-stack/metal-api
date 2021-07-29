@@ -628,40 +628,51 @@ func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 	return v1.NewBGPFilter(vnis, cidrs)
 }
 
-func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
+func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap, fwNetworks []*metal.MachineNetwork) v1.BGPFilter {
 	vnis := []string{}
 	cidrs := []string{}
 
-	var private *metal.MachineNetwork
-	var underlay *metal.MachineNetwork
-	for _, net := range m.Allocation.MachineNetworks {
-		if net.Private {
-			private = net
-		} else if net.Underlay {
-			underlay = net
+	privateNets := []string{}
+	for _, n := range m.Allocation.MachineNetworks {
+		nt, _ := n.NetworkType()
+		if nt == nil {
+			continue
+		}
+
+		if nt.Private {
+			privateNets = append(privateNets, n.Prefixes...)
 		}
 	}
 
-	// Allow all prefixes of the private network
-	if private != nil {
-		cidrs = append(cidrs, private.Prefixes...)
+	externalNets := []string{}
+	for _, fwNet := range fwNetworks {
+		nt, _ := fwNet.NetworkType()
+		if nt == nil {
+			continue
+		}
+
+		if nt.Private {
+			privateNets = append(privateNets, fwNet.Prefixes...)
+		} else if nt.Name == "external" {
+			externalNets = append(externalNets, fwNet.Prefixes...)
+		}
 	}
+
+	// Allow all prefixes of private networks attached directly to the machine
+	// or via firewall
+	cidrs = append(cidrs, privateNets...)
+
+	// Allow all prefixes of external networks allocated for the project
 	for _, i := range ips[m.Allocation.Project] {
-		// No need to add /32 addresses of the primary network to the whitelist.
-		if private != nil && private.ContainsIP(i.IPAddress) {
-			continue
+		if metal.ContainsIP(externalNets, i.IPAddress) {
+			cidrs = append(cidrs, fmt.Sprintf("%s/32", i.IPAddress))
 		}
-		// Do not allow underlay addresses to be announced.
-		if underlay != nil && underlay.ContainsIP(i.IPAddress) {
-			continue
-		}
-		// Allow all other ip addresses allocated for the project.
-		cidrs = append(cidrs, fmt.Sprintf("%s/32", i.IPAddress))
 	}
-	return v1.NewBGPFilter(vnis, cidrs)
+
+	return v1.NewBGPFilter(vnis, utils.UniqueSorted(cidrs))
 }
 
-func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.ImageMap) v1.BGPFilter {
+func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.ImageMap, fwNetworks []*metal.MachineNetwork) v1.BGPFilter {
 	var filter v1.BGPFilter
 	if m.IsFirewall(iMap) {
 		// vrf "default" means: the firewall was successfully allocated and the switch port configured
@@ -670,9 +681,39 @@ func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.Ima
 			filter = makeBGPFilterFirewall(m)
 		}
 	} else {
-		filter = makeBGPFilterMachine(m, ips)
+		filter = makeBGPFilterMachine(m, ips, fwNetworks)
 	}
 	return filter
+}
+
+func findFirewallNetworks(m *metal.Machine, machines metal.Machines, iMap metal.ImageMap) (firewallNetworks []*metal.MachineNetwork) {
+	var primaryNetworkID string
+	for _, m := range m.Allocation.MachineNetworks {
+		nt, _ := m.NetworkType()
+		if nt == nil {
+			continue
+		}
+		if *nt == metal.PrivatePrimaryShared || *nt == metal.PrivatePrimaryUnshared {
+			primaryNetworkID = m.NetworkID
+		}
+	}
+
+	if primaryNetworkID == "" {
+		return
+	}
+
+	for _, n := range machines {
+		if n.Allocation == nil || !n.IsFirewall(iMap) {
+			continue
+		}
+		for _, fwn := range n.Allocation.MachineNetworks {
+			if fwn.NetworkID == primaryNetworkID {
+				firewallNetworks = n.Allocation.MachineNetworks
+				return
+			}
+		}
+	}
+	return
 }
 
 func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, machines metal.Machines) v1.SwitchNics {
@@ -694,7 +735,8 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, mach
 		m := machinesBySwp[n.Name]
 		var filter *v1.BGPFilter
 		if m != nil && m.Allocation != nil {
-			f := makeBGPFilter(*m, n.Vrf, ips, iMap)
+			fwNetworks := findFirewallNetworks(m, machines, iMap)
+			f := makeBGPFilter(*m, n.Vrf, ips, iMap, fwNetworks)
 			filter = &f
 		}
 		nic := v1.SwitchNic{
@@ -764,6 +806,7 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 	if err != nil {
 		logger.Errorw("could not find machines")
 	}
+
 	for i := range ss {
 		sw := ss[i]
 		var p *metal.Partition
