@@ -1593,25 +1593,6 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		}
 	}
 
-	old := *m
-
-	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
-	m.Allocation.MachineSetup = &metal.MachineSetup{
-		ImageID:      m.Allocation.ImageID,
-		PrimaryDisk:  requestPayload.PrimaryDisk,
-		OSPartition:  requestPayload.OSPartition,
-		Initrd:       requestPayload.Initrd,
-		Cmdline:      requestPayload.Cmdline,
-		Kernel:       requestPayload.Kernel,
-		BootloaderID: requestPayload.BootloaderID,
-	}
-	m.Allocation.Reinstall = false
-
-	err = r.ds.UpdateMachine(&old, m)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	vrf := ""
 	imgs, err := r.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1635,6 +1616,26 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s", id, vrf)) {
 			return
 		}
+	}
+
+	old := *m
+
+	m.Allocation.ConsolePassword = requestPayload.ConsolePassword
+	m.Allocation.MachineSetup = &metal.MachineSetup{
+		ImageID:      m.Allocation.ImageID,
+		PrimaryDisk:  requestPayload.PrimaryDisk,
+		OSPartition:  requestPayload.OSPartition,
+		Initrd:       requestPayload.Initrd,
+		Cmdline:      requestPayload.Cmdline,
+		Kernel:       requestPayload.Kernel,
+		BootloaderID: requestPayload.BootloaderID,
+	}
+	m.Allocation.Reinstall = false
+	m.Allocation.Succeeded = true
+
+	err = r.ds.UpdateMachine(&old, m)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
