@@ -55,6 +55,9 @@
         "allocation_project": {
           "type": "string"
         },
+        "allocation_role": {
+          "type": "string"
+        },
         "allocation_succeeded": {
           "type": "boolean"
         },
@@ -923,6 +926,9 @@
           "type": "string"
         },
         "allocation_project": {
+          "type": "string"
+        },
+        "allocation_role": {
           "type": "string"
         },
         "allocation_succeeded": {
@@ -1821,6 +1827,10 @@
           "description": "indicates whether to reinstall the machine",
           "type": "boolean"
         },
+        "role": {
+          "description": "the role of the machine",
+          "type": "string"
+        },
         "ssh_pub_keys": {
           "description": "the public ssh keys to access the machine with",
           "items": {
@@ -1845,6 +1855,7 @@
         "networks",
         "project",
         "reinstall",
+        "role",
         "ssh_pub_keys",
         "succeeded"
       ]
@@ -2062,6 +2073,9 @@
           "type": "string"
         },
         "allocation_project": {
+          "type": "string"
+        },
+        "allocation_role": {
           "type": "string"
         },
         "allocation_succeeded": {
