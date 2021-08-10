@@ -11,15 +11,34 @@ import (
 // A MState is an enum which indicates the state of a machine
 type MState string
 
-// The enums for the machine states.
+// Role described the role of a machine.
+type Role string
+
 const (
+	// AvailableState describes a machine state where a machine is available for an allocation
 	AvailableState MState = ""
-	ReservedState  MState = "RESERVED"
-	LockedState    MState = "LOCKED"
+	// ReservedState describes a machine state where a machine is not being considered for random allocation
+	ReservedState MState = "RESERVED"
+	// LockedState describes a machine state where a machine cannot be deleted or allocated anymore
+	LockedState MState = "LOCKED"
 )
 
-// AllStates contains all possible values of a machine state
-var AllStates = []MState{AvailableState, ReservedState, LockedState}
+var (
+	// RoleMachine is a role that indicates the allocated machine acts as a machine
+	RoleMachine Role = "machine"
+	// RoleFirewall is a role that indicates the allocated machine acts as a firewall
+	RoleFirewall Role = "firewall"
+)
+
+var (
+	// AllStates contains all possible values of a machine state
+	AllStates = []MState{AvailableState, ReservedState, LockedState}
+	// AllRoles contains all possible values of a role
+	AllRoles = map[Role]bool{
+		RoleMachine:  true,
+		RoleFirewall: true,
+	}
+)
 
 // A MachineState describes the state of a machine. If the Value is AvailableState,
 // the machine will be available for allocation. In all other cases the allocation
@@ -94,21 +113,14 @@ type Machine struct {
 type Machines []Machine
 
 // IsFirewall returns true if this machine is a firewall machine.
-func (m *Machine) IsFirewall(iMap ImageMap) bool {
+func (m *Machine) IsFirewall() bool {
 	if m.Allocation == nil {
 		return false
 	}
-	image, ok := iMap[m.Allocation.ImageID]
-	if !ok {
-		return false
+	if m.Allocation.Role == RoleFirewall {
+		return true
 	}
-	if !image.HasFeature(ImageFeatureFirewall) {
-		return false
-	}
-	if len(m.Allocation.MachineNetworks) <= 1 {
-		return false
-	}
-	return true
+	return false
 }
 
 // A MachineAllocation stores the data which are only present for allocated machines.
@@ -128,6 +140,7 @@ type MachineAllocation struct {
 	Succeeded        bool              `rethinkdb:"succeeded" json:"succeeded"`
 	Reinstall        bool              `rethinkdb:"reinstall" json:"reinstall"`
 	MachineSetup     *MachineSetup     `rethinkdb:"setup" json:"setup"`
+	Role             Role              `rethinkdb:"role" json:"role"`
 }
 
 // A MachineSetup stores the data used for machine reinstallations.

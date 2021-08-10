@@ -69,7 +69,7 @@ type machineAllocationSpec struct {
 	Networks           v1.MachineAllocationNetworks
 	IPs                []string
 	HA                 bool
-	IsFirewall         bool
+	Role               metal.Role
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -972,7 +972,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		Networks:           requestPayload.Networks,
 		IPs:                requestPayload.IPs,
 		HA:                 false,
-		IsFirewall:         false,
+		Role:               metal.RoleMachine,
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
@@ -1004,22 +1004,11 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		mq := p.GetProject().GetQuotas().GetMachine()
 		maxMachines := mq.GetQuota().GetValue()
 		var actualMachines metal.Machines
-		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, &actualMachines)
+		err := ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID, AllocationRole: &metal.RoleFirewall}, &actualMachines)
 		if err != nil {
 			return nil, err
 		}
-		machineCount := int32(-1)
-		imageMap, err := ds.ListImages()
-		if err != nil {
-			return nil, err
-		}
-		for _, m := range actualMachines {
-			if m.IsFirewall(imageMap.ByID()) {
-				continue
-			}
-			machineCount++
-		}
-		if machineCount >= maxMachines {
+		if len(actualMachines) >= int(maxMachines) {
 			return nil, fmt.Errorf("project quota for machines reached max:%d", maxMachines)
 		}
 	}
@@ -1057,6 +1046,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		UserData:        allocationSpec.UserData,
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		MachineNetworks: []*metal.MachineNetwork{},
+		Role:            allocationSpec.Role,
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
@@ -1160,6 +1150,10 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 		return errors.New("creator should be specified")
 	}
 
+	if !metal.AllRoles[allocationSpec.Role] {
+		return fmt.Errorf("role does not exist: %s", allocationSpec.Role)
+	}
+
 	for _, ip := range allocationSpec.IPs {
 		if net.ParseIP(ip) == nil {
 			return fmt.Errorf("%q is not a valid IP address", ip)
@@ -1174,7 +1168,7 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	}
 
 	// A firewall must have either IP or Network with auto IP acquire specified.
-	if allocationSpec.IsFirewall {
+	if allocationSpec.Role == metal.RoleFirewall {
 		if len(allocationSpec.IPs) == 0 && allocationSpec.autoNetworkN() == 0 {
 			return errors.New("when no ip is given at least one auto acquire network must be specified")
 		}
@@ -1276,7 +1270,7 @@ func gatherNetworks(ds *datastore.RethinkStore, allocationSpec *machineAllocatio
 	}
 
 	var underlayNetwork *allocationNetwork
-	if allocationSpec.IsFirewall {
+	if allocationSpec.Role == metal.RoleFirewall {
 		underlayNetwork, err = gatherUnderlayNetwork(ds, partition)
 		if err != nil {
 			return nil, err
@@ -1388,7 +1382,7 @@ func gatherNetworksFromSpec(ds *datastore.RethinkStore, allocationSpec *machineA
 		primaryPrivateNetwork.networkType = metal.PrivatePrimaryShared
 	}
 
-	if !allocationSpec.IsFirewall && len(privateNetworks) > 1 {
+	if allocationSpec.Role == metal.RoleMachine && len(privateNetworks) > 1 {
 		return nil, errors.New("machines are not allowed to be placed into multiple private networks")
 	}
 
@@ -1613,12 +1607,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	}
 
 	vrf := ""
-	imgs, err := r.ds.ListImages()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if m.IsFirewall(imgs.ByID()) {
+	if m.IsFirewall() {
 		// if a machine has multiple networks, it serves as firewall, so it can not be enslaved into the tenant vrf
 		vrf = "default"
 	} else {

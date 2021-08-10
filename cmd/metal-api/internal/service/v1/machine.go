@@ -39,6 +39,7 @@ type MachineAllocation struct {
 	Succeeded        bool                      `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
+	Role             string                    `json:"role" description:"the role of the machine"`
 }
 
 type BootInfo struct {
@@ -434,6 +435,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			MachineNetworks:  networks,
 			Succeeded:        m.Allocation.Succeeded,
 			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),
+			Role:             string(m.Allocation.Role),
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall

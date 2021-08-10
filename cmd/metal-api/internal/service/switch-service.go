@@ -605,8 +605,8 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 }
 
 func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.SwitchResponse {
-	p, ips, iMap, machines := findSwitchReferencedEntites(s, ds, logger)
-	nics := makeSwitchNics(s, ips, iMap, machines)
+	p, ips, machines := findSwitchReferencedEntites(s, ds, logger)
+	nics := makeSwitchNics(s, ips, machines)
 	cons := makeSwitchCons(s)
 	return v1.NewSwitchResponse(s, p, nics, cons)
 }
@@ -661,9 +661,9 @@ func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
 	return v1.NewBGPFilter(vnis, cidrs)
 }
 
-func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.ImageMap) v1.BGPFilter {
+func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) v1.BGPFilter {
 	var filter v1.BGPFilter
-	if m.IsFirewall(iMap) {
+	if m.IsFirewall() {
 		// vrf "default" means: the firewall was successfully allocated and the switch port configured
 		// otherwise the port is still not configured yet (pxe-setup) and a BGPFilter would break the install routine
 		if vrf == "default" {
@@ -675,7 +675,7 @@ func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap, iMap metal.Ima
 	return filter
 }
 
-func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, machines metal.Machines) v1.SwitchNics {
+func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) v1.SwitchNics {
 	machinesByID := map[string]*metal.Machine{}
 	for i, m := range machines {
 		machinesByID[m.ID] = &machines[i]
@@ -694,7 +694,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, iMap metal.ImageMap, mach
 		m := machinesBySwp[n.Name]
 		var filter *v1.BGPFilter
 		if m != nil && m.Allocation != nil {
-			f := makeBGPFilter(*m, n.Vrf, ips, iMap)
+			f := makeBGPFilter(*m, n.Vrf, ips)
 			filter = &f
 		}
 		nic := v1.SwitchNic{
@@ -727,7 +727,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.ImageMap, metal.Machines) {
+func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.Machines) {
 	var err error
 
 	var p *metal.Partition
@@ -749,16 +749,11 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, lo
 		logger.Errorw("ips could not be listed", "error", err)
 	}
 
-	imgs, err := ds.ListImages()
-	if err != nil {
-		logger.Errorw("images could not be listed", "error", err)
-	}
-
-	return p, ips.ByProjectID(), imgs.ByID(), m
+	return p, ips.ByProjectID(), m
 }
 
 func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.SwitchResponse {
-	pMap, ips, iMap := getSwitchReferencedEntityMaps(ds, logger)
+	pMap, ips := getSwitchReferencedEntityMaps(ds, logger)
 	result := []*v1.SwitchResponse{}
 	m, err := ds.ListMachines()
 	if err != nil {
@@ -772,7 +767,7 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 			p = &partitionEntity
 		}
 
-		nics := makeSwitchNics(&sw, ips, iMap, m)
+		nics := makeSwitchNics(&sw, ips, m)
 		cons := makeSwitchCons(&sw)
 		result = append(result, v1.NewSwitchResponse(&sw, p, nics, cons))
 	}
@@ -780,7 +775,7 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 	return result
 }
 
-func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.PartitionMap, metal.IPsMap, metal.ImageMap) {
+func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.PartitionMap, metal.IPsMap) {
 	p, err := ds.ListPartitions()
 	if err != nil {
 		logger.Errorw("partitions could not be listed", "error", err)
@@ -791,10 +786,5 @@ func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.Sugar
 		logger.Errorw("ips could not be listed", "error", err)
 	}
 
-	imgs, err := ds.ListImages()
-	if err != nil {
-		logger.Errorw("images could not be listed", "error", err)
-	}
-
-	return p.ByID(), ips.ByProjectID(), imgs.ByID()
+	return p.ByID(), ips.ByProjectID()
 }

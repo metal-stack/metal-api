@@ -770,10 +770,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 	}{
 		{
 			spec: machineAllocationSpec{
-				UUID:       "gopher-uuid",
-				Creator:    testEmail,
-				ProjectID:  "123",
-				IsFirewall: false,
+				UUID:      "gopher-uuid",
+				Creator:   testEmail,
+				ProjectID: "123",
+				Role:      metal.RoleMachine,
 				Networks: []v1.MachineAllocationNetwork{
 					{
 						NetworkID: "network",
@@ -790,6 +790,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 				UUID:      "gopher-uuid",
 				Creator:   testEmail,
 				ProjectID: "123",
+				Role:      metal.RoleMachine,
 				Networks: []v1.MachineAllocationNetwork{
 					{
 						NetworkID:     "network",
@@ -802,10 +803,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				UUID:       "gopher-uuid",
-				Creator:    testEmail,
-				ProjectID:  "123",
-				IsFirewall: false,
+				UUID:      "gopher-uuid",
+				Creator:   testEmail,
+				ProjectID: "123",
+				Role:      metal.RoleMachine,
 			},
 			isError:  false,
 			expected: "",
@@ -817,6 +818,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 				PartitionID: "42",
 				ProjectID:   "123",
 				SizeID:      "42",
+				Role:        metal.RoleMachine,
 			},
 			isError: false,
 			name:    "partition and size id for absent uuid",
@@ -826,6 +828,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Creator:     testEmail,
 				PartitionID: "42",
 				ProjectID:   "123",
+				Role:        metal.RoleMachine,
 			},
 			isError:  true,
 			expected: "when no machine id is given, a size id must be specified",
@@ -836,6 +839,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Creator:   testEmail,
 				SizeID:    "42",
 				ProjectID: "123",
+				Role:      metal.RoleMachine,
 			},
 			isError:  true,
 			expected: "when no machine id is given, a partition id must be specified",
@@ -849,10 +853,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				UUID:       "gopher-uuid",
-				Creator:    testEmail,
-				ProjectID:  "123",
-				IsFirewall: false,
+				UUID:      "gopher-uuid",
+				Creator:   testEmail,
+				ProjectID: "123",
+				Role:      metal.RoleMachine,
 				Networks: []v1.MachineAllocationNetwork{
 					{
 						NetworkID:     "network",
@@ -870,6 +874,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Creator:   testEmail,
 				ProjectID: "123",
 				IPs:       []string{"42"},
+				Role:      metal.RoleMachine,
 			},
 			isError:  true,
 			expected: `"42" is not a valid IP address`,
@@ -877,10 +882,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				UUID:       "42",
-				Creator:    testEmail,
-				ProjectID:  "123",
-				IsFirewall: true,
+				UUID:      "42",
+				Creator:   testEmail,
+				ProjectID: "123",
+				Role:      metal.RoleFirewall,
 			},
 			isError:  true,
 			expected: "when no ip is given at least one auto acquire network must be specified",
@@ -892,6 +897,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Creator:    testEmail,
 				ProjectID:  "123",
 				SSHPubKeys: []string{"42"},
+				Role:       metal.RoleMachine,
 			},
 			isError:  true,
 			expected: `invalid public SSH key: 42`,
@@ -899,10 +905,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 		},
 		{
 			spec: machineAllocationSpec{
-				UUID:       "gopher-uuid",
-				Creator:    testEmail,
-				ProjectID:  "123",
-				IsFirewall: false,
+				UUID:      "gopher-uuid",
+				Creator:   testEmail,
+				ProjectID: "123",
+				Role:      metal.RoleMachine,
 				Networks: []v1.MachineAllocationNetwork{
 					{
 						NetworkID: "network",
@@ -1230,8 +1236,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add machine to a shared network as primary private network",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: false,
-				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Role:      metal.RoleMachine,
+				ProjectID: testdata.Partition1ExistingSharedNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
@@ -1253,8 +1259,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add machine with specific ip to a shared network as primary private network",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: false,
-				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Role:      metal.RoleMachine,
+				ProjectID: testdata.Partition1ExistingSharedNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
@@ -1277,8 +1283,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add machine with specific ip to a shared network as primary private network with ip auto acquisition implicitly disabled",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: false,
-				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Role:      metal.RoleMachine,
+				ProjectID: testdata.Partition1ExistingSharedNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						AutoAcquireIP: &boolTrue,
@@ -1302,8 +1308,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add firewall to a shared network as primary private network",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: true,
-				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Role:      metal.RoleFirewall,
+				ProjectID: testdata.Partition1ExistingSharedNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
@@ -1325,8 +1331,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add firewall with specific ip to a shared network as primary private network",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: true,
-				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Role:      metal.RoleFirewall,
+				ProjectID: testdata.Partition1ExistingSharedNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
@@ -1349,8 +1355,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add firewall to private network and shared network",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: true,
-				ProjectID:  testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				Role:      metal.RoleFirewall,
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
@@ -1381,8 +1387,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add firewall to private and shared network with specific ip",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: true,
-				ProjectID:  testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				Role:      metal.RoleFirewall,
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
@@ -1414,8 +1420,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "try to add firewall to private and shared network with specific ip that belongs to an other project",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: true,
-				ProjectID:  testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				Role:      metal.RoleFirewall,
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
@@ -1434,8 +1440,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "add firewall to multiple, private, shared networks",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: true,
-				ProjectID:  testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				Role:      metal.RoleFirewall,
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,
@@ -1475,8 +1481,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "try to add firewall to multiple, private, shared networks",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: true,
-				ProjectID:  testdata.Partition1ExistingSharedNetwork.ProjectID,
+				Role:      metal.RoleFirewall,
+				ProjectID: testdata.Partition1ExistingSharedNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingSharedNetwork.ID,
@@ -1494,8 +1500,8 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		{
 			name: "try to add machine to private network and shared network",
 			allocationSpec: &machineAllocationSpec{
-				IsFirewall: false,
-				ProjectID:  testdata.Partition1ExistingPrivateNetwork.ProjectID,
+				Role:      metal.RoleMachine,
+				ProjectID: testdata.Partition1ExistingPrivateNetwork.ProjectID,
 				Networks: v1.MachineAllocationNetworks{
 					v1.MachineAllocationNetwork{
 						NetworkID: testdata.Partition1ExistingPrivateNetwork.ID,

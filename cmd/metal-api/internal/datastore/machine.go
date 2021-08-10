@@ -22,11 +22,12 @@ type MachineSearchQuery struct {
 	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
-	AllocationName      *string `json:"allocation_name" optional:"true"`
-	AllocationProject   *string `json:"allocation_project" optional:"true"`
-	AllocationImageID   *string `json:"allocation_image_id" optional:"true"`
-	AllocationHostname  *string `json:"allocation_hostname" optional:"true"`
-	AllocationSucceeded *bool   `json:"allocation_succeeded" optional:"true"`
+	AllocationName      *string     `json:"allocation_name" optional:"true"`
+	AllocationProject   *string     `json:"allocation_project" optional:"true"`
+	AllocationImageID   *string     `json:"allocation_image_id" optional:"true"`
+	AllocationHostname  *string     `json:"allocation_hostname" optional:"true"`
+	AllocationRole      *metal.Role `json:"allocation_role" optional:"true"`
+	AllocationSucceeded *bool       `json:"allocation_succeeded" optional:"true"`
 
 	// network
 	NetworkIDs                 []string `json:"network_ids" optional:"true"`
@@ -137,6 +138,12 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.AllocationHostname != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("allocation").Field("hostname").Eq(*p.AllocationHostname)
+		})
+	}
+
+	if p.AllocationRole != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("allocation").Field("role").Eq(*p.AllocationRole)
 		})
 	}
 
