@@ -3169,10 +3169,6 @@
           "description": "the vrf this network is associated with",
           "format": "integer",
           "type": "integer"
-        },
-        "vrfshared": {
-          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)",
-          "type": "boolean"
         }
       },
       "required": [
@@ -3267,10 +3263,6 @@
           "description": "the vrf this network is associated with",
           "format": "integer",
           "type": "integer"
-        },
-        "vrfshared": {
-          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)",
-          "type": "boolean"
         }
       },
       "required": [
