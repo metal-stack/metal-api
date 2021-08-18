@@ -39,7 +39,7 @@ type MachineAllocation struct {
 	Succeeded        bool                      `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
-	Role             string                    `json:"role" description:"the role of the machine"`
+	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
 }
 
 type BootInfo struct {

@@ -11,7 +11,7 @@ import (
 // A MState is an enum which indicates the state of a machine
 type MState string
 
-// Role described the role of a machine.
+// Role describes the role of a machine.
 type Role string
 
 const (

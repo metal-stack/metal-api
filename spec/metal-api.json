@@ -1829,6 +1829,10 @@
         },
         "role": {
           "description": "the role of the machine",
+          "enum": [
+            "firewall",
+            "machine"
+          ],
           "type": "string"
         },
         "ssh_pub_keys": {
