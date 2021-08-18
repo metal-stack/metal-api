@@ -122,12 +122,7 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 		return
 	}
 
-	imgs, err := r.ds.ListImages()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if !fw.IsFirewall(imgs.ByID()) {
+	if !fw.IsFirewall() {
 		sendError(utils.Logger(request), response, utils.CurrentFuncName(), httperrors.NotFound(errors.New("machine is not a firewall")))
 		return
 	}
@@ -146,23 +141,12 @@ func (r firewallResource) findFirewalls(request *restful.Request, response *rest
 		return
 	}
 
-	var possibleFws metal.Machines
-	err = r.ds.SearchMachines(&requestPayload, &possibleFws)
+	requestPayload.AllocationRole = &metal.RoleFirewall
+
+	var fws metal.Machines
+	err = r.ds.SearchMachines(&requestPayload, &fws)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
-	}
-
-	imgs, err := r.ds.ListImages()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	fws := metal.Machines{}
-	imageMap := imgs.ByID()
-	for i := range possibleFws {
-		if possibleFws[i].IsFirewall(imageMap) {
-			fws = append(fws, possibleFws[i])
-		}
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponseList(fws, r.ds, utils.Logger(request).Sugar()))
@@ -173,23 +157,12 @@ func (r firewallResource) findFirewalls(request *restful.Request, response *rest
 }
 
 func (r firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
-	possibleFws, err := r.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	// potentially a little unefficient because images are also retrieved for creating the machine list response later
-	imgs, err := r.ds.ListImages()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
 	var fws metal.Machines
-	imageMap := imgs.ByID()
-	for i := range possibleFws {
-		if possibleFws[i].IsFirewall(imageMap) {
-			fws = append(fws, possibleFws[i])
-		}
+	err := r.ds.SearchMachines(&datastore.MachineSearchQuery{
+		AllocationRole: &metal.RoleFirewall,
+	}, &fws)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponseList(fws, r.ds, utils.Logger(request).Sugar()))
@@ -273,7 +246,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		Networks:    requestPayload.Networks,
 		IPs:         requestPayload.IPs,
 		HA:          ha,
-		IsFirewall:  true,
+		Role:        metal.RoleFirewall,
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)

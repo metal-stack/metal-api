@@ -103,6 +103,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	require.NotNil(allocatedMachine.Allocation.Image)
 	assert.Equal(machine.ImageID, allocatedMachine.Allocation.Image.ID)
 	assert.Equal(machine.ProjectID, allocatedMachine.Allocation.Project)
+	assert.Equal(string(metal.RoleMachine), allocatedMachine.Allocation.Role)
 	assert.Len(allocatedMachine.Allocation.MachineNetworks, 1)
 	assert.Equal(allocatedMachine.Allocation.MachineNetworks[0].NetworkType, metal.PrivatePrimaryUnshared.String())
 	assert.NotEmpty(allocatedMachine.Allocation.MachineNetworks[0].Vrf)

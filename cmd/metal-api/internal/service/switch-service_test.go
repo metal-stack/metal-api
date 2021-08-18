@@ -478,7 +478,6 @@ func TestMakeSwitchNics(t *testing.T) {
 	type args struct {
 		s        *metal.Switch
 		ips      metal.IPsMap
-		images   metal.ImageMap
 		machines metal.Machines
 	}
 	tests := []struct {
@@ -526,12 +525,6 @@ func TestMakeSwitchNics(t *testing.T) {
 						},
 					},
 				},
-				images: metal.ImageMap{
-					"fwimg": metal.Image{
-						Base:     metal.Base{ID: "fwimg"},
-						Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureFirewall: true},
-					},
-				},
 				machines: metal.Machines{
 					metal.Machine{
 						Base: metal.Base{ID: "m1"},
@@ -543,7 +536,7 @@ func TestMakeSwitchNics(t *testing.T) {
 						Base: metal.Base{ID: "fw1"},
 						Allocation: &metal.MachineAllocation{
 							Project: "p",
-							ImageID: "fwimg",
+							Role:    metal.RoleFirewall,
 							MachineNetworks: []*metal.MachineNetwork{
 								{Vrf: 1},
 								{Vrf: 2},
@@ -575,7 +568,7 @@ func TestMakeSwitchNics(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.images, tt.args.machines)
+			got := makeSwitchNics(tt.args.s, tt.args.ips, tt.args.machines)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("makeSwitchNics() = %v, want %v", got, tt.want)
 			}
