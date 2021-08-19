@@ -66,7 +66,7 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 		return nil
 	}
 
-	var constraints []SizeConstraint
+	constraints := []SizeConstraint{}
 	for _, c := range s.Constraints {
 		constraint := SizeConstraint{
 			Type: c.Type,
@@ -75,6 +75,7 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 		}
 		constraints = append(constraints, constraint)
 	}
+
 	return &SizeResponse{
 		Common: Common{
 			Identifiable: Identifiable{
