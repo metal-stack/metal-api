@@ -863,6 +863,13 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			continue
 		}
 
+		powerState, err := metal.PowerStateFrom(report.PowerState)
+		if err != nil {
+			logger.Errorf("unable to read reported power state", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
+		} else {
+			newMachine.IPMI.PowerState = powerState
+		}
+
 		// machine was created by a PXE boot event and has no partition set.
 		if oldMachine.PartitionID == "" {
 			newMachine.PartitionID = p.ID

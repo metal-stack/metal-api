@@ -62,14 +62,22 @@ func MachineStateFrom(name string) (MState, error) {
 	}
 }
 
-// LEDState is the state of the LED of the Machine
-type LEDState string
+type (
+	// LEDState is the state of the LED of the Machine
+	LEDState string
+	// PowerState is the power state of the machine
+	PowerState string
+)
 
 const (
 	// LEDStateOn LED is on
 	LEDStateOn LEDState = "LED-ON"
 	// LEDStateOff LED is off
 	LEDStateOff LEDState = "LED-OFF"
+	// PowerStateOn indicates that the machine is powered on
+	PowerStateOn PowerState = "on"
+	// PowerStateOff indicates that the machine is powered off
+	PowerStateOff PowerState = "off"
 )
 
 // LEDStateFrom converts an LEDState string to the corresponding type
@@ -81,6 +89,18 @@ func LEDStateFrom(name string) (LEDState, error) {
 		return LEDStateOn, nil
 	default:
 		return "", fmt.Errorf("unknown LEDState:%s", name)
+	}
+}
+
+// PowerStateFrom converts an PowerState string to the corresponding type
+func PowerStateFrom(name string) (PowerState, error) {
+	switch name {
+	case string(PowerStateOff):
+		return PowerStateOff, nil
+	case string(PowerStateOn):
+		return PowerStateOn, nil
+	default:
+		return "", fmt.Errorf("unknown power state:%s", name)
 	}
 }
 
@@ -338,13 +358,14 @@ type Fru struct {
 // IPMI connection data
 type IPMI struct {
 	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
-	Address    string `rethinkdb:"address" json:"address"`
-	MacAddress string `rethinkdb:"mac" json:"mac"`
-	User       string `rethinkdb:"user" json:"user"`
-	Password   string `rethinkdb:"password" json:"password"`
-	Interface  string `rethinkdb:"interface" json:"interface"`
-	Fru        Fru    `rethinkdb:"fru" json:"fru"`
-	BMCVersion string `rethinkdb:"bmcversion" json:"bmcversion"`
+	Address    string     `rethinkdb:"address" json:"address"`
+	MacAddress string     `rethinkdb:"mac" json:"mac"`
+	User       string     `rethinkdb:"user" json:"user"`
+	Password   string     `rethinkdb:"password" json:"password"`
+	Interface  string     `rethinkdb:"interface" json:"interface"`
+	Fru        Fru        `rethinkdb:"fru" json:"fru"`
+	BMCVersion string     `rethinkdb:"bmcversion" json:"bmcversion"`
+	PowerState PowerState `rethinkdb:"powerstate" json:"powerstate"`
 }
 
 // BIOS contains machine bios information

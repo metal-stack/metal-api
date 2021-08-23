@@ -2400,6 +2400,14 @@
         "password": {
           "type": "string"
         },
+        "powerstate": {
+          "description": "the current power state of the machine",
+          "enum": [
+            "off",
+            "on"
+          ],
+          "type": "string"
+        },
         "user": {
           "type": "string"
         }
@@ -2411,6 +2419,7 @@
         "interface",
         "mac",
         "password",
+        "powerstate",
         "user"
       ]
     },
@@ -2521,13 +2530,21 @@
         },
         "FRU": {
           "$ref": "#/definitions/v1.MachineFru"
+        },
+        "PowerState": {
+          "enum": [
+            "off",
+            "on"
+          ],
+          "type": "string"
         }
       },
       "required": [
         "BIOSVersion",
         "BMCIp",
         "BMCVersion",
-        "FRU"
+        "FRU",
+        "PowerState"
       ]
     },
     "v1.MachineIpmiReportResponse": {

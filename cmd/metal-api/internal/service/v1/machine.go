@@ -143,6 +143,7 @@ type MachineIPMI struct {
 	Interface  string     `json:"interface"`
 	Fru        MachineFru `json:"fru"`
 	BMCVersion string     `json:"bmcversion"`
+	PowerState string     `json:"powerstate" description:"the current power state of the machine" enum:"on|off"`
 }
 
 type MachineFru struct {
@@ -230,6 +231,7 @@ type MachineIpmiReport struct {
 	FRU         *MachineFru
 	BIOSVersion string
 	BMCVersion  string
+	PowerState  string `enum:"on|off"`
 }
 
 type MachineIpmiReports struct {
@@ -319,6 +321,8 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 		productSerial = *r.Fru.ProductSerial
 	}
 
+	state, _ := metal.PowerStateFrom(r.PowerState)
+
 	return metal.IPMI{
 		Address:    r.Address,
 		MacAddress: r.MacAddress,
@@ -326,6 +330,7 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 		Password:   r.Password,
 		Interface:  r.Interface,
 		BMCVersion: r.BMCVersion,
+		PowerState: state,
 		Fru: metal.Fru{
 			ChassisPartNumber:   chassisPartNumber,
 			ChassisPartSerial:   chassisPartSerial,
@@ -351,6 +356,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			Password:   m.IPMI.Password,
 			Interface:  m.IPMI.Interface,
 			BMCVersion: m.IPMI.BMCVersion,
+			PowerState: string(m.IPMI.PowerState),
 			Fru: MachineFru{
 				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
 				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,
