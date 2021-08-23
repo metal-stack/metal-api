@@ -2525,13 +2525,17 @@
         },
         "FRU": {
           "$ref": "#/definitions/v1.MachineFru"
+        },
+        "PowerState": {
+          "type": "string"
         }
       },
       "required": [
         "BIOSVersion",
         "BMCIp",
         "BMCVersion",
-        "FRU"
+        "FRU",
+        "PowerState"
       ]
     },
     "v1.MachineIpmiReportResponse": {

@@ -231,6 +231,7 @@ type MachineIpmiReport struct {
 	FRU         *MachineFru
 	BIOSVersion string
 	BMCVersion  string
+	PowerState  string
 }
 
 type MachineIpmiReports struct {
@@ -337,6 +338,7 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 			ProductPartNumber:   productPartNumber,
 			ProductSerial:       productSerial,
 		},
+		PowerState: r.PowerState,
 	}
 }
 
@@ -352,6 +354,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			Password:   m.IPMI.Password,
 			Interface:  m.IPMI.Interface,
 			BMCVersion: m.IPMI.BMCVersion,
+			PowerState: m.IPMI.PowerState,
 			Fru: MachineFru{
 				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
 				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,
