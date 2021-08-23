@@ -882,6 +882,10 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			newMachine.IPMI.BMCVersion = report.BMCVersion
 		}
 
+		if report.PowerState != "" {
+			newMachine.IPMI.PowerState = report.PowerState
+		}
+
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
 			logger.Errorf("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
