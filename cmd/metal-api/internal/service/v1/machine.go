@@ -143,6 +143,7 @@ type MachineIPMI struct {
 	Interface  string     `json:"interface"`
 	Fru        MachineFru `json:"fru"`
 	BMCVersion string     `json:"bmcversion"`
+	PowerState string     `json:"powerstate"`
 }
 
 type MachineFru struct {
