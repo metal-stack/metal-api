@@ -950,6 +950,18 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		}
 	}
 
+	// Check early when fsl is given, if this is at least possible.
+	if requestPayload.FilesystemLayoutID != nil {
+		fsls, err := r.ds.ListFilesystemLayouts()
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		_, err = fsls.From(requestPayload.SizeID, image.ID)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
 	user, err := r.userGetter.User(request.Request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
