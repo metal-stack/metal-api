@@ -950,18 +950,6 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		}
 	}
 
-	// Check early when fsl is given, if this is at least possible.
-	if requestPayload.FilesystemLayoutID != nil {
-		fsls, err := r.ds.ListFilesystemLayouts()
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		_, err = fsls.From(requestPayload.SizeID, image.ID)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
 	user, err := r.userGetter.User(request.Request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -1025,6 +1013,28 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 	}
 
+	fsls, err := ds.ListFilesystemLayouts()
+	if err != nil {
+		return nil, err
+	}
+	var fsl *metal.FilesystemLayout
+	// Check early when fsl is given, if this is at least possible.
+	if allocationSpec.FilesystemLayoutID != nil {
+		_, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
+		if err != nil {
+			return nil, err
+		}
+		fsl, err = ds.FindFilesystemLayout(*allocationSpec.FilesystemLayoutID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var machineCandidate *metal.Machine
 	err = retry.Do(
 		func() error {
@@ -1083,24 +1093,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 			}
 		}
 		return err
-	}
-
-	var fsl *metal.FilesystemLayout
-	if allocationSpec.FilesystemLayoutID == nil {
-		fsls, err := ds.ListFilesystemLayouts()
-		if err != nil {
-			return nil, rollbackOnError(err)
-		}
-
-		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
-		if err != nil {
-			return nil, rollbackOnError(err)
-		}
-	} else {
-		fsl, err = ds.FindFilesystemLayout(*allocationSpec.FilesystemLayoutID)
-		if err != nil {
-			return nil, rollbackOnError(err)
-		}
 	}
 
 	err = fsl.Matches(machineCandidate.Hardware)
