@@ -999,6 +999,16 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		return nil, err
 	}
 
+	// Allocation of a specific machine is requested, therefor size and partition are not given, fetch them
+	if allocationSpec.UUID != "" {
+		m, err := ds.FindMachineByID(allocationSpec.UUID)
+		if err != nil {
+			return nil, err
+		}
+		allocationSpec.SizeID = m.SizeID
+		allocationSpec.PartitionID = m.PartitionID
+	}
+
 	// Check if more machine would be allocated than project quota permits
 	if p.GetProject() != nil && p.GetProject().GetQuotas() != nil && p.GetProject().GetQuotas().GetMachine() != nil {
 		mq := p.GetProject().GetQuotas().GetMachine()
@@ -1048,8 +1058,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	}
 	// as some fields in the allocation spec are optional, they will now be clearly defined by the machine candidate
 	allocationSpec.UUID = machineCandidate.ID
-	allocationSpec.PartitionID = machineCandidate.PartitionID
-	allocationSpec.SizeID = machineCandidate.SizeID
 
 	alloc := &metal.MachineAllocation{
 		Creator:         allocationSpec.Creator,
