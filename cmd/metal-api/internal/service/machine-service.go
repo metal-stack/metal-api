@@ -1027,16 +1027,18 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		}
 	}
 
-	fsls, err := ds.ListFilesystemLayouts()
-	if err != nil {
-		return nil, err
-	}
-	// Check early if combination of size and image gives at least one valid filesystemlayout.
-	fsl, err := fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
-	if err != nil {
-		return nil, err
-	}
-	if allocationSpec.FilesystemLayoutID != nil {
+	var fsl *metal.FilesystemLayout
+	if allocationSpec.FilesystemLayoutID == nil {
+		fsls, err := ds.ListFilesystemLayouts()
+		if err != nil {
+			return nil, err
+		}
+
+		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
 		fsl, err = ds.FindFilesystemLayout(*allocationSpec.FilesystemLayoutID)
 		if err != nil {
 			return nil, err
