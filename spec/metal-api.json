@@ -2400,6 +2400,9 @@
         "password": {
           "type": "string"
         },
+        "powerstate": {
+          "type": "string"
+        },
         "user": {
           "type": "string"
         }
@@ -2411,6 +2414,7 @@
         "interface",
         "mac",
         "password",
+        "powerstate",
         "user"
       ]
     },
@@ -2521,13 +2525,17 @@
         },
         "FRU": {
           "$ref": "#/definitions/v1.MachineFru"
+        },
+        "PowerState": {
+          "type": "string"
         }
       },
       "required": [
         "BIOSVersion",
         "BMCIp",
         "BMCVersion",
-        "FRU"
+        "FRU",
+        "PowerState"
       ]
     },
     "v1.MachineIpmiReportResponse": {

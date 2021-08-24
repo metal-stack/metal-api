@@ -345,6 +345,7 @@ type IPMI struct {
 	Interface  string `rethinkdb:"interface" json:"interface"`
 	Fru        Fru    `rethinkdb:"fru" json:"fru"`
 	BMCVersion string `rethinkdb:"bmcversion" json:"bmcversion"`
+	PowerState string `rethinkdb:"powerstate" json:"powerstate"`
 }
 
 // BIOS contains machine bios information
