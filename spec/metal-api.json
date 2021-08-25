@@ -3437,6 +3437,18 @@
         "servers"
       ]
     },
+    "v1.PartitionCapacityRequest": {
+      "properties": {
+        "id": {
+          "description": "the id of the partition",
+          "type": "string"
+        },
+        "sizeid": {
+          "description": "the size to filter for",
+          "type": "string"
+        }
+      }
+    },
     "v1.PartitionCreateRequest": {
       "properties": {
         "bootconfig": {
@@ -7120,6 +7132,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "partitionCapacity",
         "produces": [
           "application/json"
@@ -7142,6 +7155,46 @@
           }
         },
         "summary": "get Partition capacity",
+        "tags": [
+          "Partition"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "partitionCapacity",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.PartitionCapacityRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.PartitionCapacity"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get partition capacity",
         "tags": [
           "Partition"
         ]

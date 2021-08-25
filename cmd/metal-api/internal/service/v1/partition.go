@@ -34,6 +34,11 @@ type PartitionResponse struct {
 	Timestamps
 }
 
+type PartitionCapacityRequest struct {
+	ID   *string `json:"id" description:"the id of the partition" optional:"true"`
+	Size *string `json:"sizeid" description:"the size to filter for" optional:"true"`
+}
+
 type PartitionCapacity struct {
 	Common
 	ServerCapacities []ServerCapacity `json:"servers" description:"servers available in this partition"`
