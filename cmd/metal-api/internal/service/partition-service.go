@@ -103,11 +103,23 @@ func (r partitionResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// Deprecated, can be removed in the future
 	ws.Route(ws.GET("/capacity").
-		To(r.partitionCapacity).
+		To(r.partitionCapacityCompat).
 		Operation("partitionCapacity").
 		Doc("get Partition capacity").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Deprecate().
+		Writes([]v1.PartitionCapacity{}).
+		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/capacity").
+		To(r.partitionCapacity).
+		Operation("partitionCapacity").
+		Doc("get partition capacity").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.PartitionCapacityRequest{}).
 		Writes([]v1.PartitionCapacity{}).
 		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -290,12 +302,12 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 	}
 }
 
-func (r partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
-	partitionCapacities, err := r.calcPartitionCapacity()
-
+func (r partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
+	partitionCapacities, err := r.calcPartitionCapacity(nil)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -303,16 +315,56 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 	}
 }
 
-func (r partitionResource) calcPartitionCapacity() ([]v1.PartitionCapacity, error) {
+func (r partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.PartitionCapacityRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	partitionCapacities, err := r.calcPartitionCapacity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
 	// FIXME bad workaround to be able to run make spec
 	if r.ds == nil {
 		return nil, nil
 	}
-	ps, err := r.ds.ListPartitions()
-	if err != nil {
-		return nil, err
+
+	var (
+		ps  metal.Partitions
+		ms  metal.Machines
+		err error
+	)
+
+	if pcr != nil && pcr.ID != nil {
+		p, err := r.ds.FindPartition(*pcr.ID)
+		if err != nil {
+			return nil, err
+		}
+		ps = metal.Partitions{*p}
+	} else {
+		ps, err = r.ds.ListPartitions()
+		if err != nil {
+			return nil, err
+		}
 	}
-	ms, err := r.ds.ListMachines()
+
+	msq := datastore.MachineSearchQuery{}
+	if pcr != nil && pcr.Size != nil {
+		msq.SizeID = pcr.Size
+	}
+
+	err = r.ds.SearchMachines(&msq, &ms)
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +474,7 @@ func (pcc partitionCapacityCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (pcc partitionCapacityCollector) Collect(ch chan<- prometheus.Metric) {
-	pcs, err := pcc.r.calcPartitionCapacity()
+	pcs, err := pcc.r.calcPartitionCapacity(nil)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to get partition capacity", zap.Error(err))
 		return
