@@ -8093,7 +8093,7 @@
         "consumes": [
           "application/json"
         ],
-        "operationId": "getTenant",
+        "operationId": "getUser",
         "parameters": [
           {
             "description": "jwt token with user information",
