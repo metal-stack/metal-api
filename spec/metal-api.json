@@ -337,6 +337,39 @@
         "version"
       ]
     },
+    "security.User": {
+      "properties": {
+        "EMail": {
+          "type": "string"
+        },
+        "Groups": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Issuer": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Subject": {
+          "type": "string"
+        },
+        "Tenant": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "EMail",
+        "Groups",
+        "Issuer",
+        "Name",
+        "Subject",
+        "Tenant"
+      ]
+    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -4911,6 +4944,12 @@
             "schema": {
               "$ref": "#/definitions/rest.status"
             }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
           }
         },
         "summary": "perform a healthcheck",
@@ -8049,6 +8088,44 @@
         ]
       }
     },
+    "/v1/user/{token}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getTenant",
+        "parameters": [
+          {
+            "description": "jwt token with user information",
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/security.User"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "extract and validate user from token",
+        "tags": [
+          "user"
+        ]
+      }
+    },
     "/v1/version": {
       "get": {
         "consumes": [
@@ -8063,6 +8140,12 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/rest.version"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           }
         },
