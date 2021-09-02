@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"net/http"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -55,6 +56,11 @@ func (r userResource) getUser(request *restful.Request, response *restful.Respon
 	u, err := r.userGetter.UserFromToken(token)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+	if u == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to extract user from token, got nil")) {
+			return
+		}
 	}
 	grps := []string{}
 	for _, g := range u.Groups {
