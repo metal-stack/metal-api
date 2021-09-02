@@ -20,7 +20,7 @@ require (
 	github.com/metal-stack/go-ipam v1.8.5
 	github.com/metal-stack/masterdata-api v0.8.8
 	github.com/metal-stack/metal-lib v0.8.1
-	github.com/metal-stack/security v0.6.3-0.20210902114508-b095a4106f5c
+	github.com/metal-stack/security v0.6.3-0.20210902115410-b12d56918e7e
 	github.com/metal-stack/v v1.0.3
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/nsqio/go-nsq v1.0.8
