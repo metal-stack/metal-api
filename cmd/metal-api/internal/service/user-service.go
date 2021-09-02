@@ -37,10 +37,10 @@ func (r userResource) webService() *restful.WebService {
 
 	tags := []string{"user"}
 
-	ws.Route(ws.GET("/").
-		To(viewer(r.getUser)).
-		Operation("getUser").
-		Doc("extract and validate user from token").
+	ws.Route(ws.GET("/me").
+		To(viewer(r.getMe)).
+		Operation("getMe").
+		Doc("extract the connecting user from auth header").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.User{}).
 		Returns(http.StatusOK, "OK", v1.User{}).
@@ -49,7 +49,7 @@ func (r userResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r userResource) getUser(request *restful.Request, response *restful.Response) {
+func (r userResource) getMe(request *restful.Request, response *restful.Response) {
 	u, err := r.userGetter.User(request.Request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return

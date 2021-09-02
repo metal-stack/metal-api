@@ -8088,12 +8088,12 @@
         ]
       }
     },
-    "/v1/user": {
+    "/v1/user/me": {
       "get": {
         "consumes": [
           "application/json"
         ],
-        "operationId": "getUser",
+        "operationId": "getMe",
         "produces": [
           "application/json"
         ],
@@ -8111,7 +8111,7 @@
             }
           }
         },
-        "summary": "extract and validate user from token",
+        "summary": "extract the connecting user from auth header",
         "tags": [
           "user"
         ]
