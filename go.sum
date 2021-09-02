@@ -710,6 +710,8 @@ github.com/metal-stack/security v0.6.3-0.20210902114508-b095a4106f5c h1:SxuG2Vpi
 github.com/metal-stack/security v0.6.3-0.20210902114508-b095a4106f5c/go.mod h1:sZC2Ezs+iAzPG9nqZcLf2qm6eBDxYTAcjSbF8RHaTNM=
 github.com/metal-stack/security v0.6.3-0.20210902115410-b12d56918e7e h1:ECsL/x963v8F6G2mO6QOH1lZgmRteDQbzk7yv1NF5DU=
 github.com/metal-stack/security v0.6.3-0.20210902115410-b12d56918e7e/go.mod h1:sZC2Ezs+iAzPG9nqZcLf2qm6eBDxYTAcjSbF8RHaTNM=
+github.com/metal-stack/security v0.6.3-0.20210902122957-342636d9734e h1:hFDwBoL31M+zyAio0hP+7A/BHE2GbQTcO1EYt1ctU94=
+github.com/metal-stack/security v0.6.3-0.20210902122957-342636d9734e/go.mod h1:sZC2Ezs+iAzPG9nqZcLf2qm6eBDxYTAcjSbF8RHaTNM=
 github.com/metal-stack/v v1.0.2/go.mod h1:YTahEu7/ishwpYKnp/VaW/7nf8+PInogkfGwLcGPdXg=
 github.com/metal-stack/v v1.0.3 h1:Sh2oBlnxrCUD+mVpzfC8HiqL045YWkxs0gpTvkjppqs=
 github.com/metal-stack/v v1.0.3/go.mod h1:YTahEu7/ishwpYKnp/VaW/7nf8+PInogkfGwLcGPdXg=
