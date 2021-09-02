@@ -8202,6 +8202,10 @@
     {
       "description": "Managing switch entities",
       "name": "switch"
+    },
+    {
+      "description": "Managing user entities",
+      "name": "user"
     }
   ]
 }
