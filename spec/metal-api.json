@@ -8088,21 +8088,12 @@
         ]
       }
     },
-    "/v1/user/{token}": {
+    "/v1/user": {
       "get": {
         "consumes": [
           "application/json"
         ],
         "operationId": "getUser",
-        "parameters": [
-          {
-            "description": "jwt token with user information",
-            "in": "path",
-            "name": "token",
-            "required": true,
-            "type": "string"
-          }
-        ],
         "produces": [
           "application/json"
         ],

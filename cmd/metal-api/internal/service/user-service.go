@@ -37,11 +37,10 @@ func (r userResource) webService() *restful.WebService {
 
 	tags := []string{"user"}
 
-	ws.Route(ws.GET("/{token}").
+	ws.Route(ws.GET("/").
 		To(viewer(r.getUser)).
 		Operation("getUser").
 		Doc("extract and validate user from token").
-		Param(ws.PathParameter("token", "jwt token with user information").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.User{}).
 		Returns(http.StatusOK, "OK", v1.User{}).
@@ -51,9 +50,7 @@ func (r userResource) webService() *restful.WebService {
 }
 
 func (r userResource) getUser(request *restful.Request, response *restful.Response) {
-	token := request.PathParameter("token")
-
-	u, err := r.userGetter.UserFromToken(token)
+	u, err := r.userGetter.User(request.Request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
