@@ -3,6 +3,7 @@ package service
 import (
 	"net/http"
 
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/security"
 
@@ -41,8 +42,8 @@ func (r userResource) webService() *restful.WebService {
 		Doc("extract and validate user from token").
 		Param(ws.PathParameter("token", "jwt token with user information").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(security.User{}).
-		Returns(http.StatusOK, "OK", security.User{}).
+		Writes(v1.User{}).
+		Returns(http.StatusOK, "OK", v1.User{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -51,12 +52,23 @@ func (r userResource) webService() *restful.WebService {
 func (r userResource) getUser(request *restful.Request, response *restful.Response) {
 	token := request.PathParameter("token")
 
-	user, err := r.userGetter.UserFromToken(token)
+	u, err := r.userGetter.UserFromToken(token)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, &user)
+	grps := []string{}
+	for _, g := range u.Groups {
+		grps = append(grps, string(g))
+	}
+	user := &v1.User{
+		EMail:   u.EMail,
+		Name:    u.Name,
+		Tenant:  u.Tenant,
+		Issuer:  u.Issuer,
+		Subject: u.Subject,
+		Groups:  grps,
+	}
+	err = response.WriteHeaderAndEntity(http.StatusOK, user)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return

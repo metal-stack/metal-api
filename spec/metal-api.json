@@ -337,39 +337,6 @@
         "version"
       ]
     },
-    "security.User": {
-      "properties": {
-        "EMail": {
-          "type": "string"
-        },
-        "Groups": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "Issuer": {
-          "type": "string"
-        },
-        "Name": {
-          "type": "string"
-        },
-        "Subject": {
-          "type": "string"
-        },
-        "Tenant": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "EMail",
-        "Groups",
-        "Issuer",
-        "Name",
-        "Subject",
-        "Tenant"
-      ]
-    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -4271,6 +4238,39 @@
         }
       }
     },
+    "v1.User": {
+      "properties": {
+        "EMail": {
+          "type": "string"
+        },
+        "Groups": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Issuer": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Subject": {
+          "type": "string"
+        },
+        "Tenant": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "EMail",
+        "Groups",
+        "Issuer",
+        "Name",
+        "Subject",
+        "Tenant"
+      ]
+    },
     "v1.VendorRevisions": {
       "properties": {
         "VendorRevisions": {
@@ -8110,7 +8110,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/security.User"
+              "$ref": "#/definitions/v1.User"
             }
           },
           "default": {
