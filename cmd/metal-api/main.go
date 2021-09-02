@@ -902,6 +902,10 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 			Name:        "switch",
 			Description: "Managing switch entities",
 		}},
+		{TagProps: spec.TagProps{
+			Name:        "user",
+			Description: "Managing user entities",
+		}},
 	}
 
 	hmacspec := spec.APIKeyAuth("Authorization", "header")
