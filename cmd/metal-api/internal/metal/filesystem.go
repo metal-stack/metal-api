@@ -262,10 +262,17 @@ func (c *FilesystemLayoutConstraints) validate() error {
 		}
 
 	}
+	sizeSet := make(map[string]bool)
 	// no wildcard in size
 	for _, s := range c.Sizes {
 		if strings.Contains(s, "*") {
 			return fmt.Errorf("no wildcard allowed in size constraint")
+		}
+		_, ok := sizeSet[s]
+		if !ok {
+			sizeSet[s] = true
+		} else {
+			return fmt.Errorf("size %s is configured more than once", s)
 		}
 	}
 	return nil

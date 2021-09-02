@@ -403,6 +403,16 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "no wildcard allowed in size constraint",
 		},
 		{
+			name: "invalid layout, duplicate size",
+			fields: fields{
+				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-large", "c1-xlarge"}, Images: map[string]string{"debian": "*"}},
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}},
+				Disks:       []Disk{{Device: "/dev/sda", Partitions: []DiskPartition{{Number: 1}}}},
+			},
+			wantErr:   true,
+			errString: "size c1-large is configured more than once",
+		},
+		{
 			name: "invalid layout /dev/sda2 is missing",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}, {Path: strPtr("/"), Device: "/dev/sda2", Format: EXT4}},
