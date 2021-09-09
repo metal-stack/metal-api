@@ -125,6 +125,7 @@ func (m *Machine) IsFirewall() bool {
 
 // A MachineAllocation stores the data which are only present for allocated machines.
 type MachineAllocation struct {
+	ID               string            `rethinkdb:"id,omitempty" json:"id,omitempty"`
 	Creator          string            `rethinkdb:"creator" json:"creator"`
 	Created          time.Time         `rethinkdb:"created" json:"created"`
 	Name             string            `rethinkdb:"name" json:"name"`

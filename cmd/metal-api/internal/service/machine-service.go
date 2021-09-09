@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
+	"github.com/google/uuid"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
@@ -1066,6 +1067,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	allocationSpec.UUID = machineCandidate.ID
 
 	alloc := &metal.MachineAllocation{
+		ID:              uuid.NewString(),
 		Creator:         allocationSpec.Creator,
 		Created:         time.Now(),
 		Name:            allocationSpec.Name,

@@ -1803,6 +1803,10 @@
           "description": "the hostname which will be used when creating the machine",
           "type": "string"
         },
+        "id": {
+          "description": "unique id of this allocation",
+          "type": "string"
+        },
         "image": {
           "$ref": "#/definitions/v1.ImageResponse",
           "description": "the image assigned to this machine",
@@ -1855,6 +1859,7 @@
         "created",
         "creator",
         "hostname",
+        "id",
         "name",
         "networks",
         "project",
