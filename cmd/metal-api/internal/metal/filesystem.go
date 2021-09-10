@@ -142,7 +142,7 @@ type (
 		Name string `rethinkdb:"name" json:"name"`
 		// VolumeGroup the name of the volumegroup
 		VolumeGroup string `rethinkdb:"volumegroup" json:"volumegroup"`
-		// Size of this LV in mebibytes (MiB)
+		// Size of this LV in mebibytes (MiB), if zero all remaining space in the vg will be used.
 		Size uint64 `rethinkdb:"size" json:"size"`
 		// LVMType can be either linear, striped or raid1
 		LVMType LVMType `rethinkdb:"lvmtype" json:"lvmtype"`
