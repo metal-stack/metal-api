@@ -3,6 +3,7 @@ package metal
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -496,11 +497,44 @@ func (fl *FilesystemLayout) Matches(hardware MachineHardware) error {
 	return nil
 }
 
+func supportedFormats() string {
+	sf := []string{}
+	for f := range SupportedFormats {
+		sf = append(sf, string(f))
+	}
+	sort.Strings(sf)
+	return strings.Join(sf, ",")
+}
+func supportedGPTTypes() string {
+	sf := []string{}
+	for f := range SupportedGPTTypes {
+		sf = append(sf, string(f))
+	}
+	sort.Strings(sf)
+	return strings.Join(sf, ",")
+}
+func supportedRaidLevels() string {
+	sf := []string{}
+	for f := range SupportedRaidLevels {
+		sf = append(sf, string(f))
+	}
+	sort.Strings(sf)
+	return strings.Join(sf, ",")
+}
+func supportedLVMTypes() string {
+	sf := []string{}
+	for f := range SupportedLVMTypes {
+		sf = append(sf, string(f))
+	}
+	sort.Strings(sf)
+	return strings.Join(sf, ",")
+}
+
 func ToFormat(format string) (*Format, error) {
 	f := Format(format)
 	_, ok := SupportedFormats[f]
 	if !ok {
-		return nil, fmt.Errorf("given format:%s is not supported", format)
+		return nil, fmt.Errorf("given format:%s is not supported, but:%s", format, supportedFormats())
 	}
 	return &f, nil
 }
@@ -509,7 +543,7 @@ func ToGPTType(gptType string) (*GPTType, error) {
 	g := GPTType(gptType)
 	_, ok := SupportedGPTTypes[g]
 	if !ok {
-		return nil, fmt.Errorf("given GPTType:%s is not supported", gptType)
+		return nil, fmt.Errorf("given GPTType:%s is not supported, but:%s", gptType, supportedGPTTypes())
 	}
 	return &g, nil
 }
@@ -518,7 +552,7 @@ func ToRaidLevel(level string) (*RaidLevel, error) {
 	l := RaidLevel(level)
 	_, ok := SupportedRaidLevels[l]
 	if !ok {
-		return nil, fmt.Errorf("given raidlevel:%s is not supported", level)
+		return nil, fmt.Errorf("given raidlevel:%s is not supported, but:%s", level, supportedRaidLevels())
 	}
 	return &l, nil
 }
@@ -527,7 +561,7 @@ func ToLVMType(lvmtype string) (*LVMType, error) {
 	l := LVMType(lvmtype)
 	_, ok := SupportedLVMTypes[l]
 	if !ok {
-		return nil, fmt.Errorf("given lvmtype:%s is not supported", lvmtype)
+		return nil, fmt.Errorf("given lvmtype:%s is not supported, but:%s", lvmtype, supportedLVMTypes())
 	}
 	return &l, nil
 }

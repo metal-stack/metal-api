@@ -794,3 +794,163 @@ func Test_hasCollisions(t *testing.T) {
 		})
 	}
 }
+
+func TestToFormat(t *testing.T) {
+	tests := []struct {
+		name      string
+		format    string
+		want      Format
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:      "valid format",
+			format:    "ext4",
+			want:      EXT4,
+			wantErr:   false,
+			errString: "",
+		},
+		{
+			name:      "invalid format",
+			format:    "ext5",
+			wantErr:   true,
+			errString: "given format:ext5 is not supported, but:ext3,ext4,none,swap,tmpfs,vfat",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToFormat(tt.format)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ToFormat() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && (err.Error() != tt.errString) {
+				t.Errorf("ToFormat() error = %s, errString %s", err.Error(), tt.errString)
+				return
+			}
+			if got != nil && *got != tt.want {
+				t.Errorf("ToFormat() = %v, want %v", string(*got), tt.want)
+			}
+		})
+	}
+}
+
+func TestToGPTType(t *testing.T) {
+	tests := []struct {
+		name      string
+		gpttyp    string
+		want      GPTType
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:      "valid type",
+			gpttyp:    "8300",
+			want:      GPTLinux,
+			wantErr:   false,
+			errString: "",
+		},
+		{
+			name:      "invalid type",
+			gpttyp:    "8301",
+			wantErr:   true,
+			errString: "given GPTType:8301 is not supported, but:8300,8e00,ef00,fd00",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToGPTType(tt.gpttyp)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ToGPTType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && (err.Error() != tt.errString) {
+				t.Errorf("ToGPTType() error = %s, errString %s", err.Error(), tt.errString)
+				return
+			}
+			if got != nil && *got != tt.want {
+				t.Errorf("ToGPTType() = %v, want %v", string(*got), tt.want)
+			}
+		})
+	}
+}
+
+func TestToRaidLevel(t *testing.T) {
+	tests := []struct {
+		name      string
+		level     string
+		want      RaidLevel
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:      "valid level",
+			level:     "1",
+			want:      RaidLevel1,
+			wantErr:   false,
+			errString: "",
+		},
+		{
+			name:      "invalid level",
+			level:     "raid5",
+			wantErr:   true,
+			errString: "given raidlevel:raid5 is not supported, but:0,1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToRaidLevel(tt.level)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ToRaidLevel() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && (err.Error() != tt.errString) {
+				t.Errorf("ToRaidLevel() error = %s, errString %s", err.Error(), tt.errString)
+				return
+			}
+			if got != nil && *got != tt.want {
+				t.Errorf("ToRaidLevel() = %v, want %v", string(*got), tt.want)
+			}
+		})
+	}
+}
+
+func TestToLVMType(t *testing.T) {
+	tests := []struct {
+		name      string
+		lvmtyp    string
+		want      LVMType
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:      "valid lvmtype",
+			lvmtyp:    "linear",
+			want:      LVMTypeLinear,
+			wantErr:   false,
+			errString: "",
+		},
+		{
+			name:      "invalid lvmtype",
+			lvmtyp:    "raid5",
+			wantErr:   true,
+			errString: "given lvmtype:raid5 is not supported, but:linear,raid1,striped",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToLVMType(tt.lvmtyp)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ToLVMType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (err != nil) && (err.Error() != tt.errString) {
+				t.Errorf("ToLVMType() error = %s, errString %s", err.Error(), tt.errString)
+				return
+			}
+			if got != nil && *got != tt.want {
+				t.Errorf("ToLVMType() = %v, want %v", string(*got), tt.want)
+			}
+		})
+	}
+}
