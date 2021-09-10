@@ -818,6 +818,7 @@ func TestToFormat(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToFormat(tt.format)
 			if (err != nil) != tt.wantErr {
@@ -858,6 +859,7 @@ func TestToGPTType(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToGPTType(tt.gpttyp)
 			if (err != nil) != tt.wantErr {
@@ -898,6 +900,7 @@ func TestToRaidLevel(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToRaidLevel(tt.level)
 			if (err != nil) != tt.wantErr {
@@ -938,6 +941,7 @@ func TestToLVMType(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ToLVMType(tt.lvmtyp)
 			if (err != nil) != tt.wantErr {
