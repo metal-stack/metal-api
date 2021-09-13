@@ -68,10 +68,13 @@ type (
 		// VolumeGroups to create
 		VolumeGroups []VolumeGroup `rethinkdb:"volumegroups" json:"volumegroups"`
 		// LogicalVolumes to create on top of VolumeGroups
-		LogicalVolumes []LogicalVolume `rethinkdb:"logicalvolumes" json:"logicalvolumes"`
+		LogicalVolumes LogicalVolumes `rethinkdb:"logicalvolumes" json:"logicalvolumes"`
 		// Constraints which must match to select this Layout
 		Constraints FilesystemLayoutConstraints `rethinkdb:"constraints" json:"constraints"`
 	}
+
+	// LogicalVolumes is a slice of LogicalVolume
+	LogicalVolumes []LogicalVolume
 
 	FilesystemLayoutConstraints struct {
 		// Sizes defines the list of sizes this layout applies to
@@ -214,6 +217,10 @@ func (f FilesystemLayout) Validate() error {
 	}
 
 	// LogicalVolumes must be on top of volumegroups
+	err := f.LogicalVolumes.validate()
+	if err != nil {
+		return err
+	}
 	for _, lv := range f.LogicalVolumes {
 		_, ok := vgdevices[lv.VolumeGroup]
 		if !ok {
@@ -239,7 +246,7 @@ func (f FilesystemLayout) Validate() error {
 	}
 
 	// validate constraints
-	err := f.Constraints.validate()
+	err = f.Constraints.validate()
 	if err != nil {
 		return err
 	}
@@ -412,6 +419,21 @@ func (d Disk) validate() error {
 	}
 	if hasVariablePartition && (parts[len(parts)-1] != 0) {
 		return fmt.Errorf("device:%s variable sized partition not the last one", d.Device)
+	}
+	return nil
+}
+
+// validate logicalvolume
+// - variable sized lv must be the last
+func (lvms LogicalVolumes) validate() error {
+	if len(lvms) == 0 {
+		return nil
+	}
+
+	for i, lvm := range lvms {
+		if lvm.Size == 0 && i != len(lvms)-1 {
+			return fmt.Errorf("lv:%s in vg:%s, variable sized lv must be the last", lvm.Name, lvm.VolumeGroup)
+		}
 	}
 	return nil
 }

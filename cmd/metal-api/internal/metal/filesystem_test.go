@@ -530,6 +530,26 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr:   true,
 			errString: "device:/dev/vg00/boot for filesystem:/boot is not configured",
 		},
+		{
+			name: "invalid lvm layout, variable size not the last one",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Disks: []Disk{
+					{Device: "/dev/sda"},
+					{Device: "/dev/sdb"},
+				},
+				VolumeGroups: []VolumeGroup{
+					{Name: "vgroot", Devices: []string{"/dev/sda", "/dev/sdb"}},
+				},
+				LogicalVolumes: []LogicalVolume{
+					{Name: "boot", VolumeGroup: "vgroot", Size: 100000000, LVMType: LVMTypeRaid1},
+					{Name: "/var", VolumeGroup: "vgroot", Size: 0, LVMType: LVMTypeRaid1},
+					{Name: "/opt", VolumeGroup: "vgroot", Size: 20000000, LVMType: LVMTypeRaid1},
+				},
+			},
+			wantErr:   true,
+			errString: "lv:/var in vg:vgroot, variable sized lv must be the last",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
