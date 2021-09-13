@@ -513,6 +513,24 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid lvm layout, variable size",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}, {Path: strPtr("/var"), Device: "/dev/vgroot/var", Format: EXT4}},
+				Disks: []Disk{
+					{Device: "/dev/sda"},
+					{Device: "/dev/sdb"},
+				},
+				VolumeGroups: []VolumeGroup{
+					{Name: "vgroot", Devices: []string{"/dev/sda", "/dev/sdb"}},
+				},
+				LogicalVolumes: []LogicalVolume{
+					{Name: "boot", VolumeGroup: "vgroot", Size: 100000000, LVMType: LVMTypeRaid1},
+					{Name: "var", VolumeGroup: "vgroot", Size: 0, LVMType: LVMTypeRaid1},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "invalid lvm layout",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vg00/boot", Format: VFAT}},
