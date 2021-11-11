@@ -134,9 +134,10 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	ps, err := r.setProjectsQuota(res.Projects)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	var ps []*v1.Project
+	for i := range res.Projects {
+		v1p := mapper.ToV1Project(res.Projects[i])
+		ps = append(ps, v1p)
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, ps)
@@ -158,9 +159,10 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 		return
 	}
 
-	ps, err := r.setProjectsQuota(res.Projects)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	var ps []*v1.Project
+	for i := range res.Projects {
+		v1p := mapper.ToV1Project(res.Projects[i])
+		ps = append(ps, v1p)
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, ps)
@@ -342,38 +344,4 @@ func (r projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, e
 	qs.Ip.Used = &ipUsage
 
 	return p, nil
-}
-
-func (r projectResource) setProjectsQuota(projects []*mdmv1.Project) ([]*v1.Project, error) {
-	ips, err := r.ds.ListIPs()
-	if err != nil {
-		return nil, err
-	}
-	pips := ips.ByProjectID()
-	ms, err := r.ds.ListMachines()
-	if err != nil {
-		return nil, err
-	}
-	pms := ms.ByProjectID()
-	var ps []*v1.Project
-	for _, p := range projects {
-		v1p := mapper.ToV1Project(p)
-		if v1p.Quotas == nil {
-			v1p.Quotas = &v1.QuotaSet{}
-		}
-		qs := v1p.Quotas
-		if qs.Machine == nil {
-			qs.Machine = &v1.Quota{}
-		}
-		if qs.Ip == nil {
-			qs.Ip = &v1.Quota{}
-		}
-		machineUsage := int32(len(pms[p.Meta.Id]))
-		ipUsage := int32(len(pips[p.Meta.Id]))
-		qs.Machine.Used = &machineUsage
-		qs.Ip.Used = &ipUsage
-
-		ps = append(ps, v1p)
-	}
-	return ps, nil
 }
