@@ -190,6 +190,11 @@ func (rs *RethinkStore) filesystemLayoutTable() *r.Term {
 	return &res
 }
 
+func (rs *RethinkStore) sizeImageConstraintTable() *r.Term {
+	res := r.DB(rs.dbname).Table("sizeimageconstraint")
+	return &res
+}
+
 func (rs *RethinkStore) asnTable() *r.Term {
 	res := r.DB(rs.dbname).Table(ASNIntegerPool.String())
 	return &res
