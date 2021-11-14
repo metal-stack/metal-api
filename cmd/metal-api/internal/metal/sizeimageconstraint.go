@@ -54,12 +54,12 @@ func (sc *SizeImageConstraint) matches(size Size, image Image) (bool, error) {
 		if os != image.OS {
 			continue
 		}
-		// FIXME is this a valid assumption
 		version, err := semver.NewVersion(image.Version)
 		if err != nil {
 			return false, err
 		}
 
+		// FIXME is this a valid assumption
 		if version.Patch() == 0 {
 			return false, fmt.Errorf("no patch version given")
 		}

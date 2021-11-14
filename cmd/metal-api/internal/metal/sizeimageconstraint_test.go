@@ -193,6 +193,55 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "no wildcard os",
+			scs: &SizeImageConstraints{
+				{
+					Base: Base{ID: n1Medium.ID},
+					Images: map[string]string{
+						"*": "",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "wildcard version is allowed",
+			scs: &SizeImageConstraints{
+				{
+					Base: Base{ID: n1Medium.ID},
+					Images: map[string]string{
+						"debian": "*",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid op",
+			scs: &SizeImageConstraints{
+				{
+					Base: Base{ID: n1Medium.ID},
+					Images: map[string]string{
+						"debian": "% 2",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid op and not seperated by space",
+			scs: &SizeImageConstraints{
+				{
+					Base: Base{ID: n1Medium.ID},
+					Images: map[string]string{
+						"debian": "%2",
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
