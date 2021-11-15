@@ -29,7 +29,25 @@ type SizeImageConstraints []SizeImageConstraint
 
 func (scs *SizeImageConstraints) Validate() error {
 	for _, c := range *scs {
-		err := c.validate()
+		err := c.Validate()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (sc *SizeImageConstraint) Validate() error {
+	for os, vc := range sc.Images {
+		// no pure wildcard in images
+		if os == "*" {
+			return fmt.Errorf("just '*' is not allowed as image os constraint")
+		}
+		// a single "*" is possible
+		if strings.TrimSpace(vc) == "*" {
+			continue
+		}
+		_, _, err := convertToOpAndVersion(vc)
 		if err != nil {
 			return err
 		}
@@ -72,22 +90,4 @@ func (sc *SizeImageConstraint) matches(size Size, image Image) (bool, error) {
 		}
 	}
 	return true, nil
-}
-
-func (sc *SizeImageConstraint) validate() error {
-	for os, vc := range sc.Images {
-		// no pure wildcard in images
-		if os == "*" {
-			return fmt.Errorf("just '*' is not allowed as image os constraint")
-		}
-		// a single "*" is possible
-		if strings.TrimSpace(vc) == "*" {
-			continue
-		}
-		_, _, err := convertToOpAndVersion(vc)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

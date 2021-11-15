@@ -3852,6 +3852,93 @@
         "id"
       ]
     },
+    "v1.SizeImageConstraintBase": {
+      "properties": {
+        "images": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "a list of images for this contraints apply",
+          "type": "object"
+        }
+      },
+      "required": [
+        "images"
+      ]
+    },
+    "v1.SizeImageConstraintCreateRequest": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.SizeImageConstraintBase",
+          "description": "a list of constraints that for this size"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "v1.SizeImageConstraintResponse": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.SizeImageConstraintBase",
+          "description": "a list of constraints that for this size"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "constraints",
+        "id"
+      ]
+    },
+    "v1.SizeImageConstraintUpdateRequest": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.SizeImageConstraintBase",
+          "description": "a list of constraints that for this size"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
     "v1.SizeMatchingLog": {
       "properties": {
         "constraints": {
@@ -7699,6 +7786,162 @@
           }
         },
         "summary": "Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/sizeimageconstraints": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listSizeSizeImageConstraints",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all sizeimageconstraints",
+        "tags": [
+          "size"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateSizeImageConstraint",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a sizeimageconstraint. if the sizeimageconstraint was changed since this one was read, a conflict is returned",
+        "tags": [
+          "size"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "createSizeImageConstraint",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a sizeimageconstraint. if the given ID already exists a conflict is returned",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/sizeimageconstraints/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteSizeImageConstraint",
+        "parameters": [
+          {
+            "description": "identifier of the size",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes an sizeimageconstraint and returns the deleted entity",
         "tags": [
           "size"
         ]
