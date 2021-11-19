@@ -71,7 +71,7 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 				Base:   tt.fields.Base,
 				Images: tt.fields.Images,
 			}
-			if got, _ := sc.matches(tt.args.size, tt.args.image); got != tt.want {
+			if got, _ := sc.Matches(tt.args.size, tt.args.image); got != tt.want {
 				t.Errorf("SizeImageConstraint.matches() = %v, want %v", got, tt.want)
 			}
 		})

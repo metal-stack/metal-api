@@ -111,6 +111,16 @@ func (r firewallResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/tryallocate").
+		To(editor(r.tryAllocateFirewall)).
+		Operation("tryAllocateFirewall").
+		Doc("try allocate a firewall will only check if with given parameters a firewall can be created").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineAllocateRequest{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", nil).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
 }
 
@@ -172,57 +182,11 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 	}
 }
 
-func (r firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
+func (r firewallResource) tryAllocateFirewall(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FirewallCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
-	}
-
-	var uuid string
-	if requestPayload.UUID != nil {
-		uuid = *requestPayload.UUID
-	}
-	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
-	}
-	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
-	}
-	hostname := "metal"
-	if requestPayload.Hostname != nil {
-		hostname = *requestPayload.Hostname
-	}
-	var userdata string
-	if requestPayload.UserData != nil {
-		userdata = *requestPayload.UserData
-	}
-	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("network ids cannot be empty")) {
-			return
-		}
-	}
-	ha := false
-	if requestPayload.HA != nil {
-		ha = *requestPayload.HA
-	}
-	if ha {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("highly-available firewall not supported for the time being")) {
-			return
-		}
-	}
-
-	image, err := r.ds.FindImage(requestPayload.ImageID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if !image.HasFeature(metal.ImageFeatureFirewall) {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given image is not usable for a firewall, features: %s", image.ImageFeatureString())) {
-			return
-		}
 	}
 
 	user, err := r.userGetter.User(request.Request)
@@ -230,26 +194,58 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	spec := machineAllocationSpec{
-		Creator:     user.EMail,
-		UUID:        uuid,
-		Name:        name,
-		Description: description,
-		Hostname:    hostname,
-		ProjectID:   requestPayload.ProjectID,
-		PartitionID: requestPayload.PartitionID,
-		SizeID:      requestPayload.SizeID,
-		Image:       image,
-		SSHPubKeys:  requestPayload.SSHPubKeys,
-		UserData:    userdata,
-		Tags:        requestPayload.Tags,
-		Networks:    requestPayload.Networks,
-		IPs:         requestPayload.IPs,
-		HA:          ha,
-		Role:        metal.RoleFirewall,
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.ImageFeatureFirewall, user)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if spec == nil || spec.Size == nil || spec.Image == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to create allocationspec")) {
+			return
+		}
+	}
+	size := spec.Size
+	image := spec.Image
+
+	sic, err := r.ds.FindSizeImageConstraint(spec.Size.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	ok, err := sic.Matches(*spec.Size, *spec.Image)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
+	if !ok {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
+			return
+		}
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, nil)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.FirewallCreateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	user, err := r.userGetter.User(request.Request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.ImageFeatureFirewall, user)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

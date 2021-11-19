@@ -4793,6 +4793,42 @@
         ]
       }
     },
+    "/v1/firewall/tryallocate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "tryAllocateFirewall",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineAllocateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "try allocate a firewall will only check if with given parameters a firewall can be created",
+        "tags": [
+          "firewall"
+        ]
+      }
+    },
     "/v1/firewall/{id}": {
       "get": {
         "consumes": [
@@ -5867,6 +5903,42 @@
           }
         },
         "summary": "register a machine",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/tryallocate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "tryAllocateMachine",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineAllocateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "try allocate a machine will only check if with given parameters a machine can be created",
         "tags": [
           "machine"
         ]

@@ -58,13 +58,13 @@ func (sc *SizeImageConstraint) Validate() error {
 func (scs *SizeImageConstraints) Matches(size Size, image Image) (bool, error) {
 	for _, sc := range *scs {
 		if sc.ID == size.ID {
-			return sc.matches(size, image)
+			return sc.Matches(size, image)
 		}
 	}
 	return true, nil
 }
 
-func (sc *SizeImageConstraint) matches(size Size, image Image) (bool, error) {
+func (sc *SizeImageConstraint) Matches(size Size, image Image) (bool, error) {
 	if sc.ID != size.ID {
 		return true, nil
 	}
