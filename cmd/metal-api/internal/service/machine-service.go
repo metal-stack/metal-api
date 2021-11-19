@@ -1024,15 +1024,6 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
 		return nil, errors.New("network ids cannot be empty")
 	}
-	// ha := false
-	// if requestPayload.HA != nil {
-	// 	ha = *requestPayload.HA
-	// }
-	// if ha {
-	// 	if checkError(request, response, utils.CurrentFuncName(), errors.New("highly-available firewall not supported for the time being")) {
-	// 		return
-	// 	}
-	// }
 
 	image, err := ds.FindImage(requestPayload.ImageID)
 	if err != nil {
