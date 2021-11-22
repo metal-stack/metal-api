@@ -54,4 +54,4 @@ jobs:
 
     - name: Run integration tests
       run: |
-        make integration
+        go test -tags=integration -timeout 600s -p 1 ./...
