@@ -1730,6 +1730,11 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 	logger := utils.Logger(request).Sugar()
 
+	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
+	if err != nil {
+		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
+	}
+
 	err = r.actor.freeMachine(r.Publisher, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
