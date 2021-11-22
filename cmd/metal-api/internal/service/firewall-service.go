@@ -194,7 +194,7 @@ func (r firewallResource) tryAllocateFirewall(request *restful.Request, response
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.ImageFeatureFirewall, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -242,7 +242,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.ImageFeatureFirewall, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

@@ -936,7 +936,7 @@ func (r machineResource) tryAllocateMachine(request *restful.Request, response *
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.ImageFeatureMachine, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.RoleMachine, user)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -981,17 +981,19 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 
 	user, err := r.userGetter.User(request.Request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		utils.Logger(request).Sugar().Errorw("user extraction went wrong", "error", err)
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.ImageFeatureMachine, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.RoleMachine, user)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		utils.Logger(request).Sugar().Errorw("machine allocationspec creation went wrong", "error", err)
 		return
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
-		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "error", err)
+		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "spec", spec, "error", err)
 		return
 	}
 
@@ -1002,7 +1004,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	}
 }
 
-func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, imageFeatureType metal.ImageFeatureType, user *security.User) (*machineAllocationSpec, error) {
+func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {
 	var uuid string
 	if requestPayload.UUID != nil {
 		uuid = *requestPayload.UUID
@@ -1030,6 +1032,11 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	image, err := ds.FindImage(requestPayload.ImageID)
 	if err != nil {
 		return nil, err
+	}
+
+	imageFeatureType := metal.ImageFeatureMachine
+	if role == metal.RoleFirewall {
+		imageFeatureType = metal.ImageFeatureFirewall
 	}
 
 	if !image.HasFeature(imageFeatureType) {
@@ -1068,7 +1075,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		Tags:        requestPayload.Tags,
 		Networks:    requestPayload.Networks,
 		IPs:         requestPayload.IPs,
-		Role:        metal.RoleFirewall,
+		Role:        role,
 	}, nil
 }
 
