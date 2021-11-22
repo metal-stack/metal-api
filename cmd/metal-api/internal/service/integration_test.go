@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package service
@@ -308,6 +309,23 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.True(ipnet.Contains(privateNet.IP), "%s must be within %s", privateNet, ipnet)
 	te.privateNetwork = &acquiredPrivateNetwork
 
+	// SizeImageConstraint
+	sic := v1.SizeImageConstraintCreateRequest{
+		Common: v1.Common{Identifiable: v1.Identifiable{ID: "n1-medium"}},
+		SizeImageConstraintBase: v1.SizeImageConstraintBase{
+			Images: map[string]string{
+				"firewall": ">= 2.0.20211001",
+			},
+		},
+	}
+
+	var createdSizeImageContraint v1.SizeImageConstraintResponse
+	te.sizeImageConstraintCreate(t, sic, &createdSizeImageContraint)
+	require.Equal(http.StatusCreated, status)
+	require.NotNil(createdSizeImageContraint)
+	require.Equal(sic.ID, "n1-medium")
+	require.Equal(len(sic.Images), 1)
+
 	return te
 }
 
@@ -329,6 +347,10 @@ func (te *testEnv) switchGet(t *testing.T, swid string, response interface{}) in
 
 func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response interface{}) int {
 	return webRequestPut(t, te.imageService, &testUserDirectory.admin, icr, "/v1/image/", response)
+}
+
+func (te *testEnv) sizeImageConstraintCreate(t *testing.T, siccr v1.SizeImageConstraintCreateRequest, response interface{}) int {
+	return webRequestPut(t, te.sizeService, &testUserDirectory.admin, siccr, "/v1/size/sizeimageconstraints", response)
 }
 
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
