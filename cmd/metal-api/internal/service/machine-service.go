@@ -952,14 +952,16 @@ func (r machineResource) tryAllocateMachine(request *restful.Request, response *
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	ok, err := sic.Matches(*spec.Size, *spec.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
+	if sic != nil {
+		ok, err := sic.Matches(*spec.Size, *spec.Image)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
+		}
+
+		if !ok {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
+				return
+			}
 		}
 	}
 
@@ -1173,23 +1175,23 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 	err = fsl.Matches(machineCandidate.Hardware)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to check for fsl match:%w", err))
 	}
 	alloc.FilesystemLayout = fsl
 
 	networks, err := gatherNetworks(ds, allocationSpec)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to gather networks:%w", err))
 	}
 	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to make networks:%w", err))
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
 	machine, err := ds.FindMachineByID(machineCandidate.ID)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to find machine:%w", err))
 	}
 	if machine.Allocation != nil {
 		return nil, rollbackOnError(fmt.Errorf("machine %q already allocated", machine.ID))
@@ -1512,7 +1514,7 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 		return nil, err
 	}
 	if len(underlays) == 0 {
-		return nil, fmt.Errorf("no underlay found in the given partition: %w", err)
+		return nil, fmt.Errorf("no underlay found in the given partition:%s", partition.ID)
 	}
 	if len(underlays) > 1 {
 		return nil, fmt.Errorf("more than one underlay network in partition %s in the database, which should not be the case", partition.ID)

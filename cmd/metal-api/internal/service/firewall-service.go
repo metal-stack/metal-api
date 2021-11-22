@@ -206,18 +206,20 @@ func (r firewallResource) tryAllocateFirewall(request *restful.Request, response
 	size := spec.Size
 	image := spec.Image
 
-	sic, err := r.ds.FindSizeImageConstraint(spec.Size.ID)
+	sic, err := r.ds.FindSizeImageConstraint(size.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	ok, err := sic.Matches(*spec.Size, *spec.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
+	if sic != nil {
+		ok, err := sic.Matches(*spec.Size, *image)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
+		}
+
+		if !ok {
+			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
+				return
+			}
 		}
 	}
 
