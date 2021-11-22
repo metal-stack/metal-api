@@ -74,7 +74,7 @@ func (sc *SizeImageConstraint) Matches(size Size, image Image) (bool, error) {
 		}
 		version, err := semver.NewVersion(image.Version)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("version of image is invalid %w", err)
 		}
 
 		// FIXME is this a valid assumption
@@ -83,7 +83,7 @@ func (sc *SizeImageConstraint) Matches(size Size, image Image) (bool, error) {
 		}
 		c, err := semver.NewConstraint(versionconstraint)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("versionconstraint %s is invalid %w", versionconstraint, err)
 		}
 		if !c.Check(version) {
 			return false, fmt.Errorf("given size:%s with image:%s does violate constraints:%s", size.ID, image.ID, c.String())
