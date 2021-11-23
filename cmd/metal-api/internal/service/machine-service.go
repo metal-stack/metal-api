@@ -206,7 +206,6 @@ func (r machineResource) webService() *restful.WebService {
 		Doc("try allocate a machine will only check if with given parameters a machine can be created").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineAllocateRequest{}).
-		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 

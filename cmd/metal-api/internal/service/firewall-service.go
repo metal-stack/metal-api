@@ -116,8 +116,8 @@ func (r firewallResource) webService() *restful.WebService {
 		Operation("tryAllocateFirewall").
 		Doc("try allocate a firewall will only check if with given parameters a firewall can be created").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineAllocateRequest{}).
-		Writes(v1.MachineResponse{}).
+		Reads(v1.FirewallCreateRequest{}).
+		Writes(nil).
 		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
