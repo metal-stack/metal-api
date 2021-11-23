@@ -350,7 +350,7 @@ func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response
 }
 
 func (te *testEnv) sizeImageConstraintCreate(t *testing.T, siccr v1.SizeImageConstraintCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.sizeService, &testUserDirectory.admin, siccr, "/v1/sizeimageconstraint", response)
+	return webRequestPut(t, te.sizeService, &testUserDirectory.admin, siccr, "/v1/sizeimageconstraint/", response)
 }
 
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {

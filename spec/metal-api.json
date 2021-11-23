@@ -7937,7 +7937,7 @@
         ]
       }
     },
-    "/v1/sizeimageconstraint/sizeimageconstraints": {
+    "/v1/sizeimageconstraint": {
       "get": {
         "consumes": [
           "application/json"
@@ -8055,7 +8055,7 @@
         ]
       }
     },
-    "/v1/sizeimageconstraint/sizeimageconstraints/{id}": {
+    "/v1/sizeimageconstraint/{id}": {
       "delete": {
         "consumes": [
           "application/json"

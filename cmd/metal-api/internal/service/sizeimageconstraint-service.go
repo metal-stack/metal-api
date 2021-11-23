@@ -38,7 +38,7 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 
 	tags := []string{"sizeimageconstraint"}
 
-	ws.Route(ws.GET("/sizeimageconstraints/{id}").
+	ws.Route(ws.GET("/{id}").
 		To(r.findSizeImageConstraint).
 		Operation("findSizeImageConstraint").
 		Doc("get sizeimageconstraint by id").
@@ -48,7 +48,7 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/sizeimageconstraints").
+	ws.Route(ws.GET("/").
 		To(r.listSizeImageConstraints).
 		Operation("listSizeImageConstraints").
 		Doc("get all sizeimageconstraints").
@@ -57,7 +57,7 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.SizeImageConstraintResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.DELETE("/sizeimageconstraints/{id}").
+	ws.Route(ws.DELETE("/{id}").
 		To(admin(r.deleteSizeImageConstraint)).
 		Operation("deleteSizeImageConstraint").
 		Doc("deletes an sizeimageconstraint and returns the deleted entity").
@@ -67,7 +67,7 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.SizeImageConstraintResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.PUT("/sizeimageconstraints").
+	ws.Route(ws.PUT("/").
 		To(admin(r.createSizeImageConstraint)).
 		Operation("createSizeImageConstraint").
 		Doc("create a sizeimageconstraint. if the given ID already exists a conflict is returned").
@@ -77,7 +77,7 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/sizeimageconstraints").
+	ws.Route(ws.POST("/").
 		To(admin(r.updateSizeImageConstraint)).
 		Operation("updateSizeImageConstraint").
 		Doc("updates a sizeimageconstraint. if the sizeimageconstraint was changed since this one was read, a conflict is returned").
