@@ -951,16 +951,23 @@ func (r machineResource) tryAllocateMachine(request *restful.Request, response *
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	if sic != nil {
-		ok, err := sic.Matches(*spec.Size, *spec.Image)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+
+	if sic == nil {
+		err = response.WriteHeaderAndEntity(http.StatusOK, nil)
+		if err != nil {
+			zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 			return
 		}
+	}
 
-		if !ok {
-			if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
-				return
-			}
+	ok, err := sic.Matches(*spec.Size, *spec.Image)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if !ok {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
+			return
 		}
 	}
 
