@@ -44,8 +44,8 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 		Doc("get sizeimageconstraint by id").
 		Param(ws.PathParameter("id", "identifier of the sizeimageconstraint").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.SizeResponse{}).
-		Returns(http.StatusOK, "OK", v1.SizeResponse{}).
+		Writes(v1.SizeImageConstraintResponse{}).
+		Returns(http.StatusOK, "OK", v1.SizeImageConstraintResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
