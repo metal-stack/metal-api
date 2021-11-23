@@ -36,19 +36,20 @@ import (
 )
 
 type testEnv struct {
-	imageService        *restful.WebService
-	switchService       *restful.WebService
-	sizeService         *restful.WebService
-	networkService      *restful.WebService
-	partitionService    *restful.WebService
-	machineService      *restful.WebService
-	ipService           *restful.WebService
-	ws                  *metalgrpc.WaitService
-	ds                  *datastore.RethinkStore
-	privateSuperNetwork *v1.NetworkResponse
-	privateNetwork      *v1.NetworkResponse
-	rethinkContainer    testcontainers.Container
-	ctx                 context.Context
+	imageService               *restful.WebService
+	switchService              *restful.WebService
+	sizeService                *restful.WebService
+	sizeImageConstraintService *restful.WebService
+	networkService             *restful.WebService
+	partitionService           *restful.WebService
+	machineService             *restful.WebService
+	ipService                  *restful.WebService
+	ws                         *metalgrpc.WaitService
+	ds                         *datastore.RethinkStore
+	privateSuperNetwork        *v1.NetworkResponse
+	privateNetwork             *v1.NetworkResponse
+	rethinkContainer           testcontainers.Container
+	ctx                        context.Context
 }
 
 func (te *testEnv) teardown() {
@@ -103,23 +104,25 @@ func createTestEnvironment(t *testing.T) testEnv {
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
 	sizeService := NewSize(ds)
+	sizeImageConstraintService := NewSizeImageConstraint(ds)
 	networkService := NewNetwork(ds, ipamer, mdc)
 	partitionService := NewPartition(ds, &emptyPublisher{})
 	ipService, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(err)
 
 	te := testEnv{
-		imageService:     imageService,
-		switchService:    switchService,
-		sizeService:      sizeService,
-		networkService:   networkService,
-		partitionService: partitionService,
-		machineService:   machineService,
-		ipService:        ipService,
-		ds:               ds,
-		ws:               grpcServer.WaitService,
-		rethinkContainer: rethinkContainer,
-		ctx:              context.TODO(),
+		imageService:               imageService,
+		switchService:              switchService,
+		sizeService:                sizeService,
+		sizeImageConstraintService: sizeImageConstraintService,
+		networkService:             networkService,
+		partitionService:           partitionService,
+		machineService:             machineService,
+		ipService:                  ipService,
+		ds:                         ds,
+		ws:                         grpcServer.WaitService,
+		rethinkContainer:           rethinkContainer,
+		ctx:                        context.TODO(),
 	}
 
 	imageID := "test-image-1.0.0"
@@ -350,7 +353,7 @@ func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response
 }
 
 func (te *testEnv) sizeImageConstraintCreate(t *testing.T, siccr v1.SizeImageConstraintCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.sizeService, &testUserDirectory.admin, siccr, "/v1/sizeimageconstraint/", response)
+	return webRequestPut(t, te.sizeImageConstraintService, &testUserDirectory.admin, siccr, "/v1/sizeimageconstraint/", response)
 }
 
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
