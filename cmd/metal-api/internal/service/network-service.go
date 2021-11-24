@@ -616,19 +616,14 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	var prefixesToBeAdded metal.Prefixes
 
 	if len(requestPayload.Prefixes) > 0 {
-		var prefixesFromRequest metal.Prefixes
-		for _, prefixCidr := range requestPayload.Prefixes {
-			requestPrefix, err := metal.NewPrefixFromCIDR(prefixCidr)
-			if err != nil {
-				if checkError(request, response, utils.CurrentFuncName(), err) {
-					return
-				}
+		newNetwork.Prefixes, err = prefixesFromCidr(requestPayload.Prefixes)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
 			}
-			prefixesFromRequest = append(prefixesFromRequest, *requestPrefix)
 		}
-		newNetwork.Prefixes = prefixesFromRequest
 
-		prefixesToBeRemoved = oldNetwork.SubstractPrefixes(prefixesFromRequest...)
+		prefixesToBeRemoved = oldNetwork.SubstractPrefixes(newNetwork.Prefixes...)
 
 		// now validate if there are ips which have a prefix to be removed as a parent
 		allIPs, err := r.ds.ListIPs()
@@ -659,6 +654,15 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		}
 	}
 
+	if len(requestPayload.DestinationPrefixes) > 0 {
+		newNetwork.DestinationPrefixes, err = prefixesFromCidr(requestPayload.DestinationPrefixes)
+		if err != nil {
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
+	}
+
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -670,6 +674,18 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func prefixesFromCidr(PrefixesCidr []string) (metal.Prefixes, error) {
+	var prefixes metal.Prefixes
+	for _, prefixCidr := range PrefixesCidr {
+		Prefix, err := metal.NewPrefixFromCIDR(prefixCidr)
+		if err != nil {
+			return nil, err
+		}
+		prefixes = append(prefixes, *Prefix)
+	}
+	return prefixes, nil
 }
 
 func (r networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
