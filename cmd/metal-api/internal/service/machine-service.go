@@ -987,7 +987,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 
 	partitionID := requestPayload.PartitionID
 	sizeID := requestPayload.SizeID
-	// Allocation of a specific machine is requested, therefor size and partition are not given, fetch them
+	// Allocation of a specific machine is requested, therefore size and partition are not given, fetch them
 	if uuid != "" {
 		m, err := ds.FindMachineByID(uuid)
 		if err != nil {
