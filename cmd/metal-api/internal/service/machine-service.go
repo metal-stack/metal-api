@@ -1221,7 +1221,7 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	var err error
 	var machine *metal.Machine
-	if allocationSpec.UUID == "" {
+	if allocationSpec.Machine == nil {
 		// requesting allocation of an arbitrary ready machine in partition with given size
 		machine, err = findWaitingMachine(ds, allocationSpec.PartitionID, allocationSpec.Size.ID)
 		if err != nil {
