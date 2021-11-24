@@ -155,6 +155,26 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 			args: args{size: s1Xlarge, image: debian},
 			want: true,
 		},
+		{
+			name: "to old image",
+			scs: &SizeImageConstraints{
+				{
+					Base: Base{ID: n1Medium.ID},
+					Images: map[string]string{
+						"firewall": ">= 2.0.20211001",
+					},
+				},
+				{
+					Base: Base{ID: c1Xlarge.ID},
+					Images: map[string]string{
+						"firewall": ">= 2.0.20211001",
+					},
+				},
+			},
+			args:    args{size: n1Medium, image: oldFirewall},
+			want:    false,
+			wantErr: strPtr("given size:n1-medium-x86 with image:firewall-2.0.20201101 does violate image constraint:firewall >=2.0.20211001"),
+		},
 	}
 	for _, tt := range tests {
 		tt := tt

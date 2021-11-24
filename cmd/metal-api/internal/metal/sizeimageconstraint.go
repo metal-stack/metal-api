@@ -86,7 +86,7 @@ func (sc *SizeImageConstraint) Matches(size Size, image Image) (bool, error) {
 			return false, fmt.Errorf("versionconstraint %s is invalid %w", versionconstraint, err)
 		}
 		if !c.Check(version) {
-			return false, fmt.Errorf("given size:%s with image:%s does violate constraints:%s", size.ID, image.ID, c.String())
+			return false, fmt.Errorf("given size:%s with image:%s does violate image constraint:%s %s", size.ID, image.OS+"-"+image.Version, os, c.String())
 		}
 	}
 	return true, nil
