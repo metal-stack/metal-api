@@ -60,6 +60,7 @@ type machineAllocationSpec struct {
 	Hostname           string
 	ProjectID          string
 	PartitionID        string
+	Machine            *metal.Machine
 	Size               *metal.Size
 	Image              *metal.Image
 	FilesystemLayoutID *string
@@ -987,6 +988,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 
 	partitionID := requestPayload.PartitionID
 	sizeID := requestPayload.SizeID
+	var m *metal.Machine
 	// Allocation of a specific machine is requested, therefor size and partition are not given, fetch them
 	if uuid != "" {
 		m, err := ds.FindMachineByID(uuid)
@@ -1010,6 +1012,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		Hostname:    hostname,
 		ProjectID:   requestPayload.ProjectID,
 		PartitionID: partitionID,
+		Machine:     m,
 		Size:        size,
 		Image:       image,
 		SSHPubKeys:  requestPayload.SSHPubKeys,
@@ -1223,11 +1226,10 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 		}
 	} else {
 		// requesting allocation of a specific, existing machine
-		machine, err = ds.FindMachineByID(allocationSpec.UUID)
-		if err != nil {
-			return nil, fmt.Errorf("machine cannot be found: %w", err)
+		machine = allocationSpec.Machine
+		if machine == nil {
+			return nil, fmt.Errorf("machine cannot be nil")
 		}
-
 		if machine.Allocation != nil {
 			return nil, errors.New("machine is already allocated")
 		}
