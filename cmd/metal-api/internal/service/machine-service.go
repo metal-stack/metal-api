@@ -1230,9 +1230,6 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	} else {
 		// requesting allocation of a specific, existing machine
 		machine = allocationSpec.Machine
-		if machine == nil {
-			return nil, fmt.Errorf("machine cannot be nil")
-		}
 		if machine.Allocation != nil {
 			return nil, errors.New("machine is already allocated")
 		}
