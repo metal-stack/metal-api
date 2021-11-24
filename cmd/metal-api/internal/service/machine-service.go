@@ -968,7 +968,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	if requestPayload.UserData != nil {
 		userdata = *requestPayload.UserData
 	}
-	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
+	if requestPayload.Networks == nil {
+		return nil, errors.New("network ids cannot be nil")
+	}
+	if len(requestPayload.Networks) <= 0 {
 		return nil, errors.New("network ids cannot be empty")
 	}
 
@@ -988,9 +991,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 
 	partitionID := requestPayload.PartitionID
 	sizeID := requestPayload.SizeID
+	var m *metal.Machine
 	// Allocation of a specific machine is requested, therefore size and partition are not given, fetch them
 	if uuid != "" {
-		m, err := ds.FindMachineByID(uuid)
+		m, err = ds.FindMachineByID(uuid)
 		if err != nil {
 			return nil, fmt.Errorf("uuid given but no machine found with uuid:%s err:%w", uuid, err)
 		}
