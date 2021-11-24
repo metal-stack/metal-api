@@ -60,7 +60,7 @@ type machineAllocationSpec struct {
 	Hostname           string
 	ProjectID          string
 	PartitionID        string
-	SizeID             string
+	Size               *metal.Size
 	Image              *metal.Image
 	FilesystemLayoutID *string
 	SSHPubKeys         []string
@@ -68,7 +68,6 @@ type machineAllocationSpec struct {
 	Tags               []string
 	Networks           v1.MachineAllocationNetworks
 	IPs                []string
-	HA                 bool
 	Role               metal.Role
 }
 
@@ -922,6 +921,32 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
+	user, err := r.userGetter.User(request.Request)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		utils.Logger(request).Sugar().Errorw("user extraction went wrong", "error", err)
+		return
+	}
+
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.RoleMachine, user)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		utils.Logger(request).Sugar().Errorw("machine allocationspec creation went wrong", "error", err)
+		return
+	}
+
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "spec", spec, "error", err)
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {
 	var uuid string
 	if requestPayload.UUID != nil {
 		uuid = *requestPayload.UUID
@@ -942,54 +967,58 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	if requestPayload.UserData != nil {
 		userdata = *requestPayload.UserData
 	}
-
-	image, err := r.ds.FindImage(requestPayload.ImageID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
+		return nil, errors.New("network ids cannot be empty")
 	}
 
-	if !image.HasFeature(metal.ImageFeatureMachine) {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given image is not usable for a machine, features: %s", image.ImageFeatureString())) {
-			return
-		}
-	}
-
-	user, err := r.userGetter.User(request.Request)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	spec := machineAllocationSpec{
-		Creator:            user.EMail,
-		UUID:               uuid,
-		Name:               name,
-		Description:        description,
-		Hostname:           hostname,
-		ProjectID:          requestPayload.ProjectID,
-		PartitionID:        requestPayload.PartitionID,
-		SizeID:             requestPayload.SizeID,
-		Image:              image,
-		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
-		SSHPubKeys:         requestPayload.SSHPubKeys,
-		UserData:           userdata,
-		Tags:               requestPayload.Tags,
-		Networks:           requestPayload.Networks,
-		IPs:                requestPayload.IPs,
-		HA:                 false,
-		Role:               metal.RoleMachine,
-	}
-
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "error", err)
-		return
-	}
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	image, err := ds.FindImage(requestPayload.ImageID)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return nil, err
 	}
+
+	imageFeatureType := metal.ImageFeatureMachine
+	if role == metal.RoleFirewall {
+		imageFeatureType = metal.ImageFeatureFirewall
+	}
+
+	if !image.HasFeature(imageFeatureType) {
+		return nil, fmt.Errorf("given image is not usable for a %s, features: %s", imageFeatureType, image.ImageFeatureString())
+	}
+
+	partitionID := requestPayload.PartitionID
+	sizeID := requestPayload.SizeID
+	// Allocation of a specific machine is requested, therefor size and partition are not given, fetch them
+	if uuid != "" {
+		m, err := ds.FindMachineByID(uuid)
+		if err != nil {
+			return nil, fmt.Errorf("uuid given but no machine found with uuid:%s err:%w", uuid, err)
+		}
+		sizeID = m.SizeID
+		partitionID = m.PartitionID
+	}
+
+	size, err := ds.FindSize(sizeID)
+	if err != nil {
+		return nil, fmt.Errorf("size:%s not found err:%w", sizeID, err)
+	}
+
+	return &machineAllocationSpec{
+		Creator:     user.EMail,
+		UUID:        uuid,
+		Name:        name,
+		Description: description,
+		Hostname:    hostname,
+		ProjectID:   requestPayload.ProjectID,
+		PartitionID: partitionID,
+		Size:        size,
+		Image:       image,
+		SSHPubKeys:  requestPayload.SSHPubKeys,
+		UserData:    userdata,
+		Tags:        requestPayload.Tags,
+		Networks:    requestPayload.Networks,
+		IPs:         requestPayload.IPs,
+		Role:        role,
+	}, nil
 }
 
 func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.Server) (*metal.Machine, error) {
@@ -1001,16 +1030,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	p, err := mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
 		return nil, err
-	}
-
-	// Allocation of a specific machine is requested, therefor size and partition are not given, fetch them
-	if allocationSpec.UUID != "" {
-		m, err := ds.FindMachineByID(allocationSpec.UUID)
-		if err != nil {
-			return nil, err
-		}
-		allocationSpec.SizeID = m.SizeID
-		allocationSpec.PartitionID = m.PartitionID
 	}
 
 	// Check if more machine would be allocated than project quota permits
@@ -1034,7 +1053,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 			return nil, err
 		}
 
-		fsl, err = fsls.From(allocationSpec.SizeID, allocationSpec.Image.ID)
+		fsl, err = fsls.From(allocationSpec.Size.ID, allocationSpec.Image.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -1105,23 +1124,23 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 
 	err = fsl.Matches(machineCandidate.Hardware)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to check for fsl match:%w", err))
 	}
 	alloc.FilesystemLayout = fsl
 
 	networks, err := gatherNetworks(ds, allocationSpec)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to gather networks:%w", err))
 	}
 	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to make networks:%w", err))
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
 	machine, err := ds.FindMachineByID(machineCandidate.ID)
 	if err != nil {
-		return nil, rollbackOnError(err)
+		return nil, rollbackOnError(fmt.Errorf("unable to find machine:%w", err))
 	}
 	if machine.Allocation != nil {
 		return nil, rollbackOnError(fmt.Errorf("machine %q already allocated", machine.ID))
@@ -1154,7 +1173,7 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 		return errors.New("when no machine id is given, a partition id must be specified")
 	}
 
-	if allocationSpec.UUID == "" && allocationSpec.SizeID == "" {
+	if allocationSpec.UUID == "" && allocationSpec.Size == nil {
 		return errors.New("when no machine id is given, a size id must be specified")
 	}
 
@@ -1198,7 +1217,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	var machine *metal.Machine
 	if allocationSpec.UUID == "" {
 		// requesting allocation of an arbitrary ready machine in partition with given size
-		machine, err = findWaitingMachine(ds, allocationSpec.PartitionID, allocationSpec.SizeID)
+		machine, err = findWaitingMachine(ds, allocationSpec.PartitionID, allocationSpec.Size.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -1216,8 +1235,8 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 			return nil, fmt.Errorf("machine %q is not in the requested partition: %s", machine.ID, allocationSpec.PartitionID)
 		}
 
-		if allocationSpec.SizeID != "" && machine.SizeID != allocationSpec.SizeID {
-			return nil, fmt.Errorf("machine %q does not have the requested size: %s", machine.ID, allocationSpec.SizeID)
+		if allocationSpec.Size != nil && machine.SizeID != allocationSpec.Size.ID {
+			return nil, fmt.Errorf("machine %q does not have the requested size: %s", machine.ID, allocationSpec.Size.ID)
 		}
 	}
 	return machine, err
@@ -1444,7 +1463,7 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 		return nil, err
 	}
 	if len(underlays) == 0 {
-		return nil, fmt.Errorf("no underlay found in the given partition: %w", err)
+		return nil, fmt.Errorf("no underlay found in the given partition:%s", partition.ID)
 	}
 	if len(underlays) > 1 {
 		return nil, fmt.Errorf("more than one underlay network in partition %s in the database, which should not be the case", partition.ID)

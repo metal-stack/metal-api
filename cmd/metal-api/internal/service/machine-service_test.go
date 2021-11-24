@@ -817,7 +817,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Creator:     testEmail,
 				PartitionID: "42",
 				ProjectID:   "123",
-				SizeID:      "42",
+				Size:        &testdata.Sz1,
 				Role:        metal.RoleMachine,
 			},
 			isError: false,
@@ -837,7 +837,7 @@ func Test_validateAllocationSpec(t *testing.T) {
 		{
 			spec: machineAllocationSpec{
 				Creator:   testEmail,
-				SizeID:    "42",
+				Size:      &testdata.Sz1,
 				ProjectID: "123",
 				Role:      metal.RoleMachine,
 			},

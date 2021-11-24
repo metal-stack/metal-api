@@ -179,77 +179,17 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	var uuid string
-	if requestPayload.UUID != nil {
-		uuid = *requestPayload.UUID
-	}
-	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
-	}
-	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
-	}
-	hostname := "metal"
-	if requestPayload.Hostname != nil {
-		hostname = *requestPayload.Hostname
-	}
-	var userdata string
-	if requestPayload.UserData != nil {
-		userdata = *requestPayload.UserData
-	}
-	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("network ids cannot be empty")) {
-			return
-		}
-	}
-	ha := false
-	if requestPayload.HA != nil {
-		ha = *requestPayload.HA
-	}
-	if ha {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("highly-available firewall not supported for the time being")) {
-			return
-		}
-	}
-
-	image, err := r.ds.FindImage(requestPayload.ImageID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if !image.HasFeature(metal.ImageFeatureFirewall) {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given image is not usable for a firewall, features: %s", image.ImageFeatureString())) {
-			return
-		}
-	}
-
 	user, err := r.userGetter.User(request.Request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	spec := machineAllocationSpec{
-		Creator:     user.EMail,
-		UUID:        uuid,
-		Name:        name,
-		Description: description,
-		Hostname:    hostname,
-		ProjectID:   requestPayload.ProjectID,
-		PartitionID: requestPayload.PartitionID,
-		SizeID:      requestPayload.SizeID,
-		Image:       image,
-		SSHPubKeys:  requestPayload.SSHPubKeys,
-		UserData:    userdata,
-		Tags:        requestPayload.Tags,
-		Networks:    requestPayload.Networks,
-		IPs:         requestPayload.IPs,
-		HA:          ha,
-		Role:        metal.RoleFirewall,
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, &spec, r.mdc, r.actor, r.grpcServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
