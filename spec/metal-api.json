@@ -3315,6 +3315,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
+        "destinationprefixes": {
+          "description": "the destination prefixes of this network",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string",
