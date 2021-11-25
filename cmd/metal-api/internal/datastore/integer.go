@@ -7,7 +7,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
 
-	"github.com/avast/retry-go"
+	"github.com/avast/retry-go/v4"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
