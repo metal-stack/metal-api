@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/avast/retry-go"
+	"github.com/avast/retry-go/v4"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
@@ -60,6 +60,7 @@ type machineAllocationSpec struct {
 	Hostname           string
 	ProjectID          string
 	PartitionID        string
+	Machine            *metal.Machine
 	Size               *metal.Size
 	Image              *metal.Image
 	FilesystemLayoutID *string
@@ -1031,7 +1032,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	if requestPayload.UserData != nil {
 		userdata = *requestPayload.UserData
 	}
-	if requestPayload.Networks != nil && len(requestPayload.Networks) <= 0 {
+	if requestPayload.Networks == nil {
+		return nil, errors.New("network ids cannot be nil")
+	}
+	if len(requestPayload.Networks) <= 0 {
 		return nil, errors.New("network ids cannot be empty")
 	}
 
@@ -1051,9 +1055,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 
 	partitionID := requestPayload.PartitionID
 	sizeID := requestPayload.SizeID
-	// Allocation of a specific machine is requested, therefor size and partition are not given, fetch them
+	var m *metal.Machine
+	// Allocation of a specific machine is requested, therefore size and partition are not given, fetch them
 	if uuid != "" {
-		m, err := ds.FindMachineByID(uuid)
+		m, err = ds.FindMachineByID(uuid)
 		if err != nil {
 			return nil, fmt.Errorf("uuid given but no machine found with uuid:%s err:%w", uuid, err)
 		}
@@ -1074,6 +1079,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		Hostname:    hostname,
 		ProjectID:   requestPayload.ProjectID,
 		PartitionID: partitionID,
+		Machine:     m,
 		Size:        size,
 		Image:       image,
 		SSHPubKeys:  requestPayload.SSHPubKeys,
@@ -1279,7 +1285,7 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
 	var err error
 	var machine *metal.Machine
-	if allocationSpec.UUID == "" {
+	if allocationSpec.Machine == nil {
 		// requesting allocation of an arbitrary ready machine in partition with given size
 		machine, err = findWaitingMachine(ds, allocationSpec.PartitionID, allocationSpec.Size.ID)
 		if err != nil {
@@ -1287,11 +1293,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 		}
 	} else {
 		// requesting allocation of a specific, existing machine
-		machine, err = ds.FindMachineByID(allocationSpec.UUID)
-		if err != nil {
-			return nil, fmt.Errorf("machine cannot be found: %w", err)
-		}
-
+		machine = allocationSpec.Machine
 		if machine.Allocation != nil {
 			return nil, errors.New("machine is already allocated")
 		}
