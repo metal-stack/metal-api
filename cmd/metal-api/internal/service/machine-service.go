@@ -945,31 +945,10 @@ func (r machineResource) tryAllocateMachine(request *restful.Request, response *
 			return
 		}
 	}
-	size := spec.Size
-	image := spec.Image
 
-	sic, err := r.ds.FindSizeImageConstraint(spec.Size.ID)
+	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
-	}
-
-	if sic == nil {
-		err = response.WriteHeaderAndEntity(http.StatusOK, nil)
-		if err != nil {
-			zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-			return
-		}
-	}
-
-	ok, err := sic.Matches(*spec.Size, *spec.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
-			return
-		}
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, nil)
@@ -1009,6 +988,25 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func isSizeAndImageCompatible(ds *datastore.RethinkStore, size metal.Size, image metal.Image) error {
+	sic, err := ds.FindSizeImageConstraint(size.ID)
+	if err != nil {
+		return err
+	}
+
+	if sic != nil {
+		ok, err := sic.Matches(size, image)
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)
+		}
+	}
+	return nil
 }
 
 func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {

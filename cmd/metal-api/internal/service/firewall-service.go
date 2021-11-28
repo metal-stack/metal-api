@@ -203,31 +203,10 @@ func (r firewallResource) tryAllocateFirewall(request *restful.Request, response
 			return
 		}
 	}
-	size := spec.Size
-	image := spec.Image
 
-	sic, err := r.ds.FindSizeImageConstraint(size.ID)
+	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
-	}
-
-	if sic == nil {
-		err = response.WriteHeaderAndEntity(http.StatusOK, nil)
-		if err != nil {
-			zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-			return
-		}
-	}
-
-	ok, err := sic.Matches(*spec.Size, *image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)) {
-			return
-		}
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, nil)
