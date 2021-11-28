@@ -977,6 +977,17 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
+	if spec == nil || spec.Size == nil || spec.Image == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to create allocationspec")) {
+			return
+		}
+	}
+
+	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "spec", spec, "error", err)
