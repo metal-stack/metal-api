@@ -1003,20 +1003,21 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 
 func isSizeAndImageCompatible(ds *datastore.RethinkStore, size metal.Size, image metal.Image) error {
 	sic, err := ds.FindSizeImageConstraint(size.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		return err
+	}
+	if sic == nil {
+		return nil
+	}
+
+	ok, err := sic.Matches(size, image)
 	if err != nil {
 		return err
 	}
-
-	if sic != nil {
-		ok, err := sic.Matches(size, image)
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			return fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)
-		}
+	if !ok {
+		return fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)
 	}
+
 	return nil
 }
 
