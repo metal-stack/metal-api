@@ -4720,6 +4720,13 @@
         "operationId": "allocateFirewall",
         "parameters": [
           {
+            "default": false,
+            "description": "try allocation before actually doing so to get informed early about possible incompatible allocation parameters",
+            "in": "query",
+            "name": "try",
+            "type": "bool"
+          },
+          {
             "in": "body",
             "name": "body",
             "required": true,
@@ -4788,42 +4795,6 @@
           }
         },
         "summary": "find firewalls by multiple criteria",
-        "tags": [
-          "firewall"
-        ]
-      }
-    },
-    "/v1/firewall/tryallocate": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "tryAllocateFirewall",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.FirewallCreateRequest"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "try allocate a firewall will only check if with given parameters a firewall can be created",
         "tags": [
           "firewall"
         ]
@@ -5670,6 +5641,13 @@
         "operationId": "allocateMachine",
         "parameters": [
           {
+            "default": false,
+            "description": "try allocation before actually doing so to get informed early about possible incompatible allocation parameters",
+            "in": "query",
+            "name": "try",
+            "type": "bool"
+          },
+          {
             "in": "body",
             "name": "body",
             "required": true,
@@ -5903,42 +5881,6 @@
           }
         },
         "summary": "register a machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/tryallocate": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "tryAllocateMachine",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineAllocateRequest"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "try allocate a machine will only check if with given parameters a machine can be created",
         "tags": [
           "machine"
         ]

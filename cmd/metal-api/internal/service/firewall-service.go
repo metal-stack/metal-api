@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/security"
@@ -107,18 +108,9 @@ func (r firewallResource) webService() *restful.WebService {
 		Operation("allocateFirewall").
 		Doc("allocate a firewall").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("try", "try allocation before actually doing so to get informed early about possible incompatible allocation parameters").DataType("bool").DefaultValue("false")).
 		Reads(v1.FirewallCreateRequest{}).
 		Returns(http.StatusOK, "OK", v1.FirewallResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/tryallocate").
-		To(editor(r.tryAllocateFirewall)).
-		Operation("tryAllocateFirewall").
-		Doc("try allocate a firewall will only check if with given parameters a firewall can be created").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.FirewallCreateRequest{}).
-		Writes(nil).
-		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -182,40 +174,6 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 	}
 }
 
-func (r firewallResource) tryAllocateFirewall(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.FirewallCreateRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	user, err := r.userGetter.User(request.Request)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	if spec == nil || spec.Size == nil || spec.Image == nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to create allocationspec")) {
-			return
-		}
-	}
-
-	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, nil)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
 func (r firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FirewallCreateRequest
 	err := request.ReadEntity(&requestPayload)
@@ -242,6 +200,22 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	if request.QueryParameter("try") != "" {
+		try := false
+		try, err = strconv.ParseBool(request.QueryParameter("try"))
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if try {
+			err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineResponse{})
+			if err != nil {
+				zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+				return
+			}
+			return
+		}
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)

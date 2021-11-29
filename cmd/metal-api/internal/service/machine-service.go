@@ -196,18 +196,10 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("allocateMachine").
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("try", "try allocation before actually doing so to get informed early about possible incompatible allocation parameters").DataType("bool").DefaultValue("false")).
 		Reads(v1.MachineAllocateRequest{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/tryallocate").
-		To(editor(r.tryAllocateMachine)).
-		Operation("tryAllocateMachine").
-		Doc("try allocate a machine will only check if with given parameters a machine can be created").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineAllocateRequest{}).
-		Returns(http.StatusOK, "OK", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/finalize-allocation").
@@ -924,40 +916,6 @@ func updateFru(m *metal.Machine, fru *v1.MachineFru) {
 	m.IPMI.Fru.ProductPartNumber = utils.StrValueDefault(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
 }
 
-func (r machineResource) tryAllocateMachine(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineAllocateRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	user, err := r.userGetter.User(request.Request)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.RoleMachine, user)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	if spec == nil || spec.Size == nil || spec.Image == nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to create allocationspec")) {
-			return
-		}
-	}
-
-	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, nil)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
 func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineAllocateRequest
 	err := request.ReadEntity(&requestPayload)
@@ -986,6 +944,22 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
+	}
+
+	if request.QueryParameter("try") != "" {
+		try := false
+		try, err := strconv.ParseBool(request.QueryParameter("try"))
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if try {
+			err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineResponse{})
+			if err != nil {
+				zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+				return
+			}
+			return
+		}
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
