@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -24,10 +25,10 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 		image Image
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   bool
+		name    string
+		fields  fields
+		args    args
+		wantErr error
 	}{
 		{
 			name: "n1 with matching firewall is allowed",
@@ -37,8 +38,8 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 					"firewall": ">= 2.0.20211001",
 				},
 			},
-			args: args{size: n1Medium, image: newFirewall},
-			want: true,
+			args:    args{size: n1Medium, image: newFirewall},
+			wantErr: nil,
 		},
 		{
 			name: "n1 with to old firewall is not allowed",
@@ -49,8 +50,8 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 					"ubuntu":   ">= 2.0.20211001",
 				},
 			},
-			args: args{size: n1Medium, image: oldFirewall},
-			want: false,
+			args:    args{size: n1Medium, image: oldFirewall},
+			wantErr: errors.New("given size:n1-medium-x86 with image:firewall-2.0.20201101 does violate image constraint:firewall >=2.0.20211001"),
 		},
 		{
 			name: "c1 has no restrictins",
@@ -60,8 +61,8 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 					"firewall": ">= 2.0.20211001",
 				},
 			},
-			args: args{size: c1Xlarge, image: oldFirewall},
-			want: true,
+			args:    args{size: c1Xlarge, image: oldFirewall},
+			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
@@ -71,8 +72,13 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 				Base:   tt.fields.Base,
 				Images: tt.fields.Images,
 			}
-			if got, _ := sc.Matches(tt.args.size, tt.args.image); got != tt.want {
-				t.Errorf("SizeImageConstraint.matches() = %v, want %v", got, tt.want)
+			got := sc.Matches(tt.args.size, tt.args.image)
+			if tt.wantErr == nil && got != nil || got == nil && tt.wantErr != nil {
+				t.Errorf("SizeImageConstraint.matches() = %v, want %v", got, tt.wantErr)
+			}
+
+			if tt.wantErr != nil && got != nil && got.Error() != tt.wantErr.Error() {
+				t.Errorf("SizeImageConstraint.matches() got:%q want:%q", got, tt.wantErr)
 			}
 		})
 	}
@@ -87,14 +93,12 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 		name    string
 		scs     *SizeImageConstraints
 		args    args
-		want    bool
-		wantErr *string
+		wantErr error
 	}{
 		{
 			name:    "no constraints",
 			scs:     &SizeImageConstraints{},
 			args:    args{size: n1Medium, image: newFirewall},
-			want:    true,
 			wantErr: nil,
 		},
 		{
@@ -113,8 +117,8 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 					},
 				},
 			},
-			args: args{size: n1Medium, image: newFirewall},
-			want: true,
+			args:    args{size: n1Medium, image: newFirewall},
+			wantErr: nil,
 		},
 		{
 			name: "only major version given",
@@ -133,8 +137,7 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 				},
 			},
 			args:    args{size: n1Medium, image: onlyMajorFirewall},
-			want:    false,
-			wantErr: strPtr("no patch version given"),
+			wantErr: errors.New("no patch version given"),
 		},
 		{
 			name: "no constraints for this image",
@@ -152,8 +155,8 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 					},
 				},
 			},
-			args: args{size: s1Xlarge, image: debian},
-			want: true,
+			args:    args{size: s1Xlarge, image: debian},
+			wantErr: nil,
 		},
 		{
 			name: "to old image",
@@ -172,22 +175,19 @@ func TestSizeImageConstraints_Matches(t *testing.T) {
 				},
 			},
 			args:    args{size: n1Medium, image: oldFirewall},
-			want:    false,
-			wantErr: strPtr("given size:n1-medium-x86 with image:firewall-2.0.20201101 does violate image constraint:firewall >=2.0.20211001"),
+			wantErr: errors.New("given size:n1-medium-x86 with image:firewall-2.0.20201101 does violate image constraint:firewall >=2.0.20211001"),
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.scs.Matches(tt.args.size, tt.args.image)
-			if tt.wantErr != nil && err == nil {
-				t.Errorf("SizeImageConstraints.Matches() wanted err but got nil err")
+			got := tt.scs.Matches(tt.args.size, tt.args.image)
+			if tt.wantErr == nil && got != nil || got == nil && tt.wantErr != nil {
+				t.Errorf("SizeImageConstraint.matches() = %v, want %v", got, tt.wantErr)
 			}
-			if tt.wantErr != nil && err != nil && *tt.wantErr != err.Error() {
-				t.Errorf("SizeImageConstraints.Matches() wanted %s but got %s", *tt.wantErr, err.Error())
-			}
-			if got != tt.want {
-				t.Errorf("SizeImageConstraints.Matches() wanted %v but got %v", tt.want, got)
+
+			if tt.wantErr != nil && got != nil && got.Error() != tt.wantErr.Error() {
+				t.Errorf("SizeImageConstraint.matches() got:%q want:%q", got, tt.wantErr)
 			}
 		})
 	}

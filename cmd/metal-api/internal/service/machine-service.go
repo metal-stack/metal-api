@@ -984,15 +984,7 @@ func isSizeAndImageCompatible(ds *datastore.RethinkStore, size metal.Size, image
 		return nil
 	}
 
-	ok, err := sic.Matches(size, image)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return fmt.Errorf("given size:%s is not compatible with image:%s", size.ID, image.ID)
-	}
-
-	return nil
+	return sic.Matches(size, image)
 }
 
 func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {

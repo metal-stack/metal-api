@@ -55,18 +55,18 @@ func (sc *SizeImageConstraint) Validate() error {
 	return nil
 }
 
-func (scs *SizeImageConstraints) Matches(size Size, image Image) (bool, error) {
+func (scs *SizeImageConstraints) Matches(size Size, image Image) error {
 	for _, sc := range *scs {
 		if sc.ID == size.ID {
 			return sc.Matches(size, image)
 		}
 	}
-	return true, nil
+	return nil
 }
 
-func (sc *SizeImageConstraint) Matches(size Size, image Image) (bool, error) {
+func (sc *SizeImageConstraint) Matches(size Size, image Image) error {
 	if sc.ID != size.ID {
-		return true, nil
+		return nil
 	}
 	for os, versionconstraint := range sc.Images {
 		if os != image.OS {
@@ -74,20 +74,20 @@ func (sc *SizeImageConstraint) Matches(size Size, image Image) (bool, error) {
 		}
 		version, err := semver.NewVersion(image.Version)
 		if err != nil {
-			return false, fmt.Errorf("version of image is invalid %w", err)
+			return fmt.Errorf("version of image is invalid %w", err)
 		}
 
 		// FIXME is this a valid assumption
 		if version.Patch() == 0 {
-			return false, fmt.Errorf("no patch version given")
+			return fmt.Errorf("no patch version given")
 		}
 		c, err := semver.NewConstraint(versionconstraint)
 		if err != nil {
-			return false, fmt.Errorf("versionconstraint %s is invalid %w", versionconstraint, err)
+			return fmt.Errorf("versionconstraint %s is invalid %w", versionconstraint, err)
 		}
 		if !c.Check(version) {
-			return false, fmt.Errorf("given size:%s with image:%s does violate image constraint:%s %s", size.ID, image.OS+"-"+image.Version, os, c.String())
+			return fmt.Errorf("given size:%s with image:%s does violate image constraint:%s %s", size.ID, image.OS+"-"+image.Version, os, c.String())
 		}
 	}
-	return true, nil
+	return nil
 }
