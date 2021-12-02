@@ -797,7 +797,9 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	}
 
 	var ms metal.Machines
-	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{}, &ms)
+	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{
+		PartitionID: &p.ID,
+	}, &ms)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
