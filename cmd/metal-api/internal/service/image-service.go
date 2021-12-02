@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -82,6 +83,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("listImages").
 		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Param(ws.QueryParameter("show-usage", "include image usage into response").DataType("bool").DefaultValue("false")).
 		Writes([]v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -172,19 +174,31 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 		return
 	}
 
-	ms, err := ir.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	ms := metal.Machines{}
+	showUsage := false
+	if request.QueryParameter("show-usage") != "" {
+		showUsage, err = strconv.ParseBool(request.QueryParameter("show-usage"))
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+		if showUsage {
+			ms, err = ir.ds.ListMachines()
+			if checkError(request, response, utils.CurrentFuncName(), err) {
+				return
+			}
+		}
 	}
 
 	result := []*v1.ImageResponse{}
 	for i := range imgs {
-		machines := ir.machinesByImage(ms, imgs[i].ID)
-		ir := v1.NewImageResponse(&imgs[i])
-		if len(machines) > 0 {
-			ir.UsedBy = machines
+		img := v1.NewImageResponse(&imgs[i])
+		if showUsage {
+			machines := ir.machinesByImage(ms, imgs[i].ID)
+			if len(machines) > 0 {
+				img.UsedBy = machines
+			}
 		}
-		result = append(result, ir)
+		result = append(result, img)
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
