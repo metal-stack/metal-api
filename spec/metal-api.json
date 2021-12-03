@@ -5058,6 +5058,15 @@
           "application/json"
         ],
         "operationId": "listImages",
+        "parameters": [
+          {
+            "default": false,
+            "description": "include image usage into response",
+            "in": "query",
+            "name": "show-usage",
+            "type": "bool"
+          }
+        ],
         "produces": [
           "application/json"
         ],
