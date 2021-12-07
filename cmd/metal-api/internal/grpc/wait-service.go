@@ -138,10 +138,9 @@ func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 		s.queue.Store(machineID, can)
 	} else {
 		can, ok = value.(chan bool)
-	}
-
-	if !ok {
-		return fmt.Errorf("unable to cast queue entry to a chan bool")
+		if !ok {
+			return fmt.Errorf("unable to cast queue entry to a chan bool")
+		}
 	}
 
 	defer func() {
