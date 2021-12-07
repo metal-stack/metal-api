@@ -132,11 +132,15 @@ func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	// we also create and listen to a channel that will be used as soon as the machine is allocated
 	value, ok := s.queue.Load(machineID)
 
-	can := value.(chan bool)
-
+	var can chan bool
 	if !ok {
 		can = make(chan bool)
 		s.queue.Store(machineID, can)
+	}
+
+	can, ok = value.(chan bool)
+	if !ok {
+		return fmt.Errorf("unable to cast queue entry to a chan bool")
 	}
 
 	defer func() {
@@ -193,7 +197,11 @@ func sendKeepPatientResponse(srv v1.Wait_WaitServer) error {
 
 func (s *WaitService) handleAllocation(machineID string) {
 	value, ok := s.queue.Load(machineID)
-	can := value.(chan bool)
+	can, okcast := value.(chan bool)
+	if !okcast {
+		s.Logger.Error("unable to cast queue entry to chan bool")
+		return
+	}
 	if ok {
 		can <- true
 	}
