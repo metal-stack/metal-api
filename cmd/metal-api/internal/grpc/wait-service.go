@@ -198,12 +198,14 @@ func sendKeepPatientResponse(srv v1.Wait_WaitServer) error {
 
 func (s *WaitService) handleAllocation(machineID string) {
 	value, ok := s.queue.Load(machineID)
-	can, okcast := value.(chan bool)
-	if !okcast {
-		s.Logger.Error("unable to cast queue entry to chan bool")
+	if !ok {
 		return
-	}
-	if ok {
+	} else {
+		can, ok := value.(chan bool)
+		if !ok {
+			s.Logger.Error("handleAllocation: unable to cast queue entry to chan bool")
+			return
+		}
 		can <- true
 	}
 }
