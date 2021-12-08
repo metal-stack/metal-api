@@ -297,7 +297,28 @@
         "type": "HTTPErrorResponse"
       }
     },
-    "rest.status": {
+    "rest.HealthResponse": {
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "services": {
+          "additionalProperties": {
+            "$ref": "#/definitions/rest.HealthResult"
+          },
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "services",
+        "status"
+      ]
+    },
+    "rest.HealthResult": {
       "properties": {
         "message": {
           "type": "string"
@@ -5023,6 +5044,14 @@
           "application/json"
         ],
         "operationId": "health",
+        "parameters": [
+          {
+            "description": "return health for this specific service only",
+            "in": "query",
+            "name": "service",
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -5030,13 +5059,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/rest.status"
+              "$ref": "#/definitions/rest.HealthResponse"
             }
           },
           "500": {
             "description": "Unhealthy",
             "schema": {
-              "$ref": "#/definitions/rest.status"
+              "$ref": "#/definitions/rest.HealthResponse"
             }
           },
           "default": {
