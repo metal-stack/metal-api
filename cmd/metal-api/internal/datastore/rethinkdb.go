@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -57,9 +56,9 @@ func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass st
 	}
 }
 
-func multi(ctx context.Context, session r.QueryExecutor, tt ...r.Term) error {
+func multi(session r.QueryExecutor, tt ...r.Term) error {
 	for _, t := range tt {
-		if err := t.Exec(session, r.ExecOpts{Context: ctx}); err != nil {
+		if err := t.Exec(session); err != nil {
 			return err
 		}
 	}
@@ -77,7 +76,7 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 
 	db := rs.db()
 
-	err := multi(context.Background(), rs.session,
+	err := multi(rs.session,
 		// rename old integerpool to vrfpool
 		// FIXME enable and remove once migrated
 		// db.TableList().Contains("integerpool").Do(func(r r.Term) r.Term {
