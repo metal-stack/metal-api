@@ -67,6 +67,7 @@ const (
 var (
 	cfgFile            string
 	ds                 *datastore.RethinkStore
+	eventds            *datastore.RethinkStore
 	ipamer             *ipam.Ipam
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
@@ -214,6 +215,12 @@ func init() {
 	rootCmd.PersistentFlags().StringP("db-addr", "", "", "the database address string to use")
 	rootCmd.PersistentFlags().StringP("db-user", "", "", "the database user to use")
 	rootCmd.PersistentFlags().StringP("db-password", "", "", "the database password to use")
+
+	rootCmd.Flags().Bool("event-db-enabled", false, "store events in a separate database")
+	rootCmd.PersistentFlags().StringP("event-db-name", "", "metalapi", "the event database name to use")
+	rootCmd.PersistentFlags().StringP("event-db-addr", "", "", "the event database address string to use")
+	rootCmd.PersistentFlags().StringP("event-db-user", "", "", "the event database user to use")
+	rootCmd.PersistentFlags().StringP("event-db-password", "", "", "the event database password to use")
 
 	rootCmd.Flags().StringP("ipam-db", "", "postgres", "the database adapter to use")
 	rootCmd.Flags().StringP("ipam-db-name", "", "metal-ipam", "the database name to use")
@@ -406,6 +413,15 @@ func connectDataStore(opts ...dsConnectOpt) error {
 			viper.GetString("db-user"),
 			viper.GetString("db-password"),
 		)
+		if viper.GetBool("event-db-enabled") {
+			eventds = datastore.New(
+				logger.Desugar(),
+				viper.GetString("event-db-addr"),
+				viper.GetString("event-db-name"),
+				viper.GetString("event-db-user"),
+				viper.GetString("event-db-password"),
+			)
+		}
 	} else {
 		return fmt.Errorf("database not supported: %v", dbAdapter)
 	}
@@ -440,6 +456,30 @@ func connectDataStore(opts ...dsConnectOpt) error {
 		err = ds.Demote()
 		if err != nil {
 			return fmt.Errorf("error demoting to data store runtime user: %w", err)
+		}
+	}
+
+	if !viper.GetBool("event-db-enabled") {
+		eventds = ds
+		return nil
+	}
+
+	err = eventds.Connect()
+	if err != nil {
+		return fmt.Errorf("cannot connect to event data store: %w", err)
+	}
+
+	if initTables {
+		err := eventds.Initialize()
+		if err != nil {
+			return fmt.Errorf("error initializing event data store tables: %w", err)
+		}
+	}
+
+	if demote {
+		err = eventds.Demote()
+		if err != nil {
+			return fmt.Errorf("error demoting to event data store runtime user: %w", err)
 		}
 	}
 
@@ -705,10 +745,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	eventService, err := service.NewEvent(ds, mdc, userGetter)
+	eventService, err := service.NewEvent(eventds, mdc, userGetter)
 	if err != nil {
 		logger.Fatal(err)
 	}
+
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
