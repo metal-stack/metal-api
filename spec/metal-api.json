@@ -4344,6 +4344,88 @@
     "title": "metal-api"
   },
   "paths": {
+    "/v1/event/machine/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getProvisioningEventContainer",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get the current machine provisioning event container",
+        "tags": [
+          "event"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "addProvisioningEvent",
+        "parameters": [
+          {
+            "description": "identifier of the machine",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineProvisioningEvent"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "adds a machine provisioning event",
+        "tags": [
+          "event"
+        ]
+      }
+    },
     "/v1/filesystemlayout": {
       "get": {
         "consumes": [
@@ -6030,88 +6112,6 @@
           }
         },
         "summary": "set the state of a chassis identify LED",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/event": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "getProvisioningEventContainer",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "get the current machine provisioning event container",
-        "tags": [
-          "machine"
-        ]
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "addProvisioningEvent",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineProvisioningEvent"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "adds a machine provisioning event",
         "tags": [
           "machine"
         ]

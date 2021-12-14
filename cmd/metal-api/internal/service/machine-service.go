@@ -307,27 +307,6 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.BootInfo{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/{id}/event").
-		To(viewer(r.getProvisioningEventContainer)).
-		Operation("getProvisioningEventContainer").
-		Doc("get the current machine provisioning event container").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.MachineRecentProvisioningEvents{}).
-		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/{id}/event").
-		To(editor(r.addProvisioningEvent)).
-		Operation("addProvisioningEvent").
-		Doc("adds a machine provisioning event").
-		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineProvisioningEvent{}).
-		Writes(v1.MachineRecentProvisioningEvents{}).
-		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	ws.Route(ws.POST("/{id}/power/on").
 		To(editor(r.machineOn)).
 		Operation("machineOn").
@@ -1691,8 +1670,13 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("Failed to send response", zap.Error(err))
 	}
 
-	event := string(metal.ProvisioningEventPlannedReboot)
-	_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: "freeMachine"})
+	event := metal.ProvisioningEvent{
+		Time:    time.Now(),
+		Event:   metal.ProvisioningEventPlannedReboot,
+		Message: "freeMachine",
+	}
+
+	_, err = r.ds.ProvisioningEventForMachine(id, event)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1918,112 +1902,6 @@ func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.L
 	return nil
 }
 
-func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
-	// check for existence of the machine
-	_, err := r.ds.FindMachineByID(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	ec, err := r.ds.FindProvisioningEventContainer(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	m, err := r.ds.FindMachineByID(id)
-	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
-	// an event can actually create an empty machine. This enables us to also catch the very first PXE Booting event
-	// in a machine lifecycle
-	if m == nil {
-		m = &metal.Machine{
-			Base: metal.Base{
-				ID: id,
-			},
-		}
-		err = r.ds.CreateMachine(m)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
-	var requestPayload v1.MachineProvisioningEvent
-	err = request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(requestPayload.Event)]
-	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("unknown provisioning event")) {
-			return
-		}
-	}
-
-	ec, err := r.provisioningEventForMachine(id, requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func (r machineResource) provisioningEventForMachine(machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
-	ec, err := r.ds.FindProvisioningEventContainer(machineID)
-	if err != nil && !metal.IsNotFound(err) {
-		return nil, err
-	}
-
-	if ec == nil {
-		ec = &metal.ProvisioningEventContainer{
-			Base: metal.Base{
-				ID: machineID,
-			},
-			Liveliness: metal.MachineLivelinessAlive,
-		}
-	}
-	now := time.Now()
-	ec.LastEventTime = &now
-
-	event := metal.ProvisioningEvent{
-		Time:    now,
-		Event:   metal.ProvisioningEventType(e.Event),
-		Message: e.Message,
-	}
-	if event.Event == metal.ProvisioningEventAlive {
-		zapup.MustRootLogger().Sugar().Debugw("received provisioning alive event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
-		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else {
-		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
-		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
-		ec.Liveliness = metal.MachineLivelinessAlive
-	}
-	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
-
-	err = r.ds.UpsertProvisioningEventContainer(ec)
-	return ec, err
-}
-
 // MachineLiveliness evaluates whether machines are still alive or if they have died
 func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) error {
 	logger.Info("machine liveliness was requested")
@@ -2041,7 +1919,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	errs := 0
 	for _, m := range machines {
 		p := liveliness[m.PartitionID]
-		lvlness, err := evaluateMachineLiveliness(ds, m)
+		lvlness, err := ds.EvaluateMachineLiveliness(m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
 			errs++
@@ -2066,36 +1944,6 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
 	return nil
-}
-
-func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
-	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
-	if err != nil {
-		// we have no provisioning events... we cannot tell
-		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
-	}
-
-	old := *provisioningEvents
-
-	if provisioningEvents.LastEventTime != nil {
-		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
-			if m.Allocation != nil {
-				// the machine is either dead or the customer did turn off the phone home service
-				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
-			} else {
-				// the machine is just dead
-				provisioningEvents.Liveliness = metal.MachineLivelinessDead
-			}
-		} else {
-			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
-		}
-		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
-		if err != nil {
-			return provisioningEvents.Liveliness, err
-		}
-	}
-
-	return provisioningEvents.Liveliness, nil
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
@@ -2243,8 +2091,12 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 
 	switch op {
 	case "machineReset", "machineOff", "machineCycle":
-		event := string(metal.ProvisioningEventPlannedReboot)
-		_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: op})
+		event := metal.ProvisioningEvent{
+			Time:    time.Now(),
+			Event:   metal.ProvisioningEventPlannedReboot,
+			Message: op,
+		}
+		_, err = r.ds.ProvisioningEventForMachine(id, event)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}

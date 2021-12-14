@@ -705,7 +705,10 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-
+	eventService, err := service.NewEvent(ds, mdc, userGetter)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
@@ -720,6 +723,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewFilesystemLayout(ds))
 	restful.DefaultContainer.Add(service.NewSwitch(ds))
 	restful.DefaultContainer.Add(healthService)
+	restful.DefaultContainer.Add(eventService)
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
