@@ -196,7 +196,6 @@ func (r machineResource) webService() *restful.WebService {
 		Operation("allocateMachine").
 		Doc("allocate a machine").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("try", "try allocation before actually doing so to get informed early about possible incompatible allocation parameters").DataType("bool").DefaultValue("false")).
 		Reads(v1.MachineAllocateRequest{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
@@ -937,33 +936,6 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	if spec == nil || spec.Size == nil || spec.Image == nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to create allocationspec")) {
-			return
-		}
-	}
-
-	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if request.QueryParameter("try") != "" {
-		try := false
-		try, err := strconv.ParseBool(request.QueryParameter("try"))
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		if try {
-			err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineResponse{})
-			if err != nil {
-				zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-				return
-			}
-			return
-		}
-	}
-
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "spec", spec, "error", err)
@@ -975,18 +947,6 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
-}
-
-func isSizeAndImageCompatible(ds *datastore.RethinkStore, size metal.Size, image metal.Image) error {
-	sic, err := ds.FindSizeImageConstraint(size.ID)
-	if err != nil && !metal.IsNotFound(err) {
-		return err
-	}
-	if sic == nil {
-		return nil
-	}
-
-	return sic.Matches(size, image)
 }
 
 func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {
@@ -1033,6 +993,15 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 
 	partitionID := requestPayload.PartitionID
 	sizeID := requestPayload.SizeID
+
+	if uuid == "" && partitionID == "" {
+		return nil, errors.New("when no machine id is given, a partition id must be specified")
+	}
+
+	if uuid == "" && sizeID == "" {
+		return nil, errors.New("when no machine id is given, a size id must be specified")
+	}
+
 	var m *metal.Machine
 	// Allocation of a specific machine is requested, therefore size and partition are not given, fetch them
 	if uuid != "" {
@@ -1074,6 +1043,12 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	if err != nil {
 		return nil, err
 	}
+
+	err = isSizeAndImageCompatible(ds, *allocationSpec.Size, *allocationSpec.Image)
+	if err != nil {
+		return nil, err
+	}
+
 	projectID := allocationSpec.ProjectID
 	p, err := mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
@@ -1215,14 +1190,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	if allocationSpec.ProjectID == "" {
 		return errors.New("project id must be specified")
-	}
-
-	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
-		return errors.New("when no machine id is given, a partition id must be specified")
-	}
-
-	if allocationSpec.UUID == "" && allocationSpec.Size == nil {
-		return errors.New("when no machine id is given, a size id must be specified")
 	}
 
 	if allocationSpec.Creator == "" {

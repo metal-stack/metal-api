@@ -2,9 +2,11 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
@@ -32,7 +34,7 @@ func NewSizeImageConstraint(ds *datastore.RethinkStore) *restful.WebService {
 func (r sizeImageConstraintResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
-		Path(BasePath + "v1/sizeimageconstraint").
+		Path(BasePath + "v1/size-image-constraint").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
@@ -85,6 +87,15 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 		Reads(v1.SizeImageConstraintUpdateRequest{}).
 		Returns(http.StatusOK, "OK", v1.SizeImageConstraintResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/try").
+		To(admin(r.trySizeImageConstraint)).
+		Operation("trySizeImageConstraint").
+		Doc("try if the given combination of image and size is supported and possible to allocate").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.SizeImageConstraintTryRequest{}).
+		Returns(http.StatusOK, "OK", v1.EmptyBody{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -208,4 +219,49 @@ func (r sizeImageConstraintResource) updateSizeImageConstraint(request *restful.
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+func (r sizeImageConstraintResource) trySizeImageConstraint(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SizeImageConstraintTryRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+	if requestPayload.SizeID == "" || requestPayload.ImageID == "" {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("size and image must be given")) {
+			return
+		}
+	}
+
+	size, err := r.ds.FindSize(requestPayload.SizeID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	image, err := r.ds.FindImage(requestPayload.ImageID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = isSizeAndImageCompatible(r.ds, *size, *image)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, v1.EmptyBody{})
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func isSizeAndImageCompatible(ds *datastore.RethinkStore, size metal.Size, image metal.Image) error {
+	sic, err := ds.FindSizeImageConstraint(size.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		return err
+	}
+	if sic == nil {
+		return nil
+	}
+
+	return sic.Matches(size, image)
 }

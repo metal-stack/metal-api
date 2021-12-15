@@ -15,7 +15,10 @@ type SizeImageConstraintCreateRequest struct {
 	Common
 	SizeImageConstraintBase `json:"constraints" description:"a list of constraints that for this size" optional:"true"`
 }
-
+type SizeImageConstraintTryRequest struct {
+	SizeID  string `json:"size"`
+	ImageID string `json:"image"`
+}
 type SizeImageConstraintUpdateRequest struct {
 	Common
 	SizeImageConstraintBase `json:"constraints" description:"a list of constraints that for this size" optional:"true"`

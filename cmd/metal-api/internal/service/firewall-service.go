@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/security"
@@ -108,7 +107,6 @@ func (r firewallResource) webService() *restful.WebService {
 		Operation("allocateFirewall").
 		Doc("allocate a firewall").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("try", "try allocation before actually doing so to get informed early about possible incompatible allocation parameters").DataType("bool").DefaultValue("false")).
 		Reads(v1.FirewallCreateRequest{}).
 		Returns(http.StatusOK, "OK", v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -189,33 +187,6 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
-	}
-
-	if spec == nil || spec.Size == nil || spec.Image == nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("unable to create allocationspec")) {
-			return
-		}
-	}
-
-	err = isSizeAndImageCompatible(r.ds, *spec.Size, *spec.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	if request.QueryParameter("try") != "" {
-		try := false
-		try, err = strconv.ParseBool(request.QueryParameter("try"))
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		if try {
-			err = response.WriteHeaderAndEntity(http.StatusOK, &v1.MachineResponse{})
-			if err != nil {
-				zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-				return
-			}
-			return
-		}
 	}
 
 	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
