@@ -199,14 +199,13 @@ func (s *WaitService) handleAllocation(machineID string) {
 	value, ok := s.queue.Load(machineID)
 	if !ok {
 		return
-	} else {
-		can, ok := value.(chan bool)
-		if !ok {
-			s.Logger.Error("handleAllocation: unable to cast queue entry to chan bool")
-			return
-		}
-		can <- true
 	}
+	can, ok := value.(chan bool)
+	if !ok {
+		s.Logger.Error("handleAllocation: unable to cast queue entry to chan bool")
+		return
+	}
+	can <- true
 }
 
 func (s *WaitService) updateWaitingFlag(machineID string, flag bool) error {
