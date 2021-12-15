@@ -27,8 +27,7 @@ type WaitService struct {
 	consumer         *bus.Consumer
 	Logger           *zap.SugaredLogger
 	ds               Datasource
-	queueLock        *sync.RWMutex
-	queue            map[string]chan bool
+	queue            sync.Map
 	responseInterval time.Duration
 	checkInterval    time.Duration
 }
@@ -49,8 +48,7 @@ func NewWaitService(cfg *ServerConfig) (*WaitService, error) {
 		consumer:         c,
 		ds:               cfg.Datasource,
 		Logger:           cfg.Logger,
-		queueLock:        new(sync.RWMutex),
-		queue:            make(map[string]chan bool),
+		queue:            sync.Map{},
 		responseInterval: cfg.ResponseInterval,
 		checkInterval:    cfg.CheckInterval,
 	}
@@ -132,21 +130,22 @@ func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	}()
 
 	// we also create and listen to a channel that will be used as soon as the machine is allocated
-	s.queueLock.RLock()
-	can, ok := s.queue[machineID]
-	s.queueLock.RUnlock()
+	value, ok := s.queue.Load(machineID)
+
+	var can chan bool
 	if !ok {
 		can = make(chan bool)
-		s.queueLock.Lock()
-		s.queue[machineID] = can
-		s.queueLock.Unlock()
+		s.queue.Store(machineID, can)
+	} else {
+		can, ok = value.(chan bool)
+		if !ok {
+			return fmt.Errorf("unable to cast queue entry to a chan bool")
+		}
 	}
 
 	defer func() {
-		s.queueLock.Lock()
-		delete(s.queue, machineID)
+		s.queue.Delete(machineID)
 		close(can)
-		s.queueLock.Unlock()
 	}()
 
 	nextCheck := time.Now()
@@ -197,13 +196,16 @@ func sendKeepPatientResponse(srv v1.Wait_WaitServer) error {
 }
 
 func (s *WaitService) handleAllocation(machineID string) {
-	s.queueLock.RLock()
-	defer s.queueLock.RUnlock()
-
-	can, ok := s.queue[machineID]
-	if ok {
-		can <- true
+	value, ok := s.queue.Load(machineID)
+	if !ok {
+		return
 	}
+	can, ok := value.(chan bool)
+	if !ok {
+		s.Logger.Error("handleAllocation: unable to cast queue entry to chan bool")
+		return
+	}
+	can <- true
 }
 
 func (s *WaitService) updateWaitingFlag(machineID string, flag bool) error {
