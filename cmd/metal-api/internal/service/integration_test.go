@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
@@ -384,7 +385,7 @@ func (te *testEnv) machineWait(uuid string) error {
 	}
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	}
 
