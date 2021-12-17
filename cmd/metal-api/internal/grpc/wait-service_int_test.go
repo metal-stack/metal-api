@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -218,7 +219,7 @@ func (t *test) startMachineInstances() {
 	}
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	}
 	for i := 0; i < t.numberMachineInstances; i++ {
