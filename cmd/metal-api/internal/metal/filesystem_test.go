@@ -568,6 +568,59 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr:   true,
 			errString: "lv:/var in vg:vgroot, variable sized lv must be the last",
 		},
+		{
+			name: "invalid lvm layout, raid is configured but only one device",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Disks: []Disk{
+					{Device: "/dev/sda"},
+					{Device: "/dev/sdb"},
+				},
+				VolumeGroups: []VolumeGroup{
+					{Name: "vgroot", Devices: []string{"/dev/sda"}},
+				},
+				LogicalVolumes: []LogicalVolume{
+					{Name: "boot", VolumeGroup: "vgroot", Size: 100000000, LVMType: LVMTypeRaid1},
+				},
+			},
+			wantErr:   true,
+			errString: "lv:boot in vg:vgroot is configured for lvmtype:raid1 but has only 1 disk, consider linear instead",
+		},
+		{
+			name: "invalid lvm layout, stripe is configured but only one device",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Disks: []Disk{
+					{Device: "/dev/sda"},
+					{Device: "/dev/sdb"},
+				},
+				VolumeGroups: []VolumeGroup{
+					{Name: "vgroot", Devices: []string{"/dev/sda"}},
+				},
+				LogicalVolumes: []LogicalVolume{
+					{Name: "boot", VolumeGroup: "vgroot", Size: 100000000, LVMType: LVMTypeStriped},
+				},
+			},
+			wantErr:   true,
+			errString: "lv:boot in vg:vgroot is configured for lvmtype:striped but has only 1 disk, consider linear instead",
+		},
+		{
+			name: "valid lvm layout, linear is configured but only one device",
+			fields: fields{
+				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
+				Disks: []Disk{
+					{Device: "/dev/sda"},
+					{Device: "/dev/sdb"},
+				},
+				VolumeGroups: []VolumeGroup{
+					{Name: "vgroot", Devices: []string{"/dev/sda"}},
+				},
+				LogicalVolumes: []LogicalVolume{
+					{Name: "boot", VolumeGroup: "vgroot", Size: 100000000, LVMType: LVMTypeLinear},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
