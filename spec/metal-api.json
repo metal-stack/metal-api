@@ -4128,7 +4128,7 @@
         },
         "sync_duration": {
           "description": "the duration of the switch synchronization",
-          "format": "integer",
+          "format": "int64",
           "type": "integer"
         }
       },
@@ -4253,7 +4253,7 @@
       "properties": {
         "duration": {
           "description": "the duration that lat switch sync took",
-          "format": "integer",
+          "format": "int64",
           "type": "integer"
         },
         "error": {
