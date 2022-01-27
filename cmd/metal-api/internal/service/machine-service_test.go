@@ -824,28 +824,6 @@ func Test_validateAllocationSpec(t *testing.T) {
 			name:    "partition and size id for absent uuid",
 		},
 		{
-			spec: machineAllocationSpec{
-				Creator:     testEmail,
-				PartitionID: "42",
-				ProjectID:   "123",
-				Role:        metal.RoleMachine,
-			},
-			isError:  true,
-			expected: "when no machine id is given, a size id must be specified",
-			name:     "missing size id",
-		},
-		{
-			spec: machineAllocationSpec{
-				Creator:   testEmail,
-				Size:      &testdata.Sz1,
-				ProjectID: "123",
-				Role:      metal.RoleMachine,
-			},
-			isError:  true,
-			expected: "when no machine id is given, a partition id must be specified",
-			name:     "missing partition id",
-		},
-		{
 			spec:     machineAllocationSpec{},
 			isError:  true,
 			expected: "project id must be specified",

@@ -993,6 +993,15 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 
 	partitionID := requestPayload.PartitionID
 	sizeID := requestPayload.SizeID
+
+	if uuid == "" && partitionID == "" {
+		return nil, errors.New("when no machine id is given, a partition id must be specified")
+	}
+
+	if uuid == "" && sizeID == "" {
+		return nil, errors.New("when no machine id is given, a size id must be specified")
+	}
+
 	var m *metal.Machine
 	// Allocation of a specific machine is requested, therefore size and partition are not given, fetch them
 	if uuid != "" {
@@ -1035,6 +1044,12 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	if err != nil {
 		return nil, err
 	}
+
+	err = isSizeAndImageCompatible(ds, *allocationSpec.Size, *allocationSpec.Image)
+	if err != nil {
+		return nil, err
+	}
+
 	projectID := allocationSpec.ProjectID
 	p, err := mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
@@ -1176,14 +1191,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 	if allocationSpec.ProjectID == "" {
 		return errors.New("project id must be specified")
-	}
-
-	if allocationSpec.UUID == "" && allocationSpec.PartitionID == "" {
-		return errors.New("when no machine id is given, a partition id must be specified")
-	}
-
-	if allocationSpec.UUID == "" && allocationSpec.Size == nil {
-		return errors.New("when no machine id is given, a size id must be specified")
 	}
 
 	if allocationSpec.Creator == "" {

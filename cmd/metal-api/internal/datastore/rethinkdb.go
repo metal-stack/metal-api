@@ -18,7 +18,7 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration", "filesystemlayout",
+	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
@@ -177,6 +177,11 @@ func (rs *RethinkStore) ipTable() *r.Term {
 
 func (rs *RethinkStore) filesystemLayoutTable() *r.Term {
 	res := r.DB(rs.dbname).Table("filesystemlayout")
+	return &res
+}
+
+func (rs *RethinkStore) sizeImageConstraintTable() *r.Term {
+	res := r.DB(rs.dbname).Table("sizeimageconstraint")
 	return &res
 }
 

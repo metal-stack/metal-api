@@ -12,10 +12,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Go 1.16
-      uses: actions/setup-go@v2.1.3
+    - name: Set up Go 1.17
+      uses: actions/setup-go@v2
       with:
-        go-version: '1.16.x'
+        go-version: '1.17.x'
 
     - name: Docker Login
       uses: docker/login-action@v1
@@ -27,6 +27,7 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v2
       with:
+        version: v1.43
         args: --build-tags integration -p bugs -p unused --timeout=3m
 
     - name: Build Docker image
@@ -47,10 +48,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Go 1.16
-      uses: actions/setup-go@v2.1.3
+    - name: Set up Go 1.17
+      uses: actions/setup-go@v2
       with:
-        go-version: '1.16.x'
+        go-version: '1.17.x'
 
     - name: Run integration tests
       run: |

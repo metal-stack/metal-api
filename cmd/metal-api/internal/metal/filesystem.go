@@ -274,8 +274,8 @@ func (c *FilesystemLayoutConstraints) validate() error {
 		if err != nil {
 			return err
 		}
-
 	}
+
 	sizeSet := make(map[string]bool)
 	// no wildcard in size
 	for _, s := range c.Sizes {

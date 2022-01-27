@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package service
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
@@ -35,19 +37,20 @@ import (
 )
 
 type testEnv struct {
-	imageService        *restful.WebService
-	switchService       *restful.WebService
-	sizeService         *restful.WebService
-	networkService      *restful.WebService
-	partitionService    *restful.WebService
-	machineService      *restful.WebService
-	ipService           *restful.WebService
-	ws                  *metalgrpc.WaitService
-	ds                  *datastore.RethinkStore
-	privateSuperNetwork *v1.NetworkResponse
-	privateNetwork      *v1.NetworkResponse
-	rethinkContainer    testcontainers.Container
-	ctx                 context.Context
+	imageService               *restful.WebService
+	switchService              *restful.WebService
+	sizeService                *restful.WebService
+	sizeImageConstraintService *restful.WebService
+	networkService             *restful.WebService
+	partitionService           *restful.WebService
+	machineService             *restful.WebService
+	ipService                  *restful.WebService
+	ws                         *metalgrpc.WaitService
+	ds                         *datastore.RethinkStore
+	privateSuperNetwork        *v1.NetworkResponse
+	privateNetwork             *v1.NetworkResponse
+	rethinkContainer           testcontainers.Container
+	ctx                        context.Context
 }
 
 func (te *testEnv) teardown() {
@@ -102,23 +105,25 @@ func createTestEnvironment(t *testing.T) testEnv {
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
 	sizeService := NewSize(ds)
+	sizeImageConstraintService := NewSizeImageConstraint(ds)
 	networkService := NewNetwork(ds, ipamer, mdc)
 	partitionService := NewPartition(ds, &emptyPublisher{})
 	ipService, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(err)
 
 	te := testEnv{
-		imageService:     imageService,
-		switchService:    switchService,
-		sizeService:      sizeService,
-		networkService:   networkService,
-		partitionService: partitionService,
-		machineService:   machineService,
-		ipService:        ipService,
-		ds:               ds,
-		ws:               grpcServer.WaitService,
-		rethinkContainer: rethinkContainer,
-		ctx:              context.TODO(),
+		imageService:               imageService,
+		switchService:              switchService,
+		sizeService:                sizeService,
+		sizeImageConstraintService: sizeImageConstraintService,
+		networkService:             networkService,
+		partitionService:           partitionService,
+		machineService:             machineService,
+		ipService:                  ipService,
+		ds:                         ds,
+		ws:                         grpcServer.WaitService,
+		rethinkContainer:           rethinkContainer,
+		ctx:                        context.TODO(),
 	}
 
 	imageID := "test-image-1.0.0"
@@ -308,6 +313,23 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.True(ipnet.Contains(privateNet.IP), "%s must be within %s", privateNet, ipnet)
 	te.privateNetwork = &acquiredPrivateNetwork
 
+	// SizeImageConstraint
+	sic := v1.SizeImageConstraintCreateRequest{
+		Common: v1.Common{Identifiable: v1.Identifiable{ID: "n1-medium"}},
+		SizeImageConstraintBase: v1.SizeImageConstraintBase{
+			Images: map[string]string{
+				"firewall": ">= 2.0.20211001",
+			},
+		},
+	}
+
+	var createdSizeImageContraint v1.SizeImageConstraintResponse
+	te.sizeImageConstraintCreate(t, sic, &createdSizeImageContraint)
+	require.Equal(http.StatusCreated, status)
+	require.NotNil(createdSizeImageContraint)
+	require.Equal(sic.ID, "n1-medium")
+	require.Equal(len(sic.Images), 1)
+
 	return te
 }
 
@@ -329,6 +351,10 @@ func (te *testEnv) switchGet(t *testing.T, swid string, response interface{}) in
 
 func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response interface{}) int {
 	return webRequestPut(t, te.imageService, &testUserDirectory.admin, icr, "/v1/image/", response)
+}
+
+func (te *testEnv) sizeImageConstraintCreate(t *testing.T, siccr v1.SizeImageConstraintCreateRequest, response interface{}) int {
+	return webRequestPut(t, te.sizeImageConstraintService, &testUserDirectory.admin, siccr, "/v1/size-image-constraint/", response)
 }
 
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
@@ -359,7 +385,7 @@ func (te *testEnv) machineWait(uuid string) error {
 	}
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	}
 

@@ -709,6 +709,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
+	restful.DefaultContainer.Add(service.NewSizeImageConstraint(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
 	restful.DefaultContainer.Add(ipService)
 	restful.DefaultContainer.Add(firmwareService)
