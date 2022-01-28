@@ -368,12 +368,14 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		LogicalVolumes []LogicalVolume
 	}
 	tests := []struct {
+		id        string
 		name      string
 		fields    fields
 		wantErr   bool
 		errString string
 	}{
 		{
+			id:   "fsl-1",
 			name: "valid layout",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"ubuntu": "*"}},
@@ -383,6 +385,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			id:   "fsl-2",
 			name: "invalid layout, wildcard image",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large"}, Images: map[string]string{"*": ""}},
@@ -393,6 +396,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "just '*' is not allowed as image os constraint",
 		},
 		{
+			id:   "fsl-3",
 			name: "invalid layout, wildcard size",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large*"}, Images: map[string]string{"debian": "*"}},
@@ -403,6 +407,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "no wildcard allowed in size constraint",
 		},
 		{
+			id:   "fsl-4",
 			name: "invalid layout, duplicate size",
 			fields: fields{
 				Constraints: FilesystemLayoutConstraints{Sizes: []string{"c1-large", "c1-large", "c1-xlarge"}, Images: map[string]string{"debian": "*"}},
@@ -413,6 +418,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "size c1-large is configured more than once",
 		},
 		{
+			id:   "fsl-5",
 			name: "invalid layout /dev/sda2 is missing",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: VFAT}, {Path: strPtr("/"), Device: "/dev/sda2", Format: EXT4}},
@@ -422,6 +428,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "device:/dev/sda2 for filesystem:/ is not configured",
 		},
 		{
+			id:   "fsl-6",
 			name: "invalid layout wrong Format",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "xfs"}},
@@ -431,6 +438,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "filesystem:/boot format:xfs is not supported",
 		},
 		{
+			id:   "fsl-7",
 			name: "invalid layout wrong GPTType",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/sda1", Format: "vfat"}},
@@ -440,6 +448,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "given GPTType:ff00 for partition:1 on disk:/dev/sda is not supported",
 		},
 		{
+			id:   "fsl-8",
 			name: "valid raid layout",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
@@ -454,6 +463,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			id:   "fsl-9",
 			name: "invalid raid layout wrong level",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1", Format: VFAT}},
@@ -469,6 +479,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "given raidlevel:6 is not supported",
 		},
 		{
+			id:   "fsl-10",
 			name: "invalid layout raid device missing",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
@@ -481,6 +492,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "device:/dev/md1 for filesystem:/boot is not configured",
 		},
 		{
+			id:   "fsl-11",
 			name: "invalid layout device of raid missing",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/md1"}},
@@ -496,6 +508,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "device:/dev/sda2 not provided by disk for raid:/dev/md1",
 		},
 		{
+			id:   "fsl-12",
 			name: "valid lvm layout",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
@@ -513,6 +526,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			id:   "fsl-13",
 			name: "valid lvm layout, variable size",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}, {Path: strPtr("/var"), Device: "/dev/vgroot/var", Format: EXT4}},
@@ -531,6 +545,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			id:   "fsl-14",
 			name: "invalid lvm layout",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vg00/boot", Format: VFAT}},
@@ -549,6 +564,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "device:/dev/vg00/boot for filesystem:/boot is not configured",
 		},
 		{
+			id:   "fsl-15",
 			name: "invalid lvm layout, variable size not the last one",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
@@ -569,6 +585,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			errString: "lv:/var in vg:vgroot, variable sized lv must be the last",
 		},
 		{
+			id:   "fsl-16",
 			name: "invalid lvm layout, raid is configured but only one device",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
@@ -584,9 +601,10 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errString: "lv:boot in vg:vgroot is configured for lvmtype:raid1 but has only 1 disk, consider linear instead",
+			errString: "fsl:\"fsl-16\" lv:boot in vg:vgroot is configured for lvmtype:raid1 but has only 1 disk, consider linear instead",
 		},
 		{
+			id:   "fsl-17",
 			name: "invalid lvm layout, stripe is configured but only one device",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
@@ -602,9 +620,10 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 				},
 			},
 			wantErr:   true,
-			errString: "lv:boot in vg:vgroot is configured for lvmtype:striped but has only 1 disk, consider linear instead",
+			errString: "fsl:\"fsl-17\" lv:boot in vg:vgroot is configured for lvmtype:striped but has only 1 disk, consider linear instead",
 		},
 		{
+			id:   "fsl-18",
 			name: "valid lvm layout, linear is configured but only one device",
 			fields: fields{
 				Filesystems: []Filesystem{{Path: strPtr("/boot"), Device: "/dev/vgroot/boot", Format: VFAT}},
@@ -626,6 +645,7 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			f := &FilesystemLayout{
+				Base:           Base{ID: tt.id},
 				Constraints:    tt.fields.Constraints,
 				Filesystems:    tt.fields.Filesystems,
 				Disks:          tt.fields.Disks,

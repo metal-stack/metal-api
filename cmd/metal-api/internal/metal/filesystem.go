@@ -229,7 +229,7 @@ func (f FilesystemLayout) Validate() error {
 		// raid or striped lvmtype is only possible for more than one disk
 		if lv.LVMType == LVMTypeRaid1 || lv.LVMType == LVMTypeStriped {
 			if vgdevices[lv.VolumeGroup] < 2 {
-				return fmt.Errorf("lv:%s in vg:%s is configured for lvmtype:%s but has only %d disk, consider linear instead", lv.Name, lv.VolumeGroup, lv.LVMType, vgdevices[lv.VolumeGroup])
+				return fmt.Errorf("fsl:%q lv:%s in vg:%s is configured for lvmtype:%s but has only %d disk, consider linear instead", f.ID, lv.Name, lv.VolumeGroup, lv.LVMType, vgdevices[lv.VolumeGroup])
 			}
 		}
 		providedDevices[path.Join("/dev/", lv.VolumeGroup, lv.Name)] = true
