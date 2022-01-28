@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"log"
 	"path"
 	"sort"
 	"strings"
@@ -221,7 +222,8 @@ func (f FilesystemLayout) Validate() error {
 	if err != nil {
 		return err
 	}
-	for _, lv := range f.LogicalVolumes {
+	for i := range f.LogicalVolumes {
+		lv := f.LogicalVolumes[i]
 		_, ok := vgdevices[lv.VolumeGroup]
 		if !ok {
 			return fmt.Errorf("volumegroup:%s not configured for lv:%s", lv.VolumeGroup, lv.Name)
@@ -229,6 +231,7 @@ func (f FilesystemLayout) Validate() error {
 		// raid or striped lvmtype is only possible for more than one disk
 		if lv.LVMType == LVMTypeRaid1 || lv.LVMType == LVMTypeStriped {
 			if vgdevices[lv.VolumeGroup] < 2 {
+				log.Printf("################ \nfsl:%#v\n", f)
 				return fmt.Errorf("lv:%s in vg:%s is configured for lvmtype:%s but has only %d disk, consider linear instead", lv.Name, lv.VolumeGroup, lv.LVMType, vgdevices[lv.VolumeGroup])
 			}
 		}
