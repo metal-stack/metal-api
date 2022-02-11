@@ -15,6 +15,7 @@ import (
 
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1/services"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/go-logr/zapr"
@@ -707,7 +708,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 
 	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
-	restful.DefaultContainer.Add(service.NewImage(ds))
+	restful.DefaultContainer.Add(services.NewImage(ds))
 	restful.DefaultContainer.Add(service.NewSize(ds))
 	restful.DefaultContainer.Add(service.NewSizeImageConstraint(ds))
 	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
@@ -731,6 +732,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
 		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
+	}
+
+	err = service.RegisterImageUsageCollector(ds)
+	if err != nil {
+		logger.Fatal(err)
 	}
 
 	config := restfulspec.Config{

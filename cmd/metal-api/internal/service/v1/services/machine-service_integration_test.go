@@ -1,6 +1,7 @@
+//go:build integration
 // +build integration
 
-package service
+package services
 
 import (
 	"net"
@@ -8,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -109,7 +111,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert.NotEmpty(allocatedMachine.Allocation.MachineNetworks[0].Vrf)
 	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMin)
 	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMax)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(ASNBase))
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(service.ASNBase))
 	assert.Len(allocatedMachine.Allocation.MachineNetworks[0].IPs, 1)
 	_, ipnet, _ := net.ParseCIDR(te.privateNetwork.Prefixes[0])
 	ip := net.ParseIP(allocatedMachine.Allocation.MachineNetworks[0].IPs[0])
@@ -148,7 +150,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert.NotEmpty(allocatedMachine.Allocation.MachineNetworks[0].Vrf)
 	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMin)
 	assert.LessOrEqual(allocatedMachine.Allocation.MachineNetworks[0].Vrf, te.ds.VRFPoolRangeMax)
-	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(ASNBase))
+	assert.GreaterOrEqual(allocatedMachine.Allocation.MachineNetworks[0].ASN, int64(service.ASNBase))
 	assert.Len(allocatedMachine.Allocation.MachineNetworks[0].IPs, 1)
 	_, ipnet, _ = net.ParseCIDR(te.privateNetwork.Prefixes[0])
 	ip = net.ParseIP(allocatedMachine.Allocation.MachineNetworks[0].IPs[0])
