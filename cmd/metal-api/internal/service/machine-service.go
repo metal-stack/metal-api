@@ -1133,12 +1133,12 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 			if rollbackError != nil {
 				logger.Errorw("cannot call async machine cleanup", "error", rollbackError)
 			}
-			old := machineCandidate
+			old := *machineCandidate
 			machineCandidate.Allocation = nil
 			machineCandidate.Tags = nil
 			machineCandidate.PreAllocated = false
 
-			rollbackError = ds.UpdateMachine(old, machineCandidate)
+			rollbackError = ds.UpdateMachine(&old, machineCandidate)
 			if rollbackError != nil {
 				logger.Errorw("cannot update machinecandidate to reset allocation", "error", rollbackError)
 			}
