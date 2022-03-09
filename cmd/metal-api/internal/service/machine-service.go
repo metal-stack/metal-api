@@ -726,7 +726,17 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	}
 
 	old := *m
-	err = connectMachineWithSwitches(r.ds, m)
+	err = retry.Do(
+		func() error {
+			return connectMachineWithSwitches(r.ds, m)
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
