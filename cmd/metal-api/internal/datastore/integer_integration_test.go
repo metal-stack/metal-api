@@ -5,6 +5,7 @@ package datastore
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -88,16 +89,22 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 	require.NoError(t, err)
 
 	pool := rs.GetVRFPool()
+	var wg sync.WaitGroup
 
 	for i := rs.VRFPoolRangeMin; i <= rs.VRFPoolRangeMax; i++ {
-		got, err := pool.AcquireRandomUniqueInteger()
-		require.NoError(t, err)
-		assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
-		assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
-		t.Logf("acquired a vrf %d at: %s", got, time.Now())
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			got, err := pool.AcquireRandomUniqueInteger()
+			require.NoError(t, err)
+			assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
+			assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
+			t.Logf("acquired a vrf %d at: %s", got, time.Now())
+		}()
 	}
+
+	wg.Wait()
 
 	_, err = pool.AcquireRandomUniqueInteger()
 	assert.True(t, metal.IsInternal(err))
-	assert.True(t, false)
 }
