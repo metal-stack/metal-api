@@ -1,9 +1,11 @@
+//go:build integration
 // +build integration
 
 package datastore
 
 import (
 	"context"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/test"
@@ -25,6 +27,8 @@ func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
 	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
+	rs.ASNPoolRangeMin = 10000
+	rs.ASNPoolRangeMax = 10010
 
 	err = rs.Connect()
 	require.NoError(t, err)
@@ -48,6 +52,8 @@ func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
 	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
+	rs.ASNPoolRangeMin = 10000
+	rs.ASNPoolRangeMax = 10010
 
 	err = rs.Connect()
 	require.NoError(t, err)
@@ -73,6 +79,8 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 	rs := New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
+	rs.ASNPoolRangeMin = 10000
+	rs.ASNPoolRangeMax = 10010
 
 	err = rs.Connect()
 	require.NoError(t, err)
@@ -86,8 +94,10 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
 		assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
+		t.Logf("acquired a vrf %d at: %s", got, time.Now())
 	}
 
 	_, err = pool.AcquireRandomUniqueInteger()
 	assert.True(t, metal.IsInternal(err))
+	assert.True(t, false)
 }
