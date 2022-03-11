@@ -1672,7 +1672,18 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		}
 	}
 
-	_, err = setVrfAtSwitches(r.ds, m, vrf)
+	err = retry.Do(
+		func() error {
+			_, err = setVrfAtSwitches(r.ds, m, vrf)
+			return err
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
 	if err != nil {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("the machine %q could not be enslaved into the vrf %s, error: %w", id, vrf, err)) {
 			return
@@ -1918,7 +1929,18 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 
 func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.Logger) error {
 	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
-	_, err := setVrfAtSwitches(ds, m, "")
+	err := retry.Do(
+		func() error {
+			_, err := setVrfAtSwitches(ds, m, "")
+			return err
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
 	if err != nil {
 		logger.Error("cannot delete vrf switches", zap.String("machineID", m.ID), zap.Error(err))
 		return fmt.Errorf("cannot delete vrf switches: %w", err)

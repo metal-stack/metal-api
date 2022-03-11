@@ -148,6 +148,7 @@ func (r switchResource) deleteSwitch(request *restful.Request, response *restful
 	}
 }
 
+// notifySwitch is called periodically from every switch to report last duration and error if ocurred
 func (r switchResource) notifySwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchNotifyRequest
 	err := request.ReadEntity(&requestPayload)
@@ -176,7 +177,7 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 		s.LastSyncError = sync
 	}
 
-	// FIXME needs retry coverage, not so urgent
+	// FIXME needs retry coverage, not so urgent, will be sent in 5 minutes again
 	err = r.ds.UpdateSwitch(&old, s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -520,6 +521,7 @@ func setVrfAtSwitches(ds *datastore.RethinkStore, m *metal.Machine, vrf string) 
 		oldSwitch := sw
 		setVrf(&sw, m.ID, vrf)
 		// FIXME needs retry coverage, urgent
+		// DONE in both callers
 		err := ds.UpdateSwitch(&oldSwitch, &sw)
 		if err != nil {
 			return nil, err
@@ -601,6 +603,7 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 
 	for i := range oldSwitches {
 		// FIXME needs retry coverage, urgent, called on finalizeAllocation
+		// DONE in caller
 		err = ds.UpdateSwitch(&oldSwitches[i], &newSwitches[i])
 		if err != nil {
 			return err
