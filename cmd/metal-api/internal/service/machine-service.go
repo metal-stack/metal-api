@@ -728,7 +728,11 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	old := *m
 	err = retry.Do(
 		func() error {
-			return connectMachineWithSwitches(r.ds, m)
+			err := connectMachineWithSwitches(r.ds, m)
+			if err != nil {
+				return err
+			}
+			return r.ds.UpdateMachine(&old, m)
 		},
 		retry.Attempts(10),
 		retry.RetryIf(func(err error) bool {
@@ -737,11 +741,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
 	)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
 
-	err = r.ds.UpdateMachine(&old, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1774,7 +1774,7 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 		}
 		delete(newIP.MachineConnections, m.ID)
 
-		// FIXME needs retry coverage, urgent called during deleteMachine
+		// FIXME needs retry coverage, not so urgent, deleteMachine is called from metalctl, error is promoted and can be retried
 		err = r.ds.UpdateSwitch(&old, &newIP)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
