@@ -1763,6 +1763,7 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 		}
 		delete(newIP.MachineConnections, m.ID)
 
+		// FIXME needs retry coverage, urgent called during deleteMachine
 		err = r.ds.UpdateSwitch(&old, &newIP)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
