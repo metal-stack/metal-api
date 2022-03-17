@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package service
@@ -38,10 +39,7 @@ var (
 )
 
 func TestMachineAllocationIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-	machineCount := 50
+	machineCount := 30
 
 	// Setup
 	rs, container := setupTestEnvironment(machineCount, t)

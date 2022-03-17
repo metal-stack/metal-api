@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -166,6 +168,7 @@ func (r switchResource) deleteSwitch(request *restful.Request, response *restful
 	}
 }
 
+// notifySwitch is called periodically from every switch to report last duration and error if ocurred
 func (r switchResource) notifySwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchNotifyRequest
 	err := request.ReadEntity(&requestPayload)
@@ -194,6 +197,7 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 		s.LastSyncError = sync
 	}
 
+	// FIXME needs https://github.com/metal-stack/metal-api/issues/263
 	err = r.ds.UpdateSwitch(&old, s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -231,7 +235,18 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 
 	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
 
-	err = r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+	err = retry.Do(
+		func() error {
+			err := r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+			return err
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -323,7 +338,18 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		s.Nics = nics
 		// Do not replace connections here: We do not want to loose them!
 
-		err = r.ds.UpdateSwitch(&old, s)
+		err = retry.Do(
+			func() error {
+				err := r.ds.UpdateSwitch(&old, s)
+				return err
+			},
+			retry.Attempts(10),
+			retry.RetryIf(func(err error) bool {
+				return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+			}),
+			retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+			retry.LastErrorOnly(true),
+		)
 
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
