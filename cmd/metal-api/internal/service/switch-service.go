@@ -110,7 +110,13 @@ func (r switchResource) findSwitch(request *restful.Request, response *restful.R
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeSwitchResponse(s, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -122,7 +128,13 @@ func (r switchResource) listSwitches(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponseList(ss, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeSwitchResponseList(ss, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -141,7 +153,13 @@ func (r switchResource) deleteSwitch(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeSwitchResponse(s, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -183,7 +201,12 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeSwitchResponse(s, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -215,7 +238,13 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeSwitchResponse(&newSwitch, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeSwitchResponse(&newSwitch, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -304,7 +333,13 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 			return
 		}
 	}
-	err = response.WriteHeaderAndEntity(returnCode, makeSwitchResponse(s, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeSwitchResponse(s, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(returnCode, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -613,11 +648,14 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	return nil
 }
 
-func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.SwitchResponse {
-	p, ips, machines := findSwitchReferencedEntites(s, ds, logger)
+func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
+	p, ips, machines, err := findSwitchReferencedEntites(s, ds)
+	if err != nil {
+		return nil, err
+	}
 	nics := makeSwitchNics(s, ips, machines)
 	cons := makeSwitchCons(s)
-	return v1.NewSwitchResponse(s, p, nics, cons)
+	return v1.NewSwitchResponse(s, p, nics, cons), nil
 }
 
 func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
@@ -736,7 +774,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Partition, metal.IPsMap, metal.Machines) {
+func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, error) {
 	var err error
 
 	var p *metal.Partition
@@ -744,30 +782,35 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore, lo
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
 		if err != nil {
-			logger.Errorw("switch references partition, but partition cannot be found in database", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
+			return nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
 		}
 
 		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
 		if err != nil {
-			logger.Errorw("could not search machines of partition", "switchID", s.ID, "partitionID", s.PartitionID, "error", err)
+			return nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
 		}
 	}
 
 	ips, err := ds.ListIPs()
 	if err != nil {
-		logger.Errorw("ips could not be listed", "error", err)
+		return nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
 
-	return p, ips.ByProjectID(), m
+	return p, ips.ByProjectID(), m, nil
 }
 
-func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.SwitchResponse {
-	pMap, ips := getSwitchReferencedEntityMaps(ds, logger)
+func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
+	pMap, ips, err := getSwitchReferencedEntityMaps(ds)
+	if err != nil {
+		return nil, err
+	}
+
 	result := []*v1.SwitchResponse{}
 	m, err := ds.ListMachines()
 	if err != nil {
-		logger.Errorw("could not find machines")
+		return nil, fmt.Errorf("could not find machines: %w", err)
 	}
+
 	for i := range ss {
 		sw := ss[i]
 		var p *metal.Partition
@@ -781,19 +824,19 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore, logge
 		result = append(result, v1.NewSwitchResponse(&sw, p, nics, cons))
 	}
 
-	return result
+	return result, nil
 }
 
-func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.PartitionMap, metal.IPsMap) {
+func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionMap, metal.IPsMap, error) {
 	p, err := ds.ListPartitions()
 	if err != nil {
-		logger.Errorw("partitions could not be listed", "error", err)
+		return nil, nil, fmt.Errorf("partitions could not be listed: %w", err)
 	}
 
 	ips, err := ds.ListIPs()
 	if err != nil {
-		logger.Errorw("ips could not be listed", "error", err)
+		return nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
 
-	return p.ByID(), ips.ByProjectID()
+	return p.ByID(), ips.ByProjectID(), nil
 }
