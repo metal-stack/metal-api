@@ -1834,7 +1834,6 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 		}
 		delete(newIP.MachineConnections, m.ID)
 
-		// FIXME needs retry coverage, not so urgent, deleteMachine is called from metalctl, error is promoted and can be retried
 		err = r.ds.UpdateSwitch(&old, &newIP)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return

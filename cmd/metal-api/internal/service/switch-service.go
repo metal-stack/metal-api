@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -195,7 +197,7 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 		s.LastSyncError = sync
 	}
 
-	// FIXME needs retry coverage, not so urgent, will be sent in 5 minutes again
+	// FIXME needs https://github.com/metal-stack/metal-api/issues/263
 	err = r.ds.UpdateSwitch(&old, s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -233,8 +235,18 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 
 	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
 
-	// FIXME needs retry coverage
-	err = r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+	err = retry.Do(
+		func() error {
+			err := r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+			return err
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -326,8 +338,18 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		s.Nics = nics
 		// Do not replace connections here: We do not want to loose them!
 
-		// FIXME needs retry coverage
-		err = r.ds.UpdateSwitch(&old, s)
+		err = retry.Do(
+			func() error {
+				err := r.ds.UpdateSwitch(&old, s)
+				return err
+			},
+			retry.Attempts(10),
+			retry.RetryIf(func(err error) bool {
+				return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+			}),
+			retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+			retry.LastErrorOnly(true),
+		)
 
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -367,7 +389,6 @@ func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
 	if err != nil {
 		return err
 	}
-	// FIXME needs retry coverage, not urgent, error is promoted to metalctl
 	return r.ds.UpdateSwitch(old, s)
 }
 
@@ -555,8 +576,6 @@ func setVrfAtSwitches(ds *datastore.RethinkStore, m *metal.Machine, vrf string) 
 		sw := switches[i]
 		oldSwitch := sw
 		setVrf(&sw, m.ID, vrf)
-		// FIXME needs retry coverage, urgent
-		// DONE in both callers
 		err := ds.UpdateSwitch(&oldSwitch, &sw)
 		if err != nil {
 			return nil, err
@@ -637,8 +656,6 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	}
 
 	for i := range oldSwitches {
-		// FIXME needs retry coverage, urgent, called on finalizeAllocation
-		// DONE in caller
 		err = ds.UpdateSwitch(&oldSwitches[i], &newSwitches[i])
 		if err != nil {
 			return err
