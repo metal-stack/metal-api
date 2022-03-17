@@ -368,7 +368,10 @@ func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReques
 	if err != nil {
 		return nil, err
 	}
-	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
+	machines, err := makeMachineResponseList(ms, r.ds)
+	if err != nil {
+		return nil, err
+	}
 
 	partitionCapacities := []v1.PartitionCapacity{}
 	for _, p := range ps {
