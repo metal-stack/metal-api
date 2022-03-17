@@ -448,7 +448,13 @@ func (r machineResource) listMachines(request *restful.Request, response *restfu
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeMachineResponseList(ms, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -462,7 +468,12 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	resp := makeMachineResponse(m, r.ds, utils.Logger(request).Sugar())
+
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
@@ -524,7 +535,13 @@ func (r machineResource) findMachines(request *restful.Request, response *restfu
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponseList(ms, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeMachineResponseList(ms, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -567,7 +584,13 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeMachineResponse(&newMachine, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -611,7 +634,12 @@ func (r machineResource) setChassisIdentifyLEDState(request *restful.Request, re
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(&newMachine, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeMachineResponse(&newMachine, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -736,7 +764,12 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(returnCode, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(returnCode, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -750,7 +783,13 @@ func (r machineResource) findIPMIMachine(request *restful.Request, response *res
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineIPMIResponse(m, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeMachineIPMIResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -769,7 +808,13 @@ func (r machineResource) findIPMIMachines(request *restful.Request, response *re
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineIPMIResponseList(ms, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeMachineIPMIResponseList(ms, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -942,7 +987,12 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -1669,7 +1719,12 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 		}
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -1694,7 +1749,12 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
@@ -1764,7 +1824,12 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, logger))
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		logger.Error("Failed to send response", zap.Error(err))
 	}
@@ -1817,7 +1882,11 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 		m.Allocation.Reinstall = true
 		m.Allocation.ImageID = requestPayload.ImageID
 
-		resp := makeMachineResponse(m, r.ds, logger.Sugar())
+		resp, err := makeMachineResponse(m, r.ds)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+
 		if resp.Allocation.Image != nil {
 			err = r.ds.UpdateMachine(&old, m)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2263,7 +2332,12 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -2316,13 +2390,19 @@ func machineHasIssues(m *v1.MachineResponse) bool {
 	return false
 }
 
-func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineResponse {
-	s, p, i, ec := findMachineReferencedEntities(m, ds, logger)
-	return v1.NewMachineResponse(m, s, p, i, ec)
+func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore) (*v1.MachineResponse, error) {
+	s, p, i, ec, err := findMachineReferencedEntities(m, ds)
+	if err != nil {
+		return nil, err
+	}
+	return v1.NewMachineResponse(m, s, p, i, ec), nil
 }
 
-func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineResponse {
-	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
+func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore) ([]*v1.MachineResponse, error) {
+	sMap, pMap, iMap, ecMap, err := getMachineReferencedEntityMaps(ds)
+	if err != nil {
+		return nil, err
+	}
 
 	result := []*v1.MachineResponse{}
 
@@ -2348,16 +2428,22 @@ func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore, logg
 		result = append(result, v1.NewMachineResponse(&ms[index], s, p, i, &ec))
 	}
 
-	return result
+	return result, nil
 }
 
-func makeMachineIPMIResponse(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.MachineIPMIResponse {
-	s, p, i, ec := findMachineReferencedEntities(m, ds, logger)
-	return v1.NewMachineIPMIResponse(m, s, p, i, ec)
+func makeMachineIPMIResponse(m *metal.Machine, ds *datastore.RethinkStore) (*v1.MachineIPMIResponse, error) {
+	s, p, i, ec, err := findMachineReferencedEntities(m, ds)
+	if err != nil {
+		return nil, err
+	}
+	return v1.NewMachineIPMIResponse(m, s, p, i, ec), nil
 }
 
-func makeMachineIPMIResponseList(ms metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.MachineIPMIResponse {
-	sMap, pMap, iMap, ecMap := getMachineReferencedEntityMaps(ds, logger)
+func makeMachineIPMIResponseList(ms metal.Machines, ds *datastore.RethinkStore) ([]*v1.MachineIPMIResponse, error) {
+	sMap, pMap, iMap, ecMap, err := getMachineReferencedEntityMaps(ds)
+	if err != nil {
+		return nil, err
+	}
 
 	result := []*v1.MachineIPMIResponse{}
 
@@ -2383,10 +2469,10 @@ func makeMachineIPMIResponseList(ms metal.Machines, ds *datastore.RethinkStore, 
 		result = append(result, v1.NewMachineIPMIResponse(&ms[index], s, p, i, &ec))
 	}
 
-	return result
+	return result, nil
 }
 
-func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer) {
+func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore) (*metal.Size, *metal.Partition, *metal.Image, *metal.ProvisioningEventContainer, error) {
 	var err error
 
 	var s *metal.Size
@@ -2396,7 +2482,7 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore,
 		} else {
 			s, err = ds.FindSize(m.SizeID)
 			if err != nil {
-				logger.Errorw("machine references size, but size cannot be found in database", "machineID", m.ID, "sizeID", m.SizeID, "error", err)
+				return nil, nil, nil, nil, fmt.Errorf("error finding size %q for machine %q: %w", m.SizeID, m.ID, err)
 			}
 		}
 	}
@@ -2405,7 +2491,7 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore,
 	if m.PartitionID != "" {
 		p, err = ds.FindPartition(m.PartitionID)
 		if err != nil {
-			logger.Errorw("machine references partition, but partition cannot be found in database", "machineID", m.ID, "partitionID", m.PartitionID, "error", err)
+			return nil, nil, nil, nil, fmt.Errorf("error finding partition %q for machine %q: %w", m.PartitionID, m.ID, err)
 		}
 	}
 
@@ -2414,7 +2500,7 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore,
 		if m.Allocation.ImageID != "" {
 			i, err = ds.GetImage(m.Allocation.ImageID)
 			if err != nil {
-				logger.Errorw("machine references image, but image cannot be found in database", "machineID", m.ID, "imageID", m.Allocation.ImageID, "error", err)
+				return nil, nil, nil, nil, fmt.Errorf("error finding image %q for machine %q: %w", m.Allocation.ImageID, m.ID, err)
 			}
 		}
 	}
@@ -2422,36 +2508,36 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore,
 	var ec *metal.ProvisioningEventContainer
 	try, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
-		logger.Errorw("machine has no provisioning event container in the database", "machineID", m.ID, "error", err)
+		return nil, nil, nil, nil, fmt.Errorf("error finding provisioning event container for machine %q: %w", m.ID, err)
 	} else {
 		ec = try
 	}
 
-	return s, p, i, ec
+	return s, p, i, ec, nil
 }
 
-func getMachineReferencedEntityMaps(ds *datastore.RethinkStore, logger *zap.SugaredLogger) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap) {
+func getMachineReferencedEntityMaps(ds *datastore.RethinkStore) (metal.SizeMap, metal.PartitionMap, metal.ImageMap, metal.ProvisioningEventContainerMap, error) {
 	s, err := ds.ListSizes()
 	if err != nil {
-		logger.Errorw("sizes could not be listed", "error", err)
+		return nil, nil, nil, nil, fmt.Errorf("sizes could not be listed: %w", err)
 	}
 
 	p, err := ds.ListPartitions()
 	if err != nil {
-		logger.Errorw("partitions could not be listed", "error", err)
+		return nil, nil, nil, nil, fmt.Errorf("partitions could not be listed: %w", err)
 	}
 
 	i, err := ds.ListImages()
 	if err != nil {
-		logger.Errorw("images could not be listed", "error", err)
+		return nil, nil, nil, nil, fmt.Errorf("images could not be listed: %w", err)
 	}
 
 	ec, err := ds.ListProvisioningEventContainers()
 	if err != nil {
-		logger.Errorw("provisioning event containers could not be listed", "error", err)
+		return nil, nil, nil, nil, fmt.Errorf("provisioning event containers could not be listed: %w", err)
 	}
 
-	return s.ByID(), p.ByID(), i.ByID(), ec.ByID()
+	return s.ByID(), p.ByID(), i.ByID(), ec.ByID(), nil
 }
 
 func (s machineAllocationSpec) noautoNetworkN() int {
