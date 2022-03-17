@@ -1724,7 +1724,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	err = retry.Do(
 		func() error {
-			_, err = setVrfAtSwitches(r.ds, m, vrf)
+			_, err := setVrfAtSwitches(r.ds, m, vrf)
 			return err
 		},
 		retry.Attempts(10),
