@@ -139,7 +139,7 @@ func postEvent(currentFSM *fsm.FSM, event ProvisioningEventType) (*fsm.FSM, erro
 	err := currentFSM.Event(string(event))
 	if err != nil && err.Error() != "no transition" {
 		nextFSM = newProvisioningFSM()
-		nextFSM.Event(string(event))
+		_ = nextFSM.Event(string(event)) // Should not give an error
 	} else {
 		nextFSM = currentFSM
 	}
@@ -158,8 +158,8 @@ func newProvisioningFSM() *fsm.FSM {
 func (p *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredLogger) string {
 	fsm := newProvisioningFSM()
 	incompleteCycles := 0
+	var err error
 	for _, event := range p.Events {
-		var err error = nil
 		if fsm, err = postEvent(fsm, event.Event); err != nil && err.Error() != "no transition" {
 			incompleteCycles++
 		}
