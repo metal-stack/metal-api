@@ -4,8 +4,55 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/looplab/fsm"
 	"go.uber.org/zap"
 )
+
+// FSM states
+const (
+	FsmStateInitial          string = "Initial State"
+	FsmStatePXEBooting       string = "PXE Booting state"
+	FsmStatePreparing        string = "Rreparing state"
+	FsmStateRegistering      string = "Registering state"
+	FsmStateWaiting          string = "Waiting state"
+	FsmStateInstalling       string = "Installing state"
+	FsmStateBootingNewKernel string = "Booting New Kernel state"
+	FsmStateProvisioned      string = "Provisioned state"
+	FsmStatePlannedReboot    string = "Planned Reboot state"
+	FsmStateCrashed          string = "Crashed state"
+	FsmStateAlive            string = "Alive state"
+	FsmStateResestFailCount  string = "Reset Fail Count state"
+)
+
+var allStates = []string{
+	FsmStateInitial,
+	FsmStatePXEBooting,
+	FsmStatePreparing,
+	FsmStateRegistering,
+	FsmStateWaiting,
+	FsmStateInstalling,
+	FsmStateBootingNewKernel,
+	FsmStateProvisioned,
+	FsmStatePlannedReboot,
+	FsmStateCrashed,
+	FsmStateAlive,
+	FsmStateResestFailCount,
+}
+
+var events = []fsm.EventDesc{
+	{Name: string(ProvisioningEventPXEBooting), Src: []string{FsmStateInitial, FsmStatePlannedReboot, FsmStatePXEBooting, FsmStateCrashed}, Dst: FsmStatePXEBooting},
+	{Name: string(ProvisioningEventPreparing), Src: []string{FsmStatePXEBooting, FsmStateInitial, FsmStatePlannedReboot, FsmStateCrashed}, Dst: FsmStatePreparing},
+	{Name: string(ProvisioningEventRegistering), Src: []string{FsmStatePreparing, FsmStateInitial}, Dst: FsmStateRegistering},
+	{Name: string(ProvisioningEventWaiting), Src: []string{FsmStateRegistering, FsmStateInitial}, Dst: FsmStateWaiting},
+	{Name: string(ProvisioningEventInstalling), Src: []string{FsmStateWaiting, FsmStateInitial}, Dst: FsmStateInstalling},
+	{Name: string(ProvisioningEventBootingNewKernel), Src: []string{FsmStateInstalling, FsmStateInitial}, Dst: FsmStateBootingNewKernel},
+	{Name: string(ProvisioningEventPhonedHome), Src: []string{FsmStateBootingNewKernel, FsmStateProvisioned, FsmStateInitial}, Dst: FsmStateProvisioned},
+	{Name: string(ProvisioningEventPlannedReboot), Src: allStates, Dst: FsmStatePlannedReboot},
+	{Name: string(ProvisioningEventCrashed), Src: []string{FsmStateInitial}, Dst: FsmStateCrashed},
+	{Name: string(ProvisioningEventResetFailCount), Src: allStates, Dst: FsmStateResestFailCount},
+}
+
+var callbacks = map[string]fsm.Callback{}
 
 // ProvisioningEventType indicates an event emitted by a machine during the provisioning sequence
 type ProvisioningEventType string
@@ -175,4 +222,41 @@ func (p ProvisioningEventContainers) ByID() ProvisioningEventContainerMap {
 		res[f.ID] = p[i]
 	}
 	return res
+}
+
+func postEvent(currentFSM *fsm.FSM, event ProvisioningEventType) (*fsm.FSM, error) {
+	var nextFSM *fsm.FSM
+	err := currentFSM.Event(string(event))
+	if err != nil && err.Error() != "no transition" {
+		nextFSM = newProvisioningFSM()
+		nextFSM.Event(string(event))
+	} else {
+		nextFSM = currentFSM
+	}
+	return nextFSM, err
+}
+
+func newProvisioningFSM() *fsm.FSM {
+	return fsm.NewFSM(
+		FsmStateInitial,
+		events,
+		callbacks,
+	)
+}
+
+// CrashCycles counts events that happened in an unexpected order
+func (p *ProvisioningEventContainer) CrashCycles(log *zap.SugaredLogger) string {
+	fsm := newProvisioningFSM()
+	incompleteCycles := 0
+	for _, event := range p.Events {
+		var err error = nil
+		if fsm, err = postEvent(fsm, event.Event); err != nil && err.Error() != "no transition" {
+			incompleteCycles++
+		}
+		if provisioningEventsThatTerminateCycle.containsEvent(event.Event) {
+			incompleteCycles = 0
+		}
+	}
+	result := strconv.Itoa(incompleteCycles)
+	return result
 }
