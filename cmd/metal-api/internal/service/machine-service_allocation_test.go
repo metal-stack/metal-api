@@ -183,7 +183,10 @@ func TestMachineAllocationIntegration(t *testing.T) {
 // Methods under Test ---------------------------------------------------------------------------------------
 
 func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v1.MachineResponse, error) {
-	js, _ := json.Marshal(ar)
+	js, err := json.Marshal(ar)
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -197,12 +200,15 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
 func freeMachine(container *restful.Container, id string) (v1.MachineResponse, error) {
-	js, _ := json.Marshal("")
+	js, err := json.Marshal("")
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("DELETE", fmt.Sprintf("/v1/machine/%s/free", id), body)
 	req.Header.Add("Content-Type", "application/json")
@@ -216,12 +222,15 @@ func freeMachine(container *restful.Container, id string) (v1.MachineResponse, e
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
 func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest) (v1.MachineResponse, error) {
-	js, _ := json.Marshal(rm)
+	js, err := json.Marshal(rm)
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/register", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -235,7 +244,7 @@ func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest)
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 

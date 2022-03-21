@@ -202,11 +202,11 @@ func (t *test) startApiInstances(ds Datasource) {
 			CheckInterval:    1 * time.Hour,
 		}
 		s, err := NewServer(cfg)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		t.ss = append(t.ss, s)
 		go func() {
 			err := s.Serve()
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}()
 	}
 }
@@ -227,7 +227,7 @@ func (t *test) startMachineInstances() {
 		port := 50005 + t.randNumber(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		t.cc = append(t.cc, &client{
 			ClientConn: conn,
 			cancel:     cancel,
@@ -315,6 +315,6 @@ func (t *test) simulateNsqNotifyAllocated(machineID string) {
 
 func (t *test) randNumber(n int) int {
 	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return int(nBig.Int64())
 }
