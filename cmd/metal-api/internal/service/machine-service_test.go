@@ -62,7 +62,7 @@ func TestGetMachines(t *testing.T) {
 	var result []v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, len(testdata.TestMachines))
 	require.Equal(t, testdata.M1.ID, result[0].ID)
 	require.Equal(t, testdata.M1.Allocation.Name, result[0].Allocation.Name)
@@ -228,7 +228,8 @@ func TestRegisterMachine(t *testing.T) {
 				},
 			}
 
-			js, _ := json.Marshal(registerRequest)
+			js, err := json.Marshal(registerRequest)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
 			require.NoError(t, err)
@@ -247,13 +248,13 @@ func TestRegisterMachine(t *testing.T) {
 				var result httperrors.HTTPErrorResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Regexp(t, tt.expectedErrorMessage, result.Message)
 			} else {
 				var result v1.MachineResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				expectedid := "0"
 				if len(tt.dbmachines) > 0 {
 					expectedid = tt.dbmachines[0].ID
@@ -309,7 +310,8 @@ func TestMachineIPMIReport(t *testing.T) {
 			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
-			js, _ := json.Marshal(tt.input)
+			js, err := json.Marshal(tt.input)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/machine/ipmi", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -323,7 +325,7 @@ func TestMachineIPMIReport(t *testing.T) {
 
 			var result v1.MachineIpmiReportResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, tt.output, result)
 		})
 	}
@@ -361,7 +363,8 @@ func TestMachineFindIPMI(t *testing.T) {
 			query := datastore.MachineSearchQuery{
 				ID: &tt.machine.ID,
 			}
-			js, _ := json.Marshal(query)
+			js, err := json.Marshal(query)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/machine/ipmi/find", body)
 			req.Header.Add("Content-Type", "application/json")
@@ -376,7 +379,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			var results []*v1.MachineIPMIResponse
 			err = json.NewDecoder(resp.Body).Decode(&results)
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Len(t, results, 1)
 
 			result := results[0]
@@ -441,7 +444,8 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 				Kernel: "vmlinuz",
 			}
 
-			js, _ := json.Marshal(finalizeRequest)
+			js, err := json.Marshal(finalizeRequest)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/%s/finalize-allocation", tt.machineID), body)
 			req.Header.Add("Content-Type", "application/json")
@@ -457,7 +461,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 				var result httperrors.HTTPErrorResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Equal(t, tt.wantStatusCode, result.StatusCode)
 				if tt.wantErrMessage != "" {
 					require.Regexp(t, tt.wantErrMessage, result.Message)
@@ -466,7 +470,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 				var result v1.MachineResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -485,7 +489,8 @@ func TestSetMachineState(t *testing.T) {
 		Value:       string(metal.ReservedState),
 		Description: "blubber",
 	}
-	js, _ := json.Marshal(stateRequest)
+	js, err := json.Marshal(stateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/1/state", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -499,7 +504,7 @@ func TestSetMachineState(t *testing.T) {
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "1", result.ID)
 	require.Equal(t, string(metal.ReservedState), result.State.Value)
 	require.Equal(t, "blubber", result.State.Description)
@@ -524,7 +529,7 @@ func TestGetMachine(t *testing.T) {
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
 	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, *result.Size.Name)
@@ -584,7 +589,7 @@ func TestFreeMachine(t *testing.T) {
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
 	require.Nil(t, result.Allocation)
 	require.Empty(t, result.Tags)
@@ -612,7 +617,7 @@ func TestSearchMachine(t *testing.T) {
 	var results []v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&results)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, results, 1)
 	result := results[0]
 	require.Equal(t, testdata.M1.ID, result.ID)
@@ -634,7 +639,8 @@ func TestAddProvisioningEvent(t *testing.T) {
 		Event:   metal.ProvisioningEventPreparing,
 		Message: "starting metal-hammer",
 	}
-	js, _ := json.Marshal(event)
+	js, err := json.Marshal(event)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/1/event", body)
 	container = injectEditor(container, req)
@@ -648,7 +654,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	var result v1.MachineRecentProvisioningEvents
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "0", result.IncompleteProvisioningCycles)
 	require.Len(t, result.Events, 1)
 	if len(result.Events) > 0 {
@@ -723,7 +729,8 @@ func TestOnMachine(t *testing.T) {
 			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
 			require.NoError(t, err)
 
-			js, _ := json.Marshal([]string{tt.param})
+			js, err := json.Marshal([]string{tt.param})
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/1/power/"+tt.endpoint, body)
@@ -742,7 +749,7 @@ func TestOnMachine(t *testing.T) {
 func TestParsePublicKey(t *testing.T) {
 	pubKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1X"
 	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	pubKey = ""
 	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))

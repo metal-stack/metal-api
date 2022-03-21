@@ -33,7 +33,7 @@ func TestGetImages(t *testing.T) {
 	var result []v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, 4)
 	require.Equal(t, testdata.Img1.ID, result[0].ID)
 	require.Equal(t, testdata.Img1.Name, *result[0].Name)
@@ -59,7 +59,7 @@ func TestGetImage(t *testing.T) {
 	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Img1.ID, result.ID)
 	require.Equal(t, testdata.Img1.Name, *result.Name)
 }
@@ -80,7 +80,7 @@ func TestGetImageNotFound(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Contains(t, result.Message, "999")
 	require.Equal(t, 404, result.StatusCode)
 }
@@ -102,7 +102,7 @@ func TestDeleteImage(t *testing.T) {
 	var result v1.ImageResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Img3.ID, result.ID)
 	require.Equal(t, testdata.Img3.Name, *result.Name)
 }
@@ -123,7 +123,8 @@ func TestCreateImage(t *testing.T) {
 		},
 		URL: testdata.Img1.URL,
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
 	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
@@ -135,9 +136,9 @@ func TestCreateImage(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Img1.ID, result.ID)
 	require.Equal(t, testdata.Img1.Name, *result.Name)
 	require.Equal(t, testdata.Img1.Description, *result.Description)
@@ -162,7 +163,9 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 		},
 		URL: "http://this.domain.does.not.exist/",
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
+
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
 	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
@@ -174,13 +177,15 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
 	require.True(t, strings.Contains(result.Message, "no such host"))
 
 	createRequest.URL = "http://images.metal-stack.io/this-file-does-not-exist"
 
-	js, _ = json.Marshal(createRequest)
+	js, err = json.Marshal(createRequest)
+	require.NoError(t, err)
+
 	body = bytes.NewBuffer(js)
 	req = httptest.NewRequest("PUT", "/v1/image", body)
 	container = injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
@@ -215,7 +220,8 @@ func TestCreateImageWithClassification(t *testing.T) {
 		URL:            testdata.Img1.URL,
 		Classification: &vc,
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
 	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
@@ -227,9 +233,9 @@ func TestCreateImageWithClassification(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Img1.ID, result.ID)
 	require.Equal(t, testdata.Img1.Name, *result.Name)
 	require.Equal(t, testdata.Img1.Description, *result.Description)
@@ -259,7 +265,8 @@ func TestUpdateImage(t *testing.T) {
 			URL: &testdata.Img2.URL,
 		},
 	}
-	js, _ := json.Marshal(updateRequest)
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/image", body)
 	container = injectAdmin(container, req)
@@ -271,9 +278,9 @@ func TestUpdateImage(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.ImageResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Img1.ID, result.ID)
 	require.Equal(t, testdata.Img2.Name, *result.Name)
 	require.Equal(t, testdata.Img2.Description, *result.Description)

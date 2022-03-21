@@ -94,7 +94,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.NoError(err)
 	go func() {
 		err := grpcServer.Serve()
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}()
 	grpcServer.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
 
