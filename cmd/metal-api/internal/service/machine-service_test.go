@@ -765,7 +765,6 @@ func TestParsePublicKey(t *testing.T) {
 }
 
 func Test_validateAllocationSpec(t *testing.T) {
-	ass := assert.New(t)
 	trueValue := true
 	falseValue := false
 
@@ -910,10 +909,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 		tt := tests[i]
 		err := validateAllocationSpec(&tt.spec)
 		if tt.isError {
-			ass.Error(err, "Test: %s", tt.name)
-			ass.EqualError(err, tt.expected, "Test: %s", tt.name)
+			assert.Error(t, err, "Test: %s", tt.name)
+			assert.EqualError(t, err, tt.expected, "Test: %s", tt.name)
 		} else {
-			ass.NoError(err, "Test: %s", tt.name)
+			assert.NoError(t, err, "Test: %s", tt.name)
 		}
 	}
 }
