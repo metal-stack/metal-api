@@ -222,22 +222,21 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 		return
 	}
 
-	oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	newSwitch := *oldSwitch
-
-	if requestPayload.Description != nil {
-		newSwitch.Description = *requestPayload.Description
-	}
-
-	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
-
+	var newSwitch metal.Switch
 	err = retry.Do(
 		func() error {
-			err := r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+			oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
+			if err != nil {
+				return err
+			}
+			newSwitch = *oldSwitch
+
+			if requestPayload.Description != nil {
+				newSwitch.Description = *requestPayload.Description
+			}
+
+			newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
+			err = r.ds.UpdateSwitch(oldSwitch, &newSwitch)
 			return err
 		},
 		retry.Attempts(10),
@@ -313,34 +312,37 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		}
 		s = spec
 	} else {
-		old := *s
-		spec := v1.NewSwitch(requestPayload)
-		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
-				return
-			}
-		}
-
-		nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-
-		if requestPayload.Name != nil {
-			s.Name = *requestPayload.Name
-		}
-		if requestPayload.Description != nil {
-			s.Description = *requestPayload.Description
-		}
-		s.RackID = spec.RackID
-		s.PartitionID = spec.PartitionID
-
-		s.Nics = nics
-		// Do not replace connections here: We do not want to loose them!
-
 		err = retry.Do(
 			func() error {
-				err := r.ds.UpdateSwitch(&old, s)
+				// Need to fetch the switch again to be retryable
+				s, err := r.ds.FindSwitch(requestPayload.ID)
+				if err != nil {
+					return err
+				}
+				old := *s
+				spec := v1.NewSwitch(requestPayload)
+				if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
+					return errors.New("duplicate mac addresses found in nics")
+				}
+
+				nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
+				if err != nil {
+					return err
+				}
+
+				if requestPayload.Name != nil {
+					s.Name = *requestPayload.Name
+				}
+				if requestPayload.Description != nil {
+					s.Description = *requestPayload.Description
+				}
+				s.RackID = spec.RackID
+				s.PartitionID = spec.PartitionID
+
+				s.Nics = nics
+				// Do not replace connections here: We do not want to loose them!
+
+				err = r.ds.UpdateSwitch(&old, s)
 				return err
 			},
 			retry.Attempts(10),
