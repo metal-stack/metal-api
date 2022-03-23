@@ -286,7 +286,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 
 	err = retry.Do(
 		func() error {
-			s, returnCode, err = r.updateOrRegisterSwitch(requestPayload)
+			s, returnCode, err = r.updateReplaceOrRegisterSwitch(requestPayload)
 			return err
 		},
 		retry.Attempts(10),
@@ -312,7 +312,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	}
 }
 
-func (r switchResource) updateOrRegisterSwitch(requestPayload v1.SwitchRegisterRequest) (*metal.Switch, int, error) {
+func (r switchResource) updateReplaceOrRegisterSwitch(requestPayload v1.SwitchRegisterRequest) (*metal.Switch, int, error) {
 	returnCode := http.StatusInternalServerError
 	s, err := r.ds.FindSwitch(requestPayload.ID)
 	if err != nil && !metal.IsNotFound(err) {
