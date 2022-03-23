@@ -222,22 +222,23 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 		return
 	}
 
-	oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	newSwitch := *oldSwitch
-
-	if requestPayload.Description != nil {
-		newSwitch.Description = *requestPayload.Description
-	}
-
-	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
-
+	var newSwitch metal.Switch
 	err = retry.Do(
 		func() error {
-			err := r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+			oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
+			if err != nil {
+				return err
+			}
+
+			newSwitch = *oldSwitch
+
+			if requestPayload.Description != nil {
+				newSwitch.Description = *requestPayload.Description
+			}
+
+			newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
+
+			err = r.ds.UpdateSwitch(oldSwitch, &newSwitch)
 			return err
 		},
 		retry.Attempts(10),
@@ -280,50 +281,74 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
+	var s *metal.Switch
+	var returnCode int
 
-	s, err := r.ds.FindSwitch(requestPayload.ID)
-	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+	err = retry.Do(
+		func() error {
+			s, returnCode, err = r.updateOrRegisterSwitch(requestPayload)
+			return err
+		},
+		retry.Attempts(10),
+		retry.RetryIf(func(err error) bool {
+			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+		}),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.LastErrorOnly(true),
+	)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
-	returnCode := http.StatusOK
+	resp, err := makeSwitchResponse(s, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(returnCode, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r switchResource) updateOrRegisterSwitch(requestPayload v1.SwitchRegisterRequest) (*metal.Switch, int, error) {
+	returnCode := http.StatusInternalServerError
+	s, err := r.ds.FindSwitch(requestPayload.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, http.StatusNotFound, err
+	}
 
 	if s == nil {
 		s = v1.NewSwitch(requestPayload)
 
 		if len(requestPayload.Nics) != len(s.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
-				return
-			}
+			return nil, returnCode, errors.New("duplicate mac addresses found in nics")
 		}
 
 		err = r.ds.CreateSwitch(s)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if err != nil {
+			return nil, returnCode, err
 		}
 
 		returnCode = http.StatusCreated
 	} else if s.Mode == metal.SwitchReplace {
 		spec := v1.NewSwitch(requestPayload)
 		err = r.replaceSwitch(s, spec)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if err != nil {
+			return nil, returnCode, err
 		}
 		s = spec
 	} else {
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
 		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
-				return
-			}
+			return nil, returnCode, errors.New("duplicate mac addresses found in nics")
 		}
 
 		nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		if err != nil {
+			return nil, returnCode, err
 		}
 
 		if requestPayload.Name != nil {
@@ -338,34 +363,13 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		s.Nics = nics
 		// Do not replace connections here: We do not want to loose them!
 
-		err = retry.Do(
-			func() error {
-				err := r.ds.UpdateSwitch(&old, s)
-				return err
-			},
-			retry.Attempts(10),
-			retry.RetryIf(func(err error) bool {
-				return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
-			}),
-			retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
-			retry.LastErrorOnly(true),
-		)
-
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
+		err = r.ds.UpdateSwitch(&old, s)
+		if err != nil {
+			return nil, returnCode, err
 		}
+		returnCode = http.StatusOK
 	}
-
-	resp, err := makeSwitchResponse(s, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	err = response.WriteHeaderAndEntity(returnCode, resp)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	return s, returnCode, nil
 }
 
 // replaceSwitch replaces a broken switch
