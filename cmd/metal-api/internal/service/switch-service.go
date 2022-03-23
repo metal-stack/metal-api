@@ -316,7 +316,7 @@ func (r switchResource) updateOrRegisterSwitch(requestPayload v1.SwitchRegisterR
 	returnCode := http.StatusInternalServerError
 	s, err := r.ds.FindSwitch(requestPayload.ID)
 	if err != nil && !metal.IsNotFound(err) {
-		return nil, http.StatusNotFound, err
+		return nil, returnCode, err
 	}
 
 	if s == nil {
