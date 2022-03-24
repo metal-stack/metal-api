@@ -313,63 +313,64 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 }
 
 func (r switchResource) updateReplaceOrRegisterSwitch(requestPayload v1.SwitchRegisterRequest) (*metal.Switch, int, error) {
-	returnCode := http.StatusInternalServerError
 	s, err := r.ds.FindSwitch(requestPayload.ID)
 	if err != nil && !metal.IsNotFound(err) {
-		return nil, returnCode, err
+		return nil, http.StatusInternalServerError, err
 	}
 
+	// Switch seen for th first time
 	if s == nil {
 		s = v1.NewSwitch(requestPayload)
-
 		if len(requestPayload.Nics) != len(s.Nics.ByMac()) {
-			return nil, returnCode, errors.New("duplicate mac addresses found in nics")
+			return nil, http.StatusInternalServerError, errors.New("duplicate mac addresses found in nics")
 		}
-
 		err = r.ds.CreateSwitch(s)
 		if err != nil {
-			return nil, returnCode, err
+			return nil, http.StatusInternalServerError, err
 		}
-
-		returnCode = http.StatusCreated
-	} else if s.Mode == metal.SwitchReplace {
-		spec := v1.NewSwitch(requestPayload)
-		err = r.replaceSwitch(s, spec)
-		if err != nil {
-			return nil, returnCode, err
-		}
-		s = spec
-	} else {
-		old := *s
-		spec := v1.NewSwitch(requestPayload)
-		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			return nil, returnCode, errors.New("duplicate mac addresses found in nics")
-		}
-
-		nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
-		if err != nil {
-			return nil, returnCode, err
-		}
-
-		if requestPayload.Name != nil {
-			s.Name = *requestPayload.Name
-		}
-		if requestPayload.Description != nil {
-			s.Description = *requestPayload.Description
-		}
-		s.RackID = spec.RackID
-		s.PartitionID = spec.PartitionID
-
-		s.Nics = nics
-		// Do not replace connections here: We do not want to loose them!
-
-		err = r.ds.UpdateSwitch(&old, s)
-		if err != nil {
-			return nil, returnCode, err
-		}
-		returnCode = http.StatusOK
+		return s, http.StatusCreated, nil
 	}
-	return s, returnCode, nil
+
+	// Switch needs replacement because of hw failure for example
+	if s.Mode == metal.SwitchReplace {
+		newSwitch := v1.NewSwitch(requestPayload)
+		err = r.replaceSwitch(s, newSwitch)
+		if err != nil {
+			return nil, http.StatusInternalServerError, err
+		}
+		return newSwitch, http.StatusOK, nil
+	}
+
+	// Switch has new switchports configured, called on every metal-core restart
+	old := *s
+	spec := v1.NewSwitch(requestPayload)
+	if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
+		return nil, http.StatusInternalServerError, errors.New("duplicate mac addresses found in nics")
+	}
+
+	nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	if requestPayload.Name != nil {
+		s.Name = *requestPayload.Name
+	}
+	if requestPayload.Description != nil {
+		s.Description = *requestPayload.Description
+	}
+	s.RackID = spec.RackID
+	s.PartitionID = spec.PartitionID
+
+	s.Nics = nics
+	// Do not replace connections here: We do not want to loose them!
+
+	err = r.ds.UpdateSwitch(&old, s)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	return s, http.StatusOK, nil
 }
 
 // replaceSwitch replaces a broken switch
