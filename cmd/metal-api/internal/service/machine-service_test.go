@@ -663,6 +663,45 @@ func TestAddProvisioningEvent(t *testing.T) {
 	}
 }
 
+func TestAddProvisioningEvents(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	require.NoError(t, err)
+
+	machineID := "2"
+	container := restful.NewContainer().Add(machineservice)
+	preparing := string(metal.ProvisioningEventPreparing)
+	events := v1.MachineProvisioningEvents{}
+	events[machineID] = v1.MachineProvisioningEvent{
+		Event:   preparing,
+		Message: "starting metal-hammer",
+	}
+	js, err := json.Marshal(events)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/events", body)
+	container = injectEditor(container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineRecentProvisioningEventsMap
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, "0", result[machineID].IncompleteProvisioningCycles)
+	require.Len(t, result[machineID].Events, 1)
+	if len(result[machineID].Events) > 0 {
+		require.Equal(t, "starting metal-hammer", result[machineID].Events[0].Message)
+		require.Equal(t, string(metal.ProvisioningEventPreparing), result[machineID].Events[0].Event)
+	}
+}
+
 func TestOnMachine(t *testing.T) {
 	tests := []struct {
 		cmd      metal.MachineCommand
