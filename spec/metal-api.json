@@ -2725,6 +2725,12 @@
         "event"
       ]
     },
+    "v1.MachineProvisioningEvents": {
+      "additionalProperties": {
+        "$ref": "#/definitions/v1.MachineProvisioningEvent"
+      },
+      "type": "object"
+    },
     "v1.MachineRecentProvisioningEvents": {
       "properties": {
         "incomplete_provisioning_cycles": {
@@ -2748,6 +2754,12 @@
         "incomplete_provisioning_cycles",
         "log"
       ]
+    },
+    "v1.MachineRecentProvisioningEventsMap": {
+      "additionalProperties": {
+        "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+      },
+      "type": "object"
     },
     "v1.MachineRegisterRequest": {
       "properties": {
@@ -5751,6 +5763,45 @@
           }
         },
         "summary": "get consolepassword for machine by id",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/events": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "addProvisioningEvents",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineProvisioningEvents"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEventsMap"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "adds machine provisioning events",
         "tags": [
           "machine"
         ]
