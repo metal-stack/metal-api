@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/metal-stack/masterdata-api/api/rest/mapper"
@@ -64,7 +63,7 @@ func (r tenantResource) webService() *restful.WebService {
 func (r tenantResource) getTenant(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	tres, err := r.mdc.Tenant().Get(context.Background(), &mdmv1.TenantGetRequest{Id: id})
+	tres, err := r.mdc.Tenant().Get(request.Request.Context(), &mdmv1.TenantGetRequest{Id: id})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -78,7 +77,7 @@ func (r tenantResource) getTenant(request *restful.Request, response *restful.Re
 }
 
 func (r tenantResource) listTenants(request *restful.Request, response *restful.Response) {
-	tres, err := r.mdc.Tenant().Find(context.Background(), &mdmv1.TenantFindRequest{})
+	tres, err := r.mdc.Tenant().Find(request.Request.Context(), &mdmv1.TenantFindRequest{})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

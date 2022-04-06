@@ -439,7 +439,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		}
 	}
 
-	project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+	project, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

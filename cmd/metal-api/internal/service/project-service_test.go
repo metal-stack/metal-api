@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -101,7 +100,7 @@ func Test_projectResource_findProject(t *testing.T) {
 			userScenarios: []security.User{*testViewUser},
 			id:            "122",
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "122"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "122"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 422,
 			wantErr:    httperrors.UnprocessableEntity(errors.New("project does not have a projectID")),
@@ -110,7 +109,7 @@ func Test_projectResource_findProject(t *testing.T) {
 			name:          "entity allowed for user with admin privileges",
 			userScenarios: []security.User{*testAdminUser},
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			id:         "123",
 			wantStatus: 422,
@@ -164,7 +163,7 @@ func Test_projectResource_createProject(t *testing.T) {
 			userScenarios: []security.User{*testViewUser},
 			pcr:           &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}},
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Create", context.Background(), &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Create", testifymock.Anything, &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 403,
 			wantErr:    httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
@@ -174,7 +173,7 @@ func Test_projectResource_createProject(t *testing.T) {
 			userScenarios: []security.User{*testAdminUser},
 			pcr:           &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}},
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Create", context.Background(), &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Create", testifymock.Anything, &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 422,
 			wantErr:    httperrors.UnprocessableEntity(errors.New("no tenant given")),
@@ -298,7 +297,7 @@ func Test_projectResource_updateProject(t *testing.T) {
 			userScenarios: []security.User{*testViewUser},
 			pur:           &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}},
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Update", context.Background(), &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Update", testifymock.Anything, &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 403,
 			wantErr:    httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
@@ -308,7 +307,7 @@ func Test_projectResource_updateProject(t *testing.T) {
 			userScenarios: []security.User{*testAdminUser},
 			pur:           &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}},
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Update", context.Background(), &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Update", testifymock.Anything, &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 422,
 			wantErr:    httperrors.UnprocessableEntity(errors.New("project and project.meta must be specified")),

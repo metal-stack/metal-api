@@ -481,8 +481,8 @@ func initMasterData() {
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
+		cancel()
 		if err == nil {
-			cancel()
 			break
 		}
 		logger.Errorw("unable to initialize masterdata-api client, retrying...", "error", err)
@@ -540,10 +540,13 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	issuerCache, err := security.NewMultiIssuerCache(func() ([]*security.IssuerConfig, error) {
 		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
 		// get provider tenant from masterdata
-		ts, err := mdc.Tenant().Find(context.Background(), &v1.TenantFindRequest{
+		ts, err := mdc.Tenant().Find(ctx, &v1.TenantFindRequest{
 			Id: wrapperspb.String(providerTenant),
 		})
+		cancel()
 		if err != nil {
 			return nil, err
 		}

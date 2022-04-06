@@ -29,6 +29,7 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/rest"
 	"github.com/metal-stack/security"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
@@ -318,7 +319,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
 	_, pg, err := test.StartPostgres()

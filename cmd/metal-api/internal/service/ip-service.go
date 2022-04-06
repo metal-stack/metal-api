@@ -279,7 +279,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	p, err := ir.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
+	p, err := ir.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

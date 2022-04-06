@@ -140,7 +140,7 @@ func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 		ID:            ip.String(),
 		IsInitialized: true,
 	}).RunWrite(ip.session, r.RunOpts{
-		Context: context.Background(),
+		Context: context.Background(), // this can take a while, do not abort
 	})
 	if err != nil {
 		return err
