@@ -339,6 +339,8 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 }
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
+	ctx := context.Background()
+
 	for i := 0; i < machineCount; i++ {
 		id := fmt.Sprintf("WaitingMaschine%d", i)
 		m := &metal.Machine{
@@ -348,12 +350,12 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 			Waiting:     true,
 			State:       metal.MachineState{Value: metal.AvailableState},
 		}
-		err := rs.CreateMachine(m)
+		err := rs.CreateMachine(ctx, m)
 		require.NoError(t, err)
-		err = rs.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{Base: metal.Base{ID: id}, Liveliness: metal.MachineLivelinessAlive})
+		err = rs.CreateProvisioningEventContainer(ctx, &metal.ProvisioningEventContainer{Base: metal.Base{ID: id}, Liveliness: metal.MachineLivelinessAlive})
 		require.NoError(t, err)
 	}
-	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
+	err := rs.CreateImage(ctx, &metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
 
 	super, err := ipamer.NewPrefix("10.0.0.0/20")
@@ -364,13 +366,13 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	require.NoError(t, err)
 	require.NotNil(t, privateNetwork)
 
-	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "super"}, PrivateSuper: true, PartitionID: "p1"})
+	err = rs.CreateNetwork(ctx, &metal.Network{Base: metal.Base{ID: "super"}, PrivateSuper: true, PartitionID: "p1"})
 	require.NoError(t, err)
-	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "private"}, ParentNetworkID: "super", ProjectID: "pr1", PartitionID: "p1", Prefixes: metal.Prefixes{*privateNetwork}})
+	err = rs.CreateNetwork(ctx, &metal.Network{Base: metal.Base{ID: "private"}, ParentNetworkID: "super", ProjectID: "pr1", PartitionID: "p1", Prefixes: metal.Prefixes{*privateNetwork}})
 	require.NoError(t, err)
-	err = rs.CreatePartition(&metal.Partition{Base: metal.Base{ID: "p1"}})
+	err = rs.CreatePartition(ctx, &metal.Partition{Base: metal.Base{ID: "p1"}})
 	require.NoError(t, err)
-	err = rs.CreateSize(&metal.Size{Base: metal.Base{ID: "s1"}, Constraints: []metal.Constraint{{Type: metal.MemoryConstraint, Min: 4, Max: 4}, {Type: metal.CoreConstraint, Min: 4, Max: 4}}})
+	err = rs.CreateSize(ctx, &metal.Size{Base: metal.Base{ID: "s1"}, Constraints: []metal.Constraint{{Type: metal.MemoryConstraint, Min: 4, Max: 4}, {Type: metal.CoreConstraint, Min: 4, Max: 4}}})
 	require.NoError(t, err)
 
 	sw1nics := metal.Nics{}
@@ -387,10 +389,10 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 		sw1nics = append(sw1nics, sw1nic)
 		sw2nics = append(sw2nics, sw2nic)
 	}
-	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw1"}, PartitionID: "p1", Nics: sw1nics, MachineConnections: metal.ConnectionMap{}})
+	err = rs.CreateSwitch(ctx, &metal.Switch{Base: metal.Base{ID: "sw1"}, PartitionID: "p1", Nics: sw1nics, MachineConnections: metal.ConnectionMap{}})
 	require.NoError(t, err)
-	err = rs.CreateSwitch(&metal.Switch{Base: metal.Base{ID: "sw2"}, PartitionID: "p1", Nics: sw2nics, MachineConnections: metal.ConnectionMap{}})
+	err = rs.CreateSwitch(ctx, &metal.Switch{Base: metal.Base{ID: "sw2"}, PartitionID: "p1", Nics: sw2nics, MachineConnections: metal.ConnectionMap{}})
 	require.NoError(t, err)
-	err = rs.CreateFilesystemLayout(&metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"s1"}, Images: map[string]string{"i": "*"}}})
+	err = rs.CreateFilesystemLayout(ctx, &metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"s1"}, Images: map[string]string{"i": "*"}}})
 	require.NoError(t, err)
 }

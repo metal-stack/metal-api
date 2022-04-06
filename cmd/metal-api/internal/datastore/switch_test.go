@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -48,7 +49,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindSwitch(tt.args.id)
+			got, err := tt.rs.FindSwitch(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -90,7 +91,7 @@ func TestRethinkStore_FindSwitchByRack(t *testing.T) {
 
 			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return(returnSwitches, nil)
 
-			got, err := ds.SearchSwitches(tt.args.rackid, nil)
+			got, err := ds.SearchSwitches(context.Background(), tt.args.rackid, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -146,7 +147,7 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListSwitches()
+			got, err := tt.rs.ListSwitches(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.ListSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -188,7 +189,7 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.CreateSwitch(tt.args.s)
+			err := tt.rs.CreateSwitch(context.Background(), tt.args.s)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -226,7 +227,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.DeleteSwitch(tt.s)
+			err := tt.rs.DeleteSwitch(context.Background(), tt.s)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -271,7 +272,7 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdateSwitch(tt.args.oldSwitch, tt.args.newSwitch); (err != nil) != tt.wantErr {
+			if err := tt.rs.UpdateSwitch(context.Background(), tt.args.oldSwitch, tt.args.newSwitch); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateSwitch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -313,7 +314,7 @@ func TestRethinkStore_FindSwitchByMac(t *testing.T) {
 				testdata.Switch1,
 			}, nil)
 
-			got, err := ds.SearchSwitches("", tt.args.macs)
+			got, err := ds.SearchSwitches(context.Background(), "", tt.args.macs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return

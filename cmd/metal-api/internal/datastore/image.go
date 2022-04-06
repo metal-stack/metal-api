@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -12,9 +13,9 @@ import (
 )
 
 // GetImage return a image for a given id without semver matching.
-func (rs *RethinkStore) GetImage(id string) (*metal.Image, error) {
+func (rs *RethinkStore) GetImage(ctx context.Context, id string) (*metal.Image, error) {
 	var i metal.Image
-	err := rs.findEntityByID(rs.imageTable(), &i, id)
+	err := rs.findEntityByID(ctx, rs.imageTable(), &i, id)
 	if err != nil {
 		return nil, err
 	}
@@ -22,8 +23,8 @@ func (rs *RethinkStore) GetImage(id string) (*metal.Image, error) {
 }
 
 // FindImages returns all images for the given image id.
-func (rs *RethinkStore) FindImages(id string) ([]metal.Image, error) {
-	allImages, err := rs.ListImages()
+func (rs *RethinkStore) FindImages(ctx context.Context, id string) ([]metal.Image, error) {
+	allImages, err := rs.ListImages(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +37,8 @@ func (rs *RethinkStore) FindImages(id string) ([]metal.Image, error) {
 }
 
 // FindImage returns an image for the given image id.
-func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
-	allImages, err := rs.ListImages()
+func (rs *RethinkStore) FindImage(ctx context.Context, id string) (*metal.Image, error) {
+	allImages, err := rs.ListImages(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,40 +53,40 @@ func (rs *RethinkStore) FindImage(id string) (*metal.Image, error) {
 }
 
 // ListImages returns all images.
-func (rs *RethinkStore) ListImages() (metal.Images, error) {
+func (rs *RethinkStore) ListImages(ctx context.Context) (metal.Images, error) {
 	imgs := make(metal.Images, 0)
-	err := rs.listEntities(rs.imageTable(), &imgs)
+	err := rs.listEntities(ctx, rs.imageTable(), &imgs)
 	return imgs, err
 }
 
 // CreateImage creates a new image.
-func (rs *RethinkStore) CreateImage(i *metal.Image) error {
-	return rs.createEntity(rs.imageTable(), i)
+func (rs *RethinkStore) CreateImage(ctx context.Context, i *metal.Image) error {
+	return rs.createEntity(ctx, rs.imageTable(), i)
 }
 
 // DeleteImage deletes an image.
-func (rs *RethinkStore) DeleteImage(i *metal.Image) error {
-	return rs.deleteEntity(rs.imageTable(), i)
+func (rs *RethinkStore) DeleteImage(ctx context.Context, i *metal.Image) error {
+	return rs.deleteEntity(ctx, rs.imageTable(), i)
 }
 
 // UpdateImage updates an image.
-func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image) error {
-	return rs.updateEntity(rs.imageTable(), newImage, oldImage)
+func (rs *RethinkStore) UpdateImage(ctx context.Context, oldImage *metal.Image, newImage *metal.Image) error {
+	return rs.updateEntity(ctx, rs.imageTable(), newImage, oldImage)
 }
 
 // DeleteOrphanImages deletes Images which are no longer allocated by a machine and older than allowed.
 // Always at least one image per OS is kept even if no longer valid and not allocated.
 // This ensures to have always at least a usable image left.
-func (rs *RethinkStore) DeleteOrphanImages(images metal.Images, machines metal.Machines) (metal.Images, error) {
+func (rs *RethinkStore) DeleteOrphanImages(ctx context.Context, images metal.Images, machines metal.Machines) (metal.Images, error) {
 	if images == nil {
-		is, err := rs.ListImages()
+		is, err := rs.ListImages(ctx)
 		if err != nil {
 			return nil, err
 		}
 		images = is
 	}
 	if machines == nil {
-		ms, err := rs.ListMachines()
+		ms, err := rs.ListMachines(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +106,7 @@ func (rs *RethinkStore) DeleteOrphanImages(images metal.Images, machines metal.M
 		}
 
 		if isOrphanImage(image, machines) {
-			err := rs.DeleteImage(&image)
+			err := rs.DeleteImage(ctx, &image)
 			if err != nil {
 				return nil, fmt.Errorf("unable to delete image:%s err:%w", image.ID, err)
 			}

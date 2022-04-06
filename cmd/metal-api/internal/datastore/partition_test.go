@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -46,7 +47,7 @@ func TestRethinkStore_FindPartition(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindPartition(tt.args.id)
+			got, err := tt.rs.FindPartition(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindPartition() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -80,7 +81,7 @@ func TestRethinkStore_ListPartitions(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListPartitions()
+			got, err := tt.rs.ListPartitions(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.ListPartitions() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -119,7 +120,7 @@ func TestRethinkStore_CreatePartition(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.CreatePartition(tt.args.part); (err != nil) != tt.wantErr {
+			if err := tt.rs.CreatePartition(context.Background(), tt.args.part); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreatePartition() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -161,7 +162,7 @@ func TestRethinkStore_DeletePartition(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.DeletePartition(tt.args.p)
+			err := tt.rs.DeletePartition(context.Background(), tt.args.p)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeletePartition() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -206,7 +207,7 @@ func TestRethinkStore_UpdatePartition(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdatePartition(tt.args.oldF, tt.args.newF); (err != nil) != tt.wantErr {
+			if err := tt.rs.UpdatePartition(context.Background(), tt.args.oldF, tt.args.newF); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdatePartition() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

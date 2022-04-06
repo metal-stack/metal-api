@@ -137,7 +137,7 @@ func (ir ipResource) webService() *restful.WebService {
 func (ir ipResource) findIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	ip, err := ir.ds.FindIPByID(id)
+	ip, err := ir.ds.FindIPByID(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -149,7 +149,7 @@ func (ir ipResource) findIP(request *restful.Request, response *restful.Response
 }
 
 func (ir ipResource) listIPs(request *restful.Request, response *restful.Response) {
-	ips, err := ir.ds.ListIPs()
+	ips, err := ir.ds.ListIPs(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -173,7 +173,7 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 	}
 
 	var ips metal.IPs
-	err = ir.ds.SearchIPs(&requestPayload, &ips)
+	err = ir.ds.SearchIPs(request.Request.Context(), &requestPayload, &ips)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -192,7 +192,7 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 func (ir ipResource) freeIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	ip, err := ir.ds.FindIPByID(id)
+	ip, err := ir.ds.FindIPByID(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -274,7 +274,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		description = *requestPayload.Description
 	}
 
-	nw, err := ir.ds.FindNetworkByID(requestPayload.NetworkID)
+	nw, err := ir.ds.FindNetworkByID(request.Request.Context(), requestPayload.NetworkID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -327,7 +327,7 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		Tags:             tags,
 	}
 
-	err = ir.ds.CreateIP(ip)
+	err = ir.ds.CreateIP(request.Request.Context(), ip)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -345,7 +345,7 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 		return
 	}
 
-	oldIP, err := ir.ds.FindIPByID(requestPayload.IPAddress)
+	oldIP, err := ir.ds.FindIPByID(request.Request.Context(), requestPayload.IPAddress)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -364,7 +364,7 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 		newIP.Type = requestPayload.Type
 	}
 
-	err = ir.validateAndUpateIP(oldIP, &newIP)
+	err = ir.validateAndUpateIP(request.Request.Context(), oldIP, &newIP)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -375,14 +375,14 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 	}
 }
 
-func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
+func (ir ipResource) validateAndUpateIP(ctx context.Context, oldIP, newIP *metal.IP) error {
 	err := validateIPUpdate(oldIP, newIP)
 	if err != nil {
 		return err
 	}
 	newIP.Tags = processTags(newIP.Tags)
 
-	err = ir.ds.UpdateIP(oldIP, newIP)
+	err = ir.ds.UpdateIP(ctx, oldIP, newIP)
 	if err != nil {
 		return err
 	}

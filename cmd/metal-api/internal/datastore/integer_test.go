@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -117,7 +118,7 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 	mock.On(r.DB("mockdb").Table(ip.String()).Limit(1).Delete(r.
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
-	got, err := ip.AcquireRandomUniqueInteger()
+	got, err := ip.AcquireRandomUniqueInteger(context.Background())
 	assert.NoError(t, err)
 	assert.EqualValues(t, rs.VRFPoolRangeMin, got)
 
@@ -158,7 +159,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 					DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, tt.err)
 			}
 
-			got, err := ip.AcquireUniqueInteger(tt.value)
+			got, err := ip.AcquireUniqueInteger(context.Background(), tt.value)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -232,7 +233,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 				}
 			}
 
-			got, err := ip.genericAcquire(&term)
+			got, err := ip.genericAcquire(context.Background(), &term)
 			if tt.expectedErr != nil {
 				assert.EqualError(t, err, tt.expectedErr.Error())
 			} else {

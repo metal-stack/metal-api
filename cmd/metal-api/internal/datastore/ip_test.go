@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -46,7 +47,7 @@ func TestRethinkStore_FindIPByID(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindIPByID(tt.args.id)
+			got, err := tt.rs.FindIPByID(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindIP() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -80,7 +81,7 @@ func TestRethinkStore_ListIPs(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListIPs()
+			got, err := tt.rs.ListIPs(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.ListIPs() error = %v, wantErr %v", err, tt.wantErr)
 				return

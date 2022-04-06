@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -76,9 +77,9 @@ func (p *IPSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 }
 
 // FindIPByID returns an ip of a given id.
-func (rs *RethinkStore) FindIPByID(id string) (*metal.IP, error) {
+func (rs *RethinkStore) FindIPByID(ctx context.Context, id string) (*metal.IP, error) {
 	var ip metal.IP
-	err := rs.findEntityByID(rs.ipTable(), &ip, id)
+	err := rs.findEntityByID(ctx, rs.ipTable(), &ip, id)
 	if err != nil {
 		return nil, err
 	}
@@ -86,19 +87,19 @@ func (rs *RethinkStore) FindIPByID(id string) (*metal.IP, error) {
 }
 
 // SearchIPs returns the result of the ips search request query.
-func (rs *RethinkStore) SearchIPs(q *IPSearchQuery, ips *metal.IPs) error {
-	return rs.searchEntities(q.generateTerm(rs), ips)
+func (rs *RethinkStore) SearchIPs(ctx context.Context, q *IPSearchQuery, ips *metal.IPs) error {
+	return rs.searchEntities(ctx, q.generateTerm(rs), ips)
 }
 
 // ListIPs returns all ips.
-func (rs *RethinkStore) ListIPs() (metal.IPs, error) {
+func (rs *RethinkStore) ListIPs(ctx context.Context) (metal.IPs, error) {
 	ips := make([]metal.IP, 0)
-	err := rs.listEntities(rs.ipTable(), &ips)
+	err := rs.listEntities(ctx, rs.ipTable(), &ips)
 	return ips, err
 }
 
 // CreateIP creates a new ip.
-func (rs *RethinkStore) CreateIP(ip *metal.IP) error {
+func (rs *RethinkStore) CreateIP(ctx context.Context, ip *metal.IP) error {
 	if ip.AllocationUUID == "" {
 		u, err := uuid.NewRandom()
 		if err != nil {
@@ -106,15 +107,15 @@ func (rs *RethinkStore) CreateIP(ip *metal.IP) error {
 		}
 		ip.AllocationUUID = u.String()
 	}
-	return rs.createEntity(rs.ipTable(), ip)
+	return rs.createEntity(ctx, rs.ipTable(), ip)
 }
 
 // DeleteIP deletes an ip.
-func (rs *RethinkStore) DeleteIP(ip *metal.IP) error {
-	return rs.deleteEntity(rs.ipTable(), ip)
+func (rs *RethinkStore) DeleteIP(ctx context.Context, ip *metal.IP) error {
+	return rs.deleteEntity(ctx, rs.ipTable(), ip)
 }
 
 // UpdateIP updates an ip.
-func (rs *RethinkStore) UpdateIP(oldIP *metal.IP, newIP *metal.IP) error {
-	return rs.updateEntity(rs.ipTable(), newIP, oldIP)
+func (rs *RethinkStore) UpdateIP(ctx context.Context, oldIP *metal.IP, newIP *metal.IP) error {
+	return rs.updateEntity(ctx, rs.ipTable(), newIP, oldIP)
 }

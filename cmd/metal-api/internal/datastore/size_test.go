@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -40,7 +41,7 @@ func TestRethinkStore_FindSize(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindSize(tt.args.id)
+			got, err := tt.rs.FindSize(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindSize() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -74,7 +75,7 @@ func TestRethinkStore_ListSizes(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListSizes()
+			got, err := tt.rs.ListSizes(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.ListSizes() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -112,7 +113,7 @@ func TestRethinkStore_CreateSize(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.CreateSize(tt.args.size); (err != nil) != tt.wantErr {
+			if err := tt.rs.CreateSize(context.Background(), tt.args.size); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateSize() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -154,7 +155,7 @@ func TestRethinkStore_DeleteSize(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.DeleteSize(tt.args.size)
+			err := tt.rs.DeleteSize(context.Background(), tt.args.size)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteSize() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -199,7 +200,7 @@ func TestRethinkStore_UpdateSize(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdateSize(tt.args.oldSize, tt.args.newSize); (err != nil) != tt.wantErr {
+			if err := tt.rs.UpdateSize(context.Background(), tt.args.oldSize, tt.args.newSize); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateSize() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -235,7 +236,7 @@ func TestRethinkStore_FromHardware(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _, err := tt.rs.FromHardware(tt.args.hw)
+			got, _, err := tt.rs.FromHardware(context.Background(), tt.args.hw)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FromHardware() error = %v, wantErr %v", err, tt.wantErr)
 				return

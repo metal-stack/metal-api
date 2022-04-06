@@ -104,7 +104,7 @@ func (r sizeResource) webService() *restful.WebService {
 func (r sizeResource) findSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	s, err := r.ds.FindSize(id)
+	s, err := r.ds.FindSize(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -116,7 +116,7 @@ func (r sizeResource) findSize(request *restful.Request, response *restful.Respo
 }
 
 func (r sizeResource) listSizes(request *restful.Request, response *restful.Response) {
-	ss, err := r.ds.ListSizes()
+	ss, err := r.ds.ListSizes(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -178,7 +178,7 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 		Constraints: constraints,
 	}
 
-	ss, err := r.ds.ListSizes()
+	ss, err := r.ds.ListSizes(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -188,7 +188,7 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 		}
 	}
 
-	err = r.ds.CreateSize(s)
+	err = r.ds.CreateSize(request.Request.Context(), s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -202,12 +202,12 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 func (r sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	s, err := r.ds.FindSize(id)
+	s, err := r.ds.FindSize(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = r.ds.DeleteSize(s)
+	err = r.ds.DeleteSize(request.Request.Context(), s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -225,7 +225,7 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 		return
 	}
 
-	oldSize, err := r.ds.FindSize(requestPayload.ID)
+	oldSize, err := r.ds.FindSize(request.Request.Context(), requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -252,7 +252,7 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 		newSize.Constraints = constraints
 	}
 
-	ss, err := r.ds.ListSizes()
+	ss, err := r.ds.ListSizes(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -262,7 +262,7 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 		}
 	}
 
-	err = r.ds.UpdateSize(oldSize, &newSize)
+	err = r.ds.UpdateSize(request.Request.Context(), oldSize, &newSize)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -281,7 +281,7 @@ func (r sizeResource) fromHardware(request *restful.Request, response *restful.R
 	}
 
 	hw := v1.NewMetalMachineHardware(&requestPayload)
-	_, lg, err := r.ds.FromHardware(hw)
+	_, lg, err := r.ds.FromHardware(request.Request.Context(), hw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

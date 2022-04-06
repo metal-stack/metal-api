@@ -171,7 +171,7 @@ var deleteOrphanImagesCmd = &cobra.Command{
 		}
 		initEventBus()
 
-		_, err = ds.DeleteOrphanImages(nil, nil)
+		_, err = ds.DeleteOrphanImages(context.TODO(), nil, nil)
 		return err
 	},
 }
@@ -385,7 +385,7 @@ func waitForPartitions() metal.Partitions {
 	var partitions metal.Partitions
 	var err error
 	for {
-		partitions, err = ds.ListPartitions()
+		partitions, err = ds.ListPartitions(context.Background())
 		if err != nil {
 			logger.Errorw("cannot list partitions", "error", err)
 			time.Sleep(3 * time.Second)
@@ -786,7 +786,11 @@ func resurrectDeadMachines() error {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	err = service.ResurrectMachines(ds, p, ep, ipamer, logger)
+
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	err = service.ResurrectMachines(ctx, ds, p, ep, ipamer, logger)
 	if err != nil {
 		return fmt.Errorf("unable to resurrect machines: %w", err)
 	}
@@ -800,7 +804,10 @@ func evaluateLiveliness() error {
 		return err
 	}
 
-	err = service.MachineLiveliness(ds, logger)
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	err = service.MachineLiveliness(ctx, ds, logger)
 	if err != nil {
 		return fmt.Errorf("unable to evaluate machine liveliness: %w", err)
 	}

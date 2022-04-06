@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -124,7 +125,7 @@ func (ir imageResource) webService() *restful.WebService {
 func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.GetImage(id)
+	img, err := ir.ds.GetImage(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -138,7 +139,7 @@ func (ir imageResource) findImage(request *restful.Request, response *restful.Re
 func (ir imageResource) queryImages(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImages(id)
+	img, err := ir.ds.FindImages(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -157,7 +158,7 @@ func (ir imageResource) queryImages(request *restful.Request, response *restful.
 func (ir imageResource) findLatestImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := ir.ds.FindImage(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -169,7 +170,7 @@ func (ir imageResource) findLatestImage(request *restful.Request, response *rest
 }
 
 func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
-	imgs, err := ir.ds.ListImages()
+	imgs, err := ir.ds.ListImages(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -182,7 +183,7 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 			return
 		}
 		if showUsage {
-			ms, err = ir.ds.ListMachines()
+			ms, err = ir.ds.ListMachines(request.Request.Context())
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
@@ -283,7 +284,7 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		Classification: vc,
 	}
 
-	err = ir.ds.CreateImage(img)
+	err = ir.ds.CreateImage(request.Request.Context(), img)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -309,12 +310,12 @@ func checkImageURL(id, url string) error {
 func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.GetImage(id)
+	img, err := ir.ds.GetImage(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	ms, err := ir.ds.ListMachines()
+	ms, err := ir.ds.ListMachines(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -326,7 +327,7 @@ func (ir imageResource) deleteImage(request *restful.Request, response *restful.
 		}
 	}
 
-	err = ir.ds.DeleteImage(img)
+	err = ir.ds.DeleteImage(request.Request.Context(), img)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -344,7 +345,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		return
 	}
 
-	oldImage, err := ir.ds.GetImage(requestPayload.ID)
+	oldImage, err := ir.ds.GetImage(request.Request.Context(), requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -390,7 +391,7 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.ExpirationDate = *requestPayload.ExpirationDate
 	}
 
-	err = ir.ds.UpdateImage(oldImage, &newImage)
+	err = ir.ds.UpdateImage(request.Request.Context(), oldImage, &newImage)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -434,7 +435,11 @@ func (iuc imageUsageCollector) Collect(ch chan<- prometheus.Metric) {
 	if iuc.ir == nil || iuc.ir.ds == nil {
 		return
 	}
-	imgs, err := iuc.ir.ds.ListImages()
+
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	imgs, err := iuc.ir.ds.ListImages(ctx)
 	if err != nil {
 		return
 	}
@@ -447,8 +452,12 @@ func (iuc imageUsageCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, i := range imgs {
 		usage[i.ID] = 0
 	}
+
+	ctx, cancel2 := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel2()
+
 	// loop over machines and count
-	machines, err := iuc.ir.ds.ListMachines()
+	machines, err := iuc.ir.ds.ListMachines(ctx)
 	if err != nil {
 		return
 	}

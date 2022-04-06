@@ -1,11 +1,15 @@
 package datastore
 
-import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+import (
+	"context"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+)
 
 // FindFilesystemLayout return a filesystemlayout for a given id.
-func (rs *RethinkStore) FindFilesystemLayout(id string) (*metal.FilesystemLayout, error) {
+func (rs *RethinkStore) FindFilesystemLayout(ctx context.Context, id string) (*metal.FilesystemLayout, error) {
 	var fl metal.FilesystemLayout
-	err := rs.findEntityByID(rs.filesystemLayoutTable(), &fl, id)
+	err := rs.findEntityByID(ctx, rs.filesystemLayoutTable(), &fl, id)
 	if err != nil {
 		return nil, err
 	}
@@ -13,23 +17,23 @@ func (rs *RethinkStore) FindFilesystemLayout(id string) (*metal.FilesystemLayout
 }
 
 // ListFilesystemLayouts returns all filesystemlayouts.
-func (rs *RethinkStore) ListFilesystemLayouts() (metal.FilesystemLayouts, error) {
+func (rs *RethinkStore) ListFilesystemLayouts(ctx context.Context) (metal.FilesystemLayouts, error) {
 	fls := make(metal.FilesystemLayouts, 0)
-	err := rs.listEntities(rs.filesystemLayoutTable(), &fls)
+	err := rs.listEntities(ctx, rs.filesystemLayoutTable(), &fls)
 	return fls, err
 }
 
 // CreateFilesystemLayout creates a new filesystemlayout.
-func (rs *RethinkStore) CreateFilesystemLayout(fl *metal.FilesystemLayout) error {
-	return rs.createEntity(rs.filesystemLayoutTable(), fl)
+func (rs *RethinkStore) CreateFilesystemLayout(ctx context.Context, fl *metal.FilesystemLayout) error {
+	return rs.createEntity(ctx, rs.filesystemLayoutTable(), fl)
 }
 
 // DeleteFilesystemLayout deletes a filesystemlayout.
-func (rs *RethinkStore) DeleteFilesystemLayout(fl *metal.FilesystemLayout) error {
-	return rs.deleteEntity(rs.filesystemLayoutTable(), fl)
+func (rs *RethinkStore) DeleteFilesystemLayout(ctx context.Context, fl *metal.FilesystemLayout) error {
+	return rs.deleteEntity(ctx, rs.filesystemLayoutTable(), fl)
 }
 
 // UpdateFilesystemLayout updates a filesystemlayout.
-func (rs *RethinkStore) UpdateFilesystemLayout(oldFilesystemLayout *metal.FilesystemLayout, newFilesystemLayout *metal.FilesystemLayout) error {
-	return rs.updateEntity(rs.filesystemLayoutTable(), newFilesystemLayout, oldFilesystemLayout)
+func (rs *RethinkStore) UpdateFilesystemLayout(ctx context.Context, oldFilesystemLayout *metal.FilesystemLayout, newFilesystemLayout *metal.FilesystemLayout) error {
+	return rs.updateEntity(ctx, rs.filesystemLayoutTable(), newFilesystemLayout, oldFilesystemLayout)
 }

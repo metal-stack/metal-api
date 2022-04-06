@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -1547,7 +1548,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			testdata.InitMockDBData(mock)
 
 			// run
-			got, err := gatherNetworksFromSpec(ds, test.allocationSpec, test.partition, test.partitionSuperNetworks)
+			got, err := gatherNetworksFromSpec(context.Background(), ds, test.allocationSpec, test.partition, test.partitionSuperNetworks)
 			// verify
 			if err != nil {
 				if !test.wantErr {

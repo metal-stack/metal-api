@@ -116,7 +116,7 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 		return
 	}
 
-	v1p, err := r.setProjectQuota(p.Project)
+	v1p, err := r.setProjectQuota(request.Request.Context(), p.Project)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -219,7 +219,7 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 	}
 
 	var ms metal.Machines
-	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &id}, &ms)
+	err = r.ds.SearchMachines(request.Request.Context(), &datastore.MachineSearchQuery{AllocationProject: &id}, &ms)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -229,7 +229,7 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 	}
 
 	var ns metal.Networks
-	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{ProjectID: &id}, &ns)
+	err = r.ds.SearchNetworks(request.Request.Context(), &datastore.NetworkSearchQuery{ProjectID: &id}, &ns)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -239,7 +239,7 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 	}
 
 	var ips metal.IPs
-	err = r.ds.SearchIPs(&datastore.IPSearchQuery{ProjectID: &id}, &ips)
+	err = r.ds.SearchIPs(request.Request.Context(), &datastore.IPSearchQuery{ProjectID: &id}, &ips)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -252,7 +252,7 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 	pdr := &mdmv1.ProjectDeleteRequest{
 		Id: p.Project.Meta.Id,
 	}
-	pdresponse, err := r.mdc.Project().Delete(context.Background(), pdr)
+	pdresponse, err := r.mdc.Project().Delete(request.Request.Context(), pdr)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -309,20 +309,20 @@ func (r projectResource) updateProject(request *restful.Request, response *restf
 	}
 }
 
-func (r projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, error) {
+func (r projectResource) setProjectQuota(ctx context.Context, project *mdmv1.Project) (*v1.Project, error) {
 	if project.Meta == nil {
 		return nil, errors.New("project does not have a projectID")
 	}
 	projectID := project.Meta.Id
 
 	var ips metal.IPs
-	err := r.ds.SearchIPs(&datastore.IPSearchQuery{ProjectID: &projectID}, &ips)
+	err := r.ds.SearchIPs(ctx, &datastore.IPSearchQuery{ProjectID: &projectID}, &ips)
 	if err != nil {
 		return nil, err
 	}
 
 	var ms metal.Machines
-	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &projectID}, &ms)
+	err = r.ds.SearchMachines(ctx, &datastore.MachineSearchQuery{AllocationProject: &projectID}, &ms)
 	if err != nil {
 		return nil, err
 	}

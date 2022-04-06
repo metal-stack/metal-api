@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"testing"
 	"testing/quick"
 
@@ -18,7 +19,7 @@ func TestRethinkStore_FindMachineByID2(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	f := func(x string) bool {
-		_, err := ds.FindMachineByID(x)
+		_, err := ds.FindMachineByID(context.Background(), x)
 		returnvalue := true
 		if err != nil {
 			returnvalue = false
@@ -86,7 +87,7 @@ func TestRethinkStore_FindMachineByID(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindMachineByID(tt.args.id)
+			got, err := tt.rs.FindMachineByID(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachine() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -140,7 +141,7 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsMacAddresses: []string{tt.args.mac}}, &got)
+			err := tt.rs.SearchMachines(context.Background(), &MachineSearchQuery{NicsMacAddresses: []string{tt.args.mac}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -192,7 +193,7 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{DiskSizes: []int64{tt.args.size}}, &got)
+			err := tt.rs.SearchMachines(context.Background(), &MachineSearchQuery{DiskSizes: []int64{tt.args.size}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -244,7 +245,7 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIDs: []string{tt.args.networkID}}, &got)
+			err := tt.rs.SearchMachines(context.Background(), &MachineSearchQuery{NetworkIDs: []string{tt.args.networkID}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -296,7 +297,7 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIPs: []string{tt.args.ip}}, &got)
+			err := tt.rs.SearchMachines(context.Background(), &MachineSearchQuery{NetworkIPs: []string{tt.args.ip}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -348,7 +349,7 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkPrefixes: []string{tt.args.prefix}}, &got)
+			err := tt.rs.SearchMachines(context.Background(), &MachineSearchQuery{NetworkPrefixes: []string{tt.args.prefix}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -402,7 +403,7 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsNeighborMacAddresses: []string{tt.args.mac}}, &got)
+			err := tt.rs.SearchMachines(context.Background(), &MachineSearchQuery{NicsNeighborMacAddresses: []string{tt.args.mac}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -436,7 +437,7 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListMachines()
+			got, err := tt.rs.ListMachines(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.ListMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -475,7 +476,7 @@ func TestRethinkStore_CreateMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.CreateMachine(tt.args.d); (err != nil) != tt.wantErr {
+			if err := tt.rs.CreateMachine(context.Background(), tt.args.d); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateMachine() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -504,7 +505,7 @@ func TestRethinkStore_DeleteMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.DeleteMachine(tt.machine)
+			err := tt.rs.DeleteMachine(context.Background(), tt.machine)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteMachine() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -542,7 +543,7 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdateMachine(tt.args.oldD, tt.args.newD); (err != nil) != tt.wantErr {
+			if err := tt.rs.UpdateMachine(context.Background(), tt.args.oldD, tt.args.newD); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateMachine() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

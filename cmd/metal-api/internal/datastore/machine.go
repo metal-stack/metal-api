@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -403,9 +404,9 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 }
 
 // FindMachineByID returns a machine for a given id.
-func (rs *RethinkStore) FindMachineByID(id string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindMachineByID(ctx context.Context, id string) (*metal.Machine, error) {
 	var m metal.Machine
-	err := rs.findEntityByID(rs.machineTable(), &m, id)
+	err := rs.findEntityByID(ctx, rs.machineTable(), &m, id)
 	if err != nil {
 		return nil, err
 	}
@@ -413,19 +414,19 @@ func (rs *RethinkStore) FindMachineByID(id string) (*metal.Machine, error) {
 }
 
 // FindMachine returns a machine by the given query, fails if there is no record or multiple records found.
-func (rs *RethinkStore) FindMachine(q *MachineSearchQuery, ms *metal.Machine) error {
-	return rs.findEntity(q.generateTerm(rs), &ms)
+func (rs *RethinkStore) FindMachine(ctx context.Context, q *MachineSearchQuery, ms *metal.Machine) error {
+	return rs.findEntity(ctx, q.generateTerm(rs), &ms)
 }
 
 // SearchMachines returns the result of the machines search request query.
-func (rs *RethinkStore) SearchMachines(q *MachineSearchQuery, ms *metal.Machines) error {
-	return rs.searchEntities(q.generateTerm(rs), ms)
+func (rs *RethinkStore) SearchMachines(ctx context.Context, q *MachineSearchQuery, ms *metal.Machines) error {
+	return rs.searchEntities(ctx, q.generateTerm(rs), ms)
 }
 
 // ListMachines returns all machines.
-func (rs *RethinkStore) ListMachines() (metal.Machines, error) {
+func (rs *RethinkStore) ListMachines(ctx context.Context) (metal.Machines, error) {
 	ms := make(metal.Machines, 0)
-	err := rs.listEntities(rs.machineTable(), &ms)
+	err := rs.listEntities(ctx, rs.machineTable(), &ms)
 	return ms, err
 }
 
@@ -434,28 +435,28 @@ func (rs *RethinkStore) ListMachines() (metal.Machines, error) {
 // allocated machines cannot be created. If there is already a machine with the
 // given ID in the database it will be replaced the the given machine.
 // CreateNetwork creates a new network.
-func (rs *RethinkStore) CreateMachine(m *metal.Machine) error {
+func (rs *RethinkStore) CreateMachine(ctx context.Context, m *metal.Machine) error {
 	if m.Allocation != nil {
 		return fmt.Errorf("a machine cannot be created when it is allocated: %q: %+v", m.ID, *m.Allocation)
 	}
-	return rs.createEntity(rs.machineTable(), m)
+	return rs.createEntity(ctx, rs.machineTable(), m)
 }
 
 // DeleteMachine removes a machine from the database.
-func (rs *RethinkStore) DeleteMachine(m *metal.Machine) error {
-	return rs.deleteEntity(rs.machineTable(), m)
+func (rs *RethinkStore) DeleteMachine(ctx context.Context, m *metal.Machine) error {
+	return rs.deleteEntity(ctx, rs.machineTable(), m)
 }
 
 // UpdateMachine replaces a machine in the database if the 'changed' field of
 // the old value equals the 'changed' field of the recorded in the database.
-func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *metal.Machine) error {
-	return rs.updateEntity(rs.machineTable(), newMachine, oldMachine)
+func (rs *RethinkStore) UpdateMachine(ctx context.Context, oldMachine *metal.Machine, newMachine *metal.Machine) error {
+	return rs.updateEntity(ctx, rs.machineTable(), newMachine, oldMachine)
 }
 
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, partitionid, sizeid string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -469,12 +470,12 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 	})
 
 	var candidates metal.Machines
-	err := rs.searchEntities(&q, &candidates)
+	err := rs.searchEntities(ctx, &q, &candidates)
 	if err != nil {
 		return nil, err
 	}
 
-	ecs, err := rs.ListProvisioningEventContainers()
+	ecs, err := rs.ListProvisioningEventContainers(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -512,7 +513,7 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 	oldMachine := available[idx]
 	newMachine := oldMachine
 	newMachine.PreAllocated = true
-	err = rs.updateEntity(rs.machineTable(), &newMachine, &oldMachine)
+	err = rs.updateEntity(ctx, rs.machineTable(), &newMachine, &oldMachine)
 	if err != nil {
 		return nil, err
 	}

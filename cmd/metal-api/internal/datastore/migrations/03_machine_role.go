@@ -1,6 +1,8 @@
 package migrations
 
 import (
+	"context"
+
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -12,7 +14,7 @@ func init() {
 		Name:    "introduction of machine roles (#24)",
 		Version: 3,
 		Up: func(db *r.Term, session r.QueryExecutor, rs *datastore.RethinkStore) error {
-			ms, err := rs.ListMachines()
+			ms, err := rs.ListMachines(context.Background())
 			if err != nil {
 				return err
 			}
@@ -31,7 +33,7 @@ func init() {
 					n.Allocation.Role = metal.RoleMachine
 				}
 
-				err = rs.UpdateMachine(&old, &n)
+				err = rs.UpdateMachine(context.Background(), &old, &n)
 				if err != nil {
 					return err
 				}

@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -138,7 +139,9 @@ func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 	_, err = ip.infoTable.Insert(integerinfo{
 		ID:            ip.String(),
 		IsInitialized: true,
-	}).RunWrite(ip.session)
+	}).RunWrite(ip.session, r.RunOpts{
+		Context: context.Background(),
+	})
 	if err != nil {
 		return err
 	}
@@ -147,14 +150,14 @@ func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
 }
 
 // AcquireRandomUniqueInteger returns a random unique integer from the pool.
-func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
+func (ip *IntegerPool) AcquireRandomUniqueInteger(ctx context.Context) (uint, error) {
 	t := ip.poolTable.Limit(1)
 
 	var integer uint
 	err := retry.Do(
 		func() error {
 			var err2 error
-			integer, err2 = ip.genericAcquire(&t)
+			integer, err2 = ip.genericAcquire(ctx, &t)
 			return err2
 		},
 		retry.Attempts(10),
@@ -166,13 +169,13 @@ func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
 }
 
 // AcquireUniqueInteger returns a unique integer from the pool.
-func (ip *IntegerPool) AcquireUniqueInteger(value uint) (uint, error) {
+func (ip *IntegerPool) AcquireUniqueInteger(ctx context.Context, value uint) (uint, error) {
 	err := ip.verifyRange(value)
 	if err != nil {
 		return 0, err
 	}
 	t := ip.poolTable.Get(value)
-	return ip.genericAcquire(&t)
+	return ip.genericAcquire(ctx, &t)
 }
 
 // ReleaseUniqueInteger returns a unique integer to the pool.
@@ -193,14 +196,16 @@ func (ip *IntegerPool) ReleaseUniqueInteger(id uint) error {
 	return nil
 }
 
-func (ip *IntegerPool) genericAcquire(term *r.Term) (uint, error) {
+func (ip *IntegerPool) genericAcquire(ctx context.Context, term *r.Term) (uint, error) {
 	res, err := term.Delete(r.DeleteOpts{ReturnChanges: true}).RunWrite(ip.session)
 	if err != nil {
 		return 0, err
 	}
 
 	if len(res.Changes) == 0 {
-		res, err := ip.poolTable.Count().Run(ip.session)
+		res, err := ip.poolTable.Count().Run(ip.session, r.RunOpts{
+			Context: ctx,
+		})
 		if err != nil {
 			return 0, err
 		}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -130,7 +131,7 @@ func (r partitionResource) webService() *restful.WebService {
 func (r partitionResource) findPartition(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	p, err := r.ds.FindPartition(id)
+	p, err := r.ds.FindPartition(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -142,7 +143,7 @@ func (r partitionResource) findPartition(request *restful.Request, response *res
 }
 
 func (r partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
-	ps, err := r.ds.ListPartitions()
+	ps, err := r.ds.ListPartitions(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -227,7 +228,7 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 		}
 	}
 
-	err = r.ds.CreatePartition(p)
+	err = r.ds.CreatePartition(request.Request.Context(), p)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -242,12 +243,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 func (r partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	p, err := r.ds.FindPartition(id)
+	p, err := r.ds.FindPartition(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = r.ds.DeletePartition(p)
+	err = r.ds.DeletePartition(request.Request.Context(), p)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -265,7 +266,7 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 		return
 	}
 
-	oldPartition, err := r.ds.FindPartition(requestPayload.ID)
+	oldPartition, err := r.ds.FindPartition(request.Request.Context(), requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -291,7 +292,7 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	err = r.ds.UpdatePartition(oldPartition, &newPartition)
+	err = r.ds.UpdatePartition(request.Request.Context(), oldPartition, &newPartition)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -303,7 +304,7 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 }
 
 func (r partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
-	partitionCapacities, err := r.calcPartitionCapacity(nil)
+	partitionCapacities, err := r.calcPartitionCapacity(request.Request.Context(), nil)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -322,7 +323,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 		return
 	}
 
-	partitionCapacities, err := r.calcPartitionCapacity(&requestPayload)
+	partitionCapacities, err := r.calcPartitionCapacity(request.Request.Context(), &requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -334,7 +335,7 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 	}
 }
 
-func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
+func (r partitionResource) calcPartitionCapacity(ctx context.Context, pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
 	// FIXME bad workaround to be able to run make spec
 	if r.ds == nil {
 		return nil, nil
@@ -347,13 +348,13 @@ func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReques
 	)
 
 	if pcr != nil && pcr.ID != nil {
-		p, err := r.ds.FindPartition(*pcr.ID)
+		p, err := r.ds.FindPartition(ctx, *pcr.ID)
 		if err != nil {
 			return nil, err
 		}
 		ps = metal.Partitions{*p}
 	} else {
-		ps, err = r.ds.ListPartitions()
+		ps, err = r.ds.ListPartitions(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -364,11 +365,11 @@ func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReques
 		msq.SizeID = pcr.Size
 	}
 
-	err = r.ds.SearchMachines(&msq, &ms)
+	err = r.ds.SearchMachines(ctx, &msq, &ms)
 	if err != nil {
 		return nil, err
 	}
-	machines, err := makeMachineResponseList(ms, r.ds)
+	machines, err := makeMachineResponseList(ctx, ms, r.ds)
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +478,10 @@ func (pcc partitionCapacityCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (pcc partitionCapacityCollector) Collect(ch chan<- prometheus.Metric) {
-	pcs, err := pcc.r.calcPartitionCapacity(nil)
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	pcs, err := pcc.r.calcPartitionCapacity(ctx, nil)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to get partition capacity", zap.Error(err))
 		return

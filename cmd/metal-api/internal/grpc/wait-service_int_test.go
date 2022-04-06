@@ -83,7 +83,7 @@ type datasource struct {
 	wait map[string]bool
 }
 
-func (ds *datasource) FindMachineByID(machineID string) (*metal.Machine, error) {
+func (ds *datasource) FindMachineByID(ctx context.Context, machineID string) (*metal.Machine, error) {
 	return &metal.Machine{
 		Base: metal.Base{
 			ID: machineID,
@@ -91,7 +91,7 @@ func (ds *datasource) FindMachineByID(machineID string) (*metal.Machine, error) 
 	}, nil
 }
 
-func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
+func (ds *datasource) UpdateMachine(ctx context.Context, old, new *metal.Machine) error {
 	ds.mtx.Lock()
 	defer ds.mtx.Unlock()
 	ds.wait[new.ID] = new.Waiting

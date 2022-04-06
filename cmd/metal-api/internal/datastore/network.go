@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -130,9 +131,9 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 }
 
 // FindNetworkByID returns an network of a given id.
-func (rs *RethinkStore) FindNetworkByID(id string) (*metal.Network, error) {
+func (rs *RethinkStore) FindNetworkByID(ctx context.Context, id string) (*metal.Network, error) {
 	var nw metal.Network
-	err := rs.findEntityByID(rs.networkTable(), &nw, id)
+	err := rs.findEntityByID(ctx, rs.networkTable(), &nw, id)
 	if err != nil {
 		return nil, err
 	}
@@ -140,33 +141,33 @@ func (rs *RethinkStore) FindNetworkByID(id string) (*metal.Network, error) {
 }
 
 // FindNetwork returns a machine by the given query, fails if there is no record or multiple records found.
-func (rs *RethinkStore) FindNetwork(q *NetworkSearchQuery, n *metal.Network) error {
-	return rs.findEntity(q.generateTerm(rs), &n)
+func (rs *RethinkStore) FindNetwork(ctx context.Context, q *NetworkSearchQuery, n *metal.Network) error {
+	return rs.findEntity(ctx, q.generateTerm(rs), &n)
 }
 
 // SearchNetworks returns the networks that match the given properties
-func (rs *RethinkStore) SearchNetworks(q *NetworkSearchQuery, ns *metal.Networks) error {
-	return rs.searchEntities(q.generateTerm(rs), ns)
+func (rs *RethinkStore) SearchNetworks(ctx context.Context, q *NetworkSearchQuery, ns *metal.Networks) error {
+	return rs.searchEntities(ctx, q.generateTerm(rs), ns)
 }
 
 // ListNetworks returns all networks.
-func (rs *RethinkStore) ListNetworks() (metal.Networks, error) {
+func (rs *RethinkStore) ListNetworks(ctx context.Context) (metal.Networks, error) {
 	nws := make(metal.Networks, 0)
-	err := rs.listEntities(rs.networkTable(), &nws)
+	err := rs.listEntities(ctx, rs.networkTable(), &nws)
 	return nws, err
 }
 
 // CreateNetwork creates a new network.
-func (rs *RethinkStore) CreateNetwork(nw *metal.Network) error {
-	return rs.createEntity(rs.networkTable(), nw)
+func (rs *RethinkStore) CreateNetwork(ctx context.Context, nw *metal.Network) error {
+	return rs.createEntity(ctx, rs.networkTable(), nw)
 }
 
 // DeleteNetwork deletes an network.
-func (rs *RethinkStore) DeleteNetwork(nw *metal.Network) error {
-	return rs.deleteEntity(rs.networkTable(), nw)
+func (rs *RethinkStore) DeleteNetwork(ctx context.Context, nw *metal.Network) error {
+	return rs.deleteEntity(ctx, rs.networkTable(), nw)
 }
 
 // UpdateNetwork updates an network.
-func (rs *RethinkStore) UpdateNetwork(oldNetwork *metal.Network, newNetwork *metal.Network) error {
-	return rs.updateEntity(rs.networkTable(), newNetwork, oldNetwork)
+func (rs *RethinkStore) UpdateNetwork(ctx context.Context, oldNetwork *metal.Network, newNetwork *metal.Network) error {
+	return rs.updateEntity(ctx, rs.networkTable(), newNetwork, oldNetwork)
 }

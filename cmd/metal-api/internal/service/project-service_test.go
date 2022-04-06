@@ -15,6 +15,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -227,7 +228,7 @@ func Test_projectResource_deleteProject(t *testing.T) {
 			userScenarios: []security.User{*testViewUser},
 			id:            "122",
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Delete", context.Background(), &mdmv1.ProjectDeleteRequest{Id: "122"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Delete", testifymock.Anything, &mdmv1.ProjectDeleteRequest{Id: "122"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			wantStatus: 403,
 			wantErr:    httperrors.Forbidden(errors.New("you are not member in one of [k8s_kaas-admin maas-all-all-admin]")),
@@ -237,8 +238,8 @@ func Test_projectResource_deleteProject(t *testing.T) {
 			userScenarios: []security.User{*testAdminUser},
 			id:            "123",
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
-				mock.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{Meta: &mdmv1.Meta{Id: "123"}}}, nil)
-				mock.On("Delete", context.Background(), &mdmv1.ProjectDeleteRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+				mock.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{Meta: &mdmv1.Meta{Id: "123"}}}, nil)
+				mock.On("Delete", testifymock.Anything, &mdmv1.ProjectDeleteRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
 			dsMock: func(mock *rethinkdb.Mock) {
 				mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Machines{}, nil)

@@ -1,6 +1,8 @@
 package migrations
 
 import (
+	"context"
+
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/google/uuid"
@@ -12,7 +14,7 @@ func init() {
 		Name:    "generate allocation uuids for new ip address field (#70)",
 		Version: 2,
 		Up: func(db *r.Term, session r.QueryExecutor, rs *datastore.RethinkStore) error {
-			ips, err := rs.ListIPs()
+			ips, err := rs.ListIPs(context.Background())
 			if err != nil {
 				return err
 			}
@@ -30,7 +32,7 @@ func init() {
 
 				n := old
 				n.AllocationUUID = u.String()
-				err = rs.UpdateIP(&old, &n)
+				err = rs.UpdateIP(context.Background(), &old, &n)
 				if err != nil {
 					return err
 				}

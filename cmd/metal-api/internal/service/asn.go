@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -20,8 +21,8 @@ const (
 )
 
 // acquireASN fetches a unique integer by using the existing integer pool and adding to ASNBase
-func acquireASN(ds *datastore.RethinkStore) (*uint32, error) {
-	i, err := ds.GetASNPool().AcquireRandomUniqueInteger()
+func acquireASN(ctx context.Context, ds *datastore.RethinkStore) (*uint32, error) {
+	i, err := ds.GetASNPool().AcquireRandomUniqueInteger(ctx)
 	if err != nil {
 		return nil, err
 	}

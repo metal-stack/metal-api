@@ -183,7 +183,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.NotNil(t, createdSize)
 	require.Equal(t, size.ID, createdSize.ID)
 
-	err = ds.CreateFilesystemLayout(&metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"test-size"}, Images: map[string]string{"test-image": "*"}}})
+	err = ds.CreateFilesystemLayout(context.Background(), &metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"test-size"}, Images: map[string]string{"test-image": "*"}}})
 	require.NoError(t, err)
 
 	partitionName := "test-partition"

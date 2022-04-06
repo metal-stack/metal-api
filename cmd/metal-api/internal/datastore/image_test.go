@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -52,7 +53,7 @@ func TestRethinkStore_FindImage(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindImage(tt.args.id)
+			got, err := tt.rs.FindImage(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -86,7 +87,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListImages()
+			got, err := tt.rs.ListImages(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.ListImages() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -127,7 +128,7 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.CreateImage(tt.args.i)
+			err := tt.rs.CreateImage(context.Background(), tt.args.i)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -171,7 +172,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.DeleteImage(tt.args.img)
+			err := tt.rs.DeleteImage(context.Background(), tt.args.img)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteImage() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -216,7 +217,7 @@ func TestRethinkStore_UpdateImage(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdateImage(tt.args.oldImage, tt.args.newImage); (err != nil) != tt.wantErr {
+			if err := tt.rs.UpdateImage(context.Background(), tt.args.oldImage, tt.args.newImage); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateImage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -539,7 +540,7 @@ func TestRethinkStore_DeleteOrphanImages(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.DeleteOrphanImages(tt.images, tt.machines)
+			got, err := tt.rs.DeleteOrphanImages(context.Background(), tt.images, tt.machines)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.DeleteOrphanImages() error = %v, wantErr %v", err, tt.wantErr)
 				return

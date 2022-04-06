@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -108,12 +109,12 @@ func (r switchResource) webService() *restful.WebService {
 func (r switchResource) findSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	s, err := r.ds.FindSwitch(id)
+	s, err := r.ds.FindSwitch(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := makeSwitchResponse(request.Request.Context(), s, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -126,12 +127,12 @@ func (r switchResource) findSwitch(request *restful.Request, response *restful.R
 }
 
 func (r switchResource) listSwitches(request *restful.Request, response *restful.Response) {
-	ss, err := r.ds.ListSwitches()
+	ss, err := r.ds.ListSwitches(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeSwitchResponseList(ss, r.ds)
+	resp, err := makeSwitchResponseList(request.Request.Context(), ss, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -146,17 +147,17 @@ func (r switchResource) listSwitches(request *restful.Request, response *restful
 func (r switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	s, err := r.ds.FindSwitch(id)
+	s, err := r.ds.FindSwitch(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = r.ds.DeleteSwitch(s)
+	err = r.ds.DeleteSwitch(request.Request.Context(), s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := makeSwitchResponse(request.Request.Context(), s, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -177,7 +178,7 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 	}
 
 	id := request.PathParameter("id")
-	s, err := r.ds.FindSwitch(id)
+	s, err := r.ds.FindSwitch(request.Request.Context(), id)
 	if err != nil && !metal.IsNotFound(err) {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -198,12 +199,12 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 	}
 
 	// FIXME needs https://github.com/metal-stack/metal-api/issues/263
-	err = r.ds.UpdateSwitch(&old, s)
+	err = r.ds.UpdateSwitch(request.Request.Context(), &old, s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := makeSwitchResponse(request.Request.Context(), s, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -222,7 +223,7 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 		return
 	}
 
-	oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
+	oldSwitch, err := r.ds.FindSwitch(request.Request.Context(), requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -237,7 +238,7 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 
 	err = retry.Do(
 		func() error {
-			err := r.ds.UpdateSwitch(oldSwitch, &newSwitch)
+			err := r.ds.UpdateSwitch(request.Request.Context(), oldSwitch, &newSwitch)
 			return err
 		},
 		retry.Attempts(10),
@@ -251,7 +252,7 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 		return
 	}
 
-	resp, err := makeSwitchResponse(&newSwitch, r.ds)
+	resp, err := makeSwitchResponse(request.Request.Context(), &newSwitch, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -276,12 +277,12 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		}
 	}
 
-	_, err = r.ds.FindPartition(requestPayload.PartitionID)
+	_, err = r.ds.FindPartition(request.Request.Context(), requestPayload.PartitionID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	s, err := r.ds.FindSwitch(requestPayload.ID)
+	s, err := r.ds.FindSwitch(request.Request.Context(), requestPayload.ID)
 	if err != nil && !metal.IsNotFound(err) {
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
@@ -299,7 +300,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 			}
 		}
 
-		err = r.ds.CreateSwitch(s)
+		err = r.ds.CreateSwitch(request.Request.Context(), s)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -307,7 +308,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		returnCode = http.StatusCreated
 	} else if s.Mode == metal.SwitchReplace {
 		spec := v1.NewSwitch(requestPayload)
-		err = r.replaceSwitch(s, spec)
+		err = r.replaceSwitch(request.Request.Context(), s, spec)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -340,7 +341,10 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 
 		err = retry.Do(
 			func() error {
-				err := r.ds.UpdateSwitch(&old, s)
+				ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+				defer cancel()
+
+				err := r.ds.UpdateSwitch(ctx, &old, s)
 				return err
 			},
 			retry.Attempts(10),
@@ -356,7 +360,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 		}
 	}
 
-	resp, err := makeSwitchResponse(s, r.ds)
+	resp, err := makeSwitchResponse(request.Request.Context(), s, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -380,8 +384,8 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 //  - new switch needs all the nics of the twin-brother switch
 //  - new switch gets the same vrf configuration as the twin-brother switch based on the switch port name
 //  - new switch gets the same machine connections as the twin-brother switch based on the switch port name
-func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
-	twin, err := r.findTwinSwitch(new)
+func (r switchResource) replaceSwitch(ctx context.Context, old, new *metal.Switch) error {
+	twin, err := r.findTwinSwitch(ctx, new)
 	if err != nil {
 		return fmt.Errorf("could not determine twin brother for switch %s, err: %w", new.Name, err)
 	}
@@ -389,12 +393,12 @@ func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
 	if err != nil {
 		return err
 	}
-	return r.ds.UpdateSwitch(old, s)
+	return r.ds.UpdateSwitch(ctx, old, s)
 }
 
 // findTwinSwitch finds the neighboring twin of a switch for the given partition and rack
-func (r switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, error) {
-	rackSwitches, err := r.ds.SearchSwitches(newSwitch.RackID, nil)
+func (r switchResource) findTwinSwitch(ctx context.Context, newSwitch *metal.Switch) (*metal.Switch, error) {
+	rackSwitches, err := r.ds.SearchSwitches(ctx, newSwitch.RackID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not search switches in rack: %v", newSwitch.RackID)
 	}
@@ -566,8 +570,8 @@ func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnect
 
 // SetVrfAtSwitches finds the switches connected to the given machine and puts the switch ports into the given vrf.
 // Returns the updated switches.
-func setVrfAtSwitches(ds *datastore.RethinkStore, m *metal.Machine, vrf string) ([]metal.Switch, error) {
-	switches, err := ds.SearchSwitchesConnectedToMachine(m)
+func setVrfAtSwitches(ctx context.Context, ds *datastore.RethinkStore, m *metal.Machine, vrf string) ([]metal.Switch, error) {
+	switches, err := ds.SearchSwitchesConnectedToMachine(ctx, m)
 	if err != nil {
 		return nil, err
 	}
@@ -576,7 +580,7 @@ func setVrfAtSwitches(ds *datastore.RethinkStore, m *metal.Machine, vrf string) 
 		sw := switches[i]
 		oldSwitch := sw
 		setVrf(&sw, m.ID, vrf)
-		err := ds.UpdateSwitch(&oldSwitch, &sw)
+		err := ds.UpdateSwitch(ctx, &oldSwitch, &sw)
 		if err != nil {
 			return nil, err
 		}
@@ -607,8 +611,8 @@ func setVrf(s *metal.Switch, mid, vrf string) {
 	s.Nics = nics
 }
 
-func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) error {
-	switches, err := ds.SearchSwitches("", nil)
+func connectMachineWithSwitches(ctx context.Context, ds *datastore.RethinkStore, m *metal.Machine) error {
+	switches, err := ds.SearchSwitches(ctx, "", nil)
 	if err != nil {
 		return err
 	}
@@ -656,7 +660,7 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	}
 
 	for i := range oldSwitches {
-		err = ds.UpdateSwitch(&oldSwitches[i], &newSwitches[i])
+		err = ds.UpdateSwitch(ctx, &oldSwitches[i], &newSwitches[i])
 		if err != nil {
 			return err
 		}
@@ -665,8 +669,8 @@ func connectMachineWithSwitches(ds *datastore.RethinkStore, m *metal.Machine) er
 	return nil
 }
 
-func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
-	p, ips, machines, err := findSwitchReferencedEntites(s, ds)
+func makeSwitchResponse(ctx context.Context, s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
+	p, ips, machines, err := findSwitchReferencedEntites(ctx, s, ds)
 	if err != nil {
 		return nil, err
 	}
@@ -791,24 +795,24 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, error) {
+func findSwitchReferencedEntites(ctx context.Context, s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, error) {
 	var err error
 
 	var p *metal.Partition
 	var m metal.Machines
 	if s.PartitionID != "" {
-		p, err = ds.FindPartition(s.PartitionID)
+		p, err = ds.FindPartition(ctx, s.PartitionID)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
 		}
 
-		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
+		err = ds.SearchMachines(ctx, &datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
 		}
 	}
 
-	ips, err := ds.ListIPs()
+	ips, err := ds.ListIPs(ctx)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
@@ -816,14 +820,14 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*
 	return p, ips.ByProjectID(), m, nil
 }
 
-func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
-	pMap, ips, err := getSwitchReferencedEntityMaps(ds)
+func makeSwitchResponseList(ctx context.Context, ss []metal.Switch, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
+	pMap, ips, err := getSwitchReferencedEntityMaps(ctx, ds)
 	if err != nil {
 		return nil, err
 	}
 
 	result := []*v1.SwitchResponse{}
-	m, err := ds.ListMachines()
+	m, err := ds.ListMachines(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not find machines: %w", err)
 	}
@@ -844,13 +848,13 @@ func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore) ([]*v
 	return result, nil
 }
 
-func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionMap, metal.IPsMap, error) {
-	p, err := ds.ListPartitions()
+func getSwitchReferencedEntityMaps(ctx context.Context, ds *datastore.RethinkStore) (metal.PartitionMap, metal.IPsMap, error) {
+	p, err := ds.ListPartitions(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("partitions could not be listed: %w", err)
 	}
 
-	ips, err := ds.ListIPs()
+	ips, err := ds.ListIPs(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}

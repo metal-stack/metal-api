@@ -142,7 +142,7 @@ func (r networkResource) webService() *restful.WebService {
 func (r networkResource) findNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	nw, err := r.ds.FindNetworkByID(id)
+	nw, err := r.ds.FindNetworkByID(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -155,7 +155,7 @@ func (r networkResource) findNetwork(request *restful.Request, response *restful
 }
 
 func (r networkResource) listNetworks(request *restful.Request, response *restful.Response) {
-	nws, err := r.ds.ListNetworks()
+	nws, err := r.ds.ListNetworks(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -180,7 +180,7 @@ func (r networkResource) findNetworks(request *restful.Request, response *restfu
 	}
 
 	var nws metal.Networks
-	err = r.ds.SearchNetworks(&requestPayload, &nws)
+	err = r.ds.SearchNetworks(request.Request.Context(), &requestPayload, &nws)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -238,7 +238,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	nat := requestPayload.Nat
 
 	if projectID != "" {
-		_, err = r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+		_, err = r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: projectID})
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -276,7 +276,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		destPrefixes = append(destPrefixes, *prefix)
 	}
 
-	allNws, err := r.ds.ListNetworks()
+	allNws, err := r.ds.ListNetworks(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -299,14 +299,14 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 
 	var partitionID string
 	if requestPayload.PartitionID != nil {
-		partition, err := r.ds.FindPartition(*requestPayload.PartitionID)
+		partition, err := r.ds.FindPartition(request.Request.Context(), *requestPayload.PartitionID)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
 
 		if privateSuper {
 			boolTrue := true
-			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &metal.Network{})
+			err := r.ds.FindNetwork(request.Request.Context(), &datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &metal.Network{})
 			if err != nil {
 				if !metal.IsNotFound(err) {
 					if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -321,7 +321,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 		if underlay {
 			boolTrue := true
-			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &metal.Network{})
+			err := r.ds.FindNetwork(request.Request.Context(), &datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &metal.Network{})
 			if err != nil {
 				if !metal.IsNotFound(err) {
 					if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -343,7 +343,7 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	}
 
 	if vrf != 0 {
-		err = acquireVRF(r.ds, vrf)
+		err = acquireVRF(request.Request.Context(), r.ds, vrf)
 		if err != nil {
 			if !metal.IsConflict(err) {
 				if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("could not acquire vrf: %w", err)) {
@@ -382,8 +382,9 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	err = r.ds.CreateNetwork(nw)
+	err = r.ds.CreateNetwork(request.Request.Context(), nw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
+		// FIXME if this fails we need to try to rollback --> give back prefix in ipamer, give back the VRF
 		return
 	}
 
@@ -443,14 +444,14 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		return
 	}
 
-	partition, err := r.ds.FindPartition(partitionID)
+	partition, err := r.ds.FindPartition(request.Request.Context(), partitionID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	var superNetwork metal.Network
 	boolTrue := true
-	err = r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetwork)
+	err = r.ds.FindNetwork(request.Request.Context(), &datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetwork)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -479,7 +480,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 		Nat:                 nat,
 	}
 
-	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
+	nw, err := createChildNetwork(request.Request.Context(), r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -492,8 +493,8 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	}
 }
 
-func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
-	vrf, err := acquireRandomVRF(ds)
+func createChildNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
+	vrf, err := acquireRandomVRF(ctx, ds)
 	if err != nil {
 		return nil, fmt.Errorf("Could not acquire a vrf: %w", err)
 	}
@@ -525,7 +526,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 		Labels:              nwSpec.Labels,
 	}
 
-	err = ds.CreateNetwork(nw)
+	err = ds.CreateNetwork(ctx, nw)
 	if err != nil {
 		return nil, err
 	}
@@ -536,7 +537,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 func (r networkResource) freeNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	nw, err := r.ds.FindNetworkByID(id)
+	nw, err := r.ds.FindNetworkByID(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -569,7 +570,7 @@ func (r networkResource) freeNetwork(request *restful.Request, response *restful
 		}
 	}
 
-	err = r.ds.DeleteNetwork(nw)
+	err = r.ds.DeleteNetwork(request.Request.Context(), nw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -587,7 +588,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		return
 	}
 
-	oldNetwork, err := r.ds.FindNetworkByID(requestPayload.ID)
+	oldNetwork, err := r.ds.FindNetworkByID(request.Request.Context(), requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -631,7 +632,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		prefixesToBeRemoved = oldNetwork.SubstractPrefixes(prefixesFromRequest...)
 
 		// now validate if there are ips which have a prefix to be removed as a parent
-		allIPs, err := r.ds.ListIPs()
+		allIPs, err := r.ds.ListIPs(request.Request.Context())
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
@@ -659,7 +660,7 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
+	err = r.ds.UpdateNetwork(request.Request.Context(), oldNetwork, &newNetwork)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -675,13 +676,13 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 func (r networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	nw, err := r.ds.FindNetworkByID(id)
+	nw, err := r.ds.FindNetworkByID(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	var children metal.Networks
-	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{ParentNetworkID: &nw.ID}, &children)
+	err = r.ds.SearchNetworks(request.Request.Context(), &datastore.NetworkSearchQuery{ParentNetworkID: &nw.ID}, &children)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -692,7 +693,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	allIPs, err := r.ds.ListIPs()
+	allIPs, err := r.ds.ListIPs(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -720,7 +721,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 		}
 	}
 
-	err = r.ds.DeleteNetwork(nw)
+	err = r.ds.DeleteNetwork(request.Request.Context(), nw)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -821,7 +822,11 @@ func (nuc networkUsageCollector) Collect(ch chan<- prometheus.Metric) {
 	if nuc.r == nil || nuc.r.ds == nil {
 		return
 	}
-	nws, err := nuc.r.ds.ListNetworks()
+
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	nws, err := nuc.r.ds.ListNetworks(ctx)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to get network usage", zap.Error(err))
 		return

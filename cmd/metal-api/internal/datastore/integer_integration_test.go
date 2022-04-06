@@ -37,7 +37,7 @@ func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	pool := rs.GetVRFPool()
-	got, err := pool.AcquireRandomUniqueInteger()
+	got, err := pool.AcquireRandomUniqueInteger(context.Background())
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
 	assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
@@ -62,11 +62,11 @@ func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	pool := rs.GetVRFPool()
-	got, err := pool.AcquireUniqueInteger(10000)
+	got, err := pool.AcquireUniqueInteger(context.Background(), 10000)
 	require.NoError(t, err)
 	assert.Equal(t, got, uint(10000))
 
-	_, err = pool.AcquireUniqueInteger(10000)
+	_, err = pool.AcquireUniqueInteger(context.Background(), 10000)
 	assert.True(t, metal.IsConflict(err))
 }
 
@@ -95,7 +95,7 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			got, err := pool.AcquireRandomUniqueInteger()
+			got, err := pool.AcquireRandomUniqueInteger(context.Background())
 			require.NoError(t, err)
 			assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
 			assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
@@ -105,6 +105,6 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 
 	wg.Wait()
 
-	_, err = pool.AcquireRandomUniqueInteger()
+	_, err = pool.AcquireRandomUniqueInteger(context.Background())
 	assert.True(t, metal.IsInternal(err))
 }

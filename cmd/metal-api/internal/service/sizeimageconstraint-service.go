@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -104,7 +105,7 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 func (r sizeImageConstraintResource) findSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	s, err := r.ds.FindSizeImageConstraint(id)
+	s, err := r.ds.FindSizeImageConstraint(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -116,7 +117,7 @@ func (r sizeImageConstraintResource) findSizeImageConstraint(request *restful.Re
 }
 
 func (r sizeImageConstraintResource) listSizeImageConstraints(request *restful.Request, response *restful.Response) {
-	ss, err := r.ds.ListSizeImageConstraints()
+	ss, err := r.ds.ListSizeImageConstraints(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -152,7 +153,7 @@ func (r sizeImageConstraintResource) createSizeImageConstraint(request *restful.
 		return
 	}
 
-	err = r.ds.CreateSizeImageConstraint(s)
+	err = r.ds.CreateSizeImageConstraint(request.Request.Context(), s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -166,12 +167,12 @@ func (r sizeImageConstraintResource) createSizeImageConstraint(request *restful.
 func (r sizeImageConstraintResource) deleteSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	s, err := r.ds.FindSizeImageConstraint(id)
+	s, err := r.ds.FindSizeImageConstraint(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = r.ds.DeleteSizeImageConstraint(s)
+	err = r.ds.DeleteSizeImageConstraint(request.Request.Context(), s)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -189,7 +190,7 @@ func (r sizeImageConstraintResource) updateSizeImageConstraint(request *restful.
 		return
 	}
 
-	old, err := r.ds.FindSizeImageConstraint(requestPayload.ID)
+	old, err := r.ds.FindSizeImageConstraint(request.Request.Context(), requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -210,7 +211,7 @@ func (r sizeImageConstraintResource) updateSizeImageConstraint(request *restful.
 		return
 	}
 
-	err = r.ds.UpdateSizeImageConstraint(old, &newSizeImageConstraint)
+	err = r.ds.UpdateSizeImageConstraint(request.Request.Context(), old, &newSizeImageConstraint)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -232,17 +233,17 @@ func (r sizeImageConstraintResource) trySizeImageConstraint(request *restful.Req
 		}
 	}
 
-	size, err := r.ds.FindSize(requestPayload.SizeID)
+	size, err := r.ds.FindSize(request.Request.Context(), requestPayload.SizeID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	image, err := r.ds.FindImage(requestPayload.ImageID)
+	image, err := r.ds.FindImage(request.Request.Context(), requestPayload.ImageID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	err = isSizeAndImageCompatible(r.ds, *size, *image)
+	err = isSizeAndImageCompatible(request.Request.Context(), r.ds, *size, *image)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -254,8 +255,8 @@ func (r sizeImageConstraintResource) trySizeImageConstraint(request *restful.Req
 	}
 }
 
-func isSizeAndImageCompatible(ds *datastore.RethinkStore, size metal.Size, image metal.Image) error {
-	sic, err := ds.FindSizeImageConstraint(size.ID)
+func isSizeAndImageCompatible(ctx context.Context, ds *datastore.RethinkStore, size metal.Size, image metal.Image) error {
+	sic, err := ds.FindSizeImageConstraint(ctx, size.ID)
 	if err != nil && !metal.IsNotFound(err) {
 		return err
 	}

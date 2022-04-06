@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -18,7 +19,7 @@ type asyncActor struct {
 	ipam.IPAMer
 	*datastore.RethinkStore
 	machineNetworkReleaser bus.Func
-	ipReleaser      bus.Func
+	ipReleaser             bus.Func
 }
 
 func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore, ip ipam.IPAMer) (*asyncActor, error) {
@@ -69,7 +70,10 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	m.Tags = nil
 	m.PreAllocated = false
 
-	err = a.UpdateMachine(&old, m)
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	err = a.UpdateMachine(ctx, &old, m)
 	if err != nil {
 		return err
 	}
@@ -88,7 +92,9 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 			continue
 		}
 		for _, ipString := range machineNetwork.IPs {
-			ip, err := a.FindIPByID(ipString)
+			ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+			ip, err := a.FindIPByID(ctx, ipString)
+			cancel()
 			if err != nil {
 				if metal.IsNotFound(err) {
 					// if we do not skip here we will always fail releasing the next ip addresses
@@ -120,8 +126,10 @@ func (a *asyncActor) releaseMachineNetworks(machine *metal.Machine) error {
 	// it can happen that an IP gets properly allocated for a machine but
 	// the machine was not added to the machine network. We call these
 	// IPs "dangling".
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
 	var danglingIPs metal.IPs
-	err := a.SearchIPs(&datastore.IPSearchQuery{
+	err := a.SearchIPs(ctx, &datastore.IPSearchQuery{
 		Tags: []string{metal.IpTag(tag.MachineID, machine.ID)},
 	}, &danglingIPs)
 	if err != nil {
@@ -143,10 +151,13 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 		return nil
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
 	// disassociate machine from ip
 	newIP := *ip
 	newIP.RemoveMachineId(machine.GetID())
-	err := a.UpdateIP(ip, &newIP)
+	err := a.UpdateIP(ctx, ip, &newIP)
 	if err != nil {
 		return err
 	}
@@ -180,7 +191,10 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 func (a *asyncActor) releaseIP(ip metal.IP) error {
 	a.Info("release IP", zap.Any("ip", ip))
 
-	dbip, err := a.FindIPByID(ip.IPAddress)
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	dbip, err := a.FindIPByID(ctx, ip.IPAddress)
 	if err != nil && !metal.IsNotFound(err) {
 		// some unknown error, we will let nsq resend the command
 		a.Error("cannot find IP", zap.Any("ip", ip), zap.Error(err))
@@ -197,7 +211,7 @@ func (a *asyncActor) releaseIP(ip metal.IP) error {
 		}
 
 		// the ip is in our database and is not connected to a machine so cleanup
-		err = a.DeleteIP(&ip)
+		err = a.DeleteIP(ctx, &ip)
 		if err != nil {
 			a.Error("cannot delete IP in datastore", zap.Any("ip", ip), zap.Error(err))
 			return err

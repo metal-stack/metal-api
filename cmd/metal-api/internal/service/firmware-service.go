@@ -119,7 +119,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 
 	// check that at least one machine matches kind, vendor and board
 	validReq := false
-	mm, err := r.ds.ListMachines()
+	mm, err := r.ds.ListMachines(request.Request.Context())
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -217,7 +217,7 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				return
 			}
 		default:
-			f, err := getFirmware(r.ds, machineID)
+			f, err := getFirmware(request.Request.Context(), r.ds, machineID)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
@@ -240,8 +240,8 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	}
 }
 
-func getFirmware(ds *datastore.RethinkStore, machineID string) (*v1.Firmware, error) {
-	m, err := ds.FindMachineByID(machineID)
+func getFirmware(ctx context.Context, ds *datastore.RethinkStore, machineID string) (*v1.Firmware, error) {
+	m, err := ds.FindMachineByID(ctx, machineID)
 	if err != nil {
 		return nil, err
 	}

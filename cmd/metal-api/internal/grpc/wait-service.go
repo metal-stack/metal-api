@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math"
@@ -12,6 +13,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
@@ -33,8 +35,8 @@ type WaitService struct {
 }
 
 type Datasource interface {
-	FindMachineByID(machineID string) (*metal.Machine, error)
-	UpdateMachine(old, new *metal.Machine) error
+	FindMachineByID(ctx context.Context, machineID string) (*metal.Machine, error)
+	UpdateMachine(ctx context.Context, old, new *metal.Machine) error
 }
 
 func NewWaitService(cfg *ServerConfig) (*WaitService, error) {
@@ -105,7 +107,10 @@ func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	machineID := req.MachineID
 	s.Logger.Infow("wait for allocation called by", "machineID", machineID)
 
-	m, err := s.ds.FindMachineByID(machineID)
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	m, err := s.ds.FindMachineByID(ctx, machineID)
 	if err != nil {
 		return err
 	}
@@ -149,7 +154,7 @@ func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 	}()
 
 	nextCheck := time.Now()
-	ctx := srv.Context()
+	ctx = srv.Context()
 	for {
 		select {
 		case <-ctx.Done():
@@ -161,7 +166,9 @@ func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
 			}
 		case now := <-time.After(s.responseInterval):
 			if now.After(nextCheck) {
-				m, err = s.ds.FindMachineByID(machineID)
+				findCtx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+				m, err = s.ds.FindMachineByID(findCtx, machineID)
+				cancel()
 				if err != nil {
 					return err
 				}
@@ -209,11 +216,14 @@ func (s *WaitService) handleAllocation(machineID string) {
 }
 
 func (s *WaitService) updateWaitingFlag(machineID string, flag bool) error {
-	m, err := s.ds.FindMachineByID(machineID)
+	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
+	defer cancel()
+
+	m, err := s.ds.FindMachineByID(ctx, machineID)
 	if err != nil {
 		return err
 	}
 	old := *m
 	m.Waiting = flag
-	return s.ds.UpdateMachine(&old, m)
+	return s.ds.UpdateMachine(ctx, &old, m)
 }

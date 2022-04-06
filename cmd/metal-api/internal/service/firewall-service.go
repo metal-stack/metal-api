@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -117,7 +118,7 @@ func (r firewallResource) webService() *restful.WebService {
 func (r firewallResource) findFirewall(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	fw, err := r.ds.FindMachineByID(id)
+	fw, err := r.ds.FindMachineByID(request.Request.Context(), id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -127,7 +128,7 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 		return
 	}
 
-	resp, err := makeFirewallResponse(fw, r.ds)
+	resp, err := makeFirewallResponse(request.Request.Context(), fw, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -149,12 +150,12 @@ func (r firewallResource) findFirewalls(request *restful.Request, response *rest
 	requestPayload.AllocationRole = &metal.RoleFirewall
 
 	var fws metal.Machines
-	err = r.ds.SearchMachines(&requestPayload, &fws)
+	err = r.ds.SearchMachines(request.Request.Context(), &requestPayload, &fws)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeFirewallResponseList(fws, r.ds)
+	resp, err := makeFirewallResponseList(request.Request.Context(), fws, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -168,14 +169,14 @@ func (r firewallResource) findFirewalls(request *restful.Request, response *rest
 
 func (r firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
 	var fws metal.Machines
-	err := r.ds.SearchMachines(&datastore.MachineSearchQuery{
+	err := r.ds.SearchMachines(request.Request.Context(), &datastore.MachineSearchQuery{
 		AllocationRole: &metal.RoleFirewall,
 	}, &fws)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeFirewallResponseList(fws, r.ds)
+	resp, err := makeFirewallResponseList(request.Request.Context(), fws, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -199,17 +200,17 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
+	spec, err := createMachineAllocationSpec(request.Request.Context(), r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), request.Request.Context(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeMachineResponse(m, r.ds)
+	resp, err := makeMachineResponse(request.Request.Context(), m, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -221,8 +222,8 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 	}
 }
 
-func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {
-	ms, err := makeMachineResponse(fw, ds)
+func makeFirewallResponse(ctx context.Context, fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {
+	ms, err := makeMachineResponse(ctx, fw, ds)
 	if err != nil {
 		return nil, err
 	}
@@ -230,8 +231,8 @@ func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.Fi
 	return &v1.FirewallResponse{MachineResponse: *ms}, nil
 }
 
-func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore) ([]*v1.FirewallResponse, error) {
-	machineResponseList, err := makeMachineResponseList(fws, ds)
+func makeFirewallResponseList(ctx context.Context, fws metal.Machines, ds *datastore.RethinkStore) ([]*v1.FirewallResponse, error) {
+	machineResponseList, err := makeMachineResponseList(ctx, fws, ds)
 	if err != nil {
 		return nil, err
 	}
