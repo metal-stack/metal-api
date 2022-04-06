@@ -40,12 +40,12 @@ func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore,
 	return actor, nil
 }
 
-func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
+func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *metal.Machine) error {
 	if m.State.Value == metal.LockedState {
 		return errors.New("machine is locked")
 	}
 
-	err := deleteVRFSwitches(a.RethinkStore, m, a.Logger)
+	err := deleteVRFSwitches(ctx, a.RethinkStore, m, a.Logger)
 	if err != nil {
 		return err
 	}
@@ -69,9 +69,6 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	m.Allocation = nil
 	m.Tags = nil
 	m.PreAllocated = false
-
-	ctx, cancel := context.WithTimeout(context.Background(), datastore.DefaultQueryTimeout)
-	defer cancel()
 
 	err = a.UpdateMachine(ctx, &old, m)
 	if err != nil {

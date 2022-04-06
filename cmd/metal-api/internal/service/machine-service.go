@@ -1781,7 +1781,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
 	}
 
-	err = r.actor.freeMachine(r.Publisher, m)
+	err = r.actor.freeMachine(request.Request.Context(), r.Publisher, m)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -1931,7 +1931,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 			}
 			logger.Info("marked machine to get reinstalled", zap.String("machineID", m.ID))
 
-			err = deleteVRFSwitches(r.ds, m, logger)
+			err = deleteVRFSwitches(request.Request.Context(), r.ds, m, logger)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
@@ -2011,7 +2011,7 @@ func (r machineResource) abortReinstallMachine(request *restful.Request, respons
 	}
 }
 
-func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.Logger) error {
+func deleteVRFSwitches(_ context.Context, ds *datastore.RethinkStore, m *metal.Machine, logger *zap.Logger) error {
 	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
 	err := retry.Do(
 		func() error {
@@ -2266,7 +2266,7 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 		}
 
 		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = act.freeMachine(publisher, &m)
+		err = act.freeMachine(ctx, publisher, &m)
 		if err != nil {
 			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 		}
