@@ -14,13 +14,13 @@ import (
 	"time"
 
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/go-logr/zapr"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/rest"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	machineLiveliness = prometheus.NewGaugeVec(
+	machineLiveliness = prometheus.NewGaugeVec( //nolint
 		prometheus.GaugeOpts{
 			Namespace: "metal",
 			Subsystem: "machine",
@@ -41,7 +41,7 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(machineLiveliness, counter, duration)
+	// prometheus.MustRegister(machineLiveliness, counter, duration)
 }
 
 // PartitionLiveliness is a data container for the liveliness of different partitions.
@@ -51,14 +51,14 @@ type PartitionLiveliness map[string]struct {
 	Unknown int
 }
 
-// ProvideLiveliness provides the given values as gauges so a scraper can collect them.
-func ProvideLiveliness(lvness PartitionLiveliness) {
-	for p, l := range lvness {
-		machineLiveliness.WithLabelValues(p, "alive").Set(float64(l.Alive))
-		machineLiveliness.WithLabelValues(p, "dead").Set(float64(l.Dead))
-		machineLiveliness.WithLabelValues(p, "unknown").Set(float64(l.Unknown))
-	}
-}
+// // ProvideLiveliness provides the given values as gauges so a scraper can collect them.
+// func ProvideLiveliness(lvness PartitionLiveliness) {
+// 	for p, l := range lvness {
+// 		machineLiveliness.WithLabelValues(p, "alive").Set(float64(l.Alive))
+// 		machineLiveliness.WithLabelValues(p, "dead").Set(float64(l.Dead))
+// 		machineLiveliness.WithLabelValues(p, "unknown").Set(float64(l.Unknown))
+// 	}
+// }
 
 func RestfulMetrics(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 	n := time.Now()

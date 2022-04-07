@@ -2189,7 +2189,7 @@ func MachineLiveliness(ctx context.Context, ds *datastore.RethinkStore, logger *
 		liveliness[m.PartitionID] = p
 	}
 
-	metrics.ProvideLiveliness(liveliness)
+	// metrics.ProvideLiveliness(liveliness)
 
 	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
