@@ -21,6 +21,7 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/metal-stack/metal-lib/zapup"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -328,14 +329,14 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/events").
+	ws.Route(ws.POST("/event").
 		To(editor(r.addProvisioningEvents)).
 		Operation("addProvisioningEvents").
 		Doc("adds machine provisioning events").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.MachineProvisioningEvents{}).
-		Writes(v1.MachineRecentProvisioningEventsMap{}).
-		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEventsMap{}).
+		Writes(v1.MachineRecentProvisioningEventsResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEventsResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/on").
@@ -2063,15 +2064,19 @@ func (r machineResource) addProvisioningEvents(request *restful.Request, respons
 		return
 	}
 
-	result := v1.MachineRecentProvisioningEventsMap{}
+	var provisionError error
+	result := v1.MachineRecentProvisioningEventsResponse{}
 	for machineID, event := range requestPayload {
-		ec, err := r.addProvisionEventForMachine(machineID, event)
+		_, err := r.addProvisionEventForMachine(machineID, event)
 		if err != nil {
-			zapup.MustRootLogger().Error("unable to add provisioning event for machine", zap.String("machine", machineID), zap.Error(err))
+			result.Failed = append(result.Failed, machineID)
+			provisionError = multierr.Append(provisionError, fmt.Errorf("unable to add provisioning event for machine:%s %w", machineID, err))
 			continue
 		}
-
-		result[machineID] = v1.NewMachineRecentProvisioningEvents(ec)
+		result.Events++
+	}
+	if checkError(request, response, utils.CurrentFuncName(), provisionError) {
+		return
 	}
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)

@@ -109,7 +109,10 @@ type MachineRecentProvisioningEvents struct {
 	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container"`
 }
 
-type MachineRecentProvisioningEventsMap map[string]*MachineRecentProvisioningEvents
+type MachineRecentProvisioningEventsResponse struct {
+	Events uint64   `json:"events" description:"number of events stored"`
+	Failed []string `json:"failed" description:"slice of machineIDs for which event was not published"`
+}
 
 type MachineProvisioningEvent struct {
 	Time    time.Time `json:"time" description:"the time that this event was received" optional:"true" readOnly:"true"`

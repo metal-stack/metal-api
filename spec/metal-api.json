@@ -2755,11 +2755,25 @@
         "log"
       ]
     },
-    "v1.MachineRecentProvisioningEventsMap": {
-      "additionalProperties": {
-        "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
+    "v1.MachineRecentProvisioningEventsResponse": {
+      "properties": {
+        "events": {
+          "description": "number of events stored",
+          "format": "integer",
+          "type": "integer"
+        },
+        "failed": {
+          "description": "slice of machineIDs for which event was not published",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
       },
-      "type": "object"
+      "required": [
+        "events",
+        "failed"
+      ]
     },
     "v1.MachineRegisterRequest": {
       "properties": {
@@ -5768,7 +5782,7 @@
         ]
       }
     },
-    "/v1/machine/events": {
+    "/v1/machine/event": {
       "post": {
         "consumes": [
           "application/json"
@@ -5791,7 +5805,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.MachineRecentProvisioningEventsMap"
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEventsResponse"
             }
           },
           "default": {

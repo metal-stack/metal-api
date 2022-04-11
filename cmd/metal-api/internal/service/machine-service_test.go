@@ -681,7 +681,7 @@ func TestAddProvisioningEvents(t *testing.T) {
 	js, err := json.Marshal(events)
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/machine/events", body)
+	req := httptest.NewRequest("POST", "/v1/machine/event", body)
 	container = injectEditor(container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -690,16 +690,12 @@ func TestAddProvisioningEvents(t *testing.T) {
 	resp := w.Result()
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.MachineRecentProvisioningEventsMap
+	var result v1.MachineRecentProvisioningEventsResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	require.Equal(t, "0", result[machineID].IncompleteProvisioningCycles)
-	require.Len(t, result[machineID].Events, 1)
-	if len(result[machineID].Events) > 0 {
-		require.Equal(t, "starting metal-hammer", result[machineID].Events[0].Message)
-		require.Equal(t, string(metal.ProvisioningEventPreparing), result[machineID].Events[0].Event)
-	}
+	require.Equal(t, uint64(1), result.Events)
+	require.Equal(t, []string(nil), result.Failed)
 }
 
 func TestOnMachine(t *testing.T) {
