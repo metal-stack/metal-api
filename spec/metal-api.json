@@ -4,6 +4,10 @@
     "datastore.IPSearchQuery": {
       "description": "an ip address that can be attached to a machine",
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
@@ -1318,6 +1322,10 @@
     },
     "v1.IPFindRequest": {
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
