@@ -835,7 +835,7 @@ func (nuc networkUsageCollector) Collect(ch chan<- prometheus.Metric) {
 		underlay := fmt.Sprintf("%t", nws[i].Underlay)
 		prefixes := strings.Join(nws[i].Prefixes.String(), ",")
 		destPrefixes := strings.Join(nws[i].DestinationPrefixes.String(), ",")
-		vrf := strconv.FormatUint(uint64(nws[i].Vrf), 3)
+		vrf := strconv.FormatUint(uint64(nws[i].Vrf), 10)
 
 		metric, err := prometheus.NewConstMetric(
 			usedIpsDesc,
