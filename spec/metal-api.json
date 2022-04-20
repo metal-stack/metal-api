@@ -5579,11 +5579,49 @@
       }
     },
     "/v1/ip/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeIP",
+        "parameters": [
+          {
+            "description": "identifier of the ip",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "frees an ip",
+        "tags": [
+          "ip"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeIPDeprecated",
         "parameters": [
           {
             "description": "identifier of the ip",
@@ -7078,11 +7116,55 @@
       }
     },
     "/v1/network/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeNetwork",
+        "parameters": [
+          {
+            "description": "identifier of the network",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "free a network",
+        "tags": [
+          "network"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeNetworkDeprecated",
         "parameters": [
           {
             "description": "identifier of the network",
