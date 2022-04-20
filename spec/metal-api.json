@@ -5617,6 +5617,7 @@
       },
       "post": {
         "consumes": [
+          "*/*",
           "application/json"
         ],
         "deprecated": true,
@@ -7159,6 +7160,7 @@
       },
       "post": {
         "consumes": [
+          "*/*",
           "application/json"
         ],
         "deprecated": true,

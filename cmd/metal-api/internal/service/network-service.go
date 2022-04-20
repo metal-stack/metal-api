@@ -131,6 +131,7 @@ func (r networkResource) webService() *restful.WebService {
 		Operation("freeNetworkDeprecated").
 		Doc("free a network").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Consumes(restful.MIME_JSON, "*/*").
 		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
 		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
