@@ -91,6 +91,17 @@ func (ir ipResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/free/{id}").
 		To(editor(ir.freeIP)).
+		Operation("freeIPDeprecated").
+		Doc("frees an ip").
+		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(v1.IPResponse{}).
+		Returns(http.StatusOK, "OK", v1.IPResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).
+		Deprecate())
+
+	ws.Route(ws.DELETE("/free/{id}").
+		To(editor(ir.freeIP)).
 		Operation("freeIP").
 		Doc("frees an ip").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
