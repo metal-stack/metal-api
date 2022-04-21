@@ -21,6 +21,7 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/metal-stack/metal-lib/zapup"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -326,6 +327,16 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineProvisioningEvent{}).
 		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/event").
+		To(editor(r.addProvisioningEvents)).
+		Operation("addProvisioningEvents").
+		Doc("adds machine provisioning events").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineProvisioningEvents{}).
+		Writes(v1.MachineRecentProvisioningEventsResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEventsResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/power/on").
@@ -2046,43 +2057,44 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 		return
 	}
 }
-
-func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	m, err := r.ds.FindMachineByID(id)
-	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
-	// an event can actually create an empty machine. This enables us to also catch the very first PXE Booting event
-	// in a machine lifecycle
-	if m == nil {
-		m = &metal.Machine{
-			Base: metal.Base{
-				ID: id,
-			},
-		}
-		err = r.ds.CreateMachine(m)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
-	var requestPayload v1.MachineProvisioningEvent
-	err = request.ReadEntity(&requestPayload)
+func (r machineResource) addProvisioningEvents(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineProvisioningEvents
+	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(requestPayload.Event)]
-	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("unknown provisioning event")) {
-			return
+
+	var provisionError error
+	result := v1.MachineRecentProvisioningEventsResponse{}
+	for machineID, event := range requestPayload {
+		_, err := r.addProvisionEventForMachine(machineID, event)
+		if err != nil {
+			result.Failed = append(result.Failed, machineID)
+			provisionError = multierr.Append(provisionError, fmt.Errorf("unable to add provisioning event for machine:%s %w", machineID, err))
+			continue
 		}
+		result.Events++
+	}
+	if checkError(request, response, utils.CurrentFuncName(), provisionError) {
+		return
 	}
 
-	ec, err := r.provisioningEventForMachine(id, requestPayload)
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineProvisioningEvent
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	id := request.PathParameter("id")
+
+	ec, err := r.addProvisionEventForMachine(id, requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2092,6 +2104,34 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
+}
+
+func (r machineResource) addProvisionEventForMachine(machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
+	m, err := r.ds.FindMachineByID(machineID)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, err
+	}
+
+	// an event can actually create an empty machine. This enables us to also catch the very first PXE Booting event
+	// in a machine lifecycle
+	if m == nil {
+		m = &metal.Machine{
+			Base: metal.Base{
+				ID: machineID,
+			},
+		}
+		err = r.ds.CreateMachine(m)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(e.Event)]
+	if !ok {
+		return nil, errors.New("unknown provisioning event")
+	}
+
+	return r.provisioningEventForMachine(machineID, e)
 }
 
 func (r machineResource) provisioningEventForMachine(machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {

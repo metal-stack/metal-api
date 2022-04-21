@@ -10,7 +10,7 @@ require (
 	github.com/emicklei/go-restful-openapi/v2 v2.8.0
 	github.com/emicklei/go-restful/v3 v3.7.4
 	github.com/go-logr/zapr v1.2.3
-	github.com/go-openapi/spec v0.20.4
+	github.com/go-openapi/spec v0.20.5
 	github.com/go-stack/stack v1.8.1
 	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0
@@ -26,7 +26,8 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.1
-	github.com/testcontainers/testcontainers-go v0.12.0
+	github.com/testcontainers/testcontainers-go v0.13.0
+	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -39,13 +40,11 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/Microsoft/hcsshim v0.9.2 // indirect
-	github.com/PuerkitoBio/purell v1.1.1 // indirect
-	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/cgroups v1.0.3 // indirect
 	github.com/containerd/containerd v1.6.1 // indirect
@@ -60,7 +59,7 @@ require (
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-openapi/errors v0.19.6 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
-	github.com/go-openapi/jsonreference v0.19.6 // indirect
+	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/runtime v0.20.0 // indirect
 	github.com/go-openapi/strfmt v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
@@ -92,7 +91,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
-	github.com/moby/term v0.0.0-20210610120745-9d4ed1856297 // indirect
+	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -116,7 +115,6 @@ require (
 	go.mongodb.org/mongo-driver v1.8.3 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
 	go4.org/intern v0.0.0-20210108033219-3eb7198706b2 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect

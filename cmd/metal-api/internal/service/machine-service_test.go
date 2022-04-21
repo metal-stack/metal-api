@@ -663,6 +663,41 @@ func TestAddProvisioningEvent(t *testing.T) {
 	}
 }
 
+func TestAddProvisioningEvents(t *testing.T) {
+	ds, mock := datastore.InitMockDB()
+	testdata.InitMockDBData(mock)
+
+	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	require.NoError(t, err)
+
+	machineID := "2"
+	container := restful.NewContainer().Add(machineservice)
+	preparing := string(metal.ProvisioningEventPreparing)
+	events := v1.MachineProvisioningEvents{}
+	events[machineID] = v1.MachineProvisioningEvent{
+		Event:   preparing,
+		Message: "starting metal-hammer",
+	}
+	js, err := json.Marshal(events)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/event", body)
+	container = injectEditor(container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineRecentProvisioningEventsResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), result.Events)
+	require.Equal(t, []string(nil), result.Failed)
+}
+
 func TestOnMachine(t *testing.T) {
 	tests := []struct {
 		cmd      metal.MachineCommand
