@@ -128,6 +128,18 @@ func (r networkResource) webService() *restful.WebService {
 
 	ws.Route(ws.POST("/free/{id}").
 		To(editor(r.freeNetwork)).
+		Operation("freeNetworkDeprecated").
+		Doc("free a network").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Consumes(restful.MIME_JSON, "*/*").
+		Param(ws.PathParameter("id", "identifier of the network").DataType("string")).
+		Returns(http.StatusOK, "OK", v1.NetworkResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).
+		Deprecate())
+
+	ws.Route(ws.DELETE("/free/{id}").
+		To(editor(r.freeNetwork)).
 		Operation("freeNetwork").
 		Doc("free a network").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
