@@ -4,294 +4,144 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
-	restfulspec "github.com/emicklei/go-restful-openapi/v2"
-	restful "github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/zapup"
 )
 
-type imageResource struct {
-	webResource
+type ImageService struct {
+	ds *datastore.RethinkStore
 }
 
-// NewImage returns a webservice for image specific endpoints.
-func NewImage(ds *datastore.RethinkStore) *restful.WebService {
-	ir := imageResource{
-		webResource: webResource{
-			ds: ds,
-		},
+// NewImageService returns an image service.
+func NewImageService(ds *datastore.RethinkStore) *ImageService {
+	return &ImageService{
+		ds: ds,
 	}
-	iuc := imageUsageCollector{ir: &ir}
-	err := prometheus.Register(iuc)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to register prometheus", zap.Error(err))
-	}
-	return ir.webService()
 }
 
-func (ir imageResource) webService() *restful.WebService {
-	ws := new(restful.WebService)
-	ws.
-		Path(BasePath + "v1/image").
-		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON)
-
-	tags := []string{"image"}
-
-	ws.Route(ws.GET("/{id}").
-		To(ir.findImage).
-		Operation("findImage").
-		Doc("get image by id").
-		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ImageResponse{}).
-		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.GET("/{id}/query").
-		To(ir.queryImages).
-		Operation("queryImages by id").
-		Doc("query all images which match at least id").
-		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes([]v1.ImageResponse{}).
-		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.GET("/{id}/latest").
-		To(ir.findLatestImage).
-		Operation("findLatestImage").
-		Doc("find latest image by id").
-		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ImageResponse{}).
-		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.GET("/").
-		To(ir.listImages).
-		Operation("listImages").
-		Doc("get all images").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("show-usage", "include image usage into response").DataType("bool").DefaultValue("false")).
-		Writes([]v1.ImageResponse{}).
-		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.DELETE("/{id}").
-		To(admin(ir.deleteImage)).
-		Operation("deleteImage").
-		Doc("deletes an image and returns the deleted entity").
-		Param(ws.PathParameter("id", "identifier of the image").DataType("string")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.ImageResponse{}).
-		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.PUT("/").
-		To(admin(ir.createImage)).
-		Operation("createImage").
-		Doc("create an image. if the given ID already exists a conflict is returned").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.ImageCreateRequest{}).
-		Returns(http.StatusCreated, "Created", v1.ImageResponse{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/").
-		To(admin(ir.updateImage)).
-		Operation("updateImage").
-		Doc("updates an image. if the image was changed since this one was read, a conflict is returned").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.ImageUpdateRequest{}).
-		Returns(http.StatusOK, "OK", v1.ImageResponse{}).
-		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	return ws
-}
-
-func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
+func (ir ImageService) Get(id string) (*metal.Image, error) {
 	img, err := ir.ds.GetImage(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return nil, err
 	}
+
+	return img, nil
 }
 
-func (ir imageResource) queryImages(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
-	img, err := ir.ds.FindImages(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	result := []*v1.ImageResponse{}
-
-	for i := range img {
-		result = append(result, v1.NewImageResponse(&img[i]))
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+func (ir ImageService) Find(id string) ([]metal.Image, error) {
+	imgs, err := ir.ds.FindImages(id)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return nil, err
 	}
+
+	return imgs, nil
 }
 
-func (ir imageResource) findLatestImage(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
+func (ir ImageService) FindLatest(id string) (*metal.Image, error) {
 	img, err := ir.ds.FindImage(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return nil, err
 	}
+
+	return img, nil
 }
 
-func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
+func (ir ImageService) List() ([]metal.Image, error) {
 	imgs, err := ir.ds.ListImages()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	ms := metal.Machines{}
-	showUsage := false
-	if request.QueryParameter("show-usage") != "" {
-		showUsage, err = strconv.ParseBool(request.QueryParameter("show-usage"))
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		if showUsage {
-			ms, err = ir.ds.ListMachines()
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
-		}
-	}
-
-	result := []*v1.ImageResponse{}
-	for i := range imgs {
-		img := v1.NewImageResponse(&imgs[i])
-		if showUsage {
-			machines := ir.machinesByImage(ms, imgs[i].ID)
-			if len(machines) > 0 {
-				img.UsedBy = machines
-			}
-		}
-		result = append(result, img)
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return nil, err
 	}
+
+	return imgs, nil
 }
 
-func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.ImageCreateRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
+func (ir ImageService) Create(img *metal.Image) error {
+	defaultImage(img)
 
-	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
-			return
-		}
-	}
-
-	if requestPayload.URL == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("url should not be empty")) {
-			return
-		}
-	}
-
-	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
-	}
-	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
-	}
-
-	features := make(map[metal.ImageFeatureType]bool)
-	for _, f := range requestPayload.Features {
-		ft, err := metal.ImageFeatureTypeFrom(f)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		features[ft] = true
-	}
-
-	os, v, err := utils.GetOsAndSemverFromImage(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	expirationDate := time.Now().Add(metal.DefaultImageExpiration)
-	if requestPayload.ExpirationDate != nil && !requestPayload.ExpirationDate.IsZero() {
-		expirationDate = *requestPayload.ExpirationDate
-	}
-
-	vc := metal.ClassificationPreview
-	if requestPayload.Classification != nil {
-		vc, err = metal.VersionClassificationFrom(*requestPayload.Classification)
-		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
-		}
-	}
-
-	err = checkImageURL(requestPayload.ID, requestPayload.URL)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	img := &metal.Image{
-		Base: metal.Base{
-			ID:          requestPayload.ID,
-			Name:        name,
-			Description: description,
-		},
-		URL:            requestPayload.URL,
-		Features:       features,
-		OS:             os,
-		Version:        v.String(),
-		ExpirationDate: expirationDate,
-		Classification: vc,
+	err := validateImage(img)
+	if err != nil {
+		return err
 	}
 
 	err = ir.ds.CreateImage(img)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return err
 	}
+
+	return nil
+}
+
+func defaultImage(img *metal.Image) {
+	if img.Classification == "" {
+		img.Classification = metal.ClassificationPreview
+	}
+
+	if img.ExpirationDate.IsZero() {
+		img.ExpirationDate = time.Now().Add(metal.DefaultImageExpiration)
+	}
+
+	os, v, err := utils.GetOsAndSemverFromImage(img.ID)
+	if err == nil {
+		if img.OS == "" {
+			img.OS = os
+		}
+		if img.Version == "" {
+			img.Version = v.String()
+		}
+	}
+}
+
+func validateImage(img *metal.Image) error {
+	if img.ID == "" {
+		return errors.New("id should not be empty")
+	}
+
+	if img.URL == "" {
+		return errors.New("url should not be empty")
+	}
+
+	for f := range img.Features {
+		_, err := metal.ImageFeatureTypeFrom(string(f))
+		if err != nil {
+			return err
+		}
+	}
+
+	os, v, err := utils.GetOsAndSemverFromImage(img.ID)
+	if err != nil {
+		return err
+	}
+
+	if img.OS != os {
+		return fmt.Errorf("os must be derived from image id: %s", img.OS)
+	}
+
+	if img.Version != v.String() {
+		return fmt.Errorf("version must be derived from image id: %s", img.Version)
+	}
+
+	if img.ExpirationDate.IsZero() {
+		img.ExpirationDate = time.Now().Add(metal.DefaultImageExpiration)
+	}
+
+	_, err = metal.VersionClassificationFrom(string(img.Classification))
+	if err != nil {
+		return err
+	}
+
+	err = checkImageURL(img.ID, img.URL)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func checkImageURL(id, url string) error {
@@ -306,117 +156,86 @@ func checkImageURL(id, url string) error {
 	return nil
 }
 
-func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-
+func (ir ImageService) Delete(id string) (*metal.Image, error) {
 	img, err := ir.ds.GetImage(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	if err != nil {
+		return nil, err
 	}
 
-	ms, err := ir.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+	var ms metal.Machines
+	err = ir.ds.SearchMachines(&datastore.MachineSearchQuery{
+		AllocationImageID: &img.ID,
+	}, &ms)
+	if err != nil {
+		return nil, err
 	}
 
-	machines := ir.machinesByImage(ms, img.ID)
-	if len(machines) > 0 {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)) {
-			return
-		}
+	if len(ms) > 0 {
+		return nil, fmt.Errorf("image %s is in use by %d machines", img.ID, len(ms))
 	}
 
 	err = ir.ds.DeleteImage(img)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return nil, err
 	}
+
+	return img, nil
 }
 
-func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.ImageUpdateRequest
-	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-
-	oldImage, err := ir.ds.GetImage(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
+func (ir ImageService) Update(img *metal.Image) (*metal.Image, error) {
+	oldImage, err := ir.ds.GetImage(img.ID)
+	if err != nil {
+		return nil, err
 	}
 
 	newImage := *oldImage
 
-	if requestPayload.Name != nil {
-		newImage.Name = *requestPayload.Name
+	if img.Name != "" {
+		newImage.Name = img.Name
 	}
-	if requestPayload.Description != nil {
-		newImage.Description = *requestPayload.Description
+	if img.Description != "" {
+		newImage.Description = img.Description
 	}
-	if requestPayload.URL != nil {
-		err = checkImageURL(requestPayload.ID, *requestPayload.URL)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		newImage.URL = *requestPayload.URL
+	if img.URL != "" {
+		newImage.URL = img.URL
 	}
-	features := make(map[metal.ImageFeatureType]bool)
-	for _, f := range requestPayload.Features {
-		ft, err := metal.ImageFeatureTypeFrom(f)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-		features[ft] = true
+	if len(img.Features) > 0 {
+		newImage.Features = img.Features
 	}
-	if len(features) > 0 {
-		newImage.Features = features
+	if img.Classification != "" {
+		newImage.Classification = img.Classification
+	}
+	if !img.ExpirationDate.IsZero() {
+		newImage.ExpirationDate = img.ExpirationDate
 	}
 
-	if requestPayload.Classification != nil {
-		vc, err := metal.VersionClassificationFrom(*requestPayload.Classification)
-		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
-		}
-		newImage.Classification = vc
-	}
-
-	if requestPayload.ExpirationDate != nil {
-		newImage.ExpirationDate = *requestPayload.ExpirationDate
+	err = validateImage(&newImage)
+	if err != nil {
+		return nil, err
 	}
 
 	err = ir.ds.UpdateImage(oldImage, &newImage)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(&newImage))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+		return nil, err
 	}
-}
 
-func (ir imageResource) machinesByImage(machines metal.Machines, imageID string) []string {
-	var machinesByImage []string
-	for _, m := range machines {
-		if m.Allocation == nil {
-			continue
-		}
-		if m.Allocation.ImageID == imageID {
-			machinesByImage = append(machinesByImage, m.ID)
-		}
-	}
-	return machinesByImage
+	return &newImage, nil
 }
 
 // networkUsageCollector implements the prometheus collector interface.
 type imageUsageCollector struct {
-	ir *imageResource
+	ir *ImageService
+}
+
+func RegisterImageUsageCollector(ds *datastore.RethinkStore) error {
+	iuc := imageUsageCollector{ir: NewImageService(ds)}
+
+	err := prometheus.Register(iuc)
+	if err != nil {
+		return fmt.Errorf("failed to register prometheus: %w", err)
+	}
+
+	return nil
 }
 
 var usedImageDesc = prometheus.NewDesc(

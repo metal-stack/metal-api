@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package service
+package services
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
@@ -98,15 +99,15 @@ func createTestEnvironment(t *testing.T) testEnv {
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, usergetter, 0)
+	machineService, err := service.NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, usergetter, 0)
 	require.NoError(t, err)
 	imageService := NewImage(ds)
-	switchService := NewSwitch(ds)
-	sizeService := NewSize(ds)
-	sizeImageConstraintService := NewSizeImageConstraint(ds)
-	networkService := NewNetwork(ds, ipamer, mdc)
-	partitionService := NewPartition(ds, &emptyPublisher{})
-	ipService, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
+	switchService := service.NewSwitch(ds)
+	sizeService := service.NewSize(ds)
+	sizeImageConstraintService := service.NewSizeImageConstraint(ds)
+	networkService := service.NewNetwork(ds, ipamer, mdc)
+	partitionService := service.NewPartition(ds, &emptyPublisher{})
+	ipService, err := service.NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(t, err)
 
 	te := testEnv{
