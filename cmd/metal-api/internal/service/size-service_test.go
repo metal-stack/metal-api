@@ -33,7 +33,7 @@ func TestGetSizes(t *testing.T) {
 	var result []v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, 3)
 	require.Equal(t, testdata.Sz1.ID, result[0].ID)
 	require.Equal(t, testdata.Sz1.Name, *result[0].Name)
@@ -62,7 +62,7 @@ func TestGetSize(t *testing.T) {
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
@@ -85,7 +85,7 @@ func TestGetSizeNotFound(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Contains(t, result.Message, "999")
 	require.Equal(t, 404, result.StatusCode)
 }
@@ -107,7 +107,7 @@ func TestDeleteSize(t *testing.T) {
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
@@ -143,7 +143,8 @@ func TestCreateSize(t *testing.T) {
 			},
 		},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -155,9 +156,9 @@ func TestCreateSize(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
@@ -190,7 +191,8 @@ func TestUpdateSize(t *testing.T) {
 			},
 		},
 	}
-	js, _ := json.Marshal(updateRequest)
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -202,9 +204,9 @@ func TestUpdateSize(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz2.Name, *result.Name)
 	require.Equal(t, testdata.Sz2.Description, *result.Description)

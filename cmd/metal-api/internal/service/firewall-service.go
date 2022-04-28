@@ -127,7 +127,12 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponse(fw, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeFirewallResponse(fw, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -149,7 +154,12 @@ func (r firewallResource) findFirewalls(request *restful.Request, response *rest
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponseList(fws, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeFirewallResponseList(fws, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -165,7 +175,12 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeFirewallResponseList(fws, r.ds, utils.Logger(request).Sugar()))
+	resp, err := makeFirewallResponseList(fws, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
@@ -193,24 +208,38 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, makeMachineResponse(m, r.ds, utils.Logger(request).Sugar()))
+
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
 		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
 		return
 	}
 }
 
-func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore, logger *zap.SugaredLogger) *v1.FirewallResponse {
-	return &v1.FirewallResponse{MachineResponse: *makeMachineResponse(fw, ds, logger)}
+func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {
+	ms, err := makeMachineResponse(fw, ds)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1.FirewallResponse{MachineResponse: *ms}, nil
 }
 
-func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore, logger *zap.SugaredLogger) []*v1.FirewallResponse {
-	machineResponseList := makeMachineResponseList(fws, ds, logger)
+func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore) ([]*v1.FirewallResponse, error) {
+	machineResponseList, err := makeMachineResponseList(fws, ds)
+	if err != nil {
+		return nil, err
+	}
 
 	firewallResponseList := []*v1.FirewallResponse{}
 	for i := range machineResponseList {
 		firewallResponseList = append(firewallResponseList, &v1.FirewallResponse{MachineResponse: *machineResponseList[i]})
 	}
 
-	return firewallResponseList
+	return firewallResponseList, nil
 }

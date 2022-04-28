@@ -1,6 +1,7 @@
+//go:build integration
 // +build integration
 
-package service
+package services
 
 import (
 	"bytes"
@@ -23,6 +24,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
@@ -38,10 +40,7 @@ var (
 )
 
 func TestMachineAllocationIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-	machineCount := 50
+	machineCount := 30
 
 	// Setup
 	rs, container := setupTestEnvironment(machineCount, t)
@@ -185,7 +184,10 @@ func TestMachineAllocationIntegration(t *testing.T) {
 // Methods under Test ---------------------------------------------------------------------------------------
 
 func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v1.MachineResponse, error) {
-	js, _ := json.Marshal(ar)
+	js, err := json.Marshal(ar)
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -199,12 +201,15 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
 func freeMachine(container *restful.Container, id string) (v1.MachineResponse, error) {
-	js, _ := json.Marshal("")
+	js, err := json.Marshal("")
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("DELETE", fmt.Sprintf("/v1/machine/%s/free", id), body)
 	req.Header.Add("Content-Type", "application/json")
@@ -218,12 +223,15 @@ func freeMachine(container *restful.Container, id string) (v1.MachineResponse, e
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
 func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest) (v1.MachineResponse, error) {
-	js, _ := json.Marshal(rm)
+	js, err := json.Marshal(rm)
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/register", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -237,7 +245,7 @@ func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest)
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
@@ -324,7 +332,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	createTestdata(machineCount, rs, ipamer, t)
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, usergetter, 0)
+	ms, err := service.NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter))

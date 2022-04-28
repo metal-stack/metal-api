@@ -19,11 +19,10 @@ func TestNewNSQ(t *testing.T) {
 
 	actual := NewNSQ(cfg, logger, publisher)
 
-	assert := assert.New(t)
-	assert.NotNil(actual)
-	assert.Equal(cfg.TCPAddress, actual.config.TCPAddress)
-	assert.Equal(cfg.HTTPEndpoint, actual.config.HTTPEndpoint)
-	assert.Nil(actual.Publisher)
+	assert.NotNil(t, actual)
+	assert.Equal(t, cfg.TCPAddress, actual.config.TCPAddress)
+	assert.Equal(t, cfg.HTTPEndpoint, actual.config.HTTPEndpoint)
+	assert.Nil(t, actual.Publisher)
 }
 
 func TestNSQ_WaitForPublisher(t *testing.T) {
@@ -32,23 +31,21 @@ func TestNSQ_WaitForPublisher(t *testing.T) {
 		HTTPEndpoint: "rest",
 	}
 	publisher := NopPublisher{}
-	assert := assert.New(t)
 
 	nsq := NewNSQ(cfg, zap.NewNop(), func(logger *zap.Logger, config *bus.PublisherConfig) (bus.Publisher, error) {
-		assert.Equal(cfg.TCPAddress, config.TCPAddress)
-		assert.Equal(cfg.HTTPEndpoint, config.HTTPEndpoint)
+		assert.Equal(t, cfg.TCPAddress, config.TCPAddress)
+		assert.Equal(t, cfg.HTTPEndpoint, config.HTTPEndpoint)
 		return publisher, nil
 	})
-	assert.NotNil(nsq)
-	assert.Nil(nsq.Publisher)
+	assert.NotNil(t, nsq)
+	assert.Nil(t, nsq.Publisher)
 
 	nsq.WaitForPublisher()
-	assert.NotNil(nsq.Publisher)
-	assert.Equal(publisher, nsq.Publisher)
+	assert.NotNil(t, nsq.Publisher)
+	assert.Equal(t, publisher, nsq.Publisher)
 }
 
 func TestNSQ_WaitForTopicsCreated(t *testing.T) {
-	assert := assert.New(t)
 	topic := metal.NSQTopic{Name: "gopher"}
 	partition := metal.Partition{
 		Base: metal.Base{ID: "partition-id"},
@@ -60,7 +57,7 @@ func TestNSQ_WaitForTopicsCreated(t *testing.T) {
 	nsq := NewNSQ(nil, zap.NewNop(), func(*zap.Logger, *bus.PublisherConfig) (bus.Publisher, error) {
 		return nil, nil
 	})
-	assert.NotNil(nsq)
+	assert.NotNil(t, nsq)
 	nsq.Publisher = publisher
 
 	nsq.WaitForTopicsCreated([]metal.Partition{partition}, []metal.NSQTopic{metal.NSQTopic(topic)})

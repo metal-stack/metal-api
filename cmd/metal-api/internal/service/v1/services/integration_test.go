@@ -17,7 +17,6 @@ import (
 
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
-	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
@@ -32,6 +31,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
 
 	"github.com/stretchr/testify/require"
@@ -60,20 +60,18 @@ func (te *testEnv) teardown() {
 
 //nolint:deadcode
 func createTestEnvironment(t *testing.T) testEnv {
-	require := require.New(t)
-
 	ipamer := ipam.InitTestIpam(t)
 	rethinkContainer, c, err := test.StartRethink()
-	require.NoError(err)
+	require.NoError(t, err)
 
 	ds := datastore.New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000
 	ds.ASNPoolRangeMax = 1000
 
 	err = ds.Connect()
-	require.NoError(err)
+	require.NoError(t, err)
 	err = ds.Initialize()
-	require.NoError(err)
+	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
@@ -92,17 +90,17 @@ func createTestEnvironment(t *testing.T) testEnv {
 		ResponseInterval: 2 * time.Millisecond,
 		CheckInterval:    1 * time.Hour,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 	go func() {
 		err := grpcServer.Serve()
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}()
 	grpcServer.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
 	machineService, err := service.NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, usergetter, 0)
-	require.NoError(err)
+	require.NoError(t, err)
 	imageService := NewImage(ds)
 	switchService := service.NewSwitch(ds)
 	sizeService := service.NewSize(ds)
@@ -110,7 +108,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	networkService := service.NewNetwork(ds, ipamer, mdc)
 	partitionService := service.NewPartition(ds, &emptyPublisher{})
 	ipService, err := service.NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	te := testEnv{
 		imageService:               imageService,
@@ -146,9 +144,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 	var createdImage v1.ImageResponse
 
 	status := te.imageCreate(t, image, &createdImage)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdImage)
-	require.Equal(image.ID, createdImage.ID)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdImage)
+	require.Equal(t, image.ID, createdImage.ID)
 
 	sizeName := "testsize"
 	sizeDesc := "Test Size"
@@ -182,12 +180,12 @@ func createTestEnvironment(t *testing.T) testEnv {
 	}
 	var createdSize v1.SizeResponse
 	status = te.sizeCreate(t, size, &createdSize)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdSize)
-	require.Equal(size.ID, createdSize.ID)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdSize)
+	require.Equal(t, size.ID, createdSize.ID)
 
 	err = ds.CreateFilesystemLayout(&metal.FilesystemLayout{Base: metal.Base{ID: "fsl1"}, Constraints: metal.FilesystemLayoutConstraints{Sizes: []string{"test-size"}, Images: map[string]string{"test-image": "*"}}})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	partitionName := "test-partition"
 	partitionDesc := "Test Partition"
@@ -204,10 +202,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 	}
 	var createdPartition v1.PartitionResponse
 	status = te.partitionCreate(t, partition, &createdPartition)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdPartition)
-	require.Equal(partition.Name, createdPartition.Name)
-	require.NotEmpty(createdPartition.ID)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdPartition)
+	require.Equal(t, partition.Name, createdPartition.Name)
+	require.NotEmpty(t, createdPartition.ID)
 
 	switchID := "test-switch01"
 	sw := v1.SwitchRegisterRequest{
@@ -230,12 +228,12 @@ func createTestEnvironment(t *testing.T) testEnv {
 	var createdSwitch v1.SwitchResponse
 
 	status = te.switchRegister(t, sw, &createdSwitch)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdSwitch)
-	require.Equal(sw.ID, createdSwitch.ID)
-	require.Len(sw.Nics, 1)
-	require.Equal(sw.Nics[0].Name, createdSwitch.Nics[0].Name)
-	require.Equal(sw.Nics[0].MacAddress, createdSwitch.Nics[0].MacAddress)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdSwitch)
+	require.Equal(t, sw.ID, createdSwitch.ID)
+	require.Len(t, sw.Nics, 1)
+	require.Equal(t, sw.Nics[0].Name, createdSwitch.Nics[0].Name)
+	require.Equal(t, sw.Nics[0].MacAddress, createdSwitch.Nics[0].MacAddress)
 
 	switchID = "test-switch02"
 	sw = v1.SwitchRegisterRequest{
@@ -257,12 +255,12 @@ func createTestEnvironment(t *testing.T) testEnv {
 	}
 
 	status = te.switchRegister(t, sw, &createdSwitch)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdSwitch)
-	require.Equal(sw.ID, createdSwitch.ID)
-	require.Len(sw.Nics, 1)
-	require.Equal(sw.Nics[0].Name, createdSwitch.Nics[0].Name)
-	require.Equal(sw.Nics[0].MacAddress, createdSwitch.Nics[0].MacAddress)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdSwitch)
+	require.Equal(t, sw.ID, createdSwitch.ID)
+	require.Len(t, sw.Nics, 1)
+	require.Equal(t, sw.Nics[0].Name, createdSwitch.Nics[0].Name)
+	require.Equal(t, sw.Nics[0].MacAddress, createdSwitch.Nics[0].MacAddress)
 
 	var createdNetwork v1.NetworkResponse
 	networkID := "test-private-super"
@@ -284,9 +282,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 		},
 	}
 	status = te.networkCreate(t, ncr, &createdNetwork)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdNetwork)
-	require.Equal(*ncr.ID, createdNetwork.ID)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdNetwork)
+	require.Equal(t, *ncr.ID, createdNetwork.ID)
 
 	te.privateSuperNetwork = &createdNetwork
 
@@ -305,13 +303,13 @@ func createTestEnvironment(t *testing.T) testEnv {
 		},
 	}
 	status = te.networkAcquire(t, nar, &acquiredPrivateNetwork)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(acquiredPrivateNetwork)
-	require.Equal(ncr.ID, acquiredPrivateNetwork.ParentNetworkID)
-	require.Len(acquiredPrivateNetwork.Prefixes, 1)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, acquiredPrivateNetwork)
+	require.Equal(t, ncr.ID, acquiredPrivateNetwork.ParentNetworkID)
+	require.Len(t, acquiredPrivateNetwork.Prefixes, 1)
 	_, ipnet, _ := net.ParseCIDR(testPrivateSuperCidr)
 	_, privateNet, _ := net.ParseCIDR(acquiredPrivateNetwork.Prefixes[0])
-	require.True(ipnet.Contains(privateNet.IP), "%s must be within %s", privateNet, ipnet)
+	require.True(t, ipnet.Contains(privateNet.IP), "%s must be within %s", privateNet, ipnet)
 	te.privateNetwork = &acquiredPrivateNetwork
 
 	// SizeImageConstraint
@@ -326,10 +324,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 
 	var createdSizeImageContraint v1.SizeImageConstraintResponse
 	te.sizeImageConstraintCreate(t, sic, &createdSizeImageContraint)
-	require.Equal(http.StatusCreated, status)
-	require.NotNil(createdSizeImageContraint)
-	require.Equal(sic.ID, "n1-medium")
-	require.Equal(len(sic.Images), 1)
+	require.Equal(t, http.StatusCreated, status)
+	require.NotNil(t, createdSizeImageContraint)
+	require.Equal(t, sic.ID, "n1-medium")
+	require.Equal(t, len(sic.Images), 1)
 
 	return te
 }

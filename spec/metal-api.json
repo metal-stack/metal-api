@@ -4,6 +4,10 @@
     "datastore.IPSearchQuery": {
       "description": "an ip address that can be attached to a machine",
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
@@ -1318,6 +1322,10 @@
     },
     "v1.IPFindRequest": {
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
@@ -2725,6 +2733,12 @@
         "event"
       ]
     },
+    "v1.MachineProvisioningEvents": {
+      "additionalProperties": {
+        "$ref": "#/definitions/v1.MachineProvisioningEvent"
+      },
+      "type": "object"
+    },
     "v1.MachineRecentProvisioningEvents": {
       "properties": {
         "incomplete_provisioning_cycles": {
@@ -2747,6 +2761,26 @@
       "required": [
         "incomplete_provisioning_cycles",
         "log"
+      ]
+    },
+    "v1.MachineRecentProvisioningEventsResponse": {
+      "properties": {
+        "events": {
+          "description": "number of events stored",
+          "format": "integer",
+          "type": "integer"
+        },
+        "failed": {
+          "description": "slice of machineIDs for which event was not published",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "events",
+        "failed"
       ]
     },
     "v1.MachineRegisterRequest": {
@@ -5571,11 +5605,49 @@
       }
     },
     "/v1/ip/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeIP",
+        "parameters": [
+          {
+            "description": "identifier of the ip",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "frees an ip",
+        "tags": [
+          "ip"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeIPDeprecated",
         "parameters": [
           {
             "description": "identifier of the ip",
@@ -5751,6 +5823,45 @@
           }
         },
         "summary": "get consolepassword for machine by id",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/event": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "addProvisioningEvents",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineProvisioningEvents"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEventsResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "adds machine provisioning events",
         "tags": [
           "machine"
         ]
@@ -7070,11 +7181,55 @@
       }
     },
     "/v1/network/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeNetwork",
+        "parameters": [
+          {
+            "description": "identifier of the network",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "free a network",
+        "tags": [
+          "network"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeNetworkDeprecated",
         "parameters": [
           {
             "description": "identifier of the network",
