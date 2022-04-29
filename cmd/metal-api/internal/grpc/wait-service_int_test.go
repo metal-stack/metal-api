@@ -98,6 +98,10 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 	return nil
 }
 
+func (ds *datasource) CreateMachine(new *metal.Machine) error {
+	return nil
+}
+
 func (t *test) run() {
 	defer t.shutdown()
 

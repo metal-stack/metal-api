@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package api.v1;
+
+option go_package = "./api/v1";
+
+import "google/protobuf/timestamp.proto";
+
+
+service EventService {
+    rpc Send(EventServiceSendRequest) returns (EventServiceSendResponse) {}
+}
+
+message EventServiceSendRequest {
+    string machine_id = 1;
+    google.protobuf.Timestamp time= 2;
+    string event = 3;
+    string message = 4;
+}
+
+message EventServiceSendResponse {}

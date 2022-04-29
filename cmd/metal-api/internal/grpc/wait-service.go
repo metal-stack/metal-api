@@ -34,6 +34,7 @@ type WaitService struct {
 
 type Datasource interface {
 	FindMachineByID(machineID string) (*metal.Machine, error)
+	CreateMachine(*metal.Machine) error
 	UpdateMachine(old, new *metal.Machine) error
 }
 
