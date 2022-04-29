@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
@@ -26,6 +27,13 @@ const (
 	defaultResponseInterval = 5 * time.Second
 	defaultCheckInterval    = 60 * time.Second
 )
+
+type Datasource interface {
+	FindMachineByID(machineID string) (*metal.Machine, error)
+	CreateMachine(*metal.Machine) error
+	UpdateMachine(old, new *metal.Machine) error
+	ProvisioningEventForMachine(machineID, event, message string) (*metal.ProvisioningEventContainer, error)
+}
 
 type ServerConfig struct {
 	Publisher                bus.Publisher

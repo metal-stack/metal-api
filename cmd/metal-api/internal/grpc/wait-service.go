@@ -32,12 +32,6 @@ type WaitService struct {
 	checkInterval    time.Duration
 }
 
-type Datasource interface {
-	FindMachineByID(machineID string) (*metal.Machine, error)
-	CreateMachine(*metal.Machine) error
-	UpdateMachine(old, new *metal.Machine) error
-}
-
 func NewWaitService(cfg *ServerConfig) (*WaitService, error) {
 	c, err := bus.NewConsumer(cfg.Logger.Desugar(), cfg.NsqTlsConfig, cfg.NsqlookupdHttpAddress)
 	if err != nil {

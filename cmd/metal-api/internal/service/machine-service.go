@@ -1792,7 +1792,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 
 	event := string(metal.ProvisioningEventPlannedReboot)
-	_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: "freeMachine"})
+	_, err = r.ds.ProvisioningEventForMachine(id, event, "freeMachine")
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2131,46 +2131,7 @@ func (r machineResource) addProvisionEventForMachine(machineID string, e v1.Mach
 		return nil, errors.New("unknown provisioning event")
 	}
 
-	return r.provisioningEventForMachine(machineID, e)
-}
-
-func (r machineResource) provisioningEventForMachine(machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
-	ec, err := r.ds.FindProvisioningEventContainer(machineID)
-	if err != nil && !metal.IsNotFound(err) {
-		return nil, err
-	}
-
-	if ec == nil {
-		ec = &metal.ProvisioningEventContainer{
-			Base: metal.Base{
-				ID: machineID,
-			},
-			Liveliness: metal.MachineLivelinessAlive,
-		}
-	}
-	now := time.Now()
-	ec.LastEventTime = &now
-
-	event := metal.ProvisioningEvent{
-		Time:    now,
-		Event:   metal.ProvisioningEventType(e.Event),
-		Message: e.Message,
-	}
-	if event.Event == metal.ProvisioningEventAlive {
-		zapup.MustRootLogger().Sugar().Debugw("received provisioning alive event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
-		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else {
-		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
-		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
-		ec.Liveliness = metal.MachineLivelinessAlive
-	}
-	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
-
-	err = r.ds.UpsertProvisioningEventContainer(ec)
-	return ec, err
+	return r.ds.ProvisioningEventForMachine(machineID, e.Event, e.Message)
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died
@@ -2393,7 +2354,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 	switch op {
 	case "machineReset", "machineOff", "machineCycle":
 		event := string(metal.ProvisioningEventPlannedReboot)
-		_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: op})
+		_, err = r.ds.ProvisioningEventForMachine(id, event, op)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}

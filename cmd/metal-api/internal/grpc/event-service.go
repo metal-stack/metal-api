@@ -49,6 +49,6 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 	if !ok {
 		return nil, errors.New("unknown provisioning event")
 	}
-
+	e.ds.ProvisioningEventForMachine(req.MachineId, req.Event, req.Message)
 	return &v1.EventServiceSendResponse{}, nil
 }
