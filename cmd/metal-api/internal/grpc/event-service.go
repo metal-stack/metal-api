@@ -11,17 +11,18 @@ import (
 )
 
 type EventService struct {
-	logger *zap.SugaredLogger
-	ds     Datasource
+	log *zap.SugaredLogger
+	ds  Datasource
 }
 
 func NewEventService(cfg *ServerConfig) *EventService {
 	return &EventService{
-		ds:     cfg.Datasource,
-		logger: cfg.Logger,
+		ds:  cfg.Datasource,
+		log: cfg.Logger.Named("event-service"),
 	}
 }
 func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest) (*v1.EventServiceSendResponse, error) {
+	e.log.Infow("send", "event", req)
 	if req == nil {
 		return nil, fmt.Errorf("no event send")
 	}
