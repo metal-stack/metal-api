@@ -36,7 +36,6 @@ import (
 	"github.com/dustin/go-humanize"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -2182,14 +2181,11 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		return err
 	}
 
-	liveliness := make(metrics.PartitionLiveliness)
-
 	unknown := 0
 	alive := 0
 	dead := 0
 	errs := 0
 	for _, m := range machines {
-		p := liveliness[m.PartitionID]
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
@@ -2199,18 +2195,12 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
-			p.Alive++
 		case metal.MachineLivelinessDead:
 			dead++
-			p.Dead++
 		case metal.MachineLivelinessUnknown:
 			unknown++
-			p.Unknown++
 		}
-		liveliness[m.PartitionID] = p
 	}
-
-	metrics.ProvideLiveliness(liveliness)
 
 	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
