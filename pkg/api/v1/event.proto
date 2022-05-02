@@ -12,10 +12,19 @@ service EventService {
 }
 
 message EventServiceSendRequest {
-    string machine_id = 1;
-    google.protobuf.Timestamp time= 2;
-    string event = 3;
-    string message = 4;
+    map<string,MachineProvisioningEvent> events = 1;
 }
 
-message EventServiceSendResponse {}
+message EventServiceSendResponse {
+    // number of events stored
+    uint64 events = 1;
+    // slice of machineIDs for which event was not published
+    repeated string failed = 2;
+
+}
+
+message MachineProvisioningEvent {
+    google.protobuf.Timestamp time= 1;
+    string event = 2;
+    string message = 3;
+}
