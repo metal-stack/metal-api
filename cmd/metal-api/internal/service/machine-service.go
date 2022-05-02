@@ -318,6 +318,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.POST("/{id}/event").
 		To(editor(r.addProvisioningEvent)).
 		Operation("addProvisioningEvent").
@@ -329,6 +330,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.POST("/event").
 		To(editor(r.addProvisioningEvents)).
 		Operation("addProvisioningEvents").
