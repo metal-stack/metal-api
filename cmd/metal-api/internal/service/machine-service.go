@@ -1792,7 +1792,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 
 	event := string(metal.ProvisioningEventPlannedReboot)
-	_, err = r.ds.ProvisioningEventForMachine(id, event, "freeMachine")
+	_, err = r.ds.ProvisioningEventForMachine(logger, id, event, "freeMachine")
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2064,10 +2064,11 @@ func (r machineResource) addProvisioningEvents(request *restful.Request, respons
 		return
 	}
 
+	log := utils.Logger(request).Sugar()
 	var provisionError error
 	result := v1.MachineRecentProvisioningEventsResponse{}
 	for machineID, event := range requestPayload {
-		_, err := r.addProvisionEventForMachine(machineID, event)
+		_, err := r.addProvisionEventForMachine(log, machineID, event)
 		if err != nil {
 			result.Failed = append(result.Failed, machineID)
 			provisionError = multierr.Append(provisionError, fmt.Errorf("unable to add provisioning event for machine:%s %w", machineID, err))
@@ -2093,8 +2094,9 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 	}
 
 	id := request.PathParameter("id")
+	log := utils.Logger(request).Sugar()
 
-	ec, err := r.addProvisionEventForMachine(id, requestPayload)
+	ec, err := r.addProvisionEventForMachine(log, id, requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2106,7 +2108,7 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 	}
 }
 
-func (r machineResource) addProvisionEventForMachine(machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
+func (r machineResource) addProvisionEventForMachine(log *zap.SugaredLogger, machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
 	m, err := r.ds.FindMachineByID(machineID)
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
@@ -2131,7 +2133,7 @@ func (r machineResource) addProvisionEventForMachine(machineID string, e v1.Mach
 		return nil, errors.New("unknown provisioning event")
 	}
 
-	return r.ds.ProvisioningEventForMachine(machineID, e.Event, e.Message)
+	return r.ds.ProvisioningEventForMachine(log, machineID, e.Event, e.Message)
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died
@@ -2354,7 +2356,7 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 	switch op {
 	case "machineReset", "machineOff", "machineCycle":
 		event := string(metal.ProvisioningEventPlannedReboot)
-		_, err = r.ds.ProvisioningEventForMachine(id, event, op)
+		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, op)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}

@@ -32,7 +32,7 @@ type Datasource interface {
 	FindMachineByID(machineID string) (*metal.Machine, error)
 	CreateMachine(*metal.Machine) error
 	UpdateMachine(old, new *metal.Machine) error
-	ProvisioningEventForMachine(machineID, event, message string) (*metal.ProvisioningEventContainer, error)
+	ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error)
 }
 
 type ServerConfig struct {

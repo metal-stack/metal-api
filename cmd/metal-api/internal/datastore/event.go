@@ -5,6 +5,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/zapup"
+	"go.uber.org/zap"
 )
 
 // ListProvisioningEventContainers returns all machine provisioning event containers.
@@ -38,7 +39,7 @@ func (rs *RethinkStore) CreateProvisioningEventContainer(ec *metal.ProvisioningE
 func (rs *RethinkStore) UpsertProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error {
 	return rs.upsertEntity(rs.eventTable(), ec)
 }
-func (rs *RethinkStore) ProvisioningEventForMachine(machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
+func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
 	ec, err := rs.FindProvisioningEventContainer(machineID)
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
@@ -61,10 +62,10 @@ func (rs *RethinkStore) ProvisioningEventForMachine(machineID, event, message st
 		Message: message,
 	}
 	if ev.Event == metal.ProvisioningEventAlive {
-		zapup.MustRootLogger().Sugar().Debugw("received provisioning alive event", "id", ec.ID)
+		log.Debugw("received provisioning alive event", "id", ec.ID)
 		ec.Liveliness = metal.MachineLivelinessAlive
 	} else if ev.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
-		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
+		log.Debugw("swallowing repeated phone home event", "id", ec.ID)
 		ec.Liveliness = metal.MachineLivelinessAlive
 	} else {
 		ec.Events = append([]metal.ProvisioningEvent{ev}, ec.Events...)

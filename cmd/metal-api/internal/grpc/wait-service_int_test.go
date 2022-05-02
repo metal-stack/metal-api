@@ -101,7 +101,7 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 func (ds *datasource) CreateMachine(new *metal.Machine) error {
 	return nil
 }
-func (ds *datasource) ProvisioningEventForMachine(machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
+func (ds *datasource) ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
 	return nil, nil
 }
 
