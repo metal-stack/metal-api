@@ -24,7 +24,12 @@ message EventServiceSendResponse {
 }
 
 message MachineProvisioningEvent {
+    // timestamp when the event occured
     google.protobuf.Timestamp time= 1;
+    // the event type
+    // must be one of metal.ProvisioningEventType, otherwise event will be skipped
+    // TODO should be migrated to be an enum
     string event = 2;
+    // an additional message describing the event more detailed
     string message = 3;
 }

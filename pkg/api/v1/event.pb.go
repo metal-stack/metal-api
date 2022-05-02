@@ -134,9 +134,14 @@ type MachineProvisioningEvent struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Time    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
-	Event   string                 `protobuf:"bytes,2,opt,name=event,proto3" json:"event,omitempty"`
-	Message string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	// timestamp when the event occured
+	Time *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	// the event type
+	// must be one of metal.ProvisioningEventType, otherwise event will be skipped
+	// TODO should be migrated to be an enum
+	Event string `protobuf:"bytes,2,opt,name=event,proto3" json:"event,omitempty"`
+	// an additional message describing the event more detailed
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 }
 
 func (x *MachineProvisioningEvent) Reset() {
