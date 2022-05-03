@@ -31,6 +31,10 @@ var (
 	)
 )
 
+func init() {
+	prometheus.MustRegister(counter, duration)
+}
+
 func RestfulMetrics(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 	n := time.Now()
 	chain.ProcessFilter(req, resp)
