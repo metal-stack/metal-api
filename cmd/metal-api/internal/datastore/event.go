@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"go.uber.org/zap"
 )
 
 // ListProvisioningEventContainers returns all machine provisioning event containers.
@@ -34,4 +35,13 @@ func (rs *RethinkStore) CreateProvisioningEventContainer(ec *metal.ProvisioningE
 // UpsertProvisioningEventContainer inserts a machine's event container.
 func (rs *RethinkStore) UpsertProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error {
 	return rs.upsertEntity(rs.eventTable(), ec)
+}
+func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
+	ec, err := rs.FindProvisioningEventContainer(machineID)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, err
+	}
+	newEC := metal.ProvisioningEventForMachine(log, ec, machineID, event, message)
+	err = rs.UpsertProvisioningEventContainer(newEC)
+	return newEC, err
 }

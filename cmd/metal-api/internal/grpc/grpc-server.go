@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
@@ -26,6 +27,13 @@ const (
 	defaultResponseInterval = 5 * time.Second
 	defaultCheckInterval    = 60 * time.Second
 )
+
+type Datasource interface {
+	FindMachineByID(machineID string) (*metal.Machine, error)
+	CreateMachine(*metal.Machine) error
+	UpdateMachine(old, new *metal.Machine) error
+	ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error)
+}
 
 type ServerConfig struct {
 	Publisher                bus.Publisher
@@ -46,6 +54,7 @@ type ServerConfig struct {
 type Server struct {
 	*WaitService
 	*SupwdService
+	*EventService
 	ds             Datasource
 	logger         *zap.SugaredLogger
 	server         *grpc.Server
@@ -70,9 +79,12 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	}
 	supwdService := NewSupwdService(cfg)
 
+	eventService := NewEventService(cfg)
+
 	s := &Server{
 		WaitService:    waitService,
 		SupwdService:   supwdService,
+		EventService:   eventService,
 		ds:             cfg.Datasource,
 		logger:         cfg.Logger,
 		grpcPort:       cfg.GrpcPort,
@@ -121,6 +133,7 @@ func (s *Server) Serve() error {
 
 	v1.RegisterSuperUserPasswordServer(s.server, s.SupwdService)
 	v1.RegisterWaitServer(s.server, s.WaitService)
+	v1.RegisterEventServiceServer(s.server, s.EventService)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {

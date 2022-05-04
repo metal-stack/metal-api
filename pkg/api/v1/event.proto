@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package api.v1;
+
+option go_package = "./api/v1";
+
+import "google/protobuf/timestamp.proto";
+
+
+service EventService {
+    rpc Send(EventServiceSendRequest) returns (EventServiceSendResponse) {}
+}
+
+message EventServiceSendRequest {
+    map<string,MachineProvisioningEvent> events = 1;
+}
+
+message EventServiceSendResponse {
+    // number of events stored
+    uint64 events = 1;
+    // slice of machineIDs for which event was not published
+    repeated string failed = 2;
+
+}
+
+message MachineProvisioningEvent {
+    // timestamp when the event occured
+    google.protobuf.Timestamp time= 1;
+    // the event type
+    // must be one of metal.ProvisioningEventType, otherwise event will be skipped
+    // TODO should be migrated to be an enum
+    string event = 2;
+    // an additional message describing the event more detailed
+    string message = 3;
+}

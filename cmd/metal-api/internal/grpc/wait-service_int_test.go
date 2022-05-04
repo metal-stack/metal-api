@@ -98,6 +98,13 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 	return nil
 }
 
+func (ds *datasource) CreateMachine(new *metal.Machine) error {
+	return nil
+}
+func (ds *datasource) ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
+	return nil, nil
+}
+
 func (t *test) run() {
 	defer t.shutdown()
 
