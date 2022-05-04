@@ -2981,17 +2981,13 @@
     "v1.MachineUpdateRequest": {
       "properties": {
         "description": {
-          "description": "a description for this entity",
+          "description": "a description for this machine",
           "type": "string"
         },
         "id": {
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
-        },
-        "name": {
-          "description": "a readable name for this entity",
-          "type": "string"
         },
         "tags": {
           "description": "tags for this machine.",
@@ -3002,6 +2998,7 @@
         }
       },
       "required": [
+        "description",
         "id"
       ]
     },

@@ -525,9 +525,6 @@ func (r machineResource) updateMachine(request *restful.Request, response *restf
 
 	newMachine := *oldMachine
 
-	if requestPayload.Name != nil {
-		newMachine.Name = *requestPayload.Name
-	}
 	if requestPayload.Description != nil {
 		newMachine.Description = *requestPayload.Description
 	}

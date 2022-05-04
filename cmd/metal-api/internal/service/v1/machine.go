@@ -213,8 +213,9 @@ type MachineFindRequest struct {
 
 // MachineUpdateRequest defines the properties of a machine which can be updated.
 type MachineUpdateRequest struct {
-	Common
-	Tags []string `json:"tags" description:"tags for this machine." optional:"true"`
+	Identifiable
+	Description *string  `json:"description" description:"a description for this machine"`
+	Tags        []string `json:"tags" description:"tags for this machine." optional:"true"`
 }
 
 type MachineResponse struct {
