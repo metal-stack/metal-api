@@ -526,7 +526,7 @@ func (r machineResource) updateMachine(request *restful.Request, response *restf
 	newMachine := *oldMachine
 
 	if requestPayload.Description != nil {
-		newMachine.Description = *requestPayload.Description
+		newMachine.Allocation.Description = *requestPayload.Description
 	}
 
 	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
