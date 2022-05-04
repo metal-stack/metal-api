@@ -517,6 +517,12 @@ func (r machineResource) updateMachine(request *restful.Request, response *restf
 		return
 	}
 
+	if oldMachine.Allocation == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("only allocated machines can be updated")) {
+			return
+		}
+	}
+
 	newMachine := *oldMachine
 
 	if requestPayload.Name != nil {
