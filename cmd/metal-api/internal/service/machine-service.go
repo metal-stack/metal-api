@@ -531,9 +531,8 @@ func (r machineResource) updateMachine(request *restful.Request, response *restf
 	if requestPayload.Description != nil {
 		newMachine.Description = *requestPayload.Description
 	}
-	if requestPayload.Tags != nil {
-		newMachine.Tags = requestPayload.Tags
-	}
+
+	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
 
 	err = r.ds.UpdateMachine(oldMachine, &newMachine)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
