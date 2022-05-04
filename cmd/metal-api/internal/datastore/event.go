@@ -1,10 +1,7 @@
 package datastore
 
 import (
-	"time"
-
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 )
 
@@ -44,36 +41,7 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, mach
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
 	}
-
-	if ec == nil {
-		ec = &metal.ProvisioningEventContainer{
-			Base: metal.Base{
-				ID: machineID,
-			},
-			Liveliness: metal.MachineLivelinessAlive,
-		}
-	}
-	now := time.Now()
-	ec.LastEventTime = &now
-
-	ev := metal.ProvisioningEvent{
-		Time:    now,
-		Event:   metal.ProvisioningEventType(event),
-		Message: message,
-	}
-	if ev.Event == metal.ProvisioningEventAlive {
-		log.Debugw("received provisioning alive event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else if ev.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
-		log.Debugw("swallowing repeated phone home event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else {
-		ec.Events = append([]metal.ProvisioningEvent{ev}, ec.Events...)
-		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
-		ec.Liveliness = metal.MachineLivelinessAlive
-	}
-	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
-
-	err = rs.UpsertProvisioningEventContainer(ec)
-	return ec, err
+	newEC := metal.ProvisioningEventForMachine(log, ec, machineID, event, message)
+	err = rs.UpsertProvisioningEventContainer(newEC)
+	return newEC, err
 }
