@@ -36,7 +36,6 @@ import (
 	"github.com/dustin/go-humanize"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -179,6 +178,17 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/").
+		To(admin(r.updateMachine)).
+		Operation("updateMachine").
+		Doc("updates a machine. if the machine was changed since this one was read, a conflict is returned").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineUpdateRequest{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/register").
@@ -483,6 +493,49 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r machineResource) updateMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineUpdateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldMachine, err := r.ds.FindMachineByID(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if oldMachine.Allocation == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("only allocated machines can be updated")) {
+			return
+		}
+	}
+
+	newMachine := *oldMachine
+
+	if requestPayload.Description != nil {
+		newMachine.Allocation.Description = *requestPayload.Description
+	}
+
+	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+
+	err = r.ds.UpdateMachine(oldMachine, &newMachine)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	resp, err := makeMachineResponse(&newMachine, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2147,14 +2200,11 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		return err
 	}
 
-	liveliness := make(metrics.PartitionLiveliness)
-
 	unknown := 0
 	alive := 0
 	dead := 0
 	errs := 0
 	for _, m := range machines {
-		p := liveliness[m.PartitionID]
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
@@ -2164,18 +2214,12 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
-			p.Alive++
 		case metal.MachineLivelinessDead:
 			dead++
-			p.Dead++
 		case metal.MachineLivelinessUnknown:
 			unknown++
-			p.Unknown++
 		}
-		liveliness[m.PartitionID] = p
 	}
-
-	metrics.ProvideLiveliness(liveliness)
 
 	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 

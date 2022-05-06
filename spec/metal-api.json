@@ -2978,6 +2978,30 @@
         "revision"
       ]
     },
+    "v1.MachineUpdateRequest": {
+      "properties": {
+        "description": {
+          "description": "a description for this machine",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "tags": {
+          "description": "tags for this machine.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "description",
+        "id"
+      ]
+    },
     "v1.Meta": {
       "properties": {
         "annotations": {
@@ -5745,6 +5769,49 @@
           }
         },
         "summary": "get all known machines",
+        "tags": [
+          "machine"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateMachine",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a machine. if the machine was changed since this one was read, a conflict is returned",
         "tags": [
           "machine"
         ]
