@@ -264,7 +264,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
 		t.Run(tt.name, func(t *testing.T) {
-			if err := connectMachineWithSwitches(ds, tt.machine); (err != nil) != tt.wantErr {
+			if err := ds.ConnectMachineWithSwitches(tt.machine); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.connectMachineWithSwitches() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -303,7 +303,7 @@ func TestSetVrfAtSwitch(t *testing.T) {
 		Base:        metal.Base{ID: "1"},
 		PartitionID: "1",
 	}
-	switches, err := setVrfAtSwitches(ds, m, vrf)
+	switches, err := ds.SetVrfAtSwitches(m, vrf)
 	require.NoError(t, err, "no error was expected: got %v", err)
 	require.Len(t, switches, 1)
 	for _, s := range switches {

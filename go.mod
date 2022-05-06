@@ -5,12 +5,12 @@ go 1.18
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/avast/retry-go/v4 v4.0.4
-	github.com/aws/aws-sdk-go v1.44.3
+	github.com/aws/aws-sdk-go v1.44.7
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.9.0
 	github.com/emicklei/go-restful/v3 v3.7.4
 	github.com/go-logr/zapr v1.2.3
-	github.com/go-openapi/spec v0.20.5
+	github.com/go-openapi/spec v0.20.6
 	github.com/go-stack/stack v1.8.1
 	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.3.0

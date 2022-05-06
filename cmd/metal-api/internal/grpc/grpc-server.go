@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
@@ -30,9 +31,16 @@ const (
 
 type Datasource interface {
 	FindMachineByID(machineID string) (*metal.Machine, error)
+	FindMachine(q *datastore.MachineSearchQuery, ms *metal.Machine) error
+	FindPartition(partitionID string) (*metal.Partition, error)
 	CreateMachine(*metal.Machine) error
 	UpdateMachine(old, new *metal.Machine) error
+	FindProvisioningEventContainer(id string) (*metal.ProvisioningEventContainer, error)
+	CreateProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error
 	ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error)
+	SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.Switch, error)
+	ConnectMachineWithSwitches(m *metal.Machine) error
+	FromHardware(hw metal.MachineHardware) (*metal.Size, []*metal.SizeMatchingLog, error)
 }
 
 type ServerConfig struct {
@@ -55,6 +63,7 @@ type Server struct {
 	*WaitService
 	*SupwdService
 	*EventService
+	*BootService
 	ds             Datasource
 	logger         *zap.SugaredLogger
 	server         *grpc.Server
@@ -81,10 +90,13 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 
 	eventService := NewEventService(cfg)
 
+	bootService := NewBootService(cfg)
+
 	s := &Server{
 		WaitService:    waitService,
 		SupwdService:   supwdService,
 		EventService:   eventService,
+		BootService:    bootService,
 		ds:             cfg.Datasource,
 		logger:         cfg.Logger,
 		grpcPort:       cfg.GrpcPort,

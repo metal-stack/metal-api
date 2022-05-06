@@ -1,6 +1,8 @@
 package datastore
 
 import (
+	"fmt"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -78,4 +80,106 @@ func (rs *RethinkStore) SearchSwitchesConnectedToMachine(m *metal.Machine) ([]me
 		}
 	}
 	return res, nil
+}
+
+// SetVrfAtSwitches finds the switches connected to the given machine and puts the switch ports into the given vrf.
+// Returns the updated switches.
+func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.Switch, error) {
+	switches, err := rs.SearchSwitchesConnectedToMachine(m)
+	if err != nil {
+		return nil, err
+	}
+	newSwitches := make([]metal.Switch, 0)
+	for i := range switches {
+		sw := switches[i]
+		oldSwitch := sw
+		setVrf(&sw, m.ID, vrf)
+		err := rs.UpdateSwitch(&oldSwitch, &sw)
+		if err != nil {
+			return nil, err
+		}
+		newSwitches = append(newSwitches, sw)
+	}
+	return newSwitches, nil
+}
+
+func setVrf(s *metal.Switch, mid, vrf string) {
+	affectedMacs := map[metal.MacAddress]bool{}
+	for _, c := range s.MachineConnections[mid] {
+		mac := c.Nic.MacAddress
+		affectedMacs[mac] = true
+	}
+
+	if len(affectedMacs) == 0 {
+		return
+	}
+
+	nics := metal.Nics{}
+	for mac, old := range s.Nics.ByMac() {
+		e := old
+		if _, ok := affectedMacs[mac]; ok {
+			e.Vrf = vrf
+		}
+		nics = append(nics, *e)
+	}
+	s.Nics = nics
+}
+
+func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
+	switches, err := rs.SearchSwitches("", nil)
+	if err != nil {
+		return err
+	}
+	oldSwitches := []metal.Switch{}
+	newSwitches := []metal.Switch{}
+	for _, sw := range switches {
+		oldSwitch := sw
+		if cons := sw.ConnectMachine(m); cons > 0 {
+			oldSwitches = append(oldSwitches, oldSwitch)
+			newSwitches = append(newSwitches, sw)
+		}
+	}
+
+	if len(newSwitches) != 2 {
+		return fmt.Errorf("machine %v is not connected to exactly two switches, found connections to %d switches", m.ID, len(newSwitches))
+	}
+
+	s1 := newSwitches[0]
+	s2 := newSwitches[1]
+	cons1 := s1.MachineConnections[m.ID]
+	cons2 := s2.MachineConnections[m.ID]
+	connectionMapError := fmt.Errorf("twin-switches do not have a connection map that is mirrored crosswise for machine %v, switch %v (connections: %v), switch %v (connections: %v)", m.ID, s1.Name, cons1, s2.Name, cons2)
+	if len(cons1) != len(cons2) {
+		return connectionMapError
+	}
+
+	if s1.RackID != s2.RackID {
+		return fmt.Errorf("connected switches of a machine must reside in the same rack, rack of switch %s: %s, rack of switch %s: %s, machine: %s", s1.Name, s1.RackID, s2.Name, s2.RackID, m.ID)
+	}
+	// We detect the rackID of a machine by connections to leaf switches
+	m.RackID = s1.RackID
+	m.PartitionID = s1.PartitionID
+
+	byNicName, err := s2.MachineConnections.ByNicName()
+	if err != nil {
+		return err
+	}
+	for _, con := range s1.MachineConnections[m.ID] {
+		if con2, has := byNicName[con.Nic.Name]; has {
+			if con.Nic.Name != con2.Nic.Name {
+				return connectionMapError
+			}
+		} else {
+			return connectionMapError
+		}
+	}
+
+	for i := range oldSwitches {
+		err = rs.UpdateSwitch(&oldSwitches[i], &newSwitches[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

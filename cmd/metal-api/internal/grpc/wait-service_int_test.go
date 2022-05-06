@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
@@ -83,6 +84,14 @@ type datasource struct {
 	wait map[string]bool
 }
 
+func (ds *datasource) FindMachine(q *datastore.MachineSearchQuery, ms *metal.Machine) error {
+	return nil
+}
+
+func (ds *datasource) FindPartition(partitionID string) (*metal.Partition, error) {
+	return nil, nil
+}
+
 func (ds *datasource) FindMachineByID(machineID string) (*metal.Machine, error) {
 	return &metal.Machine{
 		Base: metal.Base{
@@ -97,12 +106,27 @@ func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
 	ds.wait[new.ID] = new.Waiting
 	return nil
 }
+func (ds *datasource) FromHardware(hw metal.MachineHardware) (*metal.Size, []*metal.SizeMatchingLog, error) {
+	return nil, nil, nil
+}
 
 func (ds *datasource) CreateMachine(new *metal.Machine) error {
 	return nil
 }
 func (ds *datasource) ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
 	return nil, nil
+}
+func (ds *datasource) FindProvisioningEventContainer(id string) (*metal.ProvisioningEventContainer, error) {
+	return nil, nil
+}
+func (ds *datasource) CreateProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error {
+	return nil
+}
+func (ds *datasource) SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.Switch, error) {
+	return nil, nil
+}
+func (ds *datasource) ConnectMachineWithSwitches(m *metal.Machine) error {
+	return nil
 }
 
 func (t *test) run() {

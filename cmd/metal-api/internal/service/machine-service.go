@@ -769,7 +769,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	old := *m
 	err = retry.Do(
 		func() error {
-			err := connectMachineWithSwitches(r.ds, m)
+			err := r.ds.ConnectMachineWithSwitches(m)
 			if err != nil {
 				return err
 			}
@@ -1737,7 +1737,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	err = retry.Do(
 		func() error {
-			_, err := setVrfAtSwitches(r.ds, m, vrf)
+			_, err := r.ds.SetVrfAtSwitches(m, vrf)
 			return err
 		},
 		retry.Attempts(10),
@@ -2012,7 +2012,7 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
 	err := retry.Do(
 		func() error {
-			_, err := setVrfAtSwitches(ds, m, "")
+			_, err := ds.SetVrfAtSwitches(m, "")
 			return err
 		},
 		retry.Attempts(10),
