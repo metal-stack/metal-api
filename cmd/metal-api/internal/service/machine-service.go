@@ -181,6 +181,17 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/").
+		To(admin(r.updateMachine)).
+		Operation("updateMachine").
+		Doc("updates a machine. if the machine was changed since this one was read, a conflict is returned").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineUpdateRequest{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.POST("/register").
 		To(editor(r.registerMachine)).
 		Operation("registerMachine").
@@ -483,6 +494,49 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r machineResource) updateMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineUpdateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldMachine, err := r.ds.FindMachineByID(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if oldMachine.Allocation == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("only allocated machines can be updated")) {
+			return
+		}
+	}
+
+	newMachine := *oldMachine
+
+	if requestPayload.Description != nil {
+		newMachine.Allocation.Description = *requestPayload.Description
+	}
+
+	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+
+	err = r.ds.UpdateMachine(oldMachine, &newMachine)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	resp, err := makeMachineResponse(&newMachine, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
