@@ -271,6 +271,8 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportRequest) (*v1.BootServiceReportResponse, error) {
 	b.log.Infow("report", "req", req)
 
+	// FIXME implement success handling
+
 	m, err := b.ds.FindMachineByID(req.Uuid)
 	if err != nil {
 		return nil, err

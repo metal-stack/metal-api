@@ -91,7 +91,8 @@ message BootServiceReportRequest {
 	string cmdline = 6;
 	string kernel = 7;
 	string bootloader_id = 8;
-
+    bool success = 9;
+    string message = 10;
 }
 message BootServiceReportResponse {
 }
