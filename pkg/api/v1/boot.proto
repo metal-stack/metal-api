@@ -46,7 +46,7 @@ message MachineHardware {
 message MachineNic {
     string mac = 1;
 	string name = 2;
-    repeated MachineNic neighbor = 3;
+    repeated MachineNic neighbors = 3;
 }
 
 message MachineBlockDevice {

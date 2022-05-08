@@ -106,10 +106,30 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 			Size: d.Size,
 		})
 	}
+	nics := metal.Nics{}
+
+	for i := range req.Hardware.Nics {
+		nic := req.Hardware.Nics[i]
+		neighs := metal.Nics{}
+		for j := range nic.Neighbors {
+			neigh := nic.Neighbors[j]
+			neighs = append(neighs, metal.Nic{
+				Name:       neigh.Name,
+				MacAddress: metal.MacAddress(neigh.Mac),
+			})
+		}
+		nics = append(nics, metal.Nic{
+			Name:       nic.Name,
+			MacAddress: metal.MacAddress(nic.Mac),
+			Neighbors:  neighs,
+		})
+	}
+
 	machineHardware := metal.MachineHardware{
 		Memory:   req.Hardware.Memory,
 		CPUCores: int(req.Hardware.CpuCores),
 		Disks:    disks,
+		Nics:     nics,
 	}
 	size, _, err := b.ds.FromHardware(machineHardware)
 	if err != nil {
