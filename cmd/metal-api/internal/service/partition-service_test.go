@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -142,6 +143,13 @@ func TestCreatePartition(t *testing.T) {
 	service := NewPartition(ds, topicCreater)
 	container := restful.NewContainer().Add(service)
 
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer ts.Close()
+
+	downloadableFile := ts.URL
+
 	createRequest := v1.PartitionCreateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
@@ -151,6 +159,10 @@ func TestCreatePartition(t *testing.T) {
 				Name:        &testdata.Partition1.Name,
 				Description: &testdata.Partition1.Description,
 			},
+		},
+		PartitionBootConfiguration: v1.PartitionBootConfiguration{
+			ImageURL:  &downloadableFile,
+			KernelURL: &downloadableFile,
 		},
 	}
 	js, err := json.Marshal(createRequest)
@@ -180,9 +192,13 @@ func TestUpdatePartition(t *testing.T) {
 
 	service := NewPartition(ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer ts.Close()
 
 	mgmtService := "mgmt"
-	imageURL := "http://somewhere/image1.zip"
+	downloadableFile := ts.URL
 	updateRequest := v1.PartitionUpdateRequest{
 		Common: v1.Common{
 			Describable: v1.Describable{
@@ -195,7 +211,7 @@ func TestUpdatePartition(t *testing.T) {
 		},
 		MgmtServiceAddress: &mgmtService,
 		PartitionBootConfiguration: &v1.PartitionBootConfiguration{
-			ImageURL: &imageURL,
+			ImageURL: &downloadableFile,
 		},
 	}
 	js, err := json.Marshal(updateRequest)
@@ -218,7 +234,7 @@ func TestUpdatePartition(t *testing.T) {
 	require.Equal(t, testdata.Partition2.Name, *result.Name)
 	require.Equal(t, testdata.Partition2.Description, *result.Description)
 	require.Equal(t, mgmtService, *result.MgmtServiceAddress)
-	require.Equal(t, imageURL, *result.PartitionBootConfiguration.ImageURL)
+	require.Equal(t, downloadableFile, *result.PartitionBootConfiguration.ImageURL)
 }
 
 func TestPartitionCapacity(t *testing.T) {
