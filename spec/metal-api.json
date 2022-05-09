@@ -2336,7 +2336,7 @@
         "nics": {
           "description": "the list of network interfaces of this machine",
           "items": {
-            "$ref": "#/definitions/v1.MachineNic"
+            "$ref": "#/definitions/v1.MachineNicExtended"
           },
           "type": "array"
         }
@@ -2372,40 +2372,6 @@
         "cpu_cores",
         "disks",
         "memory"
-      ]
-    },
-    "v1.MachineHardwareExtended": {
-      "properties": {
-        "cpu_cores": {
-          "description": "the number of cpu cores",
-          "format": "int32",
-          "type": "integer"
-        },
-        "disks": {
-          "description": "the list of block devices of this machine",
-          "items": {
-            "$ref": "#/definitions/v1.MachineBlockDevice"
-          },
-          "type": "array"
-        },
-        "memory": {
-          "description": "the total memory of the machine",
-          "format": "integer",
-          "type": "integer"
-        },
-        "nics": {
-          "description": "the list of network interfaces of this machine with extended information",
-          "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "cpu_cores",
-        "disks",
-        "memory",
-        "nics"
       ]
     },
     "v1.MachineIPMI": {
@@ -2790,7 +2756,7 @@
           "description": "bios information of this machine"
         },
         "hardware": {
-          "$ref": "#/definitions/v1.MachineHardwareExtended",
+          "$ref": "#/definitions/v1.MachineHardware",
           "description": "the hardware of this machine"
         },
         "ipmi": {
@@ -8269,7 +8235,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.MachineHardwareExtended"
+              "$ref": "#/definitions/v1.MachineHardware"
             }
           }
         ],
