@@ -188,6 +188,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 
 	partitionName := "test-partition"
 	partitionDesc := "Test Partition"
+	downloadableFile := "https://upload.wikimedia.org/wikipedia/commons/e/e6/1kb.png"
 	partition := v1.PartitionCreateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
@@ -197,6 +198,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 				Name:        &partitionName,
 				Description: &partitionDesc,
 			},
+		},
+		PartitionBootConfiguration: v1.PartitionBootConfiguration{
+			ImageURL:  &downloadableFile,
+			KernelURL: &downloadableFile,
 		},
 	}
 	var createdPartition v1.PartitionResponse
