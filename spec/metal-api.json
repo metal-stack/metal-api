@@ -2336,7 +2336,7 @@
         "nics": {
           "description": "the list of network interfaces of this machine",
           "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
+            "$ref": "#/definitions/v1.MachineNic"
           },
           "type": "array"
         }
@@ -2647,27 +2647,11 @@
         "name": {
           "description": "the name of this network interface",
           "type": "string"
-        }
-      },
-      "required": [
-        "mac",
-        "name"
-      ]
-    },
-    "v1.MachineNicExtended": {
-      "properties": {
-        "mac": {
-          "description": "the mac address of this network interface",
-          "type": "string"
-        },
-        "name": {
-          "description": "the name of this network interface",
-          "type": "string"
         },
         "neighbors": {
           "description": "the neighbors visible to this network interface",
           "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
+            "$ref": "#/definitions/v1.MachineNic"
           },
           "type": "array"
         }

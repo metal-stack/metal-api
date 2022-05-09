@@ -34,34 +34,26 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 					},
 				},
 			},
-			Nics: v1.MachineNicsExtended{
+			Nics: v1.MachineNics{
 				{
-					MachineNic: v1.MachineNic{
-						Name:       "eth0",
-						MacAddress: "aa:aa:aa:aa:aa:aa",
-					},
-					Neighbors: v1.MachineNicsExtended{
+					Name:       "eth0",
+					MacAddress: "aa:aa:aa:aa:aa:aa",
+					Neighbors: v1.MachineNics{
 						{
-							MachineNic: v1.MachineNic{
-								Name:       "swp1",
-								MacAddress: "bb:aa:aa:aa:aa:aa",
-							},
-							Neighbors: v1.MachineNicsExtended{},
+							Name:       "swp1",
+							MacAddress: "bb:aa:aa:aa:aa:aa",
+							Neighbors:  v1.MachineNics{},
 						},
 					},
 				},
 				{
-					MachineNic: v1.MachineNic{
-						Name:       "eth1",
-						MacAddress: "aa:aa:aa:aa:aa:aa",
-					},
-					Neighbors: v1.MachineNicsExtended{
+					Name:       "eth1",
+					MacAddress: "aa:aa:aa:aa:aa:aa",
+					Neighbors: v1.MachineNics{
 						{
-							MachineNic: v1.MachineNic{
-								Name:       "swp1",
-								MacAddress: "aa:bb:aa:aa:aa:aa",
-							},
-							Neighbors: v1.MachineNicsExtended{},
+							Name:       "swp1",
+							MacAddress: "aa:bb:aa:aa:aa:aa",
+							Neighbors:  v1.MachineNics{},
 						},
 					},
 				},
@@ -76,7 +68,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert.Equal(t, mrr.PartitionID, registeredMachine.Partition.ID)
 	assert.Equal(t, registeredMachine.RackID, "test-rack")
 	assert.Len(t, mrr.Hardware.Nics, 2)
-	assert.Equal(t, mrr.Hardware.Nics[0].MachineNic.MacAddress, registeredMachine.Hardware.Nics[0].MacAddress)
+	assert.Equal(t, mrr.Hardware.Nics[0].MacAddress, registeredMachine.Hardware.Nics[0].MacAddress)
 
 	err := te.machineWait("test-uuid")
 	require.Nil(t, err)

@@ -261,32 +261,24 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 		PartitionID: "p1",
 		Hardware: v1.MachineHardware{
 			MachineHardwareBase: v1.MachineHardwareBase{Memory: 4, CPUCores: 4},
-			Nics: v1.MachineNicsExtended{
+			Nics: v1.MachineNics{
 				{
-					MachineNic: v1.MachineNic{
-						Name:       "lan0",
-						MacAddress: fmt.Sprintf("aa:ba:%d", i),
-					},
-					Neighbors: v1.MachineNicsExtended{
+					Name:       "lan0",
+					MacAddress: fmt.Sprintf("aa:ba:%d", i),
+					Neighbors: v1.MachineNics{
 						{
-							MachineNic: v1.MachineNic{
-								Name:       fmt.Sprintf("swp-%d", i),
-								MacAddress: fmt.Sprintf("%s:%d", swp1MacPrefix, i),
-							},
+							Name:       fmt.Sprintf("swp-%d", i),
+							MacAddress: fmt.Sprintf("%s:%d", swp1MacPrefix, i),
 						},
 					},
 				},
 				{
-					MachineNic: v1.MachineNic{
-						Name:       "lan1",
-						MacAddress: fmt.Sprintf("aa:bb:%d", i),
-					},
-					Neighbors: v1.MachineNicsExtended{
+					Name:       "lan1",
+					MacAddress: fmt.Sprintf("aa:bb:%d", i),
+					Neighbors: v1.MachineNics{
 						{
-							MachineNic: v1.MachineNic{
-								Name:       fmt.Sprintf("swp-%d", i),
-								MacAddress: fmt.Sprintf("%s:%d", swp2MacPrefix, i),
-							},
+							Name:       fmt.Sprintf("swp-%d", i),
+							MacAddress: fmt.Sprintf("%s:%d", swp2MacPrefix, i),
 						},
 					},
 				},

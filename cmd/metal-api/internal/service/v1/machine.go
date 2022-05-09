@@ -80,7 +80,7 @@ type MachineHardwareBase struct {
 
 type MachineHardware struct {
 	MachineHardwareBase
-	Nics MachineNicsExtended `json:"nics" description:"the list of network interfaces of this machine"`
+	Nics MachineNics `json:"nics" description:"the list of network interfaces of this machine"`
 }
 
 type MachineState struct {
@@ -120,15 +120,9 @@ type MachineProvisioningEvents map[string]MachineProvisioningEvent
 type MachineNics []MachineNic
 
 type MachineNic struct {
-	MacAddress string `json:"mac"  description:"the mac address of this network interface"`
-	Name       string `json:"name"  description:"the name of this network interface"`
-}
-
-type MachineNicsExtended []MachineNicExtended
-
-type MachineNicExtended struct {
-	MachineNic
-	Neighbors MachineNicsExtended `json:"neighbors" description:"the neighbors visible to this network interface"`
+	MacAddress string      `json:"mac"  description:"the mac address of this network interface"`
+	Name       string      `json:"name"  description:"the name of this network interface"`
+	Neighbors  MachineNics `json:"neighbors" description:"the neighbors visible to this network interface"`
 }
 
 type MachineBIOS struct {
@@ -382,20 +376,18 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
 
-	nics := MachineNicsExtended{}
+	nics := MachineNics{}
 	for i := range m.Hardware.Nics {
 		n := m.Hardware.Nics[i]
-		neighs := []MachineNicExtended{}
+		neighs := MachineNics{}
 		for j := range n.Neighbors {
 			neigh := n.Neighbors[j]
-			neighs = append(neighs, MachineNicExtended{MachineNic: MachineNic{MacAddress: string(neigh.MacAddress), Name: neigh.Name}})
+			neighs = append(neighs, MachineNic{MacAddress: string(neigh.MacAddress), Name: neigh.Name})
 		}
-		nic := MachineNicExtended{
-			MachineNic: MachineNic{
-				MacAddress: string(n.MacAddress),
-				Name:       n.Name,
-			},
-			Neighbors: neighs,
+		nic := MachineNic{
+			MacAddress: string(n.MacAddress),
+			Name:       n.Name,
+			Neighbors:  neighs,
 		}
 		nics = append(nics, nic)
 	}
