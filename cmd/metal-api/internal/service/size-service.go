@@ -94,7 +94,7 @@ func (r sizeResource) webService() *restful.WebService {
 		Operation("fromHardware").
 		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(v1.MachineHardwareExtended{}).
+		Reads(v1.MachineHardware{}).
 		Returns(http.StatusOK, "OK", v1.SizeMatchingLog{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
@@ -274,7 +274,7 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 }
 
 func (r sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineHardwareExtended
+	var requestPayload v1.MachineHardware
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return

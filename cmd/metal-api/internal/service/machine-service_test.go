@@ -200,7 +200,7 @@ func TestRegisterMachine(t *testing.T) {
 						ProductSerial:       &testdata.IPMI1.Fru.ProductSerial,
 					},
 				},
-				Hardware: v1.MachineHardwareExtended{
+				Hardware: v1.MachineHardware{
 					MachineHardwareBase: v1.MachineHardwareBase{
 						CPUCores: tt.numcores,
 						Memory:   uint64(tt.memory),

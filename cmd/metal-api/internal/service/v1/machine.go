@@ -80,12 +80,7 @@ type MachineHardwareBase struct {
 
 type MachineHardware struct {
 	MachineHardwareBase
-	Nics MachineNics `json:"nics" description:"the list of network interfaces of this machine"`
-}
-
-type MachineHardwareExtended struct {
-	MachineHardwareBase
-	Nics MachineNicsExtended `json:"nics" description:"the list of network interfaces of this machine with extended information"`
+	Nics MachineNicsExtended `json:"nics" description:"the list of network interfaces of this machine"`
 }
 
 type MachineState struct {
@@ -168,11 +163,11 @@ type MachineRegisterRequest struct {
 	UUID        string `json:"uuid" description:"the product uuid of the machine to register"`
 	PartitionID string `json:"partitionid" description:"the partition id to register this machine with"`
 	// Deprecated: RackID is not used any longer, it is calculated by the switch connections of a machine. A metal-core instance might respond to pxe requests from all racks
-	RackID   string                  `json:"rackid" description:"the rack id where this machine is connected to"`
-	Hardware MachineHardwareExtended `json:"hardware" description:"the hardware of this machine"`
-	BIOS     MachineBIOS             `json:"bios" description:"bios information of this machine"`
-	IPMI     MachineIPMI             `json:"ipmi" description:"the ipmi access infos"`
-	Tags     []string                `json:"tags" description:"tags for this machine"`
+	RackID   string          `json:"rackid" description:"the rack id where this machine is connected to"`
+	Hardware MachineHardware `json:"hardware" description:"the hardware of this machine"`
+	BIOS     MachineBIOS     `json:"bios" description:"bios information of this machine"`
+	IPMI     MachineIPMI     `json:"ipmi" description:"the ipmi access infos"`
+	Tags     []string        `json:"tags" description:"tags for this machine"`
 }
 
 type MachineAllocateRequest struct {
@@ -267,7 +262,7 @@ type MachineAbortReinstallRequest struct {
 	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
 }
 
-func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
+func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
 	nics := metal.Nics{}
 	for i := range r.Nics {
 		var neighbors metal.Nics
@@ -387,11 +382,20 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
 
-	nics := MachineNics{}
+	nics := MachineNicsExtended{}
 	for i := range m.Hardware.Nics {
-		nic := MachineNic{
-			MacAddress: string(m.Hardware.Nics[i].MacAddress),
-			Name:       m.Hardware.Nics[i].Name,
+		n := m.Hardware.Nics[i]
+		neighs := []MachineNicExtended{}
+		for j := range n.Neighbors {
+			neigh := n.Neighbors[j]
+			neighs = append(neighs, MachineNicExtended{MachineNic: MachineNic{MacAddress: string(neigh.MacAddress), Name: neigh.Name}})
+		}
+		nic := MachineNicExtended{
+			MachineNic: MachineNic{
+				MacAddress: string(n.MacAddress),
+				Name:       n.Name,
+			},
+			Neighbors: neighs,
 		}
 		nics = append(nics, nic)
 	}

@@ -259,7 +259,7 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 	return v1.MachineRegisterRequest{
 		UUID:        fmt.Sprintf("WaitingMachine%d", i),
 		PartitionID: "p1",
-		Hardware: v1.MachineHardwareExtended{
+		Hardware: v1.MachineHardware{
 			MachineHardwareBase: v1.MachineHardwareBase{Memory: 4, CPUCores: 4},
 			Nics: v1.MachineNicsExtended{
 				{

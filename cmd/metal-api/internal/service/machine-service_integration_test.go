@@ -23,7 +23,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	mrr := v1.MachineRegisterRequest{
 		UUID:        "test-uuid",
 		PartitionID: "test-partition",
-		Hardware: v1.MachineHardwareExtended{
+		Hardware: v1.MachineHardware{
 			MachineHardwareBase: v1.MachineHardwareBase{
 				CPUCores: 8,
 				Memory:   1500,

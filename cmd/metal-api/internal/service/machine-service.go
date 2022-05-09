@@ -2308,39 +2308,39 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 }
 
 func (r machineResource) machineOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineOn", metal.MachineOnCmd, request, response)
+	r.machineCmd(metal.MachineOnCmd, request, response)
 }
 
 func (r machineResource) machineOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineOff", metal.MachineOffCmd, request, response)
+	r.machineCmd(metal.MachineOffCmd, request, response)
 }
 
 func (r machineResource) machineReset(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineReset", metal.MachineResetCmd, request, response)
+	r.machineCmd(metal.MachineResetCmd, request, response)
 }
 
 func (r machineResource) machineCycle(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineCycle", metal.MachineCycleCmd, request, response)
+	r.machineCmd(metal.MachineCycleCmd, request, response)
 }
 
 func (r machineResource) machineBios(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
+	r.machineCmd(metal.MachineBiosCmd, request, response)
 }
 
 func (r machineResource) machineDisk(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineDisk", metal.MachineDiskCmd, request, response)
+	r.machineCmd(metal.MachineDiskCmd, request, response)
 }
 
 func (r machineResource) machinePxe(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machinePxe", metal.MachinePxeCmd, request, response)
+	r.machineCmd(metal.MachinePxeCmd, request, response)
 }
 
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.QueryParameter("description"))
+	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
+	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
 }
 
 func (r machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
@@ -2387,22 +2387,22 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 		return
 	}
 
-	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, r.s3Client.FirmwareBucket)
+	r.machineCmd(metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, r.s3Client.FirmwareBucket)
 }
 
-func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
+func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
 	logger := utils.Logger(request).Sugar()
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
-	if checkError(request, response, op, err) {
+	if checkError(request, response, string(cmd), err) {
 		return
 	}
 
-	switch op {
-	case "machineReset", "machineOff", "machineCycle":
+	switch cmd {
+	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
 		event := string(metal.ProvisioningEventPlannedReboot)
-		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, op)
+		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, string(cmd))
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
