@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -188,6 +189,13 @@ func createTestEnvironment(t *testing.T) testEnv {
 
 	partitionName := "test-partition"
 	partitionDesc := "Test Partition"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer ts.Close()
+
+	downloadableFile := ts.URL
 	partition := v1.PartitionCreateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
@@ -197,6 +205,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 				Name:        &partitionName,
 				Description: &partitionDesc,
 			},
+		},
+		PartitionBootConfiguration: v1.PartitionBootConfiguration{
+			ImageURL:  &downloadableFile,
+			KernelURL: &downloadableFile,
 		},
 	}
 	var createdPartition v1.PartitionResponse
