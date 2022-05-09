@@ -190,9 +190,17 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
+	err = checkImageURL("image", imageURL)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
 	var kernelURL string
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
 		kernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
+	}
+	err = checkImageURL("kernel", kernelURL)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 	var commandLine string
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
@@ -276,9 +284,18 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 		newPartition.MgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
+		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.ImageURL)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 		newPartition.BootConfiguration.ImageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
+
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
+		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.KernelURL)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
 		newPartition.BootConfiguration.KernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
 	}
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {

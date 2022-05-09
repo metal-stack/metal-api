@@ -141,6 +141,7 @@ func TestCreatePartition(t *testing.T) {
 	}
 	service := NewPartition(ds, topicCreater)
 	container := restful.NewContainer().Add(service)
+	downloadableFile := "https://upload.wikimedia.org/wikipedia/commons/e/e6/1kb.png"
 
 	createRequest := v1.PartitionCreateRequest{
 		Common: v1.Common{
@@ -151,6 +152,10 @@ func TestCreatePartition(t *testing.T) {
 				Name:        &testdata.Partition1.Name,
 				Description: &testdata.Partition1.Description,
 			},
+		},
+		PartitionBootConfiguration: v1.PartitionBootConfiguration{
+			ImageURL:  &downloadableFile,
+			KernelURL: &downloadableFile,
 		},
 	}
 	js, err := json.Marshal(createRequest)
@@ -182,7 +187,7 @@ func TestUpdatePartition(t *testing.T) {
 	container := restful.NewContainer().Add(service)
 
 	mgmtService := "mgmt"
-	imageURL := "http://somewhere/image1.zip"
+	downloadableFile := "https://upload.wikimedia.org/wikipedia/commons/e/e6/1kb.png"
 	updateRequest := v1.PartitionUpdateRequest{
 		Common: v1.Common{
 			Describable: v1.Describable{
@@ -195,7 +200,7 @@ func TestUpdatePartition(t *testing.T) {
 		},
 		MgmtServiceAddress: &mgmtService,
 		PartitionBootConfiguration: &v1.PartitionBootConfiguration{
-			ImageURL: &imageURL,
+			ImageURL: &downloadableFile,
 		},
 	}
 	js, err := json.Marshal(updateRequest)
@@ -218,7 +223,7 @@ func TestUpdatePartition(t *testing.T) {
 	require.Equal(t, testdata.Partition2.Name, *result.Name)
 	require.Equal(t, testdata.Partition2.Description, *result.Description)
 	require.Equal(t, mgmtService, *result.MgmtServiceAddress)
-	require.Equal(t, imageURL, *result.PartitionBootConfiguration.ImageURL)
+	require.Equal(t, downloadableFile, *result.PartitionBootConfiguration.ImageURL)
 }
 
 func TestPartitionCapacity(t *testing.T) {
