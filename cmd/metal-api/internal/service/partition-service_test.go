@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -141,7 +142,13 @@ func TestCreatePartition(t *testing.T) {
 	}
 	service := NewPartition(ds, topicCreater)
 	container := restful.NewContainer().Add(service)
-	downloadableFile := "https://upload.wikimedia.org/wikipedia/commons/e/e6/1kb.png"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer ts.Close()
+
+	downloadableFile := ts.URL
 
 	createRequest := v1.PartitionCreateRequest{
 		Common: v1.Common{
@@ -185,9 +192,13 @@ func TestUpdatePartition(t *testing.T) {
 
 	service := NewPartition(ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer ts.Close()
 
 	mgmtService := "mgmt"
-	downloadableFile := "https://upload.wikimedia.org/wikipedia/commons/e/e6/1kb.png"
+	downloadableFile := ts.URL
 	updateRequest := v1.PartitionUpdateRequest{
 		Common: v1.Common{
 			Describable: v1.Describable{
