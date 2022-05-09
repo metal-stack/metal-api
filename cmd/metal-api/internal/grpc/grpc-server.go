@@ -146,6 +146,7 @@ func (s *Server) Serve() error {
 	v1.RegisterSuperUserPasswordServer(s.server, s.SupwdService)
 	v1.RegisterWaitServer(s.server, s.WaitService)
 	v1.RegisterEventServiceServer(s.server, s.EventService)
+	v1.RegisterBootServiceServer(s.server, s.BootService)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
