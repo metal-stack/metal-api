@@ -2399,7 +2399,7 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 		return
 	}
 
-	switch cmd {
+	switch cmd { // nolint:exhaustive
 	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
 		event := string(metal.ProvisioningEventPlannedReboot)
 		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, string(cmd))
