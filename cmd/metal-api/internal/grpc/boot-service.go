@@ -303,18 +303,23 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	if m.Allocation == nil {
 		return nil, fmt.Errorf("the machine %q is not allocated", req.Uuid)
 	}
+	if req.BootInfo == nil {
+		return nil, fmt.Errorf("the machine %q bootinfo is nil", req.Uuid)
+	}
 
 	old := *m
+
+	bootInfo := req.BootInfo
 
 	m.Allocation.ConsolePassword = req.ConsolePassword
 	m.Allocation.MachineSetup = &metal.MachineSetup{
 		ImageID:      m.Allocation.ImageID,
-		PrimaryDisk:  req.PrimaryDisk,
-		OSPartition:  req.OsPartition,
-		Initrd:       req.Initrd,
-		Cmdline:      req.Cmdline,
-		Kernel:       req.Kernel,
-		BootloaderID: req.BootloaderId,
+		PrimaryDisk:  bootInfo.PrimaryDisk,
+		OSPartition:  bootInfo.OsPartition,
+		Initrd:       bootInfo.Initrd,
+		Cmdline:      bootInfo.Cmdline,
+		Kernel:       bootInfo.Kernel,
+		BootloaderID: bootInfo.BootloaderId,
 	}
 	m.Allocation.Reinstall = false
 
@@ -368,4 +373,44 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	}
 
 	return &v1.BootServiceReportResponse{}, nil
+}
+func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbortReinstallRequest) (*v1.BootServiceAbortReinstallResponse, error) {
+	b.log.Infow("abortreinstall", "req", req)
+	m, err := b.ds.FindMachineByID(req.Uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	var bootInfo *v1.BootInfo
+
+	if m.Allocation != nil && !req.PrimaryDiskWiped {
+		old := *m
+
+		m.Allocation.Reinstall = false
+		if m.Allocation.MachineSetup != nil {
+			m.Allocation.ImageID = m.Allocation.MachineSetup.ImageID
+		}
+
+		err = b.ds.UpdateMachine(&old, m)
+		if err != nil {
+			return nil, err
+		}
+		b.log.Infow("removed reinstall mark", "machineID", m.ID)
+
+		if m.Allocation.MachineSetup != nil {
+			bootInfo = &v1.BootInfo{
+				ImageId:      m.Allocation.MachineSetup.ImageID,
+				PrimaryDisk:  m.Allocation.MachineSetup.PrimaryDisk,
+				OsPartition:  m.Allocation.MachineSetup.OSPartition,
+				Initrd:       m.Allocation.MachineSetup.Initrd,
+				Cmdline:      m.Allocation.MachineSetup.Cmdline,
+				Kernel:       m.Allocation.MachineSetup.Kernel,
+				BootloaderId: m.Allocation.MachineSetup.BootloaderID,
+			}
+		}
+	}
+
+	// FIXME what to do in the else case ?
+
+	return &v1.BootServiceAbortReinstallResponse{BootInfo: bootInfo}, nil
 }
