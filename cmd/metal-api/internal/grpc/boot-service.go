@@ -11,18 +11,21 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
 )
 
 type BootService struct {
-	log *zap.SugaredLogger
-	ds  Datasource
+	log       *zap.SugaredLogger
+	ds        Datasource
+	publisher bus.Publisher
 }
 
 func NewBootService(cfg *ServerConfig) *BootService {
 	return &BootService{
-		ds:  cfg.Datasource,
-		log: cfg.Logger.Named("boot-service"),
+		ds:        cfg.Datasource,
+		log:       cfg.Logger.Named("boot-service"),
+		publisher: cfg.Publisher,
 	}
 }
 
@@ -349,7 +352,20 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 		return nil, fmt.Errorf("the machine %q could not be enslaved into the vrf %s, error: %w", req.Uuid, vrf, err)
 	}
 
-	// FIXME set boot order to disk
+	evt := metal.MachineEvent{
+		Type: metal.COMMAND,
+		Cmd: &metal.MachineExecCommand{
+			Command:         metal.MachineDiskCmd,
+			Params:          nil,
+			TargetMachineID: m.ID,
+		},
+	}
+
+	b.log.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	err = b.publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
+	if err != nil {
+		b.log.Errorw("unable to send boot via hd, continue anyway", "error", err)
+	}
 
 	return &v1.BootServiceReportResponse{}, nil
 }

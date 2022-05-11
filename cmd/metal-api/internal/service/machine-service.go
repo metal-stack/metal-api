@@ -2426,17 +2426,11 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 }
 
 func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand, params ...string) error {
-	pp := []string{}
-	for _, p := range params {
-		if len(p) > 0 {
-			pp = append(pp, p)
-		}
-	}
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command:         cmd,
-			Params:          pp,
+			Params:          params,
 			TargetMachineID: m.ID,
 		},
 	}
