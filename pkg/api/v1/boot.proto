@@ -5,10 +5,20 @@ package api.v1;
 option go_package = "./api/v1";
 
 service BootService {
+    // Dhcp is the first dhcp request (option 97). A ProvisioningEventPXEBooting is fired
+    rpc Dhcp(BootServiceDhcpRequest) returns (BootServiceDhcpResponse) {}
+    // Boot is called from pixiecore once the nachine got the first dhcp response and ipxie asks for subsequent kernel and initrd
     rpc Boot(BootServiceBootRequest) returns (BootServiceBootResponse) {}
     rpc Register(BootServiceRegisterRequest)returns (BootServiceRegisterResponse) {}
     rpc Report(BootServiceReportRequest)returns (BootServiceReportResponse) {}
     rpc AbortReinstall(BootServiceAbortReinstallRequest) returns (BootServiceAbortReinstallResponse) {}
+}
+
+message BootServiceDhcpRequest {
+    string mac = 1;
+}
+
+message BootServiceDhcpResponse {
 }
 
 message BootServiceBootRequest {

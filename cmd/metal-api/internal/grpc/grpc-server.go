@@ -90,7 +90,7 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 
 	eventService := NewEventService(cfg)
 
-	bootService := NewBootService(cfg)
+	bootService := NewBootService(cfg, eventService)
 
 	s := &Server{
 		WaitService:    waitService,

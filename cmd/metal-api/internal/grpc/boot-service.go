@@ -16,17 +16,33 @@ import (
 )
 
 type BootService struct {
-	log       *zap.SugaredLogger
-	ds        Datasource
-	publisher bus.Publisher
+	log          *zap.SugaredLogger
+	ds           Datasource
+	publisher    bus.Publisher
+	eventService *EventService
 }
 
-func NewBootService(cfg *ServerConfig) *BootService {
+func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService {
 	return &BootService{
-		ds:        cfg.Datasource,
-		log:       cfg.Logger.Named("boot-service"),
-		publisher: cfg.Publisher,
+		ds:           cfg.Datasource,
+		log:          cfg.Logger.Named("boot-service"),
+		publisher:    cfg.Publisher,
+		eventService: eventService,
 	}
+}
+func (b *BootService) Dhcp(ctx context.Context, req *v1.BootServiceDhcpRequest) (*v1.BootServiceDhcpResponse, error) {
+	b.log.Infow("dhcp", "req", req)
+
+	_, err := b.eventService.Send(ctx, &v1.EventServiceSendRequest{Events: map[string]*v1.MachineProvisioningEvent{
+		req.Mac: {
+			Event:   string(metal.ProvisioningEventPXEBooting),
+			Message: "machine sent extended dhcp request",
+		},
+	}})
+	if err != nil {
+		return nil, err
+	}
+	return &v1.BootServiceDhcpResponse{}, nil
 }
 
 func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) (*v1.BootServiceBootResponse, error) {
@@ -357,21 +373,7 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 		return nil, fmt.Errorf("the machine %q could not be enslaved into the vrf %s, error: %w", req.Uuid, vrf, err)
 	}
 
-	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
-		Cmd: &metal.MachineExecCommand{
-			Command:         metal.MachineDiskCmd,
-			Params:          nil,
-			TargetMachineID: m.ID,
-		},
-	}
-
-	b.log.Infow("publish event", "event", evt, "command", *evt.Cmd)
-	err = b.publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
-	if err != nil {
-		b.log.Errorw("unable to send boot via hd, continue anyway", "error", err)
-	}
-
+	b.setBootOrderDisk(m.ID, m.PartitionID)
 	return &v1.BootServiceReportResponse{}, nil
 }
 func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbortReinstallRequest) (*v1.BootServiceAbortReinstallResponse, error) {
@@ -409,8 +411,25 @@ func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbo
 			}
 		}
 	}
-
+	b.setBootOrderDisk(m.ID, m.PartitionID)
 	// FIXME what to do in the else case ?
 
 	return &v1.BootServiceAbortReinstallResponse{BootInfo: bootInfo}, nil
+}
+
+func (b *BootService) setBootOrderDisk(machineID, partitionID string) {
+	evt := metal.MachineEvent{
+		Type: metal.COMMAND,
+		Cmd: &metal.MachineExecCommand{
+			Command:         metal.MachineDiskCmd,
+			Params:          nil,
+			TargetMachineID: machineID,
+		},
+	}
+
+	b.log.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	err := b.publisher.Publish(metal.TopicMachine.GetFQN(partitionID), evt)
+	if err != nil {
+		b.log.Errorw("unable to send boot via hd, continue anyway", "error", err)
+	}
 }
