@@ -63,49 +63,35 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 		return nil, fmt.Errorf("no machine for mac:%q found", req.Mac)
 	}
 
-	// if allocateion.Succeed== false, the machine was already in the installation phase but crashed before finalizing allocation
-	// we can boot into metal-hammer again.
-	if m.Allocation == nil || !m.Allocation.Succeeded {
-		return b.response(req.PartitionId), nil
+	if m.PartitionID != req.PartitionId {
+		return nil, fmt.Errorf("partitionID:%q of machine with mac does not match partitionID:%q", m.PartitionID, req.PartitionId)
+	}
+	p, err := b.ds.FindPartition(req.PartitionId)
+	if err != nil {
+		return nil, err
 	}
 
-	return &v1.BootServiceBootResponse{}, nil
-}
-
-func (b *BootService) response(partitionID string) *v1.BootServiceBootResponse {
-	// cfg := e.Config
-
-	// cidr, _, _ := net.ParseCIDR(cfg.CIDR)
-	// metalCoreAddress := fmt.Sprintf("METAL_CORE_ADDRESS=%v:%d", cidr.String(), cfg.Port)
-	// metalAPIURL := fmt.Sprintf("METAL_API_URL=%s://%s:%d%s", cfg.ApiProtocol, cfg.ApiIP, cfg.ApiPort, cfg.ApiBasePath)
-
-	// var (
-	// 	imageURL string
-	// 	kernel string
-	// 	cmd []string
-	// )
-	// // try to update boot config
-	// p, err := b.ds.FindPartition(partitionID)
-	// if err == nil {
-	// 	imageURL = p.BootConfiguration.ImageURL
-	// 	kernel = p.BootConfiguration.KernelURL
-	// 	cmd = []string{p.BootConfiguration.CommandLine}
-	// }
-
+	// TODO
 	// cmdline := []string{bc.MetalHammerCommandLine, metalCoreAddress, metalAPIURL}
 	// if strings.ToUpper(cfg.LogLevel) == "DEBUG" {
 	// 	cmdline = append(cmdline, "DEBUG=1")
 	// }
 
 	// cmd := strings.Join(cmdline, " ")
-	// return &v1.BootServiceBootResponse{
-	// 	Kernel: bc.MetalHammerKernelURL,
-	// 	InitRamDisks: []string{
-	// 		bc.MetalHammerImageURL,
-	// 	},
-	// 	Cmdline: &cmd,
-	// }
-	return nil
+
+	resp := &v1.BootServiceBootResponse{
+		Kernel:       p.BootConfiguration.KernelURL,
+		InitRamDisks: []string{p.BootConfiguration.ImageURL},
+		Cmdline:      &p.BootConfiguration.CommandLine,
+	}
+
+	// if allocateion.Succeed== false, the machine was already in the installation phase but crashed before finalizing allocation
+	// we can boot into metal-hammer again.
+	if m.Allocation == nil || !m.Allocation.Succeeded {
+		return resp, nil
+	}
+
+	return &v1.BootServiceBootResponse{}, nil
 }
 
 func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterRequest) (*v1.BootServiceRegisterResponse, error) {
