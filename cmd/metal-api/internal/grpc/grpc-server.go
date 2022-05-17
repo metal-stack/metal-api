@@ -1,11 +1,13 @@
 package grpc
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
 	"os"
+	"runtime/debug"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -15,7 +17,9 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/metal-stack/masterdata-api/pkg/interceptors/grpc_internalerror"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -123,6 +127,14 @@ func (s *Server) Serve() error {
 
 	grpcLogger := s.logger.Named("grpc").Desugar()
 	grpc_zap.ReplaceGrpcLoggerV2(grpcLogger)
+
+	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
+		func(ctx context.Context, p any) error {
+			grpcLogger.Sugar().Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
+			return status.Errorf(codes.Internal, "%s", p)
+		},
+	)
+
 	s.server = grpc.NewServer(
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
@@ -131,14 +143,14 @@ func (s *Server) Serve() error {
 			grpc_prometheus.StreamServerInterceptor,
 			grpc_zap.StreamServerInterceptor(grpcLogger),
 			grpc_internalerror.StreamServerInterceptor(),
-			grpc_recovery.StreamServerInterceptor(),
+			grpc_recovery.StreamServerInterceptor(recoveryOpt),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_zap.UnaryServerInterceptor(grpcLogger),
 			grpc_internalerror.UnaryServerInterceptor(),
-			grpc_recovery.UnaryServerInterceptor(),
+			grpc_recovery.UnaryServerInterceptor(recoveryOpt),
 		)),
 	)
 	grpc_prometheus.Register(s.server)
