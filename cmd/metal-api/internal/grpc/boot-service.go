@@ -34,7 +34,7 @@ func (b *BootService) Dhcp(ctx context.Context, req *v1.BootServiceDhcpRequest) 
 	b.log.Infow("dhcp", "req", req)
 
 	_, err := b.eventService.Send(ctx, &v1.EventServiceSendRequest{Events: map[string]*v1.MachineProvisioningEvent{
-		req.Mac: {
+		req.Uuid: {
 			Event:   string(metal.ProvisioningEventPXEBooting),
 			Message: "machine sent extended dhcp request",
 		},

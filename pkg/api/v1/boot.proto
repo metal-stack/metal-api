@@ -15,7 +15,7 @@ service BootService {
 }
 
 message BootServiceDhcpRequest {
-    string mac = 1;
+    string uuid = 1;
 }
 
 message BootServiceDhcpResponse {
