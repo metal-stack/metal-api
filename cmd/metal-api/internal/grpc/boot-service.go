@@ -71,21 +71,13 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 		return nil, err
 	}
 
-	// TODO
-	// cmdline := []string{bc.MetalHammerCommandLine, metalCoreAddress, metalAPIURL}
-	// if strings.ToUpper(cfg.LogLevel) == "DEBUG" {
-	// 	cmdline = append(cmdline, "DEBUG=1")
-	// }
-
-	// cmd := strings.Join(cmdline, " ")
-
 	resp := &v1.BootServiceBootResponse{
 		Kernel:       p.BootConfiguration.KernelURL,
 		InitRamDisks: []string{p.BootConfiguration.ImageURL},
 		Cmdline:      &p.BootConfiguration.CommandLine,
 	}
 
-	// if allocateion.Succeed== false, the machine was already in the installation phase but crashed before finalizing allocation
+	// if allocateion.Succeed==false, the machine was already in the installation phase but crashed before finalizing allocation
 	// we can boot into metal-hammer again.
 	if m.Allocation == nil || !m.Allocation.Succeeded {
 		return resp, nil
