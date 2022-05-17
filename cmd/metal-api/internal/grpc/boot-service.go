@@ -73,7 +73,7 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 		InitRamDisks: []string{p.BootConfiguration.ImageURL},
 		Cmdline:      &p.BootConfiguration.CommandLine,
 	}
-
+	b.log.Infow("boot", "resp", resp)
 	return resp, nil
 
 	// if allocateion.Succeed==false, the machine was already in the installation phase but crashed before finalizing allocation
