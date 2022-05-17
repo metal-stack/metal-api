@@ -74,13 +74,14 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 		Cmdline:      &p.BootConfiguration.CommandLine,
 	}
 
+	return resp, nil
+
 	// if allocateion.Succeed==false, the machine was already in the installation phase but crashed before finalizing allocation
 	// we can boot into metal-hammer again.
-	if m.Allocation == nil || !m.Allocation.Succeeded {
-		return resp, nil
-	}
+	// if m != nil && m.Allocation == nil || !m.Allocation.Succeeded {
+	// 	return resp, nil
+	// }
 
-	return &v1.BootServiceBootResponse{}, nil
 }
 
 func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterRequest) (*v1.BootServiceRegisterResponse, error) {
