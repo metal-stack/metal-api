@@ -56,19 +56,16 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 		NicsMacAddresses: []string{req.Mac},
 		PartitionID:      &req.PartitionId,
 	}, m)
-	if err != nil {
+	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
 	}
-	if m == nil {
-		return nil, fmt.Errorf("no machine for mac:%q found", req.Mac)
-	}
 
-	if m.PartitionID != req.PartitionId {
+	if m != nil && m.PartitionID != req.PartitionId {
 		return nil, fmt.Errorf("partitionID:%q of machine with mac does not match partitionID:%q", m.PartitionID, req.PartitionId)
 	}
 	p, err := b.ds.FindPartition(req.PartitionId)
-	if err != nil {
-		return nil, err
+	if err != nil || p == nil {
+		return nil, fmt.Errorf("no partition with id:%q found %w", req.PartitionId, err)
 	}
 
 	resp := &v1.BootServiceBootResponse{
