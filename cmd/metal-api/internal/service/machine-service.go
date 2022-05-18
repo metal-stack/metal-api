@@ -191,6 +191,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once https://github.com/metal-stack/metal-api/pull/279 is merged
 	ws.Route(ws.POST("/register").
 		To(editor(r.registerMachine)).
 		Operation("registerMachine").
@@ -212,6 +213,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once https://github.com/metal-stack/metal-api/pull/279 is merged
 	ws.Route(ws.POST("/{id}/finalize-allocation").
 		To(editor(r.finalizeAllocation)).
 		Operation("finalizeAllocation").
@@ -307,6 +309,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusBadRequest, "Bad Request", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once https://github.com/metal-stack/metal-api/pull/279 is merged
 	ws.Route(ws.POST("/{id}/abort-reinstall").
 		To(editor(r.abortReinstallMachine)).
 		Operation("abortReinstallMachine").
@@ -318,6 +321,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.BootInfo{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.GET("/{id}/event").
 		To(viewer(r.getProvisioningEventContainer)).
 		Operation("getProvisioningEventContainer").
