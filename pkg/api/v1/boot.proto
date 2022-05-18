@@ -7,10 +7,13 @@ option go_package = "./api/v1";
 service BootService {
     // Dhcp is the first dhcp request (option 97). A ProvisioningEventPXEBooting is fired
     rpc Dhcp(BootServiceDhcpRequest) returns (BootServiceDhcpResponse) {}
-    // Boot is called from pixiecore once the nachine got the first dhcp response and ipxie asks for subsequent kernel and initrd
+    // Boot is called from pixie once the nachine got the first dhcp response and ipxie asks for subsequent kernel and initrd
     rpc Boot(BootServiceBootRequest) returns (BootServiceBootResponse) {}
+    // Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
     rpc Register(BootServiceRegisterRequest)returns (BootServiceRegisterResponse) {}
+    // Report tells metal-api installation was either sucessful or failed
     rpc Report(BootServiceReportRequest)returns (BootServiceReportResponse) {}
+    // If reinstall failed and tell metal-api to restore to previous state
     rpc AbortReinstall(BootServiceAbortReinstallRequest) returns (BootServiceAbortReinstallResponse) {}
 }
 
