@@ -1708,10 +1708,13 @@ const _ = grpc.SupportPackageIsVersion6
 type BootServiceClient interface {
 	// Dhcp is the first dhcp request (option 97). A ProvisioningEventPXEBooting is fired
 	Dhcp(ctx context.Context, in *BootServiceDhcpRequest, opts ...grpc.CallOption) (*BootServiceDhcpResponse, error)
-	// Boot is called from pixiecore once the nachine got the first dhcp response and ipxie asks for subsequent kernel and initrd
+	// Boot is called from pixie once the nachine got the first dhcp response and ipxie asks for subsequent kernel and initrd
 	Boot(ctx context.Context, in *BootServiceBootRequest, opts ...grpc.CallOption) (*BootServiceBootResponse, error)
+	// Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
 	Register(ctx context.Context, in *BootServiceRegisterRequest, opts ...grpc.CallOption) (*BootServiceRegisterResponse, error)
+	// Report tells metal-api installation was either sucessful or failed
 	Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error)
+	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(ctx context.Context, in *BootServiceAbortReinstallRequest, opts ...grpc.CallOption) (*BootServiceAbortReinstallResponse, error)
 }
 
@@ -1772,10 +1775,13 @@ func (c *bootServiceClient) AbortReinstall(ctx context.Context, in *BootServiceA
 type BootServiceServer interface {
 	// Dhcp is the first dhcp request (option 97). A ProvisioningEventPXEBooting is fired
 	Dhcp(context.Context, *BootServiceDhcpRequest) (*BootServiceDhcpResponse, error)
-	// Boot is called from pixiecore once the nachine got the first dhcp response and ipxie asks for subsequent kernel and initrd
+	// Boot is called from pixie once the nachine got the first dhcp response and ipxie asks for subsequent kernel and initrd
 	Boot(context.Context, *BootServiceBootRequest) (*BootServiceBootResponse, error)
+	// Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
 	Register(context.Context, *BootServiceRegisterRequest) (*BootServiceRegisterResponse, error)
+	// Report tells metal-api installation was either sucessful or failed
 	Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error)
+	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(context.Context, *BootServiceAbortReinstallRequest) (*BootServiceAbortReinstallResponse, error)
 }
 
