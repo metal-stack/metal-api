@@ -5,11 +5,11 @@ package v1;
 option go_package = "api/v1";
 
 message WaitRequest {
-    string machineID = 1;
+  string machineID = 1;
 }
 
 message KeepPatientResponse {}
 
 service Wait {
-    rpc Wait (WaitRequest) returns (stream KeepPatientResponse);
+  rpc Wait(WaitRequest) returns (stream KeepPatientResponse);
 }
