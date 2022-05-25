@@ -22,16 +22,16 @@ require (
 	github.com/metal-stack/security v0.6.4
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.11.0
 	github.com/stretchr/testify v1.7.1
 	github.com/testcontainers/testcontainers-go v0.13.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	google.golang.org/grpc v1.46.0
+	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
+	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
+	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
