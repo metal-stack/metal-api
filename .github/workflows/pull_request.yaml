@@ -17,11 +17,18 @@ jobs:
       with:
         go-version: '1.18.x'
 
-    - name: Proto generation using buf
+    - name: setup buf
       uses: bufbuild/buf-setup-action@v1
       with:
         version: '1.4.0'
-    - run: make protoc
+    - name: lint proto files
+      uses: bufbuild/buf-lint-action@v1
+      with:
+        input: 'proto'
+
+    - name: generate proto
+      working-directory: proto
+      run: buf generate -v
 
     - name: Figure out if running fork PR
       id: fork
