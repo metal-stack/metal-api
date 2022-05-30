@@ -5,7 +5,7 @@ MINI_LAB_KUBECONFIG := $(shell pwd)/../mini-lab/.kubeconfig
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: protoc spec check-diff all ;
+release:: spec check-diff all ;
 
 .PHONY: spec
 spec: all
