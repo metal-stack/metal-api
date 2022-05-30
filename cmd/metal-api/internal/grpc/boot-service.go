@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/dustin/go-humanize"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
@@ -75,13 +74,6 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 	}
 	b.log.Infow("boot", "resp", resp)
 	return resp, nil
-
-	// if allocateion.Succeed==false, the machine was already in the installation phase but crashed before finalizing allocation
-	// we can boot into metal-hammer again.
-	// if m != nil && m.Allocation == nil || !m.Allocation.Succeeded {
-	// 	return resp, nil
-	// }
-
 }
 
 func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterRequest) (*v1.BootServiceRegisterResponse, error) {
@@ -185,13 +177,9 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	var registerState v1.RegisterState
 	if m == nil {
 		// machine is not in the database, create it
-		name := fmt.Sprintf("%d-core/%s", machineHardware.CPUCores, humanize.Bytes(machineHardware.Memory))
-		descr := fmt.Sprintf("a machine with %d core(s) and %s of RAM", machineHardware.CPUCores, humanize.Bytes(machineHardware.Memory))
 		m = &metal.Machine{
 			Base: metal.Base{
-				ID:          req.Uuid,
-				Name:        name,
-				Description: descr,
+				ID: req.Uuid,
 			},
 			Allocation: nil,
 			SizeID:     size.ID,

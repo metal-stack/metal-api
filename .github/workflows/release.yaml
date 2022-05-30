@@ -17,6 +17,18 @@ jobs:
       with:
         go-version: '1.18.x'
 
+    - name: setup buf
+      uses: bufbuild/buf-setup-action@v1
+      with:
+        version: '1.4.0'
+    - name: lint proto files
+      uses: bufbuild/buf-lint-action@v1
+      with:
+        input: 'proto'
+    - name: generate proto
+      working-directory: proto
+      run: buf generate -v
+
     - name: Docker Login
       uses: docker/login-action@v1
       with:
