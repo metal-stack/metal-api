@@ -22,12 +22,12 @@ redoc:
 
 .PHONY: protoc
 protoc:
-	protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
+	make -C proto protoc
 
 .PHONY: protoc-docker
 protoc-docker:
-	docker pull metalstack/builder
-	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
+	docker pull bufbuild/buf:1.4.0
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.4.0 generate -v
 
 .PHONY: mini-lab-push
 mini-lab-push:

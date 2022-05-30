@@ -4,7 +4,7 @@ package api.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "./api/v1";
+option go_package = "./v1";
 
 service EventService {
   rpc Send(EventServiceSendRequest) returns (EventServiceSendResponse) {}

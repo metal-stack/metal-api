@@ -279,7 +279,7 @@ func (t *test) startMachineInstances() {
 
 func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.Context) error {
 	req := &v1.WaitRequest{
-		MachineID: machineID,
+		MachineId: machineID,
 	}
 
 	for {

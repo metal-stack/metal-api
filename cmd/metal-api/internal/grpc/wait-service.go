@@ -97,7 +97,7 @@ func (s *WaitService) timeoutHandler(err bus.TimeoutError) error {
 }
 
 func (s *WaitService) Wait(req *v1.WaitRequest, srv v1.Wait_WaitServer) error {
-	machineID := req.MachineID
+	machineID := req.MachineId
 	s.Logger.Infow("wait for allocation called by", "machineID", machineID)
 
 	m, err := s.ds.FindMachineByID(machineID)

@@ -17,6 +17,12 @@ jobs:
       with:
         go-version: '1.18.x'
 
+    - name: Proto generation using buf
+      uses: bufbuild/buf-setup-action@v1
+      with:
+        version: '1.4.0'
+    - run: make protoc
+
     - name: Figure out if running fork PR
       id: fork
       run: '["${{ secrets.DOCKER_REGISTRY_TOKEN }}" == ""] && echo "::set-output name=is_fork_pr::true" || echo "::set-output name=is_fork_pr::false"'

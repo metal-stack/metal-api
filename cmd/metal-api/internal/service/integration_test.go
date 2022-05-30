@@ -420,7 +420,7 @@ func (te *testEnv) machineWait(uuid string) error {
 
 func waitForAllocation(machineID string, c grpcv1.WaitClient, ctx context.Context) {
 	req := &grpcv1.WaitRequest{
-		MachineID: machineID,
+		MachineId: machineID,
 	}
 
 	for {
