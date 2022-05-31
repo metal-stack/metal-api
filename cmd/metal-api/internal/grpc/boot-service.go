@@ -274,10 +274,10 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	}, nil
 }
 
-func (b *BootService) FetchSuperUserPassword(ctx context.Context, req *v1.SuperUserPasswordRequest) (*v1.SuperUserPasswordResponse, error) {
+func (b *BootService) SuperUserPassword(ctx context.Context, req *v1.BootServiceSuperUserPasswordRequest) (*v1.BootServiceSuperUserPasswordResponse, error) {
 	defer ctx.Done()
 
-	resp := &v1.SuperUserPasswordResponse{}
+	resp := &v1.BootServiceSuperUserPasswordResponse{}
 	if b.pwdFile == "" {
 		resp.FeatureDisabled = true
 		return resp, nil
