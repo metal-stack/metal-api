@@ -42,6 +42,7 @@ message BootServiceRegisterRequest {
   MachineBIOS bios = 3;
   MachineIPMI ipmi = 4;
   repeated string tags = 5;
+  string metal_hammer_version = 6;
 }
 
 message BootServiceRegisterResponse {

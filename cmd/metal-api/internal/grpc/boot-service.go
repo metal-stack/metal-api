@@ -193,7 +193,8 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 				Date:    req.Bios.Date,
 			},
 			State: metal.MachineState{
-				Value: metal.AvailableState,
+				Value:              metal.AvailableState,
+				MetalHammerVersion: req.MetalHammerVersion,
 			},
 			LEDState: metal.ChassisIdentifyLEDState{
 				Value:       metal.LEDStateOff,
