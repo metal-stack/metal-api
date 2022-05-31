@@ -18,6 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WaitClient interface {
+	// FIXME move to boot.proto
 	Wait(ctx context.Context, in *WaitRequest, opts ...grpc.CallOption) (Wait_WaitClient, error)
 }
 
@@ -65,6 +66,7 @@ func (x *waitWaitClient) Recv() (*KeepPatientResponse, error) {
 // All implementations should embed UnimplementedWaitServer
 // for forward compatibility
 type WaitServer interface {
+	// FIXME move to boot.proto
 	Wait(*WaitRequest, Wait_WaitServer) error
 }
 
