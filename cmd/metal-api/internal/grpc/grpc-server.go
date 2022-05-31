@@ -65,7 +65,6 @@ type ServerConfig struct {
 
 type Server struct {
 	*WaitService
-	*SupwdService
 	*EventService
 	*BootService
 	ds             Datasource
@@ -90,15 +89,12 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	supwdService := NewSupwdService(cfg)
 
 	eventService := NewEventService(cfg)
-
 	bootService := NewBootService(cfg, eventService)
 
 	s := &Server{
 		WaitService:    waitService,
-		SupwdService:   supwdService,
 		EventService:   eventService,
 		BootService:    bootService,
 		ds:             cfg.Datasource,
@@ -155,7 +151,6 @@ func (s *Server) Serve() error {
 	)
 	grpc_prometheus.Register(s.server)
 
-	v1.RegisterSuperUserPasswordServer(s.server, s.SupwdService)
 	v1.RegisterWaitServer(s.server, s.WaitService)
 	v1.RegisterEventServiceServer(s.server, s.EventService)
 	v1.RegisterBootServiceServer(s.server, s.BootService)

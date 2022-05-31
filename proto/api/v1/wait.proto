@@ -11,5 +11,6 @@ message WaitRequest {
 message KeepPatientResponse {}
 
 service Wait {
+  // FIXME move to boot.proto
   rpc Wait(WaitRequest) returns (stream KeepPatientResponse);
 }

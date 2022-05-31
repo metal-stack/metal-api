@@ -11,6 +11,8 @@ service BootService {
   rpc Boot(BootServiceBootRequest) returns (BootServiceBootResponse) {}
   // Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
   rpc Register(BootServiceRegisterRequest) returns (BootServiceRegisterResponse) {}
+  // FetchSuperUserPassword metal-hammer takes the configured root password for the bmc from metal-api and configure the bmc accordingly
+  rpc FetchSuperUserPassword(SuperUserPasswordRequest) returns (SuperUserPasswordResponse);
   // Report tells metal-api installation was either sucessful or failed
   rpc Report(BootServiceReportRequest) returns (BootServiceReportResponse) {}
   // If reinstall failed and tell metal-api to restore to previous state
@@ -126,4 +128,10 @@ message BootServiceAbortReinstallRequest {
 }
 message BootServiceAbortReinstallResponse {
   BootInfo boot_info = 1;
+}
+message SuperUserPasswordRequest {}
+
+message SuperUserPasswordResponse {
+  bool feature_disabled = 1;
+  string super_user_password = 2;
 }

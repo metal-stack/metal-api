@@ -24,6 +24,8 @@ type BootServiceClient interface {
 	Boot(ctx context.Context, in *BootServiceBootRequest, opts ...grpc.CallOption) (*BootServiceBootResponse, error)
 	// Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
 	Register(ctx context.Context, in *BootServiceRegisterRequest, opts ...grpc.CallOption) (*BootServiceRegisterResponse, error)
+	// FetchSuperUserPassword metal-hammer takes the configured root password for the bmc from metal-api and configure the bmc accordingly
+	FetchSuperUserPassword(ctx context.Context, in *SuperUserPasswordRequest, opts ...grpc.CallOption) (*SuperUserPasswordResponse, error)
 	// Report tells metal-api installation was either sucessful or failed
 	Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
@@ -65,6 +67,15 @@ func (c *bootServiceClient) Register(ctx context.Context, in *BootServiceRegiste
 	return out, nil
 }
 
+func (c *bootServiceClient) FetchSuperUserPassword(ctx context.Context, in *SuperUserPasswordRequest, opts ...grpc.CallOption) (*SuperUserPasswordResponse, error) {
+	out := new(SuperUserPasswordResponse)
+	err := c.cc.Invoke(ctx, "/api.v1.BootService/FetchSuperUserPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *bootServiceClient) Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error) {
 	out := new(BootServiceReportResponse)
 	err := c.cc.Invoke(ctx, "/api.v1.BootService/Report", in, out, opts...)
@@ -93,6 +104,8 @@ type BootServiceServer interface {
 	Boot(context.Context, *BootServiceBootRequest) (*BootServiceBootResponse, error)
 	// Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
 	Register(context.Context, *BootServiceRegisterRequest) (*BootServiceRegisterResponse, error)
+	// FetchSuperUserPassword metal-hammer takes the configured root password for the bmc from metal-api and configure the bmc accordingly
+	FetchSuperUserPassword(context.Context, *SuperUserPasswordRequest) (*SuperUserPasswordResponse, error)
 	// Report tells metal-api installation was either sucessful or failed
 	Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
@@ -111,6 +124,9 @@ func (UnimplementedBootServiceServer) Boot(context.Context, *BootServiceBootRequ
 }
 func (UnimplementedBootServiceServer) Register(context.Context, *BootServiceRegisterRequest) (*BootServiceRegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedBootServiceServer) FetchSuperUserPassword(context.Context, *SuperUserPasswordRequest) (*SuperUserPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchSuperUserPassword not implemented")
 }
 func (UnimplementedBootServiceServer) Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Report not implemented")
@@ -184,6 +200,24 @@ func _BootService_Register_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BootService_FetchSuperUserPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SuperUserPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BootServiceServer).FetchSuperUserPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.v1.BootService/FetchSuperUserPassword",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BootServiceServer).FetchSuperUserPassword(ctx, req.(*SuperUserPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _BootService_Report_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BootServiceReportRequest)
 	if err := dec(in); err != nil {
@@ -238,6 +272,10 @@ var BootService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Register",
 			Handler:    _BootService_Register_Handler,
+		},
+		{
+			MethodName: "FetchSuperUserPassword",
+			Handler:    _BootService_FetchSuperUserPassword_Handler,
 		},
 		{
 			MethodName: "Report",

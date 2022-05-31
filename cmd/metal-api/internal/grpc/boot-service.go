@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/avast/retry-go/v4"
@@ -17,6 +18,7 @@ import (
 type BootService struct {
 	log          *zap.SugaredLogger
 	ds           Datasource
+	pwdFile      string
 	publisher    bus.Publisher
 	eventService *EventService
 }
@@ -26,6 +28,7 @@ func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService 
 		ds:           cfg.Datasource,
 		log:          cfg.Logger.Named("boot-service"),
 		publisher:    cfg.Publisher,
+		pwdFile:      cfg.BMCSuperUserPasswordFile,
 		eventService: eventService,
 	}
 }
@@ -269,6 +272,25 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		PartitionId:   m.PartitionID,
 		RegisterState: registerState,
 	}, nil
+}
+
+func (b *BootService) FetchSuperUserPassword(ctx context.Context, req *v1.SuperUserPasswordRequest) (*v1.SuperUserPasswordResponse, error) {
+	defer ctx.Done()
+
+	resp := &v1.SuperUserPasswordResponse{}
+	if b.pwdFile == "" {
+		resp.FeatureDisabled = true
+		return resp, nil
+	}
+
+	bb, err := os.ReadFile(b.pwdFile)
+	if err != nil {
+		b.log.Errorw("failed to lookup BMC superuser password", "password file", b.pwdFile, "error", err)
+		return nil, err
+	}
+	resp.FeatureDisabled = false
+	resp.SuperUserPassword = strings.TrimSpace(string(bb))
+	return resp, nil
 }
 
 func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportRequest) (*v1.BootServiceReportResponse, error) {
