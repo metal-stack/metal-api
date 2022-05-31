@@ -22,6 +22,7 @@ redoc:
 
 .PHONY: protoc
 protoc:
+	rm -rf pkg/api/v1
 	make -C proto protoc
 
 .PHONY: protoc-docker
