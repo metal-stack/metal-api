@@ -275,6 +275,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 }
 
 func (b *BootService) SuperUserPassword(ctx context.Context, req *v1.BootServiceSuperUserPasswordRequest) (*v1.BootServiceSuperUserPasswordResponse, error) {
+	b.log.Infow("superuserpassword", "req", req)
 	defer ctx.Done()
 
 	resp := &v1.BootServiceSuperUserPasswordResponse{}
