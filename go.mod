@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.24
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.9.0
-	github.com/emicklei/go-restful/v3 v3.7.4
+	github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/go-logr/zapr v1.2.3
 	github.com/go-openapi/spec v0.20.6
 	github.com/go-stack/stack v1.8.1
@@ -25,13 +25,13 @@ require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.12.0
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.7.2
 	github.com/testcontainers/testcontainers-go v0.13.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
-	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
-	google.golang.org/grpc v1.46.2
+	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
@@ -129,6 +129,6 @@ require (
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	inet.af/netaddr v0.0.0-20210511181906-37180328850c // indirect
 )
