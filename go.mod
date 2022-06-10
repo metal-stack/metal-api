@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.3
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.9.0
-	github.com/emicklei/go-restful/v3 v3.7.4
+	github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/go-logr/zapr v1.2.3
 	github.com/go-openapi/spec v0.20.5
 	github.com/go-stack/stack v1.8.1
