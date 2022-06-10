@@ -49,7 +49,6 @@ message BootServiceRegisterResponse {
   string uuid = 1;
   string size = 2;
   string partition_id = 3;
-  RegisterState register_state = 4;
 }
 
 message MachineHardware {
@@ -115,12 +114,6 @@ message BootInfo {
   string cmdline = 5;
   string kernel = 6;
   string bootloader_id = 8;
-}
-
-enum RegisterState {
-  REGISTER_STATE_UNSPECIFIED = 0;
-  REGISTER_STATE_CREATED = 1;
-  REGISTER_STATE_UPDATED = 2;
 }
 
 message BootServiceAbortReinstallRequest {

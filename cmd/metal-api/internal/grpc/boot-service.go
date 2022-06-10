@@ -16,20 +16,31 @@ import (
 )
 
 type BootService struct {
-	log          *zap.SugaredLogger
-	ds           Datasource
-	pwdFile      string
-	publisher    bus.Publisher
-	eventService *EventService
+	log               *zap.SugaredLogger
+	ds                Datasource
+	superUserPassword *string
+	publisher         bus.Publisher
+	eventService      *EventService
 }
 
 func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService {
+	log := cfg.Logger.Named("boot-service")
+
+	var superUserPassword *string
+	pwd, err := os.ReadFile(cfg.BMCSuperUserPasswordFile)
+	if err != nil {
+		log.Infow("superuserpassword not found, disabling feature", "error", err)
+	} else {
+		s := strings.TrimSpace(string(pwd))
+		superUserPassword = &s
+	}
+
 	return &BootService{
-		ds:           cfg.Datasource,
-		log:          cfg.Logger.Named("boot-service"),
-		publisher:    cfg.Publisher,
-		pwdFile:      cfg.BMCSuperUserPasswordFile,
-		eventService: eventService,
+		ds:                cfg.Datasource,
+		log:               log,
+		publisher:         cfg.Publisher,
+		superUserPassword: superUserPassword,
+		eventService:      eventService,
 	}
 }
 func (b *BootService) Dhcp(ctx context.Context, req *v1.BootServiceDhcpRequest) (*v1.BootServiceDhcpResponse, error) {
@@ -49,22 +60,7 @@ func (b *BootService) Dhcp(ctx context.Context, req *v1.BootServiceDhcpRequest) 
 
 func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) (*v1.BootServiceBootResponse, error) {
 	b.log.Infow("boot", "req", req)
-	if req == nil {
-		return nil, fmt.Errorf("req is nil")
-	}
 
-	var m *metal.Machine
-	err := b.ds.FindMachine(&datastore.MachineSearchQuery{
-		NicsMacAddresses: []string{req.Mac},
-		PartitionID:      &req.PartitionId,
-	}, m)
-	if err != nil && !metal.IsNotFound(err) {
-		return nil, err
-	}
-
-	if m != nil && m.PartitionID != req.PartitionId {
-		return nil, fmt.Errorf("partitionID:%q of machine with mac does not match partitionID:%q", m.PartitionID, req.PartitionId)
-	}
 	p, err := b.ds.FindPartition(req.PartitionId)
 	if err != nil || p == nil {
 		return nil, fmt.Errorf("no partition with id:%q found %w", req.PartitionId, err)
@@ -84,6 +80,12 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	if req.Uuid == "" {
 		return nil, errors.New("uuid is empty")
 	}
+
+	m, err := b.ds.FindMachineByID(req.Uuid)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, err
+	}
+
 	if req.Hardware == nil {
 		return nil, errors.New("hardware is nil")
 	}
@@ -96,8 +98,8 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 			Size: d.Size,
 		})
 	}
-	nics := metal.Nics{}
 
+	nics := metal.Nics{}
 	for i := range req.Hardware.Nics {
 		nic := req.Hardware.Nics[i]
 		neighs := metal.Nics{}
@@ -121,15 +123,11 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		Disks:    disks,
 		Nics:     nics,
 	}
+
 	size, _, err := b.ds.FromHardware(machineHardware)
 	if err != nil {
 		size = metal.UnknownSize
 		b.log.Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
-	}
-
-	m, err := b.ds.FindMachineByID(req.Uuid)
-	if err != nil && !metal.IsNotFound(err) {
-		return nil, err
 	}
 
 	var ipmi metal.IPMI
@@ -177,7 +175,6 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 
 	}
 
-	var registerState v1.RegisterState
 	if m == nil {
 		// machine is not in the database, create it
 		m = &metal.Machine{
@@ -208,8 +205,6 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		if err != nil {
 			return nil, err
 		}
-
-		registerState = v1.RegisterState_REGISTER_STATE_CREATED
 	} else {
 		// machine has already registered, update it
 		old := *m
@@ -225,7 +220,6 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		if err != nil {
 			return nil, err
 		}
-		registerState = v1.RegisterState_REGISTER_STATE_UPDATED
 	}
 
 	ec, err := b.ds.FindProvisioningEventContainer(m.ID)
@@ -268,10 +262,9 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	}
 
 	return &v1.BootServiceRegisterResponse{
-		Uuid:          req.Uuid,
-		Size:          size.ID,
-		PartitionId:   m.PartitionID,
-		RegisterState: registerState,
+		Uuid:        req.Uuid,
+		Size:        size.ID,
+		PartitionId: m.PartitionID,
 	}, nil
 }
 
@@ -279,19 +272,15 @@ func (b *BootService) SuperUserPassword(ctx context.Context, req *v1.BootService
 	b.log.Infow("superuserpassword", "req", req)
 	defer ctx.Done()
 
-	resp := &v1.BootServiceSuperUserPasswordResponse{}
-	if b.pwdFile == "" {
-		resp.FeatureDisabled = true
+	resp := &v1.BootServiceSuperUserPasswordResponse{
+		FeatureDisabled: true,
+	}
+	if b.superUserPassword == nil {
 		return resp, nil
 	}
 
-	bb, err := os.ReadFile(b.pwdFile)
-	if err != nil {
-		b.log.Errorw("failed to lookup BMC superuser password", "password file", b.pwdFile, "error", err)
-		return nil, err
-	}
 	resp.FeatureDisabled = false
-	resp.SuperUserPassword = strings.TrimSpace(string(bb))
+	resp.SuperUserPassword = *b.superUserPassword
 	return resp, nil
 }
 
@@ -333,16 +322,22 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	}
 
 	vrf := ""
-	if m.IsFirewall() {
-		// if a machine has multiple networks, it serves as firewall, so it can not be enslaved into the tenant vrf
+	switch role := m.Allocation.Role; role {
+	case metal.RoleFirewall:
+		// firewalls are not enslaved into tenant vrfs
 		vrf = "default"
-	} else {
+	case metal.RoleFirewall:
 		for _, mn := range m.Allocation.MachineNetworks {
 			if mn.Private {
 				vrf = fmt.Sprintf("vrf%d", mn.Vrf)
 				break
 			}
 		}
+	default:
+		return nil, fmt.Errorf("unknown allocation role:%q found", role)
+	}
+	if vrf == "" {
+		return nil, fmt.Errorf("the machine %q could not be enslaved into the vrf because no vrf was found, error: %w", req.Uuid, err)
 	}
 
 	err = retry.Do(
@@ -364,6 +359,7 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	b.setBootOrderDisk(m.ID, m.PartitionID)
 	return &v1.BootServiceReportResponse{}, nil
 }
+
 func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbortReinstallRequest) (*v1.BootServiceAbortReinstallResponse, error) {
 	b.log.Infow("abortreinstall", "req", req)
 	m, err := b.ds.FindMachineByID(req.Uuid)
