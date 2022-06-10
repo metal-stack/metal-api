@@ -66,6 +66,25 @@ func (rs *RethinkStore) SearchSwitches(rackid string, macs []string) ([]metal.Sw
 	return ss, nil
 }
 
+// SearchSwitchesByPartition searches for switches by the given partition.
+func (rs *RethinkStore) SearchSwitchesByPartition(partitionID string) ([]metal.Switch, error) {
+	q := *rs.switchTable()
+
+	if partitionID != "" {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("partitionid").Eq(partitionID)
+		})
+	}
+
+	var ss []metal.Switch
+	err := rs.searchEntities(&q, &ss)
+	if err != nil {
+		return nil, err
+	}
+
+	return ss, nil
+}
+
 // SearchSwitchesConnectedToMachine searches switches that are connected to the given machine.
 func (rs *RethinkStore) SearchSwitchesConnectedToMachine(m *metal.Machine) ([]metal.Switch, error) {
 	switches, err := rs.SearchSwitches(m.RackID, nil)
@@ -93,7 +112,7 @@ func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.
 	for i := range switches {
 		sw := switches[i]
 		oldSwitch := sw
-		setVrf(&sw, m.ID, vrf)
+		sw.SetVrfOfMachine(m, vrf)
 		err := rs.UpdateSwitch(&oldSwitch, &sw)
 		if err != nil {
 			return nil, err
@@ -103,30 +122,8 @@ func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.
 	return newSwitches, nil
 }
 
-func setVrf(s *metal.Switch, mid, vrf string) {
-	affectedMacs := map[metal.MacAddress]bool{}
-	for _, c := range s.MachineConnections[mid] {
-		mac := c.Nic.MacAddress
-		affectedMacs[mac] = true
-	}
-
-	if len(affectedMacs) == 0 {
-		return
-	}
-
-	nics := metal.Nics{}
-	for mac, old := range s.Nics.ByMac() {
-		e := old
-		if _, ok := affectedMacs[mac]; ok {
-			e.Vrf = vrf
-		}
-		nics = append(nics, *e)
-	}
-	s.Nics = nics
-}
-
 func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
-	switches, err := rs.SearchSwitches("", nil)
+	switches, err := rs.SearchSwitchesByPartition(m.PartitionID)
 	if err != nil {
 		return err
 	}
