@@ -327,7 +327,7 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	case metal.RoleFirewall:
 		// firewalls are not enslaved into tenant vrfs
 		vrf = "default"
-	case metal.RoleFirewall:
+	case metal.RoleMachine:
 		for _, mn := range m.Allocation.MachineNetworks {
 			if mn.Private {
 				vrf = fmt.Sprintf("vrf%d", mn.Vrf)
