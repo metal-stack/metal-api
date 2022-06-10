@@ -21,13 +21,10 @@ jobs:
       uses: bufbuild/buf-setup-action@v1
       with:
         version: '1.5.0'
-    - name: lint proto files
-      uses: bufbuild/buf-lint-action@v1
-      with:
-        input: 'proto'
-    - name: generate proto
+
+    - name: generate proto and lint
       working-directory: proto
-      run: buf generate -v
+      run: make protoc
 
     - name: Figure out if running fork PR
       id: fork
