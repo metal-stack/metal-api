@@ -45,7 +45,7 @@ type machineResource struct {
 	ipamer          ipam.IPAMer
 	mdc             mdm.Client
 	actor           *asyncActor
-	grpcServer      *grpc.Server
+	waitService     *grpc.WaitService
 	s3Client        *s3server.Client
 	userGetter      security.UserGetter
 	reasonMinLength uint
@@ -105,7 +105,7 @@ func NewMachine(
 	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
-	grpcServer *grpc.Server,
+	waitService *grpc.WaitService,
 	s3Client *s3server.Client,
 	userGetter security.UserGetter,
 	reasonMinLength uint,
@@ -117,7 +117,7 @@ func NewMachine(
 		Publisher:       pub,
 		ipamer:          ipamer,
 		mdc:             mdc,
-		grpcServer:      grpcServer,
+		waitService:     waitService,
 		s3Client:        s3Client,
 		userGetter:      userGetter,
 		reasonMinLength: reasonMinLength,
@@ -1061,7 +1061,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.waitService)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "spec", spec, "error", err)
 		return
@@ -1169,7 +1169,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	}, nil
 }
 
-func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.Server) (*metal.Machine, error) {
+func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.WaitService) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err

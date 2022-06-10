@@ -83,7 +83,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 
 	log := zaptest.NewLogger(t)
 	grpcServer, err := metalgrpc.NewServer(&metalgrpc.ServerConfig{
-		Datasource:       ds,
+		Store:            ds,
 		Logger:           log.Sugar(),
 		GrpcPort:         50005,
 		TlsEnabled:       false,
@@ -95,11 +95,12 @@ func createTestEnvironment(t *testing.T) testEnv {
 		err := grpcServer.Serve()
 		require.NoError(t, err)
 	}()
-	grpcServer.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
+	waitService := grpcServer.WaitService()
+	waitService.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, grpcServer, nil, usergetter, 0)
+	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, waitService, nil, usergetter, 0)
 	require.NoError(t, err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
@@ -120,7 +121,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 		machineService:             machineService,
 		ipService:                  ipService,
 		ds:                         ds,
-		ws:                         grpcServer.WaitService,
+		ws:                         waitService,
 		rethinkContainer:           rethinkContainer,
 		ctx:                        context.TODO(),
 	}
