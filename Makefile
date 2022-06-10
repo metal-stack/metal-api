@@ -5,7 +5,7 @@ MINI_LAB_KUBECONFIG := $(shell pwd)/../mini-lab/.kubeconfig
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: spec check-diff all ;
+release:: protoc spec check-diff all ;
 
 .PHONY: spec
 spec: all
@@ -27,8 +27,8 @@ protoc:
 
 .PHONY: protoc-docker
 protoc-docker:
-	docker pull bufbuild/buf:1.4.0
-	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.4.0 generate -v
+	docker pull bufbuild/buf:1.5.0
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.5.0 generate -v
 
 .PHONY: mini-lab-push
 mini-lab-push:

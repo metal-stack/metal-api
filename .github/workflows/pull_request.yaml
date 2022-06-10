@@ -20,7 +20,7 @@ jobs:
     - name: setup buf
       uses: bufbuild/buf-setup-action@v1
       with:
-        version: '1.4.0'
+        version: '1.5.0'
     - name: lint proto files
       uses: bufbuild/buf-lint-action@v1
       with:
