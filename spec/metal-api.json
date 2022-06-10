@@ -2374,40 +2374,6 @@
         "memory"
       ]
     },
-    "v1.MachineHardwareExtended": {
-      "properties": {
-        "cpu_cores": {
-          "description": "the number of cpu cores",
-          "format": "int32",
-          "type": "integer"
-        },
-        "disks": {
-          "description": "the list of block devices of this machine",
-          "items": {
-            "$ref": "#/definitions/v1.MachineBlockDevice"
-          },
-          "type": "array"
-        },
-        "memory": {
-          "description": "the total memory of the machine",
-          "format": "integer",
-          "type": "integer"
-        },
-        "nics": {
-          "description": "the list of network interfaces of this machine with extended information",
-          "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "cpu_cores",
-        "disks",
-        "memory",
-        "nics"
-      ]
-    },
     "v1.MachineIPMI": {
       "description": "The IPMI connection data",
       "properties": {
@@ -2681,27 +2647,11 @@
         "name": {
           "description": "the name of this network interface",
           "type": "string"
-        }
-      },
-      "required": [
-        "mac",
-        "name"
-      ]
-    },
-    "v1.MachineNicExtended": {
-      "properties": {
-        "mac": {
-          "description": "the mac address of this network interface",
-          "type": "string"
-        },
-        "name": {
-          "description": "the name of this network interface",
-          "type": "string"
         },
         "neighbors": {
           "description": "the neighbors visible to this network interface",
           "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
+            "$ref": "#/definitions/v1.MachineNic"
           },
           "type": "array"
         }
@@ -2790,7 +2740,7 @@
           "description": "bios information of this machine"
         },
         "hardware": {
-          "$ref": "#/definitions/v1.MachineHardwareExtended",
+          "$ref": "#/definitions/v1.MachineHardware",
           "description": "the hardware of this machine"
         },
         "ipmi": {
@@ -2947,6 +2897,10 @@
           "description": "a description why this machine is in the given state",
           "type": "string"
         },
+        "metal_hammer_version": {
+          "description": "the version of metal hammer which put the machine in waiting state",
+          "type": "string"
+        },
         "value": {
           "description": "the state of this machine. empty means available for all",
           "type": "string"
@@ -2954,6 +2908,7 @@
       },
       "required": [
         "description",
+        "metal_hammer_version",
         "value"
       ]
     },
@@ -8269,7 +8224,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.MachineHardwareExtended"
+              "$ref": "#/definitions/v1.MachineHardware"
             }
           }
         ],

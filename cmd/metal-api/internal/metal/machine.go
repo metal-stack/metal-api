@@ -44,8 +44,9 @@ var (
 // the machine will be available for allocation. In all other cases the allocation
 // must explicitly point to this machine.
 type MachineState struct {
-	Value       MState `rethinkdb:"value" json:"value"`
-	Description string `rethinkdb:"description" json:"description"`
+	Value              MState `rethinkdb:"value" json:"value"`
+	Description        string `rethinkdb:"description" json:"description"`
+	MetalHammerVersion string `rethinkdb:"metal_hammer_version" json:"metal_hammer_version"`
 }
 
 // MachineStateFrom converts a machineState string to the type

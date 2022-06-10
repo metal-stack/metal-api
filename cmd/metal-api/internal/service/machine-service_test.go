@@ -200,27 +200,23 @@ func TestRegisterMachine(t *testing.T) {
 						ProductSerial:       &testdata.IPMI1.Fru.ProductSerial,
 					},
 				},
-				Hardware: v1.MachineHardwareExtended{
+				Hardware: v1.MachineHardware{
 					MachineHardwareBase: v1.MachineHardwareBase{
 						CPUCores: tt.numcores,
 						Memory:   uint64(tt.memory),
 					},
-					Nics: v1.MachineNicsExtended{
-						v1.MachineNicExtended{
-							Neighbors: v1.MachineNicsExtended{
-								v1.MachineNicExtended{
-									MachineNic: v1.MachineNic{
-										MacAddress: string(tt.neighbormac1),
-									},
+					Nics: v1.MachineNics{
+						v1.MachineNic{
+							Neighbors: v1.MachineNics{
+								v1.MachineNic{
+									MacAddress: string(tt.neighbormac1),
 								},
 							},
 						},
-						v1.MachineNicExtended{
-							Neighbors: v1.MachineNicsExtended{
-								v1.MachineNicExtended{
-									MachineNic: v1.MachineNic{
-										MacAddress: string(tt.neighbormac2),
-									},
+						v1.MachineNic{
+							Neighbors: v1.MachineNics{
+								v1.MachineNic{
+									MacAddress: string(tt.neighbormac2),
 								},
 							},
 						},

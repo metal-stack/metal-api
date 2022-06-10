@@ -1,11 +1,13 @@
 package grpc
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
 	"os"
+	"runtime/debug"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -15,8 +17,11 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/metal-stack/masterdata-api/pkg/interceptors/grpc_internalerror"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
@@ -30,9 +35,16 @@ const (
 
 type Datasource interface {
 	FindMachineByID(machineID string) (*metal.Machine, error)
+	FindMachine(q *datastore.MachineSearchQuery, ms *metal.Machine) error
+	FindPartition(partitionID string) (*metal.Partition, error)
 	CreateMachine(*metal.Machine) error
 	UpdateMachine(old, new *metal.Machine) error
+	FindProvisioningEventContainer(id string) (*metal.ProvisioningEventContainer, error)
+	CreateProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error
 	ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error)
+	SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.Switch, error)
+	ConnectMachineWithSwitches(m *metal.Machine) error
+	FromHardware(hw metal.MachineHardware) (*metal.Size, []*metal.SizeMatchingLog, error)
 }
 
 type ServerConfig struct {
@@ -53,8 +65,8 @@ type ServerConfig struct {
 
 type Server struct {
 	*WaitService
-	*SupwdService
 	*EventService
+	*BootService
 	ds             Datasource
 	logger         *zap.SugaredLogger
 	server         *grpc.Server
@@ -77,14 +89,14 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	supwdService := NewSupwdService(cfg)
 
 	eventService := NewEventService(cfg)
+	bootService := NewBootService(cfg, eventService)
 
 	s := &Server{
 		WaitService:    waitService,
-		SupwdService:   supwdService,
 		EventService:   eventService,
+		BootService:    bootService,
 		ds:             cfg.Datasource,
 		logger:         cfg.Logger,
 		grpcPort:       cfg.GrpcPort,
@@ -111,6 +123,14 @@ func (s *Server) Serve() error {
 
 	grpcLogger := s.logger.Named("grpc").Desugar()
 	grpc_zap.ReplaceGrpcLoggerV2(grpcLogger)
+
+	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
+		func(ctx context.Context, p any) error {
+			grpcLogger.Sugar().Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
+			return status.Errorf(codes.Internal, "%s", p)
+		},
+	)
+
 	s.server = grpc.NewServer(
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
@@ -119,21 +139,21 @@ func (s *Server) Serve() error {
 			grpc_prometheus.StreamServerInterceptor,
 			grpc_zap.StreamServerInterceptor(grpcLogger),
 			grpc_internalerror.StreamServerInterceptor(),
-			grpc_recovery.StreamServerInterceptor(),
+			grpc_recovery.StreamServerInterceptor(recoveryOpt),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_zap.UnaryServerInterceptor(grpcLogger),
 			grpc_internalerror.UnaryServerInterceptor(),
-			grpc_recovery.UnaryServerInterceptor(),
+			grpc_recovery.UnaryServerInterceptor(recoveryOpt),
 		)),
 	)
 	grpc_prometheus.Register(s.server)
 
-	v1.RegisterSuperUserPasswordServer(s.server, s.SupwdService)
 	v1.RegisterWaitServer(s.server, s.WaitService)
 	v1.RegisterEventServiceServer(s.server, s.EventService)
+	v1.RegisterBootServiceServer(s.server, s.BootService)
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {

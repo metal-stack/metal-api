@@ -48,7 +48,7 @@ func (rs *RethinkStore) FromHardware(hw metal.MachineHardware) (*metal.Size, []*
 		// this should not happen, so we do not return a notfound
 		return nil, nil, errors.New("no sizes found in database")
 	}
-	var sizes []metal.Size
+	var sizes metal.Sizes
 	for _, s := range sz {
 		if len(s.Constraints) < 1 {
 			rs.Error("missing constraints", "size", s)
@@ -56,5 +56,5 @@ func (rs *RethinkStore) FromHardware(hw metal.MachineHardware) (*metal.Size, []*
 		}
 		sizes = append(sizes, s)
 	}
-	return metal.Sizes(sizes).FromHardware(hw)
+	return sizes.FromHardware(hw)
 }
