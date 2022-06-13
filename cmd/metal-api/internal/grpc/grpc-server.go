@@ -80,12 +80,12 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 		Timeout: 1 * time.Second, // Wait 1 second for the ping ack before assuming the connection is dead
 	}
 
-	grpcLogger := cfg.Logger.Named("grpc").Desugar()
-	grpc_zap.ReplaceGrpcLoggerV2(grpcLogger)
+	log := cfg.Logger.Named("grpc")
+	grpc_zap.ReplaceGrpcLoggerV2(log.Desugar())
 
 	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, p any) error {
-			grpcLogger.Sugar().Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
+			log.Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
 			return status.Errorf(codes.Internal, "%s", p)
 		},
 	)
@@ -96,14 +96,14 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 			grpc_ctxtags.StreamServerInterceptor(),
 			grpc_prometheus.StreamServerInterceptor,
-			grpc_zap.StreamServerInterceptor(grpcLogger),
+			grpc_zap.StreamServerInterceptor(log.Desugar()),
 			grpc_internalerror.StreamServerInterceptor(),
 			grpc_recovery.StreamServerInterceptor(recoveryOpt),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
-			grpc_zap.UnaryServerInterceptor(grpcLogger),
+			grpc_zap.UnaryServerInterceptor(log.Desugar()),
 			grpc_internalerror.UnaryServerInterceptor(),
 			grpc_recovery.UnaryServerInterceptor(recoveryOpt),
 		)),
@@ -157,7 +157,7 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	return &Server{
 		grpcServer:  server,
 		ds:          cfg.Store,
-		logger:      cfg.Logger,
+		logger:      log,
 		cfg:         cfg,
 		listener:    listener,
 		waitService: waitService,
