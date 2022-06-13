@@ -103,34 +103,29 @@ func (t *test) run() {
 
 	wait := make(map[string]bool)
 
+	insertMock := func(w bool, id string) r.Term {
+		return r.DB("mockdb").Table("machine").Get(id).Replace(func(row r.Term) r.Term {
+			return r.Branch(row.Field("changed").Eq(r.MockAnything()), metal.Machine{
+				Base:    metal.Base{ID: id, Changed: now},
+				Waiting: w,
+			}, r.Error(datastore.EntityAlreadyModifiedErrorMessage))
+		})
+	}
+	returnMock := func(w bool, id string) func() []interface{} {
+		return func() []interface{} {
+			t.mtx.Lock()
+			defer t.mtx.Unlock()
+			wait[id] = w
+			return []interface{}{r.WriteResponse{}}
+		}
+	}
+
 	ds, mock := datastore.InitMockDB()
 	for i := 0; i < t.numberMachineInstances; i++ {
 		machineID := strconv.Itoa(i)
-		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{
-			Base: metal.Base{ID: machineID},
-		}, nil)
-		mock.On(r.DB("mockdb").Table("machine").Get(machineID).Replace(func(row r.Term) r.Term {
-			return r.Branch(row.Field("changed").Eq(r.MockAnything()), metal.Machine{
-				Base:    metal.Base{ID: machineID, Changed: now},
-				Waiting: true,
-			}, r.Error(datastore.EntityAlreadyModifiedErrorMessage))
-		})).Return(func() []interface{} {
-			t.mtx.Lock()
-			defer t.mtx.Unlock()
-			wait[machineID] = true
-			return []interface{}{r.WriteResponse{}}
-		}, nil)
-		mock.On(r.DB("mockdb").Table("machine").Get(machineID).Replace(func(row r.Term) r.Term {
-			return r.Branch(row.Field("changed").Eq(r.MockAnything()), metal.Machine{
-				Base:    metal.Base{ID: machineID, Changed: now},
-				Waiting: false,
-			}, r.Error(datastore.EntityAlreadyModifiedErrorMessage))
-		})).Return(func() []interface{} {
-			t.mtx.Lock()
-			defer t.mtx.Unlock()
-			wait[machineID] = false
-			return []interface{}{r.WriteResponse{}}
-		}, nil)
+		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{Base: metal.Base{ID: machineID}}, nil)
+		mock.On(insertMock(true, machineID)).Return(returnMock(true, machineID), nil)
+		mock.On(insertMock(false, machineID)).Return(returnMock(false, machineID), nil)
 	}
 
 	t.startApiInstances(ds)
