@@ -692,11 +692,16 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer.WaitService(), s3Client, userGetter, reasonMinLength)
+	var waitService *grpc.WaitService
+	if grpcServer != nil {
+		waitService = grpcServer.WaitService()
+	}
+
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitService, s3Client, userGetter, reasonMinLength)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer.WaitService(), userGetter)
+	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, waitService, userGetter)
 	if err != nil {
 		logger.Fatal(err)
 	}
