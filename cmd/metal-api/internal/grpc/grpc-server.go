@@ -169,11 +169,6 @@ func (s *Server) Serve() error {
 	return s.grpcServer.Serve(s.listener)
 }
 
-func (s *Server) Stop() error {
-	s.logger.Infow("stop gRPC")
-	return nil
-}
-
 func (s *Server) WaitService() *WaitService {
 	return s.waitService
 }
