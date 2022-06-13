@@ -215,6 +215,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		m.BIOS.Vendor = req.Bios.Vendor
 		m.BIOS.Date = req.Bios.Date
 		m.IPMI = ipmi
+		m.State.MetalHammerVersion = req.MetalHammerVersion
 
 		err = b.ds.UpdateMachine(&old, m)
 		if err != nil {
@@ -326,7 +327,7 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	case metal.RoleFirewall:
 		// firewalls are not enslaved into tenant vrfs
 		vrf = "default"
-	case metal.RoleFirewall:
+	case metal.RoleMachine:
 		for _, mn := range m.Allocation.MachineNetworks {
 			if mn.Private {
 				vrf = fmt.Sprintf("vrf%d", mn.Vrf)

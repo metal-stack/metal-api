@@ -17,7 +17,6 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -72,9 +71,7 @@ func TestWaitServer(t *testing.T) {
 				numberMachineInstances: m[0],
 				numberAllocations:      m[1],
 			})
-			break // REMOVE
 		}
-		break // REMOVE
 	}
 	for _, test := range tt {
 		test.T = t
@@ -99,32 +96,18 @@ func (t *test) run() {
 	t.mtx = new(sync.Mutex)
 	t.allocations = make(map[string]bool)
 
-	var (
-		mtx  = new(sync.Mutex)
-		wait = make(map[string]bool)
-	)
 	ds, mock := datastore.InitMockDB()
 	for i := 0; i < t.numberMachineInstances; i++ {
 		machineID := strconv.Itoa(i)
 		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{
 			Base: metal.Base{ID: machineID},
 		}, nil)
-		mock.On(r.DB("mockdb").Table("machine").Get(machineID).Replace(r.MockAnything())).Return(func() []interface{} {
-			mtx.Lock()
-			defer mtx.Unlock()
-			wait[machineID] = !wait[machineID]
-			return []interface{}{testdata.EmptyResult}
-		}, nil)
+		mock.On(r.DB("mockdb").Table("machine").Get(machineID).Replace(r.MockAnything())).Return(nil, nil)
 	}
 
 	t.startApiInstances(ds)
 	t.startMachineInstances()
 	t.notReadyMachines.Wait()
-
-	require.Equal(t, t.numberMachineInstances, len(wait))
-	for _, wait := range wait {
-		require.True(t, wait)
-	}
 
 	switch t.testCase {
 	case happyPath:
@@ -140,11 +123,6 @@ func (t *test) run() {
 		t.notReadyMachines.Wait()
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(wait))
-	for _, wait := range wait {
-		require.True(t, wait)
-	}
-
 	t.allocateMachines()
 
 	t.unallocatedMachines.Wait()
@@ -152,11 +130,6 @@ func (t *test) run() {
 	require.Equal(t, t.numberAllocations, len(t.allocations))
 	for _, allocated := range t.allocations {
 		require.True(t, allocated)
-	}
-
-	require.Equal(t, t.numberMachineInstances, len(wait))
-	for key, wait := range wait {
-		require.Equal(t, !containsKey(t.allocations, key), wait)
 	}
 }
 

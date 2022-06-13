@@ -498,8 +498,9 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Date:    m.BIOS.Date,
 			},
 			State: MachineState{
-				Value:       string(m.State.Value),
-				Description: m.State.Description,
+				Value:              string(m.State.Value),
+				Description:        m.State.Description,
+				MetalHammerVersion: m.State.MetalHammerVersion,
 			},
 			LEDState: ChassisIdentifyLEDState{
 				Value:       string(m.LEDState.Value),
