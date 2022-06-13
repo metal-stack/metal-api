@@ -383,7 +383,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		neighs := MachineNics{}
 		for j := range n.Neighbors {
 			neigh := n.Neighbors[j]
-			neighs = append(neighs, MachineNic{MacAddress: string(neigh.MacAddress), Name: neigh.Name})
+			neighs = append(neighs, MachineNic{MacAddress: string(neigh.MacAddress), Name: neigh.Name, Neighbors: MachineNics{}})
 		}
 		nic := MachineNic{
 			MacAddress: string(n.MacAddress),
