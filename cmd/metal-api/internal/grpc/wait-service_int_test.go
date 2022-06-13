@@ -269,8 +269,6 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 		MachineId: machineID,
 	}
 
-	fmt.Println("machine client entering wait loop " + machineID)
-
 	for {
 		stream, err := c.Wait(ctx, req)
 		time.Sleep(5 * time.Millisecond)
@@ -279,20 +277,16 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 		}
 
 		receivedResponse := false
-		fmt.Println("machine awaiting server response " + machineID)
 
 		for {
 			_, err := stream.Recv()
 			if errors.Is(err, io.EOF) {
-				fmt.Println("machine received server EOF" + machineID)
 				if !receivedResponse {
 					break
 				}
 				return nil
 			}
 			if err != nil {
-				fmt.Println("machine received server error "+machineID+", error: ", err)
-
 				if !receivedResponse {
 					break
 				}
@@ -302,7 +296,6 @@ func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.
 				break
 			}
 			if !receivedResponse {
-				fmt.Println("machine client received response, becoming ready " + machineID)
 				receivedResponse = true
 				t.notReadyMachines.Done()
 			}
