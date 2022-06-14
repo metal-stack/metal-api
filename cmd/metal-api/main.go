@@ -634,7 +634,7 @@ func initGrpcServer() {
 	var err error
 	grpcServer, err = grpc.NewServer(&grpc.ServerConfig{
 		Publisher:                p,
-		Datasource:               ds,
+		Store:                    ds,
 		Logger:                   logger,
 		NsqTlsConfig:             publisherTLSConfig,
 		NsqlookupdHttpAddress:    viper.GetString("nsqlookupd-addr"),
@@ -692,11 +692,16 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, grpcServer, s3Client, userGetter, reasonMinLength)
+	var waitService *grpc.WaitService
+	if grpcServer != nil {
+		waitService = grpcServer.WaitService()
+	}
+
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitService, s3Client, userGetter, reasonMinLength)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, grpcServer, userGetter)
+	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, waitService, userGetter)
 	if err != nil {
 		logger.Fatal(err)
 	}

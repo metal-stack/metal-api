@@ -293,11 +293,9 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	_, c, err := test.StartRethink()
 	require.NoError(t, err)
 
-	ws := &grpc.Server{
-		WaitService: &grpc.WaitService{
-			Publisher: NopPublisher{},
-			Logger:    log.Sugar(),
-		},
+	ws := &grpc.WaitService{
+		Publisher: NopPublisher{},
+		Logger:    log.Sugar(),
 	}
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)

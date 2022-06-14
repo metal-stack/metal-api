@@ -17,7 +17,7 @@ import (
 
 type BootService struct {
 	log               *zap.SugaredLogger
-	ds                Datasource
+	ds                *datastore.RethinkStore
 	superUserPassword *string
 	publisher         bus.Publisher
 	eventService      *EventService
@@ -36,7 +36,7 @@ func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService 
 	}
 
 	return &BootService{
-		ds:                cfg.Datasource,
+		ds:                cfg.Store,
 		log:               log,
 		publisher:         cfg.Publisher,
 		superUserPassword: superUserPassword,

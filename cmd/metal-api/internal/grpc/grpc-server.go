@@ -22,7 +22,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
@@ -33,23 +32,9 @@ const (
 	defaultCheckInterval    = 60 * time.Second
 )
 
-type Datasource interface {
-	FindMachineByID(machineID string) (*metal.Machine, error)
-	FindMachine(q *datastore.MachineSearchQuery, ms *metal.Machine) error
-	FindPartition(partitionID string) (*metal.Partition, error)
-	CreateMachine(*metal.Machine) error
-	UpdateMachine(old, new *metal.Machine) error
-	FindProvisioningEventContainer(id string) (*metal.ProvisioningEventContainer, error)
-	CreateProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error
-	ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error)
-	SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.Switch, error)
-	ConnectMachineWithSwitches(m *metal.Machine) error
-	FromHardware(hw metal.MachineHardware) (*metal.Size, []*metal.SizeMatchingLog, error)
-}
-
 type ServerConfig struct {
 	Publisher                bus.Publisher
-	Datasource               Datasource
+	Store                    *datastore.RethinkStore
 	Logger                   *zap.SugaredLogger
 	NsqTlsConfig             *bus.TLSConfig
 	NsqlookupdHttpAddress    string
@@ -64,53 +49,27 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	*WaitService
-	*EventService
-	*BootService
-	ds             Datasource
-	logger         *zap.SugaredLogger
-	server         *grpc.Server
-	grpcPort       int
-	tlsEnabled     bool
-	caCertFile     string
-	serverCertFile string
-	serverKeyFile  string
+	grpcServer  *grpc.Server
+	ds          *datastore.RethinkStore
+	logger      *zap.SugaredLogger
+	cfg         *ServerConfig
+	listener    net.Listener
+	waitService *WaitService
 }
 
 func NewServer(cfg *ServerConfig) (*Server, error) {
+	addr := fmt.Sprintf(":%d", cfg.GrpcPort)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
 	if cfg.ResponseInterval <= 0 {
 		cfg.ResponseInterval = defaultResponseInterval
 	}
 	if cfg.CheckInterval <= 0 {
 		cfg.CheckInterval = defaultCheckInterval
 	}
-
-	waitService, err := NewWaitService(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	eventService := NewEventService(cfg)
-	bootService := NewBootService(cfg, eventService)
-
-	s := &Server{
-		WaitService:    waitService,
-		EventService:   eventService,
-		BootService:    bootService,
-		ds:             cfg.Datasource,
-		logger:         cfg.Logger,
-		grpcPort:       cfg.GrpcPort,
-		tlsEnabled:     cfg.TlsEnabled,
-		caCertFile:     cfg.CaCertFile,
-		serverCertFile: cfg.ServerCertFile,
-		serverKeyFile:  cfg.ServerKeyFile,
-	}
-
-	return s, nil
-}
-
-func (s *Server) Serve() error {
-	addr := fmt.Sprintf(":%d", s.grpcPort)
 
 	kaep := keepalive.EnforcementPolicy{
 		MinTime:             5 * time.Second, // If a client pings more than once every 5 seconds, terminate the connection
@@ -121,67 +80,69 @@ func (s *Server) Serve() error {
 		Timeout: 1 * time.Second, // Wait 1 second for the ping ack before assuming the connection is dead
 	}
 
-	grpcLogger := s.logger.Named("grpc").Desugar()
-	grpc_zap.ReplaceGrpcLoggerV2(grpcLogger)
+	log := cfg.Logger.Named("grpc")
+	grpc_zap.ReplaceGrpcLoggerV2(log.Desugar())
 
 	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, p any) error {
-			grpcLogger.Sugar().Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
+			log.Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
 			return status.Errorf(codes.Internal, "%s", p)
 		},
 	)
 
-	s.server = grpc.NewServer(
+	server := grpc.NewServer(
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 			grpc_ctxtags.StreamServerInterceptor(),
 			grpc_prometheus.StreamServerInterceptor,
-			grpc_zap.StreamServerInterceptor(grpcLogger),
+			grpc_zap.StreamServerInterceptor(log.Desugar()),
 			grpc_internalerror.StreamServerInterceptor(),
 			grpc_recovery.StreamServerInterceptor(recoveryOpt),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
-			grpc_zap.UnaryServerInterceptor(grpcLogger),
+			grpc_zap.UnaryServerInterceptor(log.Desugar()),
 			grpc_internalerror.UnaryServerInterceptor(),
 			grpc_recovery.UnaryServerInterceptor(recoveryOpt),
 		)),
 	)
-	grpc_prometheus.Register(s.server)
+	grpc_prometheus.Register(server)
 
-	v1.RegisterWaitServer(s.server, s.WaitService)
-	v1.RegisterEventServiceServer(s.server, s.EventService)
-	v1.RegisterBootServiceServer(s.server, s.BootService)
-
-	listener, err := net.Listen("tcp", addr)
+	waitService, err := NewWaitService(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	eventService := NewEventService(cfg)
+	bootService := NewBootService(cfg, eventService)
 
-	if s.tlsEnabled {
-		cert, err := os.ReadFile(s.serverCertFile)
+	v1.RegisterWaitServer(server, waitService)
+	v1.RegisterEventServiceServer(server, eventService)
+	v1.RegisterBootServiceServer(server, bootService)
+
+	if cfg.TlsEnabled {
+		cert, err := os.ReadFile(cfg.ServerCertFile)
 		if err != nil {
-			s.logger.Fatalw("failed to serve gRPC", "error", err)
+			return nil, fmt.Errorf("failed to serve gRPC: %w", err)
 		}
-		key, err := os.ReadFile(s.serverKeyFile)
+		key, err := os.ReadFile(cfg.ServerKeyFile)
 		if err != nil {
-			s.logger.Fatalw("failed to serve gRPC", "error", err)
+			return nil, fmt.Errorf("failed to serve gRPC: %w", err)
 		}
 		serverCert, err := tls.X509KeyPair(cert, key)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		caCert, err := os.ReadFile(s.caCertFile)
+		caCert, err := os.ReadFile(cfg.CaCertFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		caCertPool := x509.NewCertPool()
 		ok := caCertPool.AppendCertsFromPEM(caCert)
 		if !ok {
-			return err
+			return nil, err
 		}
 
 		listener = tls.NewListener(listener, &tls.Config{
@@ -193,6 +154,21 @@ func (s *Server) Serve() error {
 		})
 	}
 
-	s.logger.Infow("serve gRPC", "address", addr)
-	return s.server.Serve(listener)
+	return &Server{
+		grpcServer:  server,
+		ds:          cfg.Store,
+		logger:      log,
+		cfg:         cfg,
+		listener:    listener,
+		waitService: waitService,
+	}, nil
+}
+
+func (s *Server) Serve() error {
+	s.logger.Infow("serve gRPC", "address", s.listener.Addr())
+	return s.grpcServer.Serve(s.listener)
+}
+
+func (s *Server) WaitService() *WaitService {
+	return s.waitService
 }

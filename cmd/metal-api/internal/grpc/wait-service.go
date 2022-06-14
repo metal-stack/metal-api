@@ -12,6 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
@@ -26,7 +27,7 @@ type WaitService struct {
 	bus.Publisher
 	consumer         *bus.Consumer
 	Logger           *zap.SugaredLogger
-	ds               Datasource
+	ds               *datastore.RethinkStore
 	queue            sync.Map
 	responseInterval time.Duration
 	checkInterval    time.Duration
@@ -41,7 +42,7 @@ func NewWaitService(cfg *ServerConfig) (*WaitService, error) {
 	s := &WaitService{
 		Publisher:        cfg.Publisher,
 		consumer:         c,
-		ds:               cfg.Datasource,
+		ds:               cfg.Store,
 		Logger:           cfg.Logger,
 		queue:            sync.Map{},
 		responseInterval: cfg.ResponseInterval,

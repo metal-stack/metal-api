@@ -28,11 +28,11 @@ import (
 type firewallResource struct {
 	webResource
 	bus.Publisher
-	ipamer     ipam.IPAMer
-	mdc        mdm.Client
-	grpcServer *grpc.Server
-	userGetter security.UserGetter
-	actor      *asyncActor
+	ipamer      ipam.IPAMer
+	mdc         mdm.Client
+	waitService *grpc.WaitService
+	userGetter  security.UserGetter
+	actor       *asyncActor
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
@@ -41,17 +41,17 @@ func NewFirewall(
 	ipamer ipam.IPAMer,
 	ep *bus.Endpoints,
 	mdc mdm.Client,
-	grpcServer *grpc.Server,
+	waitService *grpc.WaitService,
 	userGetter security.UserGetter,
 ) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
 			ds: ds,
 		},
-		ipamer:     ipamer,
-		mdc:        mdc,
-		grpcServer: grpcServer,
-		userGetter: userGetter,
+		ipamer:      ipamer,
+		mdc:         mdc,
+		waitService: waitService,
+		userGetter:  userGetter,
 	}
 
 	var err error
@@ -204,7 +204,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.waitService)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

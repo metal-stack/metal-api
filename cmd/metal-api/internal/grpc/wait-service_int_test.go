@@ -20,6 +20,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
+
+	"github.com/undefinedlabs/go-mpatch"
+
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type testCase int
@@ -76,57 +80,8 @@ func TestWaitServer(t *testing.T) {
 		test.run()
 		test.testCase = clientFailure
 		test.run()
+
 	}
-}
-
-type datasource struct {
-	mtx  *sync.Mutex
-	wait map[string]bool
-}
-
-func (ds *datasource) FindMachine(q *datastore.MachineSearchQuery, ms *metal.Machine) error {
-	return nil
-}
-
-func (ds *datasource) FindPartition(partitionID string) (*metal.Partition, error) {
-	return nil, nil
-}
-
-func (ds *datasource) FindMachineByID(machineID string) (*metal.Machine, error) {
-	return &metal.Machine{
-		Base: metal.Base{
-			ID: machineID,
-		},
-	}, nil
-}
-
-func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
-	ds.mtx.Lock()
-	defer ds.mtx.Unlock()
-	ds.wait[new.ID] = new.Waiting
-	return nil
-}
-func (ds *datasource) FromHardware(hw metal.MachineHardware) (*metal.Size, []*metal.SizeMatchingLog, error) {
-	return nil, nil, nil
-}
-
-func (ds *datasource) CreateMachine(new *metal.Machine) error {
-	return nil
-}
-func (ds *datasource) ProvisioningEventForMachine(log *zap.SugaredLogger, machineID, event, message string) (*metal.ProvisioningEventContainer, error) {
-	return nil, nil
-}
-func (ds *datasource) FindProvisioningEventContainer(id string) (*metal.ProvisioningEventContainer, error) {
-	return nil, nil
-}
-func (ds *datasource) CreateProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error {
-	return nil
-}
-func (ds *datasource) SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.Switch, error) {
-	return nil, nil
-}
-func (ds *datasource) ConnectMachineWithSwitches(m *metal.Machine) error {
-	return nil
 }
 
 func (t *test) run() {
@@ -141,17 +96,44 @@ func (t *test) run() {
 	t.mtx = new(sync.Mutex)
 	t.allocations = make(map[string]bool)
 
-	ds := &datasource{
-		mtx:  new(sync.Mutex),
-		wait: make(map[string]bool),
+	now := time.Now()
+	_, _ = mpatch.PatchMethod(time.Now, func() time.Time {
+		return now
+	})
+
+	wait := make(map[string]bool)
+
+	insertMock := func(w bool, id string) r.Term {
+		return r.DB("mockdb").Table("machine").Get(id).Replace(func(row r.Term) r.Term {
+			return r.Branch(row.Field("changed").Eq(r.MockAnything()), metal.Machine{
+				Base:    metal.Base{ID: id, Changed: now},
+				Waiting: w,
+			}, r.Error(datastore.EntityAlreadyModifiedErrorMessage))
+		})
+	}
+	returnMock := func(w bool, id string) func() []interface{} {
+		return func() []interface{} {
+			t.mtx.Lock()
+			defer t.mtx.Unlock()
+			wait[id] = w
+			return []interface{}{r.WriteResponse{}}
+		}
+	}
+
+	ds, mock := datastore.InitMockDB()
+	for i := 0; i < t.numberMachineInstances; i++ {
+		machineID := strconv.Itoa(i)
+		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{Base: metal.Base{ID: machineID}}, nil)
+		mock.On(insertMock(true, machineID)).Return(returnMock(true, machineID), nil)
+		mock.On(insertMock(false, machineID)).Return(returnMock(false, machineID), nil)
 	}
 
 	t.startApiInstances(ds)
 	t.startMachineInstances()
 	t.notReadyMachines.Wait()
 
-	require.Equal(t, t.numberMachineInstances, len(ds.wait))
-	for _, wait := range ds.wait {
+	require.Equal(t, t.numberMachineInstances, len(wait))
+	for _, wait := range wait {
 		require.True(t, wait)
 	}
 
@@ -169,8 +151,8 @@ func (t *test) run() {
 		t.notReadyMachines.Wait()
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(ds.wait))
-	for _, wait := range ds.wait {
+	require.Equal(t, t.numberMachineInstances, len(wait))
+	for _, wait := range wait {
 		require.True(t, wait)
 	}
 
@@ -183,8 +165,8 @@ func (t *test) run() {
 		require.True(t, allocated)
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(ds.wait))
-	for key, wait := range ds.wait {
+	require.Equal(t, t.numberMachineInstances, len(wait))
+	for key, wait := range wait {
 		require.Equal(t, !containsKey(t.allocations, key), wait)
 	}
 }
@@ -208,7 +190,7 @@ func (t *test) stopApiInstances() {
 		t.ss = t.ss[:0]
 	}()
 	for _, s := range t.ss {
-		s.server.Stop()
+		s.grpcServer.Stop()
 	}
 }
 
@@ -222,10 +204,10 @@ func (t *test) stopMachineInstances() {
 	}
 }
 
-func (t *test) startApiInstances(ds Datasource) {
+func (t *test) startApiInstances(ds *datastore.RethinkStore) {
 	for i := 0; i < t.numberApiInstances; i++ {
 		cfg := &ServerConfig{
-			Datasource:       ds,
+			Store:            ds,
 			Logger:           zap.NewNop().Sugar(),
 			GrpcPort:         50005 + i,
 			TlsEnabled:       false,
@@ -340,7 +322,7 @@ func (t *test) selectMachine(except []string) string {
 
 func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
-		s.handleAllocation(machineID)
+		s.waitService.handleAllocation(machineID)
 	}
 }
 
