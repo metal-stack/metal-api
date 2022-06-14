@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package grpc
 
 import (
@@ -246,7 +249,7 @@ func (t *test) startMachineInstances() {
 			cancel:     cancel,
 		})
 		go func() {
-			waitClient := v1.NewWaitClient(conn)
+			waitClient := v1.NewBootServiceClient(conn)
 			err := t.waitForAllocation(machineID, waitClient, ctx)
 			if err != nil {
 				return
@@ -259,8 +262,8 @@ func (t *test) startMachineInstances() {
 	}
 }
 
-func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.Context) error {
-	req := &v1.WaitRequest{
+func (t *test) waitForAllocation(machineID string, c v1.BootServiceClient, ctx context.Context) error {
+	req := &v1.BootServiceWaitRequest{
 		MachineId: machineID,
 	}
 
@@ -322,7 +325,7 @@ func (t *test) selectMachine(except []string) string {
 
 func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
-		s.waitService.handleAllocation(machineID)
+		s.bootService.handleAllocation(machineID)
 	}
 }
 

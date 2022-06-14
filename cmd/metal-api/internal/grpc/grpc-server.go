@@ -34,10 +34,9 @@ const (
 
 type ServerConfig struct {
 	Publisher                bus.Publisher
+	Consumer                 *bus.Consumer
 	Store                    *datastore.RethinkStore
 	Logger                   *zap.SugaredLogger
-	NsqTlsConfig             *bus.TLSConfig
-	NsqlookupdHttpAddress    string
 	GrpcPort                 int
 	TlsEnabled               bool
 	CaCertFile               string
@@ -54,7 +53,7 @@ type Server struct {
 	logger      *zap.SugaredLogger
 	cfg         *ServerConfig
 	listener    net.Listener
-	waitService *WaitService
+	bootService *BootService
 }
 
 func NewServer(cfg *ServerConfig) (*Server, error) {
@@ -110,14 +109,9 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	)
 	grpc_prometheus.Register(server)
 
-	waitService, err := NewWaitService(cfg)
-	if err != nil {
-		return nil, err
-	}
 	eventService := NewEventService(cfg)
 	bootService := NewBootService(cfg, eventService)
 
-	v1.RegisterWaitServer(server, waitService)
 	v1.RegisterEventServiceServer(server, eventService)
 	v1.RegisterBootServiceServer(server, bootService)
 
@@ -160,7 +154,7 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 		logger:      log,
 		cfg:         cfg,
 		listener:    listener,
-		waitService: waitService,
+		bootService: bootService,
 	}, nil
 }
 
@@ -169,6 +163,6 @@ func (s *Server) Serve() error {
 	return s.grpcServer.Serve(s.listener)
 }
 
-func (s *Server) WaitService() *WaitService {
-	return s.waitService
+func (s *Server) BootService() *BootService {
+	return s.bootService
 }

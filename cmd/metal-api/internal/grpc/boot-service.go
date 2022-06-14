@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -20,7 +22,11 @@ type BootService struct {
 	ds                *datastore.RethinkStore
 	superUserPassword *string
 	publisher         bus.Publisher
+	consumer          *bus.Consumer
 	eventService      *EventService
+	queue             sync.Map
+	responseInterval  time.Duration
+	checkInterval     time.Duration
 }
 
 func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService {
@@ -39,10 +45,15 @@ func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService 
 		ds:                cfg.Store,
 		log:               log,
 		publisher:         cfg.Publisher,
+		consumer:          cfg.Consumer,
 		superUserPassword: superUserPassword,
 		eventService:      eventService,
+		queue:             sync.Map{},
+		responseInterval:  cfg.ResponseInterval,
+		checkInterval:     cfg.CheckInterval,
 	}
 }
+
 func (b *BootService) Dhcp(ctx context.Context, req *v1.BootServiceDhcpRequest) (*v1.BootServiceDhcpResponse, error) {
 	b.log.Infow("dhcp", "req", req)
 

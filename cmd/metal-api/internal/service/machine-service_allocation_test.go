@@ -293,10 +293,10 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	_, c, err := test.StartRethink()
 	require.NoError(t, err)
 
-	ws := &grpc.WaitService{
-		Publisher: NopPublisher{},
+	bs := grpc.NewBootService(&grpc.ServerConfig{
 		Logger:    log.Sugar(),
-	}
+		Publisher: NopPublisher{},
+	}, nil)
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMax = 1000
@@ -321,7 +321,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	createTestdata(machineCount, rs, ipamer, t)
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, usergetter, 0)
+	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, bs, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter))

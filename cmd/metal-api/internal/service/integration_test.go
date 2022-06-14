@@ -46,7 +46,7 @@ type testEnv struct {
 	partitionService           *restful.WebService
 	machineService             *restful.WebService
 	ipService                  *restful.WebService
-	ws                         *metalgrpc.WaitService
+	bs                         *metalgrpc.BootService
 	ds                         *datastore.RethinkStore
 	privateSuperNetwork        *v1.NetworkResponse
 	privateNetwork             *v1.NetworkResponse
@@ -84,6 +84,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	log := zaptest.NewLogger(t)
 	grpcServer, err := metalgrpc.NewServer(&metalgrpc.ServerConfig{
 		Store:            ds,
+		Publisher:        NopPublisher{},
 		Logger:           log.Sugar(),
 		GrpcPort:         50005,
 		TlsEnabled:       false,
@@ -95,12 +96,11 @@ func createTestEnvironment(t *testing.T) testEnv {
 		err := grpcServer.Serve()
 		require.NoError(t, err)
 	}()
-	waitService := grpcServer.WaitService()
-	waitService.Publisher = NopPublisher{} // has to be done after constructor because init would fail otherwise
+	bootService := grpcServer.BootService()
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, waitService, nil, usergetter, 0)
+	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, bootService, nil, usergetter, 0)
 	require.NoError(t, err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
@@ -121,7 +121,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 		machineService:             machineService,
 		ipService:                  ipService,
 		ds:                         ds,
-		ws:                         waitService,
+		bs:                         bootService,
 		rethinkContainer:           rethinkContainer,
 		ctx:                        context.TODO(),
 	}
@@ -409,7 +409,7 @@ func (te *testEnv) machineWait(uuid string) error {
 	isWaiting := make(chan bool)
 
 	go func() {
-		waitClient := grpcv1.NewWaitClient(conn)
+		waitClient := grpcv1.NewBootServiceClient(conn)
 		waitForAllocation(uuid, waitClient, context.Background())
 		isWaiting <- true
 	}()
@@ -419,8 +419,8 @@ func (te *testEnv) machineWait(uuid string) error {
 	return nil
 }
 
-func waitForAllocation(machineID string, c grpcv1.WaitClient, ctx context.Context) {
-	req := &grpcv1.WaitRequest{
+func waitForAllocation(machineID string, c grpcv1.BootServiceClient, ctx context.Context) {
+	req := &grpcv1.BootServiceWaitRequest{
 		MachineId: machineID,
 	}
 

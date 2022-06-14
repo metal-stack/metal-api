@@ -631,13 +631,17 @@ func initGrpcServer() {
 	if nsqer != nil {
 		p = nsqer.Publisher
 	}
-	var err error
+
+	c, err := bus.NewConsumer(logger.Desugar(), publisherTLSConfig, viper.GetString("nsqlookupd-addr"))
+	if err != nil {
+		logger.Fatalw("cannot connect to NSQ", "error", err)
+	}
+
 	grpcServer, err = grpc.NewServer(&grpc.ServerConfig{
 		Publisher:                p,
+		Consumer:                 c,
 		Store:                    ds,
 		Logger:                   logger,
-		NsqTlsConfig:             publisherTLSConfig,
-		NsqlookupdHttpAddress:    viper.GetString("nsqlookupd-addr"),
 		GrpcPort:                 viper.GetInt("grpc-port"),
 		TlsEnabled:               viper.GetBool("grpc-tls-enabled"),
 		CaCertFile:               viper.GetString("grpc-ca-cert-file"),
@@ -646,7 +650,7 @@ func initGrpcServer() {
 		BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
 	})
 	if err != nil {
-		logger.Fatalw("cannot connect to NSQ", "error", err)
+		logger.Fatalw("cannot intialize grpc server", "error", err)
 	}
 }
 
@@ -692,16 +696,16 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	var waitService *grpc.WaitService
+	var bootService *grpc.BootService
 	if grpcServer != nil {
-		waitService = grpcServer.WaitService()
+		bootService = grpcServer.BootService()
 	}
 
-	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, waitService, s3Client, userGetter, reasonMinLength)
+	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, bootService, s3Client, userGetter, reasonMinLength)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, waitService, userGetter)
+	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, bootService, userGetter)
 	if err != nil {
 		logger.Fatal(err)
 	}

@@ -13,6 +13,8 @@ service BootService {
   rpc SuperUserPassword(BootServiceSuperUserPasswordRequest) returns (BootServiceSuperUserPasswordResponse);
   // Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
   rpc Register(BootServiceRegisterRequest) returns (BootServiceRegisterResponse) {}
+  // Wait is a hanging call that waits until the machine gets allocated by a user
+  rpc Wait(BootServiceWaitRequest) returns (stream BootServiceWaitResponse);
   // Report tells metal-api installation was either sucessful or failed
   rpc Report(BootServiceReportRequest) returns (BootServiceReportResponse) {}
   // If reinstall failed and tell metal-api to restore to previous state
@@ -50,6 +52,12 @@ message BootServiceRegisterResponse {
   string size = 2;
   string partition_id = 3;
 }
+
+message BootServiceWaitRequest {
+  string machine_id = 1;
+}
+
+message BootServiceWaitResponse {}
 
 message MachineHardware {
   uint64 memory = 1;

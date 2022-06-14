@@ -30,7 +30,7 @@ type firewallResource struct {
 	bus.Publisher
 	ipamer      ipam.IPAMer
 	mdc         mdm.Client
-	waitService *grpc.WaitService
+	bootService *grpc.BootService
 	userGetter  security.UserGetter
 	actor       *asyncActor
 }
@@ -41,7 +41,7 @@ func NewFirewall(
 	ipamer ipam.IPAMer,
 	ep *bus.Endpoints,
 	mdc mdm.Client,
-	waitService *grpc.WaitService,
+	bootService *grpc.BootService,
 	userGetter security.UserGetter,
 ) (*restful.WebService, error) {
 	r := firewallResource{
@@ -50,7 +50,7 @@ func NewFirewall(
 		},
 		ipamer:      ipamer,
 		mdc:         mdc,
-		waitService: waitService,
+		bootService: bootService,
 		userGetter:  userGetter,
 	}
 
@@ -204,7 +204,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.waitService)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.bootService)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
