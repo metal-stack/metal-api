@@ -46,7 +46,6 @@ type testEnv struct {
 	partitionService           *restful.WebService
 	machineService             *restful.WebService
 	ipService                  *restful.WebService
-	bs                         *metalgrpc.BootService
 	ds                         *datastore.RethinkStore
 	privateSuperNetwork        *v1.NetworkResponse
 	privateNetwork             *v1.NetworkResponse
