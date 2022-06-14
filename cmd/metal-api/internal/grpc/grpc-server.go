@@ -100,6 +100,11 @@ func Run(cfg *ServerConfig) error {
 	eventService := NewEventService(cfg)
 	bootService := NewBootService(cfg, eventService)
 
+	err := bootService.initWaitEndpoint()
+	if err != nil {
+		return err
+	}
+
 	v1.RegisterEventServiceServer(server, eventService)
 	v1.RegisterBootServiceServer(server, bootService)
 
@@ -155,7 +160,6 @@ func Run(cfg *ServerConfig) error {
 		}
 	}
 
-	var err error
 	go func() {
 		log.Infow("serve gRPC", "address", listener.Addr())
 		err = server.Serve(listener)

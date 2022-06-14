@@ -824,7 +824,7 @@ func run() error {
 	}
 
 	go func() {
-		grpc.Run(&grpc.ServerConfig{
+		err = grpc.Run(&grpc.ServerConfig{
 			Context:                  context.Background(),
 			Publisher:                p,
 			Consumer:                 c,
