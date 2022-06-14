@@ -19,46 +19,6 @@ const (
 	allocationTopicTTL     = time.Duration(30) * time.Second
 )
 
-func (b *BootService) NotifyAllocated(machineID string) error {
-	err := b.publisher.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machineID})
-	if err != nil {
-		b.log.Errorw("failed to publish machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID, "error", err)
-	} else {
-		b.log.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machineID)
-	}
-	return err
-}
-
-func (b *BootService) initWaitEndpoint() error {
-	if b.publisher == nil {
-		return nil
-	}
-	var r uint64
-	randomByte, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
-	if err == nil {
-		r = randomByte.Uint64()
-	} else {
-		b.log.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
-		mathrand.Seed(time.Now().UnixNano())
-		// nolint
-		r = mathrand.Uint64()
-	}
-	channel := fmt.Sprintf("alloc-%d#ephemeral", r)
-	return b.consumer.With(bus.LogLevel(bus.Warning)).
-		MustRegister(metal.TopicAllocation.Name, channel).
-		Consume(metal.AllocationEvent{}, func(message interface{}) error {
-			evt := message.(*metal.AllocationEvent)
-			b.log.Debugw("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
-			b.handleAllocation(evt.MachineID)
-			return nil
-		}, 5, bus.Timeout(receiverHandlerTimeout, b.timeoutHandler), bus.TTL(allocationTopicTTL))
-}
-
-func (b *BootService) timeoutHandler(err bus.TimeoutError) error {
-	b.log.Error("Timeout processing event", "event", err.Event())
-	return nil
-}
-
 func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_WaitServer) error {
 	machineID := req.MachineId
 	b.log.Infow("wait for allocation called by", "machineID", machineID)
@@ -135,6 +95,36 @@ func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_Wa
 			}
 		}
 	}
+}
+
+func (b *BootService) initWaitEndpoint() error {
+	if b.publisher == nil {
+		return nil
+	}
+	var r uint64
+	randomByte, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+	if err == nil {
+		r = randomByte.Uint64()
+	} else {
+		b.log.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
+		mathrand.Seed(time.Now().UnixNano())
+		// nolint
+		r = mathrand.Uint64()
+	}
+	channel := fmt.Sprintf("alloc-%d#ephemeral", r)
+	return b.consumer.With(bus.LogLevel(bus.Warning)).
+		MustRegister(metal.TopicAllocation.Name, channel).
+		Consume(metal.AllocationEvent{}, func(message interface{}) error {
+			evt := message.(*metal.AllocationEvent)
+			b.log.Debugw("got message", "topic", metal.TopicAllocation.Name, "channel", channel, "machineID", evt.MachineID)
+			b.handleAllocation(evt.MachineID)
+			return nil
+		}, 5, bus.Timeout(receiverHandlerTimeout, b.timeoutHandler), bus.TTL(allocationTopicTTL))
+}
+
+func (b *BootService) timeoutHandler(err bus.TimeoutError) error {
+	b.log.Error("Timeout processing event", "event", err.Event())
+	return nil
 }
 
 // https://github.com/grpc/grpc-go/issues/1229#issuecomment-302755717

@@ -21,7 +21,6 @@ import (
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -293,11 +292,6 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	_, c, err := test.StartRethink()
 	require.NoError(t, err)
 
-	bs := grpc.NewBootService(&grpc.ServerConfig{
-		Logger:    log.Sugar(),
-		Publisher: NopPublisher{},
-	}, nil)
-
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMax = 1000
 	rs.ASNPoolRangeMax = 1000
@@ -321,7 +315,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	createTestdata(machineCount, rs, ipamer, t)
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, bs, nil, usergetter, 0)
+	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter))

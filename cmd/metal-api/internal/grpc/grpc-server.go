@@ -33,6 +33,7 @@ const (
 )
 
 type ServerConfig struct {
+	Context                  context.Context
 	Publisher                bus.Publisher
 	Consumer                 *bus.Consumer
 	Store                    *datastore.RethinkStore
@@ -45,24 +46,11 @@ type ServerConfig struct {
 	ResponseInterval         time.Duration
 	CheckInterval            time.Duration
 	BMCSuperUserPasswordFile string
+
+	integrationTestAllocator chan string
 }
 
-type Server struct {
-	grpcServer  *grpc.Server
-	ds          *datastore.RethinkStore
-	logger      *zap.SugaredLogger
-	cfg         *ServerConfig
-	listener    net.Listener
-	bootService *BootService
-}
-
-func NewServer(cfg *ServerConfig) (*Server, error) {
-	addr := fmt.Sprintf(":%d", cfg.GrpcPort)
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-
+func Run(cfg *ServerConfig) error {
 	if cfg.ResponseInterval <= 0 {
 		cfg.ResponseInterval = defaultResponseInterval
 	}
@@ -115,28 +103,41 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 	v1.RegisterEventServiceServer(server, eventService)
 	v1.RegisterBootServiceServer(server, bootService)
 
+	// this is only for the integration test of this package
+	if cfg.integrationTestAllocator != nil {
+		go func() {
+			for {
+				machineID := <-cfg.integrationTestAllocator
+				bootService.handleAllocation(machineID)
+			}
+		}()
+	}
+
+	var listener net.Listener
+	addr := fmt.Sprintf(":%d", cfg.GrpcPort)
+
 	if cfg.TlsEnabled {
 		cert, err := os.ReadFile(cfg.ServerCertFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to serve gRPC: %w", err)
+			return fmt.Errorf("failed to serve gRPC: %w", err)
 		}
 		key, err := os.ReadFile(cfg.ServerKeyFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to serve gRPC: %w", err)
+			return fmt.Errorf("failed to serve gRPC: %w", err)
 		}
 		serverCert, err := tls.X509KeyPair(cert, key)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		caCert, err := os.ReadFile(cfg.CaCertFile)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		caCertPool := x509.NewCertPool()
 		ok := caCertPool.AppendCertsFromPEM(caCert)
 		if !ok {
-			return nil, err
+			return err
 		}
 
 		listener = tls.NewListener(listener, &tls.Config{
@@ -146,23 +147,22 @@ func NewServer(cfg *ServerConfig) (*Server, error) {
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			MinVersion:   tls.VersionTLS12,
 		})
+	} else {
+		var err error
+		listener, err = net.Listen("tcp", addr)
+		if err != nil {
+			return err
+		}
 	}
 
-	return &Server{
-		grpcServer:  server,
-		ds:          cfg.Store,
-		logger:      log,
-		cfg:         cfg,
-		listener:    listener,
-		bootService: bootService,
-	}, nil
-}
+	var err error
+	go func() {
+		log.Infow("serve gRPC", "address", listener.Addr())
+		err = server.Serve(listener)
+	}()
 
-func (s *Server) Serve() error {
-	s.logger.Infow("serve gRPC", "address", s.listener.Addr())
-	return s.grpcServer.Serve(s.listener)
-}
+	<-cfg.Context.Done()
+	server.Stop()
 
-func (s *Server) BootService() *BootService {
-	return s.bootService
+	return err
 }

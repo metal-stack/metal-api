@@ -82,25 +82,24 @@ func createTestEnvironment(t *testing.T) testEnv {
 	mdc := mdm.NewMock(psc, nil)
 
 	log := zaptest.NewLogger(t)
-	grpcServer, err := metalgrpc.NewServer(&metalgrpc.ServerConfig{
-		Store:            ds,
-		Publisher:        NopPublisher{},
-		Logger:           log.Sugar(),
-		GrpcPort:         50005,
-		TlsEnabled:       false,
-		ResponseInterval: 2 * time.Millisecond,
-		CheckInterval:    1 * time.Hour,
-	})
-	require.NoError(t, err)
+
 	go func() {
-		err := grpcServer.Serve()
+		err := metalgrpc.Run(&metalgrpc.ServerConfig{
+			Context:          context.Background(),
+			Store:            ds,
+			Publisher:        NopPublisher{},
+			Logger:           log.Sugar(),
+			GrpcPort:         50005,
+			TlsEnabled:       false,
+			ResponseInterval: 2 * time.Millisecond,
+			CheckInterval:    1 * time.Hour,
+		})
 		require.NoError(t, err)
 	}()
-	bootService := grpcServer.BootService()
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, bootService, nil, usergetter, 0)
+	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0)
 	require.NoError(t, err)
 	imageService := NewImage(ds)
 	switchService := NewSwitch(ds)
@@ -121,7 +120,6 @@ func createTestEnvironment(t *testing.T) testEnv {
 		machineService:             machineService,
 		ipService:                  ipService,
 		ds:                         ds,
-		bs:                         bootService,
 		rethinkContainer:           rethinkContainer,
 		ctx:                        context.TODO(),
 	}

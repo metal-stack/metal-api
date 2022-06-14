@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/security"
 
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -28,11 +27,10 @@ import (
 type firewallResource struct {
 	webResource
 	bus.Publisher
-	ipamer      ipam.IPAMer
-	mdc         mdm.Client
-	bootService *grpc.BootService
-	userGetter  security.UserGetter
-	actor       *asyncActor
+	ipamer     ipam.IPAMer
+	mdc        mdm.Client
+	userGetter security.UserGetter
+	actor      *asyncActor
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
@@ -41,17 +39,15 @@ func NewFirewall(
 	ipamer ipam.IPAMer,
 	ep *bus.Endpoints,
 	mdc mdm.Client,
-	bootService *grpc.BootService,
 	userGetter security.UserGetter,
 ) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
 			ds: ds,
 		},
-		ipamer:      ipamer,
-		mdc:         mdc,
-		bootService: bootService,
-		userGetter:  userGetter,
+		ipamer:     ipamer,
+		mdc:        mdc,
+		userGetter: userGetter,
 	}
 
 	var err error
@@ -204,7 +200,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.bootService)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

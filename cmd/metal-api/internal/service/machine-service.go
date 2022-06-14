@@ -14,8 +14,6 @@ import (
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
-
 	"golang.org/x/crypto/ssh"
 
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -45,7 +43,6 @@ type machineResource struct {
 	ipamer          ipam.IPAMer
 	mdc             mdm.Client
 	actor           *asyncActor
-	bootService     *grpc.BootService
 	s3Client        *s3server.Client
 	userGetter      security.UserGetter
 	reasonMinLength uint
@@ -105,7 +102,6 @@ func NewMachine(
 	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
-	bootService *grpc.BootService,
 	s3Client *s3server.Client,
 	userGetter security.UserGetter,
 	reasonMinLength uint,
@@ -117,7 +113,6 @@ func NewMachine(
 		Publisher:       pub,
 		ipamer:          ipamer,
 		mdc:             mdc,
-		bootService:     bootService,
 		s3Client:        s3Client,
 		userGetter:      userGetter,
 		reasonMinLength: reasonMinLength,
@@ -1061,7 +1056,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.bootService)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "spec", spec, "error", err)
 		return
@@ -1169,7 +1164,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	}, nil
 }
 
-func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, bs *grpc.BootService) (*metal.Machine, error) {
+func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -1310,9 +1305,11 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %w", machine.ID, err))
 	}
 
-	err = bs.NotifyAllocated(machine.ID)
+	err = publisher.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machine.ID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to notify machine allocation %q, %w", machine.ID, err)
+		logger.Errorw("failed to publish machine allocation event, fallback should trigger on metal-hammer", "topic", metal.TopicAllocation.Name, "machineID", machine.ID, "error", err)
+	} else {
+		logger.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machine.ID)
 	}
 
 	return machine, nil

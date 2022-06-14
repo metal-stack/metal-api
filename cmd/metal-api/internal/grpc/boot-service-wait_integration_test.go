@@ -19,7 +19,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -42,9 +42,14 @@ type client struct {
 	cancel func()
 }
 
+type server struct {
+	cancel   context.CancelFunc
+	allocate chan string
+}
+
 type test struct {
 	*testing.T
-	ss []*Server
+	ss []*server
 	cc []*client
 
 	numberApiInstances     int
@@ -193,7 +198,7 @@ func (t *test) stopApiInstances() {
 		t.ss = t.ss[:0]
 	}()
 	for _, s := range t.ss {
-		s.grpcServer.Stop()
+		s.cancel()
 	}
 }
 
@@ -209,19 +214,27 @@ func (t *test) stopMachineInstances() {
 
 func (t *test) startApiInstances(ds *datastore.RethinkStore) {
 	for i := 0; i < t.numberApiInstances; i++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		allocate := make(chan string)
+
 		cfg := &ServerConfig{
+			Context:          ctx,
 			Store:            ds,
-			Logger:           zap.NewNop().Sugar(),
+			Logger:           zaptest.NewLogger(t).Sugar(),
 			GrpcPort:         50005 + i,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
+
+			integrationTestAllocator: allocate,
 		}
-		s, err := NewServer(cfg)
-		require.NoError(t, err)
-		t.ss = append(t.ss, s)
+
+		t.ss = append(t.ss, &server{
+			cancel:   cancel,
+			allocate: allocate,
+		})
 		go func() {
-			err := s.Serve()
+			err := Run(cfg)
 			require.NoError(t, err)
 		}()
 	}
@@ -325,7 +338,7 @@ func (t *test) selectMachine(except []string) string {
 
 func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
-		s.bootService.handleAllocation(machineID)
+		s.allocate <- machineID
 	}
 }
 
