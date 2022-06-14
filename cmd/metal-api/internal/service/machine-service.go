@@ -1305,6 +1305,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %w", machine.ID, err))
 	}
 
+	// TODO: can be removed after metal-core refactoring
 	err = publisher.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machine.ID})
 	if err != nil {
 		logger.Errorw("failed to publish machine allocation event, fallback should trigger on metal-hammer", "topic", metal.TopicAllocation.Name, "machineID", machine.ID, "error", err)

@@ -165,7 +165,5 @@ func Run(cfg *ServerConfig) error {
 	<-cfg.Context.Done()
 	server.Stop()
 
-	fmt.Println("stopping grpc server, err: ", err)
-
 	return err
 }

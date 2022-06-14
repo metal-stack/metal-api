@@ -144,7 +144,6 @@ func sendKeepPatientResponse(srv v1.BootService_WaitServer) error {
 }
 
 func (b *BootService) handleAllocation(machineID string) {
-	fmt.Println("handling allocation of machine " + machineID)
 	value, ok := b.queue.Load(machineID)
 	if !ok {
 		return
