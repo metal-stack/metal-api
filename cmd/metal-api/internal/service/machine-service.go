@@ -2088,7 +2088,7 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 
 func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
 	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	if err != nil {
 		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
