@@ -118,8 +118,11 @@ func Run(cfg *ServerConfig) error {
 		}()
 	}
 
-	var listener net.Listener
 	addr := fmt.Sprintf(":%d", cfg.GrpcPort)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
 
 	if cfg.TlsEnabled {
 		cert, err := os.ReadFile(cfg.ServerCertFile)
@@ -152,12 +155,6 @@ func Run(cfg *ServerConfig) error {
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			MinVersion:   tls.VersionTLS12,
 		})
-	} else {
-		var err error
-		listener, err = net.Listen("tcp", addr)
-		if err != nil {
-			return err
-		}
 	}
 
 	go func() {
@@ -167,6 +164,8 @@ func Run(cfg *ServerConfig) error {
 
 	<-cfg.Context.Done()
 	server.Stop()
+
+	fmt.Println("stopping grpc server, err: ", err)
 
 	return err
 }
