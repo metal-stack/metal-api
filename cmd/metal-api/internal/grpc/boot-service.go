@@ -368,7 +368,7 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 		return nil, fmt.Errorf("the machine %q could not be enslaved into the vrf %s, error: %w", req.Uuid, vrf, err)
 	}
 
-	b.setBootOrderDisk(m.ID, m.PartitionID)
+	b.setBootOrderDisk(m)
 	return &v1.BootServiceReportResponse{}, nil
 }
 
@@ -407,24 +407,25 @@ func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbo
 			}
 		}
 	}
-	b.setBootOrderDisk(m.ID, m.PartitionID)
+	b.setBootOrderDisk(m)
 	// FIXME what to do in the else case ?
 
 	return &v1.BootServiceAbortReinstallResponse{BootInfo: bootInfo}, nil
 }
 
-func (b *BootService) setBootOrderDisk(machineID, partitionID string) {
+func (b *BootService) setBootOrderDisk(m *metal.Machine) {
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command:         metal.MachineDiskCmd,
 			Params:          nil,
-			TargetMachineID: machineID,
+			TargetMachineID: m.ID,
+			IPMI:            &m.IPMI,
 		},
 	}
 
 	b.log.Infow("publish event", "event", evt, "command", *evt.Cmd)
-	err := b.publisher.Publish(metal.TopicMachine.GetFQN(partitionID), evt)
+	err := b.publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
 		b.log.Errorw("unable to send boot via hd, continue anyway", "error", err)
 	}
