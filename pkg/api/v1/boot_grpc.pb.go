@@ -26,6 +26,8 @@ type BootServiceClient interface {
 	SuperUserPassword(ctx context.Context, in *BootServiceSuperUserPasswordRequest, opts ...grpc.CallOption) (*BootServiceSuperUserPasswordResponse, error)
 	// Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
 	Register(ctx context.Context, in *BootServiceRegisterRequest, opts ...grpc.CallOption) (*BootServiceRegisterResponse, error)
+	// Wait is a hanging call that waits until the machine gets allocated by a user
+	Wait(ctx context.Context, in *BootServiceWaitRequest, opts ...grpc.CallOption) (BootService_WaitClient, error)
 	// Report tells metal-api installation was either sucessful or failed
 	Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
@@ -76,6 +78,38 @@ func (c *bootServiceClient) Register(ctx context.Context, in *BootServiceRegiste
 	return out, nil
 }
 
+func (c *bootServiceClient) Wait(ctx context.Context, in *BootServiceWaitRequest, opts ...grpc.CallOption) (BootService_WaitClient, error) {
+	stream, err := c.cc.NewStream(ctx, &BootService_ServiceDesc.Streams[0], "/api.v1.BootService/Wait", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &bootServiceWaitClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type BootService_WaitClient interface {
+	Recv() (*BootServiceWaitResponse, error)
+	grpc.ClientStream
+}
+
+type bootServiceWaitClient struct {
+	grpc.ClientStream
+}
+
+func (x *bootServiceWaitClient) Recv() (*BootServiceWaitResponse, error) {
+	m := new(BootServiceWaitResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *bootServiceClient) Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error) {
 	out := new(BootServiceReportResponse)
 	err := c.cc.Invoke(ctx, "/api.v1.BootService/Report", in, out, opts...)
@@ -106,6 +140,8 @@ type BootServiceServer interface {
 	SuperUserPassword(context.Context, *BootServiceSuperUserPasswordRequest) (*BootServiceSuperUserPasswordResponse, error)
 	// Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
 	Register(context.Context, *BootServiceRegisterRequest) (*BootServiceRegisterResponse, error)
+	// Wait is a hanging call that waits until the machine gets allocated by a user
+	Wait(*BootServiceWaitRequest, BootService_WaitServer) error
 	// Report tells metal-api installation was either sucessful or failed
 	Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
@@ -127,6 +163,9 @@ func (UnimplementedBootServiceServer) SuperUserPassword(context.Context, *BootSe
 }
 func (UnimplementedBootServiceServer) Register(context.Context, *BootServiceRegisterRequest) (*BootServiceRegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedBootServiceServer) Wait(*BootServiceWaitRequest, BootService_WaitServer) error {
+	return status.Errorf(codes.Unimplemented, "method Wait not implemented")
 }
 func (UnimplementedBootServiceServer) Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Report not implemented")
@@ -218,6 +257,27 @@ func _BootService_Register_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BootService_Wait_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(BootServiceWaitRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BootServiceServer).Wait(m, &bootServiceWaitServer{stream})
+}
+
+type BootService_WaitServer interface {
+	Send(*BootServiceWaitResponse) error
+	grpc.ServerStream
+}
+
+type bootServiceWaitServer struct {
+	grpc.ServerStream
+}
+
+func (x *bootServiceWaitServer) Send(m *BootServiceWaitResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _BootService_Report_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BootServiceReportRequest)
 	if err := dec(in); err != nil {
@@ -286,6 +346,12 @@ var BootService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BootService_AbortReinstall_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Wait",
+			Handler:       _BootService_Wait_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "api/v1/boot.proto",
 }

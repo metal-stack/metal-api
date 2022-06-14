@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package grpc
 
 import (
@@ -39,9 +42,14 @@ type client struct {
 	cancel func()
 }
 
+type server struct {
+	cancel   context.CancelFunc
+	allocate chan string
+}
+
 type test struct {
 	*testing.T
-	ss []*Server
+	ss []*server
 	cc []*client
 
 	numberApiInstances     int
@@ -190,7 +198,8 @@ func (t *test) stopApiInstances() {
 		t.ss = t.ss[:0]
 	}()
 	for _, s := range t.ss {
-		s.grpcServer.Stop()
+		s.cancel()
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -206,19 +215,27 @@ func (t *test) stopMachineInstances() {
 
 func (t *test) startApiInstances(ds *datastore.RethinkStore) {
 	for i := 0; i < t.numberApiInstances; i++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		allocate := make(chan string)
+
 		cfg := &ServerConfig{
+			Context:          ctx,
 			Store:            ds,
 			Logger:           zap.NewNop().Sugar(),
 			GrpcPort:         50005 + i,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
+
+			integrationTestAllocator: allocate,
 		}
-		s, err := NewServer(cfg)
-		require.NoError(t, err)
-		t.ss = append(t.ss, s)
+
+		t.ss = append(t.ss, &server{
+			cancel:   cancel,
+			allocate: allocate,
+		})
 		go func() {
-			err := s.Serve()
+			err := Run(cfg)
 			require.NoError(t, err)
 		}()
 	}
@@ -246,7 +263,7 @@ func (t *test) startMachineInstances() {
 			cancel:     cancel,
 		})
 		go func() {
-			waitClient := v1.NewWaitClient(conn)
+			waitClient := v1.NewBootServiceClient(conn)
 			err := t.waitForAllocation(machineID, waitClient, ctx)
 			if err != nil {
 				return
@@ -259,8 +276,8 @@ func (t *test) startMachineInstances() {
 	}
 }
 
-func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.Context) error {
-	req := &v1.WaitRequest{
+func (t *test) waitForAllocation(machineID string, c v1.BootServiceClient, ctx context.Context) error {
+	req := &v1.BootServiceWaitRequest{
 		MachineId: machineID,
 	}
 
@@ -322,7 +339,7 @@ func (t *test) selectMachine(except []string) string {
 
 func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
-		s.waitService.handleAllocation(machineID)
+		s.allocate <- machineID
 	}
 }
 
