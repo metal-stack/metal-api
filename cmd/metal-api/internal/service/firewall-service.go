@@ -36,6 +36,7 @@ type firewallResource struct {
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
 	ds *datastore.RethinkStore,
+	pub bus.Publisher,
 	ipamer ipam.IPAMer,
 	ep *bus.Endpoints,
 	mdc mdm.Client,
@@ -45,6 +46,7 @@ func NewFirewall(
 		webResource: webResource{
 			ds: ds,
 		},
+		Publisher:  pub,
 		ipamer:     ipamer,
 		mdc:        mdc,
 		userGetter: userGetter,

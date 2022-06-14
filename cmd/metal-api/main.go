@@ -670,7 +670,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(ds, ipamer, ep, mdc, userGetter)
+	firewallService, err := service.NewFirewall(ds, p, ipamer, ep, mdc, userGetter)
 	if err != nil {
 		logger.Fatal(err)
 	}
