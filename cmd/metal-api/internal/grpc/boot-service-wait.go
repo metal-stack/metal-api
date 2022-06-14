@@ -98,7 +98,7 @@ func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_Wa
 }
 
 func (b *BootService) initWaitEndpoint() error {
-	if b.publisher == nil {
+	if b.publisher == nil || b.consumer == nil {
 		return nil
 	}
 	var r uint64
