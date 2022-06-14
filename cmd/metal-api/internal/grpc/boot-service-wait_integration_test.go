@@ -19,7 +19,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -199,6 +199,7 @@ func (t *test) stopApiInstances() {
 	}()
 	for _, s := range t.ss {
 		s.cancel()
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -220,7 +221,7 @@ func (t *test) startApiInstances(ds *datastore.RethinkStore) {
 		cfg := &ServerConfig{
 			Context:          ctx,
 			Store:            ds,
-			Logger:           zaptest.NewLogger(t).Sugar(),
+			Logger:           zap.NewNop().Sugar(),
 			GrpcPort:         50005 + i,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
