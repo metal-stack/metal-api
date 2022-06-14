@@ -565,7 +565,7 @@ func TestFreeMachine(t *testing.T) {
 		eventidx++
 		if eventidx == 2 {
 			dv := data.(metal.MachineEvent)
-			require.Equal(t, "1", dv.OldMachineID)
+			require.Equal(t, "1", dv.Cmd.TargetMachineID)
 		}
 		return nil
 	}

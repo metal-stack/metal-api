@@ -393,6 +393,7 @@ type MachineExecCommand struct {
 	TargetMachineID string         `json:"target,omitempty"`
 	Command         MachineCommand `json:"cmd,omitempty"`
 	Params          []string       `json:"params,omitempty"`
+	IPMI            *IPMI          `json:"ipmi,omitempty"`
 }
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
