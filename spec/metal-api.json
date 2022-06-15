@@ -5855,6 +5855,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "addProvisioningEvents",
         "parameters": [
           {
@@ -6182,6 +6183,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "abortReinstallMachine",
         "parameters": [
           {
@@ -6228,6 +6230,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "setChassisIdentifyLEDState",
         "parameters": [
           {
@@ -6274,6 +6277,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "getProvisioningEventContainer",
         "parameters": [
           {
@@ -6310,6 +6314,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "addProvisioningEvent",
         "parameters": [
           {

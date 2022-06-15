@@ -231,6 +231,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME was only used by metal-core to set the led-state, can be removed
 	ws.Route(ws.POST("/{id}/chassis-identify-led-state").
 		To(editor(r.setChassisIdentifyLEDState)).
 		Operation("setChassisIdentifyLEDState").
@@ -240,7 +241,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.ChassisIdentifyLEDState{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	ws.Route(ws.DELETE("/{id}/free").
 		To(editor(r.freeMachine)).
@@ -314,7 +315,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineAbortReinstallRequest{}).
 		Writes(v1.BootInfo{}).
 		Returns(http.StatusOK, "OK", v1.BootInfo{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.GET("/{id}/event").
@@ -325,7 +326,7 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.POST("/{id}/event").
@@ -337,7 +338,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineProvisioningEvent{}).
 		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.POST("/event").
@@ -348,7 +349,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineProvisioningEvents{}).
 		Writes(v1.MachineRecentProvisioningEventsResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEventsResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	ws.Route(ws.POST("/{id}/power/on").
 		To(editor(r.machineOn)).
@@ -2395,12 +2396,15 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
 	logger := utils.Logger(request).Sugar()
 	id := request.PathParameter("id")
+	description := request.QueryParameter("description")
 
-	m, err := r.ds.FindMachineByID(id)
+	newMachine, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, string(cmd), err) {
 		return
 	}
 
+	old := *newMachine
+	needsUpdate := false
 	switch cmd { // nolint:exhaustive
 	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
 		event := string(metal.ProvisioningEventPlannedReboot)
@@ -2408,14 +2412,33 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
+	case metal.ChassisIdentifyLEDOnCmd:
+		newMachine.LEDState = metal.ChassisIdentifyLEDState{
+			Value:       metal.LEDStateOn,
+			Description: description,
+		}
+		needsUpdate = true
+	case metal.ChassisIdentifyLEDOffCmd:
+		newMachine.LEDState = metal.ChassisIdentifyLEDState{
+			Value:       metal.LEDStateOff,
+			Description: description,
+		}
+		needsUpdate = true
 	}
 
-	err = publishMachineCmd(logger, m, r.Publisher, cmd, params...)
+	if needsUpdate {
+		err = r.ds.UpdateMachine(&old, newMachine)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd, params...)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	resp, err := makeMachineResponse(m, r.ds)
+	resp, err := makeMachineResponse(newMachine, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
