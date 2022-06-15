@@ -959,6 +959,8 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			m.LEDState = metal.ChassisIdentifyLEDState{
 				Value: ledstate,
 			}
+		} else {
+			logger.Errorf("unable to parse ledstate:%v", err)
 		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
@@ -1021,6 +1023,8 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 				Value:       ledstate,
 				Description: newMachine.LEDState.Description,
 			}
+		} else {
+			logger.Errorf("unable to parse ledstate:%v", err)
 		}
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
