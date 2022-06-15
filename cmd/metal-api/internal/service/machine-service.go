@@ -954,6 +954,12 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 				Address: report.BMCIp + ":" + defaultIPMIPort,
 			},
 		}
+		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
+		if err == nil {
+			m.LEDState = metal.ChassisIdentifyLEDState{
+				Value: ledstate,
+			}
+		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
 			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)

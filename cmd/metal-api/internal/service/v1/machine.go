@@ -231,11 +231,12 @@ type MachineIPMIResponse struct {
 }
 
 type MachineIpmiReport struct {
-	BMCIp       string
-	FRU         *MachineFru
-	BIOSVersion string
-	BMCVersion  string
-	PowerState  string
+	BMCIp             string
+	FRU               *MachineFru
+	BIOSVersion       string
+	BMCVersion        string
+	PowerState        string
+	IndicatorLEDState string
 }
 
 type MachineIpmiReports struct {
