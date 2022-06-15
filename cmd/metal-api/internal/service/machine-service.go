@@ -2398,12 +2398,12 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 	id := request.PathParameter("id")
 	description := request.QueryParameter("description")
 
-	old, err := r.ds.FindMachineByID(id)
+	newMachine, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, string(cmd), err) {
 		return
 	}
 
-	newMachine := old
+	old := *newMachine
 	needsUpdate := false
 	switch cmd { // nolint:exhaustive
 	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
@@ -2427,7 +2427,7 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 	}
 
 	if needsUpdate {
-		err = r.ds.UpdateMachine(old, newMachine)
+		err = r.ds.UpdateMachine(&old, newMachine)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}
