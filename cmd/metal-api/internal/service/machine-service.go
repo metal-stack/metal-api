@@ -315,7 +315,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineAbortReinstallRequest{}).
 		Writes(v1.BootInfo{}).
 		Returns(http.StatusOK, "OK", v1.BootInfo{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.GET("/{id}/event").
@@ -326,7 +326,7 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.POST("/{id}/event").
@@ -338,7 +338,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineProvisioningEvent{}).
 		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.POST("/event").
@@ -349,7 +349,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineProvisioningEvents{}).
 		Writes(v1.MachineRecentProvisioningEventsResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEventsResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	ws.Route(ws.POST("/{id}/power/on").
 		To(editor(r.machineOn)).
