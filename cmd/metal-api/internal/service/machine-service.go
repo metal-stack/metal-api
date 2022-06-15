@@ -954,9 +954,17 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 				Address: report.BMCIp + ":" + defaultIPMIPort,
 			},
 		}
+		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
+		if err == nil {
+			m.LEDState = metal.ChassisIdentifyLEDState{
+				Value: ledstate,
+			}
+		} else {
+			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
-			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
+			logger.Errorw("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
 			continue
 		}
 		resp.Created = append(resp.Created, uuid)
@@ -982,7 +990,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		} else if len(hostAndPort) < 2 {
 			newMachine.IPMI.Address = report.BMCIp + ":" + defaultIPMIPort
 		} else {
-			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
+			logger.Errorw("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
 
@@ -992,7 +1000,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		}
 
 		if newMachine.PartitionID != p.ID {
-			logger.Errorf("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
+			logger.Errorw("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
 			continue
 		}
 
@@ -1009,9 +1017,19 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			newMachine.IPMI.PowerState = report.PowerState
 		}
 
+		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
+		if err == nil {
+			newMachine.LEDState = metal.ChassisIdentifyLEDState{
+				Value:       ledstate,
+				Description: newMachine.LEDState.Description,
+			}
+		} else {
+			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+		}
+
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorf("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
+			logger.Errorw("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
 			continue
 		}
 		resp.Updated = append(resp.Updated, uuid)

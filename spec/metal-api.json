@@ -2521,6 +2521,9 @@
         "FRU": {
           "$ref": "#/definitions/v1.MachineFru"
         },
+        "IndicatorLEDState": {
+          "type": "string"
+        },
         "PowerState": {
           "type": "string"
         }
@@ -2530,6 +2533,7 @@
         "BMCIp",
         "BMCVersion",
         "FRU",
+        "IndicatorLEDState",
         "PowerState"
       ]
     },
