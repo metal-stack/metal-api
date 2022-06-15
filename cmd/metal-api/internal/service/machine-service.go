@@ -939,9 +939,6 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	// create empty machines for uuids that are not yet known to the metal-api
 	const defaultIPMIPort = "623"
 	for uuid, report := range requestPayload.Reports {
-
-		logger.Infof("got ipmi report:%#v", report)
-
 		if uuid == "" {
 			continue
 		}
@@ -962,8 +959,6 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			m.LEDState = metal.ChassisIdentifyLEDState{
 				Value: ledstate,
 			}
-		} else {
-			logger.Errorf("unable to parse ledstate:%v", err)
 		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
@@ -1026,8 +1021,6 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 				Value:       ledstate,
 				Description: newMachine.LEDState.Description,
 			}
-		} else {
-			logger.Errorf("unable to parse ledstate:%v", err)
 		}
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
