@@ -939,6 +939,9 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	// create empty machines for uuids that are not yet known to the metal-api
 	const defaultIPMIPort = "623"
 	for uuid, report := range requestPayload.Reports {
+
+		logger.Infof("got ipmi report:%#v", report)
+
 		if uuid == "" {
 			continue
 		}
