@@ -957,7 +957,8 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
 		if err == nil {
 			m.LEDState = metal.ChassisIdentifyLEDState{
-				Value: ledstate,
+				Value:       ledstate,
+				Description: m.LEDState.Description,
 			}
 		}
 		err = r.ds.CreateMachine(m)
