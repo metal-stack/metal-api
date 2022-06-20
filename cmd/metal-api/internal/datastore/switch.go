@@ -157,19 +157,19 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 	m.RackID = s1.RackID
 	m.PartitionID = s1.PartitionID
 
-	byNicName, err := s2.MachineConnections.ByNicName()
-	if err != nil {
-		return err
-	}
-	for _, con := range s1.MachineConnections[m.ID] {
-		if con2, has := byNicName[con.Nic.Name]; has {
-			if con.Nic.Name != con2.Nic.Name {
-				return connectionMapError
-			}
-		} else {
-			return connectionMapError
-		}
-	}
+	//byNicName, err := s2.MachineConnections.ByNicName()
+	//if err != nil {
+	//	return err
+	//}
+	//for _, con := range s1.MachineConnections[m.ID] {
+	//	if con2, has := byNicName[con.Nic.Name]; has {
+	//		if con.Nic.Name != con2.Nic.Name {
+	//			return connectionMapError
+	//		}
+	//	} else {
+	//		return connectionMapError
+	//	}
+	//}
 
 	for i := range oldSwitches {
 		err = rs.UpdateSwitch(&oldSwitches[i], &newSwitches[i])
