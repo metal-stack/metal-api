@@ -162,11 +162,7 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 		return err
 	}
 	for _, con := range s1.MachineConnections[m.ID] {
-		if con2, has := byNicName[con.Nic.Name]; has {
-			if con.Nic.Name != con2.Nic.Name {
-				return connectionMapError
-			}
-		} else {
+		if _, has := byNicName[con.Nic.Name]; !has {
 			return connectionMapError
 		}
 	}

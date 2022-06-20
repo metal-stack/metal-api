@@ -81,7 +81,8 @@ func TestConnectionMap_ByNicName(t *testing.T) {
 			false,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.c.ByNicName()
 			if (err != nil) != tt.wantErr {
