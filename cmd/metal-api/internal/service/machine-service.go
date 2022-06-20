@@ -1803,7 +1803,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 	} else {
 		for _, mn := range m.Allocation.MachineNetworks {
 			if mn.Private {
-				vrf = fmt.Sprintf("vrf%d", mn.Vrf)
+				vrf = fmt.Sprintf("Vrf%d", mn.Vrf)
 				break
 			}
 		}
