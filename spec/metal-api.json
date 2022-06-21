@@ -2907,6 +2907,11 @@
         },
         "value": {
           "description": "the state of this machine. empty means available for all",
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         }
       },
@@ -2924,6 +2929,10 @@
         },
         "kind": {
           "description": "the firmware kind, i.e. [bios|bmc]",
+          "enum": [
+            "bios",
+            "bmc"
+          ],
           "type": "string"
         },
         "revision": {
