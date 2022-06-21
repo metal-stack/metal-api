@@ -84,7 +84,7 @@ type MachineHardware struct {
 }
 
 type MachineState struct {
-	Value              string `json:"value" description:"the state of this machine. empty means available for all"`
+	Value              string `json:"value" enum:"RESERVED|LOCKED|" description:"the state of this machine. empty means available for all"`
 	Description        string `json:"description" description:"a description why this machine is in the given state"`
 	MetalHammerVersion string `json:"metal_hammer_version" description:"the version of metal hammer which put the machine in waiting state"`
 }
