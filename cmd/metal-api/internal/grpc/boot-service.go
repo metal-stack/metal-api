@@ -341,7 +341,7 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	case metal.RoleMachine:
 		for _, mn := range m.Allocation.MachineNetworks {
 			if mn.Private {
-				vrf = fmt.Sprintf("Vrf%d", mn.Vrf)
+				vrf = fmt.Sprintf("vrf%d", mn.Vrf)
 				break
 			}
 		}
