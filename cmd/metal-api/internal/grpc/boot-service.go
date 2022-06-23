@@ -418,7 +418,6 @@ func (b *BootService) setBootOrderDisk(m *metal.Machine) {
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command:         metal.MachineDiskCmd,
-			Params:          nil,
 			TargetMachineID: m.ID,
 			IPMI:            &m.IPMI,
 		},
