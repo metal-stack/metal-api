@@ -390,10 +390,10 @@ const (
 // is an optional array of strings which are implementation specific
 // and dependent of the command.
 type MachineExecCommand struct {
-	TargetMachineID string         `json:"target,omitempty"`
-	Command         MachineCommand `json:"cmd,omitempty"`
-	Params          []string       `json:"params,omitempty"`
-	IPMI            *IPMI          `json:"ipmi,omitempty"`
+	TargetMachineID string          `json:"target,omitempty"`
+	Command         MachineCommand  `json:"cmd,omitempty"`
+	IPMI            *IPMI           `json:"ipmi,omitempty"`
+	FirmwareUpdate  *FirmwareUpdate `json:"firmwareupdate,omitempty"`
 }
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
@@ -407,4 +407,9 @@ type MachineEvent struct {
 // AllocationEvent is propagated when a machine is allocated.
 type AllocationEvent struct {
 	MachineID string `json:"old,omitempty"`
+}
+
+type FirmwareUpdate struct {
+	Kind FirmwareKind `json:"kind"`
+	URL  string       `json:"url"`
 }

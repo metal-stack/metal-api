@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
+	"github.com/aws/aws-sdk-go/service/s3"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
@@ -2357,11 +2358,11 @@ func (r machineResource) machinePxe(request *restful.Request, response *restful.
 }
 
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response, request.QueryParameter("description"))
+	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response)
 }
 
 func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
+	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response)
 }
 
 func (r machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
@@ -2376,16 +2377,16 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 	}
 
 	id := request.PathParameter("id")
-	f, err := getFirmware(r.ds, id)
+	m, f, err := getFirmware(r.ds, id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	alreadyInstalled := false
 	switch p.Kind {
-	case bmc:
+	case metal.FirmwareBIOS:
 		alreadyInstalled = f.BiosVersion == p.Revision
-	case bios:
+	case metal.FirmwareBMC:
 		alreadyInstalled = f.BmcVersion == p.Revision
 	}
 	if alreadyInstalled && checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine's %s version is already equal %s", p.Kind, p.Revision)) {
@@ -2408,10 +2409,48 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 		return
 	}
 
-	r.machineCmd(metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, r.s3Client.FirmwareBucket)
+	key := fmt.Sprintf("%s/%s/%s/%s", p.Kind, strings.ToLower(f.Vendor), strings.ToUpper(f.Board), p.Revision)
+	req, _ := r.s3Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: &r.s3Client.FirmwareBucket,
+		Key:    &key,
+	})
+	downloadableURL, err := req.Presign(2 * time.Hour)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	evt := metal.MachineEvent{
+		Type: metal.COMMAND,
+		Cmd: &metal.MachineExecCommand{
+			Command:         metal.UpdateFirmwareCmd,
+			TargetMachineID: m.ID,
+			IPMI:            &m.IPMI,
+			FirmwareUpdate: &metal.FirmwareUpdate{
+				Kind: p.Kind,
+				URL:  downloadableURL,
+			},
+		},
+	}
+	logger := utils.Logger(request).Sugar()
+	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
 }
 
-func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
+func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	logger := utils.Logger(request).Sugar()
 	id := request.PathParameter("id")
 	description := request.QueryParameter("description")
@@ -2451,7 +2490,7 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 		}
 	}
 
-	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd, params...)
+	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2468,12 +2507,11 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 	}
 }
 
-func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand, params ...string) error {
+func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command:         cmd,
-			Params:          params,
 			TargetMachineID: m.ID,
 			IPMI:            &m.IPMI,
 		},
