@@ -71,6 +71,7 @@ func TestGetMachines(t *testing.T) {
 	require.Equal(t, testdata.M2.ID, result[1].ID)
 }
 
+// FIXME move to boot-service_test.go
 func TestRegisterMachine(t *testing.T) {
 	tests := []struct {
 		name                 string
@@ -398,6 +399,8 @@ func TestMachineFindIPMI(t *testing.T) {
 	}
 }
 
+// FIXME move to boot-service_test.go
+
 func TestFinalizeMachineAllocation(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -623,6 +626,7 @@ func TestSearchMachine(t *testing.T) {
 	require.Equal(t, testdata.Partition1.Name, *result.Partition.Name)
 }
 
+// FIXME move to event-service_test.go
 func TestAddProvisioningEvent(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
@@ -659,6 +663,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	}
 }
 
+// FIXME move to event-service_test.go
 func TestAddProvisioningEvents(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	testdata.InitMockDBData(mock)
