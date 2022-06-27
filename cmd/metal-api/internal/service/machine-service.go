@@ -2409,9 +2409,10 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 		return
 	}
 
+	key := fmt.Sprintf("%s/%s/%s/%s", p.Kind, strings.ToLower(f.Vendor), strings.ToUpper(f.Board), p.Revision)
 	req, _ := r.s3Client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: &r.s3Client.FirmwareBucket,
-		Key:    &r.s3Client.Key,
+		Key:    &key,
 	})
 	downloadableURL, err := req.Presign(2 * time.Hour)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
