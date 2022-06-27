@@ -2423,6 +2423,7 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 		Cmd: &metal.MachineExecCommand{
 			Command:         metal.UpdateFirmwareCmd,
 			TargetMachineID: m.ID,
+			IPMI:            &m.IPMI,
 			FirmwareUpdate: &metal.FirmwareUpdate{
 				Kind: p.Kind,
 				URL:  downloadableURL,
