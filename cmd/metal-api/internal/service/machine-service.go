@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
@@ -2082,7 +2083,20 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 		}
 	}
 
-	ec, err := r.provisioningEventForMachine(id, requestPayload)
+	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	}
+
+	event := &metal.ProvisioningEvent{
+		Time:    time.Now(),
+		Event:   metal.ProvisioningEventType(requestPayload.Event),
+		Message: requestPayload.Message,
+	}
+
+	err = fsm.HandleProvisioningEvent(event, ec, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}

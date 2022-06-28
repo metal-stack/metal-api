@@ -4,55 +4,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/looplab/fsm"
 	"go.uber.org/zap"
 )
-
-// FSM states
-const (
-	FsmStateInitial          string = "Initial State"
-	FsmStatePXEBooting       string = "PXE Booting state"
-	FsmStatePreparing        string = "Rreparing state"
-	FsmStateRegistering      string = "Registering state"
-	FsmStateWaiting          string = "Waiting state"
-	FsmStateInstalling       string = "Installing state"
-	FsmStateBootingNewKernel string = "Booting New Kernel state"
-	FsmStateProvisioned      string = "Provisioned state"
-	FsmStatePlannedReboot    string = "Planned Reboot state"
-	FsmStateCrashed          string = "Crashed state"
-	FsmStateAlive            string = "Alive state"
-	FsmStateResestFailCount  string = "Reset Fail Count state"
-)
-
-var allStates = []string{
-	FsmStateInitial,
-	FsmStatePXEBooting,
-	FsmStatePreparing,
-	FsmStateRegistering,
-	FsmStateWaiting,
-	FsmStateInstalling,
-	FsmStateBootingNewKernel,
-	FsmStateProvisioned,
-	FsmStatePlannedReboot,
-	FsmStateCrashed,
-	FsmStateAlive,
-	FsmStateResestFailCount,
-}
-
-var events = []fsm.EventDesc{
-	{Name: string(ProvisioningEventPXEBooting), Src: []string{FsmStateInitial, FsmStatePlannedReboot, FsmStatePXEBooting, FsmStateCrashed, FsmStateProvisioned, FsmStateResestFailCount}, Dst: FsmStatePXEBooting},
-	{Name: string(ProvisioningEventPreparing), Src: []string{FsmStatePXEBooting, FsmStateInitial, FsmStatePlannedReboot, FsmStateCrashed, FsmStateProvisioned, FsmStateResestFailCount}, Dst: FsmStatePreparing},
-	{Name: string(ProvisioningEventRegistering), Src: []string{FsmStatePreparing, FsmStateInitial, FsmStateResestFailCount}, Dst: FsmStateRegistering},
-	{Name: string(ProvisioningEventWaiting), Src: []string{FsmStateRegistering, FsmStateInitial, FsmStateResestFailCount}, Dst: FsmStateWaiting},
-	{Name: string(ProvisioningEventInstalling), Src: []string{FsmStateWaiting, FsmStateInitial, FsmStateResestFailCount}, Dst: FsmStateInstalling},
-	{Name: string(ProvisioningEventBootingNewKernel), Src: []string{FsmStateInstalling, FsmStateInitial, FsmStateResestFailCount}, Dst: FsmStateBootingNewKernel},
-	{Name: string(ProvisioningEventPhonedHome), Src: []string{FsmStateBootingNewKernel, FsmStateProvisioned, FsmStateInitial, FsmStateResestFailCount}, Dst: FsmStateProvisioned},
-	{Name: string(ProvisioningEventPlannedReboot), Src: allStates, Dst: FsmStatePlannedReboot},
-	{Name: string(ProvisioningEventCrashed), Src: []string{FsmStateInitial}, Dst: FsmStateCrashed},
-	{Name: string(ProvisioningEventResetFailCount), Src: allStates, Dst: FsmStateResestFailCount},
-}
-
-var callbacks = map[string]fsm.Callback{}
 
 // ProvisioningEventType indicates an event emitted by a machine during the provisioning sequence
 type ProvisioningEventType string
@@ -101,6 +54,19 @@ var (
 		ProvisioningEventBootingNewKernel,
 		ProvisioningEventPhonedHome,
 	}
+	expectedSuccessorEventMap = map[ProvisioningEventType]provisioningEventSequence{
+		// some machines could be incapable of sending pxe boot events (depends on BIOS), therefore PXE Booting and Preparing are allowed initial states
+		ProvisioningEventPlannedReboot:    {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventPXEBooting:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventPreparing:        {ProvisioningEventRegistering, ProvisioningEventPlannedReboot},
+		ProvisioningEventRegistering:      {ProvisioningEventWaiting, ProvisioningEventPlannedReboot},
+		ProvisioningEventWaiting:          {ProvisioningEventInstalling, ProvisioningEventPlannedReboot},
+		ProvisioningEventInstalling:       {ProvisioningEventBootingNewKernel, ProvisioningEventPlannedReboot},
+		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
+		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
+		ProvisioningEventResetFailCount:   expectedBootSequence,
+	}
 	provisioningEventsThatTerminateCycle = provisioningEventSequence{
 		ProvisioningEventPlannedReboot,
 		ProvisioningEventResetFailCount,
@@ -134,40 +100,42 @@ func (p provisioningEventSequence) containsEvent(event ProvisioningEventType) bo
 	return result
 }
 
-func postEvent(currentFSM *fsm.FSM, event ProvisioningEventType) (*fsm.FSM, error) {
-	var nextFSM *fsm.FSM
-	err := currentFSM.Event(string(event))
-	if err != nil && err.Error() != "no transition" {
-		nextFSM = newProvisioningFSM()
-		_ = nextFSM.Event(string(event)) // Should not give an error
-	} else {
-		nextFSM = currentFSM
-	}
-	return nextFSM, err
-}
+func (e *ProvisioningEvent) hasExpectedSuccessor(log *zap.SugaredLogger, actualSuccessor ProvisioningEventType) bool {
+	currentEvent := e.Event
 
-func newProvisioningFSM() *fsm.FSM {
-	return fsm.NewFSM(
-		FsmStateInitial,
-		events,
-		callbacks,
-	)
+	expectedSuccessors, ok := expectedSuccessorEventMap[currentEvent]
+	if !ok {
+		log.Errorw("successor map does not contain an expected successor for event", "event", currentEvent)
+		return false
+	}
+
+	return expectedSuccessors.containsEvent(actualSuccessor)
 }
 
 // CalculateIncompleteCycles calculates the number of events that occurred out of order. Can be used to determine if a machine is in an error loop.
 func (p *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredLogger) string {
-	fsm := newProvisioningFSM()
 	incompleteCycles := 0
-	var err error
-	for _, event := range p.Events {
-		if fsm, err = postEvent(fsm, event.Event); err != nil && err.Error() != "no transition" {
+	atLeastOneTimeCompleted := true
+	var successor ProvisioningEventType
+	for i, event := range p.Events {
+		if successor != "" && !event.hasExpectedSuccessor(log, successor) {
 			incompleteCycles++
 		}
+		successor = event.Event
+
 		if provisioningEventsThatTerminateCycle.containsEvent(event.Event) {
-			incompleteCycles = 0
+			break
+		}
+
+		if i >= ProvisioningEventsInspectionLimit-1 {
+			// we have reached the inspection limit without having reached the last event in the sequence once...
+			atLeastOneTimeCompleted = false
 		}
 	}
 	result := strconv.Itoa(incompleteCycles)
+	if incompleteCycles > 0 && !atLeastOneTimeCompleted {
+		result = "at least " + result
+	}
 	return result
 }
 

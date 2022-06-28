@@ -7,124 +7,130 @@ import (
 )
 
 var (
-	SuccessfulCycle = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPXEBooting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventInstalling,
-		},
+	SuccessfulEventCycle = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventBootingNewKernel,
 		},
-	}
-	CrashCycle1 = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	PlannedRebootCycle = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPlannedReboot,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-	}
-	PlannedRebootAndError = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPlannedReboot,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	CrashCycle2 = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
 		ProvisioningEvent{
 			Event: ProvisioningEventInstalling,
 		},
 		ProvisioningEvent{
-			Event: ProvisioningEventCrashed,
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
 		},
 		ProvisioningEvent{
 			Event: ProvisioningEventPXEBooting,
 		},
 	}
-	ResetCycle = ProvisioningEvents{
+	CrashEventCycle = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventPreparing,
 		},
 		ProvisioningEvent{
 			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+	}
+	CycleWithPlannedReboot = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPlannedReboot,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+	}
+	CycleWithPlannedRebootAndError = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventInstalling,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPlannedReboot,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+	}
+	CycleWithPlannedRebootAndImmediateError = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventInstalling,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPlannedReboot,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+	}
+	CycleWithACrash = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
 		},
 		ProvisioningEvent{
 			Event: ProvisioningEventCrashed,
 		},
 		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
 			Event: ProvisioningEventRegistering,
 		},
 		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
+			Event: ProvisioningEventPreparing,
 		},
+	}
+	CycleWithReset = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventResetFailCount,
 		},
-	}
-	SuccessfulCycleWithBadHistory = ProvisioningEvents{
+		ProvisioningEvent{
+			Event: ProvisioningEventWaiting,
+		},
 		ProvisioningEvent{
 			Event: ProvisioningEventRegistering,
 		},
@@ -132,27 +138,30 @@ var (
 			Event: ProvisioningEventPreparing,
 		},
 		ProvisioningEvent{
+			Event: ProvisioningEventCrashed,
+		},
+		ProvisioningEvent{
 			Event: ProvisioningEventRegistering,
 		},
 		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
+			Event: ProvisioningEventPreparing,
 		},
+	}
+	SuccessfulEventCycleWithBadHistory = ProvisioningEvents{
 		ProvisioningEvent{
-			Event: ProvisioningEventInstalling,
+			Event: ProvisioningEventPhonedHome,
 		},
 		ProvisioningEvent{
 			Event: ProvisioningEventBootingNewKernel,
 		},
 		ProvisioningEvent{
-			Event: ProvisioningEventPhonedHome,
-		},
-	}
-	MultipleTimesPXEBootingIsOK = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPXEBooting,
+			Event: ProvisioningEventInstalling,
 		},
 		ProvisioningEvent{
-			Event: ProvisioningEventPXEBooting,
+			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
 		},
 		ProvisioningEvent{
 			Event: ProvisioningEventPreparing,
@@ -160,8 +169,22 @@ var (
 		ProvisioningEvent{
 			Event: ProvisioningEventRegistering,
 		},
+	}
+	MultipleTimesPXEBootingIsNoIncompleteCycle = ProvisioningEvents{
 		ProvisioningEvent{
 			Event: ProvisioningEventWaiting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventRegistering,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPreparing,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
+		},
+		ProvisioningEvent{
+			Event: ProvisioningEventPXEBooting,
 		},
 	}
 )
@@ -173,57 +196,65 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 		want           string
 	}{
 		{
-			name: "TestFsm_CrashCycles Test 1",
+			name: "TestProvisioning_IncompleteCycles Test 1",
 			eventContainer: ProvisioningEventContainer{
-				Events: SuccessfulCycle,
+				Events: SuccessfulEventCycle,
 			},
 			want: "0",
 		},
 		{
-			name: "TestFsm_CrashCycles Test 2",
+			name: "TestProvisioning_IncompleteCycles Test 2",
 			eventContainer: ProvisioningEventContainer{
-				Events: CrashCycle1,
+				Events: CrashEventCycle,
 			},
 			want: "2",
 		},
 		{
-			name: "TestFsm_CrashCycles Test 3",
+			name: "TestProvisioning_IncompleteCycles Test 3",
 			eventContainer: ProvisioningEventContainer{
-				Events: PlannedRebootCycle,
+				Events: CycleWithPlannedReboot,
 			},
 			want: "0",
 		},
 		{
-			name: "TestFsm_CrashCycles Test 4",
+			name: "TestProvisioning_IncompleteCycles Test 4",
 			eventContainer: ProvisioningEventContainer{
-				Events: PlannedRebootAndError,
+				Events: CycleWithPlannedRebootAndError,
 			},
 			want: "1",
 		},
 		{
-			name: "TestFsm_CrashCycles Test 5",
+			name: "TestProvisioning_IncompleteCycles Test 5",
 			eventContainer: ProvisioningEventContainer{
-				Events: CrashCycle2,
+				Events: CycleWithPlannedRebootAndImmediateError,
 			},
 			want: "1",
 		},
 		{
-			name: "TestFsm_CrashCycles Test 6",
+			name: "TestProvisioning_IncompleteCycles Test 6",
 			eventContainer: ProvisioningEventContainer{
-				Events: ResetCycle,
+				Events: CycleWithACrash,
 			},
-			want: "0",
-		}, {
-			name: "TestFsm_CrashCycles Test 7",
+			want: "1",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 7",
 			eventContainer: ProvisioningEventContainer{
-				Events: SuccessfulCycleWithBadHistory,
+				Events: CycleWithReset,
 			},
 			want: "0",
 		},
 		{
-			name: "TestFsm_CrashCycles Test 8",
+			name: "TestProvisioning_IncompleteCycles Test 8",
 			eventContainer: ProvisioningEventContainer{
-				Events: MultipleTimesPXEBootingIsOK,
+				Events: SuccessfulEventCycleWithBadHistory,
+			},
+			want: "0",
+		},
+		{
+			name: "TestProvisioning_IncompleteCycles Test 9",
+			eventContainer: ProvisioningEventContainer{
+				Events: MultipleTimesPXEBootingIsNoIncompleteCycle,
 			},
 			want: "0",
 		},
