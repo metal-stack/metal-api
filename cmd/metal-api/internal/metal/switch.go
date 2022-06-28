@@ -101,3 +101,26 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 	}
 	return len(s.MachineConnections[machine.ID])
 }
+
+// SetVrfOfMachine set port on switch where machine is connected to given vrf
+func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
+	affectedMacs := map[MacAddress]bool{}
+	for _, c := range s.MachineConnections[m.ID] {
+		mac := c.Nic.MacAddress
+		affectedMacs[mac] = true
+	}
+
+	if len(affectedMacs) == 0 {
+		return
+	}
+
+	nics := Nics{}
+	for mac, old := range s.Nics.ByMac() {
+		e := old
+		if _, ok := affectedMacs[mac]; ok {
+			e.Vrf = vrf
+		}
+		nics = append(nics, *e)
+	}
+	s.Nics = nics
+}

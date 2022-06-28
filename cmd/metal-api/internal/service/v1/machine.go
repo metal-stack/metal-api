@@ -83,14 +83,10 @@ type MachineHardware struct {
 	Nics MachineNics `json:"nics" description:"the list of network interfaces of this machine"`
 }
 
-type MachineHardwareExtended struct {
-	MachineHardwareBase
-	Nics MachineNicsExtended `json:"nics" description:"the list of network interfaces of this machine with extended information"`
-}
-
 type MachineState struct {
-	Value       string `json:"value" description:"the state of this machine. empty means available for all"`
-	Description string `json:"description" description:"a description why this machine is in the given state"`
+	Value              string `json:"value" enum:"RESERVED|LOCKED|" description:"the state of this machine. empty means available for all"`
+	Description        string `json:"description" description:"a description why this machine is in the given state"`
+	MetalHammerVersion string `json:"metal_hammer_version" description:"the version of metal hammer which put the machine in waiting state"`
 }
 
 type ChassisIdentifyLEDState struct {
@@ -109,24 +105,25 @@ type MachineRecentProvisioningEvents struct {
 	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container"`
 }
 
+type MachineRecentProvisioningEventsResponse struct {
+	Events uint64   `json:"events" description:"number of events stored"`
+	Failed []string `json:"failed" description:"slice of machineIDs for which event was not published"`
+}
+
 type MachineProvisioningEvent struct {
 	Time    time.Time `json:"time" description:"the time that this event was received" optional:"true" readOnly:"true"`
 	Event   string    `json:"event" description:"the event emitted by the machine"`
 	Message string    `json:"message" description:"an additional message to add to the event" optional:"true"`
 }
 
+type MachineProvisioningEvents map[string]MachineProvisioningEvent
+
 type MachineNics []MachineNic
 
 type MachineNic struct {
-	MacAddress string `json:"mac"  description:"the mac address of this network interface"`
-	Name       string `json:"name"  description:"the name of this network interface"`
-}
-
-type MachineNicsExtended []MachineNicExtended
-
-type MachineNicExtended struct {
-	MachineNic
-	Neighbors MachineNicsExtended `json:"neighbors" description:"the neighbors visible to this network interface"`
+	MacAddress string      `json:"mac"  description:"the mac address of this network interface"`
+	Name       string      `json:"name"  description:"the name of this network interface"`
+	Neighbors  MachineNics `json:"neighbors" description:"the neighbors visible to this network interface"`
 }
 
 type MachineBIOS struct {
@@ -161,11 +158,11 @@ type MachineRegisterRequest struct {
 	UUID        string `json:"uuid" description:"the product uuid of the machine to register"`
 	PartitionID string `json:"partitionid" description:"the partition id to register this machine with"`
 	// Deprecated: RackID is not used any longer, it is calculated by the switch connections of a machine. A metal-core instance might respond to pxe requests from all racks
-	RackID   string                  `json:"rackid" description:"the rack id where this machine is connected to"`
-	Hardware MachineHardwareExtended `json:"hardware" description:"the hardware of this machine"`
-	BIOS     MachineBIOS             `json:"bios" description:"bios information of this machine"`
-	IPMI     MachineIPMI             `json:"ipmi" description:"the ipmi access infos"`
-	Tags     []string                `json:"tags" description:"tags for this machine"`
+	RackID   string          `json:"rackid" description:"the rack id where this machine is connected to"`
+	Hardware MachineHardware `json:"hardware" description:"the hardware of this machine"`
+	BIOS     MachineBIOS     `json:"bios" description:"bios information of this machine"`
+	IPMI     MachineIPMI     `json:"ipmi" description:"the ipmi access infos"`
+	Tags     []string        `json:"tags" description:"tags for this machine"`
 }
 
 type MachineAllocateRequest struct {
@@ -204,6 +201,13 @@ type MachineFindRequest struct {
 	datastore.MachineSearchQuery
 }
 
+// MachineUpdateRequest defines the properties of a machine which can be updated.
+type MachineUpdateRequest struct {
+	Identifiable
+	Description *string  `json:"description" description:"a description for this machine"`
+	Tags        []string `json:"tags" description:"tags for this machine." optional:"true"`
+}
+
 type MachineResponse struct {
 	Common
 	MachineBase
@@ -227,11 +231,12 @@ type MachineIPMIResponse struct {
 }
 
 type MachineIpmiReport struct {
-	BMCIp       string
-	FRU         *MachineFru
-	BIOSVersion string
-	BMCVersion  string
-	PowerState  string
+	BMCIp             string
+	FRU               *MachineFru
+	BIOSVersion       string
+	BMCVersion        string
+	PowerState        string
+	IndicatorLEDState string
 }
 
 type MachineIpmiReports struct {
@@ -253,7 +258,7 @@ type MachineAbortReinstallRequest struct {
 	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
 }
 
-func NewMetalMachineHardware(r *MachineHardwareExtended) metal.MachineHardware {
+func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
 	nics := metal.Nics{}
 	for i := range r.Nics {
 		var neighbors metal.Nics
@@ -375,9 +380,16 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 
 	nics := MachineNics{}
 	for i := range m.Hardware.Nics {
+		n := m.Hardware.Nics[i]
+		neighs := MachineNics{}
+		for j := range n.Neighbors {
+			neigh := n.Neighbors[j]
+			neighs = append(neighs, MachineNic{MacAddress: string(neigh.MacAddress), Name: neigh.Name, Neighbors: MachineNics{}})
+		}
 		nic := MachineNic{
-			MacAddress: string(m.Hardware.Nics[i].MacAddress),
-			Name:       m.Hardware.Nics[i].Name,
+			MacAddress: string(n.MacAddress),
+			Name:       n.Name,
+			Neighbors:  neighs,
 		}
 		nics = append(nics, nic)
 	}
@@ -487,8 +499,9 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				Date:    m.BIOS.Date,
 			},
 			State: MachineState{
-				Value:       string(m.State.Value),
-				Description: m.State.Description,
+				Value:              string(m.State.Value),
+				Description:        m.State.Description,
+				MetalHammerVersion: m.State.MetalHammerVersion,
 			},
 			LEDState: ChassisIdentifyLEDState{
 				Value:       string(m.LEDState.Value),

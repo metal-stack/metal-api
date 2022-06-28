@@ -44,8 +44,9 @@ var (
 // the machine will be available for allocation. In all other cases the allocation
 // must explicitly point to this machine.
 type MachineState struct {
-	Value       MState `rethinkdb:"value" json:"value"`
-	Description string `rethinkdb:"description" json:"description"`
+	Value              MState `rethinkdb:"value" json:"value"`
+	Description        string `rethinkdb:"description" json:"description"`
+	MetalHammerVersion string `rethinkdb:"metal_hammer_version" json:"metal_hammer_version"`
 }
 
 // MachineStateFrom converts a machineState string to the type
@@ -389,9 +390,10 @@ const (
 // is an optional array of strings which are implementation specific
 // and dependent of the command.
 type MachineExecCommand struct {
-	TargetMachineID string         `json:"target,omitempty"`
-	Command         MachineCommand `json:"cmd,omitempty"`
-	Params          []string       `json:"params,omitempty"`
+	TargetMachineID string          `json:"target,omitempty"`
+	Command         MachineCommand  `json:"cmd,omitempty"`
+	IPMI            *IPMI           `json:"ipmi,omitempty"`
+	FirmwareUpdate  *FirmwareUpdate `json:"firmwareupdate,omitempty"`
 }
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
@@ -405,4 +407,9 @@ type MachineEvent struct {
 // AllocationEvent is propagated when a machine is allocated.
 type AllocationEvent struct {
 	MachineID string `json:"old,omitempty"`
+}
+
+type FirmwareUpdate struct {
+	Kind FirmwareKind `json:"kind"`
+	URL  string       `json:"url"`
 }

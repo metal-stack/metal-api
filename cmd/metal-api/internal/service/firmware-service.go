@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -26,18 +27,6 @@ var featureDisabledErr = errors.New("this feature is currently disabled")
 type firmwareResource struct {
 	webResource
 	s3Client *s3server.Client
-}
-
-type FirmwareKind = string
-
-const (
-	bios FirmwareKind = "bios"
-	bmc  FirmwareKind = "bmc"
-)
-
-var firmwareKinds = []string{
-	bios,
-	bmc,
 }
 
 // NewFirmware returns a webservice for firmware specific endpoints.
@@ -185,11 +174,11 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	}
 
 	kind := guessFirmwareKind(request.QueryParameter("kind"))
-	var kk []FirmwareKind
+	var kk []metal.FirmwareKind
 	switch kind {
 	case "":
-		kk = append(kk, bmc)
-		kk = append(kk, bios)
+		kk = append(kk, metal.FirmwareBMC)
+		kk = append(kk, metal.FirmwareBIOS)
 	default:
 		kk = append(kk, kind)
 	}
@@ -217,15 +206,15 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				return
 			}
 		default:
-			f, err := getFirmware(r.ds, machineID)
+			_, f, err := getFirmware(r.ds, machineID)
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
 			bb := make(map[string][]string)
 			switch k {
-			case bios:
+			case metal.FirmwareBIOS:
 				bb[f.Board] = []string{f.BiosVersion}
-			case bmc:
+			case metal.FirmwareBMC:
 				bb[f.Board] = []string{f.BmcVersion}
 			}
 			rr[k][f.Vendor] = bb
@@ -240,17 +229,17 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 	}
 }
 
-func getFirmware(ds *datastore.RethinkStore, machineID string) (*v1.Firmware, error) {
+func getFirmware(ds *datastore.RethinkStore, machineID string) (*metal.Machine, *v1.Firmware, error) {
 	m, err := ds.FindMachineByID(machineID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	fru := m.IPMI.Fru
 	vendor := strings.ToLower(fru.BoardMfg)
 	board := strings.ToUpper(fru.BoardPartNumber)
 
-	return &v1.Firmware{
+	return m, &v1.Firmware{
 		Vendor:      vendor,
 		Board:       board,
 		BmcVersion:  m.IPMI.BMCVersion,
@@ -327,7 +316,7 @@ func guessFirmwareKind(kind string) string {
 }
 
 func toFirmwareKind(kind string) (string, error) {
-	for _, k := range firmwareKinds {
+	for _, k := range metal.FirmwareKinds {
 		if strings.EqualFold(k, kind) {
 			return k, nil
 		}

@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package api.v1;
+
+option go_package = "./v1";
+
+service BootService {
+  // Dhcp is the first dhcp request (option 97). A ProvisioningEventPXEBooting is fired
+  rpc Dhcp(BootServiceDhcpRequest) returns (BootServiceDhcpResponse) {}
+  // Boot is called from pixie once the machine got the first dhcp response and ipxie asks for subsequent kernel and initrd
+  rpc Boot(BootServiceBootRequest) returns (BootServiceBootResponse) {}
+  // SuperUserPassword metal-hammer takes the configured root password for the bmc from metal-api and configure the bmc accordingly
+  rpc SuperUserPassword(BootServiceSuperUserPasswordRequest) returns (BootServiceSuperUserPasswordResponse);
+  // Register is called from metal-hammer after hardware inventory is finished, tells metal-api all glory details about that machine
+  rpc Register(BootServiceRegisterRequest) returns (BootServiceRegisterResponse) {}
+  // Wait is a hanging call that waits until the machine gets allocated by a user
+  rpc Wait(BootServiceWaitRequest) returns (stream BootServiceWaitResponse);
+  // Report tells metal-api installation was either sucessful or failed
+  rpc Report(BootServiceReportRequest) returns (BootServiceReportResponse) {}
+  // If reinstall failed and tell metal-api to restore to previous state
+  rpc AbortReinstall(BootServiceAbortReinstallRequest) returns (BootServiceAbortReinstallResponse) {}
+}
+
+message BootServiceDhcpRequest {
+  string uuid = 1;
+}
+
+message BootServiceDhcpResponse {}
+
+message BootServiceBootRequest {
+  string mac = 1;
+  string partition_id = 2;
+}
+
+message BootServiceBootResponse {
+  string kernel = 1;
+  repeated string init_ram_disks = 2;
+  optional string cmdline = 3;
+}
+
+message BootServiceRegisterRequest {
+  string uuid = 1;
+  MachineHardware hardware = 2;
+  MachineBIOS bios = 3;
+  MachineIPMI ipmi = 4;
+  repeated string tags = 5;
+  string metal_hammer_version = 6;
+}
+
+message BootServiceRegisterResponse {
+  string uuid = 1;
+  string size = 2;
+  string partition_id = 3;
+}
+
+message BootServiceWaitRequest {
+  string machine_id = 1;
+}
+
+message BootServiceWaitResponse {}
+
+message MachineHardware {
+  uint64 memory = 1;
+  uint32 cpu_cores = 2;
+  repeated MachineBlockDevice disks = 3;
+  repeated MachineNic nics = 4;
+}
+
+message MachineNic {
+  string mac = 1;
+  string name = 2;
+  repeated MachineNic neighbors = 3;
+}
+
+message MachineBlockDevice {
+  string name = 1;
+  uint64 size = 2;
+}
+
+message MachineBIOS {
+  string version = 1;
+  string vendor = 2;
+  string date = 3;
+}
+
+message MachineIPMI {
+  string address = 1;
+  string mac = 2;
+  string user = 3;
+  string password = 4;
+  string interface = 5;
+  MachineFRU fru = 6;
+  string bmc_version = 7;
+  string power_state = 8;
+}
+
+message MachineFRU {
+  optional string chassis_part_number = 1;
+  optional string chassis_part_serial = 2;
+  optional string board_mfg = 3;
+  optional string board_mfg_serial = 4;
+  optional string board_part_number = 5;
+  optional string product_manufacturer = 6;
+  optional string product_part_number = 7;
+  optional string product_serial = 8;
+}
+
+message BootServiceReportRequest {
+  string uuid = 1;
+  string console_password = 2;
+  BootInfo boot_info = 3;
+  bool success = 4;
+  string message = 5;
+}
+message BootServiceReportResponse {}
+
+message BootInfo {
+  string image_id = 1;
+  string primary_disk = 2;
+  string os_partition = 3;
+  string initrd = 4;
+  string cmdline = 5;
+  string kernel = 6;
+  string bootloader_id = 8;
+}
+
+message BootServiceAbortReinstallRequest {
+  string uuid = 1;
+  bool primary_disk_wiped = 2;
+}
+message BootServiceAbortReinstallResponse {
+  BootInfo boot_info = 1;
+}
+message BootServiceSuperUserPasswordRequest {}
+
+message BootServiceSuperUserPasswordResponse {
+  bool feature_disabled = 1;
+  string super_user_password = 2;
+}

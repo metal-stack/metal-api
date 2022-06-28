@@ -12,10 +12,19 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Go 1.17
+    - name: Set up Go 1.18
       uses: actions/setup-go@v2
       with:
-        go-version: '1.17.x'
+        go-version: '1.18.x'
+
+    - name: setup buf
+      uses: bufbuild/buf-setup-action@v1
+      with:
+        version: '1.5.0'
+
+    - name: generate proto and lint
+      working-directory: proto
+      run: make protoc
 
     - name: Docker Login
       uses: docker/login-action@v1
@@ -27,7 +36,6 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v2
       with:
-        version: v1.43
         args: --build-tags integration -p bugs -p unused --timeout=3m
 
     - name: Build Docker image
@@ -48,10 +56,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Go 1.17
+    - name: Set up Go 1.18
       uses: actions/setup-go@v2
       with:
-        go-version: '1.17.x'
+        go-version: '1.18.x'
 
     - name: Run integration tests
       run: |

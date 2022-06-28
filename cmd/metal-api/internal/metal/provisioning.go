@@ -176,3 +176,37 @@ func (p ProvisioningEventContainers) ByID() ProvisioningEventContainerMap {
 	}
 	return res
 }
+
+// ProvisioningEventForMachine calculates the next ProvisioningEventContainer for the given machine based on current state and given event.
+// the returned container must be persisted after calling this
+func ProvisioningEventForMachine(log *zap.SugaredLogger, ec *ProvisioningEventContainer, machineID, event, message string) *ProvisioningEventContainer {
+	if ec == nil {
+		ec = &ProvisioningEventContainer{
+			Base: Base{
+				ID: machineID,
+			},
+			Liveliness: MachineLivelinessAlive,
+		}
+	}
+	now := time.Now()
+	ec.LastEventTime = &now
+
+	ev := ProvisioningEvent{
+		Time:    now,
+		Event:   ProvisioningEventType(event),
+		Message: message,
+	}
+	if ev.Event == ProvisioningEventAlive {
+		log.Debugw("received provisioning alive event", "id", ec.ID)
+		ec.Liveliness = MachineLivelinessAlive
+	} else if ev.Event == ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == ProvisioningEventPhonedHome {
+		log.Debugw("swallowing repeated phone home event", "id", ec.ID)
+		ec.Liveliness = MachineLivelinessAlive
+	} else {
+		ec.Events = append([]ProvisioningEvent{ev}, ec.Events...)
+		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(log)
+		ec.Liveliness = MachineLivelinessAlive
+	}
+	ec.TrimEvents(ProvisioningEventsInspectionLimit)
+	return ec
+}

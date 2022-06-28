@@ -4,6 +4,10 @@
     "datastore.IPSearchQuery": {
       "description": "an ip address that can be attached to a machine",
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
@@ -1318,6 +1322,10 @@
     },
     "v1.IPFindRequest": {
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
@@ -2366,40 +2374,6 @@
         "memory"
       ]
     },
-    "v1.MachineHardwareExtended": {
-      "properties": {
-        "cpu_cores": {
-          "description": "the number of cpu cores",
-          "format": "int32",
-          "type": "integer"
-        },
-        "disks": {
-          "description": "the list of block devices of this machine",
-          "items": {
-            "$ref": "#/definitions/v1.MachineBlockDevice"
-          },
-          "type": "array"
-        },
-        "memory": {
-          "description": "the total memory of the machine",
-          "format": "integer",
-          "type": "integer"
-        },
-        "nics": {
-          "description": "the list of network interfaces of this machine with extended information",
-          "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "cpu_cores",
-        "disks",
-        "memory",
-        "nics"
-      ]
-    },
     "v1.MachineIPMI": {
       "description": "The IPMI connection data",
       "properties": {
@@ -2547,6 +2521,9 @@
         "FRU": {
           "$ref": "#/definitions/v1.MachineFru"
         },
+        "IndicatorLEDState": {
+          "type": "string"
+        },
         "PowerState": {
           "type": "string"
         }
@@ -2556,6 +2533,7 @@
         "BMCIp",
         "BMCVersion",
         "FRU",
+        "IndicatorLEDState",
         "PowerState"
       ]
     },
@@ -2673,27 +2651,11 @@
         "name": {
           "description": "the name of this network interface",
           "type": "string"
-        }
-      },
-      "required": [
-        "mac",
-        "name"
-      ]
-    },
-    "v1.MachineNicExtended": {
-      "properties": {
-        "mac": {
-          "description": "the mac address of this network interface",
-          "type": "string"
-        },
-        "name": {
-          "description": "the name of this network interface",
-          "type": "string"
         },
         "neighbors": {
           "description": "the neighbors visible to this network interface",
           "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
+            "$ref": "#/definitions/v1.MachineNic"
           },
           "type": "array"
         }
@@ -2725,6 +2687,12 @@
         "event"
       ]
     },
+    "v1.MachineProvisioningEvents": {
+      "additionalProperties": {
+        "$ref": "#/definitions/v1.MachineProvisioningEvent"
+      },
+      "type": "object"
+    },
     "v1.MachineRecentProvisioningEvents": {
       "properties": {
         "incomplete_provisioning_cycles": {
@@ -2749,6 +2717,26 @@
         "log"
       ]
     },
+    "v1.MachineRecentProvisioningEventsResponse": {
+      "properties": {
+        "events": {
+          "description": "number of events stored",
+          "format": "integer",
+          "type": "integer"
+        },
+        "failed": {
+          "description": "slice of machineIDs for which event was not published",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "events",
+        "failed"
+      ]
+    },
     "v1.MachineRegisterRequest": {
       "properties": {
         "bios": {
@@ -2756,7 +2744,7 @@
           "description": "bios information of this machine"
         },
         "hardware": {
-          "$ref": "#/definitions/v1.MachineHardwareExtended",
+          "$ref": "#/definitions/v1.MachineHardware",
           "description": "the hardware of this machine"
         },
         "ipmi": {
@@ -2913,13 +2901,23 @@
           "description": "a description why this machine is in the given state",
           "type": "string"
         },
+        "metal_hammer_version": {
+          "description": "the version of metal hammer which put the machine in waiting state",
+          "type": "string"
+        },
         "value": {
           "description": "the state of this machine. empty means available for all",
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         }
       },
       "required": [
         "description",
+        "metal_hammer_version",
         "value"
       ]
     },
@@ -2931,6 +2929,10 @@
         },
         "kind": {
           "description": "the firmware kind, i.e. [bios|bmc]",
+          "enum": [
+            "bios",
+            "bmc"
+          ],
           "type": "string"
         },
         "revision": {
@@ -2942,6 +2944,30 @@
         "description",
         "kind",
         "revision"
+      ]
+    },
+    "v1.MachineUpdateRequest": {
+      "properties": {
+        "description": {
+          "description": "a description for this machine",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "tags": {
+          "description": "tags for this machine.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "description",
+        "id"
       ]
     },
     "v1.Meta": {
@@ -5571,11 +5597,49 @@
       }
     },
     "/v1/ip/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeIP",
+        "parameters": [
+          {
+            "description": "identifier of the ip",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "frees an ip",
+        "tags": [
+          "ip"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeIPDeprecated",
         "parameters": [
           {
             "description": "identifier of the ip",
@@ -5676,6 +5740,49 @@
         "tags": [
           "machine"
         ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateMachine",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a machine. if the machine was changed since this one was read, a conflict is returned",
+        "tags": [
+          "machine"
+        ]
       }
     },
     "/v1/machine/allocate": {
@@ -5751,6 +5858,46 @@
           }
         },
         "summary": "get consolepassword for machine by id",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/event": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "addProvisioningEvents",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineProvisioningEvents"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEventsResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "adds machine provisioning events",
         "tags": [
           "machine"
         ]
@@ -6049,6 +6196,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "abortReinstallMachine",
         "parameters": [
           {
@@ -6095,6 +6243,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "setChassisIdentifyLEDState",
         "parameters": [
           {
@@ -6141,6 +6290,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "getProvisioningEventContainer",
         "parameters": [
           {
@@ -6177,6 +6327,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "addProvisioningEvent",
         "parameters": [
           {
@@ -7070,11 +7221,55 @@
       }
     },
     "/v1/network/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeNetwork",
+        "parameters": [
+          {
+            "description": "identifier of the network",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "free a network",
+        "tags": [
+          "network"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeNetworkDeprecated",
         "parameters": [
           {
             "description": "identifier of the network",
@@ -8047,7 +8242,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.MachineHardwareExtended"
+              "$ref": "#/definitions/v1.MachineHardware"
             }
           }
         ],

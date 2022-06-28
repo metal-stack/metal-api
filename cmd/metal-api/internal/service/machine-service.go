@@ -11,17 +11,16 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm"
+	"github.com/aws/aws-sdk-go/service/s3"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
-
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 
 	"golang.org/x/crypto/ssh"
 
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/metal-stack/metal-lib/zapup"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -36,7 +35,6 @@ import (
 	"github.com/dustin/go-humanize"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -46,7 +44,6 @@ type machineResource struct {
 	ipamer          ipam.IPAMer
 	mdc             mdm.Client
 	actor           *asyncActor
-	grpcServer      *grpc.Server
 	s3Client        *s3server.Client
 	userGetter      security.UserGetter
 	reasonMinLength uint
@@ -106,7 +103,6 @@ func NewMachine(
 	ep *bus.Endpoints,
 	ipamer ipam.IPAMer,
 	mdc mdm.Client,
-	grpcServer *grpc.Server,
 	s3Client *s3server.Client,
 	userGetter security.UserGetter,
 	reasonMinLength uint,
@@ -118,7 +114,6 @@ func NewMachine(
 		Publisher:       pub,
 		ipamer:          ipamer,
 		mdc:             mdc,
-		grpcServer:      grpcServer,
 		s3Client:        s3Client,
 		userGetter:      userGetter,
 		reasonMinLength: reasonMinLength,
@@ -181,6 +176,18 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/").
+		To(admin(r.updateMachine)).
+		Operation("updateMachine").
+		Doc("updates a machine. if the machine was changed since this one was read, a conflict is returned").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineUpdateRequest{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	// FIXME can be removed once https://github.com/metal-stack/metal-api/pull/279 is merged
 	ws.Route(ws.POST("/register").
 		To(editor(r.registerMachine)).
 		Operation("registerMachine").
@@ -202,6 +209,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once https://github.com/metal-stack/metal-api/pull/279 is merged
 	ws.Route(ws.POST("/{id}/finalize-allocation").
 		To(editor(r.finalizeAllocation)).
 		Operation("finalizeAllocation").
@@ -224,6 +232,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME was only used by metal-core to set the led-state, can be removed
 	ws.Route(ws.POST("/{id}/chassis-identify-led-state").
 		To(editor(r.setChassisIdentifyLEDState)).
 		Operation("setChassisIdentifyLEDState").
@@ -233,7 +242,7 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.ChassisIdentifyLEDState{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	ws.Route(ws.DELETE("/{id}/free").
 		To(editor(r.freeMachine)).
@@ -297,6 +306,7 @@ func (r machineResource) webService() *restful.WebService {
 		Returns(http.StatusBadRequest, "Bad Request", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	// FIXME can be removed once https://github.com/metal-stack/metal-api/pull/279 is merged
 	ws.Route(ws.POST("/{id}/abort-reinstall").
 		To(editor(r.abortReinstallMachine)).
 		Operation("abortReinstallMachine").
@@ -306,8 +316,9 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineAbortReinstallRequest{}).
 		Writes(v1.BootInfo{}).
 		Returns(http.StatusOK, "OK", v1.BootInfo{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
+	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.GET("/{id}/event").
 		To(viewer(r.getProvisioningEventContainer)).
 		Operation("getProvisioningEventContainer").
@@ -316,8 +327,9 @@ func (r machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
+	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
 	ws.Route(ws.POST("/{id}/event").
 		To(editor(r.addProvisioningEvent)).
 		Operation("addProvisioningEvent").
@@ -327,7 +339,18 @@ func (r machineResource) webService() *restful.WebService {
 		Reads(v1.MachineProvisioningEvent{}).
 		Writes(v1.MachineRecentProvisioningEvents{}).
 		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEvents{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
+
+	// FIXME can be removed once metal-hammer and metal-core are updated with events via grpc
+	ws.Route(ws.POST("/event").
+		To(editor(r.addProvisioningEvents)).
+		Operation("addProvisioningEvents").
+		Doc("adds machine provisioning events").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.MachineProvisioningEvents{}).
+		Writes(v1.MachineRecentProvisioningEventsResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineRecentProvisioningEventsResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).Deprecate())
 
 	ws.Route(ws.POST("/{id}/power/on").
 		To(editor(r.machineOn)).
@@ -471,6 +494,49 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func (r machineResource) updateMachine(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineUpdateRequest
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	oldMachine, err := r.ds.FindMachineByID(requestPayload.ID)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	if oldMachine.Allocation == nil {
+		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("only allocated machines can be updated")) {
+			return
+		}
+	}
+
+	newMachine := *oldMachine
+
+	if requestPayload.Description != nil {
+		newMachine.Allocation.Description = *requestPayload.Description
+	}
+
+	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+
+	err = r.ds.UpdateMachine(oldMachine, &newMachine)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	resp, err := makeMachineResponse(&newMachine, r.ds)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -757,7 +823,7 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 	old := *m
 	err = retry.Do(
 		func() error {
-			err := connectMachineWithSwitches(r.ds, m)
+			err := r.ds.ConnectMachineWithSwitches(m)
 			if err != nil {
 				return err
 			}
@@ -889,9 +955,17 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 				Address: report.BMCIp + ":" + defaultIPMIPort,
 			},
 		}
+		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
+		if err == nil {
+			m.LEDState = metal.ChassisIdentifyLEDState{
+				Value: ledstate,
+			}
+		} else {
+			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
-			logger.Errorf("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
+			logger.Errorw("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
 			continue
 		}
 		resp.Created = append(resp.Created, uuid)
@@ -917,7 +991,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		} else if len(hostAndPort) < 2 {
 			newMachine.IPMI.Address = report.BMCIp + ":" + defaultIPMIPort
 		} else {
-			logger.Errorf("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
+			logger.Errorw("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
 
@@ -927,7 +1001,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 		}
 
 		if newMachine.PartitionID != p.ID {
-			logger.Errorf("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
+			logger.Errorw("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
 			continue
 		}
 
@@ -944,9 +1018,19 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 			newMachine.IPMI.PowerState = report.PowerState
 		}
 
+		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
+		if err == nil {
+			newMachine.LEDState = metal.ChassisIdentifyLEDState{
+				Value:       ledstate,
+				Description: newMachine.LEDState.Description,
+			}
+		} else {
+			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+		}
+
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorf("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
+			logger.Errorw("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
 			continue
 		}
 		resp.Updated = append(resp.Updated, uuid)
@@ -992,7 +1076,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.grpcServer)
+	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		utils.Logger(request).Sugar().Errorw("machine allocation went wrong", "spec", spec, "error", err)
 		return
@@ -1100,7 +1184,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	}, nil
 }
 
-func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, ws *grpc.Server) (*metal.Machine, error) {
+func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -1241,9 +1325,12 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		return nil, rollbackOnError(fmt.Errorf("error when allocating machine %q, %w", machine.ID, err))
 	}
 
-	err = ws.NotifyAllocated(machine.ID)
+	// TODO: can be removed after metal-core refactoring
+	err = publisher.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machine.ID})
 	if err != nil {
-		return nil, fmt.Errorf("failed to notify machine allocation %q, %w", machine.ID, err)
+		logger.Errorw("failed to publish machine allocation event, fallback should trigger on metal-hammer", "topic", metal.TopicAllocation.Name, "machineID", machine.ID, "error", err)
+	} else {
+		logger.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machine.ID)
 	}
 
 	return machine, nil
@@ -1725,7 +1812,7 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	err = retry.Do(
 		func() error {
-			_, err := setVrfAtSwitches(r.ds, m, vrf)
+			_, err := r.ds.SetVrfAtSwitches(m, vrf)
 			return err
 		},
 		retry.Attempts(10),
@@ -1782,7 +1869,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 
 	event := string(metal.ProvisioningEventPlannedReboot)
-	_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: "freeMachine"})
+	_, err = r.ds.ProvisioningEventForMachine(logger, id, event, "freeMachine")
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2000,7 +2087,7 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
 	err := retry.Do(
 		func() error {
-			_, err := setVrfAtSwitches(ds, m, "")
+			_, err := ds.SetVrfAtSwitches(m, "")
 			return err
 		},
 		retry.Attempts(10),
@@ -2019,7 +2106,7 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 
 func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
 	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID}
+	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	if err != nil {
 		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
@@ -2047,56 +2134,46 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 		return
 	}
 }
-
-func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
-	id := request.PathParameter("id")
-	m, err := r.ds.FindMachineByID(id)
-	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
-	// an event can actually create an empty machine. This enables us to also catch the very first PXE Booting event
-	// in a machine lifecycle
-	if m == nil {
-		m = &metal.Machine{
-			Base: metal.Base{
-				ID: id,
-			},
-		}
-		err = r.ds.CreateMachine(m)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
-	}
-
-	var requestPayload v1.MachineProvisioningEvent
-	err = request.ReadEntity(&requestPayload)
+func (r machineResource) addProvisioningEvents(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineProvisioningEvents
+	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
-	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(requestPayload.Event)]
-	if !ok {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("unknown provisioning event")) {
-			return
+
+	log := utils.Logger(request).Sugar()
+	var provisionError error
+	result := v1.MachineRecentProvisioningEventsResponse{}
+	for machineID, event := range requestPayload {
+		_, err := r.addProvisionEventForMachine(log, machineID, event)
+		if err != nil {
+			result.Failed = append(result.Failed, machineID)
+			provisionError = multierr.Append(provisionError, fmt.Errorf("unable to add provisioning event for machine:%s %w", machineID, err))
+			continue
 		}
+		result.Events++
+	}
+	if checkError(request, response, utils.CurrentFuncName(), provisionError) {
+		return
 	}
 
-	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
-	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+	err = response.WriteHeaderAndEntity(http.StatusOK, result)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineProvisioningEvent
+	err := request.ReadEntity(&requestPayload)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
 	}
 
-	event := &metal.ProvisioningEvent{
-		Time:    time.Now(),
-		Event:   metal.ProvisioningEventType(requestPayload.Event),
-		Message: requestPayload.Message,
-	}
+	id := request.PathParameter("id")
+	log := utils.Logger(request).Sugar()
 
-	err = fsm.HandleProvisioningEvent(event, ec, r.ds)
+	ec, err := r.addProvisionEventForMachine(log, id, requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2108,43 +2185,32 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 	}
 }
 
-func (r machineResource) provisioningEventForMachine(machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
-	ec, err := r.ds.FindProvisioningEventContainer(machineID)
+func (r machineResource) addProvisionEventForMachine(log *zap.SugaredLogger, machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
+	m, err := r.ds.FindMachineByID(machineID)
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
 	}
 
-	if ec == nil {
-		ec = &metal.ProvisioningEventContainer{
+	// an event can actually create an empty machine. This enables us to also catch the very first PXE Booting event
+	// in a machine lifecycle
+	if m == nil {
+		m = &metal.Machine{
 			Base: metal.Base{
 				ID: machineID,
 			},
-			Liveliness: metal.MachineLivelinessAlive,
+		}
+		err = r.ds.CreateMachine(m)
+		if err != nil {
+			return nil, err
 		}
 	}
-	now := time.Now()
-	ec.LastEventTime = &now
 
-	event := metal.ProvisioningEvent{
-		Time:    now,
-		Event:   metal.ProvisioningEventType(e.Event),
-		Message: e.Message,
+	ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(e.Event)]
+	if !ok {
+		return nil, errors.New("unknown provisioning event")
 	}
-	if event.Event == metal.ProvisioningEventAlive {
-		zapup.MustRootLogger().Sugar().Debugw("received provisioning alive event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else if event.Event == metal.ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == metal.ProvisioningEventPhonedHome {
-		zapup.MustRootLogger().Sugar().Debugw("swallowing repeated phone home event", "id", ec.ID)
-		ec.Liveliness = metal.MachineLivelinessAlive
-	} else {
-		ec.Events = append([]metal.ProvisioningEvent{event}, ec.Events...)
-		ec.IncompleteProvisioningCycles = ec.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar())
-		ec.Liveliness = metal.MachineLivelinessAlive
-	}
-	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
 
-	err = r.ds.UpsertProvisioningEventContainer(ec)
-	return ec, err
+	return r.ds.ProvisioningEventForMachine(log, machineID, e.Event, e.Message)
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died
@@ -2156,14 +2222,11 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		return err
 	}
 
-	liveliness := make(metrics.PartitionLiveliness)
-
 	unknown := 0
 	alive := 0
 	dead := 0
 	errs := 0
 	for _, m := range machines {
-		p := liveliness[m.PartitionID]
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
@@ -2173,18 +2236,12 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
-			p.Alive++
 		case metal.MachineLivelinessDead:
 			dead++
-			p.Dead++
 		case metal.MachineLivelinessUnknown:
 			unknown++
-			p.Unknown++
 		}
-		liveliness[m.PartitionID] = p
 	}
-
-	metrics.ProvideLiveliness(liveliness)
 
 	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
@@ -2273,39 +2330,39 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 }
 
 func (r machineResource) machineOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineOn", metal.MachineOnCmd, request, response)
+	r.machineCmd(metal.MachineOnCmd, request, response)
 }
 
 func (r machineResource) machineOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineOff", metal.MachineOffCmd, request, response)
+	r.machineCmd(metal.MachineOffCmd, request, response)
 }
 
 func (r machineResource) machineReset(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineReset", metal.MachineResetCmd, request, response)
+	r.machineCmd(metal.MachineResetCmd, request, response)
 }
 
 func (r machineResource) machineCycle(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineCycle", metal.MachineCycleCmd, request, response)
+	r.machineCmd(metal.MachineCycleCmd, request, response)
 }
 
 func (r machineResource) machineBios(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineBios", metal.MachineBiosCmd, request, response)
+	r.machineCmd(metal.MachineBiosCmd, request, response)
 }
 
 func (r machineResource) machineDisk(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machineDisk", metal.MachineDiskCmd, request, response)
+	r.machineCmd(metal.MachineDiskCmd, request, response)
 }
 
 func (r machineResource) machinePxe(request *restful.Request, response *restful.Response) {
-	r.machineCmd("machinePxe", metal.MachinePxeCmd, request, response)
+	r.machineCmd(metal.MachinePxeCmd, request, response)
 }
 
 func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOn", metal.ChassisIdentifyLEDOnCmd, request, response, request.QueryParameter("description"))
+	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response)
 }
 
 func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd("chassisIdentifyLEDOff", metal.ChassisIdentifyLEDOffCmd, request, response, request.QueryParameter("description"))
+	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response)
 }
 
 func (r machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
@@ -2320,16 +2377,16 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 	}
 
 	id := request.PathParameter("id")
-	f, err := getFirmware(r.ds, id)
+	m, f, err := getFirmware(r.ds, id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
 	alreadyInstalled := false
 	switch p.Kind {
-	case bmc:
+	case metal.FirmwareBIOS:
 		alreadyInstalled = f.BiosVersion == p.Revision
-	case bios:
+	case metal.FirmwareBMC:
 		alreadyInstalled = f.BmcVersion == p.Revision
 	}
 	if alreadyInstalled && checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("machine's %s version is already equal %s", p.Kind, p.Revision)) {
@@ -2352,28 +2409,31 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 		return
 	}
 
-	r.machineCmd("updateFirmware", metal.UpdateFirmwareCmd, request, response, p.Kind, p.Revision, p.Description, r.s3Client.Url, r.s3Client.Key, r.s3Client.Secret, r.s3Client.FirmwareBucket)
-}
-
-func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request *restful.Request, response *restful.Response, params ...string) {
-	logger := utils.Logger(request).Sugar()
-	id := request.PathParameter("id")
-
-	m, err := r.ds.FindMachineByID(id)
-	if checkError(request, response, op, err) {
+	key := fmt.Sprintf("%s/%s/%s/%s", p.Kind, strings.ToLower(f.Vendor), strings.ToUpper(f.Board), p.Revision)
+	req, _ := r.s3Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: &r.s3Client.FirmwareBucket,
+		Key:    &key,
+	})
+	downloadableURL, err := req.Presign(2 * time.Hour)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	switch op {
-	case "machineReset", "machineOff", "machineCycle":
-		event := string(metal.ProvisioningEventPlannedReboot)
-		_, err = r.provisioningEventForMachine(id, v1.MachineProvisioningEvent{Time: time.Now(), Event: event, Message: op})
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+	evt := metal.MachineEvent{
+		Type: metal.COMMAND,
+		Cmd: &metal.MachineExecCommand{
+			Command:         metal.UpdateFirmwareCmd,
+			TargetMachineID: m.ID,
+			IPMI:            &m.IPMI,
+			FirmwareUpdate: &metal.FirmwareUpdate{
+				Kind: p.Kind,
+				URL:  downloadableURL,
+			},
+		},
 	}
-
-	err = publishMachineCmd(logger, m, r.Publisher, cmd, params...)
+	logger := utils.Logger(request).Sugar()
+	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2390,19 +2450,70 @@ func (r machineResource) machineCmd(op string, cmd metal.MachineCommand, request
 	}
 }
 
-func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand, params ...string) error {
-	pp := []string{}
-	for _, p := range params {
-		if len(p) > 0 {
-			pp = append(pp, p)
+func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+	logger := utils.Logger(request).Sugar()
+	id := request.PathParameter("id")
+	description := request.QueryParameter("description")
+
+	newMachine, err := r.ds.FindMachineByID(id)
+	if checkError(request, response, string(cmd), err) {
+		return
+	}
+
+	old := *newMachine
+	needsUpdate := false
+	switch cmd { // nolint:exhaustive
+	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
+		event := string(metal.ProvisioningEventPlannedReboot)
+		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, string(cmd))
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
+		}
+	case metal.ChassisIdentifyLEDOnCmd:
+		newMachine.LEDState = metal.ChassisIdentifyLEDState{
+			Value:       metal.LEDStateOn,
+			Description: description,
+		}
+		needsUpdate = true
+	case metal.ChassisIdentifyLEDOffCmd:
+		newMachine.LEDState = metal.ChassisIdentifyLEDState{
+			Value:       metal.LEDStateOff,
+			Description: description,
+		}
+		needsUpdate = true
+	}
+
+	if needsUpdate {
+		err = r.ds.UpdateMachine(&old, newMachine)
+		if checkError(request, response, utils.CurrentFuncName(), err) {
+			return
 		}
 	}
+
+	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	resp, err := makeMachineResponse(newMachine, r.ds)
+	if checkError(request, response, utils.CurrentFuncName(), err) {
+		return
+	}
+
+	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
+	if err != nil {
+		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		return
+	}
+}
+
+func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
 			Command:         cmd,
-			Params:          pp,
 			TargetMachineID: m.ID,
+			IPMI:            &m.IPMI,
 		},
 	}
 

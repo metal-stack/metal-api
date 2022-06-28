@@ -49,7 +49,7 @@ func TestGetIPs(t *testing.T) {
 	var result []v1.IPResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, 3)
 	require.Equal(t, testdata.IP1.IPAddress, result[0].IPAddress)
 	require.Equal(t, testdata.IP1.Name, *result[0].Name)
@@ -77,7 +77,7 @@ func TestGetIP(t *testing.T) {
 	var result v1.IPResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.IP1.IPAddress, result.IPAddress)
 	require.Equal(t, testdata.IP1.Name, *result.Name)
 }
@@ -100,7 +100,7 @@ func TestGetIPNotFound(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Contains(t, result.Message, "9.9.9.9")
 	require.Equal(t, 404, result.StatusCode)
 }
@@ -108,7 +108,7 @@ func TestGetIPNotFound(t *testing.T) {
 func TestDeleteIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	ipamer, err := testdata.InitMockIpamData(mock, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
 
 	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipamer, nil)
@@ -150,10 +150,10 @@ func TestDeleteIP(t *testing.T) {
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			if tt.wantedStatus != http.StatusUnprocessableEntity {
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 			err = resp.Body.Close()
-			require.Nil(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -161,7 +161,7 @@ func TestDeleteIP(t *testing.T) {
 func TestAllocateIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB()
 	ipamer, err := testdata.InitMockIpamData(mock, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
 
 	psc := mdmock.ProjectServiceClient{}
@@ -211,7 +211,8 @@ func TestAllocateIP(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			tt.allocateRequest.Describable.Name = &tt.name
-			js, _ := json.Marshal(tt.allocateRequest)
+			js, err := json.Marshal(tt.allocateRequest)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/ip/allocate", body)
 			container = injectEditor(container, req)
@@ -225,7 +226,7 @@ func TestAllocateIP(t *testing.T) {
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, tt.wantedType, result.Type)
 			require.Equal(t, tt.wantedIP, result.IPAddress)
 			require.Equal(t, tt.name, *result.Name)
@@ -298,7 +299,8 @@ func TestUpdateIP(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			js, _ := json.Marshal(tt.updateRequest)
+			js, err := json.Marshal(tt.updateRequest)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/ip", body)
 			container = injectEditor(container, req)
@@ -310,13 +312,13 @@ func TestUpdateIP(t *testing.T) {
 			defer resp.Body.Close()
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
 			var result v1.IPResponse
-			err := json.NewDecoder(resp.Body).Decode(&result)
+			err = json.NewDecoder(resp.Body).Decode(&result)
 
 			if tt.wantedStatus == http.StatusUnprocessableEntity {
 				return
 			}
+			require.NoError(t, err)
 
-			require.Nil(t, err)
 			if tt.wantedIPIdentifiable != nil {
 				require.Equal(t, *tt.wantedIPIdentifiable, result.IPIdentifiable)
 			}

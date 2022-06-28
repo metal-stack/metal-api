@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -52,7 +53,7 @@ func TestGetPartitions(t *testing.T) {
 	var result []v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, 3)
 	require.Equal(t, testdata.Partition1.ID, result[0].ID)
 	require.Equal(t, testdata.Partition1.Name, *result[0].Name)
@@ -81,7 +82,7 @@ func TestGetPartition(t *testing.T) {
 	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Partition1.ID, result.ID)
 	require.Equal(t, testdata.Partition1.Name, *result.Name)
 	require.Equal(t, testdata.Partition1.Description, *result.Description)
@@ -103,7 +104,7 @@ func TestGetPartitionNotFound(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Contains(t, result.Message, "999")
 	require.Equal(t, 404, result.StatusCode)
 }
@@ -125,7 +126,7 @@ func TestDeletePartition(t *testing.T) {
 	var result v1.PartitionResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Partition1.ID, result.ID)
 	require.Equal(t, testdata.Partition1.Name, *result.Name)
 	require.Equal(t, testdata.Partition1.Description, *result.Description)
@@ -142,6 +143,13 @@ func TestCreatePartition(t *testing.T) {
 	service := NewPartition(ds, topicCreater)
 	container := restful.NewContainer().Add(service)
 
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer ts.Close()
+
+	downloadableFile := ts.URL
+
 	createRequest := v1.PartitionCreateRequest{
 		Common: v1.Common{
 			Identifiable: v1.Identifiable{
@@ -152,8 +160,13 @@ func TestCreatePartition(t *testing.T) {
 				Description: &testdata.Partition1.Description,
 			},
 		},
+		PartitionBootConfiguration: v1.PartitionBootConfiguration{
+			ImageURL:  &downloadableFile,
+			KernelURL: &downloadableFile,
+		},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -165,9 +178,9 @@ func TestCreatePartition(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.PartitionResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Partition1.ID, result.ID)
 	require.Equal(t, testdata.Partition1.Name, *result.Name)
 	require.Equal(t, testdata.Partition1.Description, *result.Description)
@@ -179,9 +192,13 @@ func TestUpdatePartition(t *testing.T) {
 
 	service := NewPartition(ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "I am a downloadable content")
+	}))
+	defer ts.Close()
 
 	mgmtService := "mgmt"
-	imageURL := "http://somewhere/image1.zip"
+	downloadableFile := ts.URL
 	updateRequest := v1.PartitionUpdateRequest{
 		Common: v1.Common{
 			Describable: v1.Describable{
@@ -194,10 +211,11 @@ func TestUpdatePartition(t *testing.T) {
 		},
 		MgmtServiceAddress: &mgmtService,
 		PartitionBootConfiguration: &v1.PartitionBootConfiguration{
-			ImageURL: &imageURL,
+			ImageURL: &downloadableFile,
 		},
 	}
-	js, _ := json.Marshal(updateRequest)
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -209,14 +227,14 @@ func TestUpdatePartition(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.PartitionResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Partition1.ID, result.ID)
 	require.Equal(t, testdata.Partition2.Name, *result.Name)
 	require.Equal(t, testdata.Partition2.Description, *result.Description)
 	require.Equal(t, mgmtService, *result.MgmtServiceAddress)
-	require.Equal(t, imageURL, *result.PartitionBootConfiguration.ImageURL)
+	require.Equal(t, downloadableFile, *result.PartitionBootConfiguration.ImageURL)
 }
 
 func TestPartitionCapacity(t *testing.T) {
@@ -238,7 +256,7 @@ func TestPartitionCapacity(t *testing.T) {
 	var result []v1.PartitionCapacity
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Partition1.ID, result[0].ID)
 	require.NotNil(t, result[0].ServerCapacities)
 	require.Equal(t, 1, len(result[0].ServerCapacities))
