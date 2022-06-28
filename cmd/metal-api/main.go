@@ -29,9 +29,6 @@ import (
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
 
-	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
-
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
@@ -39,6 +36,9 @@ import (
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
@@ -72,6 +72,7 @@ var (
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	mdc                mdm.Client
+	headscaleClient    *headscale.HeadscaleClient
 )
 
 var rootCmd = &cobra.Command{
@@ -97,6 +98,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
+		initHeadscale()
 		return run()
 	},
 }
@@ -264,6 +266,9 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
+	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
+	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
+
 	must(viper.BindPFlags(rootCmd.Flags()))
 	must(viper.BindPFlags(rootCmd.PersistentFlags()))
 
@@ -362,8 +367,16 @@ func initSignalHandlers() {
 				logger.Info("Unable to properly shutdown datastore", "error", err)
 				os.Exit(1)
 			}
-			os.Exit(0)
 		}
+		if headscaleClient != nil {
+			logger.Info("Closing connection to Headscale")
+			if err := headscaleClient.Close(); err != nil {
+				logger.Info("Failed to close connection to Headscale", "error", err)
+				os.Exit(1)
+			}
+		}
+
+		os.Exit(0)
 	}()
 }
 
@@ -733,6 +746,22 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
+}
+
+func initHeadscale() {
+	var err error
+
+	headscaleClient, err = headscale.NewHeadscaleClient(
+		viper.GetString("headscale-addr"),
+		viper.GetString("headscale-api-key"),
+	)
+	if err != nil {
+		logger.Errorw("failed to init headscale client", "error", err)
+	}
+
+	if err = headscaleClient.ReplaceApiKey(); err != nil {
+		logger.Errorw("failed to replace Headscale API Key", "error", err)
+	}
 }
 
 func dumpSwaggerJSON() {
