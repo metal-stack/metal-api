@@ -106,6 +106,8 @@ var migrateDatabase = &cobra.Command{
 	Short:   "migrates the database to the latest version",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		err := connectDataStore(DataStoreConnectNoDemotion)
 		if err != nil {
 			return err
@@ -134,6 +136,8 @@ var initDatabase = &cobra.Command{
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		return connectDataStore(DataStoreConnectTableInit, DataStoreConnectNoDemotion)
 	},
 }
@@ -143,6 +147,8 @@ var resurrectMachines = &cobra.Command{
 	Short:   "resurrect dead machines",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		return resurrectDeadMachines()
 	},
 }
@@ -152,6 +158,8 @@ var machineLiveliness = &cobra.Command{
 	Short:   "evaluates whether machines are still alive or if they have died",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		return evaluateLiveliness()
 	},
 }
