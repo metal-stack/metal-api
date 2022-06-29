@@ -30,10 +30,11 @@ type firmwareResource struct {
 }
 
 // NewFirmware returns a webservice for firmware specific endpoints.
-func NewFirmware(ds *datastore.RethinkStore, s3Client *s3server.Client) (*restful.WebService, error) {
+func NewFirmware(log *zap.SugaredLogger, ds *datastore.RethinkStore, s3Client *s3server.Client) (*restful.WebService, error) {
 	r := firmwareResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		s3Client: s3Client,
 	}
@@ -41,7 +42,7 @@ func NewFirmware(ds *datastore.RethinkStore, s3Client *s3server.Client) (*restfu
 }
 
 // webService creates the webservice endpoint
-func (r firmwareResource) webService() *restful.WebService {
+func (r *firmwareResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/firmware").
@@ -93,7 +94,7 @@ func (r firmwareResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
+func (r *firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
 		return
 	}
@@ -143,7 +144,7 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	response.WriteHeader(http.StatusOK)
 }
 
-func (r firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
+func (r *firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
 		return
 	}
@@ -168,7 +169,7 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 	response.WriteHeader(http.StatusOK)
 }
 
-func (r firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
+func (r *firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
 		return
 	}

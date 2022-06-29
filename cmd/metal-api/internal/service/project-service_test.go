@@ -16,6 +16,7 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -46,11 +47,11 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 		projectServiceMock(psc)
 	}
 	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	if dsmock != nil {
 		dsmock(mock)
 	}
-	ws := NewProject(ds, mdc)
+	ws := NewProject(zaptest.NewLogger(t).Sugar(), ds, mdc)
 	return &MockedProjectService{
 		t:  t,
 		ws: ws,

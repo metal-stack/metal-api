@@ -19,7 +19,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type networkResource struct {
@@ -29,10 +28,11 @@ type networkResource struct {
 }
 
 // NewNetwork returns a webservice for network specific endpoints.
-func NewNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
+func NewNetwork(log *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
 	r := networkResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		ipamer: ipamer,
 		mdc:    mdc,
@@ -41,7 +41,7 @@ func NewNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) 
 	return r.webService()
 }
 
-func (r networkResource) webService() *restful.WebService {
+func (r *networkResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/network").
@@ -144,7 +144,7 @@ func (r networkResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r networkResource) findNetwork(request *restful.Request, response *restful.Response) {
+func (r *networkResource) findNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	nw, err := r.ds.FindNetworkByID(id)
@@ -154,12 +154,12 @@ func (r networkResource) findNetwork(request *restful.Request, response *restful
 	usage := getNetworkUsage(nw, r.ipamer)
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, usage))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r networkResource) listNetworks(request *restful.Request, response *restful.Response) {
+func (r *networkResource) listNetworks(request *restful.Request, response *restful.Response) {
 	nws, err := r.ds.ListNetworks()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -172,12 +172,12 @@ func (r networkResource) listNetworks(request *restful.Request, response *restfu
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r networkResource) findNetworks(request *restful.Request, response *restful.Response) {
+func (r *networkResource) findNetworks(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.NetworkSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -197,12 +197,12 @@ func (r networkResource) findNetworks(request *restful.Request, response *restfu
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r networkResource) createNetwork(request *restful.Request, response *restful.Response) {
+func (r *networkResource) createNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -395,12 +395,12 @@ func (r networkResource) createNetwork(request *restful.Request, response *restf
 	usage := getNetworkUsage(nw, r.ipamer)
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
+func (r *networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkAllocateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -492,7 +492,7 @@ func (r networkResource) allocateNetwork(request *restful.Request, response *res
 	usage := getNetworkUsage(nw, r.ipamer)
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -538,7 +538,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 	return nw, nil
 }
 
-func (r networkResource) freeNetwork(request *restful.Request, response *restful.Response) {
+func (r *networkResource) freeNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	nw, err := r.ds.FindNetworkByID(id)
@@ -580,12 +580,12 @@ func (r networkResource) freeNetwork(request *restful.Request, response *restful
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
+func (r *networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -672,12 +672,12 @@ func (r networkResource) updateNetwork(request *restful.Request, response *restf
 	usage := getNetworkUsage(&newNetwork, r.ipamer)
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
+func (r *networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	nw, err := r.ds.FindNetworkByID(id)
@@ -731,7 +731,7 @@ func (r networkResource) deleteNetwork(request *restful.Request, response *restf
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }

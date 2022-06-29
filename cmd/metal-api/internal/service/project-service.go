@@ -9,16 +9,15 @@ import (
 	v1 "github.com/metal-stack/masterdata-api/api/rest/v1"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
+	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type projectResource struct {
@@ -27,17 +26,18 @@ type projectResource struct {
 }
 
 // NewProject returns a webservice for project specific endpoints.
-func NewProject(ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
+func NewProject(log *zap.SugaredLogger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := projectResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		mdc: mdc,
 	}
 	return r.webService()
 }
 
-func (r projectResource) webService() *restful.WebService {
+func (r *projectResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/project").
@@ -108,7 +108,7 @@ func (r projectResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r projectResource) findProject(request *restful.Request, response *restful.Response) {
+func (r *projectResource) findProject(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: id})
@@ -123,12 +123,12 @@ func (r projectResource) findProject(request *restful.Request, response *restful
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1p)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r projectResource) listProjects(request *restful.Request, response *restful.Response) {
+func (r *projectResource) listProjects(request *restful.Request, response *restful.Response) {
 	res, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -142,12 +142,12 @@ func (r projectResource) listProjects(request *restful.Request, response *restfu
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, ps)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r projectResource) findProjects(request *restful.Request, response *restful.Response) {
+func (r *projectResource) findProjects(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ProjectFindRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -167,12 +167,12 @@ func (r projectResource) findProjects(request *restful.Request, response *restfu
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, ps)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r projectResource) createProject(request *restful.Request, response *restful.Response) {
+func (r *projectResource) createProject(request *restful.Request, response *restful.Response) {
 	var pcr v1.ProjectCreateRequest
 	err := request.ReadEntity(&pcr)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -202,12 +202,12 @@ func (r projectResource) createProject(request *restful.Request, response *restf
 
 	err = response.WriteHeaderAndEntity(http.StatusCreated, pcres)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r projectResource) deleteProject(request *restful.Request, response *restful.Response) {
+func (r *projectResource) deleteProject(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	pgr := &mdmv1.ProjectGetRequest{
@@ -264,12 +264,12 @@ func (r projectResource) deleteProject(request *restful.Request, response *restf
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, pcres)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r projectResource) updateProject(request *restful.Request, response *restful.Response) {
+func (r *projectResource) updateProject(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ProjectUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -304,12 +304,12 @@ func (r projectResource) updateProject(request *restful.Request, response *restf
 		Project: *v1p,
 	})
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, error) {
+func (r *projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, error) {
 	if project.Meta == nil {
 		return nil, errors.New("project does not have a projectID")
 	}

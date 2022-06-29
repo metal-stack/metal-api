@@ -7,28 +7,28 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/security"
-
 	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type userResource struct {
+	log        *zap.SugaredLogger
 	userGetter security.UserGetter
 }
 
 // NewUser returns a webservice for user specific endpoints.
-func NewUser(userGetter security.UserGetter) *restful.WebService {
+func NewUser(log *zap.SugaredLogger, userGetter security.UserGetter) *restful.WebService {
 	r := userResource{
+		log:        log,
 		userGetter: userGetter,
 	}
 	return r.webService()
 }
 
-func (r userResource) webService() *restful.WebService {
+func (r *userResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/user").
@@ -49,7 +49,7 @@ func (r userResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r userResource) getMe(request *restful.Request, response *restful.Response) {
+func (r *userResource) getMe(request *restful.Request, response *restful.Response) {
 	u, err := r.userGetter.User(request.Request)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -73,7 +73,7 @@ func (r userResource) getMe(request *restful.Request, response *restful.Response
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, user)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }

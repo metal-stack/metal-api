@@ -16,14 +16,15 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestRegisterSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	name := "switch999"
@@ -65,10 +66,10 @@ func TestRegisterSwitch(t *testing.T) {
 }
 
 func TestRegisterExistingSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -108,10 +109,10 @@ func TestRegisterExistingSwitch(t *testing.T) {
 }
 
 func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -137,10 +138,10 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 }
 
 func TestReplaceSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -259,7 +260,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 
 	for i := range tests {
 		tt := tests[i]
-		ds, mock := datastore.InitMockDB()
+		ds, mock := datastore.InitMockDB(t)
 		mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return(testSwitches, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
@@ -273,7 +274,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 }
 
 func TestSetVrfAtSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	sw := metal.Switch{
 		PartitionID: "1",
 		Nics:        metal.Nics{metal.Nic{MacAddress: metal.MacAddress("11:11:11:11:11:11")}},
@@ -1155,10 +1156,10 @@ func Test_updateSwitchNics(t *testing.T) {
 }
 
 func TestUpdateSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	desc := "test"
@@ -1198,10 +1199,10 @@ func TestUpdateSwitch(t *testing.T) {
 }
 
 func TestNotifySwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	d := time.Second * 10
@@ -1231,10 +1232,10 @@ func TestNotifySwitch(t *testing.T) {
 }
 
 func TestNotifyErrorSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	d := time.Second * 10

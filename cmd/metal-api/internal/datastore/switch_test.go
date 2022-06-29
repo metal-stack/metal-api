@@ -12,35 +12,27 @@ import (
 )
 
 func TestRethinkStore_FindSwitch(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-		id string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		id      string
 		want    *metal.Switch
 		wantErr bool
 	}{
 		{
-			name: "TestRethinkStore_FindSwitch Test 1",
-			rs:   ds,
-			args: args{
-				id: testdata.Switch1.ID,
-			},
+			name:    "TestRethinkStore_FindSwitch Test 1",
+			rs:      ds,
+			id:      testdata.Switch1.ID,
 			want:    &testdata.Switch1,
 			wantErr: false,
 		},
 		{
-			name: "TestRethinkStore_FindSwitch Test 2",
-			rs:   ds,
-			args: args{
-				id: "switch404",
-			},
+			name:    "TestRethinkStore_FindSwitch Test 2",
+			rs:      ds,
+			id:      "switch404",
 			want:    nil,
 			wantErr: true,
 		},
@@ -48,7 +40,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindSwitch(tt.args.id)
+			got, err := tt.rs.FindSwitch(tt.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -65,20 +57,15 @@ func TestRethinkStore_FindSwitchByRack(t *testing.T) {
 		testdata.Switch2,
 	}
 
-	type args struct {
-		rackid string
-	}
 	tests := []struct {
 		name    string
-		args    args
+		rackid  string
 		want    []metal.Switch
 		wantErr bool
 	}{
 		{
-			name: "TestRethinkStore_SearchSwitches Test 1 by rack id",
-			args: args{
-				rackid: "2",
-			},
+			name:    "TestRethinkStore_SearchSwitches Test 1 by rack id",
+			rackid:  "2",
 			want:    returnSwitches,
 			wantErr: false,
 		},
@@ -86,11 +73,11 @@ func TestRethinkStore_FindSwitchByRack(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			ds, mock := InitMockDB()
+			ds, mock := InitMockDB(t)
 
 			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return(returnSwitches, nil)
 
-			got, err := ds.SearchSwitches(tt.args.rackid, nil)
+			got, err := ds.SearchSwitches(tt.rackid, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -106,14 +93,13 @@ func TestRethinkStore_FindSwitchByRack(t *testing.T) {
 }
 
 func TestRethinkStore_ListSwitches(t *testing.T) {
-	// mock the DBs
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	mock.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
 		testdata.Switch1, testdata.Switch2,
 	}, nil)
-	ds2, mock2 := InitMockDB()
+	ds2, mock2 := InitMockDB(t)
 	mock2.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
 		testdata.Switch2,
 	}, nil)
@@ -124,8 +110,6 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 		want    []metal.Switch
 		wantErr bool
 	}{
-		// Test Data Array / Test Cases:
-
 		{
 			name: "TestRethinkStore_ListSwitches Test 1",
 			rs:   ds,
@@ -160,27 +144,20 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 }
 
 func TestRethinkStore_CreateSwitch(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-		s *metal.Switch
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		s       *metal.Switch
 		want    *metal.Switch
 		wantErr bool
 	}{
-		// Test Data Array / Test Cases:
 		{
-			name: "TestRethinkStore_CreateSwitch Test 1",
-			rs:   ds,
-			args: args{
-				s: &testdata.Switch1,
-			},
+			name:    "TestRethinkStore_CreateSwitch Test 1",
+			rs:      ds,
+			s:       &testdata.Switch1,
 			want:    &testdata.Switch1,
 			wantErr: false,
 		},
@@ -188,7 +165,7 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.CreateSwitch(tt.args.s)
+			err := tt.rs.CreateSwitch(tt.s)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.CreateSwitch() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -198,8 +175,7 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 }
 
 func TestRethinkStore_DeleteSwitch(t *testing.T) {
-	// mock the DBs
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -208,8 +184,6 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 		s       *metal.Switch
 		wantErr bool
 	}{
-		// Test Data Array / Test Cases:
-
 		{
 			name:    "TestRethinkStore_DeleteSwitch Test 1",
 			rs:      ds,
@@ -236,8 +210,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 }
 
 func TestRethinkStore_UpdateSwitch(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	type args struct {
@@ -250,7 +223,6 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// Test Data Array / Test Cases:
 		{
 			name: "TestRethinkStore_UpdateSwitch Test 1",
 			rs:   ds,
@@ -279,20 +251,15 @@ func TestRethinkStore_UpdateSwitch(t *testing.T) {
 }
 
 func TestRethinkStore_FindSwitchByMac(t *testing.T) {
-	type args struct {
-		macs []string
-	}
 	tests := []struct {
 		name    string
-		args    args
+		macs    []string
 		want    []metal.Switch
 		wantErr bool
 	}{
 		{
 			name: "TestRethinkStore_FindSwitch Test 1",
-			args: args{
-				macs: []string{string(testdata.Switch1.Nics[0].MacAddress)},
-			},
+			macs: []string{string(testdata.Switch1.Nics[0].MacAddress)},
 			want: []metal.Switch{
 				testdata.Switch1,
 			},
@@ -308,12 +275,12 @@ func TestRethinkStore_FindSwitchByMac(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			ds, mock := InitMockDB()
+			ds, mock := InitMockDB(t)
 			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return([]metal.Switch{
 				testdata.Switch1,
 			}, nil)
 
-			got, err := ds.SearchSwitches("", tt.args.macs)
+			got, err := ds.SearchSwitches("", tt.macs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
 				return

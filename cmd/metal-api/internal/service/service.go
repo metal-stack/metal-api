@@ -29,7 +29,8 @@ const (
 var BasePath = "/"
 
 type webResource struct {
-	ds *datastore.RethinkStore
+	log *zap.SugaredLogger
+	ds  *datastore.RethinkStore
 }
 
 // UserDirectory is the directory of users

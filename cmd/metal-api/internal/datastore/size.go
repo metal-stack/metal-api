@@ -51,7 +51,7 @@ func (rs *RethinkStore) FromHardware(hw metal.MachineHardware) (*metal.Size, []*
 	var sizes metal.Sizes
 	for _, s := range sz {
 		if len(s.Constraints) < 1 {
-			rs.Error("missing constraints", "size", s)
+			rs.log.Error("missing constraints", "size", s)
 			continue
 		}
 		sizes = append(sizes, s)

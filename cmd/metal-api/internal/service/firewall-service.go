@@ -8,7 +8,6 @@ import (
 	"github.com/metal-stack/security"
 
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -35,6 +34,7 @@ type firewallResource struct {
 
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
+	log *zap.SugaredLogger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ipamer ipam.IPAMer,
@@ -44,7 +44,8 @@ func NewFirewall(
 ) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		Publisher:  pub,
 		ipamer:     ipamer,
@@ -53,7 +54,7 @@ func NewFirewall(
 	}
 
 	var err error
-	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}
@@ -132,7 +133,7 @@ func (r firewallResource) findFirewall(request *restful.Request, response *restf
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -159,7 +160,7 @@ func (r firewallResource) findFirewalls(request *restful.Request, response *rest
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -180,7 +181,7 @@ func (r firewallResource) listFirewalls(request *restful.Request, response *rest
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -214,7 +215,7 @@ func (r firewallResource) allocateFirewall(request *restful.Request, response *r
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }

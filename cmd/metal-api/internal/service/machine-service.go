@@ -19,7 +19,6 @@ import (
 
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
@@ -98,6 +97,7 @@ type Allocator func(Allocation) error
 
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
+	log *zap.SugaredLogger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ep *bus.Endpoints,
@@ -109,7 +109,8 @@ func NewMachine(
 ) (*restful.WebService, error) {
 	r := machineResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		Publisher:       pub,
 		ipamer:          ipamer,
@@ -119,7 +120,7 @@ func NewMachine(
 		reasonMinLength: reasonMinLength,
 	}
 	var err error
-	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}
@@ -128,7 +129,7 @@ func NewMachine(
 }
 
 // webService creates the webservice endpoint
-func (r machineResource) webService() *restful.WebService {
+func (r *machineResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/machine").
@@ -467,7 +468,7 @@ func (r machineResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r machineResource) listMachines(request *restful.Request, response *restful.Response) {
+func (r *machineResource) listMachines(request *restful.Request, response *restful.Response) {
 	ms, err := r.ds.ListMachines()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -480,12 +481,12 @@ func (r machineResource) listMachines(request *restful.Request, response *restfu
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) findMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) findMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
@@ -500,12 +501,12 @@ func (r machineResource) findMachine(request *restful.Request, response *restful
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) updateMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) updateMachine(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -543,12 +544,12 @@ func (r machineResource) updateMachine(request *restful.Request, response *restf
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) getMachineConsolePassword(request *restful.Request, response *restful.Response) {
+func (r *machineResource) getMachineConsolePassword(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineConsolePasswordRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -581,16 +582,16 @@ func (r machineResource) getMachineConsolePassword(request *restful.Request, res
 		ConsolePassword: m.Allocation.ConsolePassword,
 	}
 
-	zapup.MustRootLogger().Sugar().Infow("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
+	r.log.Infow("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) findMachines(request *restful.Request, response *restful.Response) {
+func (r *machineResource) findMachines(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.MachineSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -610,12 +611,12 @@ func (r machineResource) findMachines(request *restful.Request, response *restfu
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) setMachineState(request *restful.Request, response *restful.Response) {
+func (r *machineResource) setMachineState(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineState
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -659,12 +660,12 @@ func (r machineResource) setMachineState(request *restful.Request, response *res
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) setChassisIdentifyLEDState(request *restful.Request, response *restful.Response) {
+func (r *machineResource) setChassisIdentifyLEDState(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ChassisIdentifyLEDState
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -708,12 +709,12 @@ func (r machineResource) setChassisIdentifyLEDState(request *restful.Request, re
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) registerMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) registerMachine(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineRegisterRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -848,12 +849,12 @@ func (r machineResource) registerMachine(request *restful.Request, response *res
 
 	err = response.WriteHeaderAndEntity(returnCode, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) findIPMIMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	m, err := r.ds.FindMachineByID(id)
@@ -868,12 +869,12 @@ func (r machineResource) findIPMIMachine(request *restful.Request, response *res
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) findIPMIMachines(request *restful.Request, response *restful.Response) {
+func (r *machineResource) findIPMIMachines(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.MachineSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -893,12 +894,12 @@ func (r machineResource) findIPMIMachines(request *restful.Request, response *re
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
+func (r *machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineIpmiReports
 	log := utils.Logger(request)
 	logger := log.Sugar()
@@ -1037,7 +1038,7 @@ func (r machineResource) ipmiReport(request *restful.Request, response *restful.
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -1057,7 +1058,7 @@ func updateFru(m *metal.Machine, fru *v1.MachineFru) {
 	m.IPMI.Fru.ProductPartNumber = utils.StrValueDefault(fru.ProductPartNumber, m.IPMI.Fru.ProductPartNumber)
 }
 
-func (r machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) allocateMachine(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineAllocateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1089,7 +1090,7 @@ func (r machineResource) allocateMachine(request *restful.Request, response *res
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -1759,7 +1760,7 @@ func uniqueTags(tags []string) []string {
 	return uniqueTags
 }
 
-func (r machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
+func (r *machineResource) finalizeAllocation(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineFinalizeAllocationRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1835,12 +1836,12 @@ func (r machineResource) finalizeAllocation(request *restful.Request, response *
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) freeMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) freeMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1875,7 +1876,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 }
 
-func (r machineResource) deleteMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) deleteMachine(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -1948,7 +1949,7 @@ func (r machineResource) deleteMachine(request *restful.Request, response *restf
 // the machine if not yet allocated or not modifying any other allocation parameter than 'ImageID'
 // and 'Reinstall' set to true.
 // If the given image ID is nil, it deletes the machine instead.
-func (r machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) reinstallMachine(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineReinstallRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2033,7 +2034,7 @@ func (r machineResource) reinstallMachine(request *restful.Request, response *re
 	}
 }
 
-func (r machineResource) abortReinstallMachine(request *restful.Request, response *restful.Response) {
+func (r *machineResource) abortReinstallMachine(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineAbortReinstallRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2115,7 +2116,7 @@ func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.L
 	return nil
 }
 
-func (r machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
+func (r *machineResource) getProvisioningEventContainer(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	// check for existence of the machine
@@ -2130,11 +2131,11 @@ func (r machineResource) getProvisioningEventContainer(request *restful.Request,
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
-func (r machineResource) addProvisioningEvents(request *restful.Request, response *restful.Response) {
+func (r *machineResource) addProvisioningEvents(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineProvisioningEvents
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2159,11 +2160,11 @@ func (r machineResource) addProvisioningEvents(request *restful.Request, respons
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
-func (r machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
+func (r *machineResource) addProvisioningEvent(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineProvisioningEvent
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -2180,12 +2181,12 @@ func (r machineResource) addProvisioningEvent(request *restful.Request, response
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewMachineRecentProvisioningEvents(ec))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) addProvisionEventForMachine(log *zap.SugaredLogger, machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
+func (r *machineResource) addProvisionEventForMachine(log *zap.SugaredLogger, machineID string, e v1.MachineProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
 	m, err := r.ds.FindMachineByID(machineID)
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
@@ -2287,7 +2288,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 		return err
 	}
 
-	act, err := newAsyncActor(logger.Desugar(), ep, ds, ipamer)
+	act, err := newAsyncActor(logger, ep, ds, ipamer)
 	if err != nil {
 		return err
 	}
@@ -2329,43 +2330,43 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 	return nil
 }
 
-func (r machineResource) machineOn(request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineOn(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.MachineOnCmd, request, response)
 }
 
-func (r machineResource) machineOff(request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineOff(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.MachineOffCmd, request, response)
 }
 
-func (r machineResource) machineReset(request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineReset(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.MachineResetCmd, request, response)
 }
 
-func (r machineResource) machineCycle(request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineCycle(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.MachineCycleCmd, request, response)
 }
 
-func (r machineResource) machineBios(request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineBios(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.MachineBiosCmd, request, response)
 }
 
-func (r machineResource) machineDisk(request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineDisk(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.MachineDiskCmd, request, response)
 }
 
-func (r machineResource) machinePxe(request *restful.Request, response *restful.Response) {
+func (r *machineResource) machinePxe(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.MachinePxeCmd, request, response)
 }
 
-func (r machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
+func (r *machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response)
 }
 
-func (r machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
+func (r *machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
 	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response)
 }
 
-func (r machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
+func (r *machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
 		return
 	}
@@ -2445,12 +2446,12 @@ func (r machineResource) updateFirmware(request *restful.Request, response *rest
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
 	logger := utils.Logger(request).Sugar()
 	id := request.PathParameter("id")
 	description := request.QueryParameter("description")
@@ -2502,7 +2503,7 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
