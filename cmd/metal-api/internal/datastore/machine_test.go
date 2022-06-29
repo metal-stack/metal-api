@@ -327,8 +327,6 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 		testdata.M1,
 	}, nil)
 
-	type args struct {
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
@@ -398,8 +396,6 @@ func TestRethinkStore_CreateMachine(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore

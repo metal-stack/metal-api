@@ -85,8 +85,6 @@ func TestRethinkStore_CreatePartition(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
