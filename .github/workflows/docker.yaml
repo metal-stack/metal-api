@@ -17,22 +17,19 @@ env:
 
 jobs:
   build:
-    name: Build
+    name: Docker Build
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
 
     steps:
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-
-    - name: Log in to the Container registry
+    - name: Log in to the container registry
       uses: docker/login-action@v1
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.DOCKER_REGISTRY_USER }}
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v2
 
     - name: Set up Go 1.18
       uses: actions/setup-go@v2
