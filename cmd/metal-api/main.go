@@ -949,5 +949,5 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 }
 
 func isDebug(log *zap.SugaredLogger) bool {
-	return !log.Desugar().Core().Enabled(zap.InfoLevel)
+	return log.Desugar().Core().Enabled(zap.DebugLevel)
 }
