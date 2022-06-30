@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-lib/zapup"
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
 )
@@ -57,9 +57,8 @@ func webRequest(t *testing.T, method string, service *restful.WebService, user *
 
 func MockAuth(user *security.User) restful.FilterFunction {
 	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
-		log := zapup.RequestLogger(req.Request)
 		rq := req.Request
-		ctx := security.PutUserInContext(zapup.PutLogger(rq.Context(), log), user)
+		ctx := security.PutUserInContext(context.Background(), user)
 		req.Request = rq.WithContext(ctx)
 		chain.ProcessFilter(req, resp)
 	}
