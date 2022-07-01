@@ -1,0 +1,80 @@
+---
+name: Docker Build Action
+on:
+  pull_request:
+    branches:
+      - master
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - master
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Log in to the container registry
+      uses: docker/login-action@v1
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_REGISTRY_USER }}
+        password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up Go 1.18
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.18.x'
+
+    - name: setup buf
+      uses: bufbuild/buf-setup-action@v1
+      with:
+        version: '1.5.0'
+        github_token: ${{ github.token }}
+
+    - name: generate proto and lint
+      working-directory: proto
+      run: make protoc
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v2
+      with:
+        args: --build-tags integration -p bugs -p unused --timeout=3m
+
+    - name: Make tag
+      run: |
+        [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "tag=${GITHUB_HEAD_REF##*/}" >> $GITHUB_ENV || true
+        [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
+        [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
+
+    - name: Build and push image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.tag }}
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up Go 1.18
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.18.x'
+
+    - name: Run integration tests
+      run: |
+        go test -tags=integration -timeout 600s -p 1 ./...
