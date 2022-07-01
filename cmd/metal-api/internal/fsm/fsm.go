@@ -2,6 +2,7 @@ package fsm
 
 import (
 	"errors"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -71,6 +72,7 @@ var events = fsm.Events{
 		Src: []string{
 			string(metal.ProvisioningEventBootingNewKernel),
 			string(metal.ProvisioningEventPhonedHome),
+			string(metal.ProvisioningEventPlannedReboot),
 		},
 		Dst: string(metal.ProvisioningEventPhonedHome),
 	},
@@ -92,12 +94,36 @@ var events = fsm.Events{
 		Name: string(metal.ProvisioningEventAlive),
 		Src: []string{
 			string(metal.ProvisioningEventPreparing),
+		},
+		Dst: string(metal.ProvisioningEventPreparing),
+	},
+	{
+		Name: string(metal.ProvisioningEventAlive),
+		Src: []string{
 			string(metal.ProvisioningEventRegistering),
+		},
+		Dst: string(metal.ProvisioningEventRegistering),
+	},
+	{
+		Name: string(metal.ProvisioningEventAlive),
+		Src: []string{
 			string(metal.ProvisioningEventWaiting),
+		},
+		Dst: string(metal.ProvisioningEventWaiting),
+	},
+	{
+		Name: string(metal.ProvisioningEventAlive),
+		Src: []string{
 			string(metal.ProvisioningEventInstalling),
+		},
+		Dst: string(metal.ProvisioningEventInstalling),
+	},
+	{
+		Name: string(metal.ProvisioningEventAlive),
+		Src: []string{
 			string(metal.ProvisioningEventBootingNewKernel),
 		},
-		Dst: string(metal.ProvisioningEventAlive),
+		Dst: string(metal.ProvisioningEventBootingNewKernel),
 	},
 }
 
@@ -135,7 +161,7 @@ func handlePlannedRebootEvent(e *fsm.Event) {
 }
 
 func handlePhonedHomeEvent(e *fsm.Event) {
-	container, event, log, err := parseCallbackArguments(e.Args)
+	container, event, _, err := parseCallbackArguments(e.Args)
 	if err != nil {
 		e.Err = err
 		return
@@ -145,15 +171,13 @@ func handlePhonedHomeEvent(e *fsm.Event) {
 		if event.Time.Sub(*container.LastEventTime) > timeOutAfterPlannedReboot {
 			container.Liveliness = metal.MachineLivelinessUnknown
 		}
-	} else if e.Src != string(metal.ProvisioningEventPhonedHome) {
+	} else {
 		container.Events = append(container.Events, *event)
 		container.LastEventTime = &(*event).Time
-	} else {
-		log.Debugw("swallowing repeated phone home event", "id", container.ID)
+		container.Liveliness = metal.MachineLivelinessAlive
 	}
 
 	container.IncompleteCycles = 0
-	container.Liveliness = metal.MachineLivelinessAlive
 }
 
 func handleAliveEvent(e *fsm.Event) {
@@ -208,21 +232,32 @@ func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 		IncompleteCycles: 0,
 		ID:               container.ID,
 		Liveliness:       container.Liveliness,
+		Events:           []metal.ProvisioningEvent{container.Events[0]},
+		LastEventTime:    container.LastEventTime,
 	}
 
 	var err error
-	for _, e := range container.Events {
+	var invalidEventError fsm.InvalidEventError
+	for i, e := range container.Events {
+		if i == 0 {
+			continue
+		}
+
 		err = provisioningFSM.Event(string(e.Event), &eventContainer, e, log)
 
-		// where to continue after invalideventerror?
-		if err != nil && errors.Is(err, fsm.InvalidEventError{}) {
-			eventContainer.IncompleteCycles++
+		if err != nil {
+			eventContainer.Events = append(eventContainer.Events, e)
+			if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
+				eventContainer.IncompleteCycles++
+			}
+			provisioningFSM.SetState(string(e.Event))
 		}
 	}
 
 	err = provisioningFSM.Event(string(event.Event), &eventContainer, event, log)
 	if err != nil {
-		if errors.Is(err, fsm.InvalidEventError{}) {
+		if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
+			eventContainer.Events = append(eventContainer.Events, *event)
 			eventContainer.IncompleteCycles++
 		} else if errors.Is(err, fsm.NoTransitionError{}) {
 			err = nil
@@ -230,7 +265,7 @@ func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 	}
 
 	container.Events = eventContainer.Events
-	container.LastEventTime = eventContainer.LastEventTime
+	container.LastEventTime = &event.Time
 	container.Liveliness = eventContainer.Liveliness
 	container.IncompleteProvisioningCycles = strconv.Itoa(eventContainer.IncompleteCycles)
 
