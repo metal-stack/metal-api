@@ -255,7 +255,7 @@ func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 	}
 
 	err = provisioningFSM.Event(string(event.Event), &eventContainer, event, log)
-	if err != nil && !errors.Is(err, fsm.NoTransitionError{}) {
+	if err != nil {
 		if !errors.Is(err, fsm.NoTransitionError{}) {
 			eventContainer.Events = append(eventContainer.Events, *event)
 		}

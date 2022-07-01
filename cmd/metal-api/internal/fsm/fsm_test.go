@@ -188,6 +188,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		log := zap.NewExample().Sugar()
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := HandleProvisioningEvent(tt.event, tt.container, log)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
