@@ -255,9 +255,11 @@ func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 	}
 
 	err = provisioningFSM.Event(string(event.Event), &eventContainer, event, log)
-	if err != nil {
-		if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
+	if err != nil && !errors.Is(err, fsm.NoTransitionError{}) {
+		if !errors.Is(err, fsm.NoTransitionError{}) {
 			eventContainer.Events = append(eventContainer.Events, *event)
+		}
+		if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
 			eventContainer.IncompleteCycles++
 		} else if errors.Is(err, fsm.NoTransitionError{}) {
 			err = nil
@@ -270,4 +272,33 @@ func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 	container.IncompleteProvisioningCycles = strconv.Itoa(eventContainer.IncompleteCycles)
 
 	return container, err
+}
+
+func ProvisioningEventForMachine(log *zap.SugaredLogger, ec *metal.ProvisioningEventContainer, machineID, event, message string) *metal.ProvisioningEventContainer {
+	if ec == nil {
+		ec = &metal.ProvisioningEventContainer{
+			Base: metal.Base{
+				ID: machineID,
+			},
+			Liveliness: metal.MachineLivelinessAlive,
+		}
+	}
+	now := time.Now()
+	ec.LastEventTime = &now
+
+	ev := metal.ProvisioningEvent{
+		Time:    now,
+		Event:   metal.ProvisioningEventType(event),
+		Message: message,
+	}
+
+	var err error
+	var invalidEventError fsm.InvalidEventError
+	ec, err = HandleProvisioningEvent(&ev, ec, log)
+	if err != nil && reflect.TypeOf(err) != reflect.TypeOf(invalidEventError) {
+		log.Errorf("internal error while calculating provisioning event container for machine %v", machineID)
+	}
+
+	ec.TrimEvents(metal.ProvisioningEventsInspectionLimit)
+	return ec
 }
