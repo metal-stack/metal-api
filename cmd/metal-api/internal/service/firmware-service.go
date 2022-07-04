@@ -16,7 +16,6 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
@@ -95,14 +94,17 @@ func (r *firmwareResource) webService() *restful.WebService {
 }
 
 func (r *firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+	if r.s3Client == nil {
+		r.SendError(response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
 		return
 	}
 
 	kind, err := toFirmwareKind(request.PathParameter("kind"))
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
+
 	vendor := strings.ToLower(request.PathParameter("vendor"))
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
@@ -110,9 +112,11 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 	// check that at least one machine matches kind, vendor and board
 	validReq := false
 	mm, err := r.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
+
 	for _, m := range mm {
 		fru := m.IPMI.Fru
 		if strings.EqualFold(fru.BoardMfg, vendor) && strings.EqualFold(fru.BoardPartNumber, board) {
@@ -121,13 +125,13 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 		}
 	}
 	if !validReq {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("there is no machine of vendor %s with board %s", vendor, board)) {
-			return
-		}
+		r.SendError(response, httperrors.BadRequest(fmt.Errorf("there is no machine of vendor %s with board %s", vendor, board)))
+		return
 	}
 
 	file, _, err := request.Request.FormFile("file")
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.InternalServerError(err))
 		return
 	}
 
@@ -137,7 +141,8 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 		Key:    &key,
 		Body:   file,
 	})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.InternalServerError(err))
 		return
 	}
 
@@ -145,14 +150,17 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 }
 
 func (r *firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+	if r.s3Client == nil {
+		r.SendError(response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
 		return
 	}
 
 	kind, err := toFirmwareKind(request.PathParameter("kind"))
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
+
 	vendor := strings.ToLower(request.PathParameter("vendor"))
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
@@ -162,7 +170,8 @@ func (r *firmwareResource) removeFirmware(request *restful.Request, response *re
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 	})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.InternalServerError(err))
 		return
 	}
 
@@ -170,7 +179,8 @@ func (r *firmwareResource) removeFirmware(request *restful.Request, response *re
 }
 
 func (r *firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+	if r.s3Client == nil {
+		r.SendError(response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
 		return
 	}
 
@@ -203,14 +213,17 @@ func (r *firmwareResource) listFirmwares(request *restful.Request, response *res
 				}
 				return true
 			})
-			if checkError(request, response, utils.CurrentFuncName(), err) {
+			if err != nil {
+				r.SendError(response, httperrors.InternalServerError(err))
 				return
 			}
 		default:
 			_, f, err := getFirmware(r.ds, machineID)
-			if checkError(request, response, utils.CurrentFuncName(), err) {
+			if err != nil {
+				r.SendError(response, DefaultError(err))
 				return
 			}
+
 			bb := make(map[string][]string)
 			switch k {
 			case metal.FirmwareBIOS:
@@ -222,12 +235,7 @@ func (r *firmwareResource) listFirmwares(request *restful.Request, response *res
 		}
 	}
 
-	resp := mapToFirmwareResponse(rr)
-	err := response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.Send(response, http.StatusOK, mapToFirmwareResponse(rr))
 }
 
 func getFirmware(ds *datastore.RethinkStore, machineID string) (*metal.Machine, *v1.Firmware, error) {

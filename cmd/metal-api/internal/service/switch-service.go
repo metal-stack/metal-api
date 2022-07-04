@@ -14,7 +14,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"go.uber.org/zap"
 )
@@ -109,79 +108,74 @@ func (r *switchResource) findSwitch(request *restful.Request, response *restful.
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSwitch(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(s, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.Send(response, http.StatusOK, resp)
 }
 
 func (r *switchResource) listSwitches(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSwitches()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponseList(ss, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.Send(response, http.StatusOK, resp)
 }
 
 func (r *switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSwitch(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteSwitch(s)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(s, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.Send(response, http.StatusOK, resp)
 }
 
 // notifySwitch is called periodically from every switch to report last duration and error if ocurred
 func (r *switchResource) notifySwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchNotifyRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
 
 	id := request.PathParameter("id")
 	s, err := r.ds.FindSwitch(id)
 	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+		r.SendError(response, DefaultError(err))
+		return
 	}
 
 	old := *s
@@ -199,31 +193,31 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 
 	// FIXME needs https://github.com/metal-stack/metal-api/issues/263
 	err = r.ds.UpdateSwitch(&old, s)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(s, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.Send(response, http.StatusOK, resp)
 }
 
 func (r *switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchUpdateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
@@ -247,45 +241,43 @@ func (r *switchResource) updateSwitch(request *restful.Request, response *restfu
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
 	)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(&newSwitch, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.Send(response, http.StatusOK, resp)
 }
 
 func (r *switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchRegisterRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("uuid cannot be empty")) {
-			return
-		}
+		r.SendError(response, httperrors.BadRequest(errors.New("uuid cannot be empty")))
+		return
 	}
 
 	_, err = r.ds.FindPartition(requestPayload.PartitionID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	s, err := r.ds.FindSwitch(requestPayload.ID)
 	if err != nil && !metal.IsNotFound(err) {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+		r.SendError(response, DefaultError(err))
+		return
 	}
 
 	returnCode := http.StatusOK
@@ -294,13 +286,13 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		s = v1.NewSwitch(requestPayload)
 
 		if len(requestPayload.Nics) != len(s.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
-				return
-			}
+			r.SendError(response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
+			return
 		}
 
 		err = r.ds.CreateSwitch(s)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, DefaultError(err))
 			return
 		}
 
@@ -308,21 +300,23 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 	} else if s.Mode == metal.SwitchReplace {
 		spec := v1.NewSwitch(requestPayload)
 		err = r.replaceSwitch(s, spec)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, DefaultError(err))
 			return
 		}
+
 		s = spec
 	} else {
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
 		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			if checkError(request, response, utils.CurrentFuncName(), errors.New("duplicate mac addresses found in nics")) {
-				return
-			}
+			r.SendError(response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
+			return
 		}
 
 		nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, DefaultError(err))
 			return
 		}
 
@@ -351,21 +345,20 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			retry.LastErrorOnly(true),
 		)
 
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, DefaultError(err))
 			return
 		}
+
 	}
 
 	resp, err := makeSwitchResponse(s, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(returnCode, resp)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.Send(response, returnCode, resp)
 }
 
 // replaceSwitch replaces a broken switch
@@ -385,10 +378,12 @@ func (r *switchResource) replaceSwitch(old, new *metal.Switch) error {
 	if err != nil {
 		return fmt.Errorf("could not determine twin brother for switch %s, err: %w", new.Name, err)
 	}
+
 	s, err := adoptFromTwin(old, twin, new)
 	if err != nil {
 		return err
 	}
+
 	return r.ds.UpdateSwitch(old, s)
 }
 
@@ -398,9 +393,11 @@ func (r *switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch,
 	if err != nil {
 		return nil, fmt.Errorf("could not search switches in rack: %v", newSwitch.RackID)
 	}
+
 	if len(rackSwitches) == 0 {
 		return nil, fmt.Errorf("could not find any switch in rack: %v", newSwitch.RackID)
 	}
+
 	var twin *metal.Switch
 	for i := range rackSwitches {
 		sw := rackSwitches[i]
@@ -416,12 +413,14 @@ func (r *switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch,
 	if twin == nil {
 		return nil, fmt.Errorf("no twin brother found for switch %s, partition: %v, rack: %v", newSwitch.ID, newSwitch.PartitionID, newSwitch.RackID)
 	}
+
 	return twin, nil
 }
 
 // adoptFromTwin adopts the switch configuration found at the neighboring twin switch to a replacement switch.
 func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 	s := *new
+
 	if new.PartitionID != old.PartitionID {
 		return nil, fmt.Errorf("old and new switch belong to different partitions, old: %v, new: %v", old.PartitionID, new.PartitionID)
 	}
@@ -493,6 +492,7 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 	newNicMap := newSwitch.Nics.ByName()
 	newConnectionMap := metal.ConnectionMap{}
 	missingNics := []string{}
+
 	for mid, cons := range twin.MachineConnections {
 		newConnections := metal.Connections{}
 		for _, con := range cons {
@@ -507,9 +507,11 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 		}
 		newConnectionMap[mid] = newConnections
 	}
+
 	if len(missingNics) > 0 {
 		return nil, fmt.Errorf("twin switch has machine connections with switch ports that are not present at the new switch %v", missingNics)
 	}
+
 	return newConnectionMap, nil
 }
 
@@ -569,8 +571,10 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.Switch
 	if err != nil {
 		return nil, err
 	}
+
 	nics := makeSwitchNics(s, ips, machines)
 	cons := makeSwitchCons(s)
+
 	return v1.NewSwitchResponse(s, p, nics, cons), nil
 }
 
@@ -588,6 +592,7 @@ func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
 			// filter for "project" addresses / cidrs is not possible since EVPN Type-5 routes can not be filtered by prefixes
 		}
 	}
+
 	return v1.NewBGPFilter(vnis, cidrs)
 }
 
@@ -621,11 +626,13 @@ func makeBGPFilterMachine(m metal.Machine, ips metal.IPsMap) v1.BGPFilter {
 		// Allow all other ip addresses allocated for the project.
 		cidrs = append(cidrs, fmt.Sprintf("%s/32", i.IPAddress))
 	}
+
 	return v1.NewBGPFilter(vnis, cidrs)
 }
 
 func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) v1.BGPFilter {
 	var filter v1.BGPFilter
+
 	if m.IsFirewall() {
 		// vrf "default" means: the firewall was successfully allocated and the switch port configured
 		// otherwise the port is still not configured yet (pxe-setup) and a BGPFilter would break the install routine
@@ -635,6 +642,7 @@ func makeBGPFilter(m metal.Machine, vrf string, ips metal.IPsMap) v1.BGPFilter {
 	} else {
 		filter = makeBGPFilterMachine(m, ips)
 	}
+
 	return filter
 }
 
@@ -643,6 +651,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 	for i, m := range machines {
 		machinesByID[m.ID] = &machines[i]
 	}
+
 	machinesBySwp := map[string]*metal.Machine{}
 	for mid, metalConnections := range s.MachineConnections {
 		for _, mc := range metalConnections {
@@ -652,6 +661,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 			}
 		}
 	}
+
 	nics := v1.SwitchNics{}
 	for _, n := range s.Nics {
 		m := machinesBySwp[n.Name]
@@ -668,11 +678,13 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 		}
 		nics = append(nics, nic)
 	}
+
 	return nics
 }
 
 func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	cons := []v1.SwitchConnection{}
+
 	for _, metalConnections := range s.MachineConnections {
 		for _, mc := range metalConnections {
 			nic := v1.SwitchNic{
@@ -687,14 +699,15 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			cons = append(cons, con)
 		}
 	}
+
 	return cons
 }
 
 func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, error) {
 	var err error
-
 	var p *metal.Partition
 	var m metal.Machines
+
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
 		if err != nil {

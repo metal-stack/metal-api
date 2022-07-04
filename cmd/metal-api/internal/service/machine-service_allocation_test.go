@@ -318,7 +318,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
-	container.Filter(rest.UserAuth(usergetter))
+	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
 	return rs, container
 }
 

@@ -2,33 +2,26 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/emicklei/go-restful/v3"
-	"github.com/metal-stack/metal-lib/zapup"
-	"go.uber.org/zap"
 )
 
-// Logger returns the request logger from the request.
-func Logger(rq *restful.Request) *zap.Logger {
-	return zapup.RequestLogger(rq.Request)
-}
-
-// CurrentFuncName returns the name of the caller of this function.
-func CurrentFuncName() string {
-	pc, _, _, ok := runtime.Caller(1)
+// CallerFuncName returns the name of the caller function stacking up to the given depth.
+func CallerFuncName(depth int) string {
+	pc, _, line, ok := runtime.Caller(depth)
 	if !ok {
-		return "unknown"
+		return ""
 	}
 	ffpc := runtime.FuncForPC(pc)
 	if ffpc == nil {
-		return "unknown"
+		return ""
 	}
-	pp := strings.Split(ffpc.Name(), ".")
-	return pp[len(pp)-1]
+
+	return fmt.Sprintf("%s:%d", ffpc.Name(), line)
 }
 
 func SplitCIDR(cidr string) (string, *int) {

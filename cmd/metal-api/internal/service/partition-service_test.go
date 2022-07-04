@@ -92,8 +92,9 @@ func TestGetPartition(t *testing.T) {
 func TestGetPartitionNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	service := NewPartition(zaptest.NewLogger(t).Sugar(), ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition/999", nil)
 	w := httptest.NewRecorder()
@@ -113,11 +114,12 @@ func TestGetPartitionNotFound(t *testing.T) {
 func TestDeletePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	service := NewPartition(zaptest.NewLogger(t).Sugar(), ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("DELETE", "/v1/partition/1", nil)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -136,12 +138,13 @@ func TestDeletePartition(t *testing.T) {
 func TestCreatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	topicCreater := expectingTopicCreater{
 		t:              t,
 		expectedTopics: []string{"1-switch", "1-machine"},
 	}
-	service := NewPartition(zaptest.NewLogger(t).Sugar(), ds, topicCreater)
+	service := NewPartition(log, ds, topicCreater)
 	container := restful.NewContainer().Add(service)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +174,7 @@ func TestCreatePartition(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -190,8 +193,9 @@ func TestCreatePartition(t *testing.T) {
 func TestUpdatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	service := NewPartition(zaptest.NewLogger(t).Sugar(), ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "I am a downloadable content")
@@ -220,7 +224,7 @@ func TestUpdatePartition(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/partition", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -241,13 +245,14 @@ func TestUpdatePartition(t *testing.T) {
 func TestPartitionCapacity(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	service := NewPartition(zaptest.NewLogger(t).Sugar(), ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
 
 	req := httptest.NewRequest("GET", "/v1/partition/capacity", nil)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 

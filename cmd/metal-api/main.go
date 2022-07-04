@@ -715,14 +715,14 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
-	restful.DefaultContainer.Filter(rest.RequestLogger(isDebug(logger), logger.Desugar()))
+	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
 	if withauth {
-		restful.DefaultContainer.Filter(rest.UserAuth(userGetter))
+		restful.DefaultContainer.Filter(rest.UserAuth(userGetter, logger))
 		providerTenant := viper.GetString("provider-tenant")
 		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
-		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
+		ensurer := service.NewTenantEnsurer(logger.Named("tenant-ensurer-filter"), []string{providerTenant}, excludedPathSuffixes)
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 
@@ -946,8 +946,4 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 
 	// Maybe this leads to an issue, investigating...:
 	// swo.Schemes = []string{"http", "https"}
-}
-
-func isDebug(log *zap.SugaredLogger) bool {
-	return log.Desugar().Core().Enabled(zap.DebugLevel)
 }

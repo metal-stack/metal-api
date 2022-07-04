@@ -176,8 +176,8 @@ func Test_projectResource_createProject(t *testing.T) {
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
 				mock.On("Create", context.Background(), &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
-			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(errors.New("no tenant given")),
+			wantStatus: 400,
+			wantErr:    httperrors.BadRequest(errors.New("no tenant given")),
 		},
 	}
 	for i := range tests {
@@ -310,8 +310,8 @@ func Test_projectResource_updateProject(t *testing.T) {
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
 				mock.On("Update", context.Background(), &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
-			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(errors.New("project and project.meta must be specified")),
+			wantStatus: 400,
+			wantErr:    httperrors.BadRequest(errors.New("project and project.meta must be specified")),
 		},
 	}
 	for i := range tests {

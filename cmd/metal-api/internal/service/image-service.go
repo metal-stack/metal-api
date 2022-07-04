@@ -120,52 +120,48 @@ func (r *imageResource) findImage(request *restful.Request, response *restful.Re
 	id := request.PathParameter("id")
 
 	img, err := r.ds.GetImage(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.SendError(response, DefaultError(err))
 		return
 	}
+
+	r.Send(response, http.StatusOK, v1.NewImageResponse(img))
 }
 
 func (r *imageResource) queryImages(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	img, err := r.ds.FindImages(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
+
 	result := []*v1.ImageResponse{}
 
 	for i := range img {
 		result = append(result, v1.NewImageResponse(&img[i]))
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+
+	r.Send(response, http.StatusOK, result)
 }
 
 func (r *imageResource) findLatestImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	img, err := r.ds.FindImage(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.SendError(response, DefaultError(err))
 		return
 	}
+
+	r.Send(response, http.StatusOK, v1.NewImageResponse(img))
 }
 
 func (r *imageResource) listImages(request *restful.Request, response *restful.Response) {
 	imgs, err := r.ds.ListImages()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
@@ -173,12 +169,15 @@ func (r *imageResource) listImages(request *restful.Request, response *restful.R
 	showUsage := false
 	if request.QueryParameter("show-usage") != "" {
 		showUsage, err = strconv.ParseBool(request.QueryParameter("show-usage"))
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, httperrors.BadRequest(err))
 			return
 		}
+
 		if showUsage {
 			ms, err = r.ds.ListMachines()
-			if checkError(request, response, utils.CurrentFuncName(), err) {
+			if err != nil {
+				r.SendError(response, DefaultError(err))
 				return
 			}
 		}
@@ -195,30 +194,26 @@ func (r *imageResource) listImages(request *restful.Request, response *restful.R
 		}
 		result = append(result, img)
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+
+	r.Send(response, http.StatusOK, result)
 }
 
 func (r *imageResource) createImage(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ImageCreateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
-			return
-		}
+		r.SendError(response, httperrors.BadRequest(errors.New("id should not be empty")))
+		return
 	}
 
 	if requestPayload.URL == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("url should not be empty")) {
-			return
-		}
+		r.SendError(response, httperrors.BadRequest(errors.New("url should not be empty")))
+		return
 	}
 
 	var name string
@@ -233,14 +228,17 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 	features := make(map[metal.ImageFeatureType]bool)
 	for _, f := range requestPayload.Features {
 		ft, err := metal.ImageFeatureTypeFrom(f)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, httperrors.BadRequest(err))
 			return
 		}
+
 		features[ft] = true
 	}
 
 	os, v, err := utils.GetOsAndSemverFromImage(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -253,14 +251,14 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 	if requestPayload.Classification != nil {
 		vc, err = metal.VersionClassificationFrom(*requestPayload.Classification)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
+			r.SendError(response, httperrors.BadRequest(err))
+			return
 		}
 	}
 
 	err = checkImageURL(requestPayload.ID, requestPayload.URL)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -279,14 +277,12 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 	}
 
 	err = r.ds.CreateImage(img)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageResponse(img))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.SendError(response, DefaultError(err))
 		return
 	}
+
+	r.Send(response, http.StatusCreated, v1.NewImageResponse(img))
 }
 
 func checkImageURL(id, url string) error {
@@ -305,42 +301,45 @@ func (r *imageResource) deleteImage(request *restful.Request, response *restful.
 	id := request.PathParameter("id")
 
 	img, err := r.ds.GetImage(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	ms, err := r.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
 	machines := r.machinesByImage(ms, img.ID)
 	if len(machines) > 0 {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)) {
+		if err != nil {
+			r.SendError(response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)))
 			return
 		}
 	}
 
 	err = r.ds.DeleteImage(img)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.SendError(response, DefaultError(err))
 		return
 	}
+
+	r.Send(response, http.StatusOK, v1.NewImageResponse(img))
 }
 
 func (r *imageResource) updateImage(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ImageUpdateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldImage, err := r.ds.GetImage(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.SendError(response, DefaultError(err))
 		return
 	}
 
@@ -354,17 +353,21 @@ func (r *imageResource) updateImage(request *restful.Request, response *restful.
 	}
 	if requestPayload.URL != nil {
 		err = checkImageURL(requestPayload.ID, *requestPayload.URL)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, httperrors.BadRequest(err))
 			return
 		}
+
 		newImage.URL = *requestPayload.URL
 	}
 	features := make(map[metal.ImageFeatureType]bool)
 	for _, f := range requestPayload.Features {
 		ft, err := metal.ImageFeatureTypeFrom(f)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.SendError(response, httperrors.BadRequest(err))
 			return
 		}
+
 		features[ft] = true
 	}
 	if len(features) > 0 {
@@ -374,10 +377,10 @@ func (r *imageResource) updateImage(request *restful.Request, response *restful.
 	if requestPayload.Classification != nil {
 		vc, err := metal.VersionClassificationFrom(*requestPayload.Classification)
 		if err != nil {
-			if checkError(request, response, utils.CurrentFuncName(), err) {
-				return
-			}
+			r.SendError(response, httperrors.BadRequest(err))
+			return
 		}
+
 		newImage.Classification = vc
 	}
 
@@ -386,14 +389,12 @@ func (r *imageResource) updateImage(request *restful.Request, response *restful.
 	}
 
 	err = r.ds.UpdateImage(oldImage, &newImage)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(&newImage))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.SendError(response, DefaultError(err))
 		return
 	}
+
+	r.Send(response, http.StatusOK, v1.NewImageResponse(&newImage))
 }
 
 func (r *imageResource) machinesByImage(machines metal.Machines, imageID string) []string {

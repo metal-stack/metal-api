@@ -23,8 +23,9 @@ import (
 func TestRegisterSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	name := "switch999"
@@ -47,7 +48,7 @@ func TestRegisterSwitch(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -68,8 +69,9 @@ func TestRegisterSwitch(t *testing.T) {
 func TestRegisterExistingSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -88,7 +90,7 @@ func TestRegisterExistingSwitch(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -111,8 +113,9 @@ func TestRegisterExistingSwitch(t *testing.T) {
 func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -131,7 +134,7 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -140,8 +143,9 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 func TestReplaceSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -160,7 +164,7 @@ func TestReplaceSwitch(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -1158,8 +1162,9 @@ func Test_updateSwitchNics(t *testing.T) {
 func TestUpdateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	desc := "test"
@@ -1180,7 +1185,7 @@ func TestUpdateSwitch(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch", body)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -1201,8 +1206,9 @@ func TestUpdateSwitch(t *testing.T) {
 func TestNotifySwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	d := time.Second * 10
@@ -1214,7 +1220,7 @@ func TestNotifySwitch(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	id := testdata.Switch1.ID
 	req := httptest.NewRequest("POST", "/v1/switch/"+id+"/notify", body)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -1234,8 +1240,9 @@ func TestNotifySwitch(t *testing.T) {
 func TestNotifyErrorSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(zaptest.NewLogger(t).Sugar(), ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	d := time.Second * 10
@@ -1249,7 +1256,7 @@ func TestNotifyErrorSwitch(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	id := testdata.Switch1.ID
 	req := httptest.NewRequest("POST", "/v1/switch/"+id+"/notify", body)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

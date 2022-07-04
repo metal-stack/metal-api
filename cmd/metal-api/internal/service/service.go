@@ -7,8 +7,8 @@ import (
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-lib/jwt/sec"
+	"github.com/metal-stack/metal-lib/rest"
 
-	"github.com/go-stack/stack"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
@@ -31,6 +31,55 @@ var BasePath = "/"
 type webResource struct {
 	log *zap.SugaredLogger
 	ds  *datastore.RethinkStore
+}
+
+// Logger returns the request logger from the request.
+func (w *webResource) Logger(rq *restful.Request) *zap.SugaredLogger {
+	return rest.GetLoggerFromContext(rq.Request, w.log)
+}
+
+func (w *webResource) SendError(rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
+	w.log.Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(1))
+	w.Send(rsp, httperr.StatusCode, httperr)
+}
+
+func (w *webResource) Send(rsp *restful.Response, status int, value any) {
+	Send(w.log, rsp, status, value)
+}
+
+func DefaultError(err error) *httperrors.HTTPErrorResponse {
+	if metal.IsNotFound(err) {
+		return httperrors.NotFound(err)
+	}
+	if metal.IsConflict(err) {
+		return httperrors.Conflict(err)
+	}
+	if metal.IsInternal(err) {
+		return httperrors.InternalServerError(err)
+	}
+	if mdmv1.IsNotFound(err) {
+		return httperrors.NotFound(err)
+	}
+	if mdmv1.IsConflict(err) {
+		return httperrors.Conflict(err)
+	}
+	if mdmv1.IsInternal(err) {
+		return httperrors.InternalServerError(err)
+	}
+
+	return httperrors.NewHTTPError(http.StatusUnprocessableEntity, err)
+}
+
+func SendError(log *zap.SugaredLogger, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
+	log.Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(1))
+	Send(log, rsp, httperr.StatusCode, httperr)
+}
+
+func Send(log *zap.SugaredLogger, rsp *restful.Response, status int, value any) {
+	err := rsp.WriteHeaderAndEntity(status, value)
+	if err != nil {
+		log.Errorw("failed to send response", "error", err)
+	}
 }
 
 // UserDirectory is the directory of users
@@ -88,53 +137,6 @@ func (ud *UserDirectory) Get(user string) security.User {
 	return ud.metalUsers[user]
 }
 
-func sendError(log *zap.Logger, rsp *restful.Response, opname string, errRsp *httperrors.HTTPErrorResponse) {
-	sendErrorImpl(log, rsp, opname, errRsp, 1)
-}
-
-func sendErrorImpl(log *zap.Logger, rsp *restful.Response, opname string, errRsp *httperrors.HTTPErrorResponse, stackup int) {
-	s := stack.Caller(stackup)
-	log.Error("service error", zap.String("operation", opname), zap.Int("status", errRsp.StatusCode), zap.String("error", errRsp.Message), zap.Stringer("service-caller", s), zap.String("resp", errRsp.Error()))
-	err := rsp.WriteHeaderAndEntity(errRsp.StatusCode, errRsp)
-	if err != nil {
-		log.Error("Failed to send response", zap.Error(err))
-		return
-	}
-}
-
-func checkError(rq *restful.Request, rsp *restful.Response, opname string, err error) bool {
-	log := utils.Logger(rq)
-	if err != nil {
-		if metal.IsNotFound(err) {
-			sendErrorImpl(log, rsp, opname, httperrors.NotFound(err), 2)
-			return true
-		}
-		if metal.IsConflict(err) {
-			sendErrorImpl(log, rsp, opname, httperrors.Conflict(err), 2)
-			return true
-		}
-		if metal.IsInternal(err) {
-			sendErrorImpl(log, rsp, opname, httperrors.InternalServerError(err), 2)
-			return true
-		}
-		if mdmv1.IsNotFound(err) {
-			sendErrorImpl(log, rsp, opname, httperrors.NotFound(err), 2)
-			return true
-		}
-		if mdmv1.IsConflict(err) {
-			sendErrorImpl(log, rsp, opname, httperrors.Conflict(err), 2)
-			return true
-		}
-		if mdmv1.IsInternal(err) {
-			sendErrorImpl(log, rsp, opname, httperrors.InternalServerError(err), 2)
-			return true
-		}
-		sendErrorImpl(log, rsp, opname, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err), 2)
-		return true
-	}
-	return false
-}
-
 func viewer(rf restful.RouteFunction) restful.RouteFunction {
 	return oneOf(rf, metal.ViewAccess...)
 }
@@ -149,13 +151,19 @@ func admin(rf restful.RouteFunction) restful.RouteFunction {
 
 func oneOf(rf restful.RouteFunction, acc ...security.ResourceAccess) restful.RouteFunction {
 	return func(request *restful.Request, response *restful.Response) {
-		log := utils.Logger(request)
-		lg := log.Sugar()
 		usr := security.GetUser(request.Request)
 		if !usr.HasGroup(acc...) {
-			err := fmt.Errorf("you are not member in one of %+v", acc)
-			lg.Infow("missing group", "user", usr, "required-group", acc)
-			sendError(log, response, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusForbidden, err))
+			log := rest.GetLoggerFromContext(request.Request, nil)
+			if log != nil {
+				log.Infow("missing group", "user", usr, "required-group", acc)
+			}
+
+			httperr := httperrors.NewHTTPError(http.StatusForbidden, fmt.Errorf("you are not member in one of %+v", acc))
+
+			err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr)
+			if err != nil && log != nil {
+				log.Errorw("failed to send response", "error", err)
+			}
 			return
 		}
 		rf(request, response)
@@ -168,13 +176,15 @@ func tenant(request *restful.Request) string {
 
 // TenantEnsurer holds allowed tenants and a list of path suffixes that
 type TenantEnsurer struct {
+	logger               *zap.SugaredLogger
 	allowedTenants       map[string]bool
 	excludedPathSuffixes []string
 }
 
 // NewTenantEnsurer creates a new ensurer with the given tenants.
-func NewTenantEnsurer(tenants, excludedPathSuffixes []string) TenantEnsurer {
+func NewTenantEnsurer(log *zap.SugaredLogger, tenants, excludedPathSuffixes []string) TenantEnsurer {
 	result := TenantEnsurer{
+		logger:               log,
 		allowedTenants:       make(map[string]bool),
 		excludedPathSuffixes: excludedPathSuffixes,
 	}
@@ -201,9 +211,10 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	tenantID := tenant(req)
 	if !e.allowed(tenantID) {
 		err := fmt.Errorf("tenant %s not allowed", tenantID)
-		sendError(utils.Logger(req), resp, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusForbidden, err))
+		SendError(rest.GetLoggerFromContext(req.Request, e.logger), resp, httperrors.NewHTTPError(http.StatusForbidden, err))
 		return
 	}
+
 	chain.ProcessFilter(req, resp)
 }
 
