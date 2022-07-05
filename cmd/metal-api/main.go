@@ -947,3 +947,7 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 	// Maybe this leads to an issue, investigating...:
 	// swo.Schemes = []string{"http", "https"}
 }
+
+func isDebug(log *zap.SugaredLogger) bool {
+	return log.Desugar().Core().Enabled(zap.DebugLevel)
+}
