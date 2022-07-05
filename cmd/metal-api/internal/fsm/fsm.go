@@ -2,7 +2,6 @@ package fsm
 
 import (
 	"errors"
-	"reflect"
 	"time"
 
 	"github.com/looplab/fsm"
@@ -253,8 +252,6 @@ func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 
 	provisioningFSM := newProvisioningFSM(container.Events[len(container.Events)-1].Event, container)
 
-	var invalidEventError fsm.InvalidEventError
-
 	err := provisioningFSM.fsm.Event(event.Event.String(), provisioningFSM, event)
 	if err != nil {
 		if errors.Is(err, fsm.NoTransitionError{}) {
@@ -267,7 +264,7 @@ func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 			} else if event.Event == metal.ProvisioningEventPhonedHome {
 				log.Debugw("swallowing repeated phone home event", "id", container.ID)
 			}
-		} else if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
+		} else if errors.As(err, &fsm.InvalidEventError{}) {
 			container.Events = append(container.Events, *event)
 			container.LastEventTime = &(*event).Time
 			container.CrashLoop = true
