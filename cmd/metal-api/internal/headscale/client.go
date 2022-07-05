@@ -2,12 +2,11 @@ package headscale
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"github.com/juanfont/headscale"
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"strings"
 )
 
@@ -62,15 +61,8 @@ func (h *HeadscaleClient) connect(apiKey string) (err error) {
 		grpc.WithPerRPCCredentials(tokenAuth{
 			token: apiKey,
 		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-
-	// TODO: set TLS?
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	grpcOptions = append(grpcOptions,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-	)
 
 	h.conn, err = grpc.DialContext(h.ctx, h.address, grpcOptions...)
 	if err != nil {
