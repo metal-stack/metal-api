@@ -14,7 +14,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type sizeResource struct {
@@ -22,16 +21,17 @@ type sizeResource struct {
 }
 
 // NewSize returns a webservice for size specific endpoints.
-func NewSize(ds *datastore.RethinkStore) *restful.WebService {
+func NewSize(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
 	r := sizeResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 	}
 	return r.webService()
 }
 
-func (r sizeResource) webService() *restful.WebService {
+func (r *sizeResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/size").
@@ -101,7 +101,7 @@ func (r sizeResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r sizeResource) findSize(request *restful.Request, response *restful.Response) {
+func (r *sizeResource) findSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSize(id)
@@ -110,12 +110,12 @@ func (r sizeResource) findSize(request *restful.Request, response *restful.Respo
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeResource) listSizes(request *restful.Request, response *restful.Response) {
+func (r *sizeResource) listSizes(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSizes()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -127,12 +127,12 @@ func (r sizeResource) listSizes(request *restful.Request, response *restful.Resp
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeResource) createSize(request *restful.Request, response *restful.Response) {
+func (r *sizeResource) createSize(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -194,12 +194,12 @@ func (r sizeResource) createSize(request *restful.Request, response *restful.Res
 	}
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewSizeResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
+func (r *sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSize(id)
@@ -213,12 +213,12 @@ func (r sizeResource) deleteSize(request *restful.Request, response *restful.Res
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeResource) updateSize(request *restful.Request, response *restful.Response) {
+func (r *sizeResource) updateSize(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -268,12 +268,12 @@ func (r sizeResource) updateSize(request *restful.Request, response *restful.Res
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(&newSize))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
+func (r *sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineHardware
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -294,7 +294,7 @@ func (r sizeResource) fromHardware(request *restful.Request, response *restful.R
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }

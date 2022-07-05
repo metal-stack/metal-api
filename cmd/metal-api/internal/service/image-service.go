@@ -16,7 +16,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type imageResource struct {
@@ -24,10 +23,11 @@ type imageResource struct {
 }
 
 // NewImage returns a webservice for image specific endpoints.
-func NewImage(ds *datastore.RethinkStore) *restful.WebService {
+func NewImage(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 	}
 
@@ -116,24 +116,24 @@ func (ir imageResource) webService() *restful.WebService {
 	return ws
 }
 
-func (ir imageResource) findImage(request *restful.Request, response *restful.Response) {
+func (r *imageResource) findImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.GetImage(id)
+	img, err := r.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (ir imageResource) queryImages(request *restful.Request, response *restful.Response) {
+func (r *imageResource) queryImages(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImages(id)
+	img, err := r.ds.FindImages(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -144,27 +144,27 @@ func (ir imageResource) queryImages(request *restful.Request, response *restful.
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (ir imageResource) findLatestImage(request *restful.Request, response *restful.Response) {
+func (r *imageResource) findLatestImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.FindImage(id)
+	img, err := r.ds.FindImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (ir imageResource) listImages(request *restful.Request, response *restful.Response) {
-	imgs, err := ir.ds.ListImages()
+func (r *imageResource) listImages(request *restful.Request, response *restful.Response) {
+	imgs, err := r.ds.ListImages()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -177,7 +177,7 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 			return
 		}
 		if showUsage {
-			ms, err = ir.ds.ListMachines()
+			ms, err = r.ds.ListMachines()
 			if checkError(request, response, utils.CurrentFuncName(), err) {
 				return
 			}
@@ -188,7 +188,7 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 	for i := range imgs {
 		img := v1.NewImageResponse(&imgs[i])
 		if showUsage {
-			machines := ir.machinesByImage(ms, imgs[i].ID)
+			machines := r.machinesByImage(ms, imgs[i].ID)
 			if len(machines) > 0 {
 				img.UsedBy = machines
 			}
@@ -197,12 +197,12 @@ func (ir imageResource) listImages(request *restful.Request, response *restful.R
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (ir imageResource) createImage(request *restful.Request, response *restful.Response) {
+func (r *imageResource) createImage(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ImageCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -278,13 +278,13 @@ func (ir imageResource) createImage(request *restful.Request, response *restful.
 		Classification: vc,
 	}
 
-	err = ir.ds.CreateImage(img)
+	err = r.ds.CreateImage(img)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -301,45 +301,45 @@ func checkImageURL(id, url string) error {
 	return nil
 }
 
-func (ir imageResource) deleteImage(request *restful.Request, response *restful.Response) {
+func (r *imageResource) deleteImage(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	img, err := ir.ds.GetImage(id)
+	img, err := r.ds.GetImage(id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	ms, err := ir.ds.ListMachines()
+	ms, err := r.ds.ListMachines()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	machines := ir.machinesByImage(ms, img.ID)
+	machines := r.machinesByImage(ms, img.ID)
 	if len(machines) > 0 {
 		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)) {
 			return
 		}
 	}
 
-	err = ir.ds.DeleteImage(img)
+	err = r.ds.DeleteImage(img)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(img))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (ir imageResource) updateImage(request *restful.Request, response *restful.Response) {
+func (r *imageResource) updateImage(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ImageUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 
-	oldImage, err := ir.ds.GetImage(requestPayload.ID)
+	oldImage, err := r.ds.GetImage(requestPayload.ID)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -385,18 +385,18 @@ func (ir imageResource) updateImage(request *restful.Request, response *restful.
 		newImage.ExpirationDate = *requestPayload.ExpirationDate
 	}
 
-	err = ir.ds.UpdateImage(oldImage, &newImage)
+	err = r.ds.UpdateImage(oldImage, &newImage)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewImageResponse(&newImage))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (ir imageResource) machinesByImage(machines metal.Machines, imageID string) []string {
+func (r *imageResource) machinesByImage(machines metal.Machines, imageID string) []string {
 	var machinesByImage []string
 	for _, m := range machines {
 		if m.Allocation == nil {

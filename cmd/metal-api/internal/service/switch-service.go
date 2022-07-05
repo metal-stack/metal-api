@@ -16,7 +16,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 )
 
@@ -25,16 +24,17 @@ type switchResource struct {
 }
 
 // NewSwitch returns a webservice for switch specific endpoints.
-func NewSwitch(ds *datastore.RethinkStore) *restful.WebService {
+func NewSwitch(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
 	r := switchResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 	}
 	return r.webService()
 }
 
-func (r switchResource) webService() *restful.WebService {
+func (r *switchResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/switch").
@@ -105,7 +105,7 @@ func (r switchResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r switchResource) findSwitch(request *restful.Request, response *restful.Response) {
+func (r *switchResource) findSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSwitch(id)
@@ -120,12 +120,12 @@ func (r switchResource) findSwitch(request *restful.Request, response *restful.R
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r switchResource) listSwitches(request *restful.Request, response *restful.Response) {
+func (r *switchResource) listSwitches(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSwitches()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -138,12 +138,12 @@ func (r switchResource) listSwitches(request *restful.Request, response *restful
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
+func (r *switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSwitch(id)
@@ -163,13 +163,13 @@ func (r switchResource) deleteSwitch(request *restful.Request, response *restful
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
 // notifySwitch is called periodically from every switch to report last duration and error if ocurred
-func (r switchResource) notifySwitch(request *restful.Request, response *restful.Response) {
+func (r *switchResource) notifySwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchNotifyRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -210,12 +210,12 @@ func (r switchResource) notifySwitch(request *restful.Request, response *restful
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
+func (r *switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -258,12 +258,12 @@ func (r switchResource) updateSwitch(request *restful.Request, response *restful
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
+func (r *switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchRegisterRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -363,7 +363,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 
 	err = response.WriteHeaderAndEntity(returnCode, resp)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -380,7 +380,7 @@ func (r switchResource) registerSwitch(request *restful.Request, response *restf
 //  - new switch needs all the nics of the twin-brother switch
 //  - new switch gets the same vrf configuration as the twin-brother switch based on the switch port name
 //  - new switch gets the same machine connections as the twin-brother switch based on the switch port name
-func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
+func (r *switchResource) replaceSwitch(old, new *metal.Switch) error {
 	twin, err := r.findTwinSwitch(new)
 	if err != nil {
 		return fmt.Errorf("could not determine twin brother for switch %s, err: %w", new.Name, err)
@@ -393,7 +393,7 @@ func (r switchResource) replaceSwitch(old, new *metal.Switch) error {
 }
 
 // findTwinSwitch finds the neighboring twin of a switch for the given partition and rack
-func (r switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, error) {
+func (r *switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, error) {
 	rackSwitches, err := r.ds.SearchSwitches(newSwitch.RackID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not search switches in rack: %v", newSwitch.RackID)
@@ -563,8 +563,6 @@ func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnect
 
 	return finalNics, nil
 }
-
-
 
 func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
 	p, ips, machines, err := findSwitchReferencedEntites(s, ds)

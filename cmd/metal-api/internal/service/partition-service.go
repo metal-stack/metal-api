@@ -14,7 +14,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 // TopicCreator creates a topic for messaging.
@@ -28,10 +27,11 @@ type partitionResource struct {
 }
 
 // NewPartition returns a webservice for partition specific endpoints.
-func NewPartition(ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
+func NewPartition(log *zap.SugaredLogger, ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
 	r := partitionResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		topicCreator: tc,
 	}
@@ -39,7 +39,7 @@ func NewPartition(ds *datastore.RethinkStore, tc TopicCreator) *restful.WebServi
 	return r.webService()
 }
 
-func (r partitionResource) webService() *restful.WebService {
+func (r *partitionResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/partition").
@@ -121,7 +121,7 @@ func (r partitionResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r partitionResource) findPartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) findPartition(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	p, err := r.ds.FindPartition(id)
@@ -130,12 +130,12 @@ func (r partitionResource) findPartition(request *restful.Request, response *res
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
 	ps, err := r.ds.ListPartitions()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -147,12 +147,12 @@ func (r partitionResource) listPartitions(request *restful.Request, response *re
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r partitionResource) createPartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) createPartition(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -236,12 +236,12 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	p, err := r.ds.FindPartition(id)
@@ -255,12 +255,12 @@ func (r partitionResource) deletePartition(request *restful.Request, response *r
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -308,12 +308,12 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(&newPartition))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
 	partitionCapacities, err := r.calcPartitionCapacity(nil)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -321,12 +321,12 @@ func (r partitionResource) partitionCapacityCompat(request *restful.Request, res
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionCapacityRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -340,12 +340,12 @@ func (r partitionResource) partitionCapacity(request *restful.Request, response 
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
+func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
 	// FIXME bad workaround to be able to run make spec
 	if r.ds == nil {
 		return nil, nil

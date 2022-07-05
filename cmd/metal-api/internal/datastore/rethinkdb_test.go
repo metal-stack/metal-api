@@ -5,27 +5,15 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
-var rethinkStore1 = RethinkStore{
-	SugaredLogger: zapup.MustRootLogger().Sugar(),
-	dbhost:        "dbhost",
-	dbname:        "dbname",
-	dbuser:        "dbuser",
-	dbpass:        "password",
-
-	VRFPoolRangeMin: DefaultVRFPoolRangeMin,
-	VRFPoolRangeMax: DefaultVRFPoolRangeMax,
-	ASNPoolRangeMin: DefaultASNPoolRangeMin,
-	ASNPoolRangeMax: DefaultASNPoolRangeMax,
-}
-
 func TestNew(t *testing.T) {
+	logger := zaptest.NewLogger(t).Sugar()
 	type args struct {
-		log    *zap.Logger
+		log    *zap.SugaredLogger
 		dbhost string
 		dbname string
 		dbuser string
@@ -36,17 +24,28 @@ func TestNew(t *testing.T) {
 		args args
 		want *RethinkStore
 	}{
-		// Test-Data List / Test Cases:
 		{
 			name: "TestNew Test 1",
 			args: args{
-				log:    zapup.MustRootLogger(),
+				log:    logger,
 				dbhost: "dbhost",
 				dbname: "dbname",
 				dbuser: "dbuser",
 				dbpass: "password",
 			},
-			want: &rethinkStore1,
+			want: &RethinkStore{
+				log: logger,
+
+				dbhost: "dbhost",
+				dbname: "dbname",
+				dbuser: "dbuser",
+				dbpass: "password",
+
+				VRFPoolRangeMin: DefaultVRFPoolRangeMin,
+				VRFPoolRangeMax: DefaultVRFPoolRangeMax,
+				ASNPoolRangeMin: DefaultASNPoolRangeMin,
+				ASNPoolRangeMax: DefaultASNPoolRangeMax,
+			},
 		},
 	}
 	for i := range tests {
@@ -60,8 +59,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestRethinkStore_db(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	theDBTerm := r.DB("mockdb")
@@ -71,7 +69,6 @@ func TestRethinkStore_db(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Term
 	}{
-		// Test-Data List / Test Cases:
 		{
 			name: "TestRethinkStore_db Test 1",
 			rs:   ds,
@@ -89,8 +86,7 @@ func TestRethinkStore_db(t *testing.T) {
 }
 
 func TestRethinkStore_Mock(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -98,7 +94,6 @@ func TestRethinkStore_Mock(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Mock
 	}{
-		// Test-Data List / Test Cases:
 		{
 			name: "TestRethinkStore_Mock Test 1",
 			rs:   ds,
@@ -116,8 +111,7 @@ func TestRethinkStore_Mock(t *testing.T) {
 }
 
 func TestRethinkStore_Close(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -125,7 +119,6 @@ func TestRethinkStore_Close(t *testing.T) {
 		rs      *RethinkStore
 		wantErr bool
 	}{
-		// Test-Data List / Test Cases:
 		{
 			name:    "TestRethinkStore_Close Test 1",
 			rs:      ds,
@@ -154,9 +147,7 @@ func Test_connect(t *testing.T) {
 		args    args
 		want    *r.Term
 		wantErr bool
-	}{
-		// Test-Data List / Test Cases:
-	}
+	}{}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
@@ -172,35 +163,8 @@ func Test_connect(t *testing.T) {
 	}
 }
 
-func Test_retryConnect(t *testing.T) {
-	type args struct {
-		log    *zap.SugaredLogger
-		hosts  []string
-		dbname string
-		user   string
-		pwd    string
-	}
-	tests := []struct {
-		name string
-		args args
-		want *r.Term
-	}{
-		// Test-Data List / Test Cases:
-	}
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			got := retryConnect(tt.args.log, tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("retryConnect() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRethinkStore_sizeTable(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("size")
@@ -210,7 +174,6 @@ func TestRethinkStore_sizeTable(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Term
 	}{
-		// test cases:
 		{
 			name: "TestRethinkStore_sizeTable Test 1",
 			rs:   ds,
@@ -228,8 +191,7 @@ func TestRethinkStore_sizeTable(t *testing.T) {
 }
 
 func TestRethinkStore_imageTable(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("image")
@@ -239,7 +201,6 @@ func TestRethinkStore_imageTable(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Term
 	}{
-		// test cases:
 		{
 			name: "TestRethinkStore_imageTable Test 1",
 			rs:   ds,
@@ -257,8 +218,7 @@ func TestRethinkStore_imageTable(t *testing.T) {
 }
 
 func TestRethinkStore_partitionTable(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("partition")
@@ -268,7 +228,6 @@ func TestRethinkStore_partitionTable(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Term
 	}{
-		// test cases:
 		{
 			name: "TestRethinkStore_partitionTable Test 1",
 			rs:   ds,
@@ -286,8 +245,7 @@ func TestRethinkStore_partitionTable(t *testing.T) {
 }
 
 func TestRethinkStore_machineTable(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("machine")
@@ -297,7 +255,6 @@ func TestRethinkStore_machineTable(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Term
 	}{
-		// test cases:
 		{
 			name: "Test 1",
 			rs:   ds,
@@ -315,8 +272,7 @@ func TestRethinkStore_machineTable(t *testing.T) {
 }
 
 func TestRethinkStore_switchTable(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	theWantedTerm := r.DB("mockdb").Table("switch")
@@ -326,7 +282,6 @@ func TestRethinkStore_switchTable(t *testing.T) {
 		rs   *RethinkStore
 		want *r.Term
 	}{
-		// test cases:
 		{
 			name: "TestRethinkStore_switchTable Test 1",
 			rs:   ds,

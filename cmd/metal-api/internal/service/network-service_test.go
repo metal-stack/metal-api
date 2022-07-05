@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-lib/httperrors"
+	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -24,10 +25,10 @@ import (
 )
 
 func TestGetNetworks(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network", nil)
 	container = injectViewer(container, req)
@@ -51,10 +52,10 @@ func TestGetNetworks(t *testing.T) {
 }
 
 func TestGetNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/1", nil)
 	container = injectViewer(container, req)
@@ -73,10 +74,10 @@ func TestGetNetwork(t *testing.T) {
 }
 
 func TestGetNetworkNotFound(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/999", nil)
 	container = injectViewer(container, req)
@@ -95,13 +96,13 @@ func TestGetNetworkNotFound(t *testing.T) {
 }
 
 func TestDeleteNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipamer, nil)
+	networkservice := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
 	container = injectAdmin(container, req)
@@ -120,13 +121,13 @@ func TestDeleteNetwork(t *testing.T) {
 }
 
 func TestDeleteNetworkIPInUse(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, true)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipamer, nil)
+	networkservice := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
 	container = injectAdmin(container, req)
@@ -145,12 +146,12 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 }
 
 func TestCreateNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipamer, nil)
+	networkservice := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 
 	prefixes := []string{"172.0.0.0/24"}
@@ -184,10 +185,10 @@ func TestCreateNetwork(t *testing.T) {
 }
 
 func TestUpdateNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 
 	newName := "new"
@@ -218,11 +219,11 @@ func TestUpdateNetwork(t *testing.T) {
 }
 
 func TestSearchNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{testdata.Nw1}, nil)
 	testdata.InitMockDBData(mock)
 
-	networkService := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkService := NewNetwork(zaptest.NewLogger(t).Sugar(), ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkService)
 	requestJSON := fmt.Sprintf("{%q:%q}", "partitionid", "1")
 	req := httptest.NewRequest("POST", "/v1/network/find", bytes.NewBufferString(requestJSON))

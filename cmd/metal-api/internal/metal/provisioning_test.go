@@ -3,7 +3,7 @@ package metal
 import (
 	"testing"
 
-	"github.com/metal-stack/metal-lib/zapup"
+	"go.uber.org/zap/zaptest"
 )
 
 var (
@@ -262,7 +262,7 @@ func TestProvisioning_IncompleteCycles(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.eventContainer.CalculateIncompleteCycles(zapup.MustRootLogger().Sugar()); got != tt.want {
+			if got := tt.eventContainer.CalculateIncompleteCycles(zaptest.NewLogger(t).Sugar()); got != tt.want {
 				t.Errorf("CalculateIncompleteCycles() = %v, want %v", got, tt.want)
 			}
 		})

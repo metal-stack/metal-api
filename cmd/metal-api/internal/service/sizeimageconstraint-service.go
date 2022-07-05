@@ -14,7 +14,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type sizeImageConstraintResource struct {
@@ -22,16 +21,17 @@ type sizeImageConstraintResource struct {
 }
 
 // NewSize returns a webservice for size specific endpoints.
-func NewSizeImageConstraint(ds *datastore.RethinkStore) *restful.WebService {
+func NewSizeImageConstraint(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
 	r := sizeImageConstraintResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 	}
 	return r.webService()
 }
 
-func (r sizeImageConstraintResource) webService() *restful.WebService {
+func (r *sizeImageConstraintResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/size-image-constraint").
@@ -101,7 +101,7 @@ func (r sizeImageConstraintResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r sizeImageConstraintResource) findSizeImageConstraint(request *restful.Request, response *restful.Response) {
+func (r *sizeImageConstraintResource) findSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSizeImageConstraint(id)
@@ -110,12 +110,12 @@ func (r sizeImageConstraintResource) findSizeImageConstraint(request *restful.Re
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeImageConstraintResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeImageConstraintResource) listSizeImageConstraints(request *restful.Request, response *restful.Response) {
+func (r *sizeImageConstraintResource) listSizeImageConstraints(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSizeImageConstraints()
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
@@ -127,12 +127,12 @@ func (r sizeImageConstraintResource) listSizeImageConstraints(request *restful.R
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeImageConstraintResource) createSizeImageConstraint(request *restful.Request, response *restful.Response) {
+func (r *sizeImageConstraintResource) createSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeImageConstraintCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -158,12 +158,12 @@ func (r sizeImageConstraintResource) createSizeImageConstraint(request *restful.
 	}
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewSizeImageConstraintResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeImageConstraintResource) deleteSizeImageConstraint(request *restful.Request, response *restful.Response) {
+func (r *sizeImageConstraintResource) deleteSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSizeImageConstraint(id)
@@ -177,12 +177,12 @@ func (r sizeImageConstraintResource) deleteSizeImageConstraint(request *restful.
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeImageConstraintResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
 
-func (r sizeImageConstraintResource) updateSizeImageConstraint(request *restful.Request, response *restful.Response) {
+func (r *sizeImageConstraintResource) updateSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeImageConstraintUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -216,11 +216,11 @@ func (r sizeImageConstraintResource) updateSizeImageConstraint(request *restful.
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeImageConstraintResponse(&newSizeImageConstraint))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
-func (r sizeImageConstraintResource) trySizeImageConstraint(request *restful.Request, response *restful.Response) {
+func (r *sizeImageConstraintResource) trySizeImageConstraint(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeImageConstraintTryRequest
 	err := request.ReadEntity(&requestPayload)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
@@ -249,7 +249,7 @@ func (r sizeImageConstraintResource) trySizeImageConstraint(request *restful.Req
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.EmptyBody{})
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }

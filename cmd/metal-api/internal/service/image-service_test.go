@@ -11,6 +11,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"go.uber.org/zap/zaptest"
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -18,10 +19,10 @@ import (
 )
 
 func TestGetImages(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(ds)
+	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image", nil)
 	w := httptest.NewRecorder()
@@ -44,10 +45,10 @@ func TestGetImages(t *testing.T) {
 }
 
 func TestGetImage(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(ds)
+	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image/image-1", nil)
 	w := httptest.NewRecorder()
@@ -65,10 +66,10 @@ func TestGetImage(t *testing.T) {
 }
 
 func TestGetImageNotFound(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(ds)
+	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("GET", "/v1/image/image-999", nil)
 	w := httptest.NewRecorder()
@@ -86,10 +87,10 @@ func TestGetImageNotFound(t *testing.T) {
 }
 
 func TestDeleteImage(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(ds)
+	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("DELETE", "/v1/image/image-3", nil)
 	container = injectAdmin(container, req)
@@ -108,7 +109,7 @@ func TestDeleteImage(t *testing.T) {
 }
 
 func TestCreateImage(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	createRequest := v1.ImageCreateRequest{
@@ -127,7 +128,7 @@ func TestCreateImage(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
-	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
+	container := injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -148,7 +149,7 @@ func TestCreateImage(t *testing.T) {
 }
 
 func TestCreateImageWithBrokenURL(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	createRequest := v1.ImageCreateRequest{
@@ -168,7 +169,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
-	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
+	container := injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -188,7 +189,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 
 	body = bytes.NewBuffer(js)
 	req = httptest.NewRequest("PUT", "/v1/image", body)
-	container = injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
+	container = injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w = httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -203,7 +204,7 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 }
 
 func TestCreateImageWithClassification(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 	vc := string(testdata.Img1.Classification)
 
@@ -224,7 +225,7 @@ func TestCreateImageWithClassification(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
-	container := injectAdmin(restful.NewContainer().Add(NewImage(ds)), req)
+	container := injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -245,10 +246,10 @@ func TestCreateImageWithClassification(t *testing.T) {
 }
 
 func TestUpdateImage(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	imageservice := NewImage(ds)
+	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(imageservice)
 
 	updateRequest := v1.ImageUpdateRequest{

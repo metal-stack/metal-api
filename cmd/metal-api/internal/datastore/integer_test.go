@@ -84,7 +84,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			rs, mock := InitMockDB()
+			rs, mock := InitMockDB(t)
 			ip := rs.GetVRFPool()
 			if tt.requiresMock {
 				if tt.err != nil {
@@ -111,7 +111,7 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 }
 
 func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
-	rs, mock := InitMockDB()
+	rs, mock := InitMockDB(t)
 	ip := rs.GetVRFPool()
 	changes := []r.ChangeResponse{{OldValue: map[string]interface{}{"id": float64(rs.VRFPoolRangeMin)}}}
 	mock.On(r.DB("mockdb").Table(ip.String()).Limit(1).Delete(r.
@@ -148,7 +148,7 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			rs, mock := InitMockDB()
+			rs, mock := InitMockDB(t)
 			ip := rs.GetVRFPool()
 
 			if tt.requiresMock {
@@ -215,7 +215,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			rs, mock := InitMockDB()
+			rs, mock := InitMockDB(t)
 			ip := rs.GetVRFPool()
 
 			term := ip.poolTable.Get(tt.value)

@@ -13,7 +13,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type filesystemResource struct {
@@ -21,10 +20,11 @@ type filesystemResource struct {
 }
 
 // NewFilesystemLayout returns a webservice for filesystem specific endpoints.
-func NewFilesystemLayout(ds *datastore.RethinkStore) *restful.WebService {
+func NewFilesystemLayout(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
 	r := filesystemResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 	}
 	return r.webService()
@@ -118,7 +118,7 @@ func (r filesystemResource) findFilesystemLayout(request *restful.Request, respo
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -135,7 +135,7 @@ func (r filesystemResource) listFilesystemLayouts(request *restful.Request, resp
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, result)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -185,7 +185,7 @@ func (r filesystemResource) createFilesystemLayout(request *restful.Request, res
 	}
 	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewFilesystemLayoutResponse(fsl))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -204,7 +204,7 @@ func (r filesystemResource) deleteFilesystemLayout(request *restful.Request, res
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -247,7 +247,7 @@ func (r filesystemResource) updateFilesystemLayout(request *restful.Request, res
 	}
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(newFilesystemLayout))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -270,7 +270,7 @@ func (r filesystemResource) tryFilesystemLayout(request *restful.Request, respon
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
@@ -298,7 +298,7 @@ func (r filesystemResource) matchFilesystemLayout(request *restful.Request, resp
 
 	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.log.Errorw("failed to send response", "error", err)
 		return
 	}
 }
