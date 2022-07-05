@@ -1868,8 +1868,12 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("Failed to send response", zap.Error(err))
 	}
 
-	event := string(metal.ProvisioningEventPlannedReboot)
-	_, err = r.ds.ProvisioningEventForMachine(logger, id, event, "freeMachine")
+	ev := metal.ProvisioningEvent{
+		Time:    time.Now(),
+		Event:   metal.ProvisioningEventMachineReclaim,
+		Message: "freeMachine",
+	}
+	_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
 	if checkError(request, response, utils.CurrentFuncName(), err) {
 		return
 	}
@@ -2210,7 +2214,13 @@ func (r machineResource) addProvisionEventForMachine(log *zap.SugaredLogger, mac
 		return nil, errors.New("unknown provisioning event")
 	}
 
-	return r.ds.ProvisioningEventForMachine(log, machineID, e.Event, e.Message)
+	ev := metal.ProvisioningEvent{
+		Time:    time.Now(),
+		Event:   metal.ProvisioningEventType(e.Event),
+		Message: e.Message,
+	}
+
+	return r.ds.ProvisioningEventForMachine(log, &ev, machineID)
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died
@@ -2464,8 +2474,12 @@ func (r machineResource) machineCmd(cmd metal.MachineCommand, request *restful.R
 	needsUpdate := false
 	switch cmd { // nolint:exhaustive
 	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
-		event := string(metal.ProvisioningEventPlannedReboot)
-		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, string(cmd))
+		ev := metal.ProvisioningEvent{
+			Time:    time.Now(),
+			Event:   metal.ProvisioningEventPlannedReboot,
+			Message: string(cmd),
+		}
+		_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
 		if checkError(request, response, utils.CurrentFuncName(), err) {
 			return
 		}

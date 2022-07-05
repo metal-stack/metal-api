@@ -237,7 +237,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		log := zap.NewExample().Sugar()
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := HandleProvisioningEvent(tt.event, tt.container, log)
+			_, err := handleProvisioningEvent(tt.event, tt.container, log)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
