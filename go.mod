@@ -11,14 +11,13 @@ require (
 	github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/go-logr/zapr v1.2.3
 	github.com/go-openapi/spec v0.20.6
-	github.com/go-stack/stack v1.8.1
 	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/metal-stack/go-ipam v1.8.5
 	github.com/metal-stack/masterdata-api v0.8.12
-	github.com/metal-stack/metal-lib v0.9.3-0.20220630131318-e1707efd9e2c
+	github.com/metal-stack/metal-lib v0.9.3-0.20220705093624-ec1b8f53a56f
 	github.com/metal-stack/security v0.6.4
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
@@ -64,6 +63,7 @@ require (
 	github.com/go-openapi/runtime v0.24.1 // indirect
 	github.com/go-openapi/strfmt v0.21.2 // indirect
 	github.com/go-openapi/swag v0.21.1 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
