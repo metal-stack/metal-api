@@ -10,6 +10,10 @@ import (
 // ProvisioningEventType indicates an event emitted by a machine during the provisioning sequence
 type ProvisioningEventType string
 
+func (t ProvisioningEventType) String() string {
+	return string(t)
+}
+
 // The enums for the machine provisioning events.
 const (
 	ProvisioningEventAlive            ProvisioningEventType = "Alive"
@@ -23,6 +27,7 @@ const (
 	ProvisioningEventInstalling       ProvisioningEventType = "Installing"
 	ProvisioningEventBootingNewKernel ProvisioningEventType = "Booting New Kernel"
 	ProvisioningEventPhonedHome       ProvisioningEventType = "Phoned Home"
+	ProvisioningEventMachineReclaim   ProvisioningEventType = "Machine Reclaim"
 )
 
 type provisioningEventSequence []ProvisioningEventType
@@ -41,9 +46,10 @@ var (
 		ProvisioningEventInstalling:       true,
 		ProvisioningEventBootingNewKernel: true,
 		ProvisioningEventPhonedHome:       true,
+		ProvisioningEventMachineReclaim:   true,
 	}
 	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
-	ProvisioningEventsInspectionLimit = 2 * len(expectedBootSequence) // only saved events count
+	ProvisioningEventsInspectionLimit = 100 // only saved events count
 	// expectedBootSequence is the expected provisioning event sequence of an expected machine boot from PXE up to a running OS
 	expectedBootSequence = provisioningEventSequence{
 		ProvisioningEventPXEBooting,
@@ -160,6 +166,8 @@ type ProvisioningEventContainer struct {
 	Events                       ProvisioningEvents `rethinkdb:"events" json:"events"`
 	LastEventTime                *time.Time         `rethinkdb:"last_event_time" json:"last_event_time"`
 	IncompleteProvisioningCycles string             `rethinkdb:"incomplete_cycles" json:"incomplete_cycles"`
+	CrashLoop                    bool               `rethinkdb:"crash_loop" json:"crash_loop"`
+	FailedMachineReclaim         bool               `rethinkdb:"falied_machine_reclaim" json:"failed_machine_reclaim"`
 }
 
 // ProvisioningEventContainers is a list of machine provisioning event containers.

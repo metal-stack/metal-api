@@ -1,58 +1,53 @@
 package fsm
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
 )
 
 func TestHandleProvisioningEvent(t *testing.T) {
 	now := time.Now()
-	lastTimeEvent := now.Add(-time.Minute * 5)
+	lastTimeEvent := now.Add(-time.Minute * 4)
 	tests := []struct {
-		event                *metal.ProvisioningEvent
-		container            *metal.ProvisioningEventContainer
-		name                 string
-		wantErr              error
-		wantIncompleteCycles int
-		wantLiveliness       metal.MachineLiveliness
-		wantNumberOfEvents   int
-		wantLastEventTime    time.Time
-		wantLastEvent        string
+		event              *metal.ProvisioningEvent
+		container          *metal.ProvisioningEventContainer
+		name               string
+		wantErr            error
+		wantCrashLoop      bool
+		wantFailedReclaim  bool
+		wantLiveliness     metal.MachineLiveliness
+		wantNumberOfEvents int
+		wantLastEventTime  time.Time
+		wantLastEvent      string
 	}{
 		{
-			name: "Transitioning from Waiting to Installing",
+			name: "First Event in container",
 			container: &metal.ProvisioningEventContainer{
-				Events: metal.ProvisioningEvents{
-					{
-						Time:  now.Add(-time.Minute * 5),
-						Event: metal.ProvisioningEventWaiting,
-					},
-				},
+				Events:     metal.ProvisioningEvents{},
 				Liveliness: metal.MachineLivelinessAlive,
 			},
 			event: &metal.ProvisioningEvent{
 				Time:  now,
-				Event: metal.ProvisioningEventInstalling,
+				Event: metal.ProvisioningEventPXEBooting,
 			},
-			wantErr:              nil,
-			wantIncompleteCycles: 0,
-			wantLiveliness:       metal.MachineLivelinessAlive,
-			wantNumberOfEvents:   2,
-			wantLastEventTime:    now,
-			wantLastEvent:        string(metal.ProvisioningEventInstalling),
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 1,
+			wantLastEventTime:  now,
+			wantLastEvent:      metal.ProvisioningEventPXEBooting.String(),
 		},
 		{
-			name: "Transitioning from PXEBooting to PXEBooting",
+			name: "Transition from PXEBooting to PXEBooting",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  now.Add(-time.Minute * 5),
+						Time:  lastTimeEvent,
 						Event: metal.ProvisioningEventPXEBooting,
 					},
 				},
@@ -62,45 +57,24 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Time:  now,
 				Event: metal.ProvisioningEventPXEBooting,
 			},
-			wantErr:              nil,
-			wantIncompleteCycles: 0,
-			wantLiveliness:       metal.MachineLivelinessAlive,
-			wantNumberOfEvents:   1,
-			wantLastEventTime:    now,
-			wantLastEvent:        string(metal.ProvisioningEventPXEBooting),
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 1,
+			wantLastEventTime:  now,
+			wantLastEvent:      metal.ProvisioningEventPXEBooting.String(),
 		},
 		{
-			name: "Transitioning from Registering to PXEBooting",
+			name: "Transition from PXEBooting to Preparing",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  now.Add(-time.Minute * 5),
-						Event: metal.ProvisioningEventRegistering,
-					},
-				},
-				Liveliness: metal.MachineLivelinessAlive,
-			},
-			event: &metal.ProvisioningEvent{
-				Time:  now,
-				Event: metal.ProvisioningEventPXEBooting,
-			},
-			wantErr:              fsm.InvalidEventError{Event: "PXE Booting", State: "Registering"},
-			wantIncompleteCycles: 1,
-			wantLiveliness:       metal.MachineLivelinessAlive,
-			wantNumberOfEvents:   2,
-			wantLastEventTime:    now,
-			wantLastEvent:        string(metal.ProvisioningEventPXEBooting),
-		},
-		{
-			name: "Registering to PXEBooting to Preparing",
-			container: &metal.ProvisioningEventContainer{
-				Events: metal.ProvisioningEvents{
-					{
-						Time:  now.Add(-time.Minute * 5),
-						Event: metal.ProvisioningEventRegistering,
+						Time:  lastTimeEvent,
+						Event: metal.ProvisioningEventPXEBooting,
 					},
 					{
-						Time:  now.Add(-time.Minute * 2),
+						Time:  lastTimeEvent.Add(time.Minute * 2),
 						Event: metal.ProvisioningEventPXEBooting,
 					},
 				},
@@ -110,19 +84,66 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Time:  now,
 				Event: metal.ProvisioningEventPreparing,
 			},
-			wantErr:              nil,
-			wantIncompleteCycles: 1,
-			wantLiveliness:       metal.MachineLivelinessAlive,
-			wantNumberOfEvents:   3,
-			wantLastEventTime:    now,
-			wantLastEvent:        string(metal.ProvisioningEventPreparing),
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 3,
+			wantLastEventTime:  now,
+			wantLastEvent:      metal.ProvisioningEventPreparing.String(),
 		},
 		{
-			name: "Swallow repeated Phoned Home",
+			name: "Transition from Booting New Kernel to Phoned Home",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  now.Add(-time.Minute * 5),
+						Time:  lastTimeEvent,
+						Event: metal.ProvisioningEventBootingNewKernel,
+					},
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPhonedHome,
+			},
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 2,
+			wantLastEventTime:  now,
+			wantLastEvent:      metal.ProvisioningEventPhonedHome.String(),
+		},
+		{
+			name: "Transition from Registering to Preparing",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastTimeEvent,
+						Event: metal.ProvisioningEventRegistering,
+					},
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPreparing,
+			},
+			wantErr:            nil,
+			wantCrashLoop:      true,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 2,
+			wantLastEventTime:  now,
+			wantLastEvent:      metal.ProvisioningEventPreparing.String(),
+		},
+		{
+			name: "Swallow Alive event",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastTimeEvent,
 						Event: metal.ProvisioningEventPhonedHome,
 					},
 				},
@@ -132,20 +153,44 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Time:  now,
 				Event: metal.ProvisioningEventPhonedHome,
 			},
-			wantErr:              nil,
-			wantIncompleteCycles: 0,
-			wantLiveliness:       metal.MachineLivelinessAlive,
-			wantNumberOfEvents:   1,
-			wantLastEventTime:    now,
-			wantLastEvent:        string(metal.ProvisioningEventPhonedHome),
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 1,
+			wantLastEventTime:  now,
+			wantLastEvent:      metal.ProvisioningEventPhonedHome.String(),
 		},
 		{
-			name: "Swallow Phoned Home after Planned Reboot",
+			name: "Swallow repeated Phoned Home",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  now.Add(-time.Minute * 5),
-						Event: metal.ProvisioningEventPlannedReboot,
+						Time:  lastTimeEvent,
+						Event: metal.ProvisioningEventPhonedHome,
+					},
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPhonedHome,
+			},
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 1,
+			wantLastEventTime:  now,
+			wantLastEvent:      metal.ProvisioningEventPhonedHome.String(),
+		},
+		{
+			name: "Swallow Phoned Home after Machine Reclaim",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastTimeEvent,
+						Event: metal.ProvisioningEventMachineReclaim,
 					},
 				},
 				Liveliness:    metal.MachineLivelinessAlive,
@@ -155,20 +200,21 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Time:  now,
 				Event: metal.ProvisioningEventPhonedHome,
 			},
-			wantErr:              nil,
-			wantIncompleteCycles: 0,
-			wantLiveliness:       metal.MachineLivelinessAlive,
-			wantNumberOfEvents:   1,
-			wantLastEventTime:    now,
-			wantLastEvent:        string(metal.ProvisioningEventPlannedReboot),
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  false,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 1,
+			wantLastEventTime:  lastTimeEvent,
+			wantLastEvent:      metal.ProvisioningEventMachineReclaim.String(),
 		},
 		{
-			name: "Liveliness unknown if Phoned Home after Planned Reboot timeout",
+			name: "Failed Machine Reclaim",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  now.Add(-time.Minute * 5),
-						Event: metal.ProvisioningEventPlannedReboot,
+						Time:  lastTimeEvent,
+						Event: metal.ProvisioningEventMachineReclaim,
 					},
 				},
 				Liveliness:    metal.MachineLivelinessAlive,
@@ -178,12 +224,13 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Time:  now.Add(time.Minute * 10),
 				Event: metal.ProvisioningEventPhonedHome,
 			},
-			wantErr:              nil,
-			wantIncompleteCycles: 0,
-			wantLiveliness:       metal.MachineLivelinessUnknown,
-			wantNumberOfEvents:   1,
-			wantLastEventTime:    now.Add(time.Minute * 10),
-			wantLastEvent:        string(metal.ProvisioningEventPlannedReboot),
+			wantErr:            nil,
+			wantCrashLoop:      false,
+			wantFailedReclaim:  true,
+			wantLiveliness:     metal.MachineLivelinessAlive,
+			wantNumberOfEvents: 1,
+			wantLastEventTime:  now.Add(time.Minute * 10),
+			wantLastEvent:      metal.ProvisioningEventMachineReclaim.String(),
 		},
 	}
 	for _, tt := range tests {
@@ -195,12 +242,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
 
-			incompleteCycles, err := parseContainerIncompleCycles(tt.container.IncompleteProvisioningCycles)
-			if err != nil {
-				t.Errorf(err.Error())
+			if tt.container.CrashLoop != tt.wantCrashLoop {
+				t.Errorf("HandleProvisioningEvent() machine crash loop got %v want %v", tt.container.CrashLoop, tt.wantCrashLoop)
 			}
-			if incompleteCycles != tt.wantIncompleteCycles {
-				t.Errorf("HandleProvisioningEvent() incomplete cycles got %d want %d", incompleteCycles, tt.wantIncompleteCycles)
+
+			if tt.container.FailedMachineReclaim != tt.wantFailedReclaim {
+				t.Errorf("HandleProvisioningEvent() failed machine reclaim got %v want %v", tt.container.FailedMachineReclaim, tt.wantFailedReclaim)
 			}
 
 			if tt.container.Liveliness != tt.wantLiveliness {
@@ -214,15 +261,10 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			if !tt.container.LastEventTime.Equal(tt.wantLastEventTime) {
 				t.Errorf("HandleProvisioningEvent() last time event got %v want %v", tt.container.LastEventTime, tt.wantLastEventTime)
 			}
+
+			if tt.container.Events[len(tt.container.Events)-1].Event.String() != tt.wantLastEvent {
+				t.Errorf("HandleProvisioningEvent() last event got %v want %v", tt.container.Events[len(tt.container.Events)-1].Event.String(), tt.wantLastEvent)
+			}
 		})
 	}
-}
-
-func parseContainerIncompleCycles(cycles string) (int, error) {
-	incompleteCycles, err := strconv.Atoi(cycles)
-	if err != nil {
-		return 0, err
-	}
-
-	return incompleteCycles, nil
 }

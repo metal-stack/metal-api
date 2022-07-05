@@ -3,7 +3,6 @@ package fsm
 import (
 	"errors"
 	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/looplab/fsm"
@@ -11,265 +10,270 @@ import (
 	"go.uber.org/zap"
 )
 
-type EventContainer struct {
-	IncompleteCycles int
-	ID               string
-	LastEventTime    *time.Time
-	Events           metal.ProvisioningEvents
-	Liveliness       metal.MachineLiveliness
-}
+const timeOutAfterMachineReclaim = time.Minute * 5
 
-const timeOutAfterPlannedReboot = time.Minute * 5
+type ProvisioningFSM struct {
+	fsm       *fsm.FSM
+	container *metal.ProvisioningEventContainer
+}
 
 var events = fsm.Events{
 	{
-		Name: string(metal.ProvisioningEventPXEBooting),
+		Name: metal.ProvisioningEventPXEBooting.String(),
 		Src: []string{
-			string(metal.ProvisioningEventPXEBooting),
-			string(metal.ProvisioningEventPlannedReboot),
-			string(metal.ProvisioningEventPhonedHome),
+			metal.ProvisioningEventPXEBooting.String(),
+			metal.ProvisioningEventMachineReclaim.String(),
 		},
-		Dst: string(metal.ProvisioningEventPXEBooting),
+		Dst: metal.ProvisioningEventPXEBooting.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventPreparing),
+		Name: metal.ProvisioningEventPreparing.String(),
 		Src: []string{
-			string(metal.ProvisioningEventPXEBooting),
-			string(metal.ProvisioningEventPlannedReboot),
+			metal.ProvisioningEventPXEBooting.String(),
+			metal.ProvisioningEventMachineReclaim.String(), // MachineReclaim is a valid src for Preparing because some machines might be incapable of sending PXEBoot events
 		},
-		Dst: string(metal.ProvisioningEventPreparing),
+		Dst: metal.ProvisioningEventPreparing.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventRegistering),
+		Name: metal.ProvisioningEventRegistering.String(),
 		Src: []string{
-			string(metal.ProvisioningEventPreparing),
+			metal.ProvisioningEventPreparing.String(),
 		},
-		Dst: string(metal.ProvisioningEventRegistering),
+		Dst: metal.ProvisioningEventRegistering.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventWaiting),
+		Name: metal.ProvisioningEventWaiting.String(),
 		Src: []string{
-			string(metal.ProvisioningEventRegistering),
+			metal.ProvisioningEventRegistering.String(),
 		},
-		Dst: string(metal.ProvisioningEventWaiting),
+		Dst: metal.ProvisioningEventWaiting.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventInstalling),
+		Name: metal.ProvisioningEventInstalling.String(),
 		Src: []string{
-			string(metal.ProvisioningEventWaiting),
+			metal.ProvisioningEventWaiting.String(),
 		},
-		Dst: string(metal.ProvisioningEventInstalling),
+		Dst: metal.ProvisioningEventInstalling.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventBootingNewKernel),
+		Name: metal.ProvisioningEventBootingNewKernel.String(),
 		Src: []string{
-			string(metal.ProvisioningEventInstalling),
+			metal.ProvisioningEventInstalling.String(),
 		},
-		Dst: string(metal.ProvisioningEventBootingNewKernel),
+		Dst: metal.ProvisioningEventBootingNewKernel.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventPhonedHome),
+		Name: metal.ProvisioningEventPhonedHome.String(),
 		Src: []string{
-			string(metal.ProvisioningEventBootingNewKernel),
-			string(metal.ProvisioningEventPhonedHome),
-			string(metal.ProvisioningEventPlannedReboot),
+			metal.ProvisioningEventBootingNewKernel.String(),
+			metal.ProvisioningEventPhonedHome.String(),
+			metal.ProvisioningEventMachineReclaim.String(),
 		},
-		Dst: string(metal.ProvisioningEventPhonedHome),
+		Dst: metal.ProvisioningEventPhonedHome.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventPlannedReboot),
+		Name: metal.ProvisioningEventPhonedHome.String(),
 		Src: []string{
-			string(metal.ProvisioningEventPXEBooting),
-			string(metal.ProvisioningEventPreparing),
-			string(metal.ProvisioningEventRegistering),
-			string(metal.ProvisioningEventWaiting),
-			string(metal.ProvisioningEventInstalling),
-			string(metal.ProvisioningEventBootingNewKernel),
-			string(metal.ProvisioningEventPhonedHome),
-			string(metal.ProvisioningEventAlive),
+			metal.ProvisioningEventPlannedReboot.String(),
 		},
-		Dst: string(metal.ProvisioningEventPlannedReboot),
+		Dst: metal.ProvisioningEventPlannedReboot.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventAlive),
+		Name: metal.ProvisioningEventPlannedReboot.String(),
 		Src: []string{
-			string(metal.ProvisioningEventPreparing),
+			metal.ProvisioningEventPXEBooting.String(),
+			metal.ProvisioningEventPreparing.String(),
+			metal.ProvisioningEventRegistering.String(),
+			metal.ProvisioningEventWaiting.String(),
+			metal.ProvisioningEventInstalling.String(),
+			metal.ProvisioningEventBootingNewKernel.String(),
+			metal.ProvisioningEventPhonedHome.String(),
 		},
-		Dst: string(metal.ProvisioningEventPreparing),
+		Dst: metal.ProvisioningEventPlannedReboot.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventAlive),
+		Name: metal.ProvisioningEventMachineReclaim.String(),
 		Src: []string{
-			string(metal.ProvisioningEventRegistering),
+			metal.ProvisioningEventPXEBooting.String(),
+			metal.ProvisioningEventPreparing.String(),
+			metal.ProvisioningEventRegistering.String(),
+			metal.ProvisioningEventWaiting.String(),
+			metal.ProvisioningEventInstalling.String(),
+			metal.ProvisioningEventBootingNewKernel.String(),
+			metal.ProvisioningEventPhonedHome.String(),
 		},
-		Dst: string(metal.ProvisioningEventRegistering),
+		Dst: metal.ProvisioningEventMachineReclaim.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventAlive),
+		Name: metal.ProvisioningEventAlive.String(),
 		Src: []string{
-			string(metal.ProvisioningEventWaiting),
+			metal.ProvisioningEventPreparing.String(),
 		},
-		Dst: string(metal.ProvisioningEventWaiting),
+		Dst: metal.ProvisioningEventPreparing.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventAlive),
+		Name: metal.ProvisioningEventAlive.String(),
 		Src: []string{
-			string(metal.ProvisioningEventInstalling),
+			metal.ProvisioningEventRegistering.String(),
 		},
-		Dst: string(metal.ProvisioningEventInstalling),
+		Dst: metal.ProvisioningEventRegistering.String(),
 	},
 	{
-		Name: string(metal.ProvisioningEventAlive),
+		Name: metal.ProvisioningEventAlive.String(),
 		Src: []string{
-			string(metal.ProvisioningEventBootingNewKernel),
+			metal.ProvisioningEventWaiting.String(),
 		},
-		Dst: string(metal.ProvisioningEventBootingNewKernel),
+		Dst: metal.ProvisioningEventWaiting.String(),
+	},
+	{
+		Name: metal.ProvisioningEventAlive.String(),
+		Src: []string{
+			metal.ProvisioningEventInstalling.String(),
+		},
+		Dst: metal.ProvisioningEventInstalling.String(),
+	},
+	{
+		Name: metal.ProvisioningEventAlive.String(),
+		Src: []string{
+			metal.ProvisioningEventBootingNewKernel.String(),
+		},
+		Dst: metal.ProvisioningEventBootingNewKernel.String(),
 	},
 }
 
-// every callback expects parameters of types *EventContainer, *metal.ProvisioningEvent, *zap.SugaredLogger
+// every callback expects arguments of types *ProvisioningFSM, *metal.ProvisioningEvent
 var callbacks = fsm.Callbacks{
-	"enter_state": handleStateTransition,
-	"enter_" + string(metal.ProvisioningEventPlannedReboot): handlePlannedRebootEvent,
-	"enter_" + string(metal.ProvisioningEventPhonedHome):    handlePhonedHomeEvent,
-	"enter_" + string(metal.ProvisioningEventAlive):         handleAliveEvent,
+	"enter_" + metal.ProvisioningEventRegistering.String():      handleStateTransition,
+	"enter_" + metal.ProvisioningEventWaiting.String():          handleStateTransition,
+	"enter_" + metal.ProvisioningEventInstalling.String():       handleStateTransition,
+	"enter_" + metal.ProvisioningEventBootingNewKernel.String(): handleStateTransition,
+	"enter_" + metal.ProvisioningEventMachineReclaim.String():   handleStateTransition,
+
+	"enter_" + metal.ProvisioningEventPXEBooting.String():    resetFailedReclaim,
+	"enter_" + metal.ProvisioningEventPreparing.String():     resetFailedReclaim,
+	"enter_" + metal.ProvisioningEventPlannedReboot.String(): handlePlannedRebootEvent,
+	"enter_" + metal.ProvisioningEventPhonedHome.String():    handlePhonedHomeEvent,
 }
 
 func handleStateTransition(e *fsm.Event) {
-	container, event, _, err := parseCallbackArguments(e.Args)
+	provisioningFSM, event, err := parseCallbackArguments(e.Args)
 	if err != nil {
 		e.Err = err
 		return
 	}
 
-	if e.Event != string(metal.ProvisioningEventPhonedHome) {
-		container.Events = append(container.Events, *event)
-		container.LastEventTime = &(*event).Time
-		container.Liveliness = metal.MachineLivelinessAlive
+	provisioningFSM.container.Events = append(provisioningFSM.container.Events, *event)
+	provisioningFSM.container.LastEventTime = &(*event).Time
+	provisioningFSM.container.Liveliness = metal.MachineLivelinessAlive
+}
+
+func resetFailedReclaim(e *fsm.Event) {
+	provisioningFSM, _, err := parseCallbackArguments(e.Args)
+	if err != nil {
+		e.Err = err
+		return
 	}
+
+	provisioningFSM.container.FailedMachineReclaim = false
+
+	handleStateTransition(e)
 }
 
 func handlePlannedRebootEvent(e *fsm.Event) {
-	container, _, _, err := parseCallbackArguments(e.Args)
+	provisioningFSM, _, err := parseCallbackArguments(e.Args)
 	if err != nil {
 		e.Err = err
 		return
 	}
 
-	container.IncompleteCycles = 0
-	container.Liveliness = metal.MachineLivelinessAlive
+	provisioningFSM.container.CrashLoop = false
+
+	handleStateTransition(e)
 }
 
 func handlePhonedHomeEvent(e *fsm.Event) {
-	container, event, _, err := parseCallbackArguments(e.Args)
+	provisioningFSM, event, err := parseCallbackArguments(e.Args)
 	if err != nil {
 		e.Err = err
 		return
 	}
 
-	if e.Src == string(metal.ProvisioningEventPlannedReboot) {
-		if event.Time.Sub(*container.LastEventTime) > timeOutAfterPlannedReboot {
-			container.Liveliness = metal.MachineLivelinessUnknown
-		}
-	} else {
-		container.Events = append(container.Events, *event)
-		container.LastEventTime = &(*event).Time
-		container.Liveliness = metal.MachineLivelinessAlive
+	if e.Src != metal.ProvisioningEventMachineReclaim.String() {
+		handleStateTransition(e)
+	} else if event.Time.Sub(*provisioningFSM.container.LastEventTime) > timeOutAfterMachineReclaim {
+		provisioningFSM.container.LastEventTime = &event.Time
+		provisioningFSM.container.FailedMachineReclaim = true
 	}
 
-	container.IncompleteCycles = 0
+	provisioningFSM.container.CrashLoop = false
 }
 
-func handleAliveEvent(e *fsm.Event) {
-	container, _, log, err := parseCallbackArguments(e.Args)
-	if err != nil {
-		e.Err = err
-		return
+func parseCallbackArguments(args []interface{}) (*ProvisioningFSM, *metal.ProvisioningEvent, error) {
+	if len(args) != 2 {
+		return nil, nil, errors.New("expecting two arguments of types *ProvisioningFSM, *metal.ProvisioningEvent")
 	}
 
-	log.Debugw("received provisioning alive event", "id", container.ID)
-	container.Liveliness = metal.MachineLivelinessAlive
-}
-
-func parseCallbackArguments(args []interface{}) (*EventContainer, *metal.ProvisioningEvent, *zap.SugaredLogger, error) {
-	if len(args) != 3 {
-		return nil, nil, nil, errors.New("expecting arguments of types *EventContainer, *metal.ProvisioningEvent, *zap.SugaredLogger")
-	}
-
-	container, ok := args[0].(*EventContainer)
+	provisioningFSM, ok := args[0].(*ProvisioningFSM)
 	if !ok {
-		return nil, nil, nil, errors.New("first argument must be of type *EventContainer")
+		return nil, nil, errors.New("first argument must be of type *ProvisioningFSM")
 	}
 
 	event, ok := args[1].(*metal.ProvisioningEvent)
 	if !ok {
-		return nil, nil, nil, errors.New("second argument must be of type *metal.ProvisioningEvent")
+		return nil, nil, errors.New("second argument must be of type *metal.ProvisioningEvent")
 	}
 
-	log, ok := args[2].(*zap.SugaredLogger)
-	if !ok {
-		return nil, nil, nil, errors.New("third argument must be of type *zap.SugaredLogger")
-	}
-
-	return container, event, log, nil
+	return provisioningFSM, event, nil
 }
 
-func newProvisioningFSM(initialState metal.ProvisioningEventType) *fsm.FSM {
-	provisioningFSM := fsm.NewFSM(
-		string(initialState),
+func newProvisioningFSM(initialState metal.ProvisioningEventType, container *metal.ProvisioningEventContainer) *ProvisioningFSM {
+	f := fsm.NewFSM(
+		initialState.String(),
 		events,
 		callbacks,
 	)
 
-	return provisioningFSM
+	provisioningFSM := ProvisioningFSM{
+		fsm:       f,
+		container: container,
+	}
+
+	return &provisioningFSM
 }
 
-// HandleProvisioningEvent writes the ProvisioningEvent to the the ProvisioningEventContainer and checks if the events up to this point
-// occured in the expected order
+// HandleProvisioningEvent writes the ProvisioningEvent to the the ProvisioningEventContainer and checks if it is a valid event in the current state
 func HandleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.ProvisioningEventContainer, log *zap.SugaredLogger) (*metal.ProvisioningEventContainer, error) {
-	provisioningFSM := newProvisioningFSM(container.Events[0].Event)
-	eventContainer := EventContainer{
-		IncompleteCycles: 0,
-		ID:               container.ID,
-		Liveliness:       container.Liveliness,
-		Events:           []metal.ProvisioningEvent{container.Events[0]},
-		LastEventTime:    container.LastEventTime,
+	if len(container.Events) == 0 {
+		container.Events = append(container.Events, *event)
+		container.LastEventTime = &(*event).Time
+		container.Liveliness = metal.MachineLivelinessAlive
+
+		return container, nil
 	}
 
-	var err error
+	provisioningFSM := newProvisioningFSM(container.Events[len(container.Events)-1].Event, container)
+
 	var invalidEventError fsm.InvalidEventError
-	for i, e := range container.Events {
-		if i == 0 {
-			continue
-		}
 
-		err = provisioningFSM.Event(string(e.Event), &eventContainer, e, log)
-
-		if err != nil {
-			eventContainer.Events = append(eventContainer.Events, e)
-			if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
-				eventContainer.IncompleteCycles++
-			}
-			provisioningFSM.SetState(string(e.Event))
-		}
-	}
-
-	err = provisioningFSM.Event(string(event.Event), &eventContainer, event, log)
+	err := provisioningFSM.fsm.Event(event.Event.String(), provisioningFSM, event)
 	if err != nil {
-		if !errors.Is(err, fsm.NoTransitionError{}) {
-			eventContainer.Events = append(eventContainer.Events, *event)
-		}
-		if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
-			eventContainer.IncompleteCycles++
-		} else if errors.Is(err, fsm.NoTransitionError{}) {
+		if errors.Is(err, fsm.NoTransitionError{}) {
+			err = nil
+			container.LastEventTime = &(*event).Time
+			container.Liveliness = metal.MachineLivelinessAlive
+			if event.Event == metal.ProvisioningEventAlive {
+				log.Debugw("received provisioning alive event", "id", container.ID)
+
+			} else if event.Event == metal.ProvisioningEventPhonedHome {
+				log.Debugw("swallowing repeated phone home event", "id", container.ID)
+			}
+		} else if reflect.TypeOf(err) == reflect.TypeOf(invalidEventError) {
+			container.Events = append(container.Events, *event)
+			container.LastEventTime = &(*event).Time
+			container.CrashLoop = true
 			err = nil
 		}
 	}
-
-	container.Events = eventContainer.Events
-	container.LastEventTime = &event.Time
-	container.Liveliness = eventContainer.Liveliness
-	container.IncompleteProvisioningCycles = strconv.Itoa(eventContainer.IncompleteCycles)
 
 	return container, err
 }
@@ -292,10 +296,8 @@ func ProvisioningEventForMachine(log *zap.SugaredLogger, ec *metal.ProvisioningE
 		Message: message,
 	}
 
-	var err error
-	var invalidEventError fsm.InvalidEventError
-	ec, err = HandleProvisioningEvent(&ev, ec, log)
-	if err != nil && reflect.TypeOf(err) != reflect.TypeOf(invalidEventError) {
+	ec, err := HandleProvisioningEvent(&ev, ec, log)
+	if err != nil {
 		log.Errorf("internal error while calculating provisioning event container for machine %v", machineID)
 	}
 
