@@ -2,6 +2,11 @@ module github.com/metal-stack/metal-api
 
 go 1.18
 
+replace (
+	github.com/coreos/go-oidc/v3 v3.2.0 => github.com/coreos/go-oidc/v3 v3.1.0
+	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6 => inet.af/netaddr v0.0.0-20220617031823-097006376321
+)
+
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/avast/retry-go/v4 v4.1.0
@@ -17,7 +22,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/juanfont/headscale v0.16.0-beta5
-	github.com/metal-stack/go-ipam v1.8.5
+	github.com/metal-stack/go-ipam v1.8.7-0.20220620122231-10374d8beeff
 	github.com/metal-stack/masterdata-api v0.8.12
 	github.com/metal-stack/metal-lib v0.9.1
 	github.com/metal-stack/security v0.6.4
@@ -45,7 +50,6 @@ require (
 	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
@@ -53,9 +57,12 @@ require (
 	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/containerd/containerd v1.6.6 // indirect
 	github.com/coreos/go-oidc/v3 v3.2.0 // indirect
+	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v20.10.17+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -75,6 +82,7 @@ require (
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.10.0 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/gofrs/uuid v4.2.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -121,8 +129,8 @@ require (
 	github.com/mdlayher/socket v0.2.3 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/moby/sys/mount v0.2.0 // indirect
-	github.com/moby/sys/mountinfo v0.5.0 // indirect
+	github.com/moby/sys/mount v0.3.2 // indirect
+	github.com/moby/sys/mountinfo v0.6.1 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -154,12 +162,15 @@ require (
 	github.com/tailscale/hujson v0.0.0-20220506202205-92b4b88a9e17 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/zsais/go-gin-prometheus v0.1.0 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.4 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.4 // indirect
 	go.mongodb.org/mongo-driver v1.9.1 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
+	go4.org/intern v0.0.0-20220301175310-a089fc204883 // indirect
 	go4.org/mem v0.0.0-20210711025021-927187094b94 // indirect
-	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
+	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 // indirect
 	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
@@ -175,7 +186,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/postgres v1.3.5 // indirect
 	gorm.io/gorm v1.23.4 // indirect
-	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6 // indirect
+	inet.af/netaddr v0.0.0-20220617031823-097006376321 // indirect
 	modernc.org/libc v1.14.12 // indirect
 	modernc.org/mathutil v1.4.1 // indirect
 	modernc.org/memory v1.0.7 // indirect
