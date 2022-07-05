@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
 )
@@ -42,7 +41,7 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, mach
 	if err != nil && !metal.IsNotFound(err) {
 		return nil, err
 	}
-	newEC := fsm.ProvisioningEventForMachine(log, ec, machineID, event, message)
+	newEC := metal.ProvisioningEventForMachine(log, ec, machineID, event, message)
 	err = rs.UpsertProvisioningEventContainer(newEC)
 	return newEC, err
 }
