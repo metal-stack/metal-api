@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap"
 )
 
 func TestHandleProvisioningEvent(t *testing.T) {
@@ -234,10 +233,9 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		log := zap.NewExample().Sugar()
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := handleProvisioningEvent(tt.event, tt.container, log)
+			_, err := handleProvisioningEvent(tt.event, tt.container)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
