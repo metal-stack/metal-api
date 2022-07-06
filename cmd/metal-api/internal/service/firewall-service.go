@@ -117,29 +117,29 @@ func (r *firewallResource) findFirewall(request *restful.Request, response *rest
 
 	fw, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	if !fw.IsFirewall() {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusNotFound, httperrors.NotFound(errors.New("machine is not a firewall"))))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusNotFound, httperrors.NotFound(errors.New("machine is not a firewall"))))
 		return
 	}
 
 	resp, err := makeFirewallResponse(fw, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *firewallResource) findFirewalls(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.MachineSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -148,17 +148,17 @@ func (r *firewallResource) findFirewalls(request *restful.Request, response *res
 	var fws metal.Machines
 	err = r.ds.SearchMachines(&requestPayload, &fws)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeFirewallResponseList(fws, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
@@ -167,52 +167,52 @@ func (r *firewallResource) listFirewalls(request *restful.Request, response *res
 		AllocationRole: &metal.RoleFirewall,
 	}, &fws)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeFirewallResponseList(fws, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FirewallCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	user, err := r.userGetter.User(request.Request)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	m, err := allocateMachine(r.Logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
+	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {

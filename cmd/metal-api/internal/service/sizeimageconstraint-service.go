@@ -105,17 +105,17 @@ func (r *sizeImageConstraintResource) findSizeImageConstraint(request *restful.R
 
 	s, err := r.ds.FindSizeImageConstraint(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewSizeImageConstraintResponse(s))
+	r.send(request, response, http.StatusOK, v1.NewSizeImageConstraintResponse(s))
 }
 
 func (r *sizeImageConstraintResource) listSizeImageConstraints(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSizeImageConstraints()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -124,19 +124,19 @@ func (r *sizeImageConstraintResource) listSizeImageConstraints(request *restful.
 		result = append(result, v1.NewSizeImageConstraintResponse(&ss[i]))
 	}
 
-	r.Send(response, http.StatusOK, result)
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *sizeImageConstraintResource) createSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeImageConstraintCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("id should not be empty")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("id should not be empty")))
 		return
 	}
 
@@ -144,17 +144,17 @@ func (r *sizeImageConstraintResource) createSizeImageConstraint(request *restful
 
 	err = s.Validate()
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	err = r.ds.CreateSizeImageConstraint(s)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusCreated, v1.NewSizeImageConstraintResponse(s))
+	r.send(request, response, http.StatusCreated, v1.NewSizeImageConstraintResponse(s))
 }
 
 func (r *sizeImageConstraintResource) deleteSizeImageConstraint(request *restful.Request, response *restful.Response) {
@@ -162,30 +162,30 @@ func (r *sizeImageConstraintResource) deleteSizeImageConstraint(request *restful
 
 	s, err := r.ds.FindSizeImageConstraint(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteSizeImageConstraint(s)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewSizeImageConstraintResponse(s))
+	r.send(request, response, http.StatusOK, v1.NewSizeImageConstraintResponse(s))
 }
 
 func (r *sizeImageConstraintResource) updateSizeImageConstraint(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeImageConstraintUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	old, err := r.ds.FindSizeImageConstraint(requestPayload.ID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -202,51 +202,51 @@ func (r *sizeImageConstraintResource) updateSizeImageConstraint(request *restful
 
 	err = newSizeImageConstraint.Validate()
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	err = r.ds.UpdateSizeImageConstraint(old, &newSizeImageConstraint)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewSizeImageConstraintResponse(&newSizeImageConstraint))
+	r.send(request, response, http.StatusOK, v1.NewSizeImageConstraintResponse(&newSizeImageConstraint))
 }
 
 func (r *sizeImageConstraintResource) trySizeImageConstraint(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeImageConstraintTryRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.SizeID == "" || requestPayload.ImageID == "" {
-		r.SendError(response, httperrors.BadRequest(fmt.Errorf("size and image must be given")))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size and image must be given")))
 		return
 	}
 
 	size, err := r.ds.FindSize(requestPayload.SizeID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	image, err := r.ds.FindImage(requestPayload.ImageID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = isSizeAndImageCompatible(r.ds, *size, *image)
 	if err != nil {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.EmptyBody{})
+	r.send(request, response, http.StatusOK, v1.EmptyBody{})
 }
 
 func isSizeAndImageCompatible(ds *datastore.RethinkStore, size metal.Size, image metal.Image) error {

@@ -148,19 +148,19 @@ func (r *networkResource) findNetwork(request *restful.Request, response *restfu
 
 	nw, err := r.ds.FindNetworkByID(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	usage := getNetworkUsage(nw, r.ipamer)
 
-	r.Send(response, http.StatusOK, v1.NewNetworkResponse(nw, usage))
+	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, usage))
 }
 
 func (r *networkResource) listNetworks(request *restful.Request, response *restful.Response) {
 	nws, err := r.ds.ListNetworks()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -170,21 +170,21 @@ func (r *networkResource) listNetworks(request *restful.Request, response *restf
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
-	r.Send(response, http.StatusOK, result)
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *networkResource) findNetworks(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.NetworkSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	var nws metal.Networks
 	err = r.ds.SearchNetworks(&requestPayload, &nws)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -194,14 +194,14 @@ func (r *networkResource) findNetworks(request *restful.Request, response *restf
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
-	r.Send(response, http.StatusOK, result)
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *networkResource) createNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -241,13 +241,13 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	if projectID != "" {
 		_, err = r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 	}
 
 	if len(requestPayload.Prefixes) == 0 {
-		r.SendError(response, httperrors.BadRequest(errors.New("no prefixes given")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("no prefixes given")))
 		return
 	}
 
@@ -257,7 +257,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		p := requestPayload.Prefixes[i]
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		if err != nil {
-			r.SendError(response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
 			return
 		}
 
@@ -269,7 +269,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		p := requestPayload.DestinationPrefixes[i]
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		if err != nil {
-			r.SendError(response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
 			return
 		}
 		destPrefixes = append(destPrefixes, *prefix)
@@ -277,7 +277,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 
 	allNws, err := r.ds.ListNetworks()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -295,7 +295,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 
 	err = r.ipamer.PrefixesOverlapping(existingPrefixes, prefixes)
 	if err != nil {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
 		return
 	}
 
@@ -303,7 +303,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	if requestPayload.PartitionID != nil {
 		partition, err := r.ds.FindPartition(*requestPayload.PartitionID)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 
@@ -312,11 +312,11 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &metal.Network{})
 			if err != nil {
 				if !metal.IsNotFound(err) {
-					r.SendError(response, DefaultError(err))
+					r.sendError(request, response, DefaultError(err))
 					return
 				}
 			} else {
-				r.SendError(response, DefaultError(fmt.Errorf("partition with id %q already has a private super network", partition.ID)))
+				r.sendError(request, response, DefaultError(fmt.Errorf("partition with id %q already has a private super network", partition.ID)))
 				return
 			}
 		}
@@ -325,11 +325,11 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 			err := r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, Underlay: &boolTrue}, &metal.Network{})
 			if err != nil {
 				if !metal.IsNotFound(err) {
-					r.SendError(response, DefaultError(err))
+					r.sendError(request, response, DefaultError(err))
 					return
 				}
 			} else {
-				r.SendError(response, DefaultError(fmt.Errorf("partition with id %q already has an underlay network", partition.ID)))
+				r.sendError(request, response, DefaultError(fmt.Errorf("partition with id %q already has an underlay network", partition.ID)))
 				return
 			}
 		}
@@ -337,7 +337,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	}
 
 	if (privateSuper || underlay) && nat {
-		r.SendError(response, httperrors.BadRequest(errors.New("private super or underlay network is not supposed to NAT")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("private super or underlay network is not supposed to NAT")))
 		return
 	}
 
@@ -345,11 +345,11 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		err = acquireVRF(r.ds, vrf)
 		if err != nil {
 			if !metal.IsConflict(err) {
-				r.SendError(response, DefaultError(fmt.Errorf("could not acquire vrf: %w", err)))
+				r.sendError(request, response, DefaultError(fmt.Errorf("could not acquire vrf: %w", err)))
 				return
 			}
 			if !vrfShared {
-				r.SendError(response, DefaultError(fmt.Errorf("cannot acquire a unique vrf id twice except vrfShared is set to true: %w", err)))
+				r.sendError(request, response, DefaultError(fmt.Errorf("cannot acquire a unique vrf id twice except vrfShared is set to true: %w", err)))
 				return
 			}
 		}
@@ -375,27 +375,27 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	for _, p := range nw.Prefixes {
 		err := r.ipamer.CreatePrefix(p)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 	}
 
 	err = r.ds.CreateNetwork(nw)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	usage := getNetworkUsage(nw, r.ipamer)
 
-	r.Send(response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
 func (r *networkResource) allocateNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkAllocateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -425,23 +425,23 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	}
 
 	if projectID == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("projectid should not be empty")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("projectid should not be empty")))
 		return
 	}
 	if partitionID == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("partitionid should not be empty")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("partitionid should not be empty")))
 		return
 	}
 
 	project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	partition, err := r.ds.FindPartition(partitionID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -449,7 +449,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	boolTrue := true
 	err = r.ds.FindNetwork(&datastore.NetworkSearchQuery{PartitionID: &partition.ID, PrivateSuper: &boolTrue}, &superNetwork)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -457,7 +457,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 	for _, p := range requestPayload.DestinationPrefixes {
 		prefix, err := metal.NewPrefixFromCIDR(p)
 		if err != nil {
-			r.SendError(response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
+			r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("given prefix %v is not a valid ip with mask: %w", p, err)))
 			return
 		}
 
@@ -479,13 +479,13 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 
 	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	usage := getNetworkUsage(nw, r.ipamer)
 
-	r.Send(response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
+	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
 func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
@@ -534,20 +534,20 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 
 	nw, err := r.ds.FindNetworkByID(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	for _, prefix := range nw.Prefixes {
 		usage, err := r.ipamer.PrefixUsage(prefix.String())
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 
 		if usage.UsedIPs > 2 {
 			if err != nil {
-				r.SendError(response, DefaultError(fmt.Errorf("cannot release child prefix %s because IPs in the prefix are still in use: %v", prefix.String(), usage.UsedIPs-2)))
+				r.sendError(request, response, DefaultError(fmt.Errorf("cannot release child prefix %s because IPs in the prefix are still in use: %v", prefix.String(), usage.UsedIPs-2)))
 				return
 			}
 		}
@@ -556,7 +556,7 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	for _, prefix := range nw.Prefixes {
 		err = r.ipamer.ReleaseChildPrefix(prefix)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 	}
@@ -564,31 +564,31 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	if nw.Vrf != 0 {
 		err = releaseVRF(r.ds, nw.Vrf)
 		if err != nil {
-			r.SendError(response, DefaultError(fmt.Errorf("could not release vrf: %w", err)))
+			r.sendError(request, response, DefaultError(fmt.Errorf("could not release vrf: %w", err)))
 			return
 		}
 	}
 
 	err = r.ds.DeleteNetwork(nw)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
+	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 }
 
 func (r *networkResource) updateNetwork(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.NetworkUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldNetwork, err := r.ds.FindNetworkByID(requestPayload.ID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -608,7 +608,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	}
 
 	if oldNetwork.Shared && !newNetwork.Shared {
-		r.SendError(response, httperrors.BadRequest(errors.New("once a network is marked as shared it is not possible to unshare it")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("once a network is marked as shared it is not possible to unshare it")))
 		return
 	}
 
@@ -620,7 +620,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		for _, prefixCidr := range requestPayload.Prefixes {
 			requestPrefix, err := metal.NewPrefixFromCIDR(prefixCidr)
 			if err != nil {
-				r.SendError(response, DefaultError(err))
+				r.sendError(request, response, DefaultError(err))
 				return
 			}
 
@@ -633,13 +633,13 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		// now validate if there are ips which have a prefix to be removed as a parent
 		allIPs, err := r.ds.ListIPs()
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 
 		err = checkAnyIPOfPrefixesInUse(allIPs, prefixesToBeRemoved)
 		if err != nil {
-			r.SendError(response, DefaultError(fmt.Errorf("unable to update network: %w", err)))
+			r.sendError(request, response, DefaultError(fmt.Errorf("unable to update network: %w", err)))
 			return
 		}
 
@@ -649,7 +649,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	for _, p := range prefixesToBeRemoved {
 		err := r.ipamer.DeletePrefix(p)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 	}
@@ -657,20 +657,20 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	for _, p := range prefixesToBeAdded {
 		err := r.ipamer.CreatePrefix(p)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 	}
 
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	usage := getNetworkUsage(&newNetwork, r.ipamer)
 
-	r.Send(response, http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
+	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
 }
 
 func (r *networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {
@@ -678,40 +678,40 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 
 	nw, err := r.ds.FindNetworkByID(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	var children metal.Networks
 	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{ParentNetworkID: &nw.ID}, &children)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	if len(children) != 0 {
 		if err != nil {
-			r.SendError(response, DefaultError(errors.New("network cannot be deleted because there are children of this network")))
+			r.sendError(request, response, DefaultError(errors.New("network cannot be deleted because there are children of this network")))
 			return
 		}
 	}
 
 	allIPs, err := r.ds.ListIPs()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = checkAnyIPOfPrefixesInUse(allIPs, nw.Prefixes)
 	if err != nil {
-		r.SendError(response, DefaultError(fmt.Errorf("unable to delete network: %w", err)))
+		r.sendError(request, response, DefaultError(fmt.Errorf("unable to delete network: %w", err)))
 		return
 	}
 
 	for _, p := range nw.Prefixes {
 		err := r.ipamer.DeletePrefix(p)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 	}
@@ -719,18 +719,18 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 	if nw.Vrf != 0 {
 		err = releaseVRF(r.ds, nw.Vrf)
 		if err != nil {
-			r.SendError(response, DefaultError(fmt.Errorf("could not release vrf: %w", err)))
+			r.sendError(request, response, DefaultError(fmt.Errorf("could not release vrf: %w", err)))
 			return
 		}
 	}
 
 	err = r.ds.DeleteNetwork(nw)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
+	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 }
 
 func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage {

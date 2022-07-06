@@ -67,19 +67,19 @@ func (r *tenantResource) getTenant(request *restful.Request, response *restful.R
 
 	tres, err := r.mdc.Tenant().Get(context.Background(), &mdmv1.TenantGetRequest{Id: id})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	v1t := mapper.ToV1Tenant(tres.Tenant)
 
-	r.Send(response, http.StatusOK, &v1t)
+	r.send(request, response, http.StatusOK, &v1t)
 }
 
 func (r *tenantResource) listTenants(request *restful.Request, response *restful.Response) {
 	tres, err := r.mdc.Tenant().Find(context.Background(), &mdmv1.TenantFindRequest{})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -89,5 +89,5 @@ func (r *tenantResource) listTenants(request *restful.Request, response *restful
 		v1ts = append(v1ts, v1t)
 	}
 
-	r.Send(response, http.StatusOK, v1ts)
+	r.send(request, response, http.StatusOK, v1ts)
 }

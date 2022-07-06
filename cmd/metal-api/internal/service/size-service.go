@@ -105,17 +105,17 @@ func (r *sizeResource) findSize(request *restful.Request, response *restful.Resp
 
 	s, err := r.ds.FindSize(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewSizeResponse(s))
+	r.send(request, response, http.StatusOK, v1.NewSizeResponse(s))
 }
 
 func (r *sizeResource) listSizes(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSizes()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -124,24 +124,24 @@ func (r *sizeResource) listSizes(request *restful.Request, response *restful.Res
 		result = append(result, v1.NewSizeResponse(&ss[i]))
 	}
 
-	r.Send(response, http.StatusOK, result)
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *sizeResource) createSize(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		r.SendError(response, httperrors.BadRequest(fmt.Errorf("id should not be empty")))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("id should not be empty")))
 		return
 	}
 
 	if requestPayload.ID == metal.UnknownSize.GetID() {
-		r.SendError(response, httperrors.BadRequest(fmt.Errorf("id cannot be %q", metal.UnknownSize.GetID())))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("id cannot be %q", metal.UnknownSize.GetID())))
 		return
 	}
 
@@ -174,22 +174,22 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 
 	ss, err := r.ds.ListSizes()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	if so := s.Overlaps(&ss); so != nil {
-		r.SendError(response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
 		return
 	}
 
 	err = r.ds.CreateSize(s)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusCreated, v1.NewSizeResponse(s))
+	r.send(request, response, http.StatusCreated, v1.NewSizeResponse(s))
 }
 
 func (r *sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
@@ -197,30 +197,30 @@ func (r *sizeResource) deleteSize(request *restful.Request, response *restful.Re
 
 	s, err := r.ds.FindSize(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteSize(s)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewSizeResponse(s))
+	r.send(request, response, http.StatusOK, v1.NewSizeResponse(s))
 }
 
 func (r *sizeResource) updateSize(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldSize, err := r.ds.FindSize(requestPayload.ID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -248,43 +248,43 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 
 	ss, err := r.ds.ListSizes()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	if so := newSize.Overlaps(&ss); so != nil {
-		r.SendError(response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
 		return
 	}
 
 	err = r.ds.UpdateSize(oldSize, &newSize)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewSizeResponse(&newSize))
+	r.send(request, response, http.StatusOK, v1.NewSizeResponse(&newSize))
 }
 
 func (r *sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineHardware
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	hw := v1.NewMetalMachineHardware(&requestPayload)
 	_, lg, err := r.ds.FromHardware(hw)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	if len(lg) < 1 {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, errors.New("size matching log is empty")))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, errors.New("size matching log is empty")))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
+	r.send(request, response, http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
 }

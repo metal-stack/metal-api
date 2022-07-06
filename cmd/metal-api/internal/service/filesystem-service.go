@@ -113,17 +113,17 @@ func (r *filesystemResource) findFilesystemLayout(request *restful.Request, resp
 
 	s, err := r.ds.FindFilesystemLayout(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewFilesystemLayoutResponse(s))
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 }
 
 func (r *filesystemResource) listFilesystemLayouts(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -132,59 +132,59 @@ func (r *filesystemResource) listFilesystemLayouts(request *restful.Request, res
 		result = append(result, v1.NewFilesystemLayoutResponse(&ss[i]))
 	}
 
-	r.Send(response, http.StatusOK, result)
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *filesystemResource) createFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FilesystemLayoutCreateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("id should not be empty")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("id should not be empty")))
 		return
 	}
 	existing, _ := r.ds.FindFilesystemLayout(requestPayload.ID)
 	if existing != nil {
-		r.SendError(response, httperrors.Conflict(fmt.Errorf("filesystemlayout:%s already exists", existing.ID)))
+		r.sendError(request, response, httperrors.Conflict(fmt.Errorf("filesystemlayout:%s already exists", existing.ID)))
 		return
 	}
 
 	fsl, err := v1.NewFilesystemLayout(requestPayload)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = fsl.Validate()
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	fsls, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	fsls = append(fsls, *fsl)
 	err = fsls.Validate()
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	err = r.ds.CreateFilesystemLayout(fsl)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusCreated, v1.NewFilesystemLayoutResponse(fsl))
+	r.send(request, response, http.StatusCreated, v1.NewFilesystemLayoutResponse(fsl))
 }
 
 func (r *filesystemResource) deleteFilesystemLayout(request *restful.Request, response *restful.Response) {
@@ -192,115 +192,115 @@ func (r *filesystemResource) deleteFilesystemLayout(request *restful.Request, re
 
 	s, err := r.ds.FindFilesystemLayout(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteFilesystemLayout(s)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewFilesystemLayoutResponse(s))
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 }
 
 func (r *filesystemResource) updateFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FilesystemLayoutUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldFilesystemLayout, err := r.ds.FindFilesystemLayout(requestPayload.ID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	newFilesystemLayout, err := v1.NewFilesystemLayout(v1.FilesystemLayoutCreateRequest(requestPayload))
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = newFilesystemLayout.Validate()
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	fsls, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	fsls = append(fsls, *newFilesystemLayout)
 	err = fsls.Validate()
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	err = r.ds.UpdateFilesystemLayout(oldFilesystemLayout, newFilesystemLayout)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewFilesystemLayoutResponse(newFilesystemLayout))
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(newFilesystemLayout))
 }
 
 func (r *filesystemResource) tryFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var try v1.FilesystemLayoutTryRequest
 	err := request.ReadEntity(&try)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	ss, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	fsl, err := ss.From(try.Size, try.Image)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
 }
 
 func (r *filesystemResource) matchFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var match v1.FilesystemLayoutMatchRequest
 	err := request.ReadEntity(&match)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	fsl, err := r.ds.FindFilesystemLayout(match.FilesystemLayout)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	machine, err := r.ds.FindMachineByID(match.Machine)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = fsl.Matches(machine.Hardware)
 	if err != nil {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
 }

@@ -33,18 +33,18 @@ type webResource struct {
 	ds  *datastore.RethinkStore
 }
 
-// Logger returns the request logger from the request.
-func (w *webResource) Logger(rq *restful.Request) *zap.SugaredLogger {
+// logger returns the request logger from the request.
+func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
 	return rest.GetLoggerFromContext(rq.Request, w.log)
 }
 
-func (w *webResource) SendError(rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	w.log.Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(1))
-	w.Send(rsp, httperr.StatusCode, httperr)
+func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
+	w.logger(rq).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(2))
+	w.send(rq, rsp, httperr.StatusCode, httperr)
 }
 
-func (w *webResource) Send(rsp *restful.Response, status int, value any) {
-	Send(w.log, rsp, status, value)
+func (w *webResource) send(rq *restful.Request, rsp *restful.Response, status int, value any) {
+	send(w.logger(rq), rsp, status, value)
 }
 
 func DefaultError(err error) *httperrors.HTTPErrorResponse {
@@ -70,12 +70,12 @@ func DefaultError(err error) *httperrors.HTTPErrorResponse {
 	return httperrors.NewHTTPError(http.StatusUnprocessableEntity, err)
 }
 
-func SendError(log *zap.SugaredLogger, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	log.Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(1))
-	Send(log, rsp, httperr.StatusCode, httperr)
+func sendError(log *zap.SugaredLogger, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
+	log.Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(2))
+	send(log, rsp, httperr.StatusCode, httperr)
 }
 
-func Send(log *zap.SugaredLogger, rsp *restful.Response, status int, value any) {
+func send(log *zap.SugaredLogger, rsp *restful.Response, status int, value any) {
 	err := rsp.WriteHeaderAndEntity(status, value)
 	if err != nil {
 		log.Errorw("failed to send response", "error", err)
@@ -211,7 +211,7 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	tenantID := tenant(req)
 	if !e.allowed(tenantID) {
 		err := fmt.Errorf("tenant %s not allowed", tenantID)
-		SendError(rest.GetLoggerFromContext(req.Request, e.logger), resp, httperrors.NewHTTPError(http.StatusForbidden, err))
+		sendError(rest.GetLoggerFromContext(req.Request, e.logger), resp, httperrors.NewHTTPError(http.StatusForbidden, err))
 		return
 	}
 

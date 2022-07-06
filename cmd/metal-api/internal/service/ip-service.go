@@ -150,17 +150,17 @@ func (r *ipResource) findIP(request *restful.Request, response *restful.Response
 
 	ip, err := r.ds.FindIPByID(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewIPResponse(ip))
+	r.send(request, response, http.StatusOK, v1.NewIPResponse(ip))
 }
 
 func (r *ipResource) listIPs(request *restful.Request, response *restful.Response) {
 	ips, err := r.ds.ListIPs()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -169,21 +169,21 @@ func (r *ipResource) listIPs(request *restful.Request, response *restful.Respons
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
 
-	r.Send(response, http.StatusOK, result)
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *ipResource) findIPs(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.IPSearchQuery
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	var ips metal.IPs
 	err = r.ds.SearchIPs(&requestPayload, &ips)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -192,7 +192,7 @@ func (r *ipResource) findIPs(request *restful.Request, response *restful.Respons
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
 
-	r.Send(response, http.StatusOK, result)
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *ipResource) freeIP(request *restful.Request, response *restful.Response) {
@@ -200,23 +200,23 @@ func (r *ipResource) freeIP(request *restful.Request, response *restful.Response
 
 	ip, err := r.ds.FindIPByID(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = validateIPDelete(ip)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	err = r.actor.releaseIP(*ip)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewIPResponse(ip))
+	r.send(request, response, http.StatusOK, v1.NewIPResponse(ip))
 }
 
 func validateIPDelete(ip *metal.IP) error {
@@ -261,16 +261,16 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 	var requestPayload v1.IPAllocateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.NetworkID == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("networkid should not be empty")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("networkid should not be empty")))
 		return
 	}
 	if requestPayload.ProjectID == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("projectid should not be empty")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("projectid should not be empty")))
 		return
 	}
 
@@ -285,25 +285,25 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	nw, err := r.ds.FindNetworkByID(requestPayload.NetworkID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	if p.Project == nil || p.Project.Meta == nil {
-		r.SendError(response, DefaultError(fmt.Errorf("error retrieving project %q", requestPayload.ProjectID)))
+		r.sendError(request, response, DefaultError(fmt.Errorf("error retrieving project %q", requestPayload.ProjectID)))
 		return
 	}
 
 	// for private, unshared networks the project id must be the same
 	// for external networks the project id is not checked
 	if !nw.Shared && nw.ParentNetworkID != "" && p.Project.Meta.Id != nw.ProjectID {
-		r.SendError(response, DefaultError(fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID)))
+		r.sendError(request, response, DefaultError(fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID)))
 		return
 	}
 
@@ -318,11 +318,11 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, r.ipamer)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Logger(request).Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
+	r.logger(request).Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
 
 	ipType := metal.Ephemeral
 	if requestPayload.Type == metal.Static {
@@ -342,24 +342,24 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	err = r.ds.CreateIP(ip)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusCreated, v1.NewIPResponse(ip))
+	r.send(request, response, http.StatusCreated, v1.NewIPResponse(ip))
 }
 
 func (r *ipResource) updateIP(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.IPUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldIP, err := r.ds.FindIPByID(requestPayload.IPAddress)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -379,11 +379,11 @@ func (r *ipResource) updateIP(request *restful.Request, response *restful.Respon
 
 	httperr := r.validateAndUpateIP(oldIP, &newIP)
 	if httperr != nil {
-		r.SendError(response, httperr)
+		r.sendError(request, response, httperr)
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1.NewIPResponse(&newIP))
+	r.send(request, response, http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
 func (r *ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) *httperrors.HTTPErrorResponse {

@@ -109,33 +109,33 @@ func (r *switchResource) findSwitch(request *restful.Request, response *restful.
 
 	s, err := r.ds.FindSwitch(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(s, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *switchResource) listSwitches(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSwitches()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponseList(ss, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *switchResource) deleteSwitch(request *restful.Request, response *restful.Response) {
@@ -143,23 +143,23 @@ func (r *switchResource) deleteSwitch(request *restful.Request, response *restfu
 
 	s, err := r.ds.FindSwitch(id)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteSwitch(s)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(s, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 // notifySwitch is called periodically from every switch to report last duration and error if ocurred
@@ -167,14 +167,14 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	var requestPayload v1.SwitchNotifyRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	id := request.PathParameter("id")
 	s, err := r.ds.FindSwitch(id)
 	if err != nil && !metal.IsNotFound(err) {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -194,30 +194,30 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	// FIXME needs https://github.com/metal-stack/metal-api/issues/263
 	err = r.ds.UpdateSwitch(&old, s)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(s, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldSwitch, err := r.ds.FindSwitch(requestPayload.ID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -242,41 +242,41 @@ func (r *switchResource) updateSwitch(request *restful.Request, response *restfu
 		retry.LastErrorOnly(true),
 	)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	resp, err := makeSwitchResponse(&newSwitch, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, resp)
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *switchResource) registerSwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchRegisterRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("uuid cannot be empty")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("uuid cannot be empty")))
 		return
 	}
 
 	_, err = r.ds.FindPartition(requestPayload.PartitionID)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	s, err := r.ds.FindSwitch(requestPayload.ID)
 	if err != nil && !metal.IsNotFound(err) {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -286,13 +286,13 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		s = v1.NewSwitch(requestPayload)
 
 		if len(requestPayload.Nics) != len(s.Nics.ByMac()) {
-			r.SendError(response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
+			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
 			return
 		}
 
 		err = r.ds.CreateSwitch(s)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 
@@ -301,7 +301,7 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		spec := v1.NewSwitch(requestPayload)
 		err = r.replaceSwitch(s, spec)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 
@@ -310,13 +310,13 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
 		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			r.SendError(response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
+			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
 			return
 		}
 
 		nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 
@@ -346,7 +346,7 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		)
 
 		if err != nil {
-			r.SendError(response, DefaultError(err))
+			r.sendError(request, response, DefaultError(err))
 			return
 		}
 
@@ -354,11 +354,11 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 
 	resp, err := makeSwitchResponse(s, r.ds)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, returnCode, resp)
+	r.send(request, response, returnCode, resp)
 }
 
 // replaceSwitch replaces a broken switch

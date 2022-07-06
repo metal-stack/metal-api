@@ -95,13 +95,13 @@ func (r *firmwareResource) webService() *restful.WebService {
 
 func (r *firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
 		return
 	}
 
 	kind, err := toFirmwareKind(request.PathParameter("kind"))
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -113,7 +113,7 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 	validReq := false
 	mm, err := r.ds.ListMachines()
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -125,13 +125,13 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 		}
 	}
 	if !validReq {
-		r.SendError(response, httperrors.BadRequest(fmt.Errorf("there is no machine of vendor %s with board %s", vendor, board)))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("there is no machine of vendor %s with board %s", vendor, board)))
 		return
 	}
 
 	file, _, err := request.Request.FormFile("file")
 	if err != nil {
-		r.SendError(response, httperrors.InternalServerError(err))
+		r.sendError(request, response, httperrors.InternalServerError(err))
 		return
 	}
 
@@ -142,7 +142,7 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 		Body:   file,
 	})
 	if err != nil {
-		r.SendError(response, httperrors.InternalServerError(err))
+		r.sendError(request, response, httperrors.InternalServerError(err))
 		return
 	}
 
@@ -151,13 +151,13 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 
 func (r *firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
 		return
 	}
 
 	kind, err := toFirmwareKind(request.PathParameter("kind"))
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -171,7 +171,7 @@ func (r *firmwareResource) removeFirmware(request *restful.Request, response *re
 		Key:    &key,
 	})
 	if err != nil {
-		r.SendError(response, httperrors.InternalServerError(err))
+		r.sendError(request, response, httperrors.InternalServerError(err))
 		return
 	}
 
@@ -180,7 +180,7 @@ func (r *firmwareResource) removeFirmware(request *restful.Request, response *re
 
 func (r *firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
 		return
 	}
 
@@ -214,13 +214,13 @@ func (r *firmwareResource) listFirmwares(request *restful.Request, response *res
 				return true
 			})
 			if err != nil {
-				r.SendError(response, httperrors.InternalServerError(err))
+				r.sendError(request, response, httperrors.InternalServerError(err))
 				return
 			}
 		default:
 			_, f, err := getFirmware(r.ds, machineID)
 			if err != nil {
-				r.SendError(response, DefaultError(err))
+				r.sendError(request, response, DefaultError(err))
 				return
 			}
 
@@ -235,7 +235,7 @@ func (r *firmwareResource) listFirmwares(request *restful.Request, response *res
 		}
 	}
 
-	r.Send(response, http.StatusOK, mapToFirmwareResponse(rr))
+	r.send(request, response, http.StatusOK, mapToFirmwareResponse(rr))
 }
 
 func getFirmware(ds *datastore.RethinkStore, machineID string) (*metal.Machine, *v1.Firmware, error) {

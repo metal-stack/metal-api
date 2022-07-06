@@ -112,23 +112,23 @@ func (r *projectResource) findProject(request *restful.Request, response *restfu
 
 	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: id})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	v1p, err := r.setProjectQuota(p.Project)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
-	r.Send(response, http.StatusOK, v1p)
+	r.send(request, response, http.StatusOK, v1p)
 }
 
 func (r *projectResource) listProjects(request *restful.Request, response *restful.Response) {
 	res, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -138,20 +138,20 @@ func (r *projectResource) listProjects(request *restful.Request, response *restf
 		ps = append(ps, v1p)
 	}
 
-	r.Send(response, http.StatusOK, ps)
+	r.send(request, response, http.StatusOK, ps)
 }
 
 func (r *projectResource) findProjects(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ProjectFindRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	res, err := r.mdc.Project().Find(context.Background(), mapper.ToMdmV1ProjectFindRequest(&requestPayload))
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -161,21 +161,21 @@ func (r *projectResource) findProjects(request *restful.Request, response *restf
 		ps = append(ps, v1p)
 	}
 
-	r.Send(response, http.StatusOK, ps)
+	r.send(request, response, http.StatusOK, ps)
 }
 
 func (r *projectResource) createProject(request *restful.Request, response *restful.Response) {
 	var pcr v1.ProjectCreateRequest
 	err := request.ReadEntity(&pcr)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	project := mapper.ToMdmV1Project(&pcr.Project)
 
 	if project.TenantId == "" {
-		r.SendError(response, httperrors.BadRequest(errors.New("no tenant given")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("no tenant given")))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (r *projectResource) createProject(request *restful.Request, response *rest
 
 	p, err := r.mdc.Project().Create(context.Background(), mdmv1pcr)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -194,7 +194,7 @@ func (r *projectResource) createProject(request *restful.Request, response *rest
 		Project: *v1p,
 	}
 
-	r.Send(response, http.StatusOK, pcres)
+	r.send(request, response, http.StatusOK, pcres)
 }
 
 func (r *projectResource) deleteProject(request *restful.Request, response *restful.Response) {
@@ -205,41 +205,41 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	}
 	p, err := r.mdc.Project().Get(context.Background(), pgr)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	var ms metal.Machines
 	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &id}, &ms)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 	if len(ms) > 0 {
-		r.SendError(response, httperrors.BadRequest(errors.New("there are still machines allocated by this project")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("there are still machines allocated by this project")))
 		return
 	}
 
 	var ns metal.Networks
 	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{ProjectID: &id}, &ns)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 	if len(ns) > 0 {
-		r.SendError(response, httperrors.BadRequest(errors.New("there are still networks allocated by this project")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("there are still networks allocated by this project")))
 		return
 	}
 
 	var ips metal.IPs
 	err = r.ds.SearchIPs(&datastore.IPSearchQuery{ProjectID: &id}, &ips)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	if len(ips) > 0 {
-		r.SendError(response, httperrors.BadRequest(errors.New("there are still ips allocated by this project")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("there are still ips allocated by this project")))
 		return
 	}
 
@@ -248,7 +248,7 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	}
 	pdresponse, err := r.mdc.Project().Delete(context.Background(), pdr)
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -257,25 +257,25 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 		Project: *v1p,
 	}
 
-	r.Send(response, http.StatusOK, pcres)
+	r.send(request, response, http.StatusOK, pcres)
 }
 
 func (r *projectResource) updateProject(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.ProjectUpdateRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
-		r.SendError(response, httperrors.BadRequest(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.Project.Meta == nil {
-		r.SendError(response, httperrors.BadRequest(errors.New("project and project.meta must be specified")))
+		r.sendError(request, response, httperrors.BadRequest(errors.New("project and project.meta must be specified")))
 		return
 	}
 
 	existingProject, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.Project.Meta.Id})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
@@ -288,13 +288,13 @@ func (r *projectResource) updateProject(request *restful.Request, response *rest
 		Project: projectUpdateData,
 	})
 	if err != nil {
-		r.SendError(response, DefaultError(err))
+		r.sendError(request, response, DefaultError(err))
 		return
 	}
 
 	v1p := mapper.ToV1Project(pur.Project)
 
-	r.Send(response, http.StatusOK, &v1.ProjectResponse{
+	r.send(request, response, http.StatusOK, &v1.ProjectResponse{
 		Project: *v1p,
 	})
 }

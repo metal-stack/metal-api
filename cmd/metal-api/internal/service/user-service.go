@@ -53,12 +53,12 @@ func (r *userResource) webService() *restful.WebService {
 func (r *userResource) getMe(request *restful.Request, response *restful.Response) {
 	u, err := r.userGetter.User(request.Request)
 	if err != nil {
-		r.SendError(response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
+		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
 		return
 	}
 
 	if u == nil {
-		r.SendError(response, httperrors.BadRequest(fmt.Errorf("unable to extract user from token, got nil")))
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("unable to extract user from token, got nil")))
 		return
 	}
 
@@ -75,5 +75,5 @@ func (r *userResource) getMe(request *restful.Request, response *restful.Respons
 		Groups:  grps,
 	}
 
-	r.Send(response, http.StatusOK, user)
+	r.send(request, response, http.StatusOK, user)
 }
