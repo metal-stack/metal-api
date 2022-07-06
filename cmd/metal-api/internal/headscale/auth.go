@@ -19,5 +19,5 @@ func (t tokenAuth) GetRequestMetadata(
 }
 
 func (tokenAuth) RequireTransportSecurity() bool {
-	return true
+	return false
 }

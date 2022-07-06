@@ -762,6 +762,9 @@ func initHeadscale() {
 	if err != nil {
 		logger.Errorw("failed to init headscale client", "error", err)
 	}
+	if headscaleClient == nil {
+		return
+	}
 
 	if err = headscaleClient.ReplaceApiKey(); err != nil {
 		logger.Errorw("failed to replace Headscale API Key", "error", err)
