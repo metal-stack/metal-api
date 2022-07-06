@@ -3,11 +3,13 @@ package headscale
 import (
 	"context"
 	"fmt"
-	"github.com/juanfont/headscale"
+
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	"strings"
+	"time"
 )
 
 type HeadscaleClient struct {
@@ -50,23 +52,18 @@ func (h *HeadscaleClient) connect(apiKey string) (err error) {
 		return err
 	}
 
-	cfg, err := headscale.GetHeadscaleConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load headscale config: %w", err)
-	}
-
-	h.ctx, h.cancelFunc = context.WithTimeout(context.Background(), cfg.CLI.Timeout)
+	h.ctx, h.cancelFunc = context.WithTimeout(context.Background(), 5*time.Second)
 	grpcOptions := []grpc.DialOption{
 		grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithPerRPCCredentials(tokenAuth{
 			token: apiKey,
 		}),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
 	h.conn, err = grpc.DialContext(h.ctx, h.address, grpcOptions...)
 	if err != nil {
-		return fmt.Errorf("failed to connect to headscale server: %w", err)
+		return fmt.Errorf("failed to connect to headscale server %s: %w", h.address, err)
 	}
 
 	h.HeadscaleServiceClient = headscalev1.NewHeadscaleServiceClient(h.conn)
@@ -79,7 +76,10 @@ func (h *HeadscaleClient) ReplaceApiKey() (err error) {
 	oldApiKeyPrefix := h.apiKeyPrefix
 
 	// Create new API Key
-	createRequest := &headscalev1.CreateApiKeyRequest{}
+	expiration := time.Now().Add(24 * 90 * time.Hour)
+	createRequest := &headscalev1.CreateApiKeyRequest{
+		Expiration: timestamppb.New(expiration),
+	}
 	response, err := h.CreateApiKey(h.ctx, createRequest)
 	if err != nil {
 		return fmt.Errorf("failed to create new API Key: %w", err)
