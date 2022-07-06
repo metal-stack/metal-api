@@ -95,7 +95,7 @@ func (r *firmwareResource) webService() *restful.WebService {
 
 func (r *firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
 		return
 	}
 
@@ -151,7 +151,7 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 
 func (r *firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
 		return
 	}
 
@@ -180,7 +180,7 @@ func (r *firmwareResource) removeFirmware(request *restful.Request, response *re
 
 func (r *firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
 		return
 	}
 

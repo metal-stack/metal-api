@@ -2350,7 +2350,7 @@ func (r *machineResource) chassisIdentifyLEDOff(request *restful.Request, respon
 
 func (r *machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
 	if r.s3Client == nil {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusInternalServerError, featureDisabledErr))
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
 		return
 	}
 

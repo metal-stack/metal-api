@@ -122,7 +122,7 @@ func (r *firewallResource) findFirewall(request *restful.Request, response *rest
 	}
 
 	if !fw.IsFirewall() {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusNotFound, httperrors.NotFound(errors.New("machine is not a firewall"))))
+		r.sendError(request, response, httperrors.NotFound(errors.New("machine is not a firewall")))
 		return
 	}
 

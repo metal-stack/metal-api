@@ -153,7 +153,7 @@ func oneOf(rf restful.RouteFunction, acc ...security.ResourceAccess) restful.Rou
 				log.Infow("missing group", "user", usr, "required-group", acc)
 			}
 
-			httperr := httperrors.NewHTTPError(http.StatusForbidden, fmt.Errorf("you are not member in one of %+v", acc))
+			httperr := httperrors.Forbidden(fmt.Errorf("you are not member in one of %+v", acc))
 
 			err := response.WriteHeaderAndEntity(httperr.StatusCode, httperr)
 			if err != nil && log != nil {
@@ -205,7 +205,7 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	// enforce tenant check otherwise
 	tenantID := tenant(req)
 	if !e.allowed(tenantID) {
-		httperror := httperrors.NewHTTPError(http.StatusForbidden, fmt.Errorf("tenant %s not allowed", tenantID))
+		httperror := httperrors.Forbidden(fmt.Errorf("tenant %s not allowed", tenantID))
 
 		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger)
 		requestLogger.Errorw("service error", "status", httperror.StatusCode, "error", httperror.Message, "service-caller", utils.CallerFuncName(2))
