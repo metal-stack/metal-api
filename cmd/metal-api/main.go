@@ -765,6 +765,8 @@ func initHeadscale() {
 	if err = headscaleClient.ReplaceApiKey(); err != nil {
 		logger.Errorw("failed to replace Headscale API Key", "error", err)
 	}
+
+	logger.Info("headscale initialized")
 }
 
 func dumpSwaggerJSON() {
