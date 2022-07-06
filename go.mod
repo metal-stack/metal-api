@@ -9,7 +9,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.9.0
 	github.com/emicklei/go-restful/v3 v3.8.0
-	github.com/go-logr/zapr v1.2.3
 	github.com/go-openapi/spec v0.20.6
 	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.3.0
@@ -18,7 +17,7 @@ require (
 	github.com/metal-stack/go-ipam v1.8.5
 	github.com/metal-stack/masterdata-api v0.8.12
 	github.com/metal-stack/metal-lib v0.9.3-0.20220705101724-145edbecc581
-	github.com/metal-stack/security v0.6.4
+	github.com/metal-stack/security v0.6.5
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/prometheus/client_golang v1.12.2
@@ -56,7 +55,6 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-openapi/errors v0.20.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
@@ -120,8 +118,8 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go4.org/intern v0.0.0-20210108033219-3eb7198706b2 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20211027215541-db492cf91b37 // indirect
-	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
-	golang.org/x/oauth2 v0.0.0-20220628200809-02e64fa58f26 // indirect
+	golang.org/x/net v0.0.0-20220630215102-69896b714898 // indirect
+	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0 // indirect
 	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

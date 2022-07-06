@@ -17,8 +17,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/go-logr/zapr"
-
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/rest"
@@ -555,7 +553,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
-	issuerCache, err := security.NewMultiIssuerCache(func() ([]*security.IssuerConfig, error) {
+	issuerCache, err := security.NewMultiIssuerCache(lg.Named("issuer-cache"), func() ([]*security.IssuerConfig, error) {
 		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
 		// get provider tenant from masterdata
@@ -591,7 +589,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		return []*security.IssuerConfig{}, nil
 	}, func(ic *security.IssuerConfig) (security.UserGetter, error) {
 		return security.NewGenericOIDC(ic, security.GenericUserExtractor(plugin.GenericOIDCExtractUserProcessGroups))
-	}, security.IssuerReloadInterval(issuerCacheInterval), security.Logger(zapr.NewLogger(logger.Desugar())))
+	}, security.IssuerReloadInterval(issuerCacheInterval))
 
 	if err != nil || issuerCache == nil {
 		logger.Fatalw("error creating dynamic oidc resolver", "error", err)
