@@ -39,7 +39,7 @@ func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	w.logger(rq).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(2))
+	w.logger(rq).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "service-caller", utils.CallerFuncName(2))
 	w.send(rq, rsp, httperr.StatusCode, httperr)
 }
 
@@ -68,11 +68,6 @@ func DefaultError(err error) *httperrors.HTTPErrorResponse {
 	}
 
 	return httperrors.NewHTTPError(http.StatusUnprocessableEntity, err)
-}
-
-func sendError(log *zap.SugaredLogger, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	log.Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "caller", utils.CallerFuncName(2))
-	send(log, rsp, httperr.StatusCode, httperr)
 }
 
 func send(log *zap.SugaredLogger, rsp *restful.Response, status int, value any) {
@@ -210,8 +205,12 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	// enforce tenant check otherwise
 	tenantID := tenant(req)
 	if !e.allowed(tenantID) {
-		err := fmt.Errorf("tenant %s not allowed", tenantID)
-		sendError(rest.GetLoggerFromContext(req.Request, e.logger), resp, httperrors.NewHTTPError(http.StatusForbidden, err))
+		httperror := httperrors.NewHTTPError(http.StatusForbidden, fmt.Errorf("tenant %s not allowed", tenantID))
+
+		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger)
+		requestLogger.Errorw("service error", "status", httperror.StatusCode, "error", httperror.Message, "service-caller", utils.CallerFuncName(2))
+
+		send(requestLogger, resp, httperror.StatusCode, httperror.Message)
 		return
 	}
 
