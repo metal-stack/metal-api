@@ -113,7 +113,7 @@ func (r *filesystemResource) findFilesystemLayout(request *restful.Request, resp
 
 	s, err := r.ds.FindFilesystemLayout(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -123,7 +123,7 @@ func (r *filesystemResource) findFilesystemLayout(request *restful.Request, resp
 func (r *filesystemResource) listFilesystemLayouts(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -155,7 +155,7 @@ func (r *filesystemResource) createFilesystemLayout(request *restful.Request, re
 
 	fsl, err := v1.NewFilesystemLayout(requestPayload)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -167,7 +167,7 @@ func (r *filesystemResource) createFilesystemLayout(request *restful.Request, re
 
 	fsls, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -180,7 +180,7 @@ func (r *filesystemResource) createFilesystemLayout(request *restful.Request, re
 
 	err = r.ds.CreateFilesystemLayout(fsl)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -192,13 +192,13 @@ func (r *filesystemResource) deleteFilesystemLayout(request *restful.Request, re
 
 	s, err := r.ds.FindFilesystemLayout(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteFilesystemLayout(s)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -215,13 +215,13 @@ func (r *filesystemResource) updateFilesystemLayout(request *restful.Request, re
 
 	oldFilesystemLayout, err := r.ds.FindFilesystemLayout(requestPayload.ID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	newFilesystemLayout, err := v1.NewFilesystemLayout(v1.FilesystemLayoutCreateRequest(requestPayload))
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -233,7 +233,7 @@ func (r *filesystemResource) updateFilesystemLayout(request *restful.Request, re
 
 	fsls, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -246,7 +246,7 @@ func (r *filesystemResource) updateFilesystemLayout(request *restful.Request, re
 
 	err = r.ds.UpdateFilesystemLayout(oldFilesystemLayout, newFilesystemLayout)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -263,13 +263,13 @@ func (r *filesystemResource) tryFilesystemLayout(request *restful.Request, respo
 
 	ss, err := r.ds.ListFilesystemLayouts()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	fsl, err := ss.From(try.Size, try.Image)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -286,13 +286,13 @@ func (r *filesystemResource) matchFilesystemLayout(request *restful.Request, res
 
 	fsl, err := r.ds.FindFilesystemLayout(match.FilesystemLayout)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	machine, err := r.ds.FindMachineByID(match.Machine)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

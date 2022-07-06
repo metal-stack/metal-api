@@ -67,7 +67,7 @@ func (r *tenantResource) getTenant(request *restful.Request, response *restful.R
 
 	tres, err := r.mdc.Tenant().Get(context.Background(), &mdmv1.TenantGetRequest{Id: id})
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -79,7 +79,7 @@ func (r *tenantResource) getTenant(request *restful.Request, response *restful.R
 func (r *tenantResource) listTenants(request *restful.Request, response *restful.Response) {
 	tres, err := r.mdc.Tenant().Find(context.Background(), &mdmv1.TenantFindRequest{})
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

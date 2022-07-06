@@ -113,7 +113,7 @@ func (r *firmwareResource) uploadFirmware(request *restful.Request, response *re
 	validReq := false
 	mm, err := r.ds.ListMachines()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -220,7 +220,7 @@ func (r *firmwareResource) listFirmwares(request *restful.Request, response *res
 		default:
 			_, f, err := getFirmware(r.ds, machineID)
 			if err != nil {
-				r.sendError(request, response, DefaultError(err))
+				r.sendError(request, response, defaultError(err))
 				return
 			}
 

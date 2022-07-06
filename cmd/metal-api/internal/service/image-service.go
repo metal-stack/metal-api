@@ -121,7 +121,7 @@ func (r *imageResource) findImage(request *restful.Request, response *restful.Re
 
 	img, err := r.ds.GetImage(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -133,7 +133,7 @@ func (r *imageResource) queryImages(request *restful.Request, response *restful.
 
 	img, err := r.ds.FindImages(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -151,7 +151,7 @@ func (r *imageResource) findLatestImage(request *restful.Request, response *rest
 
 	img, err := r.ds.FindImage(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -161,7 +161,7 @@ func (r *imageResource) findLatestImage(request *restful.Request, response *rest
 func (r *imageResource) listImages(request *restful.Request, response *restful.Response) {
 	imgs, err := r.ds.ListImages()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -177,7 +177,7 @@ func (r *imageResource) listImages(request *restful.Request, response *restful.R
 		if showUsage {
 			ms, err = r.ds.ListMachines()
 			if err != nil {
-				r.sendError(request, response, DefaultError(err))
+				r.sendError(request, response, defaultError(err))
 				return
 			}
 		}
@@ -278,7 +278,7 @@ func (r *imageResource) createImage(request *restful.Request, response *restful.
 
 	err = r.ds.CreateImage(img)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -302,13 +302,13 @@ func (r *imageResource) deleteImage(request *restful.Request, response *restful.
 
 	img, err := r.ds.GetImage(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	ms, err := r.ds.ListMachines()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -322,7 +322,7 @@ func (r *imageResource) deleteImage(request *restful.Request, response *restful.
 
 	err = r.ds.DeleteImage(img)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -339,7 +339,7 @@ func (r *imageResource) updateImage(request *restful.Request, response *restful.
 
 	oldImage, err := r.ds.GetImage(requestPayload.ID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -390,7 +390,7 @@ func (r *imageResource) updateImage(request *restful.Request, response *restful.
 
 	err = r.ds.UpdateImage(oldImage, &newImage)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

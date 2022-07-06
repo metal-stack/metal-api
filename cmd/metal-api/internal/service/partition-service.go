@@ -125,7 +125,7 @@ func (r *partitionResource) findPartition(request *restful.Request, response *re
 
 	p, err := r.ds.FindPartition(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -135,7 +135,7 @@ func (r *partitionResource) findPartition(request *restful.Request, response *re
 func (r *partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
 	ps, err := r.ds.ListPartitions()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -230,7 +230,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 
 	err = r.ds.CreatePartition(p)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -242,13 +242,13 @@ func (r *partitionResource) deletePartition(request *restful.Request, response *
 
 	p, err := r.ds.FindPartition(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeletePartition(p)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -265,7 +265,7 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 
 	oldPartition, err := r.ds.FindPartition(requestPayload.ID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

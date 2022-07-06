@@ -105,7 +105,7 @@ func (r *sizeResource) findSize(request *restful.Request, response *restful.Resp
 
 	s, err := r.ds.FindSize(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -115,7 +115,7 @@ func (r *sizeResource) findSize(request *restful.Request, response *restful.Resp
 func (r *sizeResource) listSizes(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSizes()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -174,7 +174,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 
 	ss, err := r.ds.ListSizes()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 
 	err = r.ds.CreateSize(s)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -197,13 +197,13 @@ func (r *sizeResource) deleteSize(request *restful.Request, response *restful.Re
 
 	s, err := r.ds.FindSize(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteSize(s)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -220,7 +220,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 
 	oldSize, err := r.ds.FindSize(requestPayload.ID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -248,7 +248,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 
 	ss, err := r.ds.ListSizes()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -259,7 +259,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 
 	err = r.ds.UpdateSize(oldSize, &newSize)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -277,7 +277,7 @@ func (r *sizeResource) fromHardware(request *restful.Request, response *restful.
 	hw := v1.NewMetalMachineHardware(&requestPayload)
 	_, lg, err := r.ds.FromHardware(hw)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

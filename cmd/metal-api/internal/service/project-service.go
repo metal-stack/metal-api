@@ -112,13 +112,13 @@ func (r *projectResource) findProject(request *restful.Request, response *restfu
 
 	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: id})
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	v1p, err := r.setProjectQuota(p.Project)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -128,7 +128,7 @@ func (r *projectResource) findProject(request *restful.Request, response *restfu
 func (r *projectResource) listProjects(request *restful.Request, response *restful.Response) {
 	res, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -151,7 +151,7 @@ func (r *projectResource) findProjects(request *restful.Request, response *restf
 
 	res, err := r.mdc.Project().Find(context.Background(), mapper.ToMdmV1ProjectFindRequest(&requestPayload))
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (r *projectResource) createProject(request *restful.Request, response *rest
 
 	p, err := r.mdc.Project().Create(context.Background(), mdmv1pcr)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -205,14 +205,14 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	}
 	p, err := r.mdc.Project().Get(context.Background(), pgr)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	var ms metal.Machines
 	err = r.ds.SearchMachines(&datastore.MachineSearchQuery{AllocationProject: &id}, &ms)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 	if len(ms) > 0 {
@@ -223,7 +223,7 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	var ns metal.Networks
 	err = r.ds.SearchNetworks(&datastore.NetworkSearchQuery{ProjectID: &id}, &ns)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 	if len(ns) > 0 {
@@ -234,7 +234,7 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	var ips metal.IPs
 	err = r.ds.SearchIPs(&datastore.IPSearchQuery{ProjectID: &id}, &ips)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -248,7 +248,7 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	}
 	pdresponse, err := r.mdc.Project().Delete(context.Background(), pdr)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -275,7 +275,7 @@ func (r *projectResource) updateProject(request *restful.Request, response *rest
 
 	existingProject, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.Project.Meta.Id})
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -288,7 +288,7 @@ func (r *projectResource) updateProject(request *restful.Request, response *rest
 		Project: projectUpdateData,
 	})
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

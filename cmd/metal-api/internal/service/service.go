@@ -47,7 +47,7 @@ func (w *webResource) send(rq *restful.Request, rsp *restful.Response, status in
 	send(w.logger(rq), rsp, status, value)
 }
 
-func DefaultError(err error) *httperrors.HTTPErrorResponse {
+func defaultError(err error) *httperrors.HTTPErrorResponse {
 	if metal.IsNotFound(err) {
 		return httperrors.NotFound(err)
 	}

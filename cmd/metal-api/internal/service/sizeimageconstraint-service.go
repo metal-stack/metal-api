@@ -105,7 +105,7 @@ func (r *sizeImageConstraintResource) findSizeImageConstraint(request *restful.R
 
 	s, err := r.ds.FindSizeImageConstraint(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -115,7 +115,7 @@ func (r *sizeImageConstraintResource) findSizeImageConstraint(request *restful.R
 func (r *sizeImageConstraintResource) listSizeImageConstraints(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSizeImageConstraints()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -150,7 +150,7 @@ func (r *sizeImageConstraintResource) createSizeImageConstraint(request *restful
 
 	err = r.ds.CreateSizeImageConstraint(s)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -162,13 +162,13 @@ func (r *sizeImageConstraintResource) deleteSizeImageConstraint(request *restful
 
 	s, err := r.ds.FindSizeImageConstraint(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteSizeImageConstraint(s)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (r *sizeImageConstraintResource) updateSizeImageConstraint(request *restful
 
 	old, err := r.ds.FindSizeImageConstraint(requestPayload.ID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -208,7 +208,7 @@ func (r *sizeImageConstraintResource) updateSizeImageConstraint(request *restful
 
 	err = r.ds.UpdateSizeImageConstraint(old, &newSizeImageConstraint)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -230,13 +230,13 @@ func (r *sizeImageConstraintResource) trySizeImageConstraint(request *restful.Re
 
 	size, err := r.ds.FindSize(requestPayload.SizeID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	image, err := r.ds.FindImage(requestPayload.ImageID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

@@ -471,13 +471,13 @@ func (r *machineResource) webService() *restful.WebService {
 func (r *machineResource) listMachines(request *restful.Request, response *restful.Response) {
 	ms, err := r.ds.ListMachines()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponseList(ms, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -489,13 +489,13 @@ func (r *machineResource) findMachine(request *restful.Request, response *restfu
 
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -512,7 +512,7 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 
 	oldMachine, err := r.ds.FindMachineByID(requestPayload.ID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -531,13 +531,13 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 
 	err = r.ds.UpdateMachine(oldMachine, &newMachine)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(&newMachine, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -559,18 +559,18 @@ func (r *machineResource) getMachineConsolePassword(request *restful.Request, re
 
 	user, err := r.userGetter.User(request.Request)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	m, err := r.ds.FindMachineByID(requestPayload.ID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	if m.Allocation == nil {
-		r.sendError(request, response, DefaultError(fmt.Errorf("machine is not allocated, no consolepassword present")))
+		r.sendError(request, response, defaultError(fmt.Errorf("machine is not allocated, no consolepassword present")))
 		return
 	}
 
@@ -595,13 +595,13 @@ func (r *machineResource) findMachines(request *restful.Request, response *restf
 	ms := metal.Machines{}
 	err = r.ds.SearchMachines(&requestPayload, &ms)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponseList(ms, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -631,7 +631,7 @@ func (r *machineResource) setMachineState(request *restful.Request, response *re
 	id := request.PathParameter("id")
 	oldMachine, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -644,13 +644,13 @@ func (r *machineResource) setMachineState(request *restful.Request, response *re
 
 	err = r.ds.UpdateMachine(oldMachine, &newMachine)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(&newMachine, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -680,7 +680,7 @@ func (r *machineResource) setChassisIdentifyLEDState(request *restful.Request, r
 	id := request.PathParameter("id")
 	oldMachine, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -693,13 +693,13 @@ func (r *machineResource) setChassisIdentifyLEDState(request *restful.Request, r
 
 	err = r.ds.UpdateMachine(oldMachine, &newMachine)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(&newMachine, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -721,7 +721,7 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 
 	partition, err := r.ds.FindPartition(requestPayload.PartitionID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -734,7 +734,7 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 
 	m, err := r.ds.FindMachineByID(requestPayload.UUID)
 	if err != nil && !metal.IsNotFound(err) {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -772,7 +772,7 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 
 		err = r.ds.CreateMachine(m)
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 
@@ -791,14 +791,14 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 
 		err = r.ds.UpdateMachine(&old, m)
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 	}
 
 	ec, err := r.ds.FindProvisioningEventContainer(m.ID)
 	if err != nil && !metal.IsNotFound(err) {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -810,7 +810,7 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 		},
 		)
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 	}
@@ -833,13 +833,13 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 	)
 
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -851,13 +851,13 @@ func (r *machineResource) findIPMIMachine(request *restful.Request, response *re
 
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineIPMIResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -875,13 +875,13 @@ func (r *machineResource) findIPMIMachines(request *restful.Request, response *r
 	ms := metal.Machines{}
 	err = r.ds.SearchMachines(&requestPayload, &ms)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineIPMIResponseList(ms, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -905,7 +905,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 
 	p, err := r.ds.FindPartition(requestPayload.PartitionID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -914,7 +914,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		PartitionID: &p.ID,
 	}, &ms)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1057,7 +1057,7 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 
 	user, err := r.userGetter.User(request.Request)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1069,13 +1069,13 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 
 	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1758,12 +1758,12 @@ func (r *machineResource) finalizeAllocation(request *restful.Request, response 
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	if m.Allocation == nil {
-		r.sendError(request, response, DefaultError(fmt.Errorf("the machine %q is not allocated", id)))
+		r.sendError(request, response, defaultError(fmt.Errorf("the machine %q is not allocated", id)))
 		return
 	}
 
@@ -1783,7 +1783,7 @@ func (r *machineResource) finalizeAllocation(request *restful.Request, response 
 
 	err = r.ds.UpdateMachine(&old, m)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1813,13 +1813,13 @@ func (r *machineResource) finalizeAllocation(request *restful.Request, response 
 		retry.LastErrorOnly(true),
 	)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1830,7 +1830,7 @@ func (r *machineResource) freeMachine(request *restful.Request, response *restfu
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1843,13 +1843,13 @@ func (r *machineResource) freeMachine(request *restful.Request, response *restfu
 
 	err = r.actor.freeMachine(r.Publisher, m)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1866,12 +1866,12 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	if m.Allocation != nil {
-		r.sendError(request, response, DefaultError(errors.New("cannot delete machine that is allocated")))
+		r.sendError(request, response, defaultError(errors.New("cannot delete machine that is allocated")))
 		return
 	}
 
@@ -1879,17 +1879,17 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 
 	// when there's no event container, we delete the machine anyway
 	if err != nil && !metal.IsNotFound(err) {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 	if err == nil && !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
-		r.sendError(request, response, DefaultError(errors.New("can only delete dead machines")))
+		r.sendError(request, response, defaultError(errors.New("can only delete dead machines")))
 		return
 	}
 
 	switches, err := r.ds.SearchSwitchesConnectedToMachine(m)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1910,7 +1910,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 
 		err = r.ds.UpdateSwitch(&old, &newIP)
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 
@@ -1918,13 +1918,13 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 
 	err = r.ds.DeleteMachine(m)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1946,7 +1946,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -1958,13 +1958,13 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 		if m.Allocation.FilesystemLayout == nil {
 			fsls, err := r.ds.ListFilesystemLayouts()
 			if err != nil {
-				r.sendError(request, response, DefaultError(err))
+				r.sendError(request, response, defaultError(err))
 				return
 			}
 
 			fsl, err := fsls.From(m.SizeID, m.Allocation.ImageID)
 			if err != nil {
-				r.sendError(request, response, DefaultError(err))
+				r.sendError(request, response, defaultError(err))
 				return
 			}
 
@@ -1972,7 +1972,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 		}
 
 		if !m.Allocation.FilesystemLayout.IsReinstallable() {
-			r.sendError(request, response, DefaultError(fmt.Errorf("filesystemlayout:%s is not reinstallable, abort reinstallation", m.Allocation.FilesystemLayout.ID)))
+			r.sendError(request, response, defaultError(fmt.Errorf("filesystemlayout:%s is not reinstallable, abort reinstallation", m.Allocation.FilesystemLayout.ID)))
 			return
 		}
 		m.Allocation.Reinstall = true
@@ -1980,14 +1980,14 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 
 		resp, err := makeMachineResponse(m, r.ds)
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 
 		if resp.Allocation.Image != nil {
 			err = r.ds.UpdateMachine(&old, m)
 			if err != nil {
-				r.sendError(request, response, DefaultError(err))
+				r.sendError(request, response, defaultError(err))
 				return
 			}
 
@@ -1995,13 +1995,13 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 
 			err = deleteVRFSwitches(r.ds, m, logger.Desugar())
 			if err != nil {
-				r.sendError(request, response, DefaultError(err))
+				r.sendError(request, response, defaultError(err))
 				return
 			}
 
 			err = publishDeleteEvent(r.Publisher, m, logger.Desugar())
 			if err != nil {
-				r.sendError(request, response, DefaultError(err))
+				r.sendError(request, response, defaultError(err))
 				return
 			}
 
@@ -2030,7 +2030,7 @@ func (r *machineResource) abortReinstallMachine(request *restful.Request, respon
 	id := request.PathParameter("id")
 	m, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -2048,7 +2048,7 @@ func (r *machineResource) abortReinstallMachine(request *restful.Request, respon
 
 		err = r.ds.UpdateMachine(&old, m)
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 
@@ -2108,13 +2108,13 @@ func (r *machineResource) getProvisioningEventContainer(request *restful.Request
 	// check for existence of the machine
 	_, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	ec, err := r.ds.FindProvisioningEventContainer(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -2161,7 +2161,7 @@ func (r *machineResource) addProvisioningEvent(request *restful.Request, respons
 
 	ec, err := r.addProvisionEventForMachine(r.log, id, requestPayload)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -2364,7 +2364,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 	id := request.PathParameter("id")
 	m, f, err := getFirmware(r.ds, id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -2376,7 +2376,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 		alreadyInstalled = f.BmcVersion == p.Revision
 	}
 	if alreadyInstalled {
-		r.sendError(request, response, DefaultError(fmt.Errorf("machine's %s version is already equal %s", p.Kind, p.Revision)))
+		r.sendError(request, response, defaultError(fmt.Errorf("machine's %s version is already equal %s", p.Kind, p.Revision)))
 		return
 	}
 
@@ -2394,7 +2394,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 		}
 	}
 	if notAvailable {
-		r.sendError(request, response, DefaultError(fmt.Errorf("machine's %s firmware in version %s is not available", p.Kind, p.Revision)))
+		r.sendError(request, response, defaultError(fmt.Errorf("machine's %s firmware in version %s is not available", p.Kind, p.Revision)))
 		return
 	}
 
@@ -2431,7 +2431,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -2446,7 +2446,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 
 	newMachine, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -2457,7 +2457,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 		event := string(metal.ProvisioningEventPlannedReboot)
 		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, string(cmd))
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 	case metal.ChassisIdentifyLEDOnCmd:
@@ -2477,20 +2477,20 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 	if needsUpdate {
 		err = r.ds.UpdateMachine(&old, newMachine)
 		if err != nil {
-			r.sendError(request, response, DefaultError(err))
+			r.sendError(request, response, defaultError(err))
 			return
 		}
 	}
 
 	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(newMachine, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

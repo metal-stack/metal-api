@@ -117,7 +117,7 @@ func (r *firewallResource) findFirewall(request *restful.Request, response *rest
 
 	fw, err := r.ds.FindMachineByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -128,7 +128,7 @@ func (r *firewallResource) findFirewall(request *restful.Request, response *rest
 
 	resp, err := makeFirewallResponse(fw, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -148,13 +148,13 @@ func (r *firewallResource) findFirewalls(request *restful.Request, response *res
 	var fws metal.Machines
 	err = r.ds.SearchMachines(&requestPayload, &fws)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeFirewallResponseList(fws, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -167,13 +167,13 @@ func (r *firewallResource) listFirewalls(request *restful.Request, response *res
 		AllocationRole: &metal.RoleFirewall,
 	}, &fws)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeFirewallResponseList(fws, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -190,7 +190,7 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 
 	user, err := r.userGetter.User(request.Request)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -202,13 +202,13 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 
 	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 

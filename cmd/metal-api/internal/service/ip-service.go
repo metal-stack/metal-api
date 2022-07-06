@@ -150,7 +150,7 @@ func (r *ipResource) findIP(request *restful.Request, response *restful.Response
 
 	ip, err := r.ds.FindIPByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -160,7 +160,7 @@ func (r *ipResource) findIP(request *restful.Request, response *restful.Response
 func (r *ipResource) listIPs(request *restful.Request, response *restful.Response) {
 	ips, err := r.ds.ListIPs()
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -183,7 +183,7 @@ func (r *ipResource) findIPs(request *restful.Request, response *restful.Respons
 	var ips metal.IPs
 	err = r.ds.SearchIPs(&requestPayload, &ips)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -200,7 +200,7 @@ func (r *ipResource) freeIP(request *restful.Request, response *restful.Response
 
 	ip, err := r.ds.FindIPByID(id)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -212,7 +212,7 @@ func (r *ipResource) freeIP(request *restful.Request, response *restful.Response
 
 	err = r.actor.releaseIP(*ip)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -285,25 +285,25 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	nw, err := r.ds.FindNetworkByID(requestPayload.NetworkID)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	if p.Project == nil || p.Project.Meta == nil {
-		r.sendError(request, response, DefaultError(fmt.Errorf("error retrieving project %q", requestPayload.ProjectID)))
+		r.sendError(request, response, defaultError(fmt.Errorf("error retrieving project %q", requestPayload.ProjectID)))
 		return
 	}
 
 	// for private, unshared networks the project id must be the same
 	// for external networks the project id is not checked
 	if !nw.Shared && nw.ParentNetworkID != "" && p.Project.Meta.Id != nw.ProjectID {
-		r.sendError(request, response, DefaultError(fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID)))
+		r.sendError(request, response, defaultError(fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID)))
 		return
 	}
 
@@ -318,7 +318,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, r.ipamer)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -342,7 +342,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	err = r.ds.CreateIP(ip)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -359,7 +359,7 @@ func (r *ipResource) updateIP(request *restful.Request, response *restful.Respon
 
 	oldIP, err := r.ds.FindIPByID(requestPayload.IPAddress)
 	if err != nil {
-		r.sendError(request, response, DefaultError(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -395,7 +395,7 @@ func (r *ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) *httperrors.HTTP
 
 	err := r.ds.UpdateIP(oldIP, newIP)
 	if err != nil {
-		return DefaultError(err)
+		return defaultError(err)
 	}
 
 	return nil
