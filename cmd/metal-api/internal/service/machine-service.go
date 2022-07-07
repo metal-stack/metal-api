@@ -67,6 +67,7 @@ type machineAllocationSpec struct {
 	Networks           v1.MachineAllocationNetworks
 	IPs                []string
 	Role               metal.Role
+	VPN                *metal.MachineVPN
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation

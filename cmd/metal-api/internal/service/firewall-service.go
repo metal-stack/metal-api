@@ -1,8 +1,13 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"net/http"
 
 	"github.com/metal-stack/security"
@@ -25,10 +30,11 @@ import (
 type firewallResource struct {
 	webResource
 	bus.Publisher
-	ipamer     ipam.IPAMer
-	mdc        mdm.Client
-	userGetter security.UserGetter
-	actor      *asyncActor
+	ipamer          ipam.IPAMer
+	mdc             mdm.Client
+	userGetter      security.UserGetter
+	actor           *asyncActor
+	headscaleClient *headscale.HeadscaleClient
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
@@ -200,6 +206,11 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 		return
 	}
 
+	if err := r.setVPNConfigInSpec(spec); err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
 	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -213,6 +224,37 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 	}
 
 	r.send(request, response, http.StatusOK, resp)
+}
+
+func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSpec) error {
+	if r.headscaleClient == nil {
+		return nil
+	}
+
+	ctx := context.Background()
+
+	// Get project VPN namespace
+	projectID := allocationSpec.ProjectID
+	p, err := r.mdc.Project().Get(ctx, &mdmv1.ProjectGetRequest{Id: projectID})
+	if err != nil {
+		return err
+	}
+
+	createRequest := &headscalev1.CreatePreAuthKeyRequest{
+		Namespace:  p.Project.Name,
+		Expiration: timestamppb.Now(),
+	}
+	response, err := r.headscaleClient.CreatePreAuthKey(ctx, createRequest)
+	if err != nil {
+		return fmt.Errorf("failed to create new Auth Key: %w", err)
+	}
+
+	allocationSpec.VPN = &metal.MachineVPN{
+		ControlPlaneAddress: r.headscaleClient.ControlPlaneAddress,
+		AuthKey:             response.PreAuthKey.Key,
+	}
+
+	return nil
 }
 
 func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {

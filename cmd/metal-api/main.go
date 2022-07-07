@@ -757,6 +757,7 @@ func initHeadscale() {
 
 	headscaleClient, err = headscale.NewHeadscaleClient(
 		viper.GetString("headscale-addr"),
+		viper.GetString("headscale-cp-addr"),
 		viper.GetString("headscale-api-key"),
 	)
 	if err != nil {
