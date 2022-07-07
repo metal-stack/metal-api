@@ -194,7 +194,7 @@ func (r *projectResource) createProject(request *restful.Request, response *rest
 		Project: *v1p,
 	}
 
-	r.send(request, response, http.StatusOK, pcres)
+	r.send(request, response, http.StatusCreated, pcres)
 }
 
 func (r *projectResource) deleteProject(request *restful.Request, response *restful.Response) {
