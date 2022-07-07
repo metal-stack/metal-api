@@ -10,7 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
-const timeOutAfterMachineReclaim = time.Minute * 5
+// failedMachineReclaimThreshold is the duration after which the machine reclaim is assumed to have failed.
+const failedMachineReclaimThreshold = 5 * time.Minute
 
 type provisioningFSM struct {
 	fsm       *fsm.FSM
