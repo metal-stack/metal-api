@@ -15,15 +15,16 @@ import (
 type HeadscaleClient struct {
 	headscalev1.HeadscaleServiceClient
 
-	address      string
-	apiKeyPrefix string
+	address             string
+	apiKeyPrefix        string
+	ControlPlaneAddress string
 
 	ctx        context.Context
 	conn       *grpc.ClientConn
 	cancelFunc context.CancelFunc
 }
 
-func NewHeadscaleClient(addr, apiKey string) (client *HeadscaleClient, err error) {
+func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string) (client *HeadscaleClient, err error) {
 	if addr != "" || apiKey != "" {
 		if addr == "" {
 			return nil, fmt.Errorf("headscale address should be set with api key")
@@ -36,7 +37,8 @@ func NewHeadscaleClient(addr, apiKey string) (client *HeadscaleClient, err error
 	}
 
 	h := &HeadscaleClient{
-		address: addr,
+		address:             addr,
+		ControlPlaneAddress: controlPlaneAddr,
 	}
 	if err = h.connect(apiKey); err != nil {
 		return nil, fmt.Errorf("failed to connect to Headscale server: %w", err)

@@ -40,6 +40,7 @@ type MachineAllocation struct {
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
+	VPN              *MachineVPNResponse       `json:"vpn" description:"vpn connection info for machine"`
 }
 
 type BootInfo struct {
@@ -258,6 +259,11 @@ type MachineAbortReinstallRequest struct {
 	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
 }
 
+type MachineVPNResponse struct {
+	ControlPlaneAddress string `json:"address" description:"address of VPN control plane"`
+	AuthKey             string `json:"auth_key" description:"auth key used to connect to VPN"`
+}
+
 func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
 	nics := metal.Nics{}
 	for i := range r.Nics {
@@ -452,6 +458,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Succeeded:        m.Allocation.Succeeded,
 			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),
 			Role:             string(m.Allocation.Role),
+			VPN:              NewMachineVPNResponse(m.Allocation.VPN),
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
@@ -543,5 +550,16 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		Events:                       es,
 		IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
 		LastEventTime:                ec.LastEventTime,
+	}
+}
+
+func NewMachineVPNResponse(m *metal.MachineVPN) *MachineVPNResponse {
+	if m == nil {
+		return nil
+	}
+
+	return &MachineVPNResponse{
+		ControlPlaneAddress: m.ControlPlaneAddress,
+		AuthKey:             m.AuthKey,
 	}
 }
