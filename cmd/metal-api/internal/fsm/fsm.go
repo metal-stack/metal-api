@@ -204,10 +204,12 @@ func (f *provisioningFSM) appendEventToContainer(e *fsm.Event) {
 }
 
 func (f *provisioningFSM) updateEventTimeAndLiveliness(e *fsm.Event) {
-	if !(e.Event == metal.ProvisioningEventPhonedHome.String() && e.Src == metal.ProvisioningEventMachineReclaim.String()) {
-		f.container.LastEventTime = &f.event.Time
-		f.container.Liveliness = metal.MachineLivelinessAlive
+	if e.Event == metal.ProvisioningEventPhonedHome.String() && e.Src == metal.ProvisioningEventMachineReclaim.String() {
+		return
 	}
+	
+	f.container.LastEventTime = &f.event.Time
+	f.container.Liveliness = metal.MachineLivelinessAlive
 }
 
 func (f *provisioningFSM) resetFailedReclaim(e *fsm.Event) {
