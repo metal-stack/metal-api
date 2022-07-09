@@ -11,9 +11,7 @@ import (
 )
 
 const (
-	// failedMachineReclaimThreshold is the duration after which the machine reclaim is assumed to have failed.
-	failedMachineReclaimThreshold = 5 * time.Minute
-	// FIXME define appropriate
+	// timeOutAfterMachineReclaim = 5 * time.Minute is the duration after which the machine reclaim is assumed to have failed.
 	timeOutAfterMachineReclaim = 5 * time.Minute
 )
 
@@ -23,7 +21,7 @@ type provisioningFSM struct {
 	event     *metal.ProvisioningEvent
 }
 
-var events = fsm.Transitions[metal.ProvisioningEventType, metal.ProvisioningEventType]{
+var transitions = fsm.Transitions[metal.ProvisioningEventType, metal.ProvisioningEventType]{
 	{
 		Event: metal.ProvisioningEventPXEBooting,
 		Src: []metal.ProvisioningEventType{
@@ -184,7 +182,7 @@ func newProvisioningFSM(initialState metal.ProvisioningEventType, container *met
 
 	p.fsm = fsm.New(
 		initialState,
-		events,
+		transitions,
 		fsm.Callbacks[metal.ProvisioningEventType, metal.ProvisioningEventType]{
 			fsm.Callback[metal.ProvisioningEventType, metal.ProvisioningEventType]{When: fsm.EnterState, State: metal.ProvisioningEventRegistering, F: p.appendEventToContainer},
 			fsm.Callback[metal.ProvisioningEventType, metal.ProvisioningEventType]{When: fsm.EnterState, State: metal.ProvisioningEventWaiting, F: p.appendEventToContainer},
@@ -196,6 +194,7 @@ func newProvisioningFSM(initialState metal.ProvisioningEventType, container *met
 			fsm.Callback[metal.ProvisioningEventType, metal.ProvisioningEventType]{When: fsm.EnterState, State: metal.ProvisioningEventPreparing, F: p.resetFailedReclaim},
 			fsm.Callback[metal.ProvisioningEventType, metal.ProvisioningEventType]{When: fsm.EnterState, State: metal.ProvisioningEventPlannedReboot, F: p.resetCrashLoop},
 			fsm.Callback[metal.ProvisioningEventType, metal.ProvisioningEventType]{When: fsm.EnterState, State: metal.ProvisioningEventPhonedHome, F: p.handlePhonedHome},
+
 			fsm.Callback[metal.ProvisioningEventType, metal.ProvisioningEventType]{When: fsm.BeforeAllEvents, F: p.updateEventTimeAndLiveliness},
 		},
 	)
