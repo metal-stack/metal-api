@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
@@ -262,5 +263,19 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				t.Errorf("HandleProvisioningEvent() last event got %v want %v", tt.container.Events[len(tt.container.Events)-1].Event, tt.wantLastEvent)
 			}
 		})
+	}
+}
+
+func TestGraphviz(t *testing.T) {
+	f, err := fsm.New(metal.ProvisioningEventPhonedHome, transitions, fsm.Callbacks[metal.ProvisioningEventType, metal.ProvisioningEventType]{})
+	if err != nil {
+		t.Error(err)
+	}
+	dot := fsm.Visualize(f)
+	if dot == "" {
+		t.Error("no dot file generated")
+	}
+	if dot != " " {
+		t.Errorf("got dot:%q", dot)
 	}
 }

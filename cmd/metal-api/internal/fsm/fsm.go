@@ -183,7 +183,7 @@ func newProvisioningFSM(initialState metal.ProvisioningEventType, container *met
 		event:     event,
 	}
 
-	fsm, err := fsm.New(
+	f, err := fsm.New(
 		initialState,
 		transitions,
 		fsm.Callbacks[metal.ProvisioningEventType, metal.ProvisioningEventType]{
@@ -204,7 +204,8 @@ func newProvisioningFSM(initialState metal.ProvisioningEventType, container *met
 	if err != nil {
 		return nil, err
 	}
-	p.fsm = fsm
+
+	p.fsm = f
 	return p, err
 }
 
