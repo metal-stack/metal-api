@@ -21,7 +21,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		wantLiveliness     metal.MachineLiveliness
 		wantNumberOfEvents int
 		wantLastEventTime  time.Time
-		wantLastEvent      string
+		wantLastEvent      metal.ProvisioningEventType
 	}{
 		{
 			name: "First Event in container",
@@ -39,7 +39,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPXEBooting.String(),
+			wantLastEvent:      metal.ProvisioningEventPXEBooting,
 		},
 		{
 			name: "Transition from PXEBooting to PXEBooting",
@@ -62,7 +62,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPXEBooting.String(),
+			wantLastEvent:      metal.ProvisioningEventPXEBooting,
 		},
 		{
 			name: "Transition from PXEBooting to Preparing",
@@ -89,7 +89,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 3,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPreparing.String(),
+			wantLastEvent:      metal.ProvisioningEventPreparing,
 		},
 		{
 			name: "Transition from Booting New Kernel to Phoned Home",
@@ -112,7 +112,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 2,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPhonedHome.String(),
+			wantLastEvent:      metal.ProvisioningEventPhonedHome,
 		},
 		{
 			name: "Transition from Registering to Preparing",
@@ -135,7 +135,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 2,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPreparing.String(),
+			wantLastEvent:      metal.ProvisioningEventPreparing,
 		},
 		{
 			name: "Swallow Alive event",
@@ -158,7 +158,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPhonedHome.String(),
+			wantLastEvent:      metal.ProvisioningEventPhonedHome,
 		},
 		{
 			name: "Swallow repeated Phoned Home",
@@ -181,7 +181,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPhonedHome.String(),
+			wantLastEvent:      metal.ProvisioningEventPhonedHome,
 		},
 		{
 			name: "Swallow Phoned Home after Machine Reclaim",
@@ -205,7 +205,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
 			wantLastEventTime:  lastTimeEvent,
-			wantLastEvent:      metal.ProvisioningEventMachineReclaim.String(),
+			wantLastEvent:      metal.ProvisioningEventMachineReclaim,
 		},
 		{
 			name: "Failed Machine Reclaim",
@@ -229,7 +229,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
 			wantLastEventTime:  now.Add(time.Minute * 10),
-			wantLastEvent:      metal.ProvisioningEventMachineReclaim.String(),
+			wantLastEvent:      metal.ProvisioningEventMachineReclaim,
 		},
 	}
 	for _, tt := range tests {
@@ -255,13 +255,11 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			if len(tt.container.Events) != tt.wantNumberOfEvents {
 				t.Errorf("HandleProvisioningEvent() number of events got %d want %d", len(tt.container.Events), tt.wantNumberOfEvents)
 			}
-
 			if !tt.container.LastEventTime.Equal(tt.wantLastEventTime) {
 				t.Errorf("HandleProvisioningEvent() last time event got %v want %v", tt.container.LastEventTime, tt.wantLastEventTime)
 			}
-
-			if tt.container.Events[len(tt.container.Events)-1].Event.String() != tt.wantLastEvent {
-				t.Errorf("HandleProvisioningEvent() last event got %v want %v", tt.container.Events[len(tt.container.Events)-1].Event.String(), tt.wantLastEvent)
+			if tt.container.Events[len(tt.container.Events)-1].Event != tt.wantLastEvent {
+				t.Errorf("HandleProvisioningEvent() last event got %v want %v", tt.container.Events[len(tt.container.Events)-1].Event, tt.wantLastEvent)
 			}
 		})
 	}

@@ -38,7 +38,7 @@ require (
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.1
 )
 
-replace github.com/looplab/fsm => github.com/majst01/fsm v0.3.1-0.20220709123246-1e23f924cc36
+replace github.com/looplab/fsm => github.com/majst01/fsm v0.3.1-0.20220711110517-54758d459c7f
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect

@@ -156,14 +156,17 @@ func handleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 		return container, nil
 	}
 
-	provisioningFSM := newProvisioningFSM(container.Events[len(container.Events)-1].Event, container, event)
+	provisioningFSM, err := newProvisioningFSM(container.Events[len(container.Events)-1].Event, container, event)
+	if err != nil {
+		return container, err
+	}
 
-	err := provisioningFSM.fsm.Event(event.Event, provisioningFSM, event)
+	err = provisioningFSM.fsm.Event(event.Event, provisioningFSM, event)
 	if err == nil {
 		return container, nil
 	}
 
-	if errors.As(err, &fsm.InvalidEventError{}) {
+	if errors.As(err, &fsm.InvalidEventError[metal.ProvisioningEventType, metal.ProvisioningEventType]{}) {
 		container.Events = append(container.Events, *event)
 		container.LastEventTime = &event.Time
 		container.CrashLoop = true
@@ -174,13 +177,13 @@ func handleProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pr
 	return nil, err
 }
 
-func newProvisioningFSM(initialState metal.ProvisioningEventType, container *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent) *provisioningFSM {
-	p := provisioningFSM{
+func newProvisioningFSM(initialState metal.ProvisioningEventType, container *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent) (*provisioningFSM, error) {
+	p := &provisioningFSM{
 		container: container,
 		event:     event,
 	}
 
-	p.fsm = fsm.New(
+	fsm, err := fsm.New(
 		initialState,
 		transitions,
 		fsm.Callbacks[metal.ProvisioningEventType, metal.ProvisioningEventType]{
@@ -198,8 +201,11 @@ func newProvisioningFSM(initialState metal.ProvisioningEventType, container *met
 			fsm.Callback[metal.ProvisioningEventType, metal.ProvisioningEventType]{When: fsm.BeforeAllEvents, F: p.updateEventTimeAndLiveliness},
 		},
 	)
-
-	return &p
+	if err != nil {
+		return nil, err
+	}
+	p.fsm = fsm
+	return p, err
 }
 
 func (f *provisioningFSM) appendEventToContainer(e *fsm.CallbackContext[metal.ProvisioningEventType, metal.ProvisioningEventType]) {
