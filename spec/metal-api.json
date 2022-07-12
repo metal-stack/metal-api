@@ -1878,6 +1878,10 @@
         "user_data": {
           "description": "userdata to execute post installation tasks",
           "type": "string"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2968,6 +2972,22 @@
       "required": [
         "description",
         "id"
+      ]
+    },
+    "v1.MachineVPN": {
+      "properties": {
+        "address": {
+          "description": "address of VPN control plane",
+          "type": "string"
+        },
+        "auth_key": {
+          "description": "auth key used to connect to VPN",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "auth_key"
       ]
     },
     "v1.Meta": {
