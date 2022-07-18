@@ -53,7 +53,7 @@ func (r *userResource) webService() *restful.WebService {
 func (r *userResource) getMe(request *restful.Request, response *restful.Response) {
 	u, err := r.userGetter.User(request.Request)
 	if err != nil {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
+		r.sendError(request, response, httperrors.UnprocessableEntity(err))
 		return
 	}
 

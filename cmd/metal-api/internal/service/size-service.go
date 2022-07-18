@@ -282,7 +282,7 @@ func (r *sizeResource) fromHardware(request *restful.Request, response *restful.
 	}
 
 	if len(lg) < 1 {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, errors.New("size matching log is empty")))
+		r.sendError(request, response, httperrors.UnprocessableEntity(errors.New("size matching log is empty")))
 		return
 	}
 

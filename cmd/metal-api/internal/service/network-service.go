@@ -295,7 +295,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 
 	err = r.ipamer.PrefixesOverlapping(existingPrefixes, prefixes)
 	if err != nil {
-		r.sendError(request, response, httperrors.NewHTTPError(http.StatusUnprocessableEntity, err))
+		r.sendError(request, response, httperrors.UnprocessableEntity(err))
 		return
 	}
 

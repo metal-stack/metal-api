@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -67,7 +66,7 @@ func defaultError(err error) *httperrors.HTTPErrorResponse {
 		return httperrors.InternalServerError(err)
 	}
 
-	return httperrors.NewHTTPError(http.StatusUnprocessableEntity, err)
+	return httperrors.UnprocessableEntity(err)
 }
 
 func send(log *zap.SugaredLogger, rsp *restful.Response, status int, value any) {
