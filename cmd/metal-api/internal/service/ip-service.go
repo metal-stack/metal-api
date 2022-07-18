@@ -130,6 +130,7 @@ func (r *ipResource) webService() *restful.WebService {
 		Reads(v1.IPAllocateRequest{}).
 		Writes(v1.IPResponse{}).
 		Returns(http.StatusCreated, "Created", v1.IPResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate/{ip}").
@@ -141,6 +142,7 @@ func (r *ipResource) webService() *restful.WebService {
 		Reads(v1.IPAllocateRequest{}).
 		Writes(v1.IPResponse{}).
 		Returns(http.StatusCreated, "Created", v1.IPResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws

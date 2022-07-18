@@ -14,7 +14,8 @@ import (
 
 const (
 	DemotedUser                       = "metal"
-	EntityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
+	entityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
+	entityAlreadyExistsErrorMessage   = "the entity already exists"
 )
 
 var tables = []string{
@@ -377,15 +378,29 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.Entity) error {
 	entity.SetCreated(now)
 	entity.SetChanged(now)
 
-	// TODO: Return metal.Conflict
-	res, err := table.Insert(entity).RunWrite(rs.session)
+	if entity.GetID() == "" {
+		res, err := table.Insert(entity).RunWrite(rs.session)
+		if err != nil {
+			return fmt.Errorf("cannot create %v in database: %w", getEntityName(entity), err)
+		}
+
+		if len(res.GeneratedKeys) > 0 {
+			entity.SetID(res.GeneratedKeys[0])
+		}
+
+		return nil
+	}
+
+	_, err := table.Get(entity.GetID()).Do(func(row r.Term) r.Term {
+		return r.Branch(row.Eq(nil), table.Insert(entity), r.Error(entityAlreadyExistsErrorMessage))
+	}).RunWrite(rs.session)
 	if err != nil {
+		if strings.Contains(err.Error(), entityAlreadyExistsErrorMessage) {
+			return metal.Conflict("cannot create %v in database, entity already exists: %s", getEntityName(entity), entity.GetID())
+		}
 		return fmt.Errorf("cannot create %v in database: %w", getEntityName(entity), err)
 	}
 
-	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
-		entity.SetID(res.GeneratedKeys[0])
-	}
 	return nil
 }
 
@@ -419,12 +434,17 @@ func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.Entity) error {
 
 func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldEntity metal.Entity) error {
 	newEntity.SetChanged(time.Now())
+
 	_, err := table.Get(oldEntity.GetID()).Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error(EntityAlreadyModifiedErrorMessage))
+		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error(entityAlreadyModifiedErrorMessage))
 	}).RunWrite(rs.session)
 	if err != nil {
+		if strings.Contains(err.Error(), entityAlreadyModifiedErrorMessage) {
+			return metal.Conflict("cannot update %v (%s): %s", getEntityName(newEntity), oldEntity.GetID(), entityAlreadyModifiedErrorMessage)
+		}
 		return fmt.Errorf("cannot update %v (%s): %w", getEntityName(newEntity), oldEntity.GetID(), err)
 	}
+
 	return nil
 }
 

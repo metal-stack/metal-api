@@ -877,6 +877,16 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything())).Return(EmptyResult, nil)
 
+	// X.insert with id
+	mock.On(r.DB("mockdb").Table("machine").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("image").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("wait").Get(r.MockAnything()).Do(r.MockAnything())).Return(EmptyResult, nil)
+
 	mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)

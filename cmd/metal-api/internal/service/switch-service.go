@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -242,7 +241,7 @@ func (r *switchResource) updateSwitch(request *restful.Request, response *restfu
 		},
 		retry.Attempts(10),
 		retry.RetryIf(func(err error) bool {
-			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+			return metal.IsConflict(err)
 		}),
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
@@ -345,7 +344,7 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			},
 			retry.Attempts(10),
 			retry.RetryIf(func(err error) bool {
-				return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+				return metal.IsConflict(err)
 			}),
 			retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 			retry.LastErrorOnly(true),
