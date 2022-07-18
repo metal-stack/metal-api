@@ -37,7 +37,7 @@ func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	w.logger(rq).Desugar().WithOptions(zap.AddCallerSkip(2)).Sugar().Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
+	w.logger(rq).Desugar().WithOptions(zap.AddCallerSkip(1)).Sugar().Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
 	w.send(rq, rsp, httperr.StatusCode, httperr)
 }
 
@@ -205,7 +205,7 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	if !e.allowed(tenantID) {
 		httperror := httperrors.Forbidden(fmt.Errorf("tenant %s not allowed", tenantID))
 
-		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger).With("service-caller", zap.AddCallerSkip(2))
+		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger) // TODO: add caller stack
 		requestLogger.Errorw("service error", "status", httperror.StatusCode, "error", httperror.Message)
 
 		send(requestLogger, resp, httperror.StatusCode, httperror.Message)
