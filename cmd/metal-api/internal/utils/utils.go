@@ -2,27 +2,11 @@ package utils
 
 import (
 	"errors"
-	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 )
-
-// CallerFuncName returns the name of the caller function stacking up to the given depth.
-func CallerFuncName(depth int) string {
-	pc, _, line, ok := runtime.Caller(depth)
-	if !ok {
-		return ""
-	}
-	ffpc := runtime.FuncForPC(pc)
-	if ffpc == nil {
-		return ""
-	}
-
-	return fmt.Sprintf("%s:%d", ffpc.Name(), line)
-}
 
 func SplitCIDR(cidr string) (string, *int) {
 	parts := strings.Split(cidr, "/")

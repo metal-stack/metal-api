@@ -10,7 +10,6 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/httperrors"
 
 	"github.com/emicklei/go-restful/v3"
@@ -38,7 +37,7 @@ func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	w.logger(rq).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message, "service-caller", utils.CallerFuncName(2))
+	w.logger(rq).With(zap.AddCallerSkip(2)).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
 	w.send(rq, rsp, httperr.StatusCode, httperr)
 }
 
@@ -206,8 +205,8 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	if !e.allowed(tenantID) {
 		httperror := httperrors.Forbidden(fmt.Errorf("tenant %s not allowed", tenantID))
 
-		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger)
-		requestLogger.Errorw("service error", "status", httperror.StatusCode, "error", httperror.Message, "service-caller", utils.CallerFuncName(2))
+		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger).With(zap.AddCallerSkip(2))
+		requestLogger.Errorw("service error", "status", httperror.StatusCode, "error", httperror.Message)
 
 		send(requestLogger, resp, httperror.StatusCode, httperror.Message)
 		return
