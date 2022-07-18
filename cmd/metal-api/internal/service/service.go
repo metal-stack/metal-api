@@ -37,7 +37,7 @@ func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	w.logger(rq).With("service-caller", zap.AddCallerSkip(2)).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
+	w.logger(rq).Desugar().WithOptions(zap.AddCallerSkip(2)).Sugar().Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
 	w.send(rq, rsp, httperr.StatusCode, httperr)
 }
 
