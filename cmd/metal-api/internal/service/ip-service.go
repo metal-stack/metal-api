@@ -232,10 +232,10 @@ func validateIPDelete(ip *metal.IP) error {
 // (2) allow update within a scope
 // (3) allow update from and to scope project
 // (4) deny all other updates
-func validateIPUpdate(old *metal.IP, new *metal.IP) *httperrors.HTTPErrorResponse {
+func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	// constraint 1
 	if old.Type == metal.Static && new.Type == metal.Ephemeral {
-		return httperrors.BadRequest(errors.New("cannot change type of ip address from static to ephemeral"))
+		return errors.New("cannot change type of ip address from static to ephemeral")
 	}
 	os := old.GetScope()
 	ns := new.GetScope()
@@ -248,7 +248,7 @@ func validateIPUpdate(old *metal.IP, new *metal.IP) *httperrors.HTTPErrorRespons
 		return nil
 	}
 
-	return httperrors.BadRequest(fmt.Errorf("can not use ip of scope %v with scope %v", os, ns))
+	return fmt.Errorf("can not use ip of scope %v with scope %v", os, ns)
 }
 
 func processTags(ts []string) []string {
@@ -377,28 +377,20 @@ func (r *ipResource) updateIP(request *restful.Request, response *restful.Respon
 		newIP.Type = requestPayload.Type
 	}
 
-	httperr := r.validateAndUpateIP(oldIP, &newIP)
-	if httperr != nil {
-		r.sendError(request, response, httperr)
+	err = validateIPUpdate(oldIP, &newIP)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+	newIP.Tags = processTags(newIP.Tags)
+
+	err = r.ds.UpdateIP(oldIP, &newIP)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	r.send(request, response, http.StatusOK, v1.NewIPResponse(&newIP))
-}
-
-func (r *ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) *httperrors.HTTPErrorResponse {
-	httperr := validateIPUpdate(oldIP, newIP)
-	if httperr != nil {
-		return httperr
-	}
-	newIP.Tags = processTags(newIP.Tags)
-
-	err := r.ds.UpdateIP(oldIP, newIP)
-	if err != nil {
-		return defaultError(err)
-	}
-
-	return nil
 }
 
 func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
