@@ -35,6 +35,13 @@ func TestRethinkStore_ConflictIsReturned(t *testing.T) {
 
 	err = rs.CreateImage(&metal.Image{Base: metal.Base{ID: "ubuntu"}})
 	require.NoError(t, err)
+	err = rs.CreateImage(&metal.Image{Base: metal.Base{ID: "debian"}})
+	require.NoError(t, err)
 	err = rs.CreateImage(&metal.Image{Base: metal.Base{ID: "ubuntu"}})
 	require.EqualError(t, err, "Conflict cannot create image in database, entity already exists: ubuntu")
+
+	genID := metal.Image{Base: metal.Base{ID: ""}}
+	err = rs.CreateImage(&genID)
+	require.NoError(t, err)
+	require.NotEmpty(t, genID.ID)
 }

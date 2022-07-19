@@ -378,27 +378,16 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.Entity) error {
 	entity.SetCreated(now)
 	entity.SetChanged(now)
 
-	if entity.GetID() == "" {
-		res, err := table.Insert(entity).RunWrite(rs.session)
-		if err != nil {
-			return fmt.Errorf("cannot create %v in database: %w", getEntityName(entity), err)
-		}
-
-		if len(res.GeneratedKeys) > 0 {
-			entity.SetID(res.GeneratedKeys[0])
-		}
-
-		return nil
-	}
-
-	_, err := table.Get(entity.GetID()).Do(func(row r.Term) r.Term {
-		return r.Branch(row.Eq(nil), table.Insert(entity), r.Error(entityAlreadyExistsErrorMessage))
-	}).RunWrite(rs.session)
+	res, err := table.Insert(entity).RunWrite(rs.session)
 	if err != nil {
-		if strings.Contains(err.Error(), entityAlreadyExistsErrorMessage) {
+		if r.IsConflictErr(err) {
 			return metal.Conflict("cannot create %v in database, entity already exists: %s", getEntityName(entity), entity.GetID())
 		}
 		return fmt.Errorf("cannot create %v in database: %w", getEntityName(entity), err)
+	}
+
+	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
+		entity.SetID(res.GeneratedKeys[0])
 	}
 
 	return nil
