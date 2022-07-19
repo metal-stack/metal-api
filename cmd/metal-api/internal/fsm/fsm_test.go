@@ -6,11 +6,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestHandleProvisioningEvent(t *testing.T) {
 	now := time.Now()
-	lastTimeEvent := now.Add(-time.Minute * 4)
+	lastEventTime := now.Add(-time.Minute * 4)
 	tests := []struct {
 		event              *metal.ProvisioningEvent
 		container          *metal.ProvisioningEventContainer
@@ -46,7 +48,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
+						Time:  lastEventTime,
 						Event: metal.ProvisioningEventPXEBooting,
 					},
 				},
@@ -69,11 +71,11 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
+						Time:  lastEventTime,
 						Event: metal.ProvisioningEventPXEBooting,
 					},
 					{
-						Time:  lastTimeEvent.Add(time.Minute * 2),
+						Time:  lastEventTime.Add(time.Minute * 2),
 						Event: metal.ProvisioningEventPXEBooting,
 					},
 				},
@@ -96,7 +98,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
+						Time:  lastEventTime,
 						Event: metal.ProvisioningEventBootingNewKernel,
 					},
 				},
@@ -119,7 +121,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
+						Time:  lastEventTime,
 						Event: metal.ProvisioningEventRegistering,
 					},
 				},
@@ -142,15 +144,15 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
-						Event: metal.ProvisioningEventPhonedHome,
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventRegistering,
 					},
 				},
 				Liveliness: metal.MachineLivelinessAlive,
 			},
 			event: &metal.ProvisioningEvent{
 				Time:  now,
-				Event: metal.ProvisioningEventPhonedHome,
+				Event: metal.ProvisioningEventAlive,
 			},
 			wantErr:            nil,
 			wantCrashLoop:      false,
@@ -158,14 +160,14 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
 			wantLastEventTime:  now,
-			wantLastEvent:      metal.ProvisioningEventPhonedHome.String(),
+			wantLastEvent:      metal.ProvisioningEventRegistering.String(),
 		},
 		{
 			name: "Swallow repeated Phoned Home",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
+						Time:  lastEventTime,
 						Event: metal.ProvisioningEventPhonedHome,
 					},
 				},
@@ -188,12 +190,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
+						Time:  lastEventTime,
 						Event: metal.ProvisioningEventMachineReclaim,
 					},
 				},
 				Liveliness:    metal.MachineLivelinessAlive,
-				LastEventTime: &lastTimeEvent,
+				LastEventTime: &lastEventTime,
 			},
 			event: &metal.ProvisioningEvent{
 				Time:  now,
@@ -204,7 +206,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			wantFailedReclaim:  false,
 			wantLiveliness:     metal.MachineLivelinessAlive,
 			wantNumberOfEvents: 1,
-			wantLastEventTime:  lastTimeEvent,
+			wantLastEventTime:  lastEventTime,
 			wantLastEvent:      metal.ProvisioningEventMachineReclaim.String(),
 		},
 		{
@@ -212,12 +214,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastTimeEvent,
+						Time:  lastEventTime,
 						Event: metal.ProvisioningEventMachineReclaim,
 					},
 				},
 				Liveliness:    metal.MachineLivelinessAlive,
-				LastEventTime: &lastTimeEvent,
+				LastEventTime: &lastEventTime,
 			},
 			event: &metal.ProvisioningEvent{
 				Time:  now.Add(time.Minute * 10),
@@ -234,35 +236,19 @@ func TestHandleProvisioningEvent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt
+		log := zap.NewExample().Sugar()
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := handleProvisioningEvent(tt.event, tt.container)
+			got, err := checkProvisioningEvent(tt.event, tt.container, log)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
 
-			if tt.container.CrashLoop != tt.wantCrashLoop {
-				t.Errorf("HandleProvisioningEvent() machine crash loop got %v want %v", tt.container.CrashLoop, tt.wantCrashLoop)
-			}
-
-			if tt.container.FailedMachineReclaim != tt.wantFailedReclaim {
-				t.Errorf("HandleProvisioningEvent() failed machine reclaim got %v want %v", tt.container.FailedMachineReclaim, tt.wantFailedReclaim)
-			}
-
-			if tt.container.Liveliness != tt.wantLiveliness {
-				t.Errorf("HandleProvisioningEvent() machine liveliness got %v want %v", tt.container.Liveliness, tt.wantLiveliness)
-			}
-
-			if len(tt.container.Events) != tt.wantNumberOfEvents {
-				t.Errorf("HandleProvisioningEvent() number of events got %d want %d", len(tt.container.Events), tt.wantNumberOfEvents)
-			}
-
-			if !tt.container.LastEventTime.Equal(tt.wantLastEventTime) {
-				t.Errorf("HandleProvisioningEvent() last time event got %v want %v", tt.container.LastEventTime, tt.wantLastEventTime)
-			}
-
-			if tt.container.Events[len(tt.container.Events)-1].Event.String() != tt.wantLastEvent {
-				t.Errorf("HandleProvisioningEvent() last event got %v want %v", tt.container.Events[len(tt.container.Events)-1].Event.String(), tt.wantLastEvent)
-			}
+			assert.Equal(t, tt.wantCrashLoop, got.CrashLoop, "got unexpected value for crash loop")
+			assert.Equal(t, tt.wantFailedReclaim, got.FailedMachineReclaim, "got unexpected value for failed machine reclaim")
+			assert.Equal(t, tt.wantLiveliness, got.Liveliness, "got unexpected value for liveliness")
+			assert.Equal(t, tt.wantNumberOfEvents, len(got.Events), "got unexpected number of events")
+			assert.WithinDuration(t, tt.wantLastEventTime, *got.LastEventTime, 0, "got unexpected last event time")
+			assert.Equal(t, tt.wantLastEvent, got.Events[len(got.Events)-1].Event.String(), "got unexpected last event")
 		})
 	}
 }
