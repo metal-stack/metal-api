@@ -8,7 +8,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -105,19 +104,18 @@ func (r *sizeResource) findSize(request *restful.Request, response *restful.Resp
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSize(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewSizeResponse(s))
 }
 
 func (r *sizeResource) listSizes(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSizes()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -125,30 +123,26 @@ func (r *sizeResource) listSizes(request *restful.Request, response *restful.Res
 	for i := range ss {
 		result = append(result, v1.NewSizeResponse(&ss[i]))
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *sizeResource) createSize(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeCreateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("id should not be empty")))
+		return
 	}
 
 	if requestPayload.ID == metal.UnknownSize.GetID() {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("id cannot be %q", metal.UnknownSize.GetID())) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("id cannot be %q", metal.UnknownSize.GetID())))
+		return
 	}
 
 	var name string
@@ -179,54 +173,54 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 	}
 
 	ss, err := r.ds.ListSizes()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
 	if so := s.Overlaps(&ss); so != nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("size overlaps with %q", so.GetID())) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		return
 	}
 
 	err = r.ds.CreateSize(s)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewSizeResponse(s))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusCreated, v1.NewSizeResponse(s))
 }
 
 func (r *sizeResource) deleteSize(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindSize(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteSize(s)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(s))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewSizeResponse(s))
 }
 
 func (r *sizeResource) updateSize(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SizeUpdateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldSize, err := r.ds.FindSize(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -253,48 +247,44 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 	}
 
 	ss, err := r.ds.ListSizes()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
 	if so := newSize.Overlaps(&ss); so != nil {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("size overlaps with %q", so.GetID())) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("size overlaps with %q", so.GetID())))
+		return
 	}
 
 	err = r.ds.UpdateSize(oldSize, &newSize)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeResponse(&newSize))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewSizeResponse(&newSize))
 }
 
 func (r *sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineHardware
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	hw := v1.NewMetalMachineHardware(&requestPayload)
 	_, lg, err := r.ds.FromHardware(hw)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	if len(lg) < 1 {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("size matching log is empty")) {
-			return
-		}
-	}
-
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, httperrors.UnprocessableEntity(errors.New("size matching log is empty")))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
 }

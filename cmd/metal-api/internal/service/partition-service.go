@@ -6,7 +6,6 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -125,19 +124,18 @@ func (r *partitionResource) findPartition(request *restful.Request, response *re
 	id := request.PathParameter("id")
 
 	p, err := r.ds.FindPartition(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewPartitionResponse(p))
 }
 
 func (r *partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
 	ps, err := r.ds.ListPartitions()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -145,24 +143,21 @@ func (r *partitionResource) listPartitions(request *restful.Request, response *r
 	for i := range ps {
 		result = append(result, v1.NewPartitionResponse(&ps[i]))
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+
+	r.send(request, response, http.StatusOK, result)
 }
 
 func (r *partitionResource) createPartition(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionCreateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(errors.New("id should not be empty")))
+		return
 	}
 
 	var name string
@@ -181,27 +176,32 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	if requestPayload.PrivateNetworkPrefixLength != nil {
 		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength)
 		if prefixLength < 16 || prefixLength > 30 {
-			if checkError(request, response, utils.CurrentFuncName(), errors.New("private network prefix length is out of range")) {
-				return
-			}
+			r.sendError(request, response, httperrors.BadRequest(errors.New("private network prefix length is out of range")))
+			return
 		}
 	}
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
+
 	err = checkImageURL("image", imageURL)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
 	var kernelURL string
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
 		kernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
 	}
+
 	err = checkImageURL("kernel", kernelURL)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
 	var commandLine string
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
@@ -224,51 +224,48 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
 	if err := r.topicCreator.CreateTopic(fqn); err != nil {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+		r.sendError(request, response, httperrors.InternalServerError(err))
+		return
 	}
 
 	err = r.ds.CreatePartition(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.send(request, response, http.StatusCreated, v1.NewPartitionResponse(p))
 }
 
 func (r *partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	p, err := r.ds.FindPartition(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeletePartition(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewPartitionResponse(p))
 }
 
 func (r *partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionUpdateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldPartition, err := r.ds.FindPartition(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -284,16 +281,19 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 		newPartition.MgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
-		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.ImageURL)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.ImageURL)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
+
 		newPartition.BootConfiguration.ImageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
 
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
 		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.KernelURL)
-		if checkError(request, response, utils.CurrentFuncName(), err) {
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
 		newPartition.BootConfiguration.KernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
@@ -303,46 +303,39 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(&newPartition))
 	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewPartitionResponse(&newPartition))
 }
 
 func (r *partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
 	partitionCapacities, err := r.calcPartitionCapacity(nil)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.send(request, response, http.StatusOK, partitionCapacities)
 }
 
 func (r *partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionCapacityRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	partitionCapacities, err := r.calcPartitionCapacity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.send(request, response, http.StatusOK, partitionCapacities)
 }
 
 func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {

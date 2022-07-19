@@ -66,7 +66,7 @@ func TestGetImagesIntegration(t *testing.T) {
 	createReq := httptest.NewRequest(http.MethodPut, "/v1/image", body)
 	createReq.Header.Set("Content-Type", "application/json")
 
-	container = injectAdmin(container, createReq)
+	container = injectAdmin(log, container, createReq)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, createReq)
 

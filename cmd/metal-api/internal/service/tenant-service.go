@@ -10,22 +10,22 @@ import (
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"go.uber.org/zap"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
-
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
 )
 
 type tenantResource struct {
-	log *zap.SugaredLogger
+	webResource
 	mdc mdm.Client
 }
 
 // NewTenant returns a webservice for tenant specific endpoints.
 func NewTenant(log *zap.SugaredLogger, mdc mdm.Client) *restful.WebService {
 	r := tenantResource{
-		log: log,
+		webResource: webResource{
+			log: log,
+		},
 		mdc: mdc,
 	}
 	return r.webService()
@@ -66,21 +66,20 @@ func (r *tenantResource) getTenant(request *restful.Request, response *restful.R
 	id := request.PathParameter("id")
 
 	tres, err := r.mdc.Tenant().Get(context.Background(), &mdmv1.TenantGetRequest{Id: id})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	v1t := mapper.ToV1Tenant(tres.Tenant)
-	err = response.WriteHeaderAndEntity(http.StatusOK, &v1t)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+
+	r.send(request, response, http.StatusOK, &v1t)
 }
 
 func (r *tenantResource) listTenants(request *restful.Request, response *restful.Response) {
 	tres, err := r.mdc.Tenant().Find(context.Background(), &mdmv1.TenantFindRequest{})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -90,9 +89,5 @@ func (r *tenantResource) listTenants(request *restful.Request, response *restful
 		v1ts = append(v1ts, v1t)
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1ts)
-	if err != nil {
-		r.log.Errorw("failed to send response", "error", err)
-		return
-	}
+	r.send(request, response, http.StatusOK, v1ts)
 }
