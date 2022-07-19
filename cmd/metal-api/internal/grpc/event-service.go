@@ -24,7 +24,7 @@ func NewEventService(cfg *ServerConfig) *EventService {
 	}
 }
 func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest) (*v1.EventServiceSendResponse, error) {
-	e.log.Infow("send", "event", req)
+	e.log.Debugw("send", "event", req)
 	if req == nil {
 		return nil, fmt.Errorf("no event send")
 	}

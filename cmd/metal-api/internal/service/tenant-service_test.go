@@ -13,6 +13,7 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 type MockedTenantService struct {
@@ -26,7 +27,7 @@ func NewMockedTenantService(t *testing.T, tenantServiceMock func(mock *mdmv1mock
 		tenantServiceMock(tsc)
 	}
 	mdc := mdm.NewMock(&mdmv1mock.ProjectServiceClient{}, tsc)
-	ws := NewTenant(mdc)
+	ws := NewTenant(zaptest.NewLogger(t).Sugar(), mdc)
 	return &MockedTenantService{
 		t:  t,
 		ws: ws,

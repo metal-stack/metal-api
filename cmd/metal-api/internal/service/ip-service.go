@@ -16,7 +16,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -24,7 +23,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type ipResource struct {
@@ -35,23 +33,24 @@ type ipResource struct {
 }
 
 // NewIP returns a webservice for ip specific endpoints.
-func NewIP(ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
+func NewIP(log *zap.SugaredLogger, ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
 	ir := ipResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		ipamer: ipamer,
 		mdc:    mdc,
 	}
 	var err error
-	ir.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	ir.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}
 	return ir.webService(), nil
 }
 
-func (ir ipResource) webService() *restful.WebService {
+func (r *ipResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/ip").
@@ -61,7 +60,7 @@ func (ir ipResource) webService() *restful.WebService {
 	tags := []string{"ip"}
 
 	ws.Route(ws.GET("/{id}").
-		To(viewer(ir.findIP)).
+		To(viewer(r.findIP)).
 		Operation("findIP").
 		Doc("get ip by id").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
@@ -71,7 +70,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/").
-		To(viewer(ir.listIPs)).
+		To(viewer(r.listIPs)).
 		Operation("listIPs").
 		Doc("get all ips").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -80,7 +79,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/find").
-		To(viewer(ir.findIPs)).
+		To(viewer(r.findIPs)).
 		Operation("findIPs").
 		Doc("get all ips that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -90,7 +89,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/free/{id}").
-		To(editor(ir.freeIP)).
+		To(editor(r.freeIP)).
 		Operation("freeIPDeprecated").
 		Doc("frees an ip").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
@@ -102,7 +101,7 @@ func (ir ipResource) webService() *restful.WebService {
 		Deprecate())
 
 	ws.Route(ws.DELETE("/free/{id}").
-		To(editor(ir.freeIP)).
+		To(editor(r.freeIP)).
 		Operation("freeIP").
 		Doc("frees an ip").
 		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
@@ -112,7 +111,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/").
-		To(editor(ir.updateIP)).
+		To(editor(r.updateIP)).
 		Operation("updateIP").
 		Doc("updates an ip. if the ip was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -123,7 +122,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate").
-		To(editor(ir.allocateIP)).
+		To(editor(r.allocateIP)).
 		Operation("allocateIP").
 		Doc("allocate an ip in the given network.").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
@@ -133,7 +132,7 @@ func (ir ipResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/allocate/{ip}").
-		To(editor(ir.allocateIP)).
+		To(editor(r.allocateIP)).
 		Operation("allocateSpecificIP").
 		Param(ws.PathParameter("ip", "ip to try to allocate").DataType("string")).
 		Doc("allocate a specific ip in the given network.").
@@ -146,23 +145,22 @@ func (ir ipResource) webService() *restful.WebService {
 	return ws
 }
 
-func (ir ipResource) findIP(request *restful.Request, response *restful.Response) {
+func (r *ipResource) findIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	ip, err := ir.ds.FindIPByID(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
+	ip, err := r.ds.FindIPByID(id)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewIPResponse(ip))
 }
 
-func (ir ipResource) listIPs(request *restful.Request, response *restful.Response) {
-	ips, err := ir.ds.ListIPs()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+func (r *ipResource) listIPs(request *restful.Request, response *restful.Response) {
+	ips, err := r.ds.ListIPs()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -170,23 +168,22 @@ func (ir ipResource) listIPs(request *restful.Request, response *restful.Respons
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+
+	r.send(request, response, http.StatusOK, result)
 }
 
-func (ir ipResource) findIPs(request *restful.Request, response *restful.Response) {
+func (r *ipResource) findIPs(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.IPSearchQuery
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	var ips metal.IPs
-	err = ir.ds.SearchIPs(&requestPayload, &ips)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	err = r.ds.SearchIPs(&requestPayload, &ips)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -194,32 +191,32 @@ func (ir ipResource) findIPs(request *restful.Request, response *restful.Respons
 	for i := range ips {
 		result = append(result, v1.NewIPResponse(&ips[i]))
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+
+	r.send(request, response, http.StatusOK, result)
 }
 
-func (ir ipResource) freeIP(request *restful.Request, response *restful.Response) {
+func (r *ipResource) freeIP(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	ip, err := ir.ds.FindIPByID(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	if checkError(request, response, utils.CurrentFuncName(), validateIPDelete(ip)) {
-		return
-	}
-	if checkError(request, response, utils.CurrentFuncName(), ir.actor.releaseIP(*ip)) {
+	ip, err := r.ds.FindIPByID(id)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(ip))
+	err = validateIPDelete(ip)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
+	err = r.actor.releaseIP(*ip)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusOK, v1.NewIPResponse(ip))
 }
 
 func validateIPDelete(ip *metal.IP) error {
@@ -250,6 +247,7 @@ func validateIPUpdate(old *metal.IP, new *metal.IP) error {
 	if os == metal.ScopeProject || ns == metal.ScopeProject {
 		return nil
 	}
+
 	return fmt.Errorf("can not use ip of scope %v with scope %v", os, ns)
 }
 
@@ -258,23 +256,22 @@ func processTags(ts []string) []string {
 	return t.Unique()
 }
 
-func (ir ipResource) allocateIP(request *restful.Request, response *restful.Response) {
+func (r *ipResource) allocateIP(request *restful.Request, response *restful.Response) {
 	specificIP := request.PathParameter("ip")
 	var requestPayload v1.IPAllocateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.NetworkID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("networkid should not be empty")) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(errors.New("networkid should not be empty")))
+		return
 	}
 	if requestPayload.ProjectID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("projectid should not be empty")) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(errors.New("projectid should not be empty")))
+		return
 	}
 
 	var name string
@@ -286,25 +283,27 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		description = *requestPayload.Description
 	}
 
-	nw, err := ir.ds.FindNetworkByID(requestPayload.NetworkID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	nw, err := r.ds.FindNetworkByID(requestPayload.NetworkID)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	p, err := ir.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	if p.Project == nil || p.Project.Meta == nil {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("error retrieving project %q", requestPayload.ProjectID))
+		r.sendError(request, response, defaultError(fmt.Errorf("error retrieving project %q", requestPayload.ProjectID)))
 		return
 	}
 
 	// for private, unshared networks the project id must be the same
 	// for external networks the project id is not checked
 	if !nw.Shared && nw.ParentNetworkID != "" && p.Project.Meta.Id != nw.ProjectID {
-		checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID))
+		r.sendError(request, response, defaultError(fmt.Errorf("can not allocate ip for project %q because network belongs to %q and the network is not shared", p.Project.Meta.Id, nw.ProjectID)))
 		return
 	}
 
@@ -317,11 +316,13 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	// TODO: Following operations should span a database transaction if possible
 
-	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, ir.ipamer)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, r.ipamer)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
-	utils.Logger(request).Sugar().Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
+
+	r.logger(request).Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
 
 	ipType := metal.Ephemeral
 	if requestPayload.Type == metal.Static {
@@ -339,26 +340,26 @@ func (ir ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		Tags:             tags,
 	}
 
-	err = ir.ds.CreateIP(ip)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewIPResponse(ip))
+	err = r.ds.CreateIP(ip)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusCreated, v1.NewIPResponse(ip))
 }
 
-func (ir ipResource) updateIP(request *restful.Request, response *restful.Response) {
+func (r *ipResource) updateIP(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.IPUpdateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	oldIP, err := ir.ds.FindIPByID(requestPayload.IPAddress)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	oldIP, err := r.ds.FindIPByID(requestPayload.IPAddress)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -376,29 +377,20 @@ func (ir ipResource) updateIP(request *restful.Request, response *restful.Respon
 		newIP.Type = requestPayload.Type
 	}
 
-	err = ir.validateAndUpateIP(oldIP, &newIP)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewIPResponse(&newIP))
+	err = validateIPUpdate(oldIP, &newIP)
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
-	}
-}
-
-func (ir ipResource) validateAndUpateIP(oldIP, newIP *metal.IP) error {
-	err := validateIPUpdate(oldIP, newIP)
-	if err != nil {
-		return err
 	}
 	newIP.Tags = processTags(newIP.Tags)
 
-	err = ir.ds.UpdateIP(oldIP, newIP)
+	err = r.ds.UpdateIP(oldIP, &newIP)
 	if err != nil {
-		return err
+		r.sendError(request, response, defaultError(err))
+		return
 	}
-	return nil
+
+	r.send(request, response, http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
 func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {

@@ -13,8 +13,7 @@ import (
 // Test that generates many input data
 // Reference: https://golang.org/pkg/testing/quick/
 func TestRethinkStore_FindMachineByID2(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	f := func(x string) bool {
@@ -31,54 +30,41 @@ func TestRethinkStore_FindMachineByID2(t *testing.T) {
 }
 
 func TestRethinkStore_FindMachineByID(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-		id string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		id      string
 		want    *metal.Machine
 		wantErr bool
 	}{
-		// Test Data Array:
 		{
-			name: "Test 1",
-			rs:   ds,
-			args: args{
-				id: "1",
-			},
+			name:    "Test 1",
+			rs:      ds,
+			id:      "1",
 			want:    &testdata.M1,
 			wantErr: false,
 		},
 		{
-			name: "Test 2",
-			rs:   ds,
-			args: args{
-				id: "2",
-			},
+			name:    "Test 2",
+			rs:      ds,
+			id:      "2",
 			want:    &testdata.M2,
 			wantErr: false,
 		},
 		{
-			name: "Test 3",
-			rs:   ds,
-			args: args{
-				id: "404",
-			},
+			name:    "Test 3",
+			rs:      ds,
+			id:      "404",
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name: "Test 4",
-			rs:   ds,
-			args: args{
-				id: "999",
-			},
+			name:    "Test 4",
+			rs:      ds,
+			id:      "999",
 			want:    nil,
 			wantErr: true,
 		},
@@ -86,7 +72,7 @@ func TestRethinkStore_FindMachineByID(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindMachineByID(tt.args.id)
+			got, err := tt.rs.FindMachineByID(tt.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachine() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -101,8 +87,7 @@ func TestRethinkStore_FindMachineByID(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
@@ -113,13 +98,10 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 		testdata.M1,
 	}, nil)
 
-	type args struct {
-		mac string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		mac     string
 		want    metal.Machines
 		wantErr bool
 	}{
@@ -127,9 +109,7 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 		{
 			name: "Test 1",
 			rs:   ds,
-			args: args{
-				mac: "11:11:11",
-			},
+			mac:  "11:11:11",
 			want: metal.Machines{
 				testdata.M1,
 			},
@@ -140,7 +120,7 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsMacAddresses: []string{tt.args.mac}}, &got)
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsMacAddresses: []string{tt.mac}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -153,8 +133,7 @@ func TestRethinkStore_SearchMachine(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine2(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
@@ -165,23 +144,17 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 		testdata.M1,
 	}, nil)
 
-	type args struct {
-		size int64
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		size    int64
 		want    metal.Machines
 		wantErr bool
 	}{
-		// Test Data Array:
 		{
 			name: "Test 1",
 			rs:   ds,
-			args: args{
-				size: 1000000000000,
-			},
+			size: 1000000000000,
 			want: metal.Machines{
 				testdata.M1,
 			},
@@ -192,7 +165,7 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{DiskSizes: []int64{tt.args.size}}, &got)
+			err := tt.rs.SearchMachines(&MachineSearchQuery{DiskSizes: []int64{tt.size}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -205,8 +178,7 @@ func TestRethinkStore_SearchMachine2(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine3(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
@@ -217,23 +189,18 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 		testdata.M1,
 	}, nil)
 
-	type args struct {
-		networkID string
-	}
 	tests := []struct {
-		name    string
-		rs      *RethinkStore
-		args    args
-		want    metal.Machines
-		wantErr bool
+		name      string
+		rs        *RethinkStore
+		networkID string
+		want      metal.Machines
+		wantErr   bool
 	}{
 		// Test Data Array:
 		{
-			name: "Test 1",
-			rs:   ds,
-			args: args{
-				networkID: "1",
-			},
+			name:      "Test 1",
+			rs:        ds,
+			networkID: "1",
 			want: metal.Machines{
 				testdata.M1,
 			},
@@ -244,7 +211,7 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIDs: []string{tt.args.networkID}}, &got)
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIDs: []string{tt.networkID}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -257,8 +224,7 @@ func TestRethinkStore_SearchMachine3(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine4(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
@@ -269,23 +235,17 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 		testdata.M1,
 	}, nil)
 
-	type args struct {
-		ip string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		ip      string
 		want    metal.Machines
 		wantErr bool
 	}{
-		// Test Data Array:
 		{
 			name: "Test 1",
 			rs:   ds,
-			args: args{
-				ip: "1.2.3.4",
-			},
+			ip:   "1.2.3.4",
 			want: metal.Machines{
 				testdata.M1,
 			},
@@ -296,7 +256,7 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIPs: []string{tt.args.ip}}, &got)
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkIPs: []string{tt.ip}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -309,8 +269,7 @@ func TestRethinkStore_SearchMachine4(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine5(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
@@ -321,23 +280,17 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 		testdata.M1,
 	}, nil)
 
-	type args struct {
-		prefix string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		prefix  string
 		want    metal.Machines
 		wantErr bool
 	}{
-		// Test Data Array:
 		{
-			name: "Test 1",
-			rs:   ds,
-			args: args{
-				prefix: "1.1.1.1/32",
-			},
+			name:   "Test 1",
+			rs:     ds,
+			prefix: "1.1.1.1/32",
 			want: metal.Machines{
 				testdata.M1,
 			},
@@ -348,7 +301,7 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkPrefixes: []string{tt.args.prefix}}, &got)
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NetworkPrefixes: []string{tt.prefix}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -361,8 +314,7 @@ func TestRethinkStore_SearchMachine5(t *testing.T) {
 }
 
 func TestRethinkStore_SearchMachine6(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	mock.On(r.DB("mockdb").Table("machine").Filter(func(m r.Term) r.Term {
@@ -375,23 +327,17 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 		testdata.M1,
 	}, nil)
 
-	type args struct {
-		mac string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		mac     string
 		want    metal.Machines
 		wantErr bool
 	}{
-		// Test Data Array:
 		{
 			name: "Test 1",
 			rs:   ds,
-			args: args{
-				mac: "21:11:11:11:11:11",
-			},
+			mac:  "21:11:11:11:11:11",
 			want: metal.Machines{
 				testdata.M1,
 			},
@@ -402,7 +348,7 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var got metal.Machines
-			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsNeighborMacAddresses: []string{tt.args.mac}}, &got)
+			err := tt.rs.SearchMachines(&MachineSearchQuery{NicsNeighborMacAddresses: []string{tt.mac}}, &got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindMachines() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -415,8 +361,7 @@ func TestRethinkStore_SearchMachine6(t *testing.T) {
 }
 
 func TestRethinkStore_ListMachines(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -425,7 +370,6 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 		want    metal.Machines
 		wantErr bool
 	}{
-		// Test Data Array
 		{
 			name:    "Test 1",
 			rs:      ds,
@@ -449,42 +393,7 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 }
 
 func TestRethinkStore_CreateMachine(t *testing.T) {
-	// mock the DBs
-	ds, mock := InitMockDB()
-	testdata.InitMockDBData(mock)
-
-	type args struct {
-		d *metal.Machine
-	}
-	tests := []struct {
-		name    string
-		rs      *RethinkStore
-		args    args
-		wantErr bool
-	}{
-		// Test Data Array:
-		{
-			name: "Test 1",
-			rs:   ds,
-			args: args{
-				&testdata.M4,
-			},
-			wantErr: false,
-		},
-	}
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.CreateMachine(tt.args.d); (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.CreateMachine() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestRethinkStore_DeleteMachine(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -493,7 +402,33 @@ func TestRethinkStore_DeleteMachine(t *testing.T) {
 		machine *metal.Machine
 		wantErr bool
 	}{
-		// Test Data Array:
+		{
+			name:    "Test 1",
+			rs:      ds,
+			machine: &testdata.M4,
+			wantErr: false,
+		},
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.rs.CreateMachine(tt.machine); (err != nil) != tt.wantErr {
+				t.Errorf("RethinkStore.CreateMachine() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRethinkStore_DeleteMachine(t *testing.T) {
+	ds, mock := InitMockDB(t)
+	testdata.InitMockDBData(mock)
+
+	tests := []struct {
+		name    string
+		rs      *RethinkStore
+		machine *metal.Machine
+		wantErr bool
+	}{
 		{
 			name:    "Test 1",
 			rs:      ds,
@@ -514,35 +449,28 @@ func TestRethinkStore_DeleteMachine(t *testing.T) {
 }
 
 func TestRethinkStore_UpdateMachine(t *testing.T) {
-	// Mock the DB:
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-		oldD *metal.Machine
-		newD *metal.Machine
-	}
 	tests := []struct {
-		name    string
-		rs      *RethinkStore
-		args    args
-		wantErr bool
+		name       string
+		rs         *RethinkStore
+		oldMachine *metal.Machine
+		newMachine *metal.Machine
+		wantErr    bool
 	}{
-		// Test Data Array:
 		{
-			name: "Test 1",
-			rs:   ds,
-			args: args{
-				oldD: &testdata.M1,
-				newD: &testdata.M2,
-			},
-			wantErr: false,
+			name:       "Test 1",
+			rs:         ds,
+			oldMachine: &testdata.M1,
+			newMachine: &testdata.M2,
+			wantErr:    false,
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdateMachine(tt.args.oldD, tt.args.newD); (err != nil) != tt.wantErr {
+			if err := tt.rs.UpdateMachine(tt.oldMachine, tt.newMachine); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.UpdateMachine() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

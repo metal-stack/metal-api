@@ -128,7 +128,7 @@ func (t *test) run() {
 		}
 	}
 
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t.T)
 	for i := 0; i < t.numberMachineInstances; i++ {
 		machineID := strconv.Itoa(i)
 		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{Base: metal.Base{ID: machineID}}, nil)

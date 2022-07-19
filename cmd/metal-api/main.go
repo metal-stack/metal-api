@@ -17,8 +17,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/go-logr/zapr"
-
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/rest"
@@ -44,12 +42,12 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
 	bus "github.com/metal-stack/metal-lib/bus"
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
-	zapup "github.com/metal-stack/metal-lib/zapup"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type dsConnectOpt int
@@ -65,13 +63,12 @@ const (
 )
 
 var (
-	cfgFile            string
+	logger *zap.SugaredLogger
+
 	ds                 *datastore.RethinkStore
 	ipamer             *ipam.Ipam
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
-	logger             = zapup.MustRootLogger().Sugar()
-	debug              = false
 	mdc                mdm.Client
 )
 
@@ -107,6 +104,8 @@ var migrateDatabase = &cobra.Command{
 	Short:   "migrates the database to the latest version",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		err := connectDataStore(DataStoreConnectNoDemotion)
 		if err != nil {
 			return err
@@ -125,6 +124,7 @@ var dumpSwagger = &cobra.Command{
 	Short:   "dump the current swagger configuration",
 	Version: v.V.String(),
 	Run: func(cmd *cobra.Command, args []string) {
+		initLogging()
 		dumpSwaggerJSON()
 	},
 }
@@ -134,6 +134,8 @@ var initDatabase = &cobra.Command{
 	Short:   "initializes the database with all tables and indices",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		return connectDataStore(DataStoreConnectTableInit, DataStoreConnectNoDemotion)
 	},
 }
@@ -143,6 +145,8 @@ var resurrectMachines = &cobra.Command{
 	Short:   "resurrect dead machines",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		return resurrectDeadMachines()
 	},
 }
@@ -152,6 +156,8 @@ var machineLiveliness = &cobra.Command{
 	Short:   "evaluates whether machines are still alive or if they have died",
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+
 		return evaluateLiveliness()
 	},
 }
@@ -192,7 +198,8 @@ func init() {
 		deleteOrphanImagesCmd,
 	)
 
-	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "alternative path to config file")
+	rootCmd.Flags().StringP("config", "c", "", "alternative path to config file")
+	rootCmd.Flags().String("log-level", "info", "the log level of the application")
 
 	rootCmd.Flags().StringP("bind-addr", "", "127.0.0.1", "the bind addr of the api server")
 	rootCmd.Flags().IntP("port", "", 8080, "the port to serve on")
@@ -255,21 +262,18 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
-	err := viper.BindPFlags(rootCmd.Flags())
-	if err != nil {
-		logger.Error("unable to construct root command:%w", err)
-	}
-
-	err = viper.BindPFlags(rootCmd.PersistentFlags())
-	if err != nil {
-		logger.Error("unable to construct root command:%w", err)
-	}
+	must(viper.BindPFlags(rootCmd.Flags()))
+	must(viper.BindPFlags(rootCmd.PersistentFlags()))
 
 	migrateDatabase.Flags().Int("target-version", -1, "the target version of the migration, when set to -1 will migrate to latest version")
 	migrateDatabase.Flags().Bool("dry-run", false, "only shows which migrations would run, but does not execute them")
-	err = viper.BindPFlags(migrateDatabase.Flags())
+
+	must(viper.BindPFlags(migrateDatabase.Flags()))
+}
+
+func must(err error) {
 	if err != nil {
-		logger.Error("unable to construct migrate command:%w", err)
+		panic(err)
 	}
 }
 
@@ -280,10 +284,10 @@ func initConfig() {
 
 	viper.SetConfigType(cfgFileType)
 
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
+	if viper.IsSet("config") {
+		viper.SetConfigFile(viper.GetString("config"))
 		if err := viper.ReadInConfig(); err != nil {
-			logger.Error("Config file path set explicitly, but unreadable", "error", err)
+			panic(fmt.Errorf("config file path set explicitly, but unreadable: %w", err))
 		}
 	} else {
 		viper.SetConfigName("config")
@@ -293,19 +297,33 @@ func initConfig() {
 		if err := viper.ReadInConfig(); err != nil {
 			usedCfg := viper.ConfigFileUsed()
 			if usedCfg != "" {
-				logger.Error("Config file unreadable", "config-file", usedCfg, "error", err)
+				panic(fmt.Errorf("config file found at %q, but unreadable: %w", usedCfg, err))
 			}
 		}
-	}
-
-	usedCfg := viper.ConfigFileUsed()
-	if usedCfg != "" {
-		logger.Info("Read config file", "config-file", usedCfg)
 	}
 }
 
 func initLogging() {
-	debug = logger.Desugar().Core().Enabled(zap.DebugLevel)
+	level := zap.NewAtomicLevelAt(zap.InfoLevel)
+	if viper.IsSet("log-level") {
+		var err error
+		level, err = zap.ParseAtomicLevel(viper.GetString("log-level"))
+		if err != nil {
+			panic(fmt.Errorf("can't initialize zap logger: %w", err))
+		}
+	}
+
+	zcfg := zap.NewProductionConfig()
+	zcfg.EncoderConfig.TimeKey = "timestamp"
+	zcfg.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	zcfg.Level = level
+
+	l, err := zcfg.Build()
+	if err != nil {
+		panic(fmt.Errorf("can't initialize zap logger: %w", err))
+	}
+
+	logger = l.Sugar()
 }
 
 func initMetrics() {
@@ -370,7 +388,7 @@ func initEventBus() {
 
 	partitions := waitForPartitions()
 
-	nsq := eventbus.NewNSQ(publisherCfg, zapup.MustRootLogger(), bus.NewPublisher)
+	nsq := eventbus.NewNSQ(publisherCfg, logger.Named("nsq-eventbus").Desugar(), bus.NewPublisher)
 	nsq.WaitForPublisher()
 	nsq.WaitForTopicsCreated(partitions, metal.Topics)
 	if err := nsq.CreateEndpoints(viper.GetString("nsqlookupd-addr")); err != nil {
@@ -398,7 +416,7 @@ func connectDataStore(opts ...dsConnectOpt) error {
 	dbAdapter := viper.GetString("db")
 	if dbAdapter == "rethinkdb" {
 		ds = datastore.New(
-			logger.Desugar(),
+			logger.Named("datastore"),
 			viper.GetString("db-addr"),
 			viper.GetString("db-name"),
 			viper.GetString("db-user"),
@@ -535,7 +553,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
-	issuerCache, err := security.NewMultiIssuerCache(func() ([]*security.IssuerConfig, error) {
+	issuerCache, err := security.NewMultiIssuerCache(lg.Named("issuer-cache"), func() ([]*security.IssuerConfig, error) {
 		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
 		// get provider tenant from masterdata
@@ -571,7 +589,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		return []*security.IssuerConfig{}, nil
 	}, func(ic *security.IssuerConfig) (security.UserGetter, error) {
 		return security.NewGenericOIDC(ic, security.GenericUserExtractor(plugin.GenericOIDCExtractUserProcessGroups))
-	}, security.IssuerReloadInterval(issuerCacheInterval), security.Logger(zapr.NewLogger(logger.Desugar())))
+	}, security.IssuerReloadInterval(issuerCacheInterval))
 
 	if err != nil || issuerCache == nil {
 		logger.Fatalw("error creating dynamic oidc resolver", "error", err)
@@ -630,14 +648,13 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		logger.Fatal("base path must start and end with a slash")
 	}
 
-	lg := logger.Desugar()
 	var p bus.Publisher
 	ep := bus.DirectEndpoints()
 	if nsqer != nil {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	ipService, err := service.NewIP(ds, ep, ipamer, mdc)
+	ipService, err := service.NewIP(logger.Named("ip-service"), ds, ep, ipamer, mdc)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -656,54 +673,54 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	} else {
 		logger.Info("s3 server that provides firmware is disabled")
 	}
-	firmwareService, err := service.NewFirmware(ds, s3Client)
+	firmwareService, err := service.NewFirmware(logger.Named("firmware-service"), ds, s3Client)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	var userGetter security.UserGetter
 	if withauth {
-		userGetter = initAuth(lg.Sugar())
+		userGetter = initAuth(logger)
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength)
+	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(ds, p, ipamer, ep, mdc, userGetter)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	healthService, err := rest.NewHealth(lg, service.BasePath, ds)
+	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	restful.DefaultContainer.Add(service.NewPartition(ds, nsqer))
-	restful.DefaultContainer.Add(service.NewImage(ds))
-	restful.DefaultContainer.Add(service.NewSize(ds))
-	restful.DefaultContainer.Add(service.NewSizeImageConstraint(ds))
-	restful.DefaultContainer.Add(service.NewNetwork(ds, ipamer, mdc))
+	healthService, err := rest.NewHealth(logger.Desugar(), service.BasePath, ds)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
+	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
+	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds))
+	restful.DefaultContainer.Add(service.NewSizeImageConstraint(logger.Named("size-image-constraint-service"), ds))
+	restful.DefaultContainer.Add(service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc))
 	restful.DefaultContainer.Add(ipService)
 	restful.DefaultContainer.Add(firmwareService)
 	restful.DefaultContainer.Add(machineService)
-	restful.DefaultContainer.Add(service.NewProject(ds, mdc))
-	restful.DefaultContainer.Add(service.NewTenant(mdc))
-	restful.DefaultContainer.Add(service.NewUser(userGetter))
+	restful.DefaultContainer.Add(service.NewProject(logger.Named("project-service"), ds, mdc))
+	restful.DefaultContainer.Add(service.NewTenant(logger.Named("tenant-service"), mdc))
+	restful.DefaultContainer.Add(service.NewUser(logger.Named("user-service"), userGetter))
 	restful.DefaultContainer.Add(firewallService)
-	restful.DefaultContainer.Add(service.NewFilesystemLayout(ds))
-	restful.DefaultContainer.Add(service.NewSwitch(ds))
+	restful.DefaultContainer.Add(service.NewFilesystemLayout(logger.Named("filesystem-layout-service"), ds))
+	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
-	restful.DefaultContainer.Filter(rest.RequestLogger(debug, lg))
+	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
 	if withauth {
-		restful.DefaultContainer.Filter(rest.UserAuth(userGetter))
+		restful.DefaultContainer.Filter(rest.UserAuth(userGetter, logger))
 		providerTenant := viper.GetString("provider-tenant")
 		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
-		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
+		ensurer := service.NewTenantEnsurer(logger.Named("tenant-ensurer-filter"), []string{providerTenant}, excludedPathSuffixes)
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 

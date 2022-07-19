@@ -14,16 +14,16 @@ import (
 )
 
 type asyncActor struct {
-	*zap.Logger
+	log *zap.SugaredLogger
 	ipam.IPAMer
 	*datastore.RethinkStore
 	machineNetworkReleaser bus.Func
-	ipReleaser      bus.Func
+	ipReleaser             bus.Func
 }
 
-func newAsyncActor(l *zap.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore, ip ipam.IPAMer) (*asyncActor, error) {
+func newAsyncActor(l *zap.SugaredLogger, ep *bus.Endpoints, ds *datastore.RethinkStore, ip ipam.IPAMer) (*asyncActor, error) {
 	actor := &asyncActor{
-		Logger:       l,
+		log:          l,
 		IPAMer:       ip,
 		RethinkStore: ds,
 	}
@@ -44,12 +44,12 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 		return errors.New("machine is locked")
 	}
 
-	err := deleteVRFSwitches(a.RethinkStore, m, a.Logger)
+	err := deleteVRFSwitches(a.RethinkStore, m, a.log.Desugar())
 	if err != nil {
 		return err
 	}
 
-	err = publishDeleteEvent(pub, m, a.Logger)
+	err = publishDeleteEvent(pub, m, a.log.Desugar())
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 		// log error, but what should we do here? we already called
 		// deleteVRFSwitches and publishDeleteEvent, so should we return
 		// an error or "fall through"?
-		a.Error("cannot call async machine cleanup", zap.Error(err))
+		a.log.Errorw("cannot call async machine cleanup", "error", err)
 	}
 
 	old := *m
@@ -73,7 +73,7 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
 	if err != nil {
 		return err
 	}
-	a.Info("freed machine", zap.String("machineID", m.ID))
+	a.log.Infow("freed machine", "machineID", m.ID)
 
 	return nil
 }
@@ -164,10 +164,10 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 	// begin of this loop checks if the IP contains the machine.
 	// so we fork a new job to delete the IP. if this fails .... well then ("houston we have a problem")
 	// we do not report the error to the caller, because this whole function cannot be re-do'ed.
-	a.Infow("async release IP", "ip", *ip)
+	a.log.Infow("async release IP", "ip", *ip)
 	if err := a.ipReleaser(*ip); err != nil {
 		// what should we do here? this error shows a problem with the nsq-bus system
-		a.Error("cannot call ip releaser", zap.Error(err))
+		a.log.Errorw("cannot call ip releaser", "error", err)
 	}
 
 	return nil
@@ -178,12 +178,12 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 // to implement more validations: when a machine is deleted the caller has to check if the IP
 // is static or not. If only an IP is freed, the caller has to check if the IP has machine scope.
 func (a *asyncActor) releaseIP(ip metal.IP) error {
-	a.Info("release IP", zap.Any("ip", ip))
+	a.log.Infow("release IP", "ip", ip)
 
 	dbip, err := a.FindIPByID(ip.IPAddress)
 	if err != nil && !metal.IsNotFound(err) {
 		// some unknown error, we will let nsq resend the command
-		a.Error("cannot find IP", zap.Any("ip", ip), zap.Error(err))
+		a.log.Errorw("cannot find IP", "ip", ip, "error", err)
 		return err
 	}
 
@@ -192,14 +192,14 @@ func (a *asyncActor) releaseIP(ip metal.IP) error {
 		// moment it can happen that we already deleted and released the IP in the ipam
 		// so make sure that this IP is not already connected to a new machine
 		if len(dbip.GetMachineIds()) > 0 {
-			a.Info("do not delete IP, it is connected to a machine", zap.Any("ip", ip))
+			a.log.Infow("do not delete IP, it is connected to a machine", "ip", ip)
 			return nil
 		}
 
 		// the ip is in our database and is not connected to a machine so cleanup
 		err = a.DeleteIP(&ip)
 		if err != nil {
-			a.Error("cannot delete IP in datastore", zap.Any("ip", ip), zap.Error(err))
+			a.log.Errorw("cannot delete IP in datastore", "ip", ip, "error", err)
 			return err
 		}
 	}

@@ -7,13 +7,11 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 )
 
 type filesystemResource struct {
@@ -21,16 +19,17 @@ type filesystemResource struct {
 }
 
 // NewFilesystemLayout returns a webservice for filesystem specific endpoints.
-func NewFilesystemLayout(ds *datastore.RethinkStore) *restful.WebService {
+func NewFilesystemLayout(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
 	r := filesystemResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 	}
 	return r.webService()
 }
 
-func (r filesystemResource) webService() *restful.WebService {
+func (r *filesystemResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/filesystemlayout").
@@ -109,23 +108,22 @@ func (r filesystemResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r filesystemResource) findFilesystemLayout(request *restful.Request, response *restful.Response) {
+func (r *filesystemResource) findFilesystemLayout(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindFilesystemLayout(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 }
 
-func (r filesystemResource) listFilesystemLayouts(request *restful.Request, response *restful.Response) {
+func (r *filesystemResource) listFilesystemLayouts(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListFilesystemLayouts()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -133,172 +131,176 @@ func (r filesystemResource) listFilesystemLayouts(request *restful.Request, resp
 	for i := range ss {
 		result = append(result, v1.NewFilesystemLayoutResponse(&ss[i]))
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+
+	r.send(request, response, http.StatusOK, result)
 }
 
-func (r filesystemResource) createFilesystemLayout(request *restful.Request, response *restful.Response) {
+func (r *filesystemResource) createFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FilesystemLayoutCreateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(errors.New("id should not be empty")))
+		return
 	}
 	existing, _ := r.ds.FindFilesystemLayout(requestPayload.ID)
 	if existing != nil {
-		if checkError(request, response, utils.CurrentFuncName(), httperrors.NewHTTPError(http.StatusConflict, fmt.Errorf("filesystemlayout:%s already exists", existing.ID))) {
-			return
-		}
+		r.sendError(request, response, httperrors.Conflict(fmt.Errorf("filesystemlayout:%s already exists", existing.ID)))
+		return
 	}
 
 	fsl, err := v1.NewFilesystemLayout(requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = fsl.Validate()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	fsls, err := r.ds.ListFilesystemLayouts()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
 	fsls = append(fsls, *fsl)
 	err = fsls.Validate()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	err = r.ds.CreateFilesystemLayout(fsl)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewFilesystemLayoutResponse(fsl))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusCreated, v1.NewFilesystemLayoutResponse(fsl))
 }
 
-func (r filesystemResource) deleteFilesystemLayout(request *restful.Request, response *restful.Response) {
+func (r *filesystemResource) deleteFilesystemLayout(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	s, err := r.ds.FindFilesystemLayout(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeleteFilesystemLayout(s)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(s))
 }
 
-func (r filesystemResource) updateFilesystemLayout(request *restful.Request, response *restful.Response) {
+func (r *filesystemResource) updateFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FilesystemLayoutUpdateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldFilesystemLayout, err := r.ds.FindFilesystemLayout(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	newFilesystemLayout, err := v1.NewFilesystemLayout(v1.FilesystemLayoutCreateRequest(requestPayload))
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = newFilesystemLayout.Validate()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	fsls, err := r.ds.ListFilesystemLayouts()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
 	fsls = append(fsls, *newFilesystemLayout)
 	err = fsls.Validate()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	err = r.ds.UpdateFilesystemLayout(oldFilesystemLayout, newFilesystemLayout)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(newFilesystemLayout))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(newFilesystemLayout))
 }
 
-func (r filesystemResource) tryFilesystemLayout(request *restful.Request, response *restful.Response) {
+func (r *filesystemResource) tryFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var try v1.FilesystemLayoutTryRequest
 	err := request.ReadEntity(&try)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
 	ss, err := r.ds.ListFilesystemLayouts()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	fsl, err := ss.From(try.Size, try.Image)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
 }
 
-func (r filesystemResource) matchFilesystemLayout(request *restful.Request, response *restful.Response) {
+func (r *filesystemResource) matchFilesystemLayout(request *restful.Request, response *restful.Response) {
 	var match v1.FilesystemLayoutMatchRequest
 	err := request.ReadEntity(&match)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
 	fsl, err := r.ds.FindFilesystemLayout(match.FilesystemLayout)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	machine, err := r.ds.FindMachineByID(match.Machine)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = fsl.Matches(machine.Hardware)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.UnprocessableEntity(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, v1.NewFilesystemLayoutResponse(fsl))
 }

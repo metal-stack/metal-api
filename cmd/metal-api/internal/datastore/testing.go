@@ -1,9 +1,10 @@
 package datastore
 
 import (
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
+	"testing"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"go.uber.org/zap/zaptest"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 /*
@@ -17,9 +18,9 @@ Return Values:
 - RethinkStore 	// The Database
 - Mock 			// The Mock endpoint (Used for mocks)
 */
-func InitMockDB() (*RethinkStore, *r.Mock) {
+func InitMockDB(t *testing.T) (*RethinkStore, *r.Mock) {
 	rs := New(
-		testdata.Testlogger,
+		zaptest.NewLogger(t).Sugar(),
 		"db-addr",
 		"mockdb",
 		"db-user",

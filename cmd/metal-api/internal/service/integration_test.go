@@ -63,7 +63,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	rethinkContainer, c, err := test.StartRethink()
 	require.NoError(t, err)
 
-	ds := datastore.New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds := datastore.New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000
 	ds.ASNPoolRangeMax = 1000
 
@@ -80,14 +80,14 @@ func createTestEnvironment(t *testing.T) testEnv {
 	}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
-	log := zaptest.NewLogger(t)
+	log := zaptest.NewLogger(t).Sugar()
 
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
 			Context:          context.Background(),
 			Store:            ds,
 			Publisher:        NopPublisher{},
-			Logger:           log.Sugar(),
+			Logger:           log,
 			GrpcPort:         50005,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
@@ -98,15 +98,15 @@ func createTestEnvironment(t *testing.T) testEnv {
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0)
+	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0)
 	require.NoError(t, err)
-	imageService := NewImage(ds)
-	switchService := NewSwitch(ds)
-	sizeService := NewSize(ds)
-	sizeImageConstraintService := NewSizeImageConstraint(ds)
-	networkService := NewNetwork(ds, ipamer, mdc)
-	partitionService := NewPartition(ds, &emptyPublisher{})
-	ipService, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
+	imageService := NewImage(log, ds)
+	switchService := NewSwitch(log, ds)
+	sizeService := NewSize(log, ds)
+	sizeImageConstraintService := NewSizeImageConstraint(log, ds)
+	networkService := NewNetwork(log, ds, ipamer, mdc)
+	partitionService := NewPartition(log, ds, &emptyPublisher{})
+	ipService, err := NewIP(log, ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(t, err)
 
 	te := testEnv{
