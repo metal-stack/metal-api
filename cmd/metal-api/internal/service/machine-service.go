@@ -804,9 +804,8 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 
 	if ec == nil {
 		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
-			Base:                         metal.Base{ID: m.ID},
-			Liveliness:                   metal.MachineLivelinessAlive,
-			IncompleteProvisioningCycles: "0",
+			Base:       metal.Base{ID: m.ID},
+			Liveliness: metal.MachineLivelinessAlive,
 		},
 		)
 		if err != nil {

@@ -241,9 +241,8 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 
 	if ec == nil {
 		err = b.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
-			Base:                         metal.Base{ID: m.ID},
-			Liveliness:                   metal.MachineLivelinessAlive,
-			IncompleteProvisioningCycles: "0",
+			Base:       metal.Base{ID: m.ID},
+			Liveliness: metal.MachineLivelinessAlive,
 		},
 		)
 		if err != nil {
