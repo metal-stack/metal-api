@@ -15,7 +15,6 @@ import (
 const (
 	DemotedUser                       = "metal"
 	entityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
-	entityAlreadyExistsErrorMessage   = "the entity already exists"
 )
 
 var tables = []string{
