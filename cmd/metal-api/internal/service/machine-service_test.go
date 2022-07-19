@@ -669,7 +669,6 @@ func TestAddProvisioningEvent(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	require.Equal(t, "0", result.IncompleteProvisioningCycles)
 	require.Len(t, result.Events, 1)
 	if len(result.Events) > 0 {
 		require.Equal(t, "starting metal-hammer", result.Events[0].Message)
