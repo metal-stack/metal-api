@@ -33,11 +33,12 @@ type webResource struct {
 
 // logger returns the request logger from the request.
 func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
-	return rest.GetLoggerFromContext(rq.Request, w.log)
+	requestLogger := rest.GetLoggerFromContext(rq.Request, w.log).Desugar()
+	return requestLogger.WithOptions(zap.AddCallerSkip(1)).Sugar()
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
-	w.logger(rq).Desugar().WithOptions(zap.AddCallerSkip(1)).Sugar().Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
+	w.logger(rq).Errorw("service error", "status", httperr.StatusCode, "error", httperr.Message)
 	w.send(rq, rsp, httperr.StatusCode, httperr)
 }
 
@@ -205,7 +206,7 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	if !e.allowed(tenantID) {
 		httperror := httperrors.Forbidden(fmt.Errorf("tenant %s not allowed", tenantID))
 
-		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger) // TODO: add caller stack
+		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger).Desugar().WithOptions(zap.AddCallerSkip(1)).Sugar()
 		requestLogger.Errorw("service error", "status", httperror.StatusCode, "error", httperror.Message)
 
 		send(requestLogger, resp, httperror.StatusCode, httperror.Message)
