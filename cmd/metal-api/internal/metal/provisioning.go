@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -162,12 +163,14 @@ type ProvisioningEvent struct {
 // ProvisioningEventContainer stores the provisioning events of a machine
 type ProvisioningEventContainer struct {
 	Base
-	Liveliness                   MachineLiveliness  `rethinkdb:"liveliness" json:"liveliness"`
-	Events                       ProvisioningEvents `rethinkdb:"events" json:"events"`
-	LastEventTime                *time.Time         `rethinkdb:"last_event_time" json:"last_event_time"`
-	IncompleteProvisioningCycles string             `rethinkdb:"incomplete_cycles" json:"incomplete_cycles"`
-	CrashLoop                    bool               `rethinkdb:"crash_loop" json:"crash_loop"`
-	FailedMachineReclaim         bool               `rethinkdb:"falied_machine_reclaim" json:"failed_machine_reclaim"`
+	Liveliness    MachineLiveliness  `rethinkdb:"liveliness" json:"liveliness"`
+	Events        ProvisioningEvents `rethinkdb:"events" json:"events"`
+	LastEventTime *time.Time         `rethinkdb:"last_event_time" json:"last_event_time"`
+
+	// Deprecated: Use CrashLoop instead
+	IncompleteProvisioningCycles string `rethinkdb:"incomplete_cycles" json:"incomplete_cycles"`
+	CrashLoop                    bool   `rethinkdb:"crash_loop" json:"crash_loop"`
+	FailedMachineReclaim         bool   `rethinkdb:"falied_machine_reclaim" json:"failed_machine_reclaim"`
 }
 
 // ProvisioningEventContainers is a list of machine provisioning event containers.
@@ -217,4 +220,18 @@ func ProvisioningEventForMachine(log *zap.SugaredLogger, ec *ProvisioningEventCo
 	}
 	ec.TrimEvents(ProvisioningEventsInspectionLimit)
 	return ec
+}
+
+func (c *ProvisioningEventContainer) Validate() error {
+	lastEventTime := c.Events[0].Time
+
+	for _, e := range c.Events {
+		if e.Time.Before(lastEventTime) {
+			return fmt.Errorf("provisioning event container for machine %s is not chronologically sorted", c.ID)
+		}
+
+		lastEventTime = e.Time
+	}
+
+	return nil
 }

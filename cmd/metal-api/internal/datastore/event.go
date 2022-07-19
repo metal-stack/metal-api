@@ -52,10 +52,16 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, even
 		}
 	}
 
-	newEC, err := fsm.ProvisioningEventForMachine(log, ec, event)
+	newEC, err := fsm.HandleProvisioningEvent(log, ec, event)
 	if err != nil {
 		return nil, err
 	}
+
+	if err = newEC.Validate(); err != nil {
+		return nil, err
+	}
+
+	newEC.TrimEvents(metal.ProvisioningEventsInspectionLimit)
 
 	err = rs.UpsertProvisioningEventContainer(newEC)
 	return newEC, err
