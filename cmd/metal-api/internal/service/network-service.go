@@ -281,6 +281,15 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	if id != "" {
+		for existingID := range allNws.ByID() {
+			if existingID == id {
+				r.sendError(request, response, httperrors.Conflict(fmt.Errorf("entity already exists")))
+				return
+			}
+		}
+	}
+
 	existingPrefixes := metal.Prefixes{}
 	existingPrefixesMap := make(map[string]bool)
 	for _, nw := range allNws {
