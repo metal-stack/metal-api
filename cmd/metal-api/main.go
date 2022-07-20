@@ -17,8 +17,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/go-logr/zapr"
-
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/rest"
@@ -555,7 +553,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
-	issuerCache, err := security.NewMultiIssuerCache(func() ([]*security.IssuerConfig, error) {
+	issuerCache, err := security.NewMultiIssuerCache(lg.Named("issuer-cache"), func() ([]*security.IssuerConfig, error) {
 		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
 		// get provider tenant from masterdata
@@ -591,7 +589,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 		return []*security.IssuerConfig{}, nil
 	}, func(ic *security.IssuerConfig) (security.UserGetter, error) {
 		return security.NewGenericOIDC(ic, security.GenericUserExtractor(plugin.GenericOIDCExtractUserProcessGroups))
-	}, security.IssuerReloadInterval(issuerCacheInterval), security.Logger(zapr.NewLogger(logger.Desugar())))
+	}, security.IssuerReloadInterval(issuerCacheInterval))
 
 	if err != nil || issuerCache == nil {
 		logger.Fatalw("error creating dynamic oidc resolver", "error", err)
@@ -715,14 +713,14 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
-	restful.DefaultContainer.Filter(rest.RequestLogger(isDebug(logger), logger.Desugar()))
+	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
 	if withauth {
-		restful.DefaultContainer.Filter(rest.UserAuth(userGetter))
+		restful.DefaultContainer.Filter(rest.UserAuth(userGetter, logger))
 		providerTenant := viper.GetString("provider-tenant")
 		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
-		ensurer := service.NewTenantEnsurer([]string{providerTenant}, excludedPathSuffixes)
+		ensurer := service.NewTenantEnsurer(logger.Named("tenant-ensurer-filter"), []string{providerTenant}, excludedPathSuffixes)
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
 	}
 
@@ -946,8 +944,4 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 
 	// Maybe this leads to an issue, investigating...:
 	// swo.Schemes = []string{"http", "https"}
-}
-
-func isDebug(log *zap.SugaredLogger) bool {
-	return log.Desugar().Core().Enabled(zap.DebugLevel)
 }

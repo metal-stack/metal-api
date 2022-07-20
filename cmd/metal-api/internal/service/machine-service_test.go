@@ -48,12 +48,13 @@ func (p *emptyPublisher) Stop() {}
 func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -74,6 +75,8 @@ func TestGetMachines(t *testing.T) {
 
 // FIXME move to boot-service_test.go
 func TestRegisterMachine(t *testing.T) {
+	log := zaptest.NewLogger(t).Sugar()
+
 	tests := []struct {
 		name                 string
 		uuid                 string
@@ -135,7 +138,7 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:          "1",
 			dbpartitions:         []metal.Partition{testdata.Partition1},
 			dbsizes:              []metal.Size{testdata.Sz1},
-			expectedStatus:       http.StatusUnprocessableEntity,
+			expectedStatus:       http.StatusBadRequest,
 			expectedErrorMessage: "uuid cannot be empty",
 		},
 		{
@@ -229,12 +232,12 @@ func TestRegisterMachine(t *testing.T) {
 			js, err := json.Marshal(registerRequest)
 			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
-			machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -269,6 +272,7 @@ func TestRegisterMachine(t *testing.T) {
 func TestMachineIPMIReport(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	tests := []struct {
 		name           string
@@ -305,7 +309,7 @@ func TestMachineIPMIReport(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			js, err := json.Marshal(tt.input)
@@ -313,7 +317,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/machine/ipmi", body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -330,6 +334,8 @@ func TestMachineIPMIReport(t *testing.T) {
 }
 
 func TestMachineFindIPMI(t *testing.T) {
+	log := zaptest.NewLogger(t).Sugar()
+
 	tests := []struct {
 		name           string
 		machine        *metal.Machine
@@ -354,7 +360,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*tt.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -366,7 +372,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/machine/ipmi/find", body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectViewer(container, req)
+			container = injectViewer(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -405,6 +411,7 @@ func TestMachineFindIPMI(t *testing.T) {
 func TestFinalizeMachineAllocation(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	tests := []struct {
 		name           string
@@ -436,7 +443,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -449,7 +456,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/%s/finalize-allocation", tt.machineID), body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -479,8 +486,9 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -494,7 +502,7 @@ func TestSetMachineState(t *testing.T) {
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/1/state", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -513,13 +521,14 @@ func TestSetMachineState(t *testing.T) {
 func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -540,13 +549,14 @@ func TestGetMachine(t *testing.T) {
 func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -560,6 +570,7 @@ func TestFreeMachine(t *testing.T) {
 
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	pub := &emptyPublisher{}
 	events := []string{"1-machine", "1-machine", "releaseMachineNetworks", "1-switch"}
@@ -574,12 +585,12 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -599,15 +610,16 @@ func TestSearchMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	requestJSON := fmt.Sprintf("{%q:[%q]}", "nics_mac_addresses", "1")
 	req := httptest.NewRequest("POST", "/v1/machine/find", bytes.NewBufferString(requestJSON))
 	req.Header.Add("Content-Type", "application/json")
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -631,8 +643,9 @@ func TestSearchMachine(t *testing.T) {
 func TestAddProvisioningEvent(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -644,7 +657,7 @@ func TestAddProvisioningEvent(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/1/event", body)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -668,8 +681,9 @@ func TestAddProvisioningEvent(t *testing.T) {
 func TestAddProvisioningEvents(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	machineID := "2"
@@ -684,7 +698,7 @@ func TestAddProvisioningEvents(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/event", body)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -701,6 +715,8 @@ func TestAddProvisioningEvents(t *testing.T) {
 }
 
 func TestOnMachine(t *testing.T) {
+	log := zaptest.NewLogger(t).Sugar()
+
 	tests := []struct {
 		cmd      metal.MachineCommand
 		endpoint string
@@ -763,7 +779,7 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice, err := NewMachine(zaptest.NewLogger(t).Sugar(), ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 
 			js, err := json.Marshal([]string{tt.param})
@@ -771,7 +787,7 @@ func TestOnMachine(t *testing.T) {
 			body := bytes.NewBuffer(js)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/1/power/"+tt.endpoint, body)
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)

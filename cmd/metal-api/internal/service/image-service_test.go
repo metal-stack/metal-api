@@ -89,11 +89,12 @@ func TestGetImageNotFound(t *testing.T) {
 func TestDeleteImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
+	imageservice := NewImage(log, ds)
 	container := restful.NewContainer().Add(imageservice)
 	req := httptest.NewRequest("DELETE", "/v1/image/image-3", nil)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -111,6 +112,7 @@ func TestDeleteImage(t *testing.T) {
 func TestCreateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	createRequest := v1.ImageCreateRequest{
 		Common: v1.Common{
@@ -128,7 +130,7 @@ func TestCreateImage(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
-	container := injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
+	container := injectAdmin(log, restful.NewContainer().Add(NewImage(log, ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -151,6 +153,7 @@ func TestCreateImage(t *testing.T) {
 func TestCreateImageWithBrokenURL(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	createRequest := v1.ImageCreateRequest{
 		Common: v1.Common{
@@ -169,14 +172,14 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
-	container := injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
+	container := injectAdmin(log, restful.NewContainer().Add(NewImage(log, ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	defer resp.Body.Close()
-	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode, w.Body.String())
 	var result httperrors.HTTPErrorResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
@@ -189,14 +192,14 @@ func TestCreateImageWithBrokenURL(t *testing.T) {
 
 	body = bytes.NewBuffer(js)
 	req = httptest.NewRequest("PUT", "/v1/image", body)
-	container = injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
+	container = injectAdmin(log, restful.NewContainer().Add(NewImage(log, ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w = httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
 	resp = w.Result()
 	defer resp.Body.Close()
-	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, w.Body.String())
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode, w.Body.String())
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
@@ -207,6 +210,7 @@ func TestCreateImageWithClassification(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 	vc := string(testdata.Img1.Classification)
+	log := zaptest.NewLogger(t).Sugar()
 
 	createRequest := v1.ImageCreateRequest{
 		Common: v1.Common{
@@ -225,7 +229,7 @@ func TestCreateImageWithClassification(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/image", body)
-	container := injectAdmin(restful.NewContainer().Add(NewImage(zaptest.NewLogger(t).Sugar(), ds)), req)
+	container := injectAdmin(log, restful.NewContainer().Add(NewImage(log, ds)), req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -248,8 +252,9 @@ func TestCreateImageWithClassification(t *testing.T) {
 func TestUpdateImage(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	imageservice := NewImage(zaptest.NewLogger(t).Sugar(), ds)
+	imageservice := NewImage(log, ds)
 	container := restful.NewContainer().Add(imageservice)
 
 	updateRequest := v1.ImageUpdateRequest{
@@ -270,7 +275,7 @@ func TestUpdateImage(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/image", body)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

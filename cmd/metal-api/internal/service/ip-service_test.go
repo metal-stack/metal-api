@@ -35,12 +35,13 @@ func TestGetIPs(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(zaptest.NewLogger(t).Sugar(), ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	logger := zaptest.NewLogger(t).Sugar()
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(logger, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -64,11 +65,12 @@ func TestGetIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(zaptest.NewLogger(t).Sugar(), ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	logger := zaptest.NewLogger(t).Sugar()
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(logger, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -86,12 +88,13 @@ func TestGetIP(t *testing.T) {
 func TestGetIPNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(zaptest.NewLogger(t).Sugar(), ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(logger, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -111,8 +114,9 @@ func TestDeleteIP(t *testing.T) {
 	ipamer, err := testdata.InitMockIpamData(mock, true)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(zaptest.NewLogger(t).Sugar(), ds, bus.DirectEndpoints(), ipamer, nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipamer, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
@@ -129,7 +133,7 @@ func TestDeleteIP(t *testing.T) {
 		{
 			name:         "free an machine-ip should fail",
 			ip:           testdata.IP3.IPAddress,
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusBadRequest,
 		},
 		{
 			name:         "free an cluster-ip should fail",
@@ -141,19 +145,21 @@ func TestDeleteIP(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("POST", "/v1/ip/free/"+tt.ip, nil)
-			container = injectEditor(container, req)
+			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
+			defer resp.Body.Close()
+
+			if tt.wantedStatus != 200 {
+				return
+			}
+
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
-			if tt.wantedStatus != http.StatusUnprocessableEntity {
-				require.NoError(t, err)
-			}
-			err = resp.Body.Close()
 			require.NoError(t, err)
 		})
 	}
@@ -164,6 +170,7 @@ func TestAllocateIP(t *testing.T) {
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
 	psc := mdmock.ProjectServiceClient{}
 	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
@@ -176,7 +183,7 @@ func TestAllocateIP(t *testing.T) {
 
 	mdc := mdm.NewMock(&psc, &tsc)
 
-	ipservice, err := NewIP(zaptest.NewLogger(t).Sugar(), ds, bus.DirectEndpoints(), ipamer, mdc)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
@@ -216,7 +223,7 @@ func TestAllocateIP(t *testing.T) {
 			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/ip/allocate", body)
-			container = injectEditor(container, req)
+			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -238,8 +245,9 @@ func TestAllocateIP(t *testing.T) {
 func TestUpdateIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(zaptest.NewLogger(t).Sugar(), ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"
@@ -285,7 +293,7 @@ func TestUpdateIP(t *testing.T) {
 				IPAddress: testdata.IP2.IPAddress,
 				Type:      "ephemeral",
 			},
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "internal tag machine is allowed",
@@ -304,7 +312,7 @@ func TestUpdateIP(t *testing.T) {
 			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/ip", body)
-			container = injectEditor(container, req)
+			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -315,7 +323,7 @@ func TestUpdateIP(t *testing.T) {
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
 
-			if tt.wantedStatus == http.StatusUnprocessableEntity {
+			if tt.wantedStatus != 200 {
 				return
 			}
 			require.NoError(t, err)
