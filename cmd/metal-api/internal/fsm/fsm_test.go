@@ -299,8 +299,8 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := checkProvisioningEvent(tt.event, tt.container, zaptest.NewLogger(t).Sugar())
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {

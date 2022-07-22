@@ -141,7 +141,8 @@ func TestProvisioningEventContainer_Validate(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.container.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("ProvisioningEventContainer.Validate() error = %v, wantErr %v", err, tt.wantErr)
