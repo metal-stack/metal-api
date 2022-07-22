@@ -2,10 +2,7 @@ package metal
 
 import (
 	"fmt"
-	"strconv"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 // ProvisioningEventType indicates an event emitted by a machine during the provisioning sequence
@@ -31,8 +28,6 @@ const (
 	ProvisioningEventMachineReclaim   ProvisioningEventType = "Machine Reclaim"
 )
 
-type provisioningEventSequence []ProvisioningEventType
-
 var (
 	// AllProvisioningEventTypes are all provisioning events that exist
 	AllProvisioningEventTypes = map[ProvisioningEventType]bool{
@@ -49,36 +44,6 @@ var (
 		ProvisioningEventPhonedHome:       true,
 		ProvisioningEventMachineReclaim:   true,
 	}
-	// ProvisioningEventsInspectionLimit The length of how many provisioning events are being inspected for calculating incomplete cycles
-	ProvisioningEventsInspectionLimit = 100 // only saved events count
-	// expectedBootSequence is the expected provisioning event sequence of an expected machine boot from PXE up to a running OS
-	expectedBootSequence = provisioningEventSequence{
-		ProvisioningEventPXEBooting,
-		ProvisioningEventPreparing,
-		ProvisioningEventRegistering,
-		ProvisioningEventWaiting,
-		ProvisioningEventInstalling,
-		ProvisioningEventBootingNewKernel,
-		ProvisioningEventPhonedHome,
-	}
-	expectedSuccessorEventMap = map[ProvisioningEventType]provisioningEventSequence{
-		// some machines could be incapable of sending pxe boot events (depends on BIOS), therefore PXE Booting and Preparing are allowed initial states
-		ProvisioningEventPlannedReboot:    {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventPXEBooting:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventPreparing:        {ProvisioningEventRegistering, ProvisioningEventPlannedReboot},
-		ProvisioningEventRegistering:      {ProvisioningEventWaiting, ProvisioningEventPlannedReboot},
-		ProvisioningEventWaiting:          {ProvisioningEventInstalling, ProvisioningEventPlannedReboot},
-		ProvisioningEventInstalling:       {ProvisioningEventBootingNewKernel, ProvisioningEventPlannedReboot},
-		ProvisioningEventBootingNewKernel: {ProvisioningEventPhonedHome},
-		ProvisioningEventPhonedHome:       {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventCrashed:          {ProvisioningEventPXEBooting, ProvisioningEventPreparing},
-		ProvisioningEventResetFailCount:   expectedBootSequence,
-	}
-	provisioningEventsThatTerminateCycle = provisioningEventSequence{
-		ProvisioningEventPlannedReboot,
-		ProvisioningEventResetFailCount,
-		*expectedBootSequence.lastEvent(),
-	}
 )
 
 // ProvisioningEvents is just a list of ProvisioningEvents
@@ -87,63 +52,6 @@ type ProvisioningEvents []ProvisioningEvent
 // Is return true if given event is equal to specific EventType
 func (p ProvisioningEventType) Is(event string) bool {
 	return string(p) == event
-}
-
-func (p provisioningEventSequence) lastEvent() *ProvisioningEventType {
-	if len(p) == 0 {
-		return nil
-	}
-	return &p[len(p)-1]
-}
-
-func (p provisioningEventSequence) containsEvent(event ProvisioningEventType) bool {
-	result := false
-	for _, e := range p {
-		if event == e {
-			result = true
-			break
-		}
-	}
-	return result
-}
-
-func (e *ProvisioningEvent) hasExpectedSuccessor(log *zap.SugaredLogger, actualSuccessor ProvisioningEventType) bool {
-	currentEvent := e.Event
-
-	expectedSuccessors, ok := expectedSuccessorEventMap[currentEvent]
-	if !ok {
-		log.Errorw("successor map does not contain an expected successor for event", "event", currentEvent)
-		return false
-	}
-
-	return expectedSuccessors.containsEvent(actualSuccessor)
-}
-
-// CalculateIncompleteCycles calculates the number of events that occurred out of order. Can be used to determine if a machine is in an error loop.
-func (p *ProvisioningEventContainer) CalculateIncompleteCycles(log *zap.SugaredLogger) string {
-	incompleteCycles := 0
-	atLeastOneTimeCompleted := true
-	var successor ProvisioningEventType
-	for i, event := range p.Events {
-		if successor != "" && !event.hasExpectedSuccessor(log, successor) {
-			incompleteCycles++
-		}
-		successor = event.Event
-
-		if provisioningEventsThatTerminateCycle.containsEvent(event.Event) {
-			break
-		}
-
-		if i >= ProvisioningEventsInspectionLimit-1 {
-			// we have reached the inspection limit without having reached the last event in the sequence once...
-			atLeastOneTimeCompleted = false
-		}
-	}
-	result := strconv.Itoa(incompleteCycles)
-	if incompleteCycles > 0 && !atLeastOneTimeCompleted {
-		result = "at least " + result
-	}
-	return result
 }
 
 // TrimEvents trim the events to maxCount
@@ -185,48 +93,24 @@ func (p ProvisioningEventContainers) ByID() ProvisioningEventContainerMap {
 	return res
 }
 
-// ProvisioningEventForMachine calculates the next ProvisioningEventContainer for the given machine based on current state and given event.
-// the returned container must be persisted after calling this
-func ProvisioningEventForMachine(log *zap.SugaredLogger, ec *ProvisioningEventContainer, machineID, event, message string) *ProvisioningEventContainer {
-	if ec == nil {
-		ec = &ProvisioningEventContainer{
-			Base: Base{
-				ID: machineID,
-			},
-			Liveliness: MachineLivelinessAlive,
-		}
-	}
-	now := time.Now()
-	ec.LastEventTime = &now
-
-	ev := ProvisioningEvent{
-		Time:    now,
-		Event:   ProvisioningEventType(event),
-		Message: message,
-	}
-	if ev.Event == ProvisioningEventAlive {
-		log.Debugw("received provisioning alive event", "id", ec.ID)
-		ec.Liveliness = MachineLivelinessAlive
-	} else if ev.Event == ProvisioningEventPhonedHome && len(ec.Events) > 0 && ec.Events[0].Event == ProvisioningEventPhonedHome {
-		log.Debugw("swallowing repeated phone home event", "id", ec.ID)
-		ec.Liveliness = MachineLivelinessAlive
-	} else {
-		ec.Events = append([]ProvisioningEvent{ev}, ec.Events...)
-		ec.Liveliness = MachineLivelinessAlive
-	}
-	ec.TrimEvents(ProvisioningEventsInspectionLimit)
-	return ec
-}
-
 func (c *ProvisioningEventContainer) Validate() error {
-	lastEventTime := c.Events[0].Time
+	if len(c.Events) == 0 {
+		return nil
+	}
 
+	lastEventTime := c.Events[0].Time
 	for _, e := range c.Events {
 		if e.Time.Before(lastEventTime) {
 			return fmt.Errorf("provisioning event container for machine %s is not chronologically sorted", c.ID)
 		}
 
 		lastEventTime = e.Time
+	}
+
+	// last event time in container can be equal or later than the time of the last event, because some events
+	// will update the LastEventTime field without being appended to the container.
+	if c.LastEventTime == nil || lastEventTime.After(*c.LastEventTime) {
+		return fmt.Errorf("inconsistency in container for machine %s: time of last event is not equal to last event time field", c.ID)
 	}
 
 	return nil

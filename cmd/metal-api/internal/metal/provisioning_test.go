@@ -2,272 +2,8 @@ package metal
 
 import (
 	"testing"
-
-	"go.uber.org/zap/zaptest"
+	"time"
 )
-
-var (
-	SuccessfulEventCycle = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventBootingNewKernel,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventInstalling,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPXEBooting,
-		},
-	}
-	CrashEventCycle = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	CycleWithPlannedReboot = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPlannedReboot,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	CycleWithPlannedRebootAndError = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventInstalling,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPlannedReboot,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	CycleWithPlannedRebootAndImmediateError = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventInstalling,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPlannedReboot,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	CycleWithACrash = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventCrashed,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	CycleWithReset = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventResetFailCount,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventCrashed,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-	}
-	SuccessfulEventCycleWithBadHistory = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventPhonedHome,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventBootingNewKernel,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventInstalling,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-	}
-	MultipleTimesPXEBootingIsNoIncompleteCycle = ProvisioningEvents{
-		ProvisioningEvent{
-			Event: ProvisioningEventWaiting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventRegistering,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPreparing,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPXEBooting,
-		},
-		ProvisioningEvent{
-			Event: ProvisioningEventPXEBooting,
-		},
-	}
-)
-
-func TestProvisioning_IncompleteCycles(t *testing.T) {
-	tests := []struct {
-		name           string
-		eventContainer ProvisioningEventContainer
-		want           string
-	}{
-		{
-			name: "TestProvisioning_IncompleteCycles Test 1",
-			eventContainer: ProvisioningEventContainer{
-				Events: SuccessfulEventCycle,
-			},
-			want: "0",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 2",
-			eventContainer: ProvisioningEventContainer{
-				Events: CrashEventCycle,
-			},
-			want: "2",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 3",
-			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithPlannedReboot,
-			},
-			want: "0",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 4",
-			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithPlannedRebootAndError,
-			},
-			want: "1",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 5",
-			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithPlannedRebootAndImmediateError,
-			},
-			want: "1",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 6",
-			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithACrash,
-			},
-			want: "1",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 7",
-			eventContainer: ProvisioningEventContainer{
-				Events: CycleWithReset,
-			},
-			want: "0",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 8",
-			eventContainer: ProvisioningEventContainer{
-				Events: SuccessfulEventCycleWithBadHistory,
-			},
-			want: "0",
-		},
-		{
-			name: "TestProvisioning_IncompleteCycles Test 9",
-			eventContainer: ProvisioningEventContainer{
-				Events: MultipleTimesPXEBootingIsNoIncompleteCycle,
-			},
-			want: "0",
-		},
-	}
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.eventContainer.CalculateIncompleteCycles(zaptest.NewLogger(t).Sugar()); got != tt.want {
-				t.Errorf("CalculateIncompleteCycles() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestProvisioningEventType_Is(t *testing.T) {
 	tests := []struct {
@@ -300,6 +36,115 @@ func TestProvisioningEventType_Is(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.p.Is(tt.event); got != tt.want {
 				t.Errorf("ProvisioningEventType.Is() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProvisioningEventContainer_Validate(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name      string
+		container ProvisioningEventContainer
+		wantErr   bool
+	}{
+		{
+			name: "Validate empty container",
+			container: ProvisioningEventContainer{
+				Events: ProvisioningEvents{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Validate sorted and consistent container",
+			container: ProvisioningEventContainer{
+				Events: ProvisioningEvents{
+					ProvisioningEvent{
+						Time: now.Add(-5 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-4 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-3 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-2 * time.Minute),
+					},
+				},
+				LastEventTime: &now,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Validate container with one event",
+			container: ProvisioningEventContainer{
+				Events: ProvisioningEvents{
+					ProvisioningEvent{
+						Time: now,
+					},
+				},
+				LastEventTime: &now,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Validate container with empty last event time field",
+			container: ProvisioningEventContainer{
+				Events: ProvisioningEvents{
+					ProvisioningEvent{
+						Time: now,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Validate unsorted container",
+			container: ProvisioningEventContainer{
+				Events: ProvisioningEvents{
+					ProvisioningEvent{
+						Time: now.Add(-5 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-3 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-4 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-2 * time.Minute),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Validate inconsistent last event times",
+			container: ProvisioningEventContainer{
+				Events: ProvisioningEvents{
+					ProvisioningEvent{
+						Time: now.Add(-5 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-4 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-3 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(1 * time.Minute),
+					},
+				},
+				LastEventTime: &now,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.container.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("ProvisioningEventContainer.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

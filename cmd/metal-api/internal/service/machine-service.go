@@ -1857,7 +1857,7 @@ func (r *machineResource) freeMachine(request *restful.Request, response *restfu
 	ev := metal.ProvisioningEvent{
 		Time:    time.Now(),
 		Event:   metal.ProvisioningEventMachineReclaim,
-		Message: "freeMachine",
+		Message: "free machine called",
 	}
 	_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
 	if err != nil {

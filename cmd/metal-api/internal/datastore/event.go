@@ -61,7 +61,7 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, even
 		return nil, err
 	}
 
-	newEC.TrimEvents(metal.ProvisioningEventsInspectionLimit)
+	newEC.TrimEvents(100)
 
 	err = rs.UpsertProvisioningEventContainer(newEC)
 	return newEC, err
