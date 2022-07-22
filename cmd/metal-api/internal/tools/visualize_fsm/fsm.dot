@@ -1,0 +1,44 @@
+digraph fsm {
+    "Booting New Kernel" -> "" [ label = "Alive" ];
+    "Booting New Kernel" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "Booting New Kernel" -> "Phoned Home" [ label = "Phoned Home" ];
+    "Booting New Kernel" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "Installing" -> "" [ label = "Alive" ];
+    "Installing" -> "Booting New Kernel" [ label = "Booting New Kernel" ];
+    "Installing" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "Installing" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "Machine Reclaim" -> "PXE Booting" [ label = "PXE Booting" ];
+    "Machine Reclaim" -> "Phoned Home" [ label = "Phoned Home" ];
+    "Machine Reclaim" -> "Preparing" [ label = "Preparing" ];
+    "PXE Booting" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "PXE Booting" -> "" [ label = "PXE Booting" ];
+    "PXE Booting" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "PXE Booting" -> "Preparing" [ label = "Preparing" ];
+    "Phoned Home" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "Phoned Home" -> "" [ label = "Phoned Home" ];
+    "Phoned Home" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "Planned Reboot" -> "" [ label = "Phoned Home" ];
+    "Preparing" -> "" [ label = "Alive" ];
+    "Preparing" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "Preparing" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "Preparing" -> "Registering" [ label = "Registering" ];
+    "Registering" -> "" [ label = "Alive" ];
+    "Registering" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "Registering" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "Registering" -> "Waiting" [ label = "Waiting" ];
+    "Waiting" -> "" [ label = "Alive" ];
+    "Waiting" -> "Installing" [ label = "Installing" ];
+    "Waiting" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "Waiting" -> "Planned Reboot" [ label = "Planned Reboot" ];
+
+    "";
+    "Booting New Kernel";
+    "Installing";
+    "Machine Reclaim";
+    "PXE Booting";
+    "Phoned Home";
+    "Planned Reboot";
+    "Preparing";
+    "Registering";
+    "Waiting";
+}

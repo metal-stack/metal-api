@@ -38,7 +38,7 @@ type provisioningFSM struct {
 	log       *zap.SugaredLogger
 }
 
-var events = fsm.Events{
+var Events = fsm.Events{
 	{
 		Name: metal.ProvisioningEventPXEBooting.String(),
 		Src: []string{
@@ -202,7 +202,7 @@ func newProvisioningFSM(lastEvent metal.ProvisioningEventType, container *metal.
 
 	p.fsm = fsm.NewFSM(
 		getEventDestination(lastEvent.String()),
-		events,
+		Events,
 		fsm.Callbacks{
 			"enter_" + fsmStateRegistering.String():      p.appendEventToContainer,
 			"enter_" + fsmStateWaiting.String():          p.appendEventToContainer,
@@ -227,7 +227,7 @@ func newProvisioningFSM(lastEvent metal.ProvisioningEventType, container *metal.
 func getEventDestination(event string) string {
 	dst := fsmStatePXEBooting.String()
 
-	for _, e := range events {
+	for _, e := range Events {
 		if e.Name == event && e.Dst != "" {
 			dst = e.Dst
 		}
