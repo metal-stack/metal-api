@@ -265,6 +265,7 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
+	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
 	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
 
 	must(viper.BindPFlags(rootCmd.Flags()))
@@ -700,7 +701,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter)
+	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -718,7 +719,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(ipService)
 	restful.DefaultContainer.Add(firmwareService)
 	restful.DefaultContainer.Add(machineService)
-	restful.DefaultContainer.Add(service.NewProject(logger.Named("project-service"), ds, mdc))
+	restful.DefaultContainer.Add(service.NewProject(logger.Named("project-service"), ds, mdc, headscaleClient))
 	restful.DefaultContainer.Add(service.NewTenant(logger.Named("tenant-service"), mdc))
 	restful.DefaultContainer.Add(service.NewUser(logger.Named("user-service"), userGetter))
 	restful.DefaultContainer.Add(firewallService)
