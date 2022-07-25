@@ -46,16 +46,18 @@ func NewFirewall(
 	ep *bus.Endpoints,
 	mdc mdm.Client,
 	userGetter security.UserGetter,
+	headscaleClient *headscale.HeadscaleClient,
 ) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
 			log: log,
 			ds:  ds,
 		},
-		Publisher:  pub,
-		ipamer:     ipamer,
-		mdc:        mdc,
-		userGetter: userGetter,
+		Publisher:       pub,
+		ipamer:          ipamer,
+		mdc:             mdc,
+		userGetter:      userGetter,
+		headscaleClient: headscaleClient,
 	}
 
 	var err error
