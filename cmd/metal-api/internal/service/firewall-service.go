@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"time"
+
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"net/http"
 
 	"github.com/metal-stack/security"
@@ -24,6 +25,8 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	headscalecore "github.com/juanfont/headscale"
+	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -242,11 +245,21 @@ func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSp
 		return err
 	}
 
-	createRequest := &headscalev1.CreatePreAuthKeyRequest{
-		Namespace:  p.Project.Name,
-		Expiration: timestamppb.Now(),
+	// Try to create namespace in Headscale DB
+	createNSRequest := &headscalev1.CreateNamespaceRequest{
+		Name: p.Project.Name,
 	}
-	response, err := r.headscaleClient.CreatePreAuthKey(ctx, createRequest)
+	_, err = r.headscaleClient.CreateNamespace(context.Background(), createNSRequest)
+	if err != nil && !errors.Is(headscalecore.Error("Namespace already exists"), err) {
+		return fmt.Errorf("failed to create new VPN namespace: %w", err)
+	}
+
+	expiration := time.Now().Add(90 * 24 * time.Hour)
+	createPAKRequest := &headscalev1.CreatePreAuthKeyRequest{
+		Namespace:  p.Project.Name,
+		Expiration: timestamppb.New(expiration),
+	}
+	response, err := r.headscaleClient.CreatePreAuthKey(ctx, createPAKRequest)
 	if err != nil {
 		return fmt.Errorf("failed to create new Auth Key: %w", err)
 	}

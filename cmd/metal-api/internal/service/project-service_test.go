@@ -51,7 +51,7 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	if dsmock != nil {
 		dsmock(mock)
 	}
-	ws := NewProject(zaptest.NewLogger(t).Sugar(), ds, mdc, nil)
+	ws := NewProject(zaptest.NewLogger(t).Sugar(), ds, mdc)
 	return &MockedProjectService{
 		t:  t,
 		ws: ws,
