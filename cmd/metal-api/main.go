@@ -725,7 +725,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(ipService)
 	restful.DefaultContainer.Add(firmwareService)
 	restful.DefaultContainer.Add(machineService)
-	restful.DefaultContainer.Add(service.NewProject(logger.Named("project-service"), ds, mdc, headscaleClient))
+	restful.DefaultContainer.Add(service.NewProject(logger.Named("project-service"), ds, mdc))
 	restful.DefaultContainer.Add(service.NewTenant(logger.Named("tenant-service"), mdc))
 	restful.DefaultContainer.Add(service.NewUser(logger.Named("user-service"), userGetter))
 	restful.DefaultContainer.Add(firewallService)

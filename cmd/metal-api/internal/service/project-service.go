@@ -3,9 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
-	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"net/http"
 
 	"github.com/metal-stack/masterdata-api/api/rest/mapper"
@@ -24,8 +21,7 @@ import (
 
 type projectResource struct {
 	webResource
-	mdc             mdm.Client
-	headscaleClient *headscale.HeadscaleClient
+	mdc mdm.Client
 }
 
 // NewProject returns a webservice for project specific endpoints.
@@ -33,15 +29,13 @@ func NewProject(
 	log *zap.SugaredLogger,
 	ds *datastore.RethinkStore,
 	mdc mdm.Client,
-	headscaleClient *headscale.HeadscaleClient,
 ) *restful.WebService {
 	r := projectResource{
 		webResource: webResource{
 			log: log,
 			ds:  ds,
 		},
-		mdc:             mdc,
-		headscaleClient: headscaleClient,
+		mdc: mdc,
 	}
 	return r.webService()
 }
@@ -191,10 +185,6 @@ func (r *projectResource) createProject(request *restful.Request, response *rest
 
 	mdmv1pcr := &mdmv1.ProjectCreateRequest{
 		Project: project,
-	}
-	if err := r.createProjectVPNNamespace(mdmv1pcr); err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
 	}
 
 	p, err := r.mdc.Project().Create(context.Background(), mdmv1pcr)
@@ -348,20 +338,4 @@ func (r *projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, 
 	qs.Ip.Used = &ipUsage
 
 	return p, nil
-}
-
-func (r *projectResource) createProjectVPNNamespace(projectReq *mdmv1.ProjectCreateRequest) error {
-	if r.headscaleClient == nil {
-		return nil
-	}
-
-	createRequest := &headscalev1.CreateNamespaceRequest{
-		Name: projectReq.Project.Name,
-	}
-	_, err := r.headscaleClient.CreateNamespace(context.Background(), createRequest)
-	if err != nil {
-		return fmt.Errorf("failed to create new VPN namespace: %w", err)
-	}
-
-	return nil
 }
