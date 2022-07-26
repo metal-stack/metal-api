@@ -178,7 +178,19 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Events: metal.ProvisioningEvents{
 					{
 						Time:  lastEventTime,
+						Event: metal.ProvisioningEventWaiting,
+					},
+					{
+						Time:  lastEventTime.Add(-1 * time.Minute),
 						Event: metal.ProvisioningEventRegistering,
+					},
+					{
+						Time:  lastEventTime.Add(-2 * time.Minute),
+						Event: metal.ProvisioningEventPreparing,
+					},
+					{
+						Time:  lastEventTime.Add(-3 * time.Minute),
+						Event: metal.ProvisioningEventPXEBooting,
 					},
 				},
 				Liveliness: metal.MachineLivelinessAlive,
@@ -196,7 +208,19 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Events: metal.ProvisioningEvents{
 					{
 						Time:  lastEventTime,
+						Event: metal.ProvisioningEventWaiting,
+					},
+					{
+						Time:  lastEventTime.Add(-1 * time.Minute),
 						Event: metal.ProvisioningEventRegistering,
+					},
+					{
+						Time:  lastEventTime.Add(-2 * time.Minute),
+						Event: metal.ProvisioningEventPreparing,
+					},
+					{
+						Time:  lastEventTime.Add(-3 * time.Minute),
+						Event: metal.ProvisioningEventPXEBooting,
 					},
 				},
 			},

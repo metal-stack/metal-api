@@ -175,7 +175,7 @@ func checkProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pro
 		return container, nil
 	}
 
-	provisioningFSM := newProvisioningFSM(container.Events[len(container.Events)-1].Event, container, event, log)
+	provisioningFSM := newProvisioningFSM(container.Events[0].Event, container, event, log)
 
 	err := provisioningFSM.fsm.Event(event.Event.String(), provisioningFSM, event)
 	if err == nil {
