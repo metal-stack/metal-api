@@ -60,16 +60,16 @@ func TestProvisioningEventContainer_Validate(t *testing.T) {
 			container: ProvisioningEventContainer{
 				Events: ProvisioningEvents{
 					ProvisioningEvent{
-						Time: now.Add(-5 * time.Minute),
-					},
-					ProvisioningEvent{
-						Time: now.Add(-4 * time.Minute),
+						Time: now.Add(-2 * time.Minute),
 					},
 					ProvisioningEvent{
 						Time: now.Add(-3 * time.Minute),
 					},
 					ProvisioningEvent{
-						Time: now.Add(-2 * time.Minute),
+						Time: now.Add(-4 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-5 * time.Minute),
 					},
 				},
 				LastEventTime: &now,
@@ -104,16 +104,16 @@ func TestProvisioningEventContainer_Validate(t *testing.T) {
 			container: ProvisioningEventContainer{
 				Events: ProvisioningEvents{
 					ProvisioningEvent{
-						Time: now.Add(-5 * time.Minute),
-					},
-					ProvisioningEvent{
-						Time: now.Add(-3 * time.Minute),
+						Time: now.Add(-2 * time.Minute),
 					},
 					ProvisioningEvent{
 						Time: now.Add(-4 * time.Minute),
 					},
 					ProvisioningEvent{
-						Time: now.Add(-2 * time.Minute),
+						Time: now.Add(-3 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-5 * time.Minute),
 					},
 				},
 			},
@@ -124,16 +124,16 @@ func TestProvisioningEventContainer_Validate(t *testing.T) {
 			container: ProvisioningEventContainer{
 				Events: ProvisioningEvents{
 					ProvisioningEvent{
-						Time: now.Add(-5 * time.Minute),
-					},
-					ProvisioningEvent{
-						Time: now.Add(-4 * time.Minute),
+						Time: now.Add(1 * time.Minute),
 					},
 					ProvisioningEvent{
 						Time: now.Add(-3 * time.Minute),
 					},
 					ProvisioningEvent{
-						Time: now.Add(1 * time.Minute),
+						Time: now.Add(-4 * time.Minute),
+					},
+					ProvisioningEvent{
+						Time: now.Add(-5 * time.Minute),
 					},
 				},
 				LastEventTime: &now,
