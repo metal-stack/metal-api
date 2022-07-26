@@ -825,7 +825,7 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 		},
 		retry.Attempts(10),
 		retry.RetryIf(func(err error) bool {
-			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+			return metal.IsConflict(err)
 		}),
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
@@ -1229,7 +1229,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		},
 		retry.Attempts(10),
 		retry.RetryIf(func(err error) bool {
-			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+			return metal.IsConflict(err)
 		}),
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
@@ -1806,7 +1806,7 @@ func (r *machineResource) finalizeAllocation(request *restful.Request, response 
 		},
 		retry.Attempts(10),
 		retry.RetryIf(func(err error) bool {
-			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+			return metal.IsConflict(err)
 		}),
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
@@ -2082,7 +2082,7 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 		},
 		retry.Attempts(10),
 		retry.RetryIf(func(err error) bool {
-			return strings.Contains(err.Error(), datastore.EntityAlreadyModifiedErrorMessage)
+			return metal.IsConflict(err)
 		}),
 		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.LastErrorOnly(true),
