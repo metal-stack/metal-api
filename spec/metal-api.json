@@ -2695,8 +2695,16 @@
     },
     "v1.MachineRecentProvisioningEvents": {
       "properties": {
+        "crash_loop": {
+          "description": "indicates that machine is provisioning crash loop",
+          "type": "boolean"
+        },
+        "failed_machine_reclaim": {
+          "description": "indicates that machine reclaim has failed",
+          "type": "boolean"
+        },
         "incomplete_provisioning_cycles": {
-          "description": "the amount of incomplete provisioning cycles in the event container",
+          "description": "The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'.",
           "type": "string"
         },
         "last_event_time": {
@@ -2713,6 +2721,8 @@
         }
       },
       "required": [
+        "crash_loop",
+        "failed_machine_reclaim",
         "incomplete_provisioning_cycles",
         "log"
       ]
