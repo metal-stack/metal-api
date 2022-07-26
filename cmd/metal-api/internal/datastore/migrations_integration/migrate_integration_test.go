@@ -41,7 +41,7 @@ func Test_Migration(t *testing.T) {
 
 	now := time.Now()
 	lastEventTime := now.Add(10 * time.Minute)
-	rs.UpsertProvisioningEventContainer(&metal.ProvisioningEventContainer{
+	err = rs.UpsertProvisioningEventContainer(&metal.ProvisioningEventContainer{
 		Base: metal.Base{
 			ID: "1",
 		},
@@ -59,6 +59,7 @@ func Test_Migration(t *testing.T) {
 		CrashLoop:            false,
 		FailedMachineReclaim: false,
 	})
+	require.NoError(t, err)
 
 	err = rs.Migrate(nil, false)
 	require.NoError(t, err)
