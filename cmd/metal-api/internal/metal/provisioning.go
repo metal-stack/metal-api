@@ -102,7 +102,7 @@ func (c *ProvisioningEventContainer) Validate() error {
 
 	// LastEventTime field in container may be equal or later than the time of the last event
 	// because some events will update the field but not be appended
-	if lastEventTime.After(*c.LastEventTime) {
+	if c.LastEventTime == nil || lastEventTime.After(*c.LastEventTime) {
 		return fmt.Errorf("last event time not up to date in provisioning event container for machine %s", c.ID)
 	}
 
