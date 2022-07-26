@@ -26,6 +26,7 @@ const (
 	fsmStatePhonedHome       fsmStateType = "Phoned Home"
 	fsmStatePlannedReboot    fsmStateType = "Planned Reboot"
 	fsmStateMachineReclaim   fsmStateType = "Machine Reclaim"
+	fsmStateInitial          fsmStateType = "initial"
 )
 
 // failedMachineReclaimThreshold is the duration after which the machine reclaim is assumed to have failed.
@@ -43,6 +44,7 @@ var Events = fsm.Events{
 		Name: metal.ProvisioningEventPXEBooting.String(),
 		Src: []string{
 			fsmStateMachineReclaim.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStatePXEBooting.String(),
 	},
@@ -57,6 +59,7 @@ var Events = fsm.Events{
 		Src: []string{
 			fsmStatePXEBooting.String(),
 			fsmStateMachineReclaim.String(), // MachineReclaim is a valid src for Preparing because some machines might be incapable of sending PXEBoot events
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStatePreparing.String(),
 	},
@@ -64,6 +67,7 @@ var Events = fsm.Events{
 		Name: metal.ProvisioningEventRegistering.String(),
 		Src: []string{
 			fsmStatePreparing.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStateRegistering.String(),
 	},
@@ -71,6 +75,7 @@ var Events = fsm.Events{
 		Name: metal.ProvisioningEventWaiting.String(),
 		Src: []string{
 			fsmStateRegistering.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStateWaiting.String(),
 	},
@@ -78,6 +83,7 @@ var Events = fsm.Events{
 		Name: metal.ProvisioningEventInstalling.String(),
 		Src: []string{
 			fsmStateWaiting.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStateInstalling.String(),
 	},
@@ -85,6 +91,7 @@ var Events = fsm.Events{
 		Name: metal.ProvisioningEventBootingNewKernel.String(),
 		Src: []string{
 			fsmStateInstalling.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStateBootingNewKernel.String(),
 	},
@@ -93,6 +100,7 @@ var Events = fsm.Events{
 		Src: []string{
 			fsmStateBootingNewKernel.String(),
 			fsmStateMachineReclaim.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStatePhonedHome.String(),
 	},
@@ -113,6 +121,7 @@ var Events = fsm.Events{
 			fsmStateInstalling.String(),
 			fsmStateBootingNewKernel.String(),
 			fsmStatePhonedHome.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStatePlannedReboot.String(),
 	},
@@ -126,6 +135,7 @@ var Events = fsm.Events{
 			fsmStateInstalling.String(),
 			fsmStateBootingNewKernel.String(),
 			fsmStatePhonedHome.String(),
+			fsmStateInitial.String(),
 		},
 		Dst: fsmStateMachineReclaim.String(),
 	},
@@ -137,6 +147,7 @@ var Events = fsm.Events{
 			fsmStateWaiting.String(),
 			fsmStateInstalling.String(),
 			fsmStateBootingNewKernel.String(),
+			fsmStateInitial.String(),
 		},
 	},
 }
@@ -167,15 +178,12 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 }
 
 func checkProvisioningEvent(event *metal.ProvisioningEvent, container *metal.ProvisioningEventContainer, log *zap.SugaredLogger) (*metal.ProvisioningEventContainer, error) {
-	if len(container.Events) == 0 {
-		container.Events = append(container.Events, *event)
-		container.LastEventTime = &event.Time
-		container.Liveliness = metal.MachineLivelinessAlive
-
-		return container, nil
+	initial := fsmStateInitial.String()
+	if len(container.Events) != 0 {
+		initial = container.Events[0].Event.String()
 	}
 
-	provisioningFSM := newProvisioningFSM(container.Events[0].Event, container, event, log)
+	provisioningFSM := newProvisioningFSM(initial, container, event, log)
 
 	err := provisioningFSM.fsm.Event(event.Event.String(), provisioningFSM, event)
 	if err == nil {
@@ -193,7 +201,7 @@ func checkProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pro
 	return nil, err
 }
 
-func newProvisioningFSM(lastEvent metal.ProvisioningEventType, container *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent, log *zap.SugaredLogger) *provisioningFSM {
+func newProvisioningFSM(lastEvent string, container *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent, log *zap.SugaredLogger) *provisioningFSM {
 	p := provisioningFSM{
 		container: container,
 		event:     event,
@@ -201,7 +209,7 @@ func newProvisioningFSM(lastEvent metal.ProvisioningEventType, container *metal.
 	}
 
 	p.fsm = fsm.NewFSM(
-		getEventDestination(lastEvent.String()),
+		getEventDestination(lastEvent),
 		Events,
 		fsm.Callbacks{
 			"enter_" + fsmStateRegistering.String():      p.appendEventToContainer,
@@ -225,15 +233,13 @@ func newProvisioningFSM(lastEvent metal.ProvisioningEventType, container *metal.
 }
 
 func getEventDestination(event string) string {
-	dst := fsmStatePXEBooting.String()
-
 	for _, e := range Events {
 		if e.Name == event && e.Dst != "" {
-			dst = e.Dst
+			return e.Dst
 		}
 	}
 
-	return dst
+	return fsmStateInitial.String()
 }
 
 func (f *provisioningFSM) appendEventToContainer(e *fsm.Event) {

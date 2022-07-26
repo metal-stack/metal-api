@@ -45,6 +45,25 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
+			name: "First Event Alive in container",
+			container: &metal.ProvisioningEventContainer{
+				Events:     metal.ProvisioningEvents{},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventAlive,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            false,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events:               metal.ProvisioningEvents{},
+			},
+		},
+		{
 			name: "Transition from PXEBooting to PXEBooting",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
