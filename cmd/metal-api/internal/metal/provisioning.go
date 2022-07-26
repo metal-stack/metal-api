@@ -99,18 +99,19 @@ func (c *ProvisioningEventContainer) Validate() error {
 	}
 
 	lastEventTime := c.Events[0].Time
+
+	// LastEventTime field in container may be equal or later than the time of the last event
+	// because some events will update the field but not be appended
+	if lastEventTime.After(*c.LastEventTime) {
+		return fmt.Errorf("last event time not up to date in provisioning event container for machine %s", c.ID)
+	}
+
 	for _, e := range c.Events {
-		if e.Time.Before(lastEventTime) {
+		if e.Time.After(lastEventTime) {
 			return fmt.Errorf("provisioning event container for machine %s is not chronologically sorted", c.ID)
 		}
 
 		lastEventTime = e.Time
-	}
-
-	// last event time in container can be equal or later than the time of the last event, because some events
-	// will update the LastEventTime field without being appended to the container.
-	if c.LastEventTime == nil || lastEventTime.After(*c.LastEventTime) {
-		return fmt.Errorf("inconsistency in container for machine %s: time of last event is not equal to last event time field", c.ID)
 	}
 
 	return nil

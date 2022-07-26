@@ -81,10 +81,6 @@ func TestHandleProvisioningEvent(t *testing.T) {
 						Time:  lastEventTime,
 						Event: metal.ProvisioningEventPXEBooting,
 					},
-					{
-						Time:  lastEventTime.Add(time.Minute * 2),
-						Event: metal.ProvisioningEventPXEBooting,
-					},
 				},
 				Liveliness: metal.MachineLivelinessAlive,
 			},
@@ -100,16 +96,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				LastEventTime:        &now,
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastEventTime,
-						Event: metal.ProvisioningEventPXEBooting,
-					},
-					{
-						Time:  lastEventTime.Add(time.Minute * 2),
-						Event: metal.ProvisioningEventPXEBooting,
-					},
-					{
 						Time:  now,
 						Event: metal.ProvisioningEventPreparing,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventPXEBooting,
 					},
 				},
 			},
@@ -137,12 +129,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				LastEventTime:        &now,
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastEventTime,
-						Event: metal.ProvisioningEventBootingNewKernel,
-					},
-					{
 						Time:  now,
 						Event: metal.ProvisioningEventPhonedHome,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventBootingNewKernel,
 					},
 				},
 			},
@@ -170,12 +162,12 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				LastEventTime:        &now,
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  lastEventTime,
-						Event: metal.ProvisioningEventRegistering,
-					},
-					{
 						Time:  now,
 						Event: metal.ProvisioningEventPreparing,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventRegistering,
 					},
 				},
 			},
@@ -298,6 +290,146 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Reset Failed Reclaim flag with PXE Booting event",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventMachineReclaim,
+					},
+				},
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &lastEventTime,
+				FailedMachineReclaim: true,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPXEBooting,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            false,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventPXEBooting,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventMachineReclaim,
+					},
+				},
+			},
+		},
+		{
+			name: "Reset Failed Reclaim with with Preparing event",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventMachineReclaim,
+					},
+				},
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &lastEventTime,
+				FailedMachineReclaim: true,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPreparing,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            false,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventPreparing,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventMachineReclaim,
+					},
+				},
+			},
+		},
+		{
+			name: "Reset Crash Loop flag with Phoned Home event",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventBootingNewKernel,
+					},
+				},
+				Liveliness:    metal.MachineLivelinessAlive,
+				LastEventTime: &lastEventTime,
+				CrashLoop:     true,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPhonedHome,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            false,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventPhonedHome,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventBootingNewKernel,
+					},
+				},
+			},
+		},
+		{
+			name: "Reset Crash Loop flag with Planned Reboot event",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventRegistering,
+					},
+				},
+				Liveliness:    metal.MachineLivelinessAlive,
+				LastEventTime: &lastEventTime,
+				CrashLoop:     true,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPlannedReboot,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            false,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventPlannedReboot,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventRegistering,
+					},
+				},
+			},
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
@@ -309,6 +441,10 @@ func TestHandleProvisioningEvent(t *testing.T) {
 
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
+			}
+
+			if err = got.Validate(); err != nil {
+				t.Errorf("HandleProvisioningEvent() Validate error = %s", err)
 			}
 		})
 	}

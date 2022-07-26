@@ -183,7 +183,7 @@ func checkProvisioningEvent(event *metal.ProvisioningEvent, container *metal.Pro
 	}
 
 	if errors.As(err, &fsm.InvalidEventError{}) {
-		container.Events = append(container.Events, *event)
+		container.Events = append([]metal.ProvisioningEvent{*event}, container.Events...)
 		container.LastEventTime = &event.Time
 		container.CrashLoop = true
 
@@ -237,7 +237,7 @@ func getEventDestination(event string) string {
 }
 
 func (f *provisioningFSM) appendEventToContainer(e *fsm.Event) {
-	f.container.Events = append(f.container.Events, *f.event)
+	f.container.Events = append([]metal.ProvisioningEvent{*f.event}, f.container.Events...)
 }
 
 func (f *provisioningFSM) updateEventTimeAndLiveliness(e *fsm.Event) {
