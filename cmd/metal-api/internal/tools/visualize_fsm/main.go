@@ -11,7 +11,7 @@ import (
 func main() {
 	f := fsm.NewFSM("", pfsm.Events, nil)
 	dot := fsm.Visualize(f)
-	if err := os.WriteFile("provisioning-fsm.dot", []byte(dot), 0600); err != nil {
+	if err := os.WriteFile("fsm.dot", []byte(dot), 0600); err != nil {
 		log.Fatal(err)
 	}
 }

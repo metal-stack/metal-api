@@ -30,6 +30,16 @@ digraph fsm {
     "Waiting" -> "Installing" [ label = "Installing" ];
     "Waiting" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
     "Waiting" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "initial" -> "" [ label = "Alive" ];
+    "initial" -> "Booting New Kernel" [ label = "Booting New Kernel" ];
+    "initial" -> "Installing" [ label = "Installing" ];
+    "initial" -> "Machine Reclaim" [ label = "Machine Reclaim" ];
+    "initial" -> "PXE Booting" [ label = "PXE Booting" ];
+    "initial" -> "Phoned Home" [ label = "Phoned Home" ];
+    "initial" -> "Planned Reboot" [ label = "Planned Reboot" ];
+    "initial" -> "Preparing" [ label = "Preparing" ];
+    "initial" -> "Registering" [ label = "Registering" ];
+    "initial" -> "Waiting" [ label = "Waiting" ];
 
     "";
     "Booting New Kernel";
@@ -41,4 +51,5 @@ digraph fsm {
     "Preparing";
     "Registering";
     "Waiting";
+    "initial";
 }
