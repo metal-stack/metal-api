@@ -116,7 +116,7 @@ func (t *test) run() {
 			return r.Branch(row.Field("changed").Eq(r.MockAnything()), metal.Machine{
 				Base:    metal.Base{ID: id, Changed: now},
 				Waiting: w,
-			}, r.Error(datastore.EntityAlreadyModifiedErrorMessage))
+			}, r.MockAnything())
 		})
 	}
 	returnMock := func(w bool, id string) func() []interface{} {

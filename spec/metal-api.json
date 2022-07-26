@@ -5495,6 +5495,12 @@
               "$ref": "#/definitions/v1.IPResponse"
             }
           },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
           "default": {
             "description": "Error",
             "schema": {
@@ -5539,6 +5545,12 @@
             "description": "Created",
             "schema": {
               "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           },
           "default": {
