@@ -8,7 +8,7 @@ import (
 )
 
 // RecentProvisioningEventsLimit defines how many recent events are added to the MachineRecentProvisioningEvents struct
-const RecentProvisioningEventsLimit = 5
+const RecentProvisioningEventsLimit = 20
 
 type MachineBase struct {
 	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" optional:"true"`

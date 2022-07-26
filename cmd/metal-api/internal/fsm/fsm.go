@@ -267,13 +267,16 @@ func (f *provisioningFSM) resetCrashLoop(e *fsm.Event) {
 
 func (f *provisioningFSM) handlePhonedHome(e *fsm.Event) {
 	if e.Src != fsmStateMachineReclaim.String() {
+		f.container.CrashLoop = false
 		f.appendEventToContainer(e)
-	} else if f.container.LastEventTime != nil && f.event.Time.Sub(*f.container.LastEventTime) > failedMachineReclaimThreshold {
+		return
+	}
+
+	if f.container.LastEventTime != nil && f.event.Time.Sub(*f.container.LastEventTime) > failedMachineReclaimThreshold {
 		f.container.LastEventTime = &f.event.Time
 		f.container.FailedMachineReclaim = true
 	}
 
-	f.container.CrashLoop = false
 }
 
 func (f *provisioningFSM) logAliveEvent(e *fsm.Event) {
