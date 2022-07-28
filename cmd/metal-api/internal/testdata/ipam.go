@@ -2,18 +2,16 @@ package testdata
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
-
-	goipam "github.com/metal-stack/go-ipam"
 )
 
 // InitMockIpamData initializes mock data to be stored in the IPAM module
-func InitMockIpamData(dbMock *r.Mock, withIP bool) (*ipam.Ipam, error) {
-	ip := goipam.New()
-	ipamer := ipam.New(ip)
+func InitMockIpamData(dbMock *r.Mock, withIP bool) (ipam.IPAMer, error) {
+	ipamer := ipam.InitTestIpam(&testing.T{})
 
 	// start creating the prefixes in the IPAM
 	for _, prefix := range prefixesIPAM {

@@ -16,7 +16,6 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/emicklei/go-restful/v3"
-	goipam "github.com/metal-stack/go-ipam"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -305,24 +304,18 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
-	_, pg, err := test.StartPostgres()
-	require.NoError(t, err)
-	pgStorage, err := goipam.NewPostgresStorage(pg.IP, pg.Port, pg.User, pg.Password, pg.DB, goipam.SSLModeDisable)
-	require.NoError(t, err)
-
-	ipamer := goipam.NewWithStorage(pgStorage)
-
+	ipamer := ipam.InitTestIpam(t)
 	createTestdata(machineCount, rs, ipamer, t)
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0)
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
 	return rs, container
 }
 
-func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
+func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
 	for i := 0; i < machineCount; i++ {
 		id := fmt.Sprintf("WaitingMaschine%d", i)
 		m := &metal.Machine{
@@ -340,11 +333,12 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
 
-	super, err := ipamer.NewPrefix("10.0.0.0/20")
+	super := metal.Prefix{IP: "10.0.0.0", Length: "20"}
+	err = ipamer.CreatePrefix(super)
 	require.NoError(t, err)
-	private, err := ipamer.AcquireChildPrefix(super.Cidr, 22)
+	private, err := ipamer.AllocateChildPrefix(super, 22)
 	require.NoError(t, err)
-	privateNetwork, err := metal.NewPrefixFromCIDR(private.Cidr)
+	privateNetwork, err := metal.NewPrefixFromCIDR(private.IP)
 	require.NoError(t, err)
 	require.NotNil(t, privateNetwork)
 

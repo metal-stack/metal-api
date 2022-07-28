@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bufbuild/connect-go"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -33,7 +34,9 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
-	goipam "github.com/metal-stack/go-ipam"
+	compress "github.com/klauspost/connect-compress"
+	"github.com/metal-stack/go-ipam/api/v1/apiv1connect"
+
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -66,7 +69,7 @@ var (
 	logger *zap.SugaredLogger
 
 	ds                 *datastore.RethinkStore
-	ipamer             *ipam.Ipam
+	ipamer             ipam.IPAMer
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	mdc                mdm.Client
@@ -509,30 +512,17 @@ func initMasterData() {
 }
 
 func initIpam() {
-	dbAdapter := viper.GetString("ipam-db")
-	switch dbAdapter {
-	case "postgres":
-		pgStorage, err := goipam.NewPostgresStorage(
-			viper.GetString("ipam-db-addr"),
-			viper.GetString("ipam-db-port"),
-			viper.GetString("ipam-db-user"),
-			viper.GetString("ipam-db-password"),
-			viper.GetString("ipam-db-name"),
-			goipam.SSLModeDisable)
-		if err != nil {
-			logger.Errorw("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
-			time.Sleep(3 * time.Second)
-			initIpam()
-			return
-		}
-		ipamInstance := goipam.NewWithStorage(pgStorage)
-		ipamer = ipam.New(ipamInstance)
-	case "memory":
-		ipamInstance := goipam.New()
-		ipamer = ipam.New(ipamInstance)
-	default:
-		logger.Errorw("database not supported", "db", dbAdapter)
-	}
+	ipamgrpcendpoint := viper.GetString("ipamdb-grpc-server-endpoint")
+
+	clientOpts, _ := compress.All(compress.LevelBalanced)
+
+	ipamer = ipam.New(apiv1connect.NewIpamServiceClient(
+		http.DefaultClient,
+		ipamgrpcendpoint,
+		connect.WithGRPC(),
+		clientOpts,
+	))
+
 	logger.Info("ipam initialized")
 }
 

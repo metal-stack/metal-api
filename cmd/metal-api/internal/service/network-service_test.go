@@ -19,7 +19,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
 	restful "github.com/emicklei/go-restful/v3"
-	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +28,7 @@ func TestGetNetworks(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network", nil)
 	container = injectViewer(log, container, req)
@@ -57,7 +56,7 @@ func TestGetNetwork(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/1", nil)
 	container = injectViewer(log, container, req)
@@ -80,7 +79,7 @@ func TestGetNetworkNotFound(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/999", nil)
 	container = injectViewer(log, container, req)
@@ -195,7 +194,7 @@ func TestUpdateNetwork(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
 	container := restful.NewContainer().Add(networkservice)
 
 	newName := "new"
@@ -231,7 +230,7 @@ func TestSearchNetwork(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	networkService := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
+	networkService := NewNetwork(log, ds, ipam.InitTestIpam(t), nil)
 	container := restful.NewContainer().Add(networkService)
 	requestJSON := fmt.Sprintf("{%q:%q}", "partitionid", "1")
 	req := httptest.NewRequest("POST", "/v1/network/find", bytes.NewBufferString(requestJSON))
