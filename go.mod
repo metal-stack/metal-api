@@ -9,7 +9,7 @@ require (
 	github.com/bufbuild/connect-go v0.2.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.9.0
-	github.com/emicklei/go-restful/v3 v3.8.0
+	github.com/emicklei/go-restful/v3 v3.9.0
 	github.com/go-openapi/spec v0.20.6
 	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.3.0
