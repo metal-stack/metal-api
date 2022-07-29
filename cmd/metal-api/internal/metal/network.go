@@ -3,6 +3,7 @@ package metal
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 )
@@ -32,14 +33,13 @@ type Prefix struct {
 type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
-// TODO use net/netip helpers
 func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
-	ip, length, found := strings.Cut(cidr, "/")
-	if !found {
-		return nil, fmt.Errorf("cannot split cidr into pieces: %q", cidr)
+	p, err := netip.ParsePrefix(cidr)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse prefix from cidr %w", err)
 	}
-	ip = strings.TrimSpace(ip)
-	length = strings.TrimSpace(length)
+	ip := p.Addr().String()
+	length := fmt.Sprintf("%d", p.Bits())
 	return &Prefix{
 		IP:     ip,
 		Length: length,
