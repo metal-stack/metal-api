@@ -735,6 +735,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewFilesystemLayout(logger.Named("filesystem-layout-service"), ds))
 	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
+	restful.DefaultContainer.Add(service.NewVPN(logger.Named("vpn-service"), mdc, headscaleClient))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
