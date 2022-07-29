@@ -512,7 +512,7 @@ func initMasterData() {
 }
 
 func initIpam() {
-	ipamgrpcendpoint := viper.GetString("ipamdb-grpc-server-endpoint")
+	ipamgrpcendpoint := viper.GetString("ipam-grpc-server-endpoint")
 
 	clientOpts, _ := compress.All(compress.LevelBalanced)
 
