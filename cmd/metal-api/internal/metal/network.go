@@ -3,6 +3,7 @@ package metal
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -31,6 +32,7 @@ type Prefix struct {
 type Prefixes []Prefix
 
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
+// TODO use net/netip helpers
 func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
 	ip, length, found := strings.Cut(cidr, "/")
 	if !found {
@@ -42,6 +44,22 @@ func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
 		IP:     ip,
 		Length: length,
 	}, nil
+}
+
+// SplitCIDR return ip and optional length of a prefix
+// TODO this is kinda duplicate of NewPrefixFromCIDR
+// TODO use net/netip helpers
+func SplitCIDR(cidr string) (string, *int) {
+	parts := strings.Split(cidr, "/")
+	if len(parts) == 2 {
+		length, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return parts[0], nil
+		}
+		return parts[0], &length
+	}
+
+	return cidr, nil
 }
 
 // String implements the Stringer interface
