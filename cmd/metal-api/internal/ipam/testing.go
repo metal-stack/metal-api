@@ -19,7 +19,6 @@ func InitTestIpam(t *testing.T) IPAMer {
 	server := httptest.NewUnstartedServer(mux)
 	server.EnableHTTP2 = true
 	server.StartTLS()
-	defer server.Close()
 
 	ipamclient := apiv1connect.NewIpamServiceClient(
 		server.Client(),

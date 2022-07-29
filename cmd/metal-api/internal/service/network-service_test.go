@@ -133,7 +133,7 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 
 	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
-	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v1/network/"+testdata.NwIPAM.ID, nil)
 	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)

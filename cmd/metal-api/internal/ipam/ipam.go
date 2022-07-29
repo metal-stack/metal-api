@@ -11,6 +11,21 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
+// A IPAMer is responsible to allocate a IP for a given purpose
+// On the other hand it should release the IP.
+// Later Implementations should also allocate and release Networks.
+type IPAMer interface {
+	AllocateIP(prefix metal.Prefix) (string, error)
+	AllocateSpecificIP(prefix metal.Prefix, specificIP string) (string, error)
+	ReleaseIP(ip metal.IP) error
+	AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error)
+	ReleaseChildPrefix(childPrefix metal.Prefix) error
+	CreatePrefix(prefix metal.Prefix) error
+	DeletePrefix(prefix metal.Prefix) error
+	PrefixUsage(cidr string) (*metal.NetworkUsage, error)
+	PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error
+}
+
 type ipam struct {
 	ip apiv1connect.IpamServiceClient
 }
@@ -111,14 +126,15 @@ func (i *ipam) AllocateIP(prefix metal.Prefix) (string, error) {
 		Cidr: prefix.String(),
 	}))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to find prefix:%q %w", prefix, err)
 	}
 	if ipamPrefix == nil {
 		return "", fmt.Errorf("error finding prefix in ipam: %s", prefix.String())
 	}
 
 	ipamIP, err := i.ip.AcquireIP(ctx, connect.NewRequest(&apiv1.AcquireIPRequest{
-		Ip: &ipamPrefix.Msg.Prefix.Cidr,
+		PrefixCidr: ipamPrefix.Msg.Prefix.Cidr,
+		Ip:         nil,
 	}))
 	if err != nil {
 		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %w", prefix.String(), err)
@@ -194,7 +210,8 @@ func (i *ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	return &metal.NetworkUsage{
 		AvailableIPs: usage.Msg.AvailableIps,
 		UsedIPs:      usage.Msg.AcquiredIps,
-		// FIXME add usage.AvailablePrefixList as already done here https://github.com/metal-stack/metal-api/pull/152/files#diff-fe05f7f1480be933b5c482b74af28c8b9ca7ef2591f8341eb6e6663cbaeda7baR828
+		// FIXME add usage.AvailablePrefixList as already done here
+		// https://github.com/metal-stack/metal-api/pull/152/files#diff-fe05f7f1480be933b5c482b74af28c8b9ca7ef2591f8341eb6e6663cbaeda7baR828
 		AvailablePrefixes: usage.Msg.AvailableSmallestPrefixes,
 		UsedPrefixes:      usage.Msg.AcquiredPrefixes,
 	}, nil

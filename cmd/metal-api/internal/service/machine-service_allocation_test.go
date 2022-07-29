@@ -338,7 +338,7 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IP
 	require.NoError(t, err)
 	private, err := ipamer.AllocateChildPrefix(super, 22)
 	require.NoError(t, err)
-	privateNetwork, err := metal.NewPrefixFromCIDR(private.IP)
+	privateNetwork, err := metal.NewPrefixFromCIDR(private.String())
 	require.NoError(t, err)
 	require.NotNil(t, privateNetwork)
 
