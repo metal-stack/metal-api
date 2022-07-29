@@ -16,7 +16,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/klauspost/connect-compress v0.1.1
-	github.com/metal-stack/go-ipam v1.11.1-0.20220728125358-9e81753c9660
+	github.com/metal-stack/go-ipam v1.11.1
 	github.com/metal-stack/masterdata-api v0.8.12
 	github.com/metal-stack/metal-lib v0.10.0
 	github.com/metal-stack/security v0.6.5

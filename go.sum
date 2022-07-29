@@ -680,8 +680,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 h1:I0XW9+e1XWDxdcEniV4rQAIOPUGDq67JSCiRCgGCZLI=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2/go.mod h1:eD9eIE7cdwcMi9rYluz88Jz2VyhSmden33/aXg4oVIY=
-github.com/metal-stack/go-ipam v1.11.1-0.20220728125358-9e81753c9660 h1:hMza+lD1nJdTCsZUiNwCyZKwe9/Q0ipu/6aK4tt/Y8Q=
-github.com/metal-stack/go-ipam v1.11.1-0.20220728125358-9e81753c9660/go.mod h1:fX+f8+QMharyUYhU60dv8b/j2O3A15VcSNmGTv+deZA=
+github.com/metal-stack/go-ipam v1.11.1 h1:7v6TMNqx5F8pEnxWbeS4Lk9KDIk7JT4imstA7he6Lsk=
+github.com/metal-stack/go-ipam v1.11.1/go.mod h1:lYCugB/E4gv3DPbDOxaViySFQuq4gzgZZFNCNMWbZyo=
 github.com/metal-stack/masterdata-api v0.8.12 h1:hfg+g0W1tzs/5mV9RG4+l6pAtH/SMaeEUQujx+50Z7U=
 github.com/metal-stack/masterdata-api v0.8.12/go.mod h1:le/cvZ9nvw9QQ/eVJSrO7rNdwMMuIrQxFalaIcv/GUg=
 github.com/metal-stack/metal-lib v0.10.0 h1:Zq65tnkJHL/BPRu2NtnZCE2WEwj11icqoj5j4lBh4Gs=
