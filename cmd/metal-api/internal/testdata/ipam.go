@@ -42,7 +42,6 @@ func InitMockIpamData(dbMock *r.Mock, withIP bool) (ipam.IPAMer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error creating ipam mock data: %w", err)
 		}
-		fmt.Printf("Created IP:%s\n", ipAddress)
 		IPAMIP.IPAddress = ipAddress
 		IPAMIP.ParentPrefixCidr = prefixesIPAM[0].String()
 		IPAMIP.NetworkID = NwIPAM.ID
