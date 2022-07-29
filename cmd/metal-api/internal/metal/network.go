@@ -33,8 +33,8 @@ type Prefixes []Prefix
 // NewPrefixFromCIDR returns a new prefix from a given cidr.
 func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
 	ip, length, found := strings.Cut(cidr, "/")
-	if found {
-		return nil, fmt.Errorf("cannot split cidr into pieces: %v", cidr)
+	if !found {
+		return nil, fmt.Errorf("cannot split cidr into pieces: %q", cidr)
 	}
 	ip = strings.TrimSpace(ip)
 	length = strings.TrimSpace(length)
