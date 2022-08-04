@@ -13,14 +13,16 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/rest"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	nsq2 "github.com/nsqio/go-nsq"
 
@@ -30,6 +32,11 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -44,10 +51,6 @@ import (
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type dsConnectOpt int
@@ -760,16 +763,13 @@ func initHeadscale() {
 		viper.GetString("headscale-addr"),
 		viper.GetString("headscale-cp-addr"),
 		viper.GetString("headscale-api-key"),
+		logger.Named("headscale"),
 	)
 	if err != nil {
 		logger.Errorw("failed to init headscale client", "error", err)
 	}
 	if headscaleClient == nil {
 		return
-	}
-
-	if err = headscaleClient.ReplaceApiKey(); err != nil {
-		logger.Errorw("failed to replace Headscale API Key", "error", err)
 	}
 
 	logger.Info("headscale initialized")
