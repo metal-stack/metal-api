@@ -3,17 +3,17 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/emicklei/go-restful/v3"
-	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
+	"go.uber.org/zap"
+
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/timestamppb"
-	"net/http"
-	"time"
 )
 
 type vpnResource struct {
@@ -76,10 +76,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 		return
 	}
 
-	getNSRequest := &headscalev1.GetNamespaceRequest{
-		Name: p.Project.Name,
-	}
-	if _, err = r.headscaleClient.GetNamespace(ctx, getNSRequest); err != nil {
+	if ok := r.headscaleClient.NamespaceExists(p.Project.Name); !ok {
 		r.sendError(
 			request, response,
 			httperrors.NotFound(fmt.Errorf("VPN namespace doesn't exist for Project with ID %s", pid)),
@@ -88,12 +85,8 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	}
 
 	expiration := time.Now().Add(90 * 24 * time.Hour)
-	createPAKRequest := &headscalev1.CreatePreAuthKeyRequest{
-		Namespace:  p.Project.Name,
-		Expiration: timestamppb.New(expiration),
-	}
-	resp, err := r.headscaleClient.CreatePreAuthKey(ctx, createPAKRequest)
-	if err != nil || resp == nil || resp.PreAuthKey == nil {
+	key, err := r.headscaleClient.CreatePreAuthKey(p.Project.Name, expiration)
+	if err != nil {
 		r.sendError(
 			request, response,
 			httperrors.InternalServerError(fmt.Errorf("failed to create new Auth Key: %w", err)),
@@ -102,7 +95,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	}
 
 	authKeyResp := v1.VPNResponse{
-		AuthKey: resp.PreAuthKey.Key,
+		AuthKey: key,
 	}
 
 	r.send(request, response, http.StatusOK, authKeyResp)

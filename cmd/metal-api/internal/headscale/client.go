@@ -175,6 +175,20 @@ func (h *HeadscaleClient) replaceApiKey() (err error) {
 	return nil
 }
 
+func (h *HeadscaleClient) NamespaceExists(name string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	getNSRequest := &headscalev1.GetNamespaceRequest{
+		Name: name,
+	}
+	if _, err := h.client.GetNamespace(h.ctx, getNSRequest); err != nil {
+		return false
+	}
+
+	return true
+}
+
 func (h *HeadscaleClient) CreateNamespace(name string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
