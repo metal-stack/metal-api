@@ -4473,6 +4473,17 @@
         "Tenant"
       ]
     },
+    "v1.VPNResponse": {
+      "properties": {
+        "auth_key": {
+          "description": "Auth key to connect to the VPN",
+          "type": "string"
+        }
+      },
+      "required": [
+        "auth_key"
+      ]
+    },
     "v1.VendorRevisions": {
       "properties": {
         "VendorRevisions": {
@@ -8775,6 +8786,41 @@
         "tags": [
           "version"
         ]
+      }
+    },
+    "/v1/vpn/authkey/{pid}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getVPNAuthKey",
+        "parameters": [
+          {
+            "description": "identifier of the Project",
+            "in": "path",
+            "name": "pid",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.VPNResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create auth key to connect to Project's VPN"
       }
     }
   },
