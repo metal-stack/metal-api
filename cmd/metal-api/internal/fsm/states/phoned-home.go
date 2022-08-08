@@ -31,18 +31,15 @@ func (p *PhonedHomeState) Handle(e *fsm.Event) {
 	case p.Name():
 		// swallow on repeated phoned home
 		UpdateTimeAndLiveliness(p.event, p.container)
-		return
 	case MachineReclaim.String():
 		// swallow on machine reclaim
-		// do not update timestamp in order to check for failed machine reclaim
+		if p.container.LastEventTime != nil && p.event.Time.Sub(*p.container.LastEventTime) > failedMachineReclaimThreshold {
+			UpdateTimeAndLiveliness(p.event, p.container)
+			p.container.FailedMachineReclaim = true
+		}
 	default:
 		p.container.CrashLoop = false
 		appendEventToContainer(p.event, p.container)
-		return
 	}
 
-	if p.container.LastEventTime != nil && p.event.Time.Sub(*p.container.LastEventTime) > failedMachineReclaimThreshold {
-		UpdateTimeAndLiveliness(p.event, p.container)
-		p.container.FailedMachineReclaim = true
-	}
 }
