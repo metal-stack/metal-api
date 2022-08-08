@@ -41,6 +41,7 @@ func AllStates(c *StateConfig) map[string]FSMState {
 	return map[string]FSMState{
 		Alive.String():            newAlive(c),
 		Crashing.String():         newCrash(c),
+		Initial.String():          newInitial(c),
 		PXEBooting.String():       newPXEBooting(c),
 		Preparing.String():        newPreparing(c),
 		Registering.String():      newRegistering(c),
