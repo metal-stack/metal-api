@@ -100,6 +100,7 @@ func Events() fsm.Events {
 				states.BootingNewKernel.String(),
 				states.Initial.String(),
 			},
+			Dst: states.Alive.String(),
 		},
 	}
 }

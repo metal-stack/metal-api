@@ -492,7 +492,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Time:  now,
 				Event: metal.ProvisioningEventAlive,
 			},
-			wantErr: fmt.Errorf("invalid arrival of alive event for machine 1"),
+			wantErr: fmt.Errorf(`declining unexpected event "Alive" for machine 1`),
 			want:    nil,
 		},
 	}

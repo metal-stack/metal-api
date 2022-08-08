@@ -7,16 +7,17 @@ import (
 )
 
 const (
-	Initial          stateType = "Initial"
-	PXEBooting       stateType = "PXE Booting"
-	Preparing        stateType = "Preparing"
-	Registering      stateType = "Registering"
-	Waiting          stateType = "Waiting"
-	Installing       stateType = "Installing"
-	BootingNewKernel stateType = "Booting New Kernel"
-	PhonedHome       stateType = "Phoned Home"
-	PlannedReboot    stateType = "Planned Reboot"
-	MachineReclaim   stateType = "Machine Reclaim"
+	Initial          stateType = "State Initial"
+	Alive            stateType = "State Alive"
+	PXEBooting       stateType = "State PXE Booting"
+	Preparing        stateType = "State Preparing"
+	Registering      stateType = "State Registering"
+	Waiting          stateType = "State Waiting"
+	Installing       stateType = "State Installing"
+	BootingNewKernel stateType = "State Booting New Kernel"
+	PhonedHome       stateType = "State Phoned Home"
+	PlannedReboot    stateType = "State Planned Reboot"
+	MachineReclaim   stateType = "State Machine Reclaim"
 )
 
 type FSMState interface {
@@ -37,6 +38,7 @@ type StateConfig struct {
 
 func AllStates(c *StateConfig) map[string]FSMState {
 	return map[string]FSMState{
+		Alive.String():            newAlive(c),
 		PXEBooting.String():       newPXEBooting(c),
 		Preparing.String():        newPreparing(c),
 		Registering.String():      newRegistering(c),

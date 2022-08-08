@@ -24,25 +24,21 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 		return nil, fmt.Errorf("provisioning event must not be nil")
 	}
 
-	clone := *ec
-	container := &clone
-
-	initial := states.Initial.String()
-	if len(container.Events) != 0 {
-		initial = container.Events[0].Event.String()
-	}
-
 	var (
+		clone       = *ec
+		container   = &clone
+		latestEvent = func() string {
+			if len(container.Events) != 0 {
+				return container.Events[0].Event.String()
+			}
+			return ""
+		}()
 		allStates = states.AllStates(&states.StateConfig{Log: log, Event: event, Container: container})
 		callbacks = fsm.Callbacks{
-			"before_" + metal.ProvisioningEventAlive.String(): func(e *fsm.Event) {
-				states.UpdateTimeAndLiveliness(event, container)
-				log.Debugw("received provisioning alive event", "id", container.ID)
-			},
 			// unfortunately, the FSM does not trigger the specific state callback when a state transitions to itself
-			// it does trigger the enter_state callback though from which we can trigger a state-specific callback
+			// it does trigger the enter_state callback though from which we can trigger the state-specific callback
 			"enter_state": func(e *fsm.Event) {
-				if e.Dst != "" || e.Event == metal.ProvisioningEventAlive.String() {
+				if e.Dst != "" {
 					return
 				}
 
@@ -58,7 +54,7 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 	}
 
 	provisioningFSM := fsm.NewFSM(
-		getEventDestination(initial),
+		getEventDestination(latestEvent),
 		Events(),
 		callbacks,
 	)
@@ -69,17 +65,18 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 	}
 
 	if errors.As(err, &fsm.InvalidEventError{}) {
-		if event.Event.Is(metal.ProvisioningEventAlive.String()) {
-			// under no circumstances alive events should be persisted.
-			// when this happens, the FSM will always return invalid transition.
-			return nil, fmt.Errorf("invalid arrival of alive event for machine %s", container.ID)
+		switch e := event.Event; e { //nolint:exhaustive
+		case metal.ProvisioningEventPXEBooting, metal.ProvisioningEventPreparing:
+			container.Events = append([]metal.ProvisioningEvent{*event}, container.Events...)
+			container.LastEventTime = &event.Time
+			container.CrashLoop = true
+			return container, nil
+		default:
+			// we generally decline unexpected events that arrive out of order.
+			// this is because when storing these events, it could happen that the FSM gets stuck in invalid transitions
+			// (e.g. when an alive event gets stored all following transitions are invalid).
+			return nil, fmt.Errorf("declining unexpected event %q for machine %s", e, container.ID)
 		}
-
-		container.Events = append([]metal.ProvisioningEvent{*event}, container.Events...)
-		container.LastEventTime = &event.Time
-		container.CrashLoop = true
-
-		return container, nil
 	}
 
 	return nil, fmt.Errorf("internal error while calculating provisioning event container for machine %s: %w", container.ID, err)
