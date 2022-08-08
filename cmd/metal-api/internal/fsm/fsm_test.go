@@ -21,7 +21,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		want      *metal.ProvisioningEventContainer
 	}{
 		{
-			name: "First Event in container",
+			name: "pxe booting is first event in container",
 			container: &metal.ProvisioningEventContainer{
 				Events:     metal.ProvisioningEvents{},
 				Liveliness: metal.MachineLivelinessAlive,
@@ -45,7 +45,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "First Event Alive in container",
+			name: "alive is first event in container",
 			container: &metal.ProvisioningEventContainer{
 				Events:     metal.ProvisioningEvents{},
 				Liveliness: metal.MachineLivelinessAlive,
@@ -64,7 +64,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Transition from PXEBooting to PXEBooting",
+			name: "transition from PXE booting to PXE booting",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -93,7 +93,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Transition from PXEBooting to Preparing",
+			name: "transition from PXE booting to preparing",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -126,7 +126,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Transition from Booting New Kernel to Phoned Home",
+			name: "transition from booting new kernel to phoned home",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -159,7 +159,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Transition from Registering to Preparing",
+			name: "transition from registering to preparing",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -192,7 +192,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Swallow Alive event",
+			name: "swallow alive event",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -245,7 +245,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Swallow repeated Phoned Home",
+			name: "swallow repeated phoned home",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -274,7 +274,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Swallow Phoned Home after Machine Reclaim",
+			name: "swallow phoned home after machine reclaim",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -304,7 +304,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Failed Machine Reclaim",
+			name: "failed machine reclaim",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -334,7 +334,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Reset Failed Reclaim flag with PXE Booting event",
+			name: "reset failed reclaim flag with PXE booting event",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -369,7 +369,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Reset Failed Reclaim with with Preparing event",
+			name: "reset failed reclaim with with preparing event",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -477,7 +477,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := checkProvisioningEvent(tt.event, tt.container, zaptest.NewLogger(t).Sugar())
+			got, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), tt.container, tt.event)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
