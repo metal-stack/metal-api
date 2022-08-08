@@ -26,11 +26,11 @@ func (p *PhonedHomeState) OnTransition(e *fsm.Event) {
 	switch e.Src {
 	case PhonedHome.String():
 		// swallow on repeated phoned home
-		UpdateTimeAndLiveliness(p.event, p.container)
+		updateTimeAndLiveliness(p.event, p.container)
 	case MachineReclaim.String():
 		// swallow on machine reclaim
 		if p.container.LastEventTime != nil && p.event.Time.Sub(*p.container.LastEventTime) > failedMachineReclaimThreshold {
-			UpdateTimeAndLiveliness(p.event, p.container)
+			updateTimeAndLiveliness(p.event, p.container)
 			p.container.FailedMachineReclaim = true
 		}
 	default:

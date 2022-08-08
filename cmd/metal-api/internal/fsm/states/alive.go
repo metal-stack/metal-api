@@ -21,6 +21,6 @@ func newAlive(c *StateConfig) *AliveState {
 }
 
 func (p *AliveState) OnTransition(e *fsm.Event) {
-	UpdateTimeAndLiveliness(p.event, p.container)
+	updateTimeAndLiveliness(p.event, p.container)
 	p.log.Debugw("received provisioning alive event", "id", p.container.ID)
 }

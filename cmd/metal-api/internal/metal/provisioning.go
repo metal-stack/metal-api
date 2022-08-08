@@ -16,7 +16,6 @@ func (t ProvisioningEventType) String() string {
 const (
 	ProvisioningEventAlive            ProvisioningEventType = "Alive"
 	ProvisioningEventCrashed          ProvisioningEventType = "Crashed"
-	ProvisioningEventResetFailCount   ProvisioningEventType = "Reset Fail Count"
 	ProvisioningEventPXEBooting       ProvisioningEventType = "PXE Booting"
 	ProvisioningEventPlannedReboot    ProvisioningEventType = "Planned Reboot"
 	ProvisioningEventPreparing        ProvisioningEventType = "Preparing"
@@ -33,7 +32,6 @@ var (
 	AllProvisioningEventTypes = map[ProvisioningEventType]bool{
 		ProvisioningEventAlive:            true,
 		ProvisioningEventCrashed:          true,
-		ProvisioningEventResetFailCount:   true,
 		ProvisioningEventPlannedReboot:    true,
 		ProvisioningEventPXEBooting:       true,
 		ProvisioningEventPreparing:        true,

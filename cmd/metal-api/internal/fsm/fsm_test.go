@@ -160,6 +160,81 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
+			name: "valid transition from installing to crashing, going into crash loop",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventInstalling,
+					},
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventCrashed,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            true,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventCrashed,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventInstalling,
+					},
+				},
+			},
+		},
+		{
+			name: "valid transition from crashing to pxe booting, maintaing crash loop",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventCrashed,
+					},
+					{
+						Time:  lastEventTime.Add(-1 * time.Minute),
+						Event: metal.ProvisioningEventInstalling,
+					},
+				},
+				CrashLoop:  true,
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventPXEBooting,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            true,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventPXEBooting,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventCrashed,
+					},
+					{
+						Time:  lastEventTime.Add(-1 * time.Minute),
+						Event: metal.ProvisioningEventInstalling,
+					},
+				},
+			},
+		},
+		{
 			name: "invalid transition from registering to preparing",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{

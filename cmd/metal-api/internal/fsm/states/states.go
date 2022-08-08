@@ -9,6 +9,7 @@ import (
 const (
 	Initial          stateType = "State Initial"
 	Alive            stateType = "State Alive"
+	Crashing         stateType = "State Crashing"
 	PXEBooting       stateType = "State PXE Booting"
 	Preparing        stateType = "State Preparing"
 	Registering      stateType = "State Registering"
@@ -39,6 +40,7 @@ type StateConfig struct {
 func AllStates(c *StateConfig) map[string]FSMState {
 	return map[string]FSMState{
 		Alive.String():            newAlive(c),
+		Crashing.String():         newCrash(c),
 		PXEBooting.String():       newPXEBooting(c),
 		Preparing.String():        newPreparing(c),
 		Registering.String():      newRegistering(c),
@@ -62,11 +64,11 @@ func AllStateNames() []string {
 }
 
 func appendEventToContainer(event *metal.ProvisioningEvent, container *metal.ProvisioningEventContainer) {
-	UpdateTimeAndLiveliness(event, container)
+	updateTimeAndLiveliness(event, container)
 	container.Events = append([]metal.ProvisioningEvent{*event}, container.Events...)
 }
 
-func UpdateTimeAndLiveliness(event *metal.ProvisioningEvent, container *metal.ProvisioningEventContainer) {
+func updateTimeAndLiveliness(event *metal.ProvisioningEvent, container *metal.ProvisioningEventContainer) {
 	container.LastEventTime = &event.Time
 	container.Liveliness = metal.MachineLivelinessAlive
 }

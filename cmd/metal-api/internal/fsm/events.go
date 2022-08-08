@@ -12,6 +12,7 @@ func Events() fsm.Events {
 			Name: metal.ProvisioningEventPXEBooting.String(),
 			Src: []string{
 				states.MachineReclaim.String(),
+				states.Crashing.String(),
 				states.Initial.String(),
 			},
 			Dst: states.PXEBooting.String(),
@@ -28,6 +29,7 @@ func Events() fsm.Events {
 			Src: []string{
 				states.PXEBooting.String(),
 				states.MachineReclaim.String(), // MachineReclaim is a valid src for Preparing because some machines might be incapable of sending PXEBoot events
+				states.Crashing.String(),
 				states.Initial.String(),
 			},
 			Dst: states.Preparing.String(),
@@ -93,6 +95,7 @@ func Events() fsm.Events {
 		{
 			Name: metal.ProvisioningEventAlive.String(),
 			Src: []string{
+				states.PXEBooting.String(),
 				states.Preparing.String(),
 				states.Registering.String(),
 				states.Waiting.String(),
@@ -101,6 +104,19 @@ func Events() fsm.Events {
 				states.Initial.String(),
 			},
 			Dst: states.Alive.String(),
+		},
+		{
+			Name: metal.ProvisioningEventCrashed.String(),
+			Src: []string{
+				states.PXEBooting.String(),
+				states.Preparing.String(),
+				states.Registering.String(),
+				states.Waiting.String(),
+				states.Installing.String(),
+				states.BootingNewKernel.String(),
+				states.Initial.String(),
+			},
+			Dst: states.Crashing.String(),
 		},
 	}
 }

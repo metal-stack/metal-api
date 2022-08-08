@@ -22,7 +22,7 @@ func (p *PXEBootingState) OnTransition(e *fsm.Event) {
 
 	if e.Src == PXEBooting.String() {
 		// swallow repeated pxe booting events, which happens regularly
-		UpdateTimeAndLiveliness(p.event, p.container)
+		updateTimeAndLiveliness(p.event, p.container)
 		return
 	}
 
