@@ -17,11 +17,7 @@ func newPreparing(c *StateConfig) *PreparingState {
 	}
 }
 
-func (_ *PreparingState) Name() string {
-	return Preparing.String()
-}
-
-func (p *PreparingState) Handle(e *fsm.Event) {
+func (p *PreparingState) OnTransition(e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
 	appendEventToContainer(p.event, p.container)

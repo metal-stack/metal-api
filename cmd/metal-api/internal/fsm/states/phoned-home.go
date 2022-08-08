@@ -22,13 +22,9 @@ func newPhonedHome(c *StateConfig) *PhonedHomeState {
 	}
 }
 
-func (_ *PhonedHomeState) Name() string {
-	return PhonedHome.String()
-}
-
-func (p *PhonedHomeState) Handle(e *fsm.Event) {
+func (p *PhonedHomeState) OnTransition(e *fsm.Event) {
 	switch e.Src {
-	case p.Name():
+	case PhonedHome.String():
 		// swallow on repeated phoned home
 		UpdateTimeAndLiveliness(p.event, p.container)
 	case MachineReclaim.String():
@@ -41,5 +37,4 @@ func (p *PhonedHomeState) Handle(e *fsm.Event) {
 		p.container.CrashLoop = false
 		appendEventToContainer(p.event, p.container)
 	}
-
 }

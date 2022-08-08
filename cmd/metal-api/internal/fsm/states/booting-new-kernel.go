@@ -17,10 +17,6 @@ func newBootingNewKernel(c *StateConfig) *BootingNewKernelState {
 	}
 }
 
-func (_ *BootingNewKernelState) Name() string {
-	return BootingNewKernel.String()
-}
-
-func (p *BootingNewKernelState) Handle(e *fsm.Event) {
+func (p *BootingNewKernelState) OnTransition(e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

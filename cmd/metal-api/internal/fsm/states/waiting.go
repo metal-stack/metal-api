@@ -17,10 +17,6 @@ func newWaiting(c *StateConfig) *WaitingState {
 	}
 }
 
-func (_ *WaitingState) Name() string {
-	return Waiting.String()
-}
-
-func (p *WaitingState) Handle(e *fsm.Event) {
+func (p *WaitingState) OnTransition(e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

@@ -17,11 +17,7 @@ func newPlannedReboot(c *StateConfig) *PlannedRebootState {
 	}
 }
 
-func (_ *PlannedRebootState) Name() string {
-	return PlannedReboot.String()
-}
-
-func (p *PlannedRebootState) Handle(e *fsm.Event) {
+func (p *PlannedRebootState) OnTransition(e *fsm.Event) {
 	p.container.CrashLoop = false
 
 	appendEventToContainer(p.event, p.container)

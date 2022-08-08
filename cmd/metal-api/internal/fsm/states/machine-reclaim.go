@@ -17,10 +17,6 @@ func newMachineReclaim(c *StateConfig) *MachineReclaimState {
 	}
 }
 
-func (_ *MachineReclaimState) Name() string {
-	return MachineReclaim.String()
-}
-
-func (p *MachineReclaimState) Handle(e *fsm.Event) {
+func (p *MachineReclaimState) OnTransition(e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

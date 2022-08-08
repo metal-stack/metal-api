@@ -32,15 +32,29 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 		initial = container.Events[0].Event.String()
 	}
 
-	callbacks := fsm.Callbacks{
-		"before_" + metal.ProvisioningEventAlive.String(): func(e *fsm.Event) {
-			states.UpdateTimeAndLiveliness(event, container)
-			log.Debugw("received provisioning alive event", "id", container.ID)
-		},
-	}
+	var (
+		allStates = states.AllStates(&states.StateConfig{Log: log, Event: event, Container: container})
+		callbacks = fsm.Callbacks{
+			"before_" + metal.ProvisioningEventAlive.String(): func(e *fsm.Event) {
+				states.UpdateTimeAndLiveliness(event, container)
+				log.Debugw("received provisioning alive event", "id", container.ID)
+			},
+			// unfortunately, the FSM does not trigger the specific state callback when a state transitions to itself
+			// it does trigger the enter_state callback though from which we can trigger a state-specific callback
+			"enter_state": func(e *fsm.Event) {
+				if e.Dst != "" || e.Event == metal.ProvisioningEventAlive.String() {
+					return
+				}
 
-	for _, s := range states.AllStates(&states.StateConfig{Log: log, Event: event, Container: container}) {
-		callbacks["before_"+s.Name()] = s.Handle
+				if state, ok := allStates[e.Src]; ok {
+					state.OnTransition(e)
+				}
+			},
+		}
+	)
+
+	for name, state := range allStates {
+		callbacks["enter_"+name] = state.OnTransition
 	}
 
 	provisioningFSM := fsm.NewFSM(
@@ -68,7 +82,7 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 		return container, nil
 	}
 
-	return nil, fmt.Errorf("internal error while calculating provisioning event container for machine %s", container.ID)
+	return nil, fmt.Errorf("internal error while calculating provisioning event container for machine %s: %w", container.ID, err)
 }
 
 func getEventDestination(event string) string {

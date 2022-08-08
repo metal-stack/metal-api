@@ -17,10 +17,6 @@ func newRegistering(c *StateConfig) *RegisteringState {
 	}
 }
 
-func (_ *RegisteringState) Name() string {
-	return Registering.String()
-}
-
-func (p *RegisteringState) Handle(e *fsm.Event) {
+func (p *RegisteringState) OnTransition(e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

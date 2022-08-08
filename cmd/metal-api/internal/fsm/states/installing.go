@@ -17,10 +17,6 @@ func newInstalling(c *StateConfig) *InstallingState {
 	}
 }
 
-func (_ *InstallingState) Name() string {
-	return Installing.String()
-}
-
-func (p *InstallingState) Handle(e *fsm.Event) {
+func (p *InstallingState) OnTransition(e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

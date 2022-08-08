@@ -20,8 +20,7 @@ const (
 )
 
 type FSMState interface {
-	Name() string
-	Handle(e *fsm.Event)
+	OnTransition(e *fsm.Event)
 }
 
 type stateType string
@@ -36,25 +35,25 @@ type StateConfig struct {
 	Event     *metal.ProvisioningEvent
 }
 
-func AllStates(c *StateConfig) []FSMState {
-	return []FSMState{
-		newPXEBooting(c),
-		newPreparing(c),
-		newRegistering(c),
-		newWaiting(c),
-		newInstalling(c),
-		newBootingNewKernel(c),
-		newPhonedHome(c),
-		newPlannedReboot(c),
-		newMachineReclaim(c),
+func AllStates(c *StateConfig) map[string]FSMState {
+	return map[string]FSMState{
+		PXEBooting.String():       newPXEBooting(c),
+		Preparing.String():        newPreparing(c),
+		Registering.String():      newRegistering(c),
+		Waiting.String():          newWaiting(c),
+		Installing.String():       newInstalling(c),
+		BootingNewKernel.String(): newBootingNewKernel(c),
+		PhonedHome.String():       newPhonedHome(c),
+		PlannedReboot.String():    newPlannedReboot(c),
+		MachineReclaim.String():   newMachineReclaim(c),
 	}
 }
 
 func AllStateNames() []string {
 	var result []string
 
-	for _, s := range AllStates(&StateConfig{}) {
-		result = append(result, s.Name())
+	for name := range AllStates(&StateConfig{}) {
+		result = append(result, name)
 	}
 
 	return result

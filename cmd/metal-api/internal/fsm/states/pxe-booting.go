@@ -17,14 +17,10 @@ func newPXEBooting(c *StateConfig) *PXEBootingState {
 	}
 }
 
-func (_ *PXEBootingState) Name() string {
-	return PXEBooting.String()
-}
-
-func (p *PXEBootingState) Handle(e *fsm.Event) {
+func (p *PXEBootingState) OnTransition(e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
-	if e.Src == p.Name() {
+	if e.Src == PXEBooting.String() {
 		// swallow repeated pxe booting events, which happens regularly
 		UpdateTimeAndLiveliness(p.event, p.container)
 		return
