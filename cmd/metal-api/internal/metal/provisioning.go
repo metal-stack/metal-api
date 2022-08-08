@@ -94,7 +94,7 @@ func (p ProvisioningEventContainers) ByID() ProvisioningEventContainerMap {
 }
 
 func (c *ProvisioningEventContainer) Validate() error {
-	if len(c.Events) == 0 {
+	if c == nil || len(c.Events) == 0 {
 		return nil
 	}
 

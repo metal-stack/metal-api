@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -64,7 +65,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "transition from PXE booting to PXE booting",
+			name: "valid transition from PXE booting to PXE booting (swallow repeated)",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -93,7 +94,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "transition from PXE booting to preparing",
+			name: "valid transition from PXE booting to preparing",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -126,7 +127,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "transition from booting new kernel to phoned home",
+			name: "valid transition from booting new kernel to phoned home",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -159,7 +160,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "transition from registering to preparing",
+			name: "invalid transition from registering to preparing",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -404,7 +405,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Reset Crash Loop flag with Phoned Home event",
+			name: "reset crash loop flag with phoned home event",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -439,7 +440,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "Reset Crash Loop flag with Planned Reboot event",
+			name: "reset crash loop flag with planned reboot event",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -473,12 +474,33 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "unexpected arrival of alive event",
+			container: &metal.ProvisioningEventContainer{
+				Base: metal.Base{
+					ID: "1",
+				},
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventPhonedHome,
+					},
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventAlive,
+			},
+			wantErr: fmt.Errorf("invalid arrival of alive event for machine 1"),
+			want:    nil,
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), tt.container, tt.event)
-			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
+			if diff := cmp.Diff(tt.wantErr, err, ErrorStringComparer()); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
 
@@ -491,4 +513,20 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TODO: use from metal-lib after next release
+func ErrorStringComparer() cmp.Option {
+	return cmp.Comparer(func(x, y error) bool {
+		if x == nil && y == nil {
+			return true
+		}
+		if x == nil && y != nil {
+			return false
+		}
+		if x != nil && y == nil {
+			return false
+		}
+		return x.Error() == y.Error()
+	})
 }
