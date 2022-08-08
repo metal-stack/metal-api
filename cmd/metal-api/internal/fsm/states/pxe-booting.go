@@ -24,7 +24,7 @@ func (_ *PXEBootingState) Name() string {
 func (p *PXEBootingState) Handle(e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
-	if len(p.container.Events) > 0 && p.container.Events[0].Event == p.event.Event {
+	if e.Src == p.Name() {
 		// swallow repeated pxe booting events, which happens regularly
 		UpdateTimeAndLiveliness(p.event, p.container)
 		return

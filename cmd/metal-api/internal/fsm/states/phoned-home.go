@@ -28,7 +28,7 @@ func (_ *PhonedHomeState) Name() string {
 
 func (p *PhonedHomeState) Handle(e *fsm.Event) {
 	switch e.Src {
-	case PhonedHome.String():
+	case p.Name():
 		// swallow on repeated phoned home
 		UpdateTimeAndLiveliness(p.event, p.container)
 		return
