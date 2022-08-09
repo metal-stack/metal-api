@@ -46,6 +46,7 @@ var (
 type MachineState struct {
 	Value              MState `rethinkdb:"value" json:"value"`
 	Description        string `rethinkdb:"description" json:"description"`
+	Issuer             string `rethinkdb:"issuer" json:"issuer"`
 	MetalHammerVersion string `rethinkdb:"metal_hammer_version" json:"metal_hammer_version"`
 }
 
