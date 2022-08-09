@@ -19,6 +19,6 @@ func newCrash(c *StateConfig) *CrashState {
 
 func (p *CrashState) OnTransition(e *fsm.Event) {
 	p.container.CrashLoop = true
-
+	p.container.LastErrorEvent = p.event
 	appendEventToContainer(p.event, p.container)
 }

@@ -72,6 +72,7 @@ type ProvisioningEventContainer struct {
 	Liveliness           MachineLiveliness  `rethinkdb:"liveliness" json:"liveliness"`
 	Events               ProvisioningEvents `rethinkdb:"events" json:"events"`
 	LastEventTime        *time.Time         `rethinkdb:"last_event_time" json:"last_event_time"`
+	LastErrorEvent       *ProvisioningEvent `rethinkdb:"last_error_event" json:"last_error_event"`
 	CrashLoop            bool               `rethinkdb:"crash_loop" json:"crash_loop"`
 	FailedMachineReclaim bool               `rethinkdb:"failed_machine_reclaim" json:"failed_machine_reclaim"`
 }

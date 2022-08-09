@@ -102,6 +102,7 @@ type MachineBlockDevice struct {
 type MachineRecentProvisioningEvents struct {
 	Events                       []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
 	LastEventTime                *time.Time                 `json:"last_event_time" description:"the time where the last event was received" optional:"true"`
+	LastErrorEvent               *MachineProvisioningEvent  `json:"last_error_event,omitempty" description:"the last erroneous event received" optional:"true"`
 	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'."`
 	CrashLoop                    bool                       `json:"crash_loop" description:"indicates that machine is provisioning crash loop"`
 	FailedMachineReclaim         bool                       `json:"failed_machine_reclaim" description:"indicates that machine reclaim has failed"`
@@ -526,6 +527,7 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		return &MachineRecentProvisioningEvents{
 			Events:                       es,
 			LastEventTime:                nil,
+			LastErrorEvent:               nil,
 			CrashLoop:                    false,
 			FailedMachineReclaim:         false,
 			IncompleteProvisioningCycles: "0", // TODO: remove in next minor release
@@ -543,9 +545,18 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		}
 		es = append(es, e)
 	}
+	var lastErrorEvent *MachineProvisioningEvent
+	if ec.LastErrorEvent != nil {
+		lastErrorEvent = &MachineProvisioningEvent{
+			Time:    ec.LastErrorEvent.Time,
+			Event:   string(lastErrorEvent.Event),
+			Message: ec.LastErrorEvent.Message,
+		}
+	}
 	return &MachineRecentProvisioningEvents{
 		Events:                       es,
 		LastEventTime:                ec.LastEventTime,
+		LastErrorEvent:               lastErrorEvent,
 		CrashLoop:                    ec.CrashLoop,
 		FailedMachineReclaim:         ec.FailedMachineReclaim,
 		IncompleteProvisioningCycles: "0", // TODO: remove in next minor release

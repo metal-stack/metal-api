@@ -6,11 +6,14 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
+const SelfTransitionState = "self_transition"
+
 func Events() fsm.Events {
 	return fsm.Events{
 		{
 			Name: metal.ProvisioningEventPXEBooting.String(),
 			Src: []string{
+				states.PlannedReboot.String(),
 				states.MachineReclaim.String(),
 				states.Crashing.String(),
 				states.Initial.String(),
@@ -23,11 +26,13 @@ func Events() fsm.Events {
 			Src: []string{
 				states.PXEBooting.String(),
 			},
+			Dst: SelfTransitionState,
 		},
 		{
 			Name: metal.ProvisioningEventPreparing.String(),
 			Src: []string{
 				states.PXEBooting.String(),
+				states.PlannedReboot.String(),  // PlannedReboot is a valid src for Preparing because some machines might be incapable of sending PXEBoot events
 				states.MachineReclaim.String(), // MachineReclaim is a valid src for Preparing because some machines might be incapable of sending PXEBoot events
 				states.Crashing.String(),
 				states.Initial.String(),
@@ -81,6 +86,7 @@ func Events() fsm.Events {
 				states.PlannedReboot.String(),
 				states.PhonedHome.String(),
 			},
+			Dst: SelfTransitionState,
 		},
 		{
 			Name: metal.ProvisioningEventPlannedReboot.String(),
@@ -88,9 +94,23 @@ func Events() fsm.Events {
 			Dst:  states.PlannedReboot.String(),
 		},
 		{
+			Name: metal.ProvisioningEventPlannedReboot.String(),
+			Src: []string{
+				states.PlannedReboot.String(),
+			},
+			Dst: SelfTransitionState,
+		},
+		{
 			Name: metal.ProvisioningEventMachineReclaim.String(),
 			Src:  append(states.AllStateNames()),
 			Dst:  states.MachineReclaim.String(),
+		},
+		{
+			Name: metal.ProvisioningEventMachineReclaim.String(),
+			Src: []string{
+				states.MachineReclaim.String(),
+			},
+			Dst: SelfTransitionState,
 		},
 		{
 			Name: metal.ProvisioningEventAlive.String(),
@@ -119,4 +139,24 @@ func Events() fsm.Events {
 			Dst: states.Crashing.String(),
 		},
 	}
+}
+
+func eventCallbacks(config *states.StateConfig) fsm.Callbacks {
+	allStates := states.AllStates(config)
+
+	callbacks := fsm.Callbacks{
+		// unfortunately, the FSM does not trigger the specific state callback when a state transitions to itself
+		// therefore we have an artificial state self_transition from which we can trigger the state-specific callback
+		"enter_" + SelfTransitionState: func(e *fsm.Event) {
+			if state, ok := allStates[e.Src]; ok {
+				state.OnTransition(e)
+			}
+		},
+	}
+
+	for name, state := range allStates {
+		callbacks["enter_"+name] = state.OnTransition
+	}
+
+	return callbacks
 }

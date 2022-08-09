@@ -1,7 +1,6 @@
 package fsm
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -180,6 +179,10 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				FailedMachineReclaim: false,
 				Liveliness:           metal.MachineLivelinessAlive,
 				LastEventTime:        &now,
+				LastErrorEvent: &metal.ProvisioningEvent{
+					Time:  now,
+					Event: metal.ProvisioningEventCrashed,
+				},
 				Events: metal.ProvisioningEvents{
 					{
 						Time:  now,
@@ -255,10 +258,16 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				FailedMachineReclaim: false,
 				Liveliness:           metal.MachineLivelinessAlive,
 				LastEventTime:        &now,
+				LastErrorEvent: &metal.ProvisioningEvent{
+					Time:    now,
+					Event:   metal.ProvisioningEventPreparing,
+					Message: "[unexpectedly received in state registering]",
+				},
 				Events: metal.ProvisioningEvents{
 					{
-						Time:  now,
-						Event: metal.ProvisioningEventPreparing,
+						Time:    now,
+						Event:   metal.ProvisioningEventPreparing,
+						Message: "[unexpectedly received in state registering]",
 					},
 					{
 						Time:  lastEventTime,
@@ -552,9 +561,6 @@ func TestHandleProvisioningEvent(t *testing.T) {
 		{
 			name: "unexpected arrival of alive event",
 			container: &metal.ProvisioningEventContainer{
-				Base: metal.Base{
-					ID: "1",
-				},
 				Events: metal.ProvisioningEvents{
 					{
 						Time:  lastEventTime,
@@ -564,22 +570,38 @@ func TestHandleProvisioningEvent(t *testing.T) {
 				Liveliness: metal.MachineLivelinessAlive,
 			},
 			event: &metal.ProvisioningEvent{
-				Time:  now,
-				Event: metal.ProvisioningEventAlive,
+				Time:    now,
+				Event:   metal.ProvisioningEventAlive,
+				Message: "sending alive",
 			},
-			wantErr: fmt.Errorf(`declining unexpected event "Alive" for machine 1`),
-			want:    nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            false,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventPhonedHome,
+					},
+				},
+				LastErrorEvent: &metal.ProvisioningEvent{
+					Time:    now,
+					Event:   metal.ProvisioningEventAlive,
+					Message: "[unexpectedly received in state phoned home]: sending alive",
+				},
+			},
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), tt.container, tt.event)
-			if diff := cmp.Diff(tt.wantErr, err, ErrorStringComparer()); diff != "" {
+			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
 
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
 
@@ -590,18 +612,22 @@ func TestHandleProvisioningEvent(t *testing.T) {
 	}
 }
 
-// TODO: use from metal-lib after next release
-func ErrorStringComparer() cmp.Option {
-	return cmp.Comparer(func(x, y error) bool {
-		if x == nil && y == nil {
-			return true
+func TestReactionToAllIncomingEvents(t *testing.T) {
+	// this test ensures that for every incoming event we have a proper transition
+	for e1 := range metal.AllProvisioningEventTypes {
+		for e2 := range metal.AllProvisioningEventTypes {
+			_, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Event: e2,
+					},
+				},
+			}, &metal.ProvisioningEvent{
+				Event: e1,
+			})
+			if err != nil {
+				t.Errorf("transitioning from state %s with event %s: %s", e2, e1, err)
+			}
 		}
-		if x == nil && y != nil {
-			return false
-		}
-		if x != nil && y == nil {
-			return false
-		}
-		return x.Error() == y.Error()
-	})
+	}
 }
