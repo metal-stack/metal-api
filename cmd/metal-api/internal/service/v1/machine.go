@@ -549,7 +549,7 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 	if ec.LastErrorEvent != nil {
 		lastErrorEvent = &MachineProvisioningEvent{
 			Time:    ec.LastErrorEvent.Time,
-			Event:   string(lastErrorEvent.Event),
+			Event:   ec.LastErrorEvent.Event.String(),
 			Message: ec.LastErrorEvent.Message,
 		}
 	}
