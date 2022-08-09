@@ -8820,7 +8820,10 @@
             }
           }
         },
-        "summary": "create auth key to connect to Project's VPN"
+        "summary": "create auth key to connect to Project's VPN",
+        "tags": [
+          "vpn"
+        ]
       }
     }
   },
