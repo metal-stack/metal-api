@@ -26,15 +26,10 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 	}
 
 	var (
-		clone        = *ec
-		container    = &clone
-		initialState = getEventDestination(func() string {
-			if len(container.Events) != 0 {
-				return container.Events[0].Event.String()
-			}
-			return ""
-		}())
-		f = fsm.NewFSM(initialState,
+		clone     = *ec
+		container = &clone
+		f         = fsm.NewFSM(
+			initialStateFromEventContainer(container),
 			Events(),
 			eventCallbacks(&states.StateConfig{Log: log, Event: event, Container: container}),
 		)
@@ -72,6 +67,15 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 	}
 
 	return nil, fmt.Errorf("internal error while calculating provisioning event container for machine %s: %w", container.ID, err)
+}
+
+func initialStateFromEventContainer(container *metal.ProvisioningEventContainer) string {
+	lastEvent := ""
+	if len(container.Events) != 0 {
+		lastEvent = container.Events[0].Event.String()
+	}
+
+	return getEventDestination(lastEvent)
 }
 
 func getEventDestination(event string) string {
