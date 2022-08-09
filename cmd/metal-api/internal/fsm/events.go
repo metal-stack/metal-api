@@ -90,7 +90,7 @@ func Events() fsm.Events {
 		},
 		{
 			Name: metal.ProvisioningEventPlannedReboot.String(),
-			Src:  append(states.AllStateNames()),
+			Src:  states.AllStateNames(),
 			Dst:  states.PlannedReboot.String(),
 		},
 		{
@@ -102,7 +102,7 @@ func Events() fsm.Events {
 		},
 		{
 			Name: metal.ProvisioningEventMachineReclaim.String(),
-			Src:  append(states.AllStateNames()),
+			Src:  states.AllStateNames(),
 			Dst:  states.MachineReclaim.String(),
 		},
 		{
