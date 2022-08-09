@@ -16,7 +16,6 @@ func (t ProvisioningEventType) String() string {
 const (
 	ProvisioningEventAlive            ProvisioningEventType = "Alive"
 	ProvisioningEventCrashed          ProvisioningEventType = "Crashed"
-	ProvisioningEventResetFailCount   ProvisioningEventType = "Reset Fail Count"
 	ProvisioningEventPXEBooting       ProvisioningEventType = "PXE Booting"
 	ProvisioningEventPlannedReboot    ProvisioningEventType = "Planned Reboot"
 	ProvisioningEventPreparing        ProvisioningEventType = "Preparing"
@@ -33,7 +32,6 @@ var (
 	AllProvisioningEventTypes = map[ProvisioningEventType]bool{
 		ProvisioningEventAlive:            true,
 		ProvisioningEventCrashed:          true,
-		ProvisioningEventResetFailCount:   true,
 		ProvisioningEventPlannedReboot:    true,
 		ProvisioningEventPXEBooting:       true,
 		ProvisioningEventPreparing:        true,
@@ -74,6 +72,7 @@ type ProvisioningEventContainer struct {
 	Liveliness           MachineLiveliness  `rethinkdb:"liveliness" json:"liveliness"`
 	Events               ProvisioningEvents `rethinkdb:"events" json:"events"`
 	LastEventTime        *time.Time         `rethinkdb:"last_event_time" json:"last_event_time"`
+	LastErrorEvent       *ProvisioningEvent `rethinkdb:"last_error_event" json:"last_error_event"`
 	CrashLoop            bool               `rethinkdb:"crash_loop" json:"crash_loop"`
 	FailedMachineReclaim bool               `rethinkdb:"failed_machine_reclaim" json:"failed_machine_reclaim"`
 }
@@ -94,7 +93,7 @@ func (p ProvisioningEventContainers) ByID() ProvisioningEventContainerMap {
 }
 
 func (c *ProvisioningEventContainer) Validate() error {
-	if len(c.Events) == 0 {
+	if c == nil || len(c.Events) == 0 {
 		return nil
 	}
 

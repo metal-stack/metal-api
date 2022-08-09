@@ -2707,6 +2707,10 @@
           "description": "The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'.",
           "type": "string"
         },
+        "last_error_event": {
+          "$ref": "#/definitions/v1.MachineProvisioningEvent",
+          "description": "the last erroneous event received"
+        },
         "last_event_time": {
           "description": "the time where the last event was received",
           "format": "date-time",
