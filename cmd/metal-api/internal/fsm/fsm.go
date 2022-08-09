@@ -76,7 +76,7 @@ func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEvent
 
 func getEventDestination(event string) string {
 	for _, e := range Events() {
-		if e.Name == event && e.Dst != "" && e.Dst != SelfTransitionState {
+		if e.Name == event && e.Dst != SelfTransitionState {
 			return e.Dst
 		}
 	}
