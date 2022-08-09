@@ -2297,23 +2297,28 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if provisioningEvents.Liveliness != metal.MachineLivelinessDead {
-			continue
-		}
-
 		if provisioningEvents.LastEventTime == nil {
 			continue
 		}
 
-		if time.Since(*provisioningEvents.LastEventTime) < metal.MachineResurrectAfter {
+		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
+			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			err = act.freeMachine(publisher, &m)
+			if err != nil {
+				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+			}
 			continue
 		}
 
-		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = act.freeMachine(publisher, &m)
-		if err != nil {
-			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+		if provisioningEvents.FailedMachineReclaim {
+			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			err = act.freeMachine(publisher, &m)
+			if err != nil {
+				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+			}
+			continue
 		}
+
 	}
 
 	logger.Info("finished machine resurrection")
