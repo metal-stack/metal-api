@@ -804,9 +804,8 @@ func (r *machineResource) registerMachine(request *restful.Request, response *re
 
 	if ec == nil {
 		err = r.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
-			Base:                         metal.Base{ID: m.ID},
-			Liveliness:                   metal.MachineLivelinessAlive,
-			IncompleteProvisioningCycles: "0",
+			Base:       metal.Base{ID: m.ID},
+			Liveliness: metal.MachineLivelinessAlive,
 		},
 		)
 		if err != nil {
@@ -1855,8 +1854,12 @@ func (r *machineResource) freeMachine(request *restful.Request, response *restfu
 
 	r.send(request, response, http.StatusOK, resp)
 
-	event := string(metal.ProvisioningEventPlannedReboot)
-	_, err = r.ds.ProvisioningEventForMachine(logger, id, event, "freeMachine")
+	ev := metal.ProvisioningEvent{
+		Time:    time.Now(),
+		Event:   metal.ProvisioningEventMachineReclaim,
+		Message: "free machine called",
+	}
+	_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
 	if err != nil {
 		r.log.Errorw("error sending provisioning event after machine free", "error", err)
 	}
@@ -2193,7 +2196,13 @@ func (r *machineResource) addProvisionEventForMachine(log *zap.SugaredLogger, ma
 		return nil, errors.New("unknown provisioning event")
 	}
 
-	return r.ds.ProvisioningEventForMachine(log, machineID, e.Event, e.Message)
+	ev := metal.ProvisioningEvent{
+		Time:    time.Now(),
+		Event:   metal.ProvisioningEventType(e.Event),
+		Message: e.Message,
+	}
+
+	return r.ds.ProvisioningEventForMachine(log, &ev, machineID)
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died
@@ -2288,23 +2297,28 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if provisioningEvents.Liveliness != metal.MachineLivelinessDead {
-			continue
-		}
-
 		if provisioningEvents.LastEventTime == nil {
 			continue
 		}
 
-		if time.Since(*provisioningEvents.LastEventTime) < metal.MachineResurrectAfter {
+		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
+			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			err = act.freeMachine(publisher, &m)
+			if err != nil {
+				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+			}
 			continue
 		}
 
-		logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-		err = act.freeMachine(publisher, &m)
-		if err != nil {
-			logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+		if provisioningEvents.FailedMachineReclaim {
+			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			err = act.freeMachine(publisher, &m)
+			if err != nil {
+				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+			}
+			continue
 		}
+
 	}
 
 	logger.Info("finished machine resurrection")
@@ -2454,8 +2468,12 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 	needsUpdate := false
 	switch cmd { // nolint:exhaustive
 	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
-		event := string(metal.ProvisioningEventPlannedReboot)
-		_, err = r.ds.ProvisioningEventForMachine(logger, id, event, string(cmd))
+		ev := metal.ProvisioningEvent{
+			Time:    time.Now(),
+			Event:   metal.ProvisioningEventPlannedReboot,
+			Message: string(cmd),
+		}
+		_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -2527,7 +2545,7 @@ func machineHasIssues(m *v1.MachineResponse) bool {
 		// not allocated, but phones home
 		return true
 	}
-	if m.RecentProvisioningEvents.IncompleteProvisioningCycles != "" && m.RecentProvisioningEvents.IncompleteProvisioningCycles != "0" {
+	if m.RecentProvisioningEvents.CrashLoop || m.RecentProvisioningEvents.FailedMachineReclaim {
 		// Machines with incomplete cycles but in "Waiting" state are considered available
 		if len(m.RecentProvisioningEvents.Events) > 0 && !metal.ProvisioningEventWaiting.Is(m.RecentProvisioningEvents.Events[0].Event) {
 			return true
