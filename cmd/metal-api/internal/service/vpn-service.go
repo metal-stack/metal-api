@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
+
 	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
@@ -47,11 +49,14 @@ func (r *vpnResource) webService() *restful.WebService {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
+	tags := []string{"vpn"}
+
 	ws.Route(ws.GET("/authkey/{pid}").
 		To(admin(r.getVPNAuthKey)).
 		Operation("getVPNAuthKey").
 		Doc("create auth key to connect to Project's VPN").
 		Param(ws.PathParameter("pid", "identifier of the Project").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.VPNResponse{}).
 		Returns(http.StatusOK, "OK", v1.VPNResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
