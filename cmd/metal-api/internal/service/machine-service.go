@@ -633,10 +633,6 @@ func (r *machineResource) setMachineState(request *restful.Request, response *re
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-	var userId string
-	if user != nil {
-		userId = user.EMail
-	}
 
 	id := request.PathParameter("id")
 	oldMachine, err := r.ds.FindMachineByID(id)
@@ -650,7 +646,7 @@ func (r *machineResource) setMachineState(request *restful.Request, response *re
 	newMachine.State = metal.MachineState{
 		Value:       machineState,
 		Description: requestPayload.Description,
-		Issuer:      userId,
+		Issuer:      user.EMail,
 	}
 
 	err = r.ds.UpdateMachine(oldMachine, &newMachine)
