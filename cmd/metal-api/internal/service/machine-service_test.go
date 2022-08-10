@@ -533,6 +533,47 @@ func TestSetMachineState(t *testing.T) {
 	require.Equal(t, "anonymous@metal-stack.io", result.State.Issuer)
 }
 
+func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	userGetter := mockUserGetter{&security.User{
+		EMail: "anonymous@metal-stack.io",
+		Name:  "anonymous",
+	}}
+
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0)
+	require.NoError(t, err)
+
+	container := restful.NewContainer().Add(machineservice)
+
+	stateRequest := v1.MachineState{
+		Value:       string(metal.AvailableState),
+		Description: "",
+	}
+	js, err := json.Marshal(stateRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/1/state", body)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectEditor(log, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, "1", result.ID)
+	require.Equal(t, string(metal.AvailableState), result.State.Value)
+	require.Equal(t, "", result.State.Description)
+	require.Equal(t, "", result.State.Issuer)
+}
+
 func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
