@@ -4475,12 +4475,17 @@
     },
     "v1.VPNResponse": {
       "properties": {
+        "address": {
+          "description": "Address of VPN's control plane",
+          "type": "string"
+        },
         "auth_key": {
           "description": "Auth key to connect to the VPN",
           "type": "string"
         }
       },
       "required": [
+        "address",
         "auth_key"
       ]
     },
