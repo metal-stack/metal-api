@@ -2915,6 +2915,10 @@
           "description": "a description why this machine is in the given state",
           "type": "string"
         },
+        "issuer": {
+          "description": "the user that changed the state",
+          "type": "string"
+        },
         "metal_hammer_version": {
           "description": "the version of metal hammer which put the machine in waiting state",
           "type": "string"

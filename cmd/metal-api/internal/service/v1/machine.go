@@ -86,6 +86,7 @@ type MachineHardware struct {
 type MachineState struct {
 	Value              string `json:"value" enum:"RESERVED|LOCKED|" description:"the state of this machine. empty means available for all"`
 	Description        string `json:"description" description:"a description why this machine is in the given state"`
+	Issuer             string `json:"issuer,omitempty" optional:"true" description:"the user that changed the state"`
 	MetalHammerVersion string `json:"metal_hammer_version" description:"the version of metal hammer which put the machine in waiting state"`
 }
 
@@ -504,6 +505,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			State: MachineState{
 				Value:              string(m.State.Value),
 				Description:        m.State.Description,
+				Issuer:             m.State.Issuer,
 				MetalHammerVersion: m.State.MetalHammerVersion,
 			},
 			LEDState: ChassisIdentifyLEDState{
