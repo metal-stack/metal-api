@@ -100,6 +100,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	}
 
 	authKeyResp := v1.VPNResponse{
+		Address: r.headscaleClient.ControlPlaneAddress,
 		AuthKey: key,
 	}
 

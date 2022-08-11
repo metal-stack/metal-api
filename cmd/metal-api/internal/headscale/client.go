@@ -157,8 +157,8 @@ func (h *HeadscaleClient) replaceApiKey() (err error) {
 		if err = h.connect(response.ApiKey); err != nil {
 			return fmt.Errorf("failed to reconnect to Headscale server: %w", err)
 		}
-		h.apiKeyPrefix = newApiKeyPrefix
 		h.oldAPIKeyPrefix = h.apiKeyPrefix
+		h.apiKeyPrefix = newApiKeyPrefix
 	}
 
 	// Expire the old API Key
