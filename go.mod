@@ -28,7 +28,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.13.0
 	github.com/undefinedlabs/go-mpatch v1.0.6
 	go.uber.org/multierr v1.8.0
-	go.uber.org/zap v1.21.0
+	go.uber.org/zap v1.22.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	google.golang.org/grpc v1.47.0

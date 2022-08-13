@@ -33,8 +33,8 @@ type webResource struct {
 
 // logger returns the request logger from the request.
 func (w *webResource) logger(rq *restful.Request) *zap.SugaredLogger {
-	requestLogger := rest.GetLoggerFromContext(rq.Request, w.log).Desugar()
-	return requestLogger.WithOptions(zap.AddCallerSkip(1)).Sugar()
+	requestLogger := rest.GetLoggerFromContext(rq.Request, w.log)
+	return requestLogger.WithOptions(zap.AddCallerSkip(1))
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
