@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/netip"
 
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -404,6 +405,17 @@ func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (s
 		if specificIP == "" {
 			ipAddress, err = ipamer.AllocateIP(prefix)
 		} else {
+			pfx, perr := netip.ParsePrefix(prefix.String())
+			if perr != nil {
+				return "", "", fmt.Errorf("unable to parse prefix %w", perr)
+			}
+			sip, serr := netip.ParseAddr(specificIP)
+			if serr != nil {
+				return "", "", fmt.Errorf("unable to parse specific ip %w", serr)
+			}
+			if !pfx.Contains(sip) {
+				continue
+			}
 			ipAddress, err = ipamer.AllocateSpecificIP(prefix, specificIP)
 		}
 		if err != nil {
