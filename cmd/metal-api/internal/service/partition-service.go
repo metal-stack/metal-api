@@ -6,7 +6,6 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -14,8 +13,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // TopicCreator creates a topic for messaging.
@@ -29,23 +26,19 @@ type partitionResource struct {
 }
 
 // NewPartition returns a webservice for partition specific endpoints.
-func NewPartition(ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
+func NewPartition(log *zap.SugaredLogger, ds *datastore.RethinkStore, tc TopicCreator) *restful.WebService {
 	r := partitionResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		topicCreator: tc,
-	}
-	pcc := partitionCapacityCollector{r: &r}
-	err := prometheus.Register(pcc)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to register prometheus", zap.Error(err))
 	}
 
 	return r.webService()
 }
 
-func (r partitionResource) webService() *restful.WebService {
+func (r *partitionResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/partition").
@@ -127,23 +120,22 @@ func (r partitionResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r partitionResource) findPartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) findPartition(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	p, err := r.ds.FindPartition(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewPartitionResponse(p))
 }
 
-func (r partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) listPartitions(request *restful.Request, response *restful.Response) {
 	ps, err := r.ds.ListPartitions()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -151,24 +143,21 @@ func (r partitionResource) listPartitions(request *restful.Request, response *re
 	for i := range ps {
 		result = append(result, v1.NewPartitionResponse(&ps[i]))
 	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, result)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+
+	r.send(request, response, http.StatusOK, result)
 }
 
-func (r partitionResource) createPartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) createPartition(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionCreateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	if requestPayload.ID == "" {
-		if checkError(request, response, utils.CurrentFuncName(), errors.New("id should not be empty")) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(errors.New("id should not be empty")))
+		return
 	}
 
 	var name string
@@ -187,19 +176,32 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 	if requestPayload.PrivateNetworkPrefixLength != nil {
 		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength)
 		if prefixLength < 16 || prefixLength > 30 {
-			if checkError(request, response, utils.CurrentFuncName(), errors.New("private network prefix length is out of range")) {
-				return
-			}
+			r.sendError(request, response, httperrors.BadRequest(errors.New("private network prefix length is out of range")))
+			return
 		}
 	}
 	var imageURL string
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		imageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
+
+	err = checkImageURL("image", imageURL)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	var kernelURL string
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
 		kernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
 	}
+
+	err = checkImageURL("kernel", kernelURL)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	var commandLine string
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
@@ -222,51 +224,48 @@ func (r partitionResource) createPartition(request *restful.Request, response *r
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
 	if err := r.topicCreator.CreateTopic(fqn); err != nil {
-		if checkError(request, response, utils.CurrentFuncName(), err) {
-			return
-		}
+		r.sendError(request, response, httperrors.InternalServerError(err))
+		return
 	}
 
 	err = r.ds.CreatePartition(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusCreated, v1.NewPartitionResponse(p))
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusCreated, v1.NewPartitionResponse(p))
 }
 
-func (r partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) deletePartition(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	p, err := r.ds.FindPartition(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	err = r.ds.DeletePartition(p)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(p))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewPartitionResponse(p))
 }
 
-func (r partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) updatePartition(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionUpdateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	oldPartition, err := r.ds.FindPartition(requestPayload.ID)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
@@ -282,9 +281,21 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 		newPartition.MgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
+		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.ImageURL)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+
 		newPartition.BootConfiguration.ImageURL = *requestPayload.PartitionBootConfiguration.ImageURL
 	}
+
 	if requestPayload.PartitionBootConfiguration.KernelURL != nil {
+		err = checkImageURL("kernel", *requestPayload.PartitionBootConfiguration.KernelURL)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
 		newPartition.BootConfiguration.KernelURL = *requestPayload.PartitionBootConfiguration.KernelURL
 	}
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
@@ -292,49 +303,42 @@ func (r partitionResource) updatePartition(request *restful.Request, response *r
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
-		return
-	}
-	err = response.WriteHeaderAndEntity(http.StatusOK, v1.NewPartitionResponse(&newPartition))
 	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
+	r.send(request, response, http.StatusOK, v1.NewPartitionResponse(&newPartition))
 }
 
-func (r partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
 	partitionCapacities, err := r.calcPartitionCapacity(nil)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, partitionCapacities)
 }
 
-func (r partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
+func (r *partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionCapacityRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	partitionCapacities, err := r.calcPartitionCapacity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, partitionCapacities)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, partitionCapacities)
 }
 
-func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
+func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
 	// FIXME bad workaround to be able to run make spec
 	if r.ds == nil {
 		return nil, nil
@@ -368,7 +372,10 @@ func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReques
 	if err != nil {
 		return nil, err
 	}
-	machines := makeMachineResponseList(ms, r.ds, zapup.MustRootLogger().Sugar())
+	machines, err := makeMachineResponseList(ms, r.ds)
+	if err != nil {
+		return nil, err
+	}
 
 	partitionCapacities := []v1.PartitionCapacity{}
 	for _, p := range ps {
@@ -439,98 +446,4 @@ func (r partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReques
 	}
 
 	return partitionCapacities, err
-}
-
-// partitionCapacityCollector implements the Collector interface.
-type partitionCapacityCollector struct {
-	r *partitionResource
-}
-
-var (
-	capacityTotalDesc = prometheus.NewDesc(
-		"metal_partition_capacity_total",
-		"The total capacity of machines in the partition",
-		[]string{"partition", "size"}, nil,
-	)
-	capacityFreeDesc = prometheus.NewDesc(
-		"metal_partition_capacity_free",
-		"The capacity of free machines in the partition",
-		[]string{"partition", "size"}, nil,
-	)
-	capacityAllocatedDesc = prometheus.NewDesc(
-		"metal_partition_capacity_allocated",
-		"The capacity of allocated machines in the partition",
-		[]string{"partition", "size"}, nil,
-	)
-	capacityFaultyDesc = prometheus.NewDesc(
-		"metal_partition_capacity_faulty",
-		"The capacity of faulty machines in the partition",
-		[]string{"partition", "size"}, nil,
-	)
-)
-
-func (pcc partitionCapacityCollector) Describe(ch chan<- *prometheus.Desc) {
-	prometheus.DescribeByCollect(pcc, ch)
-}
-
-func (pcc partitionCapacityCollector) Collect(ch chan<- prometheus.Metric) {
-	pcs, err := pcc.r.calcPartitionCapacity(nil)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to get partition capacity", zap.Error(err))
-		return
-	}
-
-	for _, pc := range pcs {
-		for _, sc := range pc.ServerCapacities {
-			metric, err := prometheus.NewConstMetric(
-				capacityTotalDesc,
-				prometheus.CounterValue,
-				float64(sc.Total),
-				pc.ID,
-				sc.Size,
-			)
-			if err != nil {
-				zapup.MustRootLogger().Error("Failed to create metric for totalCapacity", zap.Error(err))
-				return
-			}
-			ch <- metric
-
-			metric, err = prometheus.NewConstMetric(
-				capacityFreeDesc,
-				prometheus.CounterValue,
-				float64(sc.Free),
-				pc.ID,
-				sc.Size,
-			)
-			if err != nil {
-				zapup.MustRootLogger().Error("Failed to create metric for freeCapacity", zap.Error(err))
-				return
-			}
-			ch <- metric
-			metric, err = prometheus.NewConstMetric(
-				capacityAllocatedDesc,
-				prometheus.CounterValue,
-				float64(sc.Allocated),
-				pc.ID,
-				sc.Size,
-			)
-			if err != nil {
-				zapup.MustRootLogger().Error("Failed to create metric for allocatedCapacity", zap.Error(err))
-				return
-			}
-			ch <- metric
-			metric, err = prometheus.NewConstMetric(
-				capacityFaultyDesc,
-				prometheus.CounterValue,
-				float64(sc.Faulty),
-				pc.ID,
-				sc.Size,
-			)
-			if err != nil {
-				zapup.MustRootLogger().Error("Failed to create metric for faultyCapacity", zap.Error(err))
-				return
-			}
-			ch <- metric
-		}
-	}
 }

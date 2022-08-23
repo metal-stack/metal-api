@@ -14,18 +14,19 @@ import (
 
 const (
 	DemotedUser                       = "metal"
-	EntityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
+	entityAlreadyModifiedErrorMessage = "the entity was changed from another, please retry"
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration", "filesystemlayout",
+	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
 
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
-	*zap.SugaredLogger
+	log *zap.SugaredLogger
+
 	session   r.QueryExecutor
 	dbsession *r.Session
 
@@ -34,6 +35,7 @@ type RethinkStore struct {
 	dbpass string
 	dbhost string
 
+	// TODO: should not be public
 	VRFPoolRangeMin uint
 	VRFPoolRangeMax uint
 	ASNPoolRangeMin uint
@@ -41,13 +43,13 @@ type RethinkStore struct {
 }
 
 // New creates a new rethink store.
-func New(log *zap.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
+func New(log *zap.SugaredLogger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
 	return &RethinkStore{
-		SugaredLogger: log.Sugar(),
-		dbhost:        dbhost,
-		dbname:        dbname,
-		dbuser:        dbuser,
-		dbpass:        dbpass,
+		log:    log,
+		dbhost: dbhost,
+		dbname: dbname,
+		dbuser: dbuser,
+		dbpass: dbpass,
 
 		VRFPoolRangeMin: DefaultVRFPoolRangeMin,
 		VRFPoolRangeMax: DefaultVRFPoolRangeMax,
@@ -65,16 +67,6 @@ func multi(session r.QueryExecutor, tt ...r.Term) error {
 	return nil
 }
 
-// Health checks if the connection to the database is ok.
-func (rs *RethinkStore) Health() error {
-	return multi(rs.session,
-		r.Branch(
-			rs.db().TableList().SetIntersection(r.Expr(tables)).Count().Eq(len(tables)),
-			r.Expr(true),
-			r.Error("required tables are missing")),
-	)
-}
-
 // Initialize initializes the database, it should be called before serving the metal-api
 // in order to ensure that tables, pools, permissions are properly initialized
 func (rs *RethinkStore) Initialize() error {
@@ -82,7 +74,7 @@ func (rs *RethinkStore) Initialize() error {
 }
 
 func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
-	rs.Info("starting database init")
+	rs.log.Info("starting database init")
 
 	db := rs.db()
 
@@ -116,31 +108,31 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	defer res.Close()
 
 	// demoted runtime user creation / update
-	rs.Info("creating / updating demoted runtime user")
+	rs.log.Info("creating / updating demoted runtime user")
 	_, err = rs.userTable().Insert(map[string]interface{}{"id": DemotedUser, "password": rs.dbpass}, r.InsertOpts{
 		Conflict: "update",
 	}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
-	rs.Info("ensuring demoted user can read and write")
+	rs.log.Info("ensuring demoted user can read and write")
 	_, err = rs.db().Grant(DemotedUser, map[string]interface{}{"read": true, "write": true}).RunWrite(rs.session)
 	if err != nil {
 		return err
 	}
 
 	// integer pools
-	err = rs.GetVRFPool().initIntegerPool(rs.SugaredLogger)
+	err = rs.GetVRFPool().initIntegerPool(rs.log)
 	if err != nil {
 		return err
 	}
 
-	err = rs.GetASNPool().initIntegerPool(rs.SugaredLogger)
+	err = rs.GetASNPool().initIntegerPool(rs.log)
 	if err != nil {
 		return err
 	}
 
-	rs.Info("database init complete")
+	rs.log.Info("database init complete")
 
 	return nil
 }
@@ -187,6 +179,11 @@ func (rs *RethinkStore) ipTable() *r.Term {
 
 func (rs *RethinkStore) filesystemLayoutTable() *r.Term {
 	res := r.DB(rs.dbname).Table("filesystemlayout")
+	return &res
+}
+
+func (rs *RethinkStore) sizeImageConstraintTable() *r.Term {
+	res := r.DB(rs.dbname).Table("sizeimageconstraint")
 	return &res
 }
 
@@ -241,15 +238,15 @@ func (rs *RethinkStore) Close() error {
 			return err
 		}
 	}
-	rs.Info("Rethinkstore disconnected")
+	rs.log.Info("Rethinkstore disconnected")
 	return nil
 }
 
 // Connect connects to the database. If there is an error, it will run until there is
 // a connection.
 func (rs *RethinkStore) Connect() error {
-	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
-	rs.Info("Rethinkstore connected")
+	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
+	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
 	return nil
 }
@@ -257,15 +254,15 @@ func (rs *RethinkStore) Connect() error {
 // Demote connects to the database with the demoted metal runtime user. this enables
 // putting the database in read-only mode during database migrations
 func (rs *RethinkStore) Demote() error {
-	rs.Info("connecting with demoted runtime user")
+	rs.log.Info("connecting with demoted runtime user")
 	err := rs.Close()
 	if err != nil {
 		return err
 	}
-	rs.dbsession = retryConnect(rs.SugaredLogger, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
+	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
 
-	rs.Info("rethinkstore connected with demoted user")
+	rs.log.Info("rethinkstore connected with demoted user")
 	return nil
 }
 
@@ -380,15 +377,18 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.Entity) error {
 	entity.SetCreated(now)
 	entity.SetChanged(now)
 
-	// TODO: Return metal.Conflict
 	res, err := table.Insert(entity).RunWrite(rs.session)
 	if err != nil {
+		if r.IsConflictErr(err) {
+			return metal.Conflict("cannot create %v in database, entity already exists: %s", getEntityName(entity), entity.GetID())
+		}
 		return fmt.Errorf("cannot create %v in database: %w", getEntityName(entity), err)
 	}
 
 	if entity.GetID() == "" && len(res.GeneratedKeys) > 0 {
 		entity.SetID(res.GeneratedKeys[0])
 	}
+
 	return nil
 }
 
@@ -422,12 +422,17 @@ func (rs *RethinkStore) deleteEntity(table *r.Term, entity metal.Entity) error {
 
 func (rs *RethinkStore) updateEntity(table *r.Term, newEntity metal.Entity, oldEntity metal.Entity) error {
 	newEntity.SetChanged(time.Now())
+
 	_, err := table.Get(oldEntity.GetID()).Replace(func(row r.Term) r.Term {
-		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error(EntityAlreadyModifiedErrorMessage))
+		return r.Branch(row.Field("changed").Eq(r.Expr(oldEntity.GetChanged())), newEntity, r.Error(entityAlreadyModifiedErrorMessage))
 	}).RunWrite(rs.session)
 	if err != nil {
+		if strings.Contains(err.Error(), entityAlreadyModifiedErrorMessage) {
+			return metal.Conflict("cannot update %v (%s): %s", getEntityName(newEntity), oldEntity.GetID(), entityAlreadyModifiedErrorMessage)
+		}
 		return fmt.Errorf("cannot update %v (%s): %w", getEntityName(newEntity), oldEntity.GetID(), err)
 	}
+
 	return nil
 }
 

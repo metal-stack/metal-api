@@ -5,7 +5,7 @@ MINI_LAB_KUBECONFIG := $(shell pwd)/../mini-lab/.kubeconfig
 
 include $(COMMONDIR)/Makefile.inc
 
-release:: protoc spec check-diff all ;
+release:: spec check-diff all ;
 
 .PHONY: spec
 spec: all
@@ -22,12 +22,14 @@ redoc:
 
 .PHONY: protoc
 protoc:
-	protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
+	rm -rf pkg/api/v1
+	make -C proto protoc
 
 .PHONY: protoc-docker
 protoc-docker:
-	docker pull metalstack/builder
-	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work metalstack/builder protoc -I pkg --go_out plugins=grpc:pkg pkg/api/v1/*.proto
+	rm -rf pkg/api/v1
+	docker pull bufbuild/buf:1.5.0
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.5.0 generate -v
 
 .PHONY: mini-lab-push
 mini-lab-push:
@@ -35,3 +37,9 @@ mini-lab-push:
 	kind --name metal-control-plane load docker-image metalstack/metal-api:latest
 	kubectl --kubeconfig=$(MINI_LAB_KUBECONFIG) patch deployments.apps -n metal-control-plane metal-api --patch='{"spec":{"template":{"spec":{"containers":[{"name": "metal-api","imagePullPolicy":"IfNotPresent","image":"metalstack/metal-api:latest"}]}}}}'
 	kubectl --kubeconfig=$(MINI_LAB_KUBECONFIG) delete pod -n metal-control-plane -l app=metal-api
+
+.PHONY: visualize-fsm
+visualize-fsm:
+	cd cmd/metal-api/internal/tools/visualize_fsm
+	go run main.go
+	dot -Tsvg fsm.dot > fsm.svg

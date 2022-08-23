@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/metal-stack/metal-lib/httperrors"
+	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -24,13 +25,14 @@ import (
 )
 
 func TestGetNetworks(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -40,7 +42,7 @@ func TestGetNetworks(t *testing.T) {
 	var result []v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, 4)
 	require.Equal(t, testdata.Nw1.ID, result[0].ID)
 	require.Equal(t, testdata.Nw1.Name, *result[0].Name)
@@ -51,13 +53,14 @@ func TestGetNetworks(t *testing.T) {
 }
 
 func TestGetNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/1", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -67,19 +70,20 @@ func TestGetNetwork(t *testing.T) {
 	var result v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Nw1.ID, result.ID)
 	require.Equal(t, testdata.Nw1.Name, *result.Name)
 }
 
 func TestGetNetworkNotFound(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("GET", "/v1/network/999", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -89,22 +93,23 @@ func TestGetNetworkNotFound(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Contains(t, result.Message, "999")
 	require.Equal(t, 404, result.StatusCode)
 }
 
 func TestDeleteNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(ds, ipamer, nil)
+	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -114,22 +119,23 @@ func TestDeleteNetwork(t *testing.T) {
 	var result v1.NetworkResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.NwIPAM.ID, result.ID)
 	require.Equal(t, testdata.NwIPAM.Name, *result.Name)
 }
 
 func TestDeleteNetworkIPInUse(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{}, nil)
 	ipamer, err := testdata.InitMockIpamData(mock, true)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(ds, ipamer, nil)
+	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 	req := httptest.NewRequest("DELETE", "/v1/network/"+testdata.NwIPAM.ID, nil)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -139,18 +145,19 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 422, result.StatusCode)
 	require.Contains(t, result.Message, "unable to delete network: prefix 10.0.0.0/16 has ip 10.0.0.1 in use")
 }
 
 func TestCreateNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(ds, ipamer, nil)
+	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
 
 	prefixes := []string{"172.0.0.0/24"}
@@ -161,11 +168,12 @@ func TestCreateNetwork(t *testing.T) {
 		NetworkBase:      v1.NetworkBase{PartitionID: &testdata.Nw1.PartitionID, ProjectID: &testdata.Nw1.ProjectID},
 		NetworkImmutable: v1.NetworkImmutable{Prefixes: prefixes, DestinationPrefixes: destPrefixes, Vrf: &vrf},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/network", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -175,7 +183,7 @@ func TestCreateNetwork(t *testing.T) {
 	var result v1.NetworkResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Nw1.Name, *result.Name)
 	require.Equal(t, testdata.Nw1.PartitionID, *result.PartitionID)
 	require.Equal(t, testdata.Nw1.ProjectID, *result.ProjectID)
@@ -183,10 +191,11 @@ func TestCreateNetwork(t *testing.T) {
 }
 
 func TestUpdateNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkservice := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
 
 	newName := "new"
@@ -196,11 +205,12 @@ func TestUpdateNetwork(t *testing.T) {
 			Describable:  v1.Describable{Name: &newName},
 		},
 	}
-	js, _ := json.Marshal(updateRequest)
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/network", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -208,24 +218,25 @@ func TestUpdateNetwork(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result metal.Partition
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Nw1.ID, result.ID)
 	require.Equal(t, newName, result.Name)
 }
 
 func TestSearchNetwork(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{testdata.Nw1}, nil)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	networkService := NewNetwork(ds, ipam.New(goipam.New()), nil)
+	networkService := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkService)
 	requestJSON := fmt.Sprintf("{%q:%q}", "partitionid", "1")
 	req := httptest.NewRequest("POST", "/v1/network/find", bytes.NewBufferString(requestJSON))
 	req.Header.Add("Content-Type", "application/json")
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -235,7 +246,7 @@ func TestSearchNetwork(t *testing.T) {
 	var results []v1.NetworkResponse
 	err := json.NewDecoder(resp.Body).Decode(&results)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, results, 1)
 	result := results[0]
 	require.Equal(t, testdata.Nw1.ID, result.ID)

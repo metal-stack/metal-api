@@ -4,6 +4,10 @@
     "datastore.IPSearchQuery": {
       "description": "an ip address that can be attached to a machine",
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
@@ -297,7 +301,28 @@
         "type": "HTTPErrorResponse"
       }
     },
-    "rest.status": {
+    "rest.HealthResponse": {
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "services": {
+          "additionalProperties": {
+            "$ref": "#/definitions/rest.HealthResult"
+          },
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "services",
+        "status"
+      ]
+    },
+    "rest.HealthResult": {
       "properties": {
         "message": {
           "type": "string"
@@ -1297,6 +1322,10 @@
     },
     "v1.IPFindRequest": {
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this ip address allocation, can be used to distinguish between ip address allocation over time.",
+          "type": "string"
+        },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
           "type": "string"
@@ -2345,40 +2374,6 @@
         "memory"
       ]
     },
-    "v1.MachineHardwareExtended": {
-      "properties": {
-        "cpu_cores": {
-          "description": "the number of cpu cores",
-          "format": "int32",
-          "type": "integer"
-        },
-        "disks": {
-          "description": "the list of block devices of this machine",
-          "items": {
-            "$ref": "#/definitions/v1.MachineBlockDevice"
-          },
-          "type": "array"
-        },
-        "memory": {
-          "description": "the total memory of the machine",
-          "format": "integer",
-          "type": "integer"
-        },
-        "nics": {
-          "description": "the list of network interfaces of this machine with extended information",
-          "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "cpu_cores",
-        "disks",
-        "memory",
-        "nics"
-      ]
-    },
     "v1.MachineIPMI": {
       "description": "The IPMI connection data",
       "properties": {
@@ -2526,6 +2521,9 @@
         "FRU": {
           "$ref": "#/definitions/v1.MachineFru"
         },
+        "IndicatorLEDState": {
+          "type": "string"
+        },
         "PowerState": {
           "type": "string"
         }
@@ -2535,6 +2533,7 @@
         "BMCIp",
         "BMCVersion",
         "FRU",
+        "IndicatorLEDState",
         "PowerState"
       ]
     },
@@ -2652,27 +2651,11 @@
         "name": {
           "description": "the name of this network interface",
           "type": "string"
-        }
-      },
-      "required": [
-        "mac",
-        "name"
-      ]
-    },
-    "v1.MachineNicExtended": {
-      "properties": {
-        "mac": {
-          "description": "the mac address of this network interface",
-          "type": "string"
-        },
-        "name": {
-          "description": "the name of this network interface",
-          "type": "string"
         },
         "neighbors": {
           "description": "the neighbors visible to this network interface",
           "items": {
-            "$ref": "#/definitions/v1.MachineNicExtended"
+            "$ref": "#/definitions/v1.MachineNic"
           },
           "type": "array"
         }
@@ -2704,11 +2687,29 @@
         "event"
       ]
     },
+    "v1.MachineProvisioningEvents": {
+      "additionalProperties": {
+        "$ref": "#/definitions/v1.MachineProvisioningEvent"
+      },
+      "type": "object"
+    },
     "v1.MachineRecentProvisioningEvents": {
       "properties": {
+        "crash_loop": {
+          "description": "indicates that machine is provisioning crash loop",
+          "type": "boolean"
+        },
+        "failed_machine_reclaim": {
+          "description": "indicates that machine reclaim has failed",
+          "type": "boolean"
+        },
         "incomplete_provisioning_cycles": {
-          "description": "the amount of incomplete provisioning cycles in the event container",
+          "description": "The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'.",
           "type": "string"
+        },
+        "last_error_event": {
+          "$ref": "#/definitions/v1.MachineProvisioningEvent",
+          "description": "the last erroneous event received"
         },
         "last_event_time": {
           "description": "the time where the last event was received",
@@ -2724,8 +2725,30 @@
         }
       },
       "required": [
+        "crash_loop",
+        "failed_machine_reclaim",
         "incomplete_provisioning_cycles",
         "log"
+      ]
+    },
+    "v1.MachineRecentProvisioningEventsResponse": {
+      "properties": {
+        "events": {
+          "description": "number of events stored",
+          "format": "integer",
+          "type": "integer"
+        },
+        "failed": {
+          "description": "slice of machineIDs for which event was not published",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "events",
+        "failed"
       ]
     },
     "v1.MachineRegisterRequest": {
@@ -2735,7 +2758,7 @@
           "description": "bios information of this machine"
         },
         "hardware": {
-          "$ref": "#/definitions/v1.MachineHardwareExtended",
+          "$ref": "#/definitions/v1.MachineHardware",
           "description": "the hardware of this machine"
         },
         "ipmi": {
@@ -2892,13 +2915,27 @@
           "description": "a description why this machine is in the given state",
           "type": "string"
         },
+        "issuer": {
+          "description": "the user that changed the state",
+          "type": "string"
+        },
+        "metal_hammer_version": {
+          "description": "the version of metal hammer which put the machine in waiting state",
+          "type": "string"
+        },
         "value": {
           "description": "the state of this machine. empty means available for all",
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         }
       },
       "required": [
         "description",
+        "metal_hammer_version",
         "value"
       ]
     },
@@ -2910,6 +2947,10 @@
         },
         "kind": {
           "description": "the firmware kind, i.e. [bios|bmc]",
+          "enum": [
+            "bios",
+            "bmc"
+          ],
           "type": "string"
         },
         "revision": {
@@ -2921,6 +2962,30 @@
         "description",
         "kind",
         "revision"
+      ]
+    },
+    "v1.MachineUpdateRequest": {
+      "properties": {
+        "description": {
+          "description": "a description for this machine",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "tags": {
+          "description": "tags for this machine.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "description",
+        "id"
       ]
     },
     "v1.Meta": {
@@ -3859,6 +3924,107 @@
         "id"
       ]
     },
+    "v1.SizeImageConstraintBase": {
+      "properties": {
+        "images": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "a list of images for this contraints apply",
+          "type": "object"
+        }
+      },
+      "required": [
+        "images"
+      ]
+    },
+    "v1.SizeImageConstraintCreateRequest": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.SizeImageConstraintBase",
+          "description": "a list of constraints that for this size"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "v1.SizeImageConstraintResponse": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.SizeImageConstraintBase",
+          "description": "a list of constraints that for this size"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "constraints",
+        "id"
+      ]
+    },
+    "v1.SizeImageConstraintTryRequest": {
+      "properties": {
+        "image": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "image",
+        "size"
+      ]
+    },
+    "v1.SizeImageConstraintUpdateRequest": {
+      "properties": {
+        "constraints": {
+          "$ref": "#/definitions/v1.SizeImageConstraintBase",
+          "description": "a list of constraints that for this size"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
     "v1.SizeMatchingLog": {
       "properties": {
         "constraints": {
@@ -4013,7 +4179,7 @@
         },
         "sync_duration": {
           "description": "the duration of the switch synchronization",
-          "format": "integer",
+          "format": "int64",
           "type": "integer"
         }
       },
@@ -4138,7 +4304,7 @@
       "properties": {
         "duration": {
           "description": "the duration that lat switch sync took",
-          "format": "integer",
+          "format": "int64",
           "type": "integer"
         },
         "error": {
@@ -4936,6 +5102,14 @@
           "application/json"
         ],
         "operationId": "health",
+        "parameters": [
+          {
+            "description": "return health for this specific service only",
+            "in": "query",
+            "name": "service",
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -4943,13 +5117,13 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/rest.status"
+              "$ref": "#/definitions/rest.HealthResponse"
             }
           },
           "500": {
             "description": "Unhealthy",
             "schema": {
-              "$ref": "#/definitions/rest.status"
+              "$ref": "#/definitions/rest.HealthResponse"
             }
           },
           "default": {
@@ -4971,6 +5145,15 @@
           "application/json"
         ],
         "operationId": "listImages",
+        "parameters": [
+          {
+            "default": false,
+            "description": "include image usage into response",
+            "in": "query",
+            "name": "show-usage",
+            "type": "bool"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -5337,6 +5520,12 @@
               "$ref": "#/definitions/v1.IPResponse"
             }
           },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
           "default": {
             "description": "Error",
             "schema": {
@@ -5381,6 +5570,12 @@
             "description": "Created",
             "schema": {
               "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           },
           "default": {
@@ -5439,11 +5634,49 @@
       }
     },
     "/v1/ip/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeIP",
+        "parameters": [
+          {
+            "description": "identifier of the ip",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "frees an ip",
+        "tags": [
+          "ip"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeIPDeprecated",
         "parameters": [
           {
             "description": "identifier of the ip",
@@ -5544,6 +5777,49 @@
         "tags": [
           "machine"
         ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateMachine",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a machine. if the machine was changed since this one was read, a conflict is returned",
+        "tags": [
+          "machine"
+        ]
       }
     },
     "/v1/machine/allocate": {
@@ -5619,6 +5895,46 @@
           }
         },
         "summary": "get consolepassword for machine by id",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/event": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "addProvisioningEvents",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineProvisioningEvents"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.MachineRecentProvisioningEventsResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "adds machine provisioning events",
         "tags": [
           "machine"
         ]
@@ -5917,6 +6233,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "abortReinstallMachine",
         "parameters": [
           {
@@ -5963,6 +6280,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "setChassisIdentifyLEDState",
         "parameters": [
           {
@@ -6009,6 +6327,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "getProvisioningEventContainer",
         "parameters": [
           {
@@ -6045,6 +6364,7 @@
         "consumes": [
           "application/json"
         ],
+        "deprecated": true,
         "operationId": "addProvisioningEvent",
         "parameters": [
           {
@@ -6938,11 +7258,55 @@
       }
     },
     "/v1/network/free/{id}": {
-      "post": {
+      "delete": {
         "consumes": [
           "application/json"
         ],
         "operationId": "freeNetwork",
+        "parameters": [
+          {
+            "description": "identifier of the network",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.NetworkResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "free a network",
+        "tags": [
+          "network"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "*/*",
+          "application/json"
+        ],
+        "deprecated": true,
+        "operationId": "freeNetworkDeprecated",
         "parameters": [
           {
             "description": "identifier of the network",
@@ -7672,6 +8036,237 @@
         ]
       }
     },
+    "/v1/size-image-constraint": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listSizeImageConstraints",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all sizeimageconstraints",
+        "tags": [
+          "sizeimageconstraint"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateSizeImageConstraint",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "updates a sizeimageconstraint. if the sizeimageconstraint was changed since this one was read, a conflict is returned",
+        "tags": [
+          "sizeimageconstraint"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "createSizeImageConstraint",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a sizeimageconstraint. if the given ID already exists a conflict is returned",
+        "tags": [
+          "sizeimageconstraint"
+        ]
+      }
+    },
+    "/v1/size-image-constraint/try": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "trySizeImageConstraint",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintTryRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.EmptyBody"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "try if the given combination of image and size is supported and possible to allocate",
+        "tags": [
+          "sizeimageconstraint"
+        ]
+      }
+    },
+    "/v1/size-image-constraint/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteSizeImageConstraint",
+        "parameters": [
+          {
+            "description": "identifier of the size",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes an sizeimageconstraint and returns the deleted entity",
+        "tags": [
+          "sizeimageconstraint"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findSizeImageConstraint",
+        "parameters": [
+          {
+            "description": "identifier of the sizeimageconstraint",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SizeImageConstraintResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get sizeimageconstraint by id",
+        "tags": [
+          "sizeimageconstraint"
+        ]
+      }
+    },
     "/v1/size/from-hardware": {
       "post": {
         "consumes": [
@@ -7684,7 +8279,7 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1.MachineHardwareExtended"
+              "$ref": "#/definitions/v1.MachineHardware"
             }
           }
         ],

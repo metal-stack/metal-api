@@ -17,8 +17,10 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	"golang.org/x/crypto/ssh"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -44,15 +46,24 @@ func (p *emptyPublisher) CreateTopic(topic string) error {
 
 func (p *emptyPublisher) Stop() {}
 
-func TestGetMachines(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
-	testdata.InitMockDBData(mock)
+type mockUserGetter struct {
+	user *security.User
+}
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+func (m mockUserGetter) User(rq *http.Request) (*security.User, error) {
+	return m.user, nil
+}
+
+func TestGetMachines(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -62,7 +73,7 @@ func TestGetMachines(t *testing.T) {
 	var result []v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, len(testdata.TestMachines))
 	require.Equal(t, testdata.M1.ID, result[0].ID)
 	require.Equal(t, testdata.M1.Allocation.Name, result[0].Allocation.Name)
@@ -71,7 +82,10 @@ func TestGetMachines(t *testing.T) {
 	require.Equal(t, testdata.M2.ID, result[1].ID)
 }
 
+// FIXME move to boot-service_test.go
 func TestRegisterMachine(t *testing.T) {
+	log := zaptest.NewLogger(t).Sugar()
+
 	tests := []struct {
 		name                 string
 		uuid                 string
@@ -133,7 +147,7 @@ func TestRegisterMachine(t *testing.T) {
 			partitionid:          "1",
 			dbpartitions:         []metal.Partition{testdata.Partition1},
 			dbsizes:              []metal.Size{testdata.Sz1},
-			expectedStatus:       http.StatusUnprocessableEntity,
+			expectedStatus:       http.StatusBadRequest,
 			expectedErrorMessage: "uuid cannot be empty",
 		},
 		{
@@ -163,7 +177,7 @@ func TestRegisterMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			ds, mock := datastore.InitMockDB()
+			ds, mock := datastore.InitMockDB(t)
 			mock.On(r.DB("mockdb").Table("partition").Get(tt.partitionid)).Return(tt.dbpartitions, nil)
 
 			if len(tt.dbmachines) > 0 {
@@ -200,27 +214,23 @@ func TestRegisterMachine(t *testing.T) {
 						ProductSerial:       &testdata.IPMI1.Fru.ProductSerial,
 					},
 				},
-				Hardware: v1.MachineHardwareExtended{
+				Hardware: v1.MachineHardware{
 					MachineHardwareBase: v1.MachineHardwareBase{
 						CPUCores: tt.numcores,
 						Memory:   uint64(tt.memory),
 					},
-					Nics: v1.MachineNicsExtended{
-						v1.MachineNicExtended{
-							Neighbors: v1.MachineNicsExtended{
-								v1.MachineNicExtended{
-									MachineNic: v1.MachineNic{
-										MacAddress: string(tt.neighbormac1),
-									},
+					Nics: v1.MachineNics{
+						v1.MachineNic{
+							Neighbors: v1.MachineNics{
+								v1.MachineNic{
+									MacAddress: string(tt.neighbormac1),
 								},
 							},
 						},
-						v1.MachineNicExtended{
-							Neighbors: v1.MachineNicsExtended{
-								v1.MachineNicExtended{
-									MachineNic: v1.MachineNic{
-										MacAddress: string(tt.neighbormac2),
-									},
+						v1.MachineNic{
+							Neighbors: v1.MachineNics{
+								v1.MachineNic{
+									MacAddress: string(tt.neighbormac2),
 								},
 							},
 						},
@@ -228,14 +238,15 @@ func TestRegisterMachine(t *testing.T) {
 				},
 			}
 
-			js, _ := json.Marshal(registerRequest)
+			js, err := json.Marshal(registerRequest)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/register", body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -247,13 +258,13 @@ func TestRegisterMachine(t *testing.T) {
 				var result httperrors.HTTPErrorResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Regexp(t, tt.expectedErrorMessage, result.Message)
 			} else {
 				var result v1.MachineResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				expectedid := "0"
 				if len(tt.dbmachines) > 0 {
 					expectedid = tt.dbmachines[0].ID
@@ -268,8 +279,9 @@ func TestRegisterMachine(t *testing.T) {
 }
 
 func TestMachineIPMIReport(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	tests := []struct {
 		name           string
@@ -306,14 +318,15 @@ func TestMachineIPMIReport(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
-			js, _ := json.Marshal(tt.input)
+			js, err := json.Marshal(tt.input)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/machine/ipmi", body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -323,13 +336,15 @@ func TestMachineIPMIReport(t *testing.T) {
 
 			var result v1.MachineIpmiReportResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, tt.output, result)
 		})
 	}
 }
 
 func TestMachineFindIPMI(t *testing.T) {
+	log := zaptest.NewLogger(t).Sugar()
+
 	tests := []struct {
 		name           string
 		machine        *metal.Machine
@@ -350,22 +365,23 @@ func TestMachineFindIPMI(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			ds, mock := datastore.InitMockDB()
+			ds, mock := datastore.InitMockDB(t)
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*tt.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
 			query := datastore.MachineSearchQuery{
 				ID: &tt.machine.ID,
 			}
-			js, _ := json.Marshal(query)
+			js, err := json.Marshal(query)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/machine/ipmi/find", body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectViewer(container, req)
+			container = injectViewer(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -376,7 +392,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			var results []*v1.MachineIPMIResponse
 			err = json.NewDecoder(resp.Body).Decode(&results)
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Len(t, results, 1)
 
 			result := results[0]
@@ -399,9 +415,12 @@ func TestMachineFindIPMI(t *testing.T) {
 	}
 }
 
+// FIXME move to boot-service_test.go
+
 func TestFinalizeMachineAllocation(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	tests := []struct {
 		name           string
@@ -433,7 +452,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -441,11 +460,12 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 				Kernel: "vmlinuz",
 			}
 
-			js, _ := json.Marshal(finalizeRequest)
+			js, err := json.Marshal(finalizeRequest)
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", fmt.Sprintf("/v1/machine/%s/finalize-allocation", tt.machineID), body)
 			req.Header.Add("Content-Type", "application/json")
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
@@ -457,7 +477,7 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 				var result httperrors.HTTPErrorResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Equal(t, tt.wantStatusCode, result.StatusCode)
 				if tt.wantErrMessage != "" {
 					require.Regexp(t, tt.wantErrMessage, result.Message)
@@ -466,17 +486,23 @@ func TestFinalizeMachineAllocation(t *testing.T) {
 				var result v1.MachineResponse
 				err := json.NewDecoder(resp.Body).Decode(&result)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
 }
 
 func TestSetMachineState(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	userGetter := mockUserGetter{&security.User{
+		EMail: "anonymous@metal-stack.io",
+		Name:  "anonymous",
+	}}
+
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -485,11 +511,12 @@ func TestSetMachineState(t *testing.T) {
 		Value:       string(metal.ReservedState),
 		Description: "blubber",
 	}
-	js, _ := json.Marshal(stateRequest)
+	js, err := json.Marshal(stateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/1/state", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -499,22 +526,65 @@ func TestSetMachineState(t *testing.T) {
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "1", result.ID)
 	require.Equal(t, string(metal.ReservedState), result.State.Value)
 	require.Equal(t, "blubber", result.State.Description)
+	require.Equal(t, "anonymous@metal-stack.io", result.State.Issuer)
+}
+
+func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	userGetter := mockUserGetter{&security.User{
+		EMail: "anonymous@metal-stack.io",
+		Name:  "anonymous",
+	}}
+
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0)
+	require.NoError(t, err)
+
+	container := restful.NewContainer().Add(machineservice)
+
+	stateRequest := v1.MachineState{
+		Value:       string(metal.AvailableState),
+		Description: "",
+	}
+	js, err := json.Marshal(stateRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/1/state", body)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectEditor(log, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, "1", result.ID)
+	require.Equal(t, string(metal.AvailableState), result.State.Value)
+	require.Equal(t, "", result.State.Description)
+	require.Equal(t, "", result.State.Issuer)
 }
 
 func TestGetMachine(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/1", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -524,7 +594,7 @@ func TestGetMachine(t *testing.T) {
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
 	require.Equal(t, testdata.M1.Allocation.Name, result.Allocation.Name)
 	require.Equal(t, testdata.Sz1.Name, *result.Size.Name)
@@ -533,15 +603,16 @@ func TestGetMachine(t *testing.T) {
 }
 
 func TestGetMachineNotFound(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine/999", nil)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -553,8 +624,9 @@ func TestGetMachineNotFound(t *testing.T) {
 func TestFreeMachine(t *testing.T) {
 	// TODO: Add tests for IPAM, verifying that networks are cleaned up properly
 
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
 	pub := &emptyPublisher{}
 	events := []string{"1-machine", "1-machine", "releaseMachineNetworks", "1-switch"}
@@ -564,17 +636,17 @@ func TestFreeMachine(t *testing.T) {
 		eventidx++
 		if eventidx == 2 {
 			dv := data.(metal.MachineEvent)
-			require.Equal(t, "1", dv.OldMachineID)
+			require.Equal(t, "1", dv.Cmd.TargetMachineID)
 		}
 		return nil
 	}
 
-	machineservice, err := NewMachine(ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("DELETE", "/v1/machine/1/free", nil)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -584,25 +656,26 @@ func TestFreeMachine(t *testing.T) {
 	var result v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.M1.ID, result.ID)
 	require.Nil(t, result.Allocation)
 	require.Empty(t, result.Tags)
 }
 
 func TestSearchMachine(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
 	requestJSON := fmt.Sprintf("{%q:[%q]}", "nics_mac_addresses", "1")
 	req := httptest.NewRequest("POST", "/v1/machine/find", bytes.NewBufferString(requestJSON))
 	req.Header.Add("Content-Type", "application/json")
-	container = injectViewer(container, req)
+	container = injectViewer(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -612,7 +685,7 @@ func TestSearchMachine(t *testing.T) {
 	var results []v1.MachineResponse
 	err = json.NewDecoder(resp.Body).Decode(&results)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, results, 1)
 	result := results[0]
 	require.Equal(t, testdata.M1.ID, result.ID)
@@ -622,11 +695,13 @@ func TestSearchMachine(t *testing.T) {
 	require.Equal(t, testdata.Partition1.Name, *result.Partition.Name)
 }
 
+// FIXME move to event-service_test.go
 func TestAddProvisioningEvent(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -634,10 +709,11 @@ func TestAddProvisioningEvent(t *testing.T) {
 		Event:   metal.ProvisioningEventPreparing,
 		Message: "starting metal-hammer",
 	}
-	js, _ := json.Marshal(event)
+	js, err := json.Marshal(event)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/1/event", body)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -648,8 +724,9 @@ func TestAddProvisioningEvent(t *testing.T) {
 	var result v1.MachineRecentProvisioningEvents
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
-	require.Equal(t, "0", result.IncompleteProvisioningCycles)
+	require.NoError(t, err)
+	require.False(t, result.CrashLoop)
+	require.False(t, result.FailedMachineReclaim)
 	require.Len(t, result.Events, 1)
 	if len(result.Events) > 0 {
 		require.Equal(t, "starting metal-hammer", result.Events[0].Message)
@@ -657,7 +734,46 @@ func TestAddProvisioningEvent(t *testing.T) {
 	}
 }
 
+// FIXME move to event-service_test.go
+func TestAddProvisioningEvents(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
+	require.NoError(t, err)
+
+	machineID := "2"
+	container := restful.NewContainer().Add(machineservice)
+	preparing := string(metal.ProvisioningEventPreparing)
+	events := v1.MachineProvisioningEvents{}
+	events[machineID] = v1.MachineProvisioningEvent{
+		Event:   preparing,
+		Message: "starting metal-hammer",
+	}
+	js, err := json.Marshal(events)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/machine/event", body)
+	container = injectEditor(log, container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.MachineRecentProvisioningEventsResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), result.Events)
+	require.Equal(t, []string(nil), result.Failed)
+}
+
 func TestOnMachine(t *testing.T) {
+	log := zaptest.NewLogger(t).Sugar()
+
 	tests := []struct {
 		cmd      metal.MachineCommand
 		endpoint string
@@ -708,7 +824,7 @@ func TestOnMachine(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run("cmd_"+tt.endpoint, func(t *testing.T) {
-			ds, mock := datastore.InitMockDB()
+			ds, mock := datastore.InitMockDB(t)
 			testdata.InitMockDBData(mock)
 
 			pub := &emptyPublisher{}
@@ -720,14 +836,15 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice, err := NewMachine(ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, nil, 0)
+			machineservice, err := NewMachine(log, ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0)
 			require.NoError(t, err)
 
-			js, _ := json.Marshal([]string{tt.param})
+			js, err := json.Marshal([]string{tt.param})
+			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			container := restful.NewContainer().Add(machineservice)
 			req := httptest.NewRequest("POST", "/v1/machine/1/power/"+tt.endpoint, body)
-			container = injectEditor(container, req)
+			container = injectEditor(log, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -742,7 +859,7 @@ func TestOnMachine(t *testing.T) {
 func TestParsePublicKey(t *testing.T) {
 	pubKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1X"
 	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	pubKey = ""
 	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
@@ -758,7 +875,6 @@ func TestParsePublicKey(t *testing.T) {
 }
 
 func Test_validateAllocationSpec(t *testing.T) {
-	ass := assert.New(t)
 	trueValue := true
 	falseValue := false
 
@@ -817,33 +933,11 @@ func Test_validateAllocationSpec(t *testing.T) {
 				Creator:     testEmail,
 				PartitionID: "42",
 				ProjectID:   "123",
-				SizeID:      "42",
+				Size:        &testdata.Sz1,
 				Role:        metal.RoleMachine,
 			},
 			isError: false,
 			name:    "partition and size id for absent uuid",
-		},
-		{
-			spec: machineAllocationSpec{
-				Creator:     testEmail,
-				PartitionID: "42",
-				ProjectID:   "123",
-				Role:        metal.RoleMachine,
-			},
-			isError:  true,
-			expected: "when no machine id is given, a size id must be specified",
-			name:     "missing size id",
-		},
-		{
-			spec: machineAllocationSpec{
-				Creator:   testEmail,
-				SizeID:    "42",
-				ProjectID: "123",
-				Role:      metal.RoleMachine,
-			},
-			isError:  true,
-			expected: "when no machine id is given, a partition id must be specified",
-			name:     "missing partition id",
 		},
 		{
 			spec:     machineAllocationSpec{},
@@ -925,10 +1019,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 		tt := tests[i]
 		err := validateAllocationSpec(&tt.spec)
 		if tt.isError {
-			ass.Error(err, "Test: %s", tt.name)
-			ass.EqualError(err, tt.expected, "Test: %s", tt.name)
+			assert.Error(t, err, "Test: %s", tt.name)
+			assert.EqualError(t, err, tt.expected, "Test: %s", tt.name)
 		} else {
-			ass.NoError(err, "Test: %s", tt.name)
+			assert.NoError(t, err, "Test: %s", tt.name)
 		}
 	}
 }
@@ -1556,7 +1650,7 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 		test := tests[i]
 		t.Run(test.name, func(t *testing.T) {
 			// init tests
-			ds, mock := datastore.InitMockDB()
+			ds, mock := datastore.InitMockDB(t)
 			for _, testMock := range test.mocks {
 				mock.On(testMock.term).Return(testMock.response, testMock.err)
 			}

@@ -3,11 +3,12 @@ package datastore
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
 
-	"github.com/avast/retry-go"
+	"github.com/avast/retry-go/v4"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -157,7 +158,7 @@ func (ip *IntegerPool) AcquireRandomUniqueInteger() (uint, error) {
 			return err2
 		},
 		retry.Attempts(10),
-		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
+		retry.MaxDelay(100*time.Millisecond),
 		retry.LastErrorOnly(true),
 	)
 

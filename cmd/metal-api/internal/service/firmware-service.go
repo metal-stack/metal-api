@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
@@ -28,23 +28,12 @@ type firmwareResource struct {
 	s3Client *s3server.Client
 }
 
-type FirmwareKind = string
-
-const (
-	bios FirmwareKind = "bios"
-	bmc  FirmwareKind = "bmc"
-)
-
-var firmwareKinds = []string{
-	bios,
-	bmc,
-}
-
 // NewFirmware returns a webservice for firmware specific endpoints.
-func NewFirmware(ds *datastore.RethinkStore, s3Client *s3server.Client) (*restful.WebService, error) {
+func NewFirmware(log *zap.SugaredLogger, ds *datastore.RethinkStore, s3Client *s3server.Client) (*restful.WebService, error) {
 	r := firmwareResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
 		s3Client: s3Client,
 	}
@@ -52,7 +41,7 @@ func NewFirmware(ds *datastore.RethinkStore, s3Client *s3server.Client) (*restfu
 }
 
 // webService creates the webservice endpoint
-func (r firmwareResource) webService() *restful.WebService {
+func (r *firmwareResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/firmware").
@@ -104,15 +93,18 @@ func (r firmwareResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+func (r *firmwareResource) uploadFirmware(request *restful.Request, response *restful.Response) {
+	if r.s3Client == nil {
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
 		return
 	}
 
 	kind, err := toFirmwareKind(request.PathParameter("kind"))
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
 	vendor := strings.ToLower(request.PathParameter("vendor"))
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
@@ -120,9 +112,11 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 	// check that at least one machine matches kind, vendor and board
 	validReq := false
 	mm, err := r.ds.ListMachines()
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
+
 	for _, m := range mm {
 		fru := m.IPMI.Fru
 		if strings.EqualFold(fru.BoardMfg, vendor) && strings.EqualFold(fru.BoardPartNumber, board) {
@@ -131,13 +125,13 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 		}
 	}
 	if !validReq {
-		if checkError(request, response, utils.CurrentFuncName(), fmt.Errorf("there is no machine of vendor %s with board %s", vendor, board)) {
-			return
-		}
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("there is no machine of vendor %s with board %s", vendor, board)))
+		return
 	}
 
 	file, _, err := request.Request.FormFile("file")
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.InternalServerError(err))
 		return
 	}
 
@@ -147,22 +141,26 @@ func (r firmwareResource) uploadFirmware(request *restful.Request, response *res
 		Key:    &key,
 		Body:   file,
 	})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.InternalServerError(err))
 		return
 	}
 
 	response.WriteHeader(http.StatusOK)
 }
 
-func (r firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+func (r *firmwareResource) removeFirmware(request *restful.Request, response *restful.Response) {
+	if r.s3Client == nil {
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
 		return
 	}
 
 	kind, err := toFirmwareKind(request.PathParameter("kind"))
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
+
 	vendor := strings.ToLower(request.PathParameter("vendor"))
 	board := strings.ToUpper(request.PathParameter("board"))
 	revision := request.PathParameter("revision")
@@ -172,24 +170,26 @@ func (r firmwareResource) removeFirmware(request *restful.Request, response *res
 		Bucket: &r.s3Client.FirmwareBucket,
 		Key:    &key,
 	})
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.InternalServerError(err))
 		return
 	}
 
 	response.WriteHeader(http.StatusOK)
 }
 
-func (r firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
-	if r.s3Client == nil && checkError(request, response, utils.CurrentFuncName(), featureDisabledErr) {
+func (r *firmwareResource) listFirmwares(request *restful.Request, response *restful.Response) {
+	if r.s3Client == nil {
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
 		return
 	}
 
 	kind := guessFirmwareKind(request.QueryParameter("kind"))
-	var kk []FirmwareKind
+	var kk []metal.FirmwareKind
 	switch kind {
 	case "":
-		kk = append(kk, bmc)
-		kk = append(kk, bios)
+		kk = append(kk, metal.FirmwareBMC)
+		kk = append(kk, metal.FirmwareBIOS)
 	default:
 		kk = append(kk, kind)
 	}
@@ -213,44 +213,42 @@ func (r firmwareResource) listFirmwares(request *restful.Request, response *rest
 				}
 				return true
 			})
-			if checkError(request, response, utils.CurrentFuncName(), err) {
+			if err != nil {
+				r.sendError(request, response, httperrors.InternalServerError(err))
 				return
 			}
 		default:
-			f, err := getFirmware(r.ds, machineID)
-			if checkError(request, response, utils.CurrentFuncName(), err) {
+			_, f, err := getFirmware(r.ds, machineID)
+			if err != nil {
+				r.sendError(request, response, defaultError(err))
 				return
 			}
+
 			bb := make(map[string][]string)
 			switch k {
-			case bios:
+			case metal.FirmwareBIOS:
 				bb[f.Board] = []string{f.BiosVersion}
-			case bmc:
+			case metal.FirmwareBMC:
 				bb[f.Board] = []string{f.BmcVersion}
 			}
 			rr[k][f.Vendor] = bb
 		}
 	}
 
-	resp := mapToFirmwareResponse(rr)
-	err := response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		utils.Logger(request).Sugar().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, mapToFirmwareResponse(rr))
 }
 
-func getFirmware(ds *datastore.RethinkStore, machineID string) (*v1.Firmware, error) {
+func getFirmware(ds *datastore.RethinkStore, machineID string) (*metal.Machine, *v1.Firmware, error) {
 	m, err := ds.FindMachineByID(machineID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	fru := m.IPMI.Fru
 	vendor := strings.ToLower(fru.BoardMfg)
 	board := strings.ToUpper(fru.BoardPartNumber)
 
-	return &v1.Firmware{
+	return m, &v1.Firmware{
 		Vendor:      vendor,
 		Board:       board,
 		BmcVersion:  m.IPMI.BMCVersion,
@@ -327,7 +325,7 @@ func guessFirmwareKind(kind string) string {
 }
 
 func toFirmwareKind(kind string) (string, error) {
-	for _, k := range firmwareKinds {
+	for _, k := range metal.FirmwareKinds {
 		if strings.EqualFold(k, kind) {
 			return k, nil
 		}

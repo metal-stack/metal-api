@@ -16,14 +16,16 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestRegisterSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	name := "switch999"
@@ -41,11 +43,12 @@ func TestRegisterSwitch(t *testing.T) {
 			RackID: "1",
 		},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -53,9 +56,9 @@ func TestRegisterSwitch(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, "switch999", result.ID)
 	require.Equal(t, "switch999", *result.Name)
 	require.Equal(t, "1", result.RackID)
@@ -64,10 +67,11 @@ func TestRegisterSwitch(t *testing.T) {
 }
 
 func TestRegisterExistingSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -81,11 +85,12 @@ func TestRegisterExistingSwitch(t *testing.T) {
 			RackID: testdata.Switch2.RackID,
 		},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -93,9 +98,9 @@ func TestRegisterExistingSwitch(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Switch2.ID, result.ID)
 	require.Equal(t, testdata.Switch2.Name, *result.Name)
 	require.Equal(t, testdata.Switch2.RackID, result.RackID)
@@ -106,10 +111,11 @@ func TestRegisterExistingSwitch(t *testing.T) {
 }
 
 func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -124,20 +130,22 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 			RackID: testdata.Switch1.RackID,
 		},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 }
 
 func TestReplaceSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	createRequest := v1.SwitchRegisterRequest{
@@ -151,11 +159,12 @@ func TestReplaceSwitch(t *testing.T) {
 			RackID: testdata.Switch2.RackID,
 		},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch/register", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -163,9 +172,9 @@ func TestReplaceSwitch(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Switch2.ID, result.ID)
 	require.Equal(t, testdata.Switch2.Name, *result.Name)
 	require.Equal(t, testdata.Switch2.RackID, result.RackID)
@@ -255,12 +264,12 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 
 	for i := range tests {
 		tt := tests[i]
-		ds, mock := datastore.InitMockDB()
-		mock.On(r.DB("mockdb").Table("switch")).Return(testSwitches, nil)
+		ds, mock := datastore.InitMockDB(t)
+		mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return(testSwitches, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
 		t.Run(tt.name, func(t *testing.T) {
-			if err := connectMachineWithSwitches(ds, tt.machine); (err != nil) != tt.wantErr {
+			if err := ds.ConnectMachineWithSwitches(tt.machine); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.connectMachineWithSwitches() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -269,7 +278,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 }
 
 func TestSetVrfAtSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	sw := metal.Switch{
 		PartitionID: "1",
 		Nics:        metal.Nics{metal.Nic{MacAddress: metal.MacAddress("11:11:11:11:11:11")}},
@@ -299,7 +308,7 @@ func TestSetVrfAtSwitch(t *testing.T) {
 		Base:        metal.Base{ID: "1"},
 		PartitionID: "1",
 	}
-	switches, err := setVrfAtSwitches(ds, m, vrf)
+	switches, err := ds.SetVrfAtSwitches(m, vrf)
 	require.NoError(t, err, "no error was expected: got %v", err)
 	require.Len(t, switches, 1)
 	for _, s := range switches {
@@ -1151,10 +1160,11 @@ func Test_updateSwitchNics(t *testing.T) {
 }
 
 func TestUpdateSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	desc := "test"
@@ -1171,10 +1181,11 @@ func TestUpdateSwitch(t *testing.T) {
 			Mode: string(metal.SwitchReplace),
 		},
 	}
-	js, _ := json.Marshal(updateRequest)
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/switch", body)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -1183,9 +1194,9 @@ func TestUpdateSwitch(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.Name, *result.Name)
 	require.Equal(t, desc, *result.Description)
@@ -1193,21 +1204,23 @@ func TestUpdateSwitch(t *testing.T) {
 }
 
 func TestNotifySwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	d := time.Second * 10
 	notifyRequest := v1.SwitchNotifyRequest{
 		Duration: d,
 	}
-	js, _ := json.Marshal(notifyRequest)
+	js, err := json.Marshal(notifyRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	id := testdata.Switch1.ID
 	req := httptest.NewRequest("POST", "/v1/switch/"+id+"/notify", body)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -1216,19 +1229,20 @@ func TestNotifySwitch(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, id, result.ID)
 	require.Equal(t, d, result.LastSync.Duration)
 	require.Nil(t, result.LastSyncError)
 }
 
 func TestNotifyErrorSwitch(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	switchservice := NewSwitch(ds)
+	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
 
 	d := time.Second * 10
@@ -1237,11 +1251,12 @@ func TestNotifyErrorSwitch(t *testing.T) {
 		Duration: d,
 		Error:    &e,
 	}
-	js, _ := json.Marshal(notifyRequest)
+	js, err := json.Marshal(notifyRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	id := testdata.Switch1.ID
 	req := httptest.NewRequest("POST", "/v1/switch/"+id+"/notify", body)
-	container = injectEditor(container, req)
+	container = injectEditor(log, container, req)
 	req.Header.Add("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
@@ -1250,9 +1265,9 @@ func TestNotifyErrorSwitch(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SwitchResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, id, result.ID)
 	require.Equal(t, d, result.LastSyncError.Duration)
 	require.Equal(t, e, *result.LastSyncError.Error)

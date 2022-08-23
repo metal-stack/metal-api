@@ -21,7 +21,7 @@ type BoardRevisions struct {
 }
 
 type MachineUpdateFirmwareRequest struct {
-	Kind        string `json:"kind" description:"the firmware kind, i.e. [bios|bmc]"`
+	Kind        string `json:"kind" enum:"bios|bmc" description:"the firmware kind, i.e. [bios|bmc]"`
 	Revision    string `json:"revision" description:"the update revision"`
 	Description string `json:"description" description:"a description why the machine has been updated"`
 }

@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package service
@@ -13,14 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avast/retry-go"
+	"github.com/avast/retry-go/v4"
 	"github.com/emicklei/go-restful/v3"
 	goipam "github.com/metal-stack/go-ipam"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -38,10 +38,7 @@ var (
 )
 
 func TestMachineAllocationIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-	machineCount := 50
+	machineCount := 30
 
 	// Setup
 	rs, container := setupTestEnvironment(machineCount, t)
@@ -185,7 +182,10 @@ func TestMachineAllocationIntegration(t *testing.T) {
 // Methods under Test ---------------------------------------------------------------------------------------
 
 func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v1.MachineResponse, error) {
-	js, _ := json.Marshal(ar)
+	js, err := json.Marshal(ar)
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/allocate", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -199,12 +199,15 @@ func allocMachine(container *restful.Container, ar v1.MachineAllocateRequest) (v
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
 func freeMachine(container *restful.Container, id string) (v1.MachineResponse, error) {
-	js, _ := json.Marshal("")
+	js, err := json.Marshal("")
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("DELETE", fmt.Sprintf("/v1/machine/%s/free", id), body)
 	req.Header.Add("Content-Type", "application/json")
@@ -218,12 +221,15 @@ func freeMachine(container *restful.Container, id string) (v1.MachineResponse, e
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
 func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest) (v1.MachineResponse, error) {
-	js, _ := json.Marshal(rm)
+	js, err := json.Marshal(rm)
+	if err != nil {
+		return v1.MachineResponse{}, err
+	}
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/machine/register", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -237,7 +243,7 @@ func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest)
 		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
 	}
 	var result v1.MachineResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	return result, err
 }
 
@@ -252,34 +258,26 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 	return v1.MachineRegisterRequest{
 		UUID:        fmt.Sprintf("WaitingMachine%d", i),
 		PartitionID: "p1",
-		Hardware: v1.MachineHardwareExtended{
+		Hardware: v1.MachineHardware{
 			MachineHardwareBase: v1.MachineHardwareBase{Memory: 4, CPUCores: 4},
-			Nics: v1.MachineNicsExtended{
+			Nics: v1.MachineNics{
 				{
-					MachineNic: v1.MachineNic{
-						Name:       "lan0",
-						MacAddress: fmt.Sprintf("aa:ba:%d", i),
-					},
-					Neighbors: v1.MachineNicsExtended{
+					Name:       "lan0",
+					MacAddress: fmt.Sprintf("aa:ba:%d", i),
+					Neighbors: v1.MachineNics{
 						{
-							MachineNic: v1.MachineNic{
-								Name:       fmt.Sprintf("swp-%d", i),
-								MacAddress: fmt.Sprintf("%s:%d", swp1MacPrefix, i),
-							},
+							Name:       fmt.Sprintf("swp-%d", i),
+							MacAddress: fmt.Sprintf("%s:%d", swp1MacPrefix, i),
 						},
 					},
 				},
 				{
-					MachineNic: v1.MachineNic{
-						Name:       "lan1",
-						MacAddress: fmt.Sprintf("aa:bb:%d", i),
-					},
-					Neighbors: v1.MachineNicsExtended{
+					Name:       "lan1",
+					MacAddress: fmt.Sprintf("aa:bb:%d", i),
+					Neighbors: v1.MachineNics{
 						{
-							MachineNic: v1.MachineNic{
-								Name:       fmt.Sprintf("swp-%d", i),
-								MacAddress: fmt.Sprintf("%s:%d", swp2MacPrefix, i),
-							},
+							Name:       fmt.Sprintf("swp-%d", i),
+							MacAddress: fmt.Sprintf("%s:%d", swp2MacPrefix, i),
 						},
 					},
 				},
@@ -289,17 +287,10 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 }
 
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
-	log := zaptest.NewLogger(t)
+	log := zaptest.NewLogger(t).Sugar()
 
 	_, c, err := test.StartRethink()
 	require.NoError(t, err)
-
-	ws := &grpc.Server{
-		WaitService: &grpc.WaitService{
-			Publisher: NopPublisher{},
-			Logger:    log.Sugar(),
-		},
-	}
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMax = 1000
@@ -324,10 +315,10 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	createTestdata(machineCount, rs, ipamer, t)
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, ws, nil, usergetter, 0)
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
-	container.Filter(rest.UserAuth(usergetter))
+	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
 	return rs, container
 }
 

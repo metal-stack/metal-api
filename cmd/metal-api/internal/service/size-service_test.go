@@ -13,15 +13,16 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 
 	restful "github.com/emicklei/go-restful/v3"
 )
 
 func TestGetSizes(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(ds)
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size", nil)
 	w := httptest.NewRecorder()
@@ -33,7 +34,7 @@ func TestGetSizes(t *testing.T) {
 	var result []v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, result, 3)
 	require.Equal(t, testdata.Sz1.ID, result[0].ID)
 	require.Equal(t, testdata.Sz1.Name, *result[0].Name)
@@ -47,10 +48,10 @@ func TestGetSizes(t *testing.T) {
 }
 
 func TestGetSize(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(ds)
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
@@ -62,7 +63,7 @@ func TestGetSize(t *testing.T) {
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
@@ -70,10 +71,10 @@ func TestGetSize(t *testing.T) {
 }
 
 func TestGetSizeNotFound(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(ds)
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/999", nil)
 	w := httptest.NewRecorder()
@@ -85,19 +86,20 @@ func TestGetSizeNotFound(t *testing.T) {
 	var result httperrors.HTTPErrorResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Contains(t, result.Message, "999")
 	require.Equal(t, 404, result.StatusCode)
 }
 
 func TestDeleteSize(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	sizeservice := NewSize(ds)
+	sizeservice := NewSize(log, ds)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("DELETE", "/v1/size/1", nil)
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -107,17 +109,18 @@ func TestDeleteSize(t *testing.T) {
 	var result v1.SizeResponse
 	err := json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
 }
 
 func TestCreateSize(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	sizeservice := NewSize(ds)
+	sizeservice := NewSize(log, ds)
 	container := restful.NewContainer().Add(sizeservice)
 
 	createRequest := v1.SizeCreateRequest{
@@ -143,11 +146,12 @@ func TestCreateSize(t *testing.T) {
 			},
 		},
 	}
-	js, _ := json.Marshal(createRequest)
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("PUT", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -155,19 +159,20 @@ func TestCreateSize(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
 }
 
 func TestUpdateSize(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
 
-	sizeservice := NewSize(ds)
+	sizeservice := NewSize(log, ds)
 	container := restful.NewContainer().Add(sizeservice)
 
 	minCores := uint64(8)
@@ -190,11 +195,12 @@ func TestUpdateSize(t *testing.T) {
 			},
 		},
 	}
-	js, _ := json.Marshal(updateRequest)
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 	req := httptest.NewRequest("POST", "/v1/size", body)
 	req.Header.Add("Content-Type", "application/json")
-	container = injectAdmin(container, req)
+	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -202,9 +208,9 @@ func TestUpdateSize(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result v1.SizeResponse
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, testdata.Sz1.ID, result.ID)
 	require.Equal(t, testdata.Sz2.Name, *result.Name)
 	require.Equal(t, testdata.Sz2.Description, *result.Description)

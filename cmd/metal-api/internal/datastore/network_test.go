@@ -9,36 +9,27 @@ import (
 )
 
 func TestRethinkStore_FindNetworkByID(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-		id string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		id      string
 		want    *metal.Network
 		wantErr bool
 	}{
-		// Test Data Array:
 		{
-			name: "TestRethinkStore_FindNetworkByID Test 1",
-			rs:   ds,
-			args: args{
-				id: "1",
-			},
+			name:    "TestRethinkStore_FindNetworkByID Test 1",
+			rs:      ds,
+			id:      "1",
 			want:    &testdata.Nw1,
 			wantErr: false,
 		},
 		{
-			name: "TestRethinkStore_FindNetworkByID Test 2",
-			rs:   ds,
-			args: args{
-				id: "2",
-			},
+			name:    "TestRethinkStore_FindNetworkByID Test 2",
+			rs:      ds,
+			id:      "2",
 			want:    &testdata.Nw2,
 			wantErr: false,
 		},
@@ -46,7 +37,7 @@ func TestRethinkStore_FindNetworkByID(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindNetworkByID(tt.args.id)
+			got, err := tt.rs.FindNetworkByID(tt.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindNetworkByID() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -59,8 +50,7 @@ func TestRethinkStore_FindNetworkByID(t *testing.T) {
 }
 
 func TestRethinkStore_ListNetworks(t *testing.T) {
-	// mock the DBs
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -69,7 +59,6 @@ func TestRethinkStore_ListNetworks(t *testing.T) {
 		want    metal.Networks
 		wantErr bool
 	}{
-		// Test-Data List / Test Cases:
 		{
 			name:    "TestRethinkStore_ListNetworks Test 1",
 			rs:      ds,

@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package grpc
 
 import (
@@ -12,12 +15,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
+
+	"github.com/undefinedlabs/go-mpatch"
+
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type testCase int
@@ -33,9 +42,14 @@ type client struct {
 	cancel func()
 }
 
+type server struct {
+	cancel   context.CancelFunc
+	allocate chan string
+}
+
 type test struct {
 	*testing.T
-	ss []*Server
+	ss []*server
 	cc []*client
 
 	numberApiInstances     int
@@ -74,27 +88,8 @@ func TestWaitServer(t *testing.T) {
 		test.run()
 		test.testCase = clientFailure
 		test.run()
+
 	}
-}
-
-type datasource struct {
-	mtx  *sync.Mutex
-	wait map[string]bool
-}
-
-func (ds *datasource) FindMachineByID(machineID string) (*metal.Machine, error) {
-	return &metal.Machine{
-		Base: metal.Base{
-			ID: machineID,
-		},
-	}, nil
-}
-
-func (ds *datasource) UpdateMachine(old, new *metal.Machine) error {
-	ds.mtx.Lock()
-	defer ds.mtx.Unlock()
-	ds.wait[new.ID] = new.Waiting
-	return nil
 }
 
 func (t *test) run() {
@@ -109,17 +104,44 @@ func (t *test) run() {
 	t.mtx = new(sync.Mutex)
 	t.allocations = make(map[string]bool)
 
-	ds := &datasource{
-		mtx:  new(sync.Mutex),
-		wait: make(map[string]bool),
+	now := time.Now()
+	_, _ = mpatch.PatchMethod(time.Now, func() time.Time {
+		return now
+	})
+
+	wait := make(map[string]bool)
+
+	insertMock := func(w bool, id string) r.Term {
+		return r.DB("mockdb").Table("machine").Get(id).Replace(func(row r.Term) r.Term {
+			return r.Branch(row.Field("changed").Eq(r.MockAnything()), metal.Machine{
+				Base:    metal.Base{ID: id, Changed: now},
+				Waiting: w,
+			}, r.MockAnything())
+		})
+	}
+	returnMock := func(w bool, id string) func() []interface{} {
+		return func() []interface{} {
+			t.mtx.Lock()
+			defer t.mtx.Unlock()
+			wait[id] = w
+			return []interface{}{r.WriteResponse{}}
+		}
+	}
+
+	ds, mock := datastore.InitMockDB(t.T)
+	for i := 0; i < t.numberMachineInstances; i++ {
+		machineID := strconv.Itoa(i)
+		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{Base: metal.Base{ID: machineID}}, nil)
+		mock.On(insertMock(true, machineID)).Return(returnMock(true, machineID), nil)
+		mock.On(insertMock(false, machineID)).Return(returnMock(false, machineID), nil)
 	}
 
 	t.startApiInstances(ds)
 	t.startMachineInstances()
 	t.notReadyMachines.Wait()
 
-	require.Equal(t, t.numberMachineInstances, len(ds.wait))
-	for _, wait := range ds.wait {
+	require.Equal(t, t.numberMachineInstances, len(wait))
+	for _, wait := range wait {
 		require.True(t, wait)
 	}
 
@@ -137,8 +159,8 @@ func (t *test) run() {
 		t.notReadyMachines.Wait()
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(ds.wait))
-	for _, wait := range ds.wait {
+	require.Equal(t, t.numberMachineInstances, len(wait))
+	for _, wait := range wait {
 		require.True(t, wait)
 	}
 
@@ -151,8 +173,8 @@ func (t *test) run() {
 		require.True(t, allocated)
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(ds.wait))
-	for key, wait := range ds.wait {
+	require.Equal(t, t.numberMachineInstances, len(wait))
+	for key, wait := range wait {
 		require.Equal(t, !containsKey(t.allocations, key), wait)
 	}
 }
@@ -176,7 +198,8 @@ func (t *test) stopApiInstances() {
 		t.ss = t.ss[:0]
 	}()
 	for _, s := range t.ss {
-		s.server.Stop()
+		s.cancel()
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -190,22 +213,30 @@ func (t *test) stopMachineInstances() {
 	}
 }
 
-func (t *test) startApiInstances(ds Datasource) {
+func (t *test) startApiInstances(ds *datastore.RethinkStore) {
 	for i := 0; i < t.numberApiInstances; i++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		allocate := make(chan string)
+
 		cfg := &ServerConfig{
-			Datasource:       ds,
+			Context:          ctx,
+			Store:            ds,
 			Logger:           zap.NewNop().Sugar(),
 			GrpcPort:         50005 + i,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
+
+			integrationTestAllocator: allocate,
 		}
-		s, err := NewServer(cfg)
-		require.Nil(t, err)
-		t.ss = append(t.ss, s)
+
+		t.ss = append(t.ss, &server{
+			cancel:   cancel,
+			allocate: allocate,
+		})
 		go func() {
-			err := s.Serve()
-			require.Nil(t, err)
+			err := Run(cfg)
+			require.NoError(t, err)
 		}()
 	}
 }
@@ -218,7 +249,7 @@ func (t *test) startMachineInstances() {
 	}
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	}
 	for i := 0; i < t.numberMachineInstances; i++ {
@@ -226,13 +257,13 @@ func (t *test) startMachineInstances() {
 		port := 50005 + t.randNumber(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		t.cc = append(t.cc, &client{
 			ClientConn: conn,
 			cancel:     cancel,
 		})
 		go func() {
-			waitClient := v1.NewWaitClient(conn)
+			waitClient := v1.NewBootServiceClient(conn)
 			err := t.waitForAllocation(machineID, waitClient, ctx)
 			if err != nil {
 				return
@@ -245,9 +276,9 @@ func (t *test) startMachineInstances() {
 	}
 }
 
-func (t *test) waitForAllocation(machineID string, c v1.WaitClient, ctx context.Context) error {
-	req := &v1.WaitRequest{
-		MachineID: machineID,
+func (t *test) waitForAllocation(machineID string, c v1.BootServiceClient, ctx context.Context) error {
+	req := &v1.BootServiceWaitRequest{
+		MachineId: machineID,
 	}
 
 	for {
@@ -308,12 +339,12 @@ func (t *test) selectMachine(except []string) string {
 
 func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
-		s.handleAllocation(machineID)
+		s.allocate <- machineID
 	}
 }
 
 func (t *test) randNumber(n int) int {
 	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return int(nBig.Int64())
 }
