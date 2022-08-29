@@ -78,7 +78,7 @@ func (ir imageResource) webService() *restful.WebService {
 		Operation("listImages").
 		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.QueryParameter("show-usage", "include image usage into response").DataType("bool").DefaultValue("false")).
+		Param(ws.QueryParameter("show-usage", "include image usage into response").DataType("boolean").DefaultValue("false")).
 		Writes([]v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))

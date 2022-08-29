@@ -99,7 +99,7 @@ func (r *partitionResource) webService() *restful.WebService {
 	// Deprecated, can be removed in the future
 	ws.Route(ws.GET("/capacity").
 		To(r.partitionCapacityCompat).
-		Operation("partitionCapacity").
+		Operation("partitionCapacityCompat").
 		Doc("get Partition capacity").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Deprecate().
