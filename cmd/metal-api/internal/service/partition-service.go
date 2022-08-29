@@ -99,13 +99,13 @@ func (r *partitionResource) webService() *restful.WebService {
 	// Deprecated, can be removed in the future
 	ws.Route(ws.GET("/capacity").
 		To(r.partitionCapacityCompat).
-		Operation("partitionCapacity").
-		Doc("get Partition capacity").
+		Operation("partitionCapacityCompat").
+		Doc("get partition capacity").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Deprecate().
 		Writes([]v1.PartitionCapacity{}).
 		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).
+		Deprecate())
 
 	ws.Route(ws.POST("/capacity").
 		To(r.partitionCapacity).

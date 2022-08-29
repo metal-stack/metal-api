@@ -338,7 +338,13 @@ func initMetrics() {
 	metricsServer.Handle("/pprof/goroutine", httppprof.Handler("goroutine"))
 
 	go func() {
-		err := http.ListenAndServe(viper.GetString("metrics-server-bind-addr"), metricsServer)
+		server := &http.Server{
+			Addr:              viper.GetString("metrics-server-bind-addr"),
+			Handler:           metricsServer,
+			ReadHeaderTimeout: time.Minute,
+		}
+
+		err := server.ListenAndServe()
 		if err != nil {
 			logger.Errorw("failed to start metrics endpoint, exiting...", "error", err)
 			os.Exit(1)
@@ -860,8 +866,15 @@ func run() error {
 	}()
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           restful.DefaultContainer,
+		ReadHeaderTimeout: time.Minute,
+	}
+
 	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)
-	err = http.ListenAndServe(addr, nil)
+
+	err = server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("failed to start metal api: %w", err)
 	}

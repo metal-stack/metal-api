@@ -73,6 +73,7 @@
         },
         "disk_sizes": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -129,6 +130,7 @@
         },
         "network_asns": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -168,6 +170,7 @@
         },
         "network_vrfs": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -967,6 +970,7 @@
         },
         "disk_sizes": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -1023,6 +1027,7 @@
         },
         "network_asns": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -1062,6 +1067,7 @@
         },
         "network_vrfs": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -2122,6 +2128,7 @@
         },
         "disk_sizes": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -2178,6 +2185,7 @@
         },
         "network_asns": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -2217,6 +2225,7 @@
         },
         "network_vrfs": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -5151,7 +5160,7 @@
             "description": "include image usage into response",
             "in": "query",
             "name": "show-usage",
-            "type": "bool"
+            "type": "boolean"
           }
         ],
         "produces": [
@@ -7543,7 +7552,7 @@
           "application/json"
         ],
         "deprecated": true,
-        "operationId": "partitionCapacity",
+        "operationId": "partitionCapacityCompat",
         "produces": [
           "application/json"
         ],
@@ -7564,7 +7573,7 @@
             }
           }
         },
-        "summary": "get Partition capacity",
+        "summary": "get partition capacity",
         "tags": [
           "Partition"
         ]
