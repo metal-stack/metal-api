@@ -7566,7 +7566,7 @@
             }
           }
         },
-        "summary": "get Partition capacity",
+        "summary": "get partition capacity",
         "tags": [
           "Partition"
         ]
