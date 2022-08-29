@@ -102,7 +102,6 @@ func (r *partitionResource) webService() *restful.WebService {
 		Operation("partitionCapacityCompat").
 		Doc("get partition capacity").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Deprecate().
 		Writes([]v1.PartitionCapacity{}).
 		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).
