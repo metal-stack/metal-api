@@ -17,6 +17,8 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/tag"
+
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -775,48 +777,48 @@ func TestOnMachine(t *testing.T) {
 	log := zaptest.NewLogger(t).Sugar()
 
 	tests := []struct {
-		cmd      metal.MachineCommand
+		cmd      tag.MachineCommand
 		endpoint string
 		param    string
 	}{
 		{
-			cmd:      metal.MachineOnCmd,
+			cmd:      tag.MachineOnCmd,
 			endpoint: "on",
 		},
 		{
-			cmd:      metal.MachineOffCmd,
+			cmd:      tag.MachineOffCmd,
 			endpoint: "off",
 		},
 		{
-			cmd:      metal.MachineResetCmd,
+			cmd:      tag.MachineResetCmd,
 			endpoint: "reset",
 		},
 		{
-			cmd:      metal.MachineCycleCmd,
+			cmd:      tag.MachineCycleCmd,
 			endpoint: "cycle",
 		},
 		{
-			cmd:      metal.MachineBiosCmd,
+			cmd:      tag.MachineBiosCmd,
 			endpoint: "bios",
 		},
 		{
-			cmd:      metal.MachineDiskCmd,
+			cmd:      tag.MachineDiskCmd,
 			endpoint: "disk",
 		},
 		{
-			cmd:      metal.MachinePxeCmd,
+			cmd:      tag.MachinePxeCmd,
 			endpoint: "pxe",
 		},
 		{
-			cmd:      metal.ChassisIdentifyLEDOnCmd,
+			cmd:      tag.ChassisIdentifyLEDOnCmd,
 			endpoint: "chassis-identify-led-on",
 		},
 		{
-			cmd:      metal.ChassisIdentifyLEDOnCmd,
+			cmd:      tag.ChassisIdentifyLEDOnCmd,
 			endpoint: "chassis-identify-led-on?description=test",
 		},
 		{
-			cmd:      metal.ChassisIdentifyLEDOffCmd,
+			cmd:      tag.ChassisIdentifyLEDOffCmd,
 			endpoint: "chassis-identify-led-off?description=test",
 		},
 	}

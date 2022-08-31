@@ -6,6 +6,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -367,34 +368,16 @@ func (m *Machine) HasMAC(mac string) bool {
 	return false
 }
 
-// A MachineCommand is an alias of a string
-type MachineCommand string
-
-// our supported machines commands.
-const (
-	MachineOnCmd             MachineCommand = "ON"
-	MachineOffCmd            MachineCommand = "OFF"
-	MachineResetCmd          MachineCommand = "RESET"
-	MachineCycleCmd          MachineCommand = "CYCLE"
-	MachineBiosCmd           MachineCommand = "BIOS"
-	MachineDiskCmd           MachineCommand = "DISK"
-	MachinePxeCmd            MachineCommand = "PXE"
-	MachineReinstallCmd      MachineCommand = "REINSTALL"
-	ChassisIdentifyLEDOnCmd  MachineCommand = "LED-ON"
-	ChassisIdentifyLEDOffCmd MachineCommand = "LED-OFF"
-	UpdateFirmwareCmd        MachineCommand = "UPDATE-FIRMWARE"
-)
-
 // A MachineExecCommand can be sent via a MachineEvent to execute
 // the command against the specific machine. The specified command
 // should be executed against the given target machine. The parameters
 // is an optional array of strings which are implementation specific
 // and dependent of the command.
 type MachineExecCommand struct {
-	TargetMachineID string          `json:"target,omitempty"`
-	Command         MachineCommand  `json:"cmd,omitempty"`
-	IPMI            *IPMI           `json:"ipmi,omitempty"`
-	FirmwareUpdate  *FirmwareUpdate `json:"firmwareupdate,omitempty"`
+	TargetMachineID string             `json:"target,omitempty"`
+	Command         tag.MachineCommand `json:"cmd,omitempty"`
+	IPMI            *IPMI              `json:"ipmi,omitempty"`
+	FirmwareUpdate  *FirmwareUpdate    `json:"firmwareupdate,omitempty"`
 }
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
