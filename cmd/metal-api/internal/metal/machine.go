@@ -370,9 +370,8 @@ func (m *Machine) HasMAC(mac string) bool {
 
 // A MachineExecCommand can be sent via a MachineEvent to execute
 // the command against the specific machine. The specified command
-// should be executed against the given target machine. The parameters
-// is an optional array of strings which are implementation specific
-// and dependent of the command.
+// should be executed against the given target machine.
+// FIXME next 4 structs are also implemented in metal-bmc, modifications here must be reflected there as well
 type MachineExecCommand struct {
 	TargetMachineID string             `json:"target,omitempty"`
 	Command         tag.MachineCommand `json:"cmd,omitempty"`
@@ -383,7 +382,7 @@ type MachineExecCommand struct {
 // MachineEvent is propagated when a machine is create/updated/deleted.
 type MachineEvent struct {
 	Type         tag.MachineEventType `json:"type,omitempty"`
-	OldMachineID string               `json:"old,omitempty"`
+	OldMachineID string               `json:"old,omitempty"` // FIXME maybe unused
 	NewMachineID string               `json:"new,omitempty"`
 	Cmd          *MachineExecCommand  `json:"cmd,omitempty"`
 }
