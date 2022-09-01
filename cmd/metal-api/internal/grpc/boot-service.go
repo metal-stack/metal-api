@@ -415,7 +415,7 @@ func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbo
 
 func (b *BootService) setBootOrderDisk(m *metal.Machine) {
 	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
+		Type: tag.MachineEventCommand,
 		Cmd: &metal.MachineExecCommand{
 			Command:         tag.MachineDiskCmd,
 			TargetMachineID: m.ID,

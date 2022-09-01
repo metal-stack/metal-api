@@ -40,13 +40,6 @@ const (
 	SwitchReplace     SwitchMode = "replace"
 )
 
-// SwitchEvent is propagated when a switch needs to update its configuration.
-type SwitchEvent struct {
-	Type     EventType `json:"type"`
-	Machine  Machine   `json:"machine"`
-	Switches []Switch  `json:"switches"`
-}
-
 // SwitchSync contains information about the last synchronization of the state held in the metal-api to a switch.
 type SwitchSync struct {
 	Time     time.Time     `rethinkdb:"time" json:"time"`

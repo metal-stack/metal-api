@@ -382,10 +382,10 @@ type MachineExecCommand struct {
 
 // MachineEvent is propagated when a machine is create/updated/deleted.
 type MachineEvent struct {
-	Type         EventType           `json:"type,omitempty"`
-	OldMachineID string              `json:"old,omitempty"`
-	NewMachineID string              `json:"new,omitempty"`
-	Cmd          *MachineExecCommand `json:"cmd,omitempty"`
+	Type         tag.MachineEventType `json:"type,omitempty"`
+	OldMachineID string               `json:"old,omitempty"`
+	NewMachineID string               `json:"new,omitempty"`
+	Cmd          *MachineExecCommand  `json:"cmd,omitempty"`
 }
 
 // AllocationEvent is propagated when a machine is allocated.

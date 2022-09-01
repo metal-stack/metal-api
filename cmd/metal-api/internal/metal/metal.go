@@ -37,22 +37,11 @@ var (
 	AdminAccess = AdminGroups
 )
 
-// EventType is the type for event types.
-type EventType string
-
 // NSQTopic .
 type NSQTopic struct {
 	Name              string
 	PartitionAgnostic bool
 }
-
-// Some enums.
-const (
-	CREATE  EventType = "create"
-	UPDATE  EventType = "update"
-	DELETE  EventType = "delete"
-	COMMAND EventType = "command"
-)
 
 var (
 	TopicMachine    = NSQTopic{Name: "machine", PartitionAgnostic: true}

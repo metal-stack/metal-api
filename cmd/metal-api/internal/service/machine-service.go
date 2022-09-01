@@ -2107,7 +2107,7 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 
 func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
 	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
+	deleteEvent := metal.MachineEvent{Type: tag.MachineEventDelete, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	if err != nil {
 		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
@@ -2435,7 +2435,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 	}
 
 	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
+		Type: tag.MachineEventCommand,
 		Cmd: &metal.MachineExecCommand{
 			Command:         tag.UpdateFirmwareCmd,
 			TargetMachineID: m.ID,
@@ -2528,7 +2528,7 @@ func (r *machineResource) machineCmd(cmd tag.MachineCommand, request *restful.Re
 
 func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd tag.MachineCommand) error {
 	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
+		Type: tag.MachineEventCommand,
 		Cmd: &metal.MachineExecCommand{
 			Command:         cmd,
 			TargetMachineID: m.ID,
