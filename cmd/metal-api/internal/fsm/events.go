@@ -58,7 +58,7 @@ func Events() fsm.Events {
 		{
 			Name: metal.ProvisioningEventInstalling.String(),
 			Src: []string{
-				states.Registering.String(), // can be skipped by hammer when allocating machine by specific ID or in reinstall feature
+				states.Registering.String(), // wait can be skipped by hammer when allocating machine by specific ID or in reinstall feature
 				states.Waiting.String(),
 				states.Initial.String(),
 			},
