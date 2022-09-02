@@ -54,8 +54,8 @@ func (r *vpnResource) webService() *restful.WebService {
 	ws.Route(ws.GET("/authkey/{pid}").
 		To(admin(r.getVPNAuthKey)).
 		Operation("getVPNAuthKey").
-		Doc("create auth key to connect to Project's VPN").
-		Param(ws.PathParameter("pid", "identifier of the Project").DataType("string")).
+		Doc("create auth key to connect to project's VPN").
+		Param(ws.PathParameter("pid", "identifier of the project").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.VPNResponse{}).
 		Returns(http.StatusOK, "OK", v1.VPNResponse{}).
@@ -76,7 +76,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	if p.GetProject() == nil {
 		r.sendError(
 			request, response,
-			httperrors.NotFound(fmt.Errorf("Project with ID %s is not found", pid)),
+			httperrors.NotFound(fmt.Errorf("project with ID %s is not found", pid)),
 		)
 		return
 	}
@@ -84,7 +84,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	if ok := r.headscaleClient.NamespaceExists(p.Project.Name); !ok {
 		r.sendError(
 			request, response,
-			httperrors.NotFound(fmt.Errorf("VPN namespace doesn't exist for Project with ID %s", pid)),
+			httperrors.NotFound(fmt.Errorf("vpn namespace doesn't exist for project with ID %s", pid)),
 		)
 		return
 	}
@@ -94,13 +94,13 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	if err != nil {
 		r.sendError(
 			request, response,
-			httperrors.InternalServerError(fmt.Errorf("failed to create new Auth Key: %w", err)),
+			httperrors.InternalServerError(fmt.Errorf("failed to create new auth key: %w", err)),
 		)
 		return
 	}
 
 	authKeyResp := v1.VPNResponse{
-		Address: r.headscaleClient.ControlPlaneAddress,
+		Address: r.headscaleClient.GetControlPlaneAddress(),
 		AuthKey: key,
 	}
 
