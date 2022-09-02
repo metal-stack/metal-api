@@ -25,7 +25,7 @@ type HeadscaleClient struct {
 	client headscalev1.HeadscaleServiceClient
 
 	address             string
-	ControlPlaneAddress string
+	controlPlaneAddress string
 
 	apiKeyPrefix    string
 	oldAPIKeyPrefix string
@@ -52,7 +52,7 @@ func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *zap.Sugar
 
 	h := &HeadscaleClient{
 		address:             addr,
-		ControlPlaneAddress: controlPlaneAddr,
+		controlPlaneAddress: controlPlaneAddr,
 
 		mu:     sync.Mutex{},
 		wg:     sync.WaitGroup{},
@@ -173,6 +173,10 @@ func (h *HeadscaleClient) replaceApiKey() (err error) {
 	h.oldAPIKeyPrefix = ""
 
 	return nil
+}
+
+func (h *HeadscaleClient) GetControlPlaneAddress() string {
+	return h.controlPlaneAddress
 }
 
 func (h *HeadscaleClient) NamespaceExists(name string) bool {

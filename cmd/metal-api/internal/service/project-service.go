@@ -25,11 +25,7 @@ type projectResource struct {
 }
 
 // NewProject returns a webservice for project specific endpoints.
-func NewProject(
-	log *zap.SugaredLogger,
-	ds *datastore.RethinkStore,
-	mdc mdm.Client,
-) *restful.WebService {
+func NewProject(log *zap.SugaredLogger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := projectResource{
 		webResource: webResource{
 			log: log,
