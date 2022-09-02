@@ -1,14 +1,12 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"net/http"
 
-	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
 	"github.com/metal-stack/security"
@@ -211,7 +209,7 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 		return
 	}
 
-	if err := r.setVPNConfigInSpec(request.Request.Context(), spec); err != nil {
+	if err := r.setVPNConfigInSpec(spec); err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
@@ -231,30 +229,21 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r firewallResource) setVPNConfigInSpec(ctx context.Context, allocationSpec *machineAllocationSpec) error {
+func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSpec) error {
 	if r.headscaleClient == nil {
 		return nil
 	}
 
-	// Get project VPN namespace
-	projectID := allocationSpec.ProjectID
-	p, err := r.mdc.Project().Get(ctx, &mdmv1.ProjectGetRequest{Id: projectID})
-	if err != nil {
-		return err
-	}
-	if p.GetProject() == nil {
-		return fmt.Errorf("project with ID %s wasn't found", projectID)
-	}
-
 	// Try to create namespace in Headscale DB
-	if err = r.headscaleClient.CreateNamespace(p.Project.Name); err != nil {
-		return fmt.Errorf("failed to create new VPN namespace for the Project: %w", err)
+	projectID := allocationSpec.ProjectID
+	if err := r.headscaleClient.CreateNamespace(projectID); err != nil {
+		return fmt.Errorf("failed to create new VPN namespace for the project: %w", err)
 	}
 
 	expiration := time.Now().Add(90 * 24 * time.Hour)
-	key, err := r.headscaleClient.CreatePreAuthKey(p.Project.Name, expiration)
+	key, err := r.headscaleClient.CreatePreAuthKey(projectID, expiration)
 	if err != nil {
-		return fmt.Errorf("failed to create new Auth Key for the Firewall: %w", err)
+		return fmt.Errorf("failed to create new auth key for the firewall: %w", err)
 	}
 
 	allocationSpec.VPN = &metal.MachineVPN{

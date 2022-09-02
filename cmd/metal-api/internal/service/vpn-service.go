@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
-	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -51,11 +49,12 @@ func (r *vpnResource) webService() *restful.WebService {
 
 	tags := []string{"vpn"}
 
-	ws.Route(ws.GET("/authkey/{pid}").
+	ws.Route(ws.POST("/authkey/{pid}").
 		To(admin(r.getVPNAuthKey)).
 		Operation("getVPNAuthKey").
 		Doc("create auth key to connect to project's VPN").
 		Param(ws.PathParameter("pid", "identifier of the project").DataType("string")).
+		Reads(v1.VPNRequest{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.VPNResponse{}).
 		Returns(http.StatusOK, "OK", v1.VPNResponse{}).
@@ -65,23 +64,14 @@ func (r *vpnResource) webService() *restful.WebService {
 }
 
 func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.Response) {
-	ctx := context.Background()
-	pid := request.PathParameter("pid")
-
-	p, err := r.mdc.Project().Get(ctx, &mdmv1.ProjectGetRequest{Id: pid})
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-	if p.GetProject() == nil {
-		r.sendError(
-			request, response,
-			httperrors.NotFound(fmt.Errorf("project with ID %s is not found", pid)),
-		)
+	var requestPayload v1.VPNRequest
+	if err := request.ReadEntity(&requestPayload); err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	if ok := r.headscaleClient.NamespaceExists(p.Project.Name); !ok {
+	pid := requestPayload.Pid
+	if ok := r.headscaleClient.NamespaceExists(pid); !ok {
 		r.sendError(
 			request, response,
 			httperrors.NotFound(fmt.Errorf("vpn namespace doesn't exist for project with ID %s", pid)),
@@ -90,7 +80,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	}
 
 	expiration := time.Now().Add(90 * 24 * time.Hour)
-	key, err := r.headscaleClient.CreatePreAuthKey(p.Project.Name, expiration)
+	key, err := r.headscaleClient.CreatePreAuthKey(pid, expiration)
 	if err != nil {
 		r.sendError(
 			request, response,
