@@ -79,7 +79,12 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 		return
 	}
 
-	expiration := time.Now().Add(90 * 24 * time.Hour)
+	expiration := time.Now()
+	if requestPayload.Expiration != nil {
+		expiration = expiration.Add(*requestPayload.Expiration)
+	} else {
+		expiration = expiration.Add(time.Hour)
+	}
 	key, err := r.headscaleClient.CreatePreAuthKey(pid, expiration)
 	if err != nil {
 		r.sendError(

@@ -30,7 +30,6 @@ type HeadscaleClient struct {
 	apiKeyPrefix    string
 	oldAPIKeyPrefix string
 
-	mu         sync.Mutex
 	wg         sync.WaitGroup
 	ctx        context.Context
 	conn       *grpc.ClientConn
@@ -54,7 +53,6 @@ func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *zap.Sugar
 		address:             addr,
 		controlPlaneAddress: controlPlaneAddr,
 
-		mu:     sync.Mutex{},
 		wg:     sync.WaitGroup{},
 		logger: logger,
 	}
@@ -131,9 +129,6 @@ func (h *HeadscaleClient) rotateApiKey() {
 
 // Expires current API Key and replaces it with a new one
 func (h *HeadscaleClient) replaceApiKey() (err error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	// If old API key is already deleted
 	// replace the current with a new one
 	if h.oldAPIKeyPrefix == "" {
@@ -180,9 +175,6 @@ func (h *HeadscaleClient) GetControlPlaneAddress() string {
 }
 
 func (h *HeadscaleClient) NamespaceExists(name string) bool {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	getNSRequest := &headscalev1.GetNamespaceRequest{
 		Name: name,
 	}
@@ -194,9 +186,6 @@ func (h *HeadscaleClient) NamespaceExists(name string) bool {
 }
 
 func (h *HeadscaleClient) CreateNamespace(name string) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	req := &headscalev1.CreateNamespaceRequest{
 		Name: name,
 	}
@@ -209,9 +198,6 @@ func (h *HeadscaleClient) CreateNamespace(name string) error {
 }
 
 func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Time) (key string, err error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	req := &headscalev1.CreatePreAuthKeyRequest{
 		Namespace:  namespace,
 		Expiration: timestamppb.New(expiration),
