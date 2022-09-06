@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -17,20 +15,12 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var (
-	apiKeyExpiration = 24 * 90 * time.Hour
-)
-
 type HeadscaleClient struct {
 	client headscalev1.HeadscaleServiceClient
 
 	address             string
 	controlPlaneAddress string
 
-	apiKeyPrefix    string
-	oldAPIKeyPrefix string
-
-	wg         sync.WaitGroup
 	ctx        context.Context
 	conn       *grpc.ClientConn
 	cancelFunc context.CancelFunc
@@ -53,25 +43,13 @@ func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *zap.Sugar
 		address:             addr,
 		controlPlaneAddress: controlPlaneAddr,
 
-		wg:     sync.WaitGroup{},
 		logger: logger,
 	}
 	h.ctx, h.cancelFunc = context.WithCancel(context.Background())
 
-	// Validate API Key
-	if h.apiKeyPrefix, err = getApiKeyPrefix(apiKey); err != nil {
-		return nil, err
-	}
-
 	if err = h.connect(apiKey); err != nil {
 		return nil, fmt.Errorf("failed to connect to Headscale server: %w", err)
 	}
-
-	if err = h.replaceApiKey(); err != nil {
-		return nil, fmt.Errorf("failed to replace Headscale API Key: %w", err)
-	}
-
-	go h.rotateApiKey()
 
 	return h, nil
 }
@@ -97,77 +75,6 @@ func (h *HeadscaleClient) connect(apiKey string) (err error) {
 	h.client = headscalev1.NewHeadscaleServiceClient(h.conn)
 
 	return
-}
-
-// Refresh API key when apiKeyExpiration reaches it's half life
-func (h *HeadscaleClient) rotateApiKey() {
-	h.wg.Add(1)
-	defer h.wg.Done()
-
-	ticker := time.NewTicker(apiKeyExpiration / 2)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-h.ctx.Done():
-			return
-		case <-ticker.C:
-			// Try replacement until it works
-			// Log error messages
-			for {
-				if err := h.replaceApiKey(); err != nil {
-					h.logger.Error("failed to replace Headscale API Key", zap.Error(err))
-					time.Sleep(time.Second)
-					continue
-				}
-
-				break
-			}
-		}
-	}
-}
-
-// Expires current API Key and replaces it with a new one
-func (h *HeadscaleClient) replaceApiKey() (err error) {
-	// If old API key is already deleted
-	// replace the current with a new one
-	if h.oldAPIKeyPrefix == "" {
-		// Create new API Key
-		expiration := time.Now().Add(apiKeyExpiration)
-		createRequest := &headscalev1.CreateApiKeyRequest{
-			Expiration: timestamppb.New(expiration),
-		}
-		response, err := h.client.CreateApiKey(h.ctx, createRequest)
-		if err != nil {
-			return fmt.Errorf("failed to create new API Key: %w", err)
-		}
-
-		// Validate new API Key
-		var newApiKeyPrefix string
-		if newApiKeyPrefix, err = getApiKeyPrefix(response.ApiKey); err != nil {
-			return fmt.Errorf("generated invalid API Key during rotation: %w", err)
-		}
-
-		// Connect to Headscale server with new key
-		if err = h.connect(response.ApiKey); err != nil {
-			return fmt.Errorf("failed to reconnect to Headscale server: %w", err)
-		}
-		h.oldAPIKeyPrefix = h.apiKeyPrefix
-		h.apiKeyPrefix = newApiKeyPrefix
-	}
-
-	// Expire the old API Key
-	expireRequest := &headscalev1.ExpireApiKeyRequest{
-		Prefix: h.oldAPIKeyPrefix,
-	}
-
-	if _, err = h.client.ExpireApiKey(h.ctx, expireRequest); err != nil {
-		return fmt.Errorf("failed to expire current API Key: %w", err)
-	}
-
-	h.oldAPIKeyPrefix = ""
-
-	return nil
 }
 
 func (h *HeadscaleClient) GetControlPlaneAddress() string {
@@ -213,16 +120,5 @@ func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Tim
 // Close client
 func (h *HeadscaleClient) Close() error {
 	h.cancelFunc()
-	h.wg.Wait()
-
 	return h.conn.Close()
-}
-
-func getApiKeyPrefix(apiKey string) (prefix string, err error) {
-	s := strings.Split(apiKey, ".")
-	if len(s) != 2 {
-		return "", fmt.Errorf("API Key had invalid format, should look like prefix.password")
-	}
-
-	return s[0], nil
 }

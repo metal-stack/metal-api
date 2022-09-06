@@ -49,11 +49,10 @@ func (r *vpnResource) webService() *restful.WebService {
 
 	tags := []string{"vpn"}
 
-	ws.Route(ws.POST("/authkey/{pid}").
+	ws.Route(ws.POST("/authkey").
 		To(admin(r.getVPNAuthKey)).
 		Operation("getVPNAuthKey").
 		Doc("create auth key to connect to project's VPN").
-		Param(ws.PathParameter("pid", "identifier of the project").DataType("string")).
 		Reads(v1.VPNRequest{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.VPNResponse{}).
