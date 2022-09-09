@@ -67,6 +67,7 @@ type machineAllocationSpec struct {
 	Networks           v1.MachineAllocationNetworks
 	IPs                []string
 	Role               metal.Role
+	VPN                *metal.MachineVPN
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -1263,6 +1264,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		SSHPubKeys:      allocationSpec.SSHPubKeys,
 		MachineNetworks: []*metal.MachineNetwork{},
 		Role:            allocationSpec.Role,
+		VPN:             allocationSpec.VPN,
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {

@@ -1884,6 +1884,10 @@
         "user_data": {
           "description": "userdata to execute post installation tasks",
           "type": "string"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2995,6 +2999,22 @@
       "required": [
         "description",
         "id"
+      ]
+    },
+    "v1.MachineVPN": {
+      "properties": {
+        "address": {
+          "description": "address of VPN control plane",
+          "type": "string"
+        },
+        "auth_key": {
+          "description": "auth key used to connect to VPN",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "auth_key"
       ]
     },
     "v1.Meta": {
@@ -4451,6 +4471,38 @@
         "Name",
         "Subject",
         "Tenant"
+      ]
+    },
+    "v1.VPNRequest": {
+      "properties": {
+        "expiration": {
+          "description": "expiration time",
+          "format": "int64",
+          "type": "integer"
+        },
+        "pid": {
+          "description": "project ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pid"
+      ]
+    },
+    "v1.VPNResponse": {
+      "properties": {
+        "address": {
+          "description": "address of VPN's control plane",
+          "type": "string"
+        },
+        "auth_key": {
+          "description": "auth key to connect to the VPN",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "auth_key"
       ]
     },
     "v1.VendorRevisions": {
@@ -8754,6 +8806,45 @@
         "summary": "returns the current version information of this module",
         "tags": [
           "version"
+        ]
+      }
+    },
+    "/v1/vpn/authkey": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getVPNAuthKey",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.VPNRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.VPNResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create auth key to connect to project's VPN",
+        "tags": [
+          "vpn"
         ]
       }
     }

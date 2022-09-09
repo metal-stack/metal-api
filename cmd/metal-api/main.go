@@ -13,30 +13,37 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/rest"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	nsq2 "github.com/nsqio/go-nsq"
 
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
 
-	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
-
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
@@ -44,10 +51,6 @@ import (
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type dsConnectOpt int
@@ -70,6 +73,7 @@ var (
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	mdc                mdm.Client
+	headscaleClient    *headscale.HeadscaleClient
 )
 
 var rootCmd = &cobra.Command{
@@ -95,6 +99,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
+		initHeadscale()
 		return run()
 	},
 }
@@ -262,6 +267,10 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
 
+	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
+	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
+	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
+
 	must(viper.BindPFlags(rootCmd.Flags()))
 	must(viper.BindPFlags(rootCmd.PersistentFlags()))
 
@@ -366,8 +375,16 @@ func initSignalHandlers() {
 				logger.Info("Unable to properly shutdown datastore", "error", err)
 				os.Exit(1)
 			}
-			os.Exit(0)
 		}
+		if headscaleClient != nil {
+			logger.Info("Closing connection to Headscale")
+			if err := headscaleClient.Close(); err != nil {
+				logger.Info("Failed to close connection to Headscale", "error", err)
+				os.Exit(1)
+			}
+		}
+
+		os.Exit(0)
 	}()
 }
 
@@ -693,7 +710,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter)
+	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -718,6 +735,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewFilesystemLayout(logger.Named("filesystem-layout-service"), ds))
 	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
+	restful.DefaultContainer.Add(service.NewVPN(logger.Named("vpn-service"), headscaleClient))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
@@ -737,6 +755,25 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
+}
+
+func initHeadscale() {
+	var err error
+
+	headscaleClient, err = headscale.NewHeadscaleClient(
+		viper.GetString("headscale-addr"),
+		viper.GetString("headscale-cp-addr"),
+		viper.GetString("headscale-api-key"),
+		logger.Named("headscale"),
+	)
+	if err != nil {
+		logger.Errorw("failed to init headscale client", "error", err)
+	}
+	if headscaleClient == nil {
+		return
+	}
+
+	logger.Info("headscale initialized")
 }
 
 func dumpSwaggerJSON() {
