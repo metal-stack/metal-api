@@ -97,7 +97,7 @@ func (h *HeadscaleClient) CreateNamespace(name string) error {
 		Name: name,
 	}
 	_, err := h.client.CreateNamespace(h.ctx, req)
-	if err != nil && !errors.Is(headscalecore.ErrNamespaceExists, err) {
+	if err != nil && !errors.Is(headscalecore.Error(headscalecore.ErrNamespaceExists.Error()), err) { // FIXME: how to properly check this error?
 		return fmt.Errorf("failed to create new VPN namespace: %w", err)
 	}
 
