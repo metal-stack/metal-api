@@ -10,7 +10,6 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"go.uber.org/zap"
 
-	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -18,21 +17,18 @@ import (
 
 type vpnResource struct {
 	webResource
-	mdc             mdm.Client
 	headscaleClient *headscale.HeadscaleClient
 }
 
 // NewVPN returns a webservice for VPN specific endpoints.
 func NewVPN(
 	log *zap.SugaredLogger,
-	mdc mdm.Client,
 	headscaleClient *headscale.HeadscaleClient,
 ) *restful.WebService {
 	r := vpnResource{
 		webResource: webResource{
 			log: log,
 		},
-		mdc:             mdc,
 		headscaleClient: headscaleClient,
 	}
 
