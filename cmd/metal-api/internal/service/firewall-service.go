@@ -240,7 +240,7 @@ func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSp
 		return fmt.Errorf("failed to create new VPN namespace for the project: %w", err)
 	}
 
-	expiration := time.Now().Add(90 * 24 * time.Hour)
+	expiration := time.Now().Add(2 * time.Hour)
 	key, err := r.headscaleClient.CreatePreAuthKey(projectID, expiration)
 	if err != nil {
 		return fmt.Errorf("failed to create new auth key for the firewall: %w", err)
