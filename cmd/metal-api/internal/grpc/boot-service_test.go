@@ -98,7 +98,7 @@ func TestBootService_Register(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 
-			ds, mock := datastore.InitMockDB()
+			ds, mock := datastore.InitMockDB(t)
 
 			if len(tt.dbmachines) > 0 {
 				mock.On(r.DB("mockdb").Table("size").Get(tt.dbmachines[0].SizeID)).Return([]metal.Size{testdata.Sz1}, nil)
@@ -209,7 +209,7 @@ func TestBootService_Report(t *testing.T) {
 			errMsg:  "the machine \"3\" is not allocated",
 		},
 	}
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	for _, tt := range tests {

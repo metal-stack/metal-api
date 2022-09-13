@@ -2658,10 +2658,6 @@
           "description": "indicates that machine reclaim has failed",
           "type": "boolean"
         },
-        "incomplete_provisioning_cycles": {
-          "description": "The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'.",
-          "type": "string"
-        },
         "last_error_event": {
           "$ref": "#/definitions/v1.MachineProvisioningEvent",
           "description": "the last erroneous event received"
@@ -2682,7 +2678,6 @@
       "required": [
         "crash_loop",
         "failed_machine_reclaim",
-        "incomplete_provisioning_cycles",
         "log"
       ]
     },

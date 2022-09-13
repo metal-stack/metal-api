@@ -15,7 +15,7 @@ import (
 )
 
 func TestEventService_Send(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {

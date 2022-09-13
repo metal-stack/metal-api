@@ -19,7 +19,6 @@ import (
 
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -2058,7 +2057,7 @@ func machineHasIssues(m *v1.MachineResponse) bool {
 		return true
 	}
 	if m.RecentProvisioningEvents.CrashLoop || m.RecentProvisioningEvents.FailedMachineReclaim {
-		// Machines with incomplete cycles but in "Waiting" state are considered available
+		// Machines in crash loop but in "Waiting" state are considered available
 		if len(m.RecentProvisioningEvents.Events) > 0 && !metal.ProvisioningEventWaiting.Is(m.RecentProvisioningEvents.Events[0].Event) {
 			return true
 		}
