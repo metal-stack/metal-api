@@ -2,8 +2,8 @@ package headscale
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -98,7 +98,7 @@ func (h *HeadscaleClient) CreateNamespace(name string) error {
 	}
 	_, err := h.client.CreateNamespace(h.ctx, req)
 	// TODO: headscalecore.ErrNamespaceExists isn't working here
-	if err != nil && !errors.Is(headscalecore.Error("Namespace already exists"), err) {
+	if err != nil && !strings.Contains(err.Error(), headscalecore.ErrNamespaceExists.Error()) {
 		return fmt.Errorf("failed to create new VPN namespace: %w", err)
 	}
 
