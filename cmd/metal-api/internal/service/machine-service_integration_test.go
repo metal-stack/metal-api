@@ -4,12 +4,18 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,40 +26,40 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	defer te.teardown()
 
 	// Register a machine
-	mrr := v1.MachineRegisterRequest{
-		UUID:        "test-uuid",
-		PartitionID: "test-partition",
-		Hardware: v1.MachineHardware{
-			MachineHardwareBase: v1.MachineHardwareBase{
-				CPUCores: 8,
-				Memory:   1500,
-				Disks: []v1.MachineBlockDevice{
-					{
-						Name: "sda",
-						Size: 2500,
-					},
+	mrr := &grpcv1.BootServiceRegisterRequest{
+		Uuid: "test-uuid",
+		Bios: &grpcv1.MachineBIOS{
+			Version: "a",
+			Vendor:  "metal",
+			Date:    "1970",
+		},
+		Hardware: &grpcv1.MachineHardware{
+			CpuCores: 8,
+			Memory:   1500,
+			Disks: []*grpcv1.MachineBlockDevice{
+				{
+					Name: "sda",
+					Size: 2500,
 				},
 			},
-			Nics: v1.MachineNics{
+			Nics: []*grpcv1.MachineNic{
 				{
-					Name:       "eth0",
-					MacAddress: "aa:aa:aa:aa:aa:aa",
-					Neighbors: v1.MachineNics{
+					Name: "eth0",
+					Mac:  "aa:aa:aa:aa:aa:aa",
+					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name:       "swp1",
-							MacAddress: "bb:aa:aa:aa:aa:aa",
-							Neighbors:  v1.MachineNics{},
+							Name: "swp1",
+							Mac:  "bb:aa:aa:aa:aa:aa",
 						},
 					},
 				},
 				{
-					Name:       "eth1",
-					MacAddress: "aa:aa:aa:aa:aa:aa",
-					Neighbors: v1.MachineNics{
+					Name: "eth1",
+					Mac:  "aa:aa:aa:aa:aa:aa",
+					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name:       "swp1",
-							MacAddress: "aa:bb:aa:aa:aa:aa",
-							Neighbors:  v1.MachineNics{},
+							Name: "swp1",
+							Mac:  "aa:bb:aa:aa:aa:aa",
 						},
 					},
 				},
@@ -61,16 +67,25 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 		},
 	}
 
-	var registeredMachine v1.MachineResponse
-	status := te.machineRegister(t, mrr, &registeredMachine)
-	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, registeredMachine)
-	assert.Equal(t, mrr.PartitionID, registeredMachine.Partition.ID)
-	assert.Equal(t, registeredMachine.RackID, "test-rack")
-	assert.Len(t, mrr.Hardware.Nics, 2)
-	assert.Equal(t, mrr.Hardware.Nics[0].MacAddress, registeredMachine.Hardware.Nics[0].MacAddress)
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
 
-	err := te.machineWait("test-uuid")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	port := 50005
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+	require.NoError(t, err)
+
+	c := grpcv1.NewBootServiceClient(conn)
+
+	registeredMachine, err := c.Register(ctx, mrr)
+	require.NoError(t, err)
+	require.NotNil(t, registeredMachine)
+	assert.Len(t, mrr.Hardware.Nics, 2)
+
+	err = te.machineWait("test-uuid")
 	require.Nil(t, err)
 
 	// DB contains at least a machine which is allocatable
@@ -87,7 +102,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	}
 
 	var allocatedMachine v1.MachineResponse
-	status = te.machineAllocate(t, machine, &allocatedMachine)
+	status := te.machineAllocate(t, machine, &allocatedMachine)
 	require.Equal(t, http.StatusOK, status)
 	require.NotNil(t, allocatedMachine)
 	require.NotNil(t, allocatedMachine.Allocation)
@@ -181,5 +196,4 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 
 	require.Len(t, foundSwitch.Nics, 1)
 	require.Nil(t, foundSwitch.Nics[0].BGPFilter, "no machine allocated anymore")
-
 }

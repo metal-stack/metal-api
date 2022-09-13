@@ -381,10 +381,6 @@ func (te *testEnv) machineFree(t *testing.T, uuid string, response interface{}) 
 	return webRequestDelete(t, te.machineService, &testUserDirectory.admin, &emptyBody{}, "/v1/machine/"+uuid+"/free", response)
 }
 
-func (te *testEnv) machineRegister(t *testing.T, mrr v1.MachineRegisterRequest, response interface{}) int {
-	return webRequestPost(t, te.machineService, &testUserDirectory.admin, mrr, "/v1/machine/register", response)
-}
-
 func (te *testEnv) machineWait(uuid string) error {
 	kacp := keepalive.ClientParameters{
 		Time:                5 * time.Millisecond,

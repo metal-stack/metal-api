@@ -35,6 +35,13 @@ var (
 			Name:    "d1",
 			ImageID: "image-1",
 			Project: "p1",
+			Role:    metal.RoleMachine,
+			MachineNetworks: []*metal.MachineNetwork{
+				{
+					Private: true,
+					Vrf:     1,
+				},
+			},
 		},
 		IPMI: IPMI1,
 		Tags: []string{"1"},
