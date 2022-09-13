@@ -9,36 +9,27 @@ import (
 )
 
 func TestRethinkStore_FindIPByID(t *testing.T) {
-	// mock the DB
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	type args struct {
-		id string
-	}
 	tests := []struct {
 		name    string
 		rs      *RethinkStore
-		args    args
+		id      string
 		want    *metal.IP
 		wantErr bool
 	}{
-		// Test Data Array:
 		{
-			name: "TestRethinkStore_FindIP Test 1",
-			rs:   ds,
-			args: args{
-				id: "1.2.3.4",
-			},
+			name:    "TestRethinkStore_FindIP Test 1",
+			rs:      ds,
+			id:      "1.2.3.4",
 			want:    &testdata.IP1,
 			wantErr: false,
 		},
 		{
-			name: "TestRethinkStore_FindIP Test 2",
-			rs:   ds,
-			args: args{
-				id: "2.3.4.5",
-			},
+			name:    "TestRethinkStore_FindIP Test 2",
+			rs:      ds,
+			id:      "2.3.4.5",
 			want:    &testdata.IP2,
 			wantErr: false,
 		},
@@ -46,7 +37,7 @@ func TestRethinkStore_FindIPByID(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindIPByID(tt.args.id)
+			got, err := tt.rs.FindIPByID(tt.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.FindIP() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -59,8 +50,7 @@ func TestRethinkStore_FindIPByID(t *testing.T) {
 }
 
 func TestRethinkStore_ListIPs(t *testing.T) {
-	// mock the DBs
-	ds, mock := InitMockDB()
+	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
 	tests := []struct {
@@ -69,7 +59,6 @@ func TestRethinkStore_ListIPs(t *testing.T) {
 		want    metal.IPs
 		wantErr bool
 	}{
-		// Test-Data List / Test Cases:
 		{
 			name:    "TestRethinkStore_ListIPs Test 1",
 			rs:      ds,

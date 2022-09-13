@@ -7,8 +7,6 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/zapup"
-	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -26,10 +24,6 @@ import (
 // go test -coverprofile=cover.out ./...
 // go tool cover -func=cover.out					// Console Output
 // (go tool cover -html=cover.out -o cover.html) 	// Html output
-
-var Testlogger = zap.NewNop()
-
-var TestloggerSugar = zapup.MustRootLogger().Sugar()
 
 var (
 	// Machines

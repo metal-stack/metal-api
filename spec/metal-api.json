@@ -73,6 +73,7 @@
         },
         "disk_sizes": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -129,6 +130,7 @@
         },
         "network_asns": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -168,6 +170,7 @@
         },
         "network_vrfs": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -967,6 +970,7 @@
         },
         "disk_sizes": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -1023,6 +1027,7 @@
         },
         "network_asns": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -1062,6 +1067,7 @@
         },
         "network_vrfs": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -1867,6 +1873,10 @@
         "user_data": {
           "description": "userdata to execute post installation tasks",
           "type": "string"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2070,6 +2080,7 @@
         },
         "disk_sizes": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -2126,6 +2137,7 @@
         },
         "network_asns": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -2165,6 +2177,7 @@
         },
         "network_vrfs": {
           "items": {
+            "format": "int64",
             "type": "integer"
           },
           "type": "array"
@@ -2637,9 +2650,21 @@
     },
     "v1.MachineRecentProvisioningEvents": {
       "properties": {
+        "crash_loop": {
+          "description": "indicates that machine is provisioning crash loop",
+          "type": "boolean"
+        },
+        "failed_machine_reclaim": {
+          "description": "indicates that machine reclaim has failed",
+          "type": "boolean"
+        },
         "incomplete_provisioning_cycles": {
-          "description": "the amount of incomplete provisioning cycles in the event container",
+          "description": "The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'.",
           "type": "string"
+        },
+        "last_error_event": {
+          "$ref": "#/definitions/v1.MachineProvisioningEvent",
+          "description": "the last erroneous event received"
         },
         "last_event_time": {
           "description": "the time where the last event was received",
@@ -2655,6 +2680,8 @@
         }
       },
       "required": [
+        "crash_loop",
+        "failed_machine_reclaim",
         "incomplete_provisioning_cycles",
         "log"
       ]
@@ -2779,6 +2806,10 @@
           "description": "a description why this machine is in the given state",
           "type": "string"
         },
+        "issuer": {
+          "description": "the user that changed the state",
+          "type": "string"
+        },
         "metal_hammer_version": {
           "description": "the version of metal hammer which put the machine in waiting state",
           "type": "string"
@@ -2846,6 +2877,22 @@
       "required": [
         "description",
         "id"
+      ]
+    },
+    "v1.MachineVPN": {
+      "properties": {
+        "address": {
+          "description": "address of VPN control plane",
+          "type": "string"
+        },
+        "auth_key": {
+          "description": "auth key used to connect to VPN",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "auth_key"
       ]
     },
     "v1.Meta": {
@@ -3239,6 +3286,13 @@
         "description": {
           "description": "a description for this entity",
           "type": "string"
+        },
+        "destinationprefixes": {
+          "description": "the destination prefixes of this network",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "id": {
           "description": "the unique ID of this entity",
@@ -4297,6 +4351,38 @@
         "Tenant"
       ]
     },
+    "v1.VPNRequest": {
+      "properties": {
+        "expiration": {
+          "description": "expiration time",
+          "format": "int64",
+          "type": "integer"
+        },
+        "pid": {
+          "description": "project ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pid"
+      ]
+    },
+    "v1.VPNResponse": {
+      "properties": {
+        "address": {
+          "description": "address of VPN's control plane",
+          "type": "string"
+        },
+        "auth_key": {
+          "description": "auth key to connect to the VPN",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "auth_key"
+      ]
+    },
     "v1.VendorRevisions": {
       "properties": {
         "VendorRevisions": {
@@ -5004,7 +5090,7 @@
             "description": "include image usage into response",
             "in": "query",
             "name": "show-usage",
-            "type": "bool"
+            "type": "boolean"
           }
         ],
         "produces": [
@@ -5373,6 +5459,12 @@
               "$ref": "#/definitions/v1.IPResponse"
             }
           },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
           "default": {
             "description": "Error",
             "schema": {
@@ -5417,6 +5509,12 @@
             "description": "Created",
             "schema": {
               "$ref": "#/definitions/v1.IPResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
             }
           },
           "default": {
@@ -7075,7 +7173,7 @@
           "application/json"
         ],
         "deprecated": true,
-        "operationId": "partitionCapacity",
+        "operationId": "partitionCapacityCompat",
         "produces": [
           "application/json"
         ],
@@ -7096,7 +7194,7 @@
             }
           }
         },
-        "summary": "get Partition capacity",
+        "summary": "get partition capacity",
         "tags": [
           "Partition"
         ]
@@ -8277,6 +8375,45 @@
         "summary": "returns the current version information of this module",
         "tags": [
           "version"
+        ]
+      }
+    },
+    "/v1/vpn/authkey": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getVPNAuthKey",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.VPNRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.VPNResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create auth key to connect to project's VPN",
+        "tags": [
+          "vpn"
         ]
       }
     }

@@ -3,13 +3,17 @@ package service
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"net/http"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
 	"github.com/metal-stack/security"
 
-	"github.com/metal-stack/metal-lib/httperrors"
-	"github.com/metal-stack/metal-lib/zapup"
 	"go.uber.org/zap"
+
+	"github.com/metal-stack/metal-lib/httperrors"
 
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
@@ -17,43 +21,48 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+
 	"github.com/metal-stack/metal-lib/bus"
 )
 
 type firewallResource struct {
 	webResource
 	bus.Publisher
-	ipamer     ipam.IPAMer
-	mdc        mdm.Client
-	userGetter security.UserGetter
-	actor      *asyncActor
+	ipamer          ipam.IPAMer
+	mdc             mdm.Client
+	userGetter      security.UserGetter
+	actor           *asyncActor
+	headscaleClient *headscale.HeadscaleClient
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
+	log *zap.SugaredLogger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ipamer ipam.IPAMer,
 	ep *bus.Endpoints,
 	mdc mdm.Client,
 	userGetter security.UserGetter,
+	headscaleClient *headscale.HeadscaleClient,
 ) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
-			ds: ds,
+			log: log,
+			ds:  ds,
 		},
-		Publisher:  pub,
-		ipamer:     ipamer,
-		mdc:        mdc,
-		userGetter: userGetter,
+		Publisher:       pub,
+		ipamer:          ipamer,
+		mdc:             mdc,
+		userGetter:      userGetter,
+		headscaleClient: headscaleClient,
 	}
 
 	var err error
-	r.actor, err = newAsyncActor(zapup.MustRootLogger(), ep, ds, ipamer)
+	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async actor: %w", err)
 	}
@@ -62,7 +71,7 @@ func NewFirewall(
 }
 
 // webService creates the webservice endpoint
-func (r firewallResource) webService() *restful.WebService {
+func (r *firewallResource) webService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.
 		Path(BasePath + "v1/firewall").
@@ -112,35 +121,34 @@ func (r firewallResource) webService() *restful.WebService {
 	return ws
 }
 
-func (r firewallResource) findFirewall(request *restful.Request, response *restful.Response) {
+func (r *firewallResource) findFirewall(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
 	fw, err := r.ds.FindMachineByID(id)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	if !fw.IsFirewall() {
-		sendError(utils.Logger(request), response, utils.CurrentFuncName(), httperrors.NotFound(errors.New("machine is not a firewall")))
+		r.sendError(request, response, httperrors.NotFound(errors.New("machine is not a firewall")))
 		return
 	}
 
 	resp, err := makeFirewallResponse(fw, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r firewallResource) findFirewalls(request *restful.Request, response *restful.Response) {
+func (r *firewallResource) findFirewalls(request *restful.Request, response *restful.Response) {
 	var requestPayload datastore.MachineSearchQuery
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
@@ -148,75 +156,102 @@ func (r firewallResource) findFirewalls(request *restful.Request, response *rest
 
 	var fws metal.Machines
 	err = r.ds.SearchMachines(&requestPayload, &fws)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeFirewallResponseList(fws, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
+func (r *firewallResource) listFirewalls(request *restful.Request, response *restful.Response) {
 	var fws metal.Machines
 	err := r.ds.SearchMachines(&datastore.MachineSearchQuery{
 		AllocationRole: &metal.RoleFirewall,
 	}, &fws)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeFirewallResponseList(fws, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
-	}
+	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
+func (r *firewallResource) allocateFirewall(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.FirewallCreateRequest
 	err := request.ReadEntity(&requestPayload)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
 	user, err := r.userGetter.User(request.Request)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	m, err := allocateMachine(utils.Logger(request).Sugar(), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err := r.setVPNConfigInSpec(spec); err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
 	resp, err := makeMachineResponse(m, r.ds)
-	if checkError(request, response, utils.CurrentFuncName(), err) {
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	err = response.WriteHeaderAndEntity(http.StatusOK, resp)
-	if err != nil {
-		zapup.MustRootLogger().Error("Failed to send response", zap.Error(err))
-		return
+	r.send(request, response, http.StatusOK, resp)
+}
+
+func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSpec) error {
+	if r.headscaleClient == nil {
+		return nil
 	}
+
+	// Try to create namespace in Headscale DB
+	projectID := allocationSpec.ProjectID
+	if err := r.headscaleClient.CreateNamespace(projectID); err != nil {
+		return fmt.Errorf("failed to create new VPN namespace for the project: %w", err)
+	}
+
+	expiration := time.Now().Add(2 * time.Hour)
+	key, err := r.headscaleClient.CreatePreAuthKey(projectID, expiration)
+	if err != nil {
+		return fmt.Errorf("failed to create new auth key for the firewall: %w", err)
+	}
+
+	allocationSpec.VPN = &metal.MachineVPN{
+		ControlPlaneAddress: r.headscaleClient.GetControlPlaneAddress(),
+		AuthKey:             key,
+	}
+
+	return nil
 }
 
 func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {

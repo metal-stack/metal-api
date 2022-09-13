@@ -57,9 +57,10 @@ type NetworkFindRequest struct {
 // NetworkUpdateRequest defines the properties of a Network which can be updated.
 type NetworkUpdateRequest struct {
 	Common
-	Prefixes []string          `json:"prefixes" description:"the prefixes of this network" optional:"true"`
-	Labels   map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
-	Shared   *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
+	Prefixes            []string          `json:"prefixes" description:"the prefixes of this network" optional:"true"`
+	DestinationPrefixes []string          `json:"destinationprefixes" description:"the destination prefixes of this network" optional:"true"`
+	Labels              map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Shared              *bool             `json:"shared" description:"marks a network as shareable." optional:"true"`
 }
 
 // NetworkResponse holds all properties returned in a FindNetwork or GetNetwork request.

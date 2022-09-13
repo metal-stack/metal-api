@@ -16,6 +16,7 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -46,11 +47,11 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 		projectServiceMock(psc)
 	}
 	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	if dsmock != nil {
 		dsmock(mock)
 	}
-	ws := NewProject(ds, mdc)
+	ws := NewProject(zaptest.NewLogger(t).Sugar(), ds, mdc)
 	return &MockedProjectService{
 		t:  t,
 		ws: ws,
@@ -175,8 +176,8 @@ func Test_projectResource_createProject(t *testing.T) {
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
 				mock.On("Create", context.Background(), &mdmv1.ProjectCreateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
-			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(errors.New("no tenant given")),
+			wantStatus: 400,
+			wantErr:    httperrors.BadRequest(errors.New("no tenant given")),
 		},
 	}
 	for i := range tests {
@@ -309,8 +310,8 @@ func Test_projectResource_updateProject(t *testing.T) {
 			projectServiceMock: func(mock *mdmv1mock.ProjectServiceClient) {
 				mock.On("Update", context.Background(), &mdmv1.ProjectUpdateRequest{Project: &mdmv1.Project{}}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
-			wantStatus: 422,
-			wantErr:    httperrors.UnprocessableEntity(errors.New("project and project.meta must be specified")),
+			wantStatus: 400,
+			wantErr:    httperrors.BadRequest(errors.New("project and project.meta must be specified")),
 		},
 	}
 	for i := range tests {

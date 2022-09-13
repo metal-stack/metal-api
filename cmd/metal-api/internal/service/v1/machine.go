@@ -8,7 +8,7 @@ import (
 )
 
 // RecentProvisioningEventsLimit defines how many recent events are added to the MachineRecentProvisioningEvents struct
-const RecentProvisioningEventsLimit = 5
+const RecentProvisioningEventsLimit = 20
 
 type MachineBase struct {
 	Partition                *PartitionResponse              `json:"partition" modelDescription:"A machine representing a bare metal machine." description:"the partition assigned to this machine" readOnly:"true" optional:"true"`
@@ -40,6 +40,7 @@ type MachineAllocation struct {
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
+	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 }
 
 type BootInfo struct {
@@ -86,6 +87,7 @@ type MachineHardware struct {
 type MachineState struct {
 	Value              string `json:"value" enum:"RESERVED|LOCKED|" description:"the state of this machine. empty means available for all"`
 	Description        string `json:"description" description:"a description why this machine is in the given state"`
+	Issuer             string `json:"issuer,omitempty" optional:"true" description:"the user that changed the state"`
 	MetalHammerVersion string `json:"metal_hammer_version" description:"the version of metal hammer which put the machine in waiting state"`
 }
 
@@ -102,7 +104,10 @@ type MachineBlockDevice struct {
 type MachineRecentProvisioningEvents struct {
 	Events                       []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
 	LastEventTime                *time.Time                 `json:"last_event_time" description:"the time where the last event was received" optional:"true"`
-	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"the amount of incomplete provisioning cycles in the event container"`
+	LastErrorEvent               *MachineProvisioningEvent  `json:"last_error_event,omitempty" description:"the last erroneous event received" optional:"true"`
+	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'."`
+	CrashLoop                    bool                       `json:"crash_loop" description:"indicates that machine is provisioning crash loop"`
+	FailedMachineReclaim         bool                       `json:"failed_machine_reclaim" description:"indicates that machine reclaim has failed"`
 }
 
 type MachineRecentProvisioningEventsResponse struct {
@@ -256,6 +261,11 @@ type MachineReinstallRequest struct {
 
 type MachineAbortReinstallRequest struct {
 	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
+}
+
+type MachineVPN struct {
+	ControlPlaneAddress string `json:"address" description:"address of VPN control plane"`
+	AuthKey             string `json:"auth_key" description:"auth key used to connect to VPN"`
 }
 
 func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
@@ -452,6 +462,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Succeeded:        m.Allocation.Succeeded,
 			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),
 			Role:             string(m.Allocation.Role),
+			VPN:              NewMachineVPN(m.Allocation.VPN),
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
@@ -501,6 +512,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			State: MachineState{
 				Value:              string(m.State.Value),
 				Description:        m.State.Description,
+				Issuer:             m.State.Issuer,
 				MetalHammerVersion: m.State.MetalHammerVersion,
 			},
 			LEDState: ChassisIdentifyLEDState{
@@ -524,7 +536,10 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		return &MachineRecentProvisioningEvents{
 			Events:                       es,
 			LastEventTime:                nil,
-			IncompleteProvisioningCycles: "0",
+			LastErrorEvent:               nil,
+			CrashLoop:                    false,
+			FailedMachineReclaim:         false,
+			IncompleteProvisioningCycles: "0", // TODO: remove in next minor release
 		}
 	}
 	machineEvents := ec.Events
@@ -539,9 +554,31 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		}
 		es = append(es, e)
 	}
+	var lastErrorEvent *MachineProvisioningEvent
+	if ec.LastErrorEvent != nil {
+		lastErrorEvent = &MachineProvisioningEvent{
+			Time:    ec.LastErrorEvent.Time,
+			Event:   ec.LastErrorEvent.Event.String(),
+			Message: ec.LastErrorEvent.Message,
+		}
+	}
 	return &MachineRecentProvisioningEvents{
 		Events:                       es,
-		IncompleteProvisioningCycles: ec.IncompleteProvisioningCycles,
 		LastEventTime:                ec.LastEventTime,
+		LastErrorEvent:               lastErrorEvent,
+		CrashLoop:                    ec.CrashLoop,
+		FailedMachineReclaim:         ec.FailedMachineReclaim,
+		IncompleteProvisioningCycles: "0", // TODO: remove in next minor release
+	}
+}
+
+func NewMachineVPN(m *metal.MachineVPN) *MachineVPN {
+	if m == nil {
+		return nil
+	}
+
+	return &MachineVPN{
+		ControlPlaneAddress: m.ControlPlaneAddress,
+		AuthKey:             m.AuthKey,
 	}
 }

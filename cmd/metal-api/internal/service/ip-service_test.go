@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"go.uber.org/zap/zaptest"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmock "github.com/metal-stack/masterdata-api/api/v1/mocks"
@@ -31,15 +33,16 @@ import (
 )
 
 func TestGetIPs(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	logger := zaptest.NewLogger(t).Sugar()
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(logger, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -60,14 +63,15 @@ func TestGetIPs(t *testing.T) {
 }
 
 func TestGetIP(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	logger := zaptest.NewLogger(t).Sugar()
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(logger, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -83,14 +87,15 @@ func TestGetIP(t *testing.T) {
 }
 
 func TestGetIPNotFound(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
-	container = injectViewer(container, req)
+	container = injectViewer(logger, container, req)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, req)
 
@@ -106,12 +111,13 @@ func TestGetIPNotFound(t *testing.T) {
 }
 
 func TestDeleteIP(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	ipamer, err := testdata.InitMockIpamData(mock, true)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipamer, nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipamer, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
@@ -128,7 +134,7 @@ func TestDeleteIP(t *testing.T) {
 		{
 			name:         "free an machine-ip should fail",
 			ip:           testdata.IP3.IPAddress,
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusBadRequest,
 		},
 		{
 			name:         "free an cluster-ip should fail",
@@ -140,29 +146,32 @@ func TestDeleteIP(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("POST", "/v1/ip/free/"+tt.ip, nil)
-			container = injectEditor(container, req)
+			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
 
 			resp := w.Result()
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
+			defer resp.Body.Close()
+
+			if tt.wantedStatus != 200 {
+				return
+			}
+
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
-			if tt.wantedStatus != http.StatusUnprocessableEntity {
-				require.NoError(t, err)
-			}
-			err = resp.Body.Close()
 			require.NoError(t, err)
 		})
 	}
 }
 
 func TestAllocateIP(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
 	psc := mdmock.ProjectServiceClient{}
 	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
@@ -175,16 +184,18 @@ func TestAllocateIP(t *testing.T) {
 
 	mdc := mdm.NewMock(&psc, &tsc)
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipamer, mdc)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 
 	tests := []struct {
 		name            string
 		allocateRequest v1.IPAllocateRequest
+		specificIP      string
 		wantedStatus    int
 		wantedType      metal.IPType
 		wantedIP        string
+		wantErr         error
 	}{
 		{
 			name: "allocate an ephemeral ip",
@@ -206,6 +217,35 @@ func TestAllocateIP(t *testing.T) {
 			wantedType:   metal.Static,
 			wantedIP:     "10.0.0.2",
 		},
+		{
+			name: "allocate a static specific ip",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Static,
+				},
+			},
+			specificIP:   "10.0.0.5",
+			wantedStatus: http.StatusCreated,
+			wantedType:   metal.Static,
+			wantedIP:     "10.0.0.5",
+		},
+		{
+			name: "allocate a static specific ip outside prefix",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Static,
+				},
+			},
+			specificIP:   "11.0.0.5",
+			wantedStatus: http.StatusUnprocessableEntity,
+			wantErr:      errors.New("cannot allocate free ip in ipam"),
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
@@ -214,8 +254,13 @@ func TestAllocateIP(t *testing.T) {
 			js, err := json.Marshal(tt.allocateRequest)
 			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/allocate", body)
-			container = injectEditor(container, req)
+			var req *http.Request
+			if tt.specificIP == "" {
+				req = httptest.NewRequest("POST", "/v1/ip/allocate", body)
+			} else {
+				req = httptest.NewRequest("POST", "/v1/ip/allocate/"+tt.specificIP, body)
+			}
+			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -223,22 +268,32 @@ func TestAllocateIP(t *testing.T) {
 			defer resp.Body.Close()
 
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
-			var result v1.IPResponse
-			err = json.NewDecoder(resp.Body).Decode(&result)
 
-			require.NoError(t, err)
-			require.Equal(t, tt.wantedType, result.Type)
-			require.Equal(t, tt.wantedIP, result.IPAddress)
-			require.Equal(t, tt.name, *result.Name)
+			if tt.wantErr == nil {
+				var result v1.IPResponse
+				err = json.NewDecoder(resp.Body).Decode(&result)
+
+				require.NoError(t, err)
+				require.Equal(t, tt.wantedType, result.Type)
+				require.Equal(t, tt.wantedIP, result.IPAddress)
+				require.Equal(t, tt.name, *result.Name)
+			} else {
+				var result httperrors.HTTPErrorResponse
+				err = json.NewDecoder(resp.Body).Decode(&result)
+				require.NoError(t, err)
+				require.Equal(t, tt.wantedStatus, resp.StatusCode)
+				require.Equal(t, tt.wantErr.Error(), result.Message)
+			}
 		})
 	}
 }
 
 func TestUpdateIP(t *testing.T) {
-	ds, mock := datastore.InitMockDB()
+	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"
@@ -284,7 +339,7 @@ func TestUpdateIP(t *testing.T) {
 				IPAddress: testdata.IP2.IPAddress,
 				Type:      "ephemeral",
 			},
-			wantedStatus: http.StatusUnprocessableEntity,
+			wantedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "internal tag machine is allowed",
@@ -303,7 +358,7 @@ func TestUpdateIP(t *testing.T) {
 			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
 			req := httptest.NewRequest("POST", "/v1/ip", body)
-			container = injectEditor(container, req)
+			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			container.ServeHTTP(w, req)
@@ -314,7 +369,7 @@ func TestUpdateIP(t *testing.T) {
 			var result v1.IPResponse
 			err = json.NewDecoder(resp.Body).Decode(&result)
 
-			if tt.wantedStatus == http.StatusUnprocessableEntity {
+			if tt.wantedStatus != 200 {
 				return
 			}
 			require.NoError(t, err)

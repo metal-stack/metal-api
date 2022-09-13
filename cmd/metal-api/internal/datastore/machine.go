@@ -484,7 +484,7 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 	for _, m := range candidates {
 		ec, ok := ecMap[m.ID]
 		if !ok {
-			rs.SugaredLogger.Errorw("cannot find machine provisioning event container", "machine", m, "error", err)
+			rs.log.Errorw("cannot find machine provisioning event container", "machine", m, "error", err)
 			// fall through, so the rest of the machines is getting evaluated
 			continue
 		}
@@ -500,7 +500,7 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 
 	// pick a random machine from all available ones
 	var idx int
-	b, err := rand.Int(rand.Reader, big.NewInt(int64(len(available))))
+	b, err := rand.Int(rand.Reader, big.NewInt(int64(len(available)))) //nolint:gosec
 	if err != nil {
 		idx = int(b.Uint64())
 	} else {

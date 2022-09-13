@@ -31,10 +31,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Go 1.18
+    - name: Set up Go 1.19
       uses: actions/setup-go@v2
       with:
-        go-version: '1.18.x'
+        go-version: '1.19.x'
 
     - name: setup buf
       uses: bufbuild/buf-setup-action@v1
@@ -62,7 +62,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.tag }}
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.tag }}
 
   integration:
     runs-on: ubuntu-latest
@@ -70,10 +70,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Go 1.18
+    - name: Set up Go 1.19
       uses: actions/setup-go@v2
       with:
-        go-version: '1.18.x'
+        go-version: '1.19.x'
 
     - name: Run integration tests
       run: |

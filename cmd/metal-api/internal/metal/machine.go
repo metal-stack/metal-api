@@ -46,6 +46,7 @@ var (
 type MachineState struct {
 	Value              MState `rethinkdb:"value" json:"value"`
 	Description        string `rethinkdb:"description" json:"description"`
+	Issuer             string `rethinkdb:"issuer" json:"issuer,omitempty"`
 	MetalHammerVersion string `rethinkdb:"metal_hammer_version" json:"metal_hammer_version"`
 }
 
@@ -142,6 +143,7 @@ type MachineAllocation struct {
 	Reinstall        bool              `rethinkdb:"reinstall" json:"reinstall"`
 	MachineSetup     *MachineSetup     `rethinkdb:"setup" json:"setup"`
 	Role             Role              `rethinkdb:"role" json:"role"`
+	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
 }
 
 // A MachineSetup stores the data used for machine reinstallations.
@@ -412,4 +414,9 @@ type AllocationEvent struct {
 type FirmwareUpdate struct {
 	Kind FirmwareKind `json:"kind"`
 	URL  string       `json:"url"`
+}
+
+type MachineVPN struct {
+	ControlPlaneAddress string `rethinkdb:"address" json:"address"`
+	AuthKey             string `rethinkdb:"auth_key" json:"auth_key"`
 }

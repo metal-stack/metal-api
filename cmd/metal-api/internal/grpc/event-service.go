@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -23,7 +24,7 @@ func NewEventService(cfg *ServerConfig) *EventService {
 	}
 }
 func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest) (*v1.EventServiceSendResponse, error) {
-	e.log.Infow("send", "event", req)
+	e.log.Debugw("send", "event", req)
 	if req == nil {
 		return nil, fmt.Errorf("no event send")
 	}
@@ -62,7 +63,14 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 			failed = append(failed, machineID)
 			continue
 		}
-		_, err = e.ds.ProvisioningEventForMachine(e.log, machineID, event.Event, event.Message)
+
+		ev := metal.ProvisioningEvent{
+			Time:    time.Now(),
+			Event:   metal.ProvisioningEventType(event.Event),
+			Message: event.Message,
+		}
+
+		_, err = e.ds.ProvisioningEventForMachine(e.log, &ev, machineID)
 		if err != nil {
 			processErr = multierr.Append(processErr, err)
 			failed = append(failed, machineID)

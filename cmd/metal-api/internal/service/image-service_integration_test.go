@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package service
@@ -28,7 +29,9 @@ func TestGetImagesIntegration(t *testing.T) {
 		_ = rethinkContainer.Terminate(context.Background())
 	}()
 
-	ds := datastore.New(zaptest.NewLogger(t), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	log := zaptest.NewLogger(t).Sugar()
+
+	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000
 	ds.ASNPoolRangeMax = 1000
 
@@ -37,7 +40,7 @@ func TestGetImagesIntegration(t *testing.T) {
 	err = ds.Initialize()
 	require.NoError(t, err)
 
-	imageservice := NewImage(ds)
+	imageservice := NewImage(log, ds)
 	container := restful.NewContainer().Add(imageservice)
 
 	imageID := "test-image-1.0.0"
@@ -63,7 +66,7 @@ func TestGetImagesIntegration(t *testing.T) {
 	createReq := httptest.NewRequest(http.MethodPut, "/v1/image", body)
 	createReq.Header.Set("Content-Type", "application/json")
 
-	container = injectAdmin(container, createReq)
+	container = injectAdmin(log, container, createReq)
 	w := httptest.NewRecorder()
 	container.ServeHTTP(w, createReq)
 

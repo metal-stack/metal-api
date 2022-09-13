@@ -287,7 +287,7 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 }
 
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
-	log := zaptest.NewLogger(t)
+	log := zaptest.NewLogger(t).Sugar()
 
 	_, c, err := test.StartRethink()
 	require.NoError(t, err)
@@ -315,10 +315,10 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	createTestdata(machineCount, rs, ipamer, t)
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0)
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
-	container.Filter(rest.UserAuth(usergetter))
+	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
 	return rs, container
 }
 
