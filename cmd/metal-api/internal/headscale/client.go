@@ -2,8 +2,8 @@ package headscale
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -97,7 +97,8 @@ func (h *HeadscaleClient) CreateNamespace(name string) error {
 		Name: name,
 	}
 	_, err := h.client.CreateNamespace(h.ctx, req)
-	if err != nil && !errors.Is(headscalecore.ErrNamespaceExists, err) {
+	// TODO: this error check is pretty rough, but it's not easily possible to compare the proto error directly :/
+	if err != nil && !strings.Contains(err.Error(), headscalecore.ErrNamespaceExists.Error()) {
 		return fmt.Errorf("failed to create new VPN namespace: %w", err)
 	}
 
