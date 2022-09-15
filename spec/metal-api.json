@@ -4348,6 +4348,10 @@
     },
     "v1.VPNRequest": {
       "properties": {
+        "ephemeral": {
+          "description": "specifies if auth key should be ephemeral",
+          "type": "boolean"
+        },
         "expiration": {
           "description": "expiration time",
           "format": "int64",
@@ -4359,6 +4363,7 @@
         }
       },
       "required": [
+        "ephemeral",
         "pid"
       ]
     },

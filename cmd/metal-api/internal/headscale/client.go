@@ -105,10 +105,11 @@ func (h *HeadscaleClient) CreateNamespace(name string) error {
 	return nil
 }
 
-func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Time) (key string, err error) {
+func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Time, isEphemeral bool) (key string, err error) {
 	req := &headscalev1.CreatePreAuthKeyRequest{
 		Namespace:  namespace,
 		Expiration: timestamppb.New(expiration),
+		Ephemeral:  isEphemeral,
 	}
 	resp, err := h.client.CreatePreAuthKey(h.ctx, req)
 	if err != nil || resp == nil || resp.PreAuthKey == nil {

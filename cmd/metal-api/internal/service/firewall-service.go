@@ -241,7 +241,7 @@ func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSp
 	}
 
 	expiration := time.Now().Add(2 * time.Hour)
-	key, err := r.headscaleClient.CreatePreAuthKey(projectID, expiration)
+	key, err := r.headscaleClient.CreatePreAuthKey(projectID, expiration, false)
 	if err != nil {
 		return fmt.Errorf("failed to create new auth key for the firewall: %w", err)
 	}
