@@ -1204,6 +1204,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -1982,6 +1986,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2454,6 +2462,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2782,6 +2794,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2883,11 +2899,16 @@
         "auth_key": {
           "description": "auth key used to connect to VPN",
           "type": "string"
+        },
+        "connected": {
+          "description": "connected to the VPN",
+          "type": "boolean"
         }
       },
       "required": [
         "address",
-        "auth_key"
+        "auth_key",
+        "connected"
       ]
     },
     "v1.Meta": {

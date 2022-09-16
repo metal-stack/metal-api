@@ -22,6 +22,7 @@ type MachineBase struct {
 	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine"`
 	RecentProvisioningEvents MachineRecentProvisioningEvents `json:"events" description:"recent events of this machine during provisioning"`
 	Tags                     []string                        `json:"tags" description:"tags for this machine"`
+	VPN                      *MachineVPN                     `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 }
 
 type MachineAllocation struct {
@@ -245,6 +246,7 @@ type MachineAbortReinstallRequest struct {
 type MachineVPN struct {
 	ControlPlaneAddress string `json:"address" description:"address of VPN control plane"`
 	AuthKey             string `json:"auth_key" description:"auth key used to connect to VPN"`
+	Connected           bool   `json:"connected" description:"connected to the VPN"`
 }
 
 func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
