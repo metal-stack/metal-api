@@ -9,5 +9,6 @@ type VPNResponse struct {
 
 type VPNRequest struct {
 	Pid        string         `json:"pid" description:"project ID"`
+	Ephemeral  bool           `json:"ephemeral" description:"specifies if auth key should be ephemeral"`
 	Expiration *time.Duration `json:"expiration" description:"expiration time" optional:"true"`
 }
