@@ -207,7 +207,10 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 func BenchmarkMachineList(b *testing.B) {
 	rethinkContainer, c, err := test.StartRethink(b)
 	require.NoError(b, err)
-	defer rethinkContainer.Terminate(context.TODO())
+	defer func() {
+		err = rethinkContainer.Terminate(context.TODO())
+		require.NoError(b, err)
+	}()
 
 	now := time.Now()
 	log := zaptest.NewLogger(b).Sugar()
