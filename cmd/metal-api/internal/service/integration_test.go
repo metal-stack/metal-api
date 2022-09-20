@@ -60,7 +60,7 @@ func (te *testEnv) teardown() {
 //nolint:deadcode
 func createTestEnvironment(t *testing.T) testEnv {
 	ipamer := ipam.InitTestIpam(t)
-	rethinkContainer, c, err := test.StartRethink()
+	rethinkContainer, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 
 	ds := datastore.New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)

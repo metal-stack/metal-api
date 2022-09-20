@@ -288,7 +288,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
 	log := zaptest.NewLogger(t).Sugar()
 
-	_, c, err := test.StartRethink()
+	_, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
@@ -337,7 +337,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
 	for i := 0; i < machineCount; i++ {
-		id := fmt.Sprintf("WaitingMaschine%d", i)
+		id := fmt.Sprintf("WaitingMachine%d", i)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
 			SizeID:      "s1",
