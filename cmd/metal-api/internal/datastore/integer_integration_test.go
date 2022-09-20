@@ -19,7 +19,7 @@ import (
 )
 
 func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
-	container, c, err := test.StartRethink()
+	container, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 	defer func() {
 		_ = container.Terminate(context.Background())
@@ -44,7 +44,7 @@ func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
 }
 
 func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
-	container, c, err := test.StartRethink()
+	container, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 	defer func() {
 		_ = container.Terminate(context.Background())
@@ -71,7 +71,7 @@ func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
 }
 
 func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T) {
-	container, c, err := test.StartRethink()
+	container, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 	defer func() {
 		_ = container.Terminate(context.Background())

@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"testing"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -25,7 +26,7 @@ type ConnectionDetails struct {
 	Password string
 }
 
-func StartRethink() (container testcontainers.Container, c *ConnectionDetails, err error) {
+func StartRethink(t testing.TB) (container testcontainers.Container, c *ConnectionDetails, err error) {
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
 		Image:        "rethinkdb:2.4.0",
@@ -39,6 +40,7 @@ func StartRethink() (container testcontainers.Container, c *ConnectionDetails, e
 	rtContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
+		Logger:           testcontainers.TestLogger(t),
 	})
 	if err != nil {
 		panic(err.Error())

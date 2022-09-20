@@ -22,7 +22,7 @@ import (
 )
 
 func Test_Migration(t *testing.T) {
-	container, c, err := test.StartRethink()
+	container, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 	defer func() {
 		_ = container.Terminate(context.Background())
