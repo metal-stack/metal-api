@@ -119,7 +119,7 @@ func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Tim
 	return resp.PreAuthKey.Key, nil
 }
 
-func (h *HeadscaleClient) DescribeMachine(hostname, projectID string) (connected bool, err error) {
+func (h *HeadscaleClient) DescribeMachine(machineid, projectID string) (connected bool, err error) {
 	req := &headscalev1.ListMachinesRequest{
 		Namespace: projectID,
 	}
@@ -129,12 +129,13 @@ func (h *HeadscaleClient) DescribeMachine(hostname, projectID string) (connected
 	}
 
 	for _, m := range resp.Machines {
-		if m.Name == hostname {
+		if m.Name == machineid {
 			if m.LastSeen.AsTime().After(
 				time.Now().Add(-5 * time.Minute),
 			) {
 				connected = true
 			}
+
 			return
 		}
 	}
