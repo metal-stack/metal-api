@@ -119,6 +119,30 @@ func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Tim
 	return resp.PreAuthKey.Key, nil
 }
 
+func (h *HeadscaleClient) DescribeMachine(machineid, projectID string) (connected bool, err error) {
+	req := &headscalev1.ListMachinesRequest{
+		Namespace: projectID,
+	}
+	resp, err := h.client.ListMachines(h.ctx, req)
+	if err != nil || resp == nil {
+		return false, fmt.Errorf("failed to list machines: %w", err)
+	}
+
+	for _, m := range resp.Machines {
+		if m.Name == machineid {
+			if m.LastSeen.AsTime().After(
+				time.Now().Add(-5 * time.Minute),
+			) {
+				connected = true
+			}
+
+			return
+		}
+	}
+
+	return false, nil
+}
+
 // Close client
 func (h *HeadscaleClient) Close() error {
 	h.cancelFunc()
