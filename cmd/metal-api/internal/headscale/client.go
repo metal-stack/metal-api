@@ -119,28 +119,48 @@ func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Tim
 	return resp.PreAuthKey.Key, nil
 }
 
-func (h *HeadscaleClient) DescribeMachine(machineid, projectID string) (connected bool, err error) {
+func (h *HeadscaleClient) DescribeMachine(machineID, projectID string) (connected bool, err error) {
+	machine, err := h.getMachine(machineID, projectID)
+	if err != nil || machine == nil {
+		return false, err
+	}
+
+	return machine.LastSeen.AsTime().After(time.Now().Add(-5 * time.Minute)), nil
+}
+
+// DeleteMachine removes the node entry from headscale DB
+func (h *HeadscaleClient) DeleteMachine(machineID, projectID string) (err error) {
+	machine, err := h.getMachine(machineID, projectID)
+	if err != nil || machine == nil {
+		return err
+	}
+
+	req := &headscalev1.DeleteMachineRequest{
+		MachineId: machine.Id,
+	}
+	if _, err := h.client.DeleteMachine(h.ctx, req); err != nil {
+		return fmt.Errorf("failed to delete machine: %w", err)
+	}
+
+	return nil
+}
+
+func (h *HeadscaleClient) getMachine(machineID, projectID string) (machine *headscalev1.Machine, err error) {
 	req := &headscalev1.ListMachinesRequest{
 		Namespace: projectID,
 	}
 	resp, err := h.client.ListMachines(h.ctx, req)
 	if err != nil || resp == nil {
-		return false, fmt.Errorf("failed to list machines: %w", err)
+		return nil, fmt.Errorf("failed to list machines: %w", err)
 	}
 
 	for _, m := range resp.Machines {
-		if m.Name == machineid {
-			if m.LastSeen.AsTime().After(
-				time.Now().Add(-5 * time.Minute),
-			) {
-				connected = true
-			}
-
-			return
+		if m.Name == machineID {
+			return m, nil
 		}
 	}
 
-	return false, nil
+	return nil, nil
 }
 
 // Close client

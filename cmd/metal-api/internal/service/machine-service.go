@@ -10,16 +10,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+
 	"github.com/avast/retry-go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
+
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
 	"golang.org/x/crypto/ssh"
 
+	"go.uber.org/zap"
+
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"go.uber.org/zap"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -32,6 +36,7 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
+
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -44,6 +49,7 @@ type machineResource struct {
 	s3Client        *s3server.Client
 	userGetter      security.UserGetter
 	reasonMinLength uint
+	headscaleClient *headscale.HeadscaleClient
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -1500,6 +1506,13 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
 	if err != nil {
 		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
+	}
+
+	if r.headscaleClient != nil {
+		// always call DeleteMachine, in case machine is not registered it will return nil
+		if err = r.headscaleClient.DeleteMachine(m.ID, m.Allocation.Project); err != nil {
+			logger.Error("unable to delete Node entry from headscale DB", zap.String("machineID", m.ID), zap.Error(err))
+		}
 	}
 
 	err = r.actor.freeMachine(r.Publisher, m)
