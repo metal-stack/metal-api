@@ -16,18 +16,20 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
+	"github.com/testcontainers/testcontainers-go"
+	"go.uber.org/zap/zaptest"
+
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
-	"github.com/testcontainers/testcontainers-go"
-	"go.uber.org/zap/zaptest"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
 	restful "github.com/emicklei/go-restful/v3"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -98,7 +100,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0)
+	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil)
 	require.NoError(t, err)
 	imageService := NewImage(log, ds)
 	switchService := NewSwitch(log, ds)
