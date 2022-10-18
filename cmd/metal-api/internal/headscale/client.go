@@ -130,9 +130,11 @@ func (h *HeadscaleClient) DescribeMachine(machineid, projectID string) (connecte
 
 	for _, m := range resp.Machines {
 		if m.Name == machineid {
+			h.logger.Infof("machine %s found, last seen at %, curent time is %s", machineid, m.LastSeen.AsTime().String(), time.Now().String())
 			if m.LastSeen.AsTime().After(
 				time.Now().Add(-5 * time.Minute),
 			) {
+				h.logger.Infof("machine %s is connected", machineid)
 				connected = true
 			}
 
