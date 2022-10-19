@@ -10,16 +10,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+
 	"github.com/avast/retry-go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
+
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/metal-stack/security"
 
 	"golang.org/x/crypto/ssh"
 
+	"go.uber.org/zap"
+
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"go.uber.org/zap"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -32,6 +36,7 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
+
 	"github.com/metal-stack/metal-lib/bus"
 )
 
@@ -44,6 +49,7 @@ type machineResource struct {
 	s3Client        *s3server.Client
 	userGetter      security.UserGetter
 	reasonMinLength uint
+	headscaleClient *headscale.HeadscaleClient
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -105,6 +111,7 @@ func NewMachine(
 	s3Client *s3server.Client,
 	userGetter security.UserGetter,
 	reasonMinLength uint,
+	headscaleClient *headscale.HeadscaleClient,
 ) (*restful.WebService, error) {
 	r := machineResource{
 		webResource: webResource{
@@ -117,6 +124,7 @@ func NewMachine(
 		s3Client:        s3Client,
 		userGetter:      userGetter,
 		reasonMinLength: reasonMinLength,
+		headscaleClient: headscaleClient,
 	}
 	var err error
 	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
@@ -1502,7 +1510,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
 	}
 
-	err = r.actor.freeMachine(r.Publisher, m)
+	err = r.actor.freeMachine(r.Publisher, m, r.headscaleClient, logger)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -1782,7 +1790,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1814,7 +1822,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
 			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m)
+			err = act.freeMachine(publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
@@ -1823,7 +1831,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.FailedMachineReclaim {
 			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m)
+			err = act.freeMachine(publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}

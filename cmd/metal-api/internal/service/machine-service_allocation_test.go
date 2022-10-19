@@ -14,12 +14,17 @@ import (
 	"testing"
 	"time"
 
-	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
+
 	"github.com/avast/retry-go/v4"
 	"github.com/emicklei/go-restful/v3"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
+	"golang.org/x/sync/errgroup"
+
 	goipam "github.com/metal-stack/go-ipam"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
@@ -33,9 +38,6 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/rest"
 	"github.com/metal-stack/security"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
-	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -328,7 +330,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	}()
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0)
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
