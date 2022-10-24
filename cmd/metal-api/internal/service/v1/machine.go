@@ -559,5 +559,6 @@ func NewMachineVPN(m *metal.MachineVPN) *MachineVPN {
 	return &MachineVPN{
 		ControlPlaneAddress: m.ControlPlaneAddress,
 		AuthKey:             m.AuthKey,
+		Connected:           m.Connected,
 	}
 }

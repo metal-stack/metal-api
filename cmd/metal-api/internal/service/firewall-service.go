@@ -135,15 +135,7 @@ func (r *firewallResource) findFirewall(request *restful.Request, response *rest
 		return
 	}
 
-	var connected bool
-	if fw.Allocation != nil && fw.Allocation.VPN != nil && r.headscaleClient != nil {
-		connected, err = r.headscaleClient.DescribeMachine(fw.ID, fw.Allocation.Project)
-		if err != nil {
-			r.log.Errorw("unable to get headscale connected state, ignoring", "firewall", fw.ID)
-		}
-	}
-
-	resp, err := makeFirewallResponse(fw, connected, r.ds)
+	resp, err := makeFirewallResponse(fw, r.ds)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -262,7 +254,7 @@ func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSp
 	return nil
 }
 
-func makeFirewallResponse(fw *metal.Machine, connectedToVPN bool, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {
+func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {
 	ms, err := makeMachineResponse(fw, ds)
 	if err != nil {
 		return nil, err
@@ -271,7 +263,6 @@ func makeFirewallResponse(fw *metal.Machine, connectedToVPN bool, ds *datastore.
 	if ms.VPN == nil {
 		ms.VPN = &v1.MachineVPN{}
 	}
-	ms.VPN.Connected = connectedToVPN
 	return &v1.FirewallResponse{MachineResponse: *ms}, nil
 }
 

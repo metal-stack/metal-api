@@ -419,4 +419,5 @@ type FirmwareUpdate struct {
 type MachineVPN struct {
 	ControlPlaneAddress string `rethinkdb:"address" json:"address"`
 	AuthKey             string `rethinkdb:"auth_key" json:"auth_key"`
+	Connected           bool   `rethinkdb:"connected" json:"connected"`
 }

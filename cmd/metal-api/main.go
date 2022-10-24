@@ -34,6 +34,7 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -166,6 +167,16 @@ var machineLiveliness = &cobra.Command{
 		return evaluateLiveliness()
 	},
 }
+var machineConnectedToVPN = &cobra.Command{
+	Use:     "machines-vpn-connected",
+	Short:   "evaluates whether machines connected to vpn",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+		initHeadscale()
+		return evaluateVPNConnected()
+	},
+}
 
 var deleteOrphanImagesCmd = &cobra.Command{
 	Use:     "delete-orphan-images",
@@ -201,6 +212,7 @@ func init() {
 		resurrectMachines,
 		machineLiveliness,
 		deleteOrphanImagesCmd,
+		machineConnectedToVPN,
 	)
 
 	rootCmd.Flags().StringP("config", "c", "", "alternative path to config file")
@@ -840,6 +852,46 @@ func evaluateLiveliness() error {
 	}
 
 	return nil
+}
+
+func evaluateVPNConnected() error {
+	err := connectDataStore()
+	if err != nil {
+		return err
+	}
+
+	ms, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	connectedMap, err := headscaleClient.MachinesConnected()
+	if err != nil {
+		return err
+	}
+
+	var updateErr error
+	for _, m := range ms {
+		m := m
+		if m.Allocation == nil || m.Allocation.VPN == nil {
+			continue
+		}
+		connected := connectedMap[m.ID]
+		if m.Allocation.VPN.Connected == connected {
+			continue
+		}
+
+		old := m
+		m.Allocation.VPN.Connected = connected
+		err := ds.UpdateMachine(&old, &m)
+		if err != nil {
+			updateErr = multierr.Append(updateErr, err)
+			logger.Errorw("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
+			continue
+		}
+		logger.Infow("updated vpn connected state", "machine", m.ID, "connected", connected)
+	}
+	return updateErr
 }
 
 func run() error {
