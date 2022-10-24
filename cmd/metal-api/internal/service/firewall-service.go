@@ -139,8 +139,7 @@ func (r *firewallResource) findFirewall(request *restful.Request, response *rest
 	if fw.Allocation != nil && r.headscaleClient != nil {
 		connected, err = r.headscaleClient.DescribeMachine(fw.ID, fw.Allocation.Project)
 		if err != nil {
-			r.sendError(request, response, defaultError(err))
-			return
+			r.log.Infow("unable to get headscale connected state, ignoring", "firewall", fw.ID)
 		}
 	}
 
