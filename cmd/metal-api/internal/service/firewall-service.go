@@ -259,10 +259,6 @@ func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.Fi
 	if err != nil {
 		return nil, err
 	}
-
-	if ms.VPN == nil {
-		ms.VPN = &v1.MachineVPN{}
-	}
 	return &v1.FirewallResponse{MachineResponse: *ms}, nil
 }
 

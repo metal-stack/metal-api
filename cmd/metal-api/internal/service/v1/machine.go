@@ -22,7 +22,6 @@ type MachineBase struct {
 	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine"`
 	RecentProvisioningEvents MachineRecentProvisioningEvents `json:"events" description:"recent events of this machine during provisioning"`
 	Tags                     []string                        `json:"tags" description:"tags for this machine"`
-	VPN                      *MachineVPN                     `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 }
 
 type MachineAllocation struct {

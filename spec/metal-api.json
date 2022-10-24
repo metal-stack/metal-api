@@ -1204,10 +1204,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "vpn": {
-          "$ref": "#/definitions/v1.MachineVPN",
-          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -1986,10 +1982,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "vpn": {
-          "$ref": "#/definitions/v1.MachineVPN",
-          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2462,10 +2454,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "vpn": {
-          "$ref": "#/definitions/v1.MachineVPN",
-          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2794,10 +2782,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "vpn": {
-          "$ref": "#/definitions/v1.MachineVPN",
-          "description": "vpn connection info for machine"
         }
       },
       "required": [
