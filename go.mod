@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/avast/retry-go/v4 v4.1.0
+	github.com/avast/retry-go/v4 v4.3.0
 	github.com/aws/aws-sdk-go v1.44.101
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.9.1
