@@ -43,7 +43,7 @@ func TestNics_ByMac(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.nics.ByMac(); !reflect.DeepEqual(got, tt.want) {
+			if got := tt.nics.ByIdentifier(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Nics.ByMac() = %v, want %v", got, tt.want)
 			}
 		})

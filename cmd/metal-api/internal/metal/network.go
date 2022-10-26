@@ -14,7 +14,7 @@ type MacAddress string
 type Nic struct {
 	MacAddress MacAddress `rethinkdb:"macAddress" json:"macAddress"`
 	Name       string     `rethinkdb:"name" json:"name"`
-	Alias      string     `rethinkdb:"alias" json:"alias"`
+	Identifier string     `rethinkdb:"identifier" json:"identifier"`
 	Vrf        string     `rethinkdb:"vrf" json:"vrf"`
 	Neighbors  Nics       `rethinkdb:"neighbors" json:"neighbors"`
 	Hostname   string     `rethinkdb:"hostname" json:"hostname"`
@@ -149,8 +149,8 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	return result
 }
 
-// ByMac creates an indexed map from a nic list.
-func (nics Nics) ByMac() map[string]*Nic {
+// byMac creates an indexed map from a nic list.
+func (nics Nics) byMac() map[string]*Nic {
 	res := make(map[string]*Nic)
 	for i, n := range nics {
 		res[string(n.MacAddress)] = &nics[i]
@@ -181,11 +181,15 @@ func (nics Nics) FilterByHostname(hostname string) (res Nics) {
 	return res
 }
 
-// ByAlias creates an indexed map from a nic list.
-func (nics Nics) ByAlias() map[string]*Nic {
-	res := make(map[string]*Nic)
-	for i, n := range nics {
-		res[n.Alias] = &nics[i]
+// ByIdentifier creates an indexed map from a nic list.
+func (nics Nics) ByIdentifier() (res map[string]*Nic) {
+	if len(nics) > 0 && nics[0].Identifier != "" {
+		res = make(map[string]*Nic)
+		for i, n := range nics {
+			res[n.Identifier] = &nics[i]
+		}
+	} else {
+		res = nics.byMac()
 	}
 
 	return res

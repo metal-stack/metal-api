@@ -281,25 +281,10 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 	}
 
 	returnCode := http.StatusOK
-
-	// determine if Switch NICs uniquely identified by alias or by MAC address
-	byMac := true
-	if len(requestPayload.Nics) > 0 {
-		if requestPayload.Nics[0].Alias != "" {
-			byMac = false
-		}
-	}
 	if s == nil {
 		s = v1.NewSwitch(requestPayload)
-
-		var uniqueNicsLen int
-		if byMac {
-			uniqueNicsLen = len(s.Nics.ByMac())
-		} else {
-			uniqueNicsLen = len(s.Nics.ByAlias())
-		}
-		if len(requestPayload.Nics) != uniqueNicsLen {
-			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate mac addresses or aliases found in nics")))
+		if len(requestPayload.Nics) != len(s.Nics.ByIdentifier()) {
+			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate identifier found in nics")))
 			return
 		}
 
@@ -323,23 +308,13 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
 
-		var (
-			uniqueOldNics map[string]*metal.Nic
-			uniqueNewNics map[string]*metal.Nic
-		)
-		if byMac {
-			uniqueOldNics = old.Nics.ByMac()
-			uniqueNewNics = spec.Nics.ByMac()
-		} else {
-			uniqueOldNics = old.Nics.ByAlias()
-			uniqueNewNics = spec.Nics.ByAlias()
-		}
+		uniqueNewNics := spec.Nics.ByIdentifier()
 		if len(requestPayload.Nics) != len(uniqueNewNics) {
-			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate mac addresses or aliases found in nics")))
+			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate identifier found in nics")))
 			return
 		}
 
-		nics, err := updateSwitchNics(uniqueOldNics, uniqueNewNics, old.MachineConnections)
+		nics, err := updateSwitchNics(old.Nics.ByIdentifier(), uniqueNewNics, old.MachineConnections)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -526,7 +501,7 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 		for _, con := range cons {
 			if n, ok := newNicMap[con.Nic.Name]; ok {
 				newCon := con
-				newCon.Nic.Alias = n.Alias
+				newCon.Nic.Identifier = n.Identifier
 				newCon.Nic.MacAddress = n.MacAddress
 				newConnections = append(newConnections, newCon)
 			} else {
@@ -558,8 +533,8 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 	for _, nicThatGetsLost := range nicsThatGetLost {
 		for machineID, connections := range currentConnections {
 			for _, c := range connections {
-				if nicThatGetsLost.Alias != "" && (c.Nic.Alias == nicThatGetsLost.Alias) {
-					return nil, fmt.Errorf("nic with alias %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.Alias, machineID)
+				if nicThatGetsLost.Identifier != "" && (c.Nic.Identifier == nicThatGetsLost.Identifier) {
+					return nil, fmt.Errorf("nic with identifier %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.Identifier, machineID)
 				} else if c.Nic.MacAddress == nicThatGetsLost.MacAddress {
 					return nil, fmt.Errorf("nic with mac address %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.MacAddress, machineID)
 				}
@@ -577,8 +552,8 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 			// check if connection exists and name changes
 			for machineID, connections := range currentConnections {
 				for _, c := range connections {
-					if c.Nic.MacAddress == nic.MacAddress && c.Nic.Alias == nic.Alias && oldNic.Name != nic.Name {
-						return nil, fmt.Errorf("nic with mac address %s and alias %s wants to be renamed from %q to %q, but already has a connection to machine with id %q, which is currently not supported", nic.MacAddress, nic.Alias, oldNic.Name, nic.Name, machineID)
+					if c.Nic.MacAddress == nic.MacAddress && c.Nic.Identifier == nic.Identifier && oldNic.Name != nic.Name {
+						return nil, fmt.Errorf("nic with mac address %s and identifier %s wants to be renamed from %q to %q, but already has a connection to machine with id %q, which is currently not supported", nic.MacAddress, nic.Identifier, oldNic.Name, nic.Name, machineID)
 					}
 				}
 			}
@@ -704,7 +679,7 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 		nic := v1.SwitchNic{
 			MacAddress: string(n.MacAddress),
 			Name:       n.Name,
-			Alias:      n.Alias,
+			Identifier: n.Identifier,
 			Vrf:        n.Vrf,
 			BGPFilter:  filter,
 		}
@@ -722,7 +697,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			nic := v1.SwitchNic{
 				MacAddress: string(mc.Nic.MacAddress),
 				Name:       mc.Nic.Name,
-				Alias:      mc.Nic.Alias,
+				Identifier: mc.Nic.Identifier,
 				Vrf:        mc.Nic.Vrf,
 			}
 			con := v1.SwitchConnection{

@@ -71,7 +71,7 @@ message MachineNic {
   string name = 2;
   repeated MachineNic neighbors = 3;
   string hostname = 4;
-  string alias = 5;
+  string identifier = 5;
 }
 
 message MachineBlockDevice {

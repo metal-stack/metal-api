@@ -887,7 +887,7 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 				t.Errorf("adoptNics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got.ByMac(), tt.want.ByMac()) {
+			if !reflect.DeepEqual(got.ByIdentifier(), tt.want.ByIdentifier()) {
 				t.Errorf("adoptNics() = %v, want %v", got, tt.want)
 			}
 		})
@@ -1153,7 +1153,7 @@ func Test_updateSwitchNics(t *testing.T) {
 				t.Errorf("updateSwitchNics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got.ByMac(), tt.want.ByMac()) {
+			if !reflect.DeepEqual(got.ByIdentifier(), tt.want.ByIdentifier()) {
 				t.Errorf("updateSwitchNics() = %v, want %v", got, tt.want)
 			}
 		})

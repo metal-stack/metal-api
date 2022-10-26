@@ -90,11 +90,12 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 	for _, switchNic := range s.Nics {
 		for _, machineNic := range machine.Hardware.Nics {
 			var has bool
-			devNeighbors := machineNic.Neighbors.FilterByHostname(s.Name)
-			if switchNic.Alias != "" {
-				_, has = devNeighbors.ByAlias()[switchNic.Alias]
+
+			neighMap := machineNic.Neighbors.FilterByHostname(s.Name).ByIdentifier()
+			if switchNic.Identifier != "" {
+				_, has = neighMap[switchNic.Identifier]
 			} else {
-				_, has = devNeighbors.ByMac()[string(switchNic.MacAddress)]
+				_, has = neighMap[string(switchNic.MacAddress)]
 			}
 
 			if has {
@@ -111,20 +112,15 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 
 // SetVrfOfMachine set port on switch where machine is connected to given vrf
 func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
-	byMac := true
-	if len(s.MachineConnections[m.ID]) > 0 && s.MachineConnections[m.ID][0].Nic.Alias != "" {
-		byMac = false
-	}
-
 	affected := map[string]bool{}
 	for _, c := range s.MachineConnections[m.ID] {
-		if byMac {
-			mac := string(c.Nic.MacAddress)
-			affected[mac] = true
+		var id string
+		if c.Nic.Identifier != "" {
+			id = c.Nic.Identifier
 		} else {
-			alias := c.Nic.Alias
-			affected[alias] = true
+			id = string(c.Nic.MacAddress)
 		}
+		affected[id] = true
 	}
 
 	if len(affected) == 0 {
@@ -132,14 +128,7 @@ func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 	}
 
 	nics := Nics{}
-	var affectedNics map[string]*Nic
-	if byMac {
-		affectedNics = s.Nics.ByMac()
-	} else {
-		affectedNics = s.Nics.ByAlias()
-	}
-
-	for k, old := range affectedNics {
+	for k, old := range s.Nics.ByIdentifier() {
 		e := old
 		if _, ok := affected[k]; ok {
 			e.Vrf = vrf
