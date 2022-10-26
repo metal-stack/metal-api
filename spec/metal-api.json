@@ -2605,8 +2605,8 @@
     },
     "v1.MachineNic": {
       "properties": {
-        "alias": {
-          "description": "the alias of this network interface",
+        "identifier": {
+          "description": "the unique identifier of this network interface",
           "type": "string"
         },
         "mac": {
@@ -2626,7 +2626,7 @@
         }
       },
       "required": [
-        "alias",
+        "identifier",
         "mac",
         "name",
         "neighbors"
@@ -4062,13 +4062,13 @@
     },
     "v1.SwitchNic": {
       "properties": {
-        "alias": {
-          "description": "the alias of this network interface",
-          "type": "string"
-        },
         "filter": {
           "$ref": "#/definitions/v1.BGPFilter",
           "description": "configures the bgp filter applied at the switch port"
+        },
+        "identifier": {
+          "description": "the identifier of this network interface",
+          "type": "string"
         },
         "mac": {
           "description": "the mac address of this network interface",
@@ -4084,7 +4084,7 @@
         }
       },
       "required": [
-        "alias",
+        "identifier",
         "mac",
         "name"
       ]

@@ -70,7 +70,7 @@ message MachineNic {
   string mac = 1;
   string name = 2;
   repeated MachineNic neighbors = 3;
-  string alias = 4;
+  string identifier = 4;
 }
 
 message MachineBlockDevice {

@@ -123,13 +123,13 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 			neighs = append(neighs, metal.Nic{
 				Name:       neigh.Name,
 				MacAddress: metal.MacAddress(neigh.Mac),
-				Alias:      neigh.Alias,
+				Identifier: neigh.Identifier,
 			})
 		}
 		nics = append(nics, metal.Nic{
 			Name:       nic.Name,
 			MacAddress: metal.MacAddress(nic.Mac),
-			Alias:      nic.Alias,
+			Identifier: nic.Identifier,
 			Neighbors:  neighs,
 		})
 	}
