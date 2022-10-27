@@ -1721,17 +1721,6 @@
         "volumegroup"
       ]
     },
-    "v1.MachineAbortReinstallRequest": {
-      "properties": {
-        "primary_disk_wiped": {
-          "description": "indicates whether the primary disk is already wiped",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "primary_disk_wiped"
-      ]
-    },
     "v1.MachineAllocateRequest": {
       "properties": {
         "description": {
@@ -1884,6 +1873,10 @@
         "user_data": {
           "description": "userdata to execute post installation tasks",
           "type": "string"
+        },
+        "vpn": {
+          "$ref": "#/definitions/v1.MachineVPN",
+          "description": "vpn connection info for machine"
         }
       },
       "required": [
@@ -2057,47 +2050,6 @@
       "required": [
         "console_password",
         "id"
-      ]
-    },
-    "v1.MachineFinalizeAllocationRequest": {
-      "properties": {
-        "bootloaderid": {
-          "description": "the bootloader ID",
-          "type": "string"
-        },
-        "cmdline": {
-          "description": "the cmdline",
-          "type": "string"
-        },
-        "console_password": {
-          "description": "the console password which was generated while provisioning",
-          "type": "string"
-        },
-        "initrd": {
-          "description": "the initrd image",
-          "type": "string"
-        },
-        "kernel": {
-          "description": "the kernel",
-          "type": "string"
-        },
-        "ospartition": {
-          "description": "the partition that has the OS installed",
-          "type": "string"
-        },
-        "primarydisk": {
-          "description": "the device name of the primary disk",
-          "type": "string"
-        }
-      },
-      "required": [
-        "bootloaderid",
-        "cmdline",
-        "console_password",
-        "initrd",
-        "kernel",
-        "ospartition",
-        "primarydisk"
       ]
     },
     "v1.MachineFindRequest": {
@@ -2696,12 +2648,6 @@
         "event"
       ]
     },
-    "v1.MachineProvisioningEvents": {
-      "additionalProperties": {
-        "$ref": "#/definitions/v1.MachineProvisioningEvent"
-      },
-      "type": "object"
-    },
     "v1.MachineRecentProvisioningEvents": {
       "properties": {
         "crash_loop": {
@@ -2711,10 +2657,6 @@
         "failed_machine_reclaim": {
           "description": "indicates that machine reclaim has failed",
           "type": "boolean"
-        },
-        "incomplete_provisioning_cycles": {
-          "description": "The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'.",
-          "type": "string"
         },
         "last_error_event": {
           "$ref": "#/definitions/v1.MachineProvisioningEvent",
@@ -2736,72 +2678,7 @@
       "required": [
         "crash_loop",
         "failed_machine_reclaim",
-        "incomplete_provisioning_cycles",
         "log"
-      ]
-    },
-    "v1.MachineRecentProvisioningEventsResponse": {
-      "properties": {
-        "events": {
-          "description": "number of events stored",
-          "format": "integer",
-          "type": "integer"
-        },
-        "failed": {
-          "description": "slice of machineIDs for which event was not published",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "events",
-        "failed"
-      ]
-    },
-    "v1.MachineRegisterRequest": {
-      "properties": {
-        "bios": {
-          "$ref": "#/definitions/v1.MachineBIOS",
-          "description": "bios information of this machine"
-        },
-        "hardware": {
-          "$ref": "#/definitions/v1.MachineHardware",
-          "description": "the hardware of this machine"
-        },
-        "ipmi": {
-          "$ref": "#/definitions/v1.MachineIPMI",
-          "description": "the ipmi access infos"
-        },
-        "partitionid": {
-          "description": "the partition id to register this machine with",
-          "type": "string"
-        },
-        "rackid": {
-          "description": "the rack id where this machine is connected to",
-          "type": "string"
-        },
-        "tags": {
-          "description": "tags for this machine",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "uuid": {
-          "description": "the product uuid of the machine to register",
-          "type": "string"
-        }
-      },
-      "required": [
-        "bios",
-        "hardware",
-        "ipmi",
-        "partitionid",
-        "rackid",
-        "tags",
-        "uuid"
       ]
     },
     "v1.MachineReinstallRequest": {
@@ -2995,6 +2872,27 @@
       "required": [
         "description",
         "id"
+      ]
+    },
+    "v1.MachineVPN": {
+      "properties": {
+        "address": {
+          "description": "address of VPN control plane",
+          "type": "string"
+        },
+        "auth_key": {
+          "description": "auth key used to connect to VPN",
+          "type": "string"
+        },
+        "connected": {
+          "description": "connected to the VPN",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "address",
+        "auth_key",
+        "connected"
       ]
     },
     "v1.Meta": {
@@ -4453,6 +4351,43 @@
         "Tenant"
       ]
     },
+    "v1.VPNRequest": {
+      "properties": {
+        "ephemeral": {
+          "description": "specifies if auth key should be ephemeral",
+          "type": "boolean"
+        },
+        "expiration": {
+          "description": "expiration time",
+          "format": "int64",
+          "type": "integer"
+        },
+        "pid": {
+          "description": "project ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ephemeral",
+        "pid"
+      ]
+    },
+    "v1.VPNResponse": {
+      "properties": {
+        "address": {
+          "description": "address of VPN's control plane",
+          "type": "string"
+        },
+        "auth_key": {
+          "description": "auth key to connect to the VPN",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "auth_key"
+      ]
+    },
     "v1.VendorRevisions": {
       "properties": {
         "VendorRevisions": {
@@ -5909,46 +5844,6 @@
         ]
       }
     },
-    "/v1/machine/event": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "deprecated": true,
-        "operationId": "addProvisioningEvents",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineProvisioningEvents"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineRecentProvisioningEventsResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "adds machine provisioning events",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
     "/v1/machine/find": {
       "post": {
         "consumes": [
@@ -6072,51 +5967,6 @@
         ]
       }
     },
-    "/v1/machine/register": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "registerMachine",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineRegisterRequest"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "register a machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
     "/v1/machine/update-firmware/{id}": {
       "post": {
         "consumes": [
@@ -6232,230 +6082,6 @@
           }
         },
         "summary": "get machine by id",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/abort-reinstall": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "deprecated": true,
-        "operationId": "abortReinstallMachine",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineAbortReinstallRequest"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.BootInfo"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "abort reinstall this machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/chassis-identify-led-state": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "deprecated": true,
-        "operationId": "setChassisIdentifyLEDState",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.ChassisIdentifyLEDState"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "set the state of a chassis identify LED",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/event": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "deprecated": true,
-        "operationId": "getProvisioningEventContainer",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "get the current machine provisioning event container",
-        "tags": [
-          "machine"
-        ]
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "deprecated": true,
-        "operationId": "addProvisioningEvent",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineProvisioningEvent"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineRecentProvisioningEvents"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "adds a machine provisioning event",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/finalize-allocation": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "finalizeAllocation",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineFinalizeAllocationRequest"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "finalize the allocation of the machine by reconfiguring the switch, sent on successful image installation",
         "tags": [
           "machine"
         ]
@@ -8754,6 +8380,45 @@
         "summary": "returns the current version information of this module",
         "tags": [
           "version"
+        ]
+      }
+    },
+    "/v1/vpn/authkey": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getVPNAuthKey",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.VPNRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.VPNResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create auth key to connect to project's VPN",
+        "tags": [
+          "vpn"
         ]
       }
     }

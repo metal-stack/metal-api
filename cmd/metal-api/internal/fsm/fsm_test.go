@@ -126,6 +126,39 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
+			name: "valid transition from registering to preparing (metal-hammer wait skip)",
+			container: &metal.ProvisioningEventContainer{
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventRegistering,
+					},
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
+			event: &metal.ProvisioningEvent{
+				Time:  now,
+				Event: metal.ProvisioningEventInstalling,
+			},
+			wantErr: nil,
+			want: &metal.ProvisioningEventContainer{
+				CrashLoop:            false,
+				FailedMachineReclaim: false,
+				Liveliness:           metal.MachineLivelinessAlive,
+				LastEventTime:        &now,
+				Events: metal.ProvisioningEvents{
+					{
+						Time:  now,
+						Event: metal.ProvisioningEventInstalling,
+					},
+					{
+						Time:  lastEventTime,
+						Event: metal.ProvisioningEventRegistering,
+					},
+				},
+			},
+		},
+		{
 			name: "valid transition from booting new kernel to phoned home",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{

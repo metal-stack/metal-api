@@ -40,6 +40,7 @@ type MachineAllocation struct {
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
+	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 }
 
 type BootInfo struct {
@@ -101,12 +102,11 @@ type MachineBlockDevice struct {
 }
 
 type MachineRecentProvisioningEvents struct {
-	Events                       []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
-	LastEventTime                *time.Time                 `json:"last_event_time" description:"the time where the last event was received" optional:"true"`
-	LastErrorEvent               *MachineProvisioningEvent  `json:"last_error_event,omitempty" description:"the last erroneous event received" optional:"true"`
-	IncompleteProvisioningCycles string                     `json:"incomplete_provisioning_cycles" description:"The field 'IncompleteProvisioningCycles' in the provisioning events container is now deprecated and replaced by two new bool flags 'CrashLoop' and 'MachineReclaimFailed'."`
-	CrashLoop                    bool                       `json:"crash_loop" description:"indicates that machine is provisioning crash loop"`
-	FailedMachineReclaim         bool                       `json:"failed_machine_reclaim" description:"indicates that machine reclaim has failed"`
+	Events               []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
+	LastEventTime        *time.Time                 `json:"last_event_time" description:"the time where the last event was received" optional:"true"`
+	LastErrorEvent       *MachineProvisioningEvent  `json:"last_error_event,omitempty" description:"the last erroneous event received" optional:"true"`
+	CrashLoop            bool                       `json:"crash_loop" description:"indicates that machine is provisioning crash loop"`
+	FailedMachineReclaim bool                       `json:"failed_machine_reclaim" description:"indicates that machine reclaim has failed"`
 }
 
 type MachineRecentProvisioningEventsResponse struct {
@@ -158,17 +158,6 @@ type MachineFru struct {
 	ProductSerial       *string `json:"product_serial,omitempty" description:"the product serial" optional:"true"`
 }
 
-type MachineRegisterRequest struct {
-	UUID        string `json:"uuid" description:"the product uuid of the machine to register"`
-	PartitionID string `json:"partitionid" description:"the partition id to register this machine with"`
-	// Deprecated: RackID is not used any longer, it is calculated by the switch connections of a machine. A metal-core instance might respond to pxe requests from all racks
-	RackID   string          `json:"rackid" description:"the rack id where this machine is connected to"`
-	Hardware MachineHardware `json:"hardware" description:"the hardware of this machine"`
-	BIOS     MachineBIOS     `json:"bios" description:"bios information of this machine"`
-	IPMI     MachineIPMI     `json:"ipmi" description:"the ipmi access infos"`
-	Tags     []string        `json:"tags" description:"tags for this machine"`
-}
-
 type MachineAllocateRequest struct {
 	UUID *string `json:"uuid" description:"if this field is set, this specific machine will be allocated if it is not in available state and not currently allocated. this field overrules size and partition" optional:"true"`
 	Describable
@@ -190,15 +179,6 @@ type MachineAllocationNetworks []MachineAllocationNetwork
 type MachineAllocationNetwork struct {
 	NetworkID     string `json:"networkid" description:"the id of the network that this machine will be placed in"`
 	AutoAcquireIP *bool  `json:"autoacquire" description:"will automatically acquire an ip in this network if set to true, default is true"`
-}
-type MachineFinalizeAllocationRequest struct {
-	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
-	PrimaryDisk     string `json:"primarydisk" description:"the device name of the primary disk"`
-	OSPartition     string `json:"ospartition" description:"the partition that has the OS installed"`
-	Initrd          string `json:"initrd" description:"the initrd image"`
-	Cmdline         string `json:"cmdline" description:"the cmdline"`
-	Kernel          string `json:"kernel" description:"the kernel"`
-	BootloaderID    string `json:"bootloaderid" description:"the bootloader ID"`
 }
 
 type MachineFindRequest struct {
@@ -260,6 +240,12 @@ type MachineReinstallRequest struct {
 
 type MachineAbortReinstallRequest struct {
 	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
+}
+
+type MachineVPN struct {
+	ControlPlaneAddress string `json:"address" description:"address of VPN control plane"`
+	AuthKey             string `json:"auth_key" description:"auth key used to connect to VPN"`
+	Connected           bool   `json:"connected" description:"connected to the VPN"`
 }
 
 func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
@@ -456,6 +442,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Succeeded:        m.Allocation.Succeeded,
 			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),
 			Role:             string(m.Allocation.Role),
+			VPN:              NewMachineVPN(m.Allocation.VPN),
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
@@ -527,12 +514,11 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 	es := []MachineProvisioningEvent{}
 	if ec == nil {
 		return &MachineRecentProvisioningEvents{
-			Events:                       es,
-			LastEventTime:                nil,
-			LastErrorEvent:               nil,
-			CrashLoop:                    false,
-			FailedMachineReclaim:         false,
-			IncompleteProvisioningCycles: "0", // TODO: remove in next minor release
+			Events:               es,
+			LastEventTime:        nil,
+			LastErrorEvent:       nil,
+			CrashLoop:            false,
+			FailedMachineReclaim: false,
 		}
 	}
 	machineEvents := ec.Events
@@ -556,11 +542,22 @@ func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *M
 		}
 	}
 	return &MachineRecentProvisioningEvents{
-		Events:                       es,
-		LastEventTime:                ec.LastEventTime,
-		LastErrorEvent:               lastErrorEvent,
-		CrashLoop:                    ec.CrashLoop,
-		FailedMachineReclaim:         ec.FailedMachineReclaim,
-		IncompleteProvisioningCycles: "0", // TODO: remove in next minor release
+		Events:               es,
+		LastEventTime:        ec.LastEventTime,
+		LastErrorEvent:       lastErrorEvent,
+		CrashLoop:            ec.CrashLoop,
+		FailedMachineReclaim: ec.FailedMachineReclaim,
+	}
+}
+
+func NewMachineVPN(m *metal.MachineVPN) *MachineVPN {
+	if m == nil {
+		return nil
+	}
+
+	return &MachineVPN{
+		ControlPlaneAddress: m.ControlPlaneAddress,
+		AuthKey:             m.AuthKey,
+		Connected:           m.Connected,
 	}
 }

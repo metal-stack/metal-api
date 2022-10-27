@@ -32,8 +32,8 @@ func Events() fsm.Events {
 			Name: metal.ProvisioningEventPreparing.String(),
 			Src: []string{
 				states.PXEBooting.String(),
-				states.PlannedReboot.String(),  // PlannedReboot is a valid src for Preparing because some machines might be incapable of sending PXEBoot events
-				states.MachineReclaim.String(), // MachineReclaim is a valid src for Preparing because some machines might be incapable of sending PXEBoot events
+				states.PlannedReboot.String(),  // can happen because some machine are incapable of sending PXE boot events
+				states.MachineReclaim.String(), // can happen because some machine are incapable of sending PXE boot events
 				states.Crashing.String(),
 				states.Initial.String(),
 			},
@@ -58,6 +58,7 @@ func Events() fsm.Events {
 		{
 			Name: metal.ProvisioningEventInstalling.String(),
 			Src: []string{
+				states.Registering.String(), // wait can be skipped by hammer when allocating machine by specific ID or in reinstall feature
 				states.Waiting.String(),
 				states.Initial.String(),
 			},

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/security"
@@ -17,23 +16,23 @@ import (
 //nolint:deadcode,unused
 type emptyBody struct{}
 
-func webRequestPut(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestPut(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodPut, service, user, request, path, response)
 }
 
-func webRequestPost(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestPost(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodPost, service, user, request, path, response)
 }
 
-func webRequestDelete(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestDelete(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodDelete, service, user, request, path, response)
 }
 
-func webRequestGet(t *testing.T, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequestGet(t require.TestingT, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
 	return webRequest(t, http.MethodGet, service, user, request, path, response)
 }
 
-func webRequest(t *testing.T, method string, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
+func webRequest(t require.TestingT, method string, service *restful.WebService, user *security.User, request interface{}, path string, response interface{}) int {
 	container := restful.NewContainer().Add(service)
 
 	jsonBody, err := json.Marshal(request)

@@ -4,12 +4,24 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"github.com/metal-stack/metal-api/test"
+	"github.com/metal-stack/metal-lib/bus"
+	"go.uber.org/zap/zaptest"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,40 +32,40 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	defer te.teardown()
 
 	// Register a machine
-	mrr := v1.MachineRegisterRequest{
-		UUID:        "test-uuid",
-		PartitionID: "test-partition",
-		Hardware: v1.MachineHardware{
-			MachineHardwareBase: v1.MachineHardwareBase{
-				CPUCores: 8,
-				Memory:   1500,
-				Disks: []v1.MachineBlockDevice{
-					{
-						Name: "sda",
-						Size: 2500,
-					},
+	mrr := &grpcv1.BootServiceRegisterRequest{
+		Uuid: "test-uuid",
+		Bios: &grpcv1.MachineBIOS{
+			Version: "a",
+			Vendor:  "metal",
+			Date:    "1970",
+		},
+		Hardware: &grpcv1.MachineHardware{
+			CpuCores: 8,
+			Memory:   1500,
+			Disks: []*grpcv1.MachineBlockDevice{
+				{
+					Name: "sda",
+					Size: 2500,
 				},
 			},
-			Nics: v1.MachineNics{
+			Nics: []*grpcv1.MachineNic{
 				{
-					Name:       "eth0",
-					MacAddress: "aa:aa:aa:aa:aa:aa",
-					Neighbors: v1.MachineNics{
+					Name: "eth0",
+					Mac:  "aa:aa:aa:aa:aa:aa",
+					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name:       "swp1",
-							MacAddress: "bb:aa:aa:aa:aa:aa",
-							Neighbors:  v1.MachineNics{},
+							Name: "swp1",
+							Mac:  "bb:aa:aa:aa:aa:aa",
 						},
 					},
 				},
 				{
-					Name:       "eth1",
-					MacAddress: "aa:aa:aa:aa:aa:aa",
-					Neighbors: v1.MachineNics{
+					Name: "eth1",
+					Mac:  "aa:aa:aa:aa:aa:aa",
+					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name:       "swp1",
-							MacAddress: "aa:bb:aa:aa:aa:aa",
-							Neighbors:  v1.MachineNics{},
+							Name: "swp1",
+							Mac:  "aa:bb:aa:aa:aa:aa",
 						},
 					},
 				},
@@ -61,16 +73,25 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 		},
 	}
 
-	var registeredMachine v1.MachineResponse
-	status := te.machineRegister(t, mrr, &registeredMachine)
-	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, registeredMachine)
-	assert.Equal(t, mrr.PartitionID, registeredMachine.Partition.ID)
-	assert.Equal(t, registeredMachine.RackID, "test-rack")
-	assert.Len(t, mrr.Hardware.Nics, 2)
-	assert.Equal(t, mrr.Hardware.Nics[0].MacAddress, registeredMachine.Hardware.Nics[0].MacAddress)
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
 
-	err := te.machineWait("test-uuid")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	port := 50005
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+	require.NoError(t, err)
+
+	c := grpcv1.NewBootServiceClient(conn)
+
+	registeredMachine, err := c.Register(ctx, mrr)
+	require.NoError(t, err)
+	require.NotNil(t, registeredMachine)
+	assert.Len(t, mrr.Hardware.Nics, 2)
+
+	err = te.machineWait("test-uuid")
 	require.Nil(t, err)
 
 	// DB contains at least a machine which is allocatable
@@ -87,7 +108,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	}
 
 	var allocatedMachine v1.MachineResponse
-	status = te.machineAllocate(t, machine, &allocatedMachine)
+	status := te.machineAllocate(t, machine, &allocatedMachine)
 	require.Equal(t, http.StatusOK, status)
 	require.NotNil(t, allocatedMachine)
 	require.NotNil(t, allocatedMachine.Allocation)
@@ -181,5 +202,95 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 
 	require.Len(t, foundSwitch.Nics, 1)
 	require.Nil(t, foundSwitch.Nics[0].BGPFilter, "no machine allocated anymore")
+}
 
+func BenchmarkMachineList(b *testing.B) {
+	rethinkContainer, c, err := test.StartRethink(b)
+	require.NoError(b, err)
+	defer func() {
+		err = rethinkContainer.Terminate(context.TODO())
+		require.NoError(b, err)
+	}()
+
+	now := time.Now()
+	log := zaptest.NewLogger(b).Sugar()
+
+	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	ds.VRFPoolRangeMax = 1000
+	ds.ASNPoolRangeMax = 1000
+
+	err = ds.Connect()
+	require.NoError(b, err)
+	err = ds.Initialize()
+	require.NoError(b, err)
+
+	refCount := 100
+	machineCount := 1000
+
+	for i := 0; i < refCount; i++ {
+		base := metal.Base{ID: strconv.Itoa(i)}
+		img := &metal.Image{
+			Base: base,
+		}
+		err := ds.CreateImage(img)
+		require.NoError(b, err)
+
+		par := &metal.Partition{
+			Base: base,
+		}
+		err = ds.CreatePartition(par)
+		require.NoError(b, err)
+
+		size := &metal.Size{
+			Base: base,
+		}
+		err = ds.CreateSize(size)
+		require.NoError(b, err)
+	}
+
+	for i := 0; i < machineCount; i++ {
+		base := metal.Base{ID: uuid.NewString()}
+		refID := strconv.Itoa(i % refCount)
+
+		m := &metal.Machine{
+			Base:        base,
+			SizeID:      refID,
+			PartitionID: refID,
+		}
+		err := ds.CreateMachine(m)
+		require.NoError(b, err)
+
+		allocM := *m
+		allocM.Allocation = &metal.MachineAllocation{
+			ImageID: refID,
+		}
+		err = ds.UpdateMachine(m, &allocM)
+		require.NoError(b, err)
+
+		err = ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{Base: base, LastEventTime: &now})
+		require.NoError(b, err)
+	}
+
+	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), nil, nil, nil, nil, 0, nil)
+	require.NoError(b, err)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		var machines []v1.MachineResponse
+		code := webRequestGet(b, machineService, &testUserDirectory.admin, nil, "/v1/machine", &machines)
+
+		require.Equal(b, http.StatusOK, code)
+		require.Len(b, machines, machineCount)
+		require.NotNil(b, machines[0].Partition)
+		require.NotEmpty(b, machines[0].Partition.ID)
+		require.NotNil(b, machines[0].Size)
+		require.NotEmpty(b, machines[0].Size.ID)
+		require.NotNil(b, machines[0].Allocation)
+		require.NotNil(b, machines[0].Allocation.Image)
+		require.NotEmpty(b, machines[0].Allocation.Image.ID)
+		require.NotNil(b, machines[0].RecentProvisioningEvents.LastEventTime)
+	}
+
+	b.StopTimer()
 }

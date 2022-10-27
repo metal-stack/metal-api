@@ -4,13 +4,16 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+
+	"go.uber.org/zap"
+
 	ipamer "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"go.uber.org/zap"
 )
 
 type asyncActor struct {
@@ -39,9 +42,16 @@ func newAsyncActor(l *zap.SugaredLogger, ep *bus.Endpoints, ds *datastore.Rethin
 	return actor, nil
 }
 
-func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine) error {
+func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
 	if m.State.Value == metal.LockedState {
 		return errors.New("machine is locked")
+	}
+
+	if headscaleClient != nil {
+		// always call DeleteMachine, in case machine is not registered it will return nil
+		if err := headscaleClient.DeleteMachine(m.ID, m.Allocation.Project); err != nil {
+			logger.Error("unable to delete Node entry from headscale DB", zap.String("machineID", m.ID), zap.Error(err))
+		}
 	}
 
 	err := deleteVRFSwitches(a.RethinkStore, m, a.log.Desugar())
