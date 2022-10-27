@@ -1505,9 +1505,9 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	logger := r.logger(request)
 
-	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
+	err = publishMachineCmd(logger, m, r.Publisher, tag.ChassisIdentifyLEDOffCmd)
 	if err != nil {
-		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("unable to publish machine command", zap.String("command", string(tag.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
 	}
 
 	err = r.actor.freeMachine(r.Publisher, m, r.headscaleClient, logger)
@@ -1678,9 +1678,9 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 				return
 			}
 
-			err = publishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
+			err = publishMachineCmd(logger, m, r.Publisher, tag.MachineReinstallCmd)
 			if err != nil {
-				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstallCmd)), zap.String("machineID", m.ID), zap.Error(err))
+				logger.Error("unable to publish machine command", zap.String("command", string(tag.MachineReinstallCmd)), zap.String("machineID", m.ID), zap.Error(err))
 			}
 
 			r.send(request, response, http.StatusOK, resp)
@@ -1715,7 +1715,7 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 
 func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
 	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
-	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
+	deleteEvent := metal.MachineEvent{Type: tag.MachineEventDelete, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	if err != nil {
 		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
@@ -1846,39 +1846,39 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 }
 
 func (r *machineResource) machineOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineOnCmd, request, response)
+	r.machineCmd(tag.MachineOnCmd, request, response)
 }
 
 func (r *machineResource) machineOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineOffCmd, request, response)
+	r.machineCmd(tag.MachineOffCmd, request, response)
 }
 
 func (r *machineResource) machineReset(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineResetCmd, request, response)
+	r.machineCmd(tag.MachineResetCmd, request, response)
 }
 
 func (r *machineResource) machineCycle(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineCycleCmd, request, response)
+	r.machineCmd(tag.MachineCycleCmd, request, response)
 }
 
 func (r *machineResource) machineBios(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineBiosCmd, request, response)
+	r.machineCmd(tag.MachineBiosCmd, request, response)
 }
 
 func (r *machineResource) machineDisk(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachineDiskCmd, request, response)
+	r.machineCmd(tag.MachineDiskCmd, request, response)
 }
 
 func (r *machineResource) machinePxe(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.MachinePxeCmd, request, response)
+	r.machineCmd(tag.MachinePxeCmd, request, response)
 }
 
 func (r *machineResource) chassisIdentifyLEDOn(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOnCmd, request, response)
+	r.machineCmd(tag.ChassisIdentifyLEDOnCmd, request, response)
 }
 
 func (r *machineResource) chassisIdentifyLEDOff(request *restful.Request, response *restful.Response) {
-	r.machineCmd(metal.ChassisIdentifyLEDOffCmd, request, response)
+	r.machineCmd(tag.ChassisIdentifyLEDOffCmd, request, response)
 }
 
 func (r *machineResource) updateFirmware(request *restful.Request, response *restful.Response) {
@@ -1943,9 +1943,9 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 	}
 
 	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
+		Type: tag.MachineEventCommand,
 		Cmd: &metal.MachineExecCommand{
-			Command:         metal.UpdateFirmwareCmd,
+			Command:         tag.UpdateFirmwareCmd,
 			TargetMachineID: m.ID,
 			IPMI:            &m.IPMI,
 			FirmwareUpdate: &metal.FirmwareUpdate{
@@ -1971,7 +1971,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.Request, response *restful.Response) {
+func (r *machineResource) machineCmd(cmd tag.MachineCommand, request *restful.Request, response *restful.Response) {
 	logger := r.logger(request)
 
 	id := request.PathParameter("id")
@@ -1986,7 +1986,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 	old := *newMachine
 	needsUpdate := false
 	switch cmd { // nolint:exhaustive
-	case metal.MachineResetCmd, metal.MachineOffCmd, metal.MachineCycleCmd:
+	case tag.MachineResetCmd, tag.MachineOffCmd, tag.MachineCycleCmd:
 		ev := metal.ProvisioningEvent{
 			Time:    time.Now(),
 			Event:   metal.ProvisioningEventPlannedReboot,
@@ -1997,13 +1997,13 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			r.sendError(request, response, defaultError(err))
 			return
 		}
-	case metal.ChassisIdentifyLEDOnCmd:
+	case tag.ChassisIdentifyLEDOnCmd:
 		newMachine.LEDState = metal.ChassisIdentifyLEDState{
 			Value:       metal.LEDStateOn,
 			Description: description,
 		}
 		needsUpdate = true
-	case metal.ChassisIdentifyLEDOffCmd:
+	case tag.ChassisIdentifyLEDOffCmd:
 		newMachine.LEDState = metal.ChassisIdentifyLEDState{
 			Value:       metal.LEDStateOff,
 			Description: description,
@@ -2034,9 +2034,9 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
+func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd tag.MachineCommand) error {
 	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
+		Type: tag.MachineEventCommand,
 		Cmd: &metal.MachineExecCommand{
 			Command:         cmd,
 			TargetMachineID: m.ID,

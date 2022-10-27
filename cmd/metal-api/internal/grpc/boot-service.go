@@ -14,6 +14,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"go.uber.org/zap"
 )
 
@@ -417,9 +418,9 @@ func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbo
 
 func (b *BootService) setBootOrderDisk(m *metal.Machine) {
 	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
+		Type: tag.MachineEventCommand,
 		Cmd: &metal.MachineExecCommand{
-			Command:         metal.MachineDiskCmd,
+			Command:         tag.MachineDiskCmd,
 			TargetMachineID: m.ID,
 			IPMI:            &m.IPMI,
 		},
