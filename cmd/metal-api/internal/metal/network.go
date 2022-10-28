@@ -16,6 +16,7 @@ type Nic struct {
 	Name       string     `rethinkdb:"name" json:"name"`
 	Vrf        string     `rethinkdb:"vrf" json:"vrf"`
 	Neighbors  Nics       `rethinkdb:"neighbors" json:"neighbors"`
+	Hostname   string     `rethinkdb:"hostname" json:"hostname"`
 }
 
 // Nics is a list of nics.
@@ -164,5 +165,15 @@ func (nics Nics) ByName() map[string]*Nic {
 	for i, n := range nics {
 		res[n.Name] = &nics[i]
 	}
+	return res
+}
+
+func (nics Nics) FilterByHostname(hostname string) (res Nics) {
+	for i, n := range nics {
+		if n.Hostname == hostname {
+			res = append(res, nics[i])
+		}
+	}
+
 	return res
 }

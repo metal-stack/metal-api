@@ -89,7 +89,7 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 	// calculate the connections for this machine
 	for _, switchNic := range s.Nics {
 		for _, machineNic := range machine.Hardware.Nics {
-			devNeighbors := machineNic.Neighbors.ByMac()
+			devNeighbors := machineNic.Neighbors.FilterByHostname(s.Name).ByMac()
 			if _, has := devNeighbors[switchNic.MacAddress]; has {
 				conn := Connection{
 					Nic:       switchNic,
