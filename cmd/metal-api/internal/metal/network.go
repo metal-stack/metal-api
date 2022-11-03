@@ -169,6 +169,10 @@ func (nics Nics) ByName() map[string]*Nic {
 }
 
 func (nics Nics) FilterByHostname(hostname string) (res Nics) {
+	if hostname == "" {
+		return nics
+	}
+
 	for i, n := range nics {
 		if n.Hostname == hostname {
 			res = append(res, nics[i])
