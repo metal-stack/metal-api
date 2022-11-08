@@ -159,5 +159,8 @@ func eventCallbacks(config *states.StateConfig) fsm.Callbacks {
 		callbacks["enter_"+name] = state.OnTransition
 	}
 
+	waiting := allStates[states.Waiting.String()].(*states.WaitingState)
+	callbacks["leave_"+states.Waiting.String()] = waiting.OnLeave
+
 	return callbacks
 }

@@ -21,6 +21,8 @@ const (
 	ReservedState MState = "RESERVED"
 	// LockedState describes a machine state where a machine cannot be deleted or allocated anymore
 	LockedState MState = "LOCKED"
+	// ShutdownState describes a machine state where a machine was shut down on purpose and should not be resurrected
+	ShutdownState MState = "SHUTDOWN"
 )
 
 var (

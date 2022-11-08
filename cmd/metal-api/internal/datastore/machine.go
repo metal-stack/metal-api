@@ -429,6 +429,22 @@ func (rs *RethinkStore) ListMachines() (metal.Machines, error) {
 	return ms, err
 }
 
+func (rs *RethinkStore) listMachinesInPartition(partitionid, sizeid string) (metal.Machines, error) {
+	q := *rs.machineTable()
+	q = q.Filter(map[string]interface{}{
+		"partitionid": partitionid,
+		"sizeid":      sizeid,
+	})
+
+	var machines metal.Machines
+	err := rs.searchEntities(&q, &machines)
+	if err != nil {
+		return nil, err
+	}
+
+	return machines, nil
+}
+
 // CreateMachine creates a new machine in the database as "unallocated new machines".
 // If the given machine has an allocation, the function returns an error because
 // allocated machines cannot be created. If there is already a machine with the
@@ -517,4 +533,47 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		return nil, err
 	}
 	return &newMachine, nil
+}
+
+func (rs *RethinkStore) listWaitingMachines(partitionid, sizeid string) (metal.Machines, error) {
+	q := *rs.machineTable()
+	q = q.Filter(map[string]interface{}{
+		"allocation":  nil,
+		"partitionid": partitionid,
+		"sizeid":      sizeid,
+		"state": map[string]string{
+			"value": string(metal.AvailableState),
+		},
+		"waiting":      true,
+		"preallocated": false,
+	})
+
+	var machines metal.Machines
+	err := rs.searchEntities(&q, &machines)
+	if err != nil {
+		return nil, err
+	}
+
+	return machines, nil
+}
+
+func (rs *RethinkStore) listShutdownMachines(partitionid, sizeid string) (metal.Machines, error) {
+	q := *rs.machineTable()
+	q = q.Filter(map[string]interface{}{
+		"allocation":  nil,
+		"partitionid": partitionid,
+		"sizeid":      sizeid,
+		"state": map[string]string{
+			"value": string(metal.ShutdownState),
+		},
+		"preallocated": false,
+	})
+
+	var machines metal.Machines
+	err := rs.searchEntities(&q, &machines)
+	if err != nil {
+		return nil, err
+	}
+
+	return machines, nil
 }

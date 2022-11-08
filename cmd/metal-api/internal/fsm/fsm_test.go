@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap/zaptest"
 )
@@ -629,7 +630,13 @@ func TestHandleProvisioningEvent(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), tt.container, tt.event)
+			params := states.StateConfig{
+				Log:       zaptest.NewLogger(t).Sugar(),
+				Container: tt.container,
+				Event:     tt.event,
+			}
+
+			got, err := HandleProvisioningEvent(&params)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
@@ -649,15 +656,21 @@ func TestReactionToAllIncomingEvents(t *testing.T) {
 	// this test ensures that for every incoming event we have a proper transition
 	for e1 := range metal.AllProvisioningEventTypes {
 		for e2 := range metal.AllProvisioningEventTypes {
-			_, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), &metal.ProvisioningEventContainer{
-				Events: metal.ProvisioningEvents{
-					{
-						Event: e2,
+			params := states.StateConfig{
+				Log: zaptest.NewLogger(t).Sugar(),
+				Container: &metal.ProvisioningEventContainer{
+					Events: metal.ProvisioningEvents{
+						{
+							Event: e2,
+						},
 					},
 				},
-			}, &metal.ProvisioningEvent{
-				Event: e1,
-			})
+				Event: &metal.ProvisioningEvent{
+					Event: e1,
+				},
+			}
+
+			_, err := HandleProvisioningEvent(&params)
 			if err != nil {
 				t.Errorf("transitioning from state %s with event %s: %s", e2, e1, err)
 			}

@@ -1529,7 +1529,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		Event:   metal.ProvisioningEventMachineReclaim,
 		Message: "free machine called",
 	}
-	_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
+	_, err = r.ds.ProvisioningEventForMachine(logger, r, &ev, m)
 	if err != nil {
 		r.log.Errorw("error sending provisioning event after machine free", "error", err)
 	}
@@ -1820,7 +1820,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
+		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter && m.State.Value != metal.ShutdownState {
 			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
 			err = act.freeMachine(publisher, &m, headscaleClient, logger)
 			if err != nil {
@@ -1992,7 +1992,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			Event:   metal.ProvisioningEventPlannedReboot,
 			Message: string(cmd),
 		}
-		_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
+		_, err = r.ds.ProvisioningEventForMachine(logger, r, &ev, newMachine)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
