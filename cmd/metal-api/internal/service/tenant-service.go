@@ -165,7 +165,7 @@ func (r *tenantResource) createTenant(request *restful.Request, response *restfu
 		return
 	}
 
-	tenant := mapper.ToMdmV1Tenant(pcr.Tenant)
+	tenant := mapper.ToMdmV1Tenant(&pcr.Tenant)
 
 	mdmv1pcr := &mdmv1.TenantCreateRequest{
 		Tenant: tenant,
@@ -244,7 +244,7 @@ func (r *tenantResource) updateTenant(request *restful.Request, response *restfu
 	}
 
 	// new data
-	tenantUpdateData := mapper.ToMdmV1Tenant(requestPayload.Tenant)
+	tenantUpdateData := mapper.ToMdmV1Tenant(&requestPayload.Tenant)
 	// created date is not updateable
 	tenantUpdateData.Meta.CreatedTime = existingTenant.Tenant.Meta.CreatedTime
 

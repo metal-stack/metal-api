@@ -4294,8 +4294,23 @@
     },
     "v1.TenantCreateRequest": {
       "properties": {
-        "tenant": {
-          "$ref": "#/definitions/v1.Tenant"
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
         }
       }
     },
@@ -4342,8 +4357,23 @@
     },
     "v1.TenantUpdateRequest": {
       "properties": {
-        "tenant": {
-          "$ref": "#/definitions/v1.Tenant"
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
         }
       }
     },

@@ -858,8 +858,8 @@ github.com/mdlayher/socket v0.2.3 h1:XZA2X2TjdOwNoNPVPclRCURoX/hokBY8nkTmRZFEheM
 github.com/mdlayher/socket v0.2.3/go.mod h1:bz12/FozYNH/VbvC3q7TRIK/Y6dH1kCKsXaUeXi/FmY=
 github.com/metal-stack/go-ipam v1.8.5 h1:XE1XfaU6Ck1Ucc7svTO25dlT7kEcE1oxOM3lBrWIQmE=
 github.com/metal-stack/go-ipam v1.8.5/go.mod h1:JgsddJabu8A7lWD+4MJKqbQhmSA/zhBbO+Bp8pLhRZM=
-github.com/metal-stack/masterdata-api v0.9.1-0.20221110093539-8575fc127626 h1:YWv/rwMCilqWSvavVC85MLWhNut50inBEWuP1KHKKjk=
-github.com/metal-stack/masterdata-api v0.9.1-0.20221110093539-8575fc127626/go.mod h1:7YoM9YACqeJEq0sLFU+44SqaOuIGQbrF98RTJWGnNL8=
+github.com/metal-stack/masterdata-api v0.9.1-0.20221110123343-2e1af3084805 h1:yPtXvu/61O7KZ69sS9Jsi1K19RParvz5QIJ8dsQ9Mhc=
+github.com/metal-stack/masterdata-api v0.9.1-0.20221110123343-2e1af3084805/go.mod h1:7YoM9YACqeJEq0sLFU+44SqaOuIGQbrF98RTJWGnNL8=
 github.com/metal-stack/metal-lib v0.11.2 h1:HqPMbHS7zMBRAcoGhbsUZRjDPvOtgI6qNshzd0bSmJQ=
 github.com/metal-stack/metal-lib v0.11.2/go.mod h1:Ge1ypz6aOf2ab98kr8GYMXD8eZ7VfKFUfUE3p/8Sm3g=
 github.com/metal-stack/security v0.6.5 h1:SqiMZ8B0v8bJostDUsOuXhzhSf95tlWYLER0kBp5n5k=
