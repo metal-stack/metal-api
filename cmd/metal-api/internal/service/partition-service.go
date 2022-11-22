@@ -3,6 +3,8 @@ package service
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -207,6 +209,17 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	var waitingpoolsize string
+	if requestPayload.PartitionWaitingPoolSize != nil {
+		waitingpoolsize = *requestPayload.PartitionWaitingPoolSize
+	}
+
+	err = validateWaitingPoolSize(waitingpoolsize)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
 	p := &metal.Partition{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -220,6 +233,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
+		WaitingPoolSize: waitingpoolsize,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -300,6 +314,15 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
+	}
+
+	if requestPayload.PartitionWaitingPoolSize != nil {
+		err = validateWaitingPoolSize(*requestPayload.PartitionWaitingPoolSize)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+		newPartition.WaitingPoolSize = *requestPayload.PartitionWaitingPoolSize
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
@@ -446,4 +469,33 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	return partitionCapacities, err
+}
+
+func validateWaitingPoolSize(input string) error {
+	if strings.Contains(input, "%") {
+		tokens := strings.Split(input, "%")
+		if len(tokens) != 1 {
+			return errors.New("waiting pool size must be a positive integer or a positive integer value in percent, e.g. 15%")
+		}
+
+		p, err := strconv.ParseInt(tokens[0], 10, 64)
+		if err != nil {
+			return errors.New("could not parse waiting pool size")
+		}
+
+		if p < 0 || p > 100 {
+			return errors.New("waiting pool size must be between 0% and 100%")
+		}
+	} else {
+		p, err := strconv.ParseInt(input, 10, 64)
+		if err != nil {
+			return errors.New("could not parse waiting pool size")
+		}
+
+		if p < 0 {
+			return errors.New("waiting pool size must be a positive integer or a positive integer value in percent, e.g. 15%")
+		}
+	}
+
+	return nil
 }

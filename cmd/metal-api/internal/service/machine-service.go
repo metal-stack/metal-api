@@ -1820,7 +1820,11 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter && m.State.Value != metal.ShutdownState {
+		if m.State.Value == metal.ShutdownState {
+			continue
+		}
+
+		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
 			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
 			err = act.freeMachine(publisher, &m, headscaleClient, logger)
 			if err != nil {

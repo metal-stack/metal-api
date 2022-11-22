@@ -19,12 +19,14 @@ type PartitionCreateRequest struct {
 	Common
 	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
+	PartitionWaitingPoolSize   *string                    `json:"waitingpoolsize" description:"the waiting pool size of this partition`
 }
 
 type PartitionUpdateRequest struct {
 	Common
 	MgmtServiceAddress         *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
+	PartitionWaitingPoolSize   *string                     `json:"waitingpoolsize" description:"the waiting pool size of this partition`
 }
 
 type PartitionResponse struct {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
 )
 
@@ -23,32 +24,23 @@ const (
 	MachineReclaim   stateType = "State Machine Reclaim"
 )
 
-const (
-	FSMMessageEmpty             FSMMessage = ""
-	FSMMessageEnterWaitingState FSMMessage = "Enter Waiting State"
-	FSMMessageLeaveWaitingState FSMMessage = "Leave Waiting State"
-)
-
 type FSMState interface {
 	OnTransition(e *fsm.Event)
 }
 
 type stateType string
-type FSMMessage string
 
 func (t stateType) String() string {
 	return string(t)
 }
 
-func (m FSMMessage) String() string {
-	return string(m)
-}
-
 type StateConfig struct {
-	Log       *zap.SugaredLogger
-	Container *metal.ProvisioningEventContainer
-	Event     *metal.ProvisioningEvent
-	Message   FSMMessage
+	Log                   *zap.SugaredLogger
+	Container             *metal.ProvisioningEventContainer
+	Event                 *metal.ProvisioningEvent
+	AdjustWaitingMachines func(log *zap.SugaredLogger, publisher bus.Publisher, machine *metal.Machine) error
+	Publisher             bus.Publisher
+	Machine               *metal.Machine
 }
 
 func (c *StateConfig) Validate() error {
