@@ -21,9 +21,9 @@ type (
 		Manager MachineManager
 	}
 	MachineManager interface {
-		AllMachines(partitionid, sizeid string) (metal.Machines, error)
-		WaitingMachines(partitionid, sizeid string) (machines metal.Machines, err error)
-		ShutdownMachines(partitionid, sizeid string) (metal.Machines, error)
+		AllMachines() (metal.Machines, error)
+		WaitingMachines() (metal.Machines, error)
+		ShutdownMachines() (metal.Machines, error)
 
 		Shutdown(m *metal.Machine) error
 		PowerOn(m *metal.Machine) error
@@ -39,7 +39,7 @@ func NewPoolScaler(log *zap.SugaredLogger, manager MachineManager) *PoolScaler {
 
 // AdjustNumberOfWaitingMachines compares the number of waiting machines to the required pool size of the partition and shuts down or powers on machines accordingly
 func (p *PoolScaler) AdjustNumberOfWaitingMachines(m *metal.Machine, partition *metal.Partition) error {
-	waitingMachines, err := p.manager.WaitingMachines(partition.ID, m.SizeID)
+	waitingMachines, err := p.manager.WaitingMachines()
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(m *metal.Machine, partition *
 			return err
 		}
 	} else {
-		shutdownMachines, err := p.manager.ShutdownMachines(partition.ID, m.SizeID)
+		shutdownMachines, err := p.manager.ShutdownMachines()
 		if err != nil {
 			return err
 		}
@@ -74,6 +74,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(m *metal.Machine, partition *
 			if err != nil {
 				return err
 			}
+			return nil
 		}
 
 		p.log.Infow("power on missing machines", "number", poolSizeExcess, "partition", p)
@@ -86,7 +87,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(m *metal.Machine, partition *
 	return nil
 }
 
-func (p *PoolScaler) waitingMachinesMatchPoolSize(actual int, required string, inPercent bool, parititionid, sizeid string) int {
+func (p *PoolScaler) waitingMachinesMatchPoolSize(actual int, required string, inPercent bool, partitionid, sizeid string) int {
 	if !inPercent {
 		r, err := strconv.ParseInt(required, 10, 64)
 		if err != nil {
@@ -101,7 +102,7 @@ func (p *PoolScaler) waitingMachinesMatchPoolSize(actual int, required string, i
 		return 0
 	}
 
-	allMachines, err := p.manager.AllMachines(parititionid, sizeid)
+	allMachines, err := p.manager.AllMachines()
 	if err != nil {
 		return 0
 	}

@@ -17,13 +17,13 @@ func newWaiting(c *StateConfig) *WaitingState {
 func (p *WaitingState) OnTransition(e *fsm.Event) {
 	appendEventToContainer(p.config.Event, p.config.Container)
 
-	if p.config.AdjustWaitingMachines != nil {
-		e.Err = p.config.AdjustWaitingMachines(p.config.Log, p.config.Publisher, p.config.Machine)
+	if p.config.Scaler != nil {
+		e.Err = p.config.Scaler.AdjustNumberOfWaitingMachines(p.config.Machine, p.config.Partition)
 	}
 }
 
 func (p *WaitingState) OnLeave(e *fsm.Event) {
-	if p.config.AdjustWaitingMachines != nil {
-		e.Err = p.config.AdjustWaitingMachines(p.config.Log, p.config.Publisher, p.config.Machine)
+	if p.config.Scaler != nil {
+		e.Err = p.config.Scaler.AdjustNumberOfWaitingMachines(p.config.Machine, p.config.Partition)
 	}
 }

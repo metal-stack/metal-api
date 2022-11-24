@@ -5,7 +5,7 @@ import (
 
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/scaler"
 	"go.uber.org/zap"
 )
 
@@ -35,12 +35,12 @@ func (t stateType) String() string {
 }
 
 type StateConfig struct {
-	Log                   *zap.SugaredLogger
-	Container             *metal.ProvisioningEventContainer
-	Event                 *metal.ProvisioningEvent
-	AdjustWaitingMachines func(log *zap.SugaredLogger, publisher bus.Publisher, machine *metal.Machine) error
-	Publisher             bus.Publisher
-	Machine               *metal.Machine
+	Log       *zap.SugaredLogger
+	Container *metal.ProvisioningEventContainer
+	Event     *metal.ProvisioningEvent
+	Scaler    *scaler.PoolScaler
+	Machine   *metal.Machine
+	Partition *metal.Partition
 }
 
 func (c *StateConfig) Validate() error {

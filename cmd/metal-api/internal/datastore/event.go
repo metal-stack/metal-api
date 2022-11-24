@@ -4,6 +4,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	s "github.com/metal-stack/metal-api/cmd/metal-api/internal/scaler"
 	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
 )
@@ -54,13 +55,24 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publ
 		}
 	}
 
+	p, err := rs.FindPartition(machine.PartitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	manager := &manager{
+		rs:        rs,
+		publisher: publisher,
+	}
+	scaler := s.NewPoolScaler(log, manager)
+
 	config := states.StateConfig{
-		Log:                   log,
-		Container:             ec,
-		Event:                 event,
-		AdjustWaitingMachines: rs.adjustNumberOfWaitingMachines,
-		Publisher:             publisher,
-		Machine:               machine,
+		Log:       log,
+		Container: ec,
+		Event:     event,
+		Scaler:    scaler,
+		Partition: p,
+		Machine:   machine,
 	}
 
 	newEC, err := fsm.HandleProvisioningEvent(&config)
