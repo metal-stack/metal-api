@@ -29,6 +29,7 @@ import (
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	e "github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -1505,7 +1506,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	logger := r.logger(request)
 
-	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
+	err = e.PublishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
 	if err != nil {
 		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
 	}
@@ -1678,7 +1679,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 				return
 			}
 
-			err = publishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
+			err = e.PublishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
 			if err != nil {
 				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstallCmd)), zap.String("machineID", m.ID), zap.Error(err))
 			}
@@ -2023,7 +2024,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 		}
 	}
 
-	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
+	err = e.PublishMachineCmd(logger, newMachine, r.Publisher, cmd)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -2036,25 +2037,6 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 	}
 
 	r.send(request, response, http.StatusOK, resp)
-}
-
-func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
-	evt := metal.MachineEvent{
-		Type: metal.COMMAND,
-		Cmd: &metal.MachineExecCommand{
-			Command:         cmd,
-			TargetMachineID: m.ID,
-			IPMI:            &m.IPMI,
-		},
-	}
-
-	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
-	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func machineHasIssues(m *v1.MachineResponse) bool {
