@@ -30,7 +30,7 @@ require (
 	github.com/undefinedlabs/go-mpatch v1.0.6
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.23.0
-	golang.org/x/crypto v0.1.0
+	golang.org/x/crypto v0.3.0
 	golang.org/x/sync v0.1.0
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
@@ -158,9 +158,9 @@ require (
 	go4.org/mem v0.0.0-20210711025021-927187094b94 // indirect
 	go4.org/netipx v0.0.0-20220812043211-3cc044ffd68d // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
-	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect; indirecct
 	golang.zx2c4.com/wireguard/windows v0.4.10 // indirect
