@@ -22,7 +22,7 @@ require (
 	github.com/metal-stack/security v0.6.5
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.0
 	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.1
@@ -136,7 +136,7 @@ require (
 	github.com/philip-bui/grpc-zerolog v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/puzpuzpuz/xsync v1.4.3 // indirect
