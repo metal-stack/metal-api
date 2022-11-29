@@ -194,6 +194,12 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:      "pool scaling disabled; do nothing",
+			m:         &metal.Machine{SizeID: ""},
+			partition: &metal.Partition{WaitingPoolSize: "0"},
+			wantErr:   false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

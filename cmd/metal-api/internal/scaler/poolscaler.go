@@ -39,6 +39,11 @@ func NewPoolScaler(log *zap.SugaredLogger, manager MachineManager) *PoolScaler {
 
 // AdjustNumberOfWaitingMachines compares the number of waiting machines to the required pool size of the partition and shuts down or powers on machines accordingly
 func (p *PoolScaler) AdjustNumberOfWaitingMachines(m *metal.Machine, partition *metal.Partition) error {
+	// WaitingPoolSize == 0 means scaling is disabled
+	if partition.WaitingPoolSize == "0" {
+		return nil
+	}
+
 	waitingMachines, err := p.manager.WaitingMachines()
 	if err != nil {
 		return err

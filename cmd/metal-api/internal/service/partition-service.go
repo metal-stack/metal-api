@@ -212,6 +212,8 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	var waitingpoolsize string
 	if requestPayload.PartitionWaitingPoolSize != nil {
 		waitingpoolsize = *requestPayload.PartitionWaitingPoolSize
+	} else {
+		waitingpoolsize = "0"
 	}
 
 	err = validateWaitingPoolSize(waitingpoolsize)
@@ -323,6 +325,8 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 			return
 		}
 		newPartition.WaitingPoolSize = *requestPayload.PartitionWaitingPoolSize
+	} else {
+		newPartition.WaitingPoolSize = "0"
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
