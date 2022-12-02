@@ -38,23 +38,14 @@ func NewPoolScaler(log *zap.SugaredLogger, manager MachineManager) *PoolScaler {
 }
 
 // AdjustNumberOfWaitingMachines compares the number of waiting machines to the required pool size of the partition and shuts down or powers on machines accordingly
-func (p *PoolScaler) AdjustNumberOfWaitingMachines(m *metal.Machine, partition *metal.Partition) error {
-	// WaitingPoolSize == 0 means scaling is disabled
-	if partition.WaitingPoolSize == "0" {
-		return nil
-	}
-
+func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) error {
 	waitingMachines, err := p.manager.WaitingMachines()
 	if err != nil {
 		return err
 	}
 
 	poolSizeExcess := 0
-	if strings.Contains(partition.WaitingPoolSize, "%") {
-		poolSizeExcess = p.waitingMachinesMatchPoolSize(len(waitingMachines), partition.WaitingPoolSize, true, partition.ID, m.SizeID)
-	} else {
-		poolSizeExcess = p.waitingMachinesMatchPoolSize(len(waitingMachines), partition.WaitingPoolSize, false, partition.ID, m.SizeID)
-	}
+	poolSizeExcess = p.calculatePoolSizeExcess(len(waitingMachines), partition.WaitingPoolMinSize, partition.WaitingPoolMaxSize)
 
 	if poolSizeExcess == 0 {
 		return nil
@@ -92,17 +83,41 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(m *metal.Machine, partition *
 	return nil
 }
 
-func (p *PoolScaler) waitingMachinesMatchPoolSize(actual int, required string, inPercent bool, partitionid, sizeid string) int {
-	if !inPercent {
-		r, err := strconv.ParseInt(required, 10, 64)
+// calculatePoolSizeExcess checks if there are less waiting machines than minRequired or more than maxRequired
+// if yes, it returns the difference between the actual amount of waiting machines and the average of minRequired and maxRequired
+// if no, it returns 0
+func (p *PoolScaler) calculatePoolSizeExcess(actual int, minRequired, maxRequired string) int {
+	if strings.Contains(minRequired, "%") != strings.Contains(maxRequired, "%") {
+		return 0
+	}
+
+	if !strings.Contains(minRequired, "%") && !strings.Contains(maxRequired, "%") {
+		min, err := strconv.ParseInt(minRequired, 10, 64)
 		if err != nil {
 			return 0
 		}
-		return actual - int(r)
+
+		max, err := strconv.ParseInt(maxRequired, 10, 64)
+		if err != nil {
+			return 0
+		}
+
+		if int64(actual) >= min && int64(actual) <= max {
+			return 0
+		}
+
+		average := int(math.Round((float64(max) + float64(min)) / 2))
+		return actual - average
 	}
 
-	percent := strings.Split(required, "%")[0]
-	r, err := strconv.ParseInt(percent, 10, 64)
+	minString := strings.Split(minRequired, "%")[0]
+	minPercent, err := strconv.ParseInt(minString, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	maxString := strings.Split(maxRequired, "%")[0]
+	maxPercent, err := strconv.ParseInt(maxString, 10, 64)
 	if err != nil {
 		return 0
 	}
@@ -112,7 +127,15 @@ func (p *PoolScaler) waitingMachinesMatchPoolSize(actual int, required string, i
 		return 0
 	}
 
-	return actual - int(math.Round(float64(len(allMachines))*float64(r)/100))
+	min := int(math.Round(float64(len(allMachines)) * float64(minPercent) / 100))
+	max := int(math.Round(float64(len(allMachines)) * float64(maxPercent) / 100))
+
+	if actual >= min && actual <= max {
+		return 0
+	}
+
+	average := int(math.Round((float64(max) + float64(min)) / 2))
+	return actual - average
 }
 
 func randomIndices(n, k int) []int {
@@ -122,7 +145,7 @@ func randomIndices(n, k int) []int {
 	}
 
 	for i := 0; i < (n - k); i++ {
-		rand.Seed(time.Now().UnixNano())
+		rand.Seed(time.Now().UnixNano()) //nolint:gosec
 		r := rand.Intn(len(indices))
 		indices = append(indices[:r], indices[r+1:]...)
 	}

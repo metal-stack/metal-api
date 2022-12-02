@@ -3,20 +3,20 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap/zaptest"
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 type nopTopicCreater struct {
@@ -270,4 +270,70 @@ func TestPartitionCapacity(t *testing.T) {
 	require.Equal(t, "1", c.Size)
 	require.Equal(t, 5, c.Total)
 	require.Equal(t, 0, c.Free)
+}
+
+func Test_validateWaitingPoolSize(t *testing.T) {
+	tests := []struct {
+		name    string
+		min     string
+		max     string
+		wantErr error
+	}{
+		{
+			name:    "min max format mismatch",
+			min:     "15%",
+			max:     "30",
+			wantErr: errors.New("minimum and maximum pool sizes must either be both in percent or both an absolute value"),
+		},
+		{
+			name:    "invalid format for min in percent",
+			min:     "15%#",
+			max:     "30%",
+			wantErr: errors.New("invalid format for minimum waiting pool sizes"),
+		},
+		{
+			name:    "parse error for min",
+			min:     "15#",
+			max:     "30",
+			wantErr: errors.New("could not parse minimum waiting pool size"),
+		},
+		{
+			name:    "parse error for max",
+			min:     "15",
+			max:     "30#",
+			wantErr: errors.New("could not parse maximum waiting pool size"),
+		},
+		{
+			name:    "negative value for min",
+			min:     "-15",
+			max:     "0",
+			wantErr: errors.New("minimum and maximum waiting pool sizes must be greater or equal to 0"),
+		},
+		{
+			name:    "max less than min",
+			min:     "15",
+			max:     "0",
+			wantErr: errors.New("minimum waiting pool size must be less or equal to maximum pool size"),
+		},
+		{
+			name:    "everything okay",
+			min:     "15",
+			max:     "30",
+			wantErr: nil,
+		},
+		{
+			name:    "everything okay in percent",
+			min:     "15%",
+			max:     "30%",
+			wantErr: nil,
+		},
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateWaitingPoolSize(tt.min, tt.max); (err != nil || tt.wantErr != nil) && (err == nil || tt.wantErr == nil || err.Error() != tt.wantErr.Error()) {
+				t.Errorf("validateWaitingPoolSize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

@@ -6,7 +6,8 @@ type Partition struct {
 	BootConfiguration          BootConfiguration `rethinkdb:"bootconfig" json:"bootconfig"`
 	MgmtServiceAddress         string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
 	PrivateNetworkPrefixLength uint8             `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
-	WaitingPoolSize            string            `rethinkdb:"waitingpoolsize" json:"waitingpoolsize"`
+	WaitingPoolMinSize         string            `rethinkdb:"waitingpoolminsize" json:"waitingpoolminsize"`
+	WaitingPoolMaxSize         string            `rethinkdb:"waitingpoolmaxsize" json:"waitingpoolmaxsize"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline
