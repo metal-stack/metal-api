@@ -96,7 +96,7 @@ func (rs *RethinkStore) publishCommandAndUpdate(logger *zap.SugaredLogger, m *me
 		return err
 	}
 
-	err = e.PublishMachineCmd(logger, m, publisher, metal.MachineOnCmd)
+	err = e.PublishMachineCmd(logger, m, publisher, cmd)
 	if err != nil {
 		return err
 	}

@@ -145,8 +145,8 @@ func randomIndices(n, k int) []int {
 	}
 
 	for i := 0; i < (n - k); i++ {
-		rand.Seed(time.Now().UnixNano()) //nolint:gosec
-		r := rand.Intn(len(indices))
+		rand.Seed(time.Now().UnixNano())
+		r := rand.Intn(len(indices)) //nolint:gosec
 		indices = append(indices[:r], indices[r+1:]...)
 	}
 
