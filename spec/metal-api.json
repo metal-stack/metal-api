@@ -228,6 +228,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -1125,6 +1128,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -2235,6 +2241,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -3457,11 +3466,21 @@
           "maximum": 30,
           "minimum": 16,
           "type": "integer"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
       },
       "required": [
         "bootconfig",
-        "id"
+        "id",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.PartitionResponse": {
@@ -3534,10 +3553,20 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
       },
       "required": [
-        "id"
+        "id",
+        "waitingpoolmaxsize",
+        "waitingpoolminsize"
       ]
     },
     "v1.Project": {
