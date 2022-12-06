@@ -73,7 +73,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) e
 			return nil
 		}
 
-		p.log.Infow("power on missing machines", "number", poolSizeExcess, "partition", p)
+		p.log.Infow("power on missing machines", "number", poolSizeExcess, "partition", partition.ID)
 		err = p.powerOnMachines(shutdownMachines, poolSizeExcess)
 		if err != nil {
 			return err
