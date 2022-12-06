@@ -67,6 +67,10 @@ func (r *ScalerRange) IsDisabled() bool {
 }
 
 func (r *ScalerRange) Validate() error {
+	if r.IsDisabled() {
+		return nil
+	}
+
 	min, err, minInPercent := r.GetMin()
 	if err != nil {
 		return errors.New("could not parse minimum waiting pool size")
