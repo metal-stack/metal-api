@@ -3,8 +3,6 @@ package service
 import (
 	"errors"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -209,22 +207,17 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	var waitingpoolminsize string
-	if requestPayload.PartitionWaitingPoolMinSize != nil {
-		waitingpoolminsize = *requestPayload.PartitionWaitingPoolMinSize
-	} else {
-		waitingpoolminsize = "0%"
+	waitingPoolRange := metal.ScalerRange{
+		WaitingPoolMinSize: "",
+		WaitingPoolMaxSize: "",
 	}
 
-	var waitingpoolmaxsize string
-	if requestPayload.PartitionWaitingPoolMaxSize != nil {
-		waitingpoolmaxsize = *requestPayload.PartitionWaitingPoolMaxSize
-	} else {
-		waitingpoolmaxsize = "100%"
+	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
+		waitingPoolRange.WaitingPoolMinSize = *requestPayload.PartitionWaitingPoolMinSize
+		waitingPoolRange.WaitingPoolMaxSize = *requestPayload.PartitionWaitingPoolMaxSize
 	}
 
-	err = validateWaitingPoolSize(waitingpoolminsize, waitingpoolmaxsize)
-	if err != nil {
+	if err = waitingPoolRange.Validate(); err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
@@ -242,8 +235,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
-		WaitingPoolMinSize: waitingpoolminsize,
-		WaitingPoolMaxSize: waitingpoolmaxsize,
+		WaitingPoolRange: waitingPoolRange,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -326,28 +318,19 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	var waitingpoolminsize string
-	if requestPayload.PartitionWaitingPoolMinSize != nil {
-		waitingpoolminsize = *requestPayload.PartitionWaitingPoolMinSize
-	} else {
-		waitingpoolminsize = "0%"
-	}
+	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
+		waitingPoolRange := metal.ScalerRange{
+			WaitingPoolMinSize: *requestPayload.PartitionWaitingPoolMinSize,
+			WaitingPoolMaxSize: *requestPayload.PartitionWaitingPoolMaxSize,
+		}
 
-	var waitingpoolmaxsize string
-	if requestPayload.PartitionWaitingPoolMaxSize != nil {
-		waitingpoolmaxsize = *requestPayload.PartitionWaitingPoolMaxSize
-	} else {
-		waitingpoolmaxsize = "100%"
-	}
+		if err = waitingPoolRange.Validate(); err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
 
-	err = validateWaitingPoolSize(waitingpoolminsize, waitingpoolmaxsize)
-	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
+		newPartition.WaitingPoolRange = waitingPoolRange
 	}
-
-	newPartition.WaitingPoolMinSize = waitingpoolminsize
-	newPartition.WaitingPoolMaxSize = waitingpoolmaxsize
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
 	if err != nil {
@@ -493,45 +476,4 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	}
 
 	return partitionCapacities, err
-}
-
-func validateWaitingPoolSize(minString, maxString string) error {
-	if strings.Contains(minString, "%") != strings.Contains(maxString, "%") {
-		return errors.New("minimum and maximum pool sizes must either be both in percent or both an absolute value")
-	}
-
-	if strings.Contains(minString, "%") && strings.Contains(maxString, "%") {
-		minTokens := strings.Split(minString, "%")
-		maxTokens := strings.Split(maxString, "%")
-		if len(minTokens) != 2 || minTokens[1] != "" {
-			return errors.New("invalid format for minimum waiting pool sizes")
-		}
-
-		if len(maxTokens) != 2 || maxTokens[1] != "" {
-			return errors.New("invalid format for maximum waiting pool sizes")
-		}
-
-		minString = minTokens[0]
-		maxString = maxTokens[0]
-	}
-
-	min, err := strconv.ParseInt(minString, 10, 64)
-	if err != nil {
-		return errors.New("could not parse minimum waiting pool size")
-	}
-
-	max, err := strconv.ParseInt(maxString, 10, 64)
-	if err != nil {
-		return errors.New("could not parse maximum waiting pool size")
-	}
-
-	if min < 0 || max < 0 {
-		return errors.New("minimum and maximum waiting pool sizes must be greater or equal to 0")
-	}
-
-	if max < min {
-		return errors.New("minimum waiting pool size must be less or equal to maximum pool size")
-	}
-
-	return nil
 }

@@ -3,8 +3,6 @@ package scaler
 import (
 	"math"
 	"math/rand"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -13,12 +11,14 @@ import (
 
 type (
 	PoolScaler struct {
-		log     *zap.SugaredLogger
-		manager MachineManager
+		log       *zap.SugaredLogger
+		manager   MachineManager
+		partition metal.Partition
 	}
 	PoolScalerConfig struct {
-		Log     *zap.SugaredLogger
-		Manager MachineManager
+		Log       *zap.SugaredLogger
+		Manager   MachineManager
+		Partition metal.Partition
 	}
 	MachineManager interface {
 		AllMachines() (metal.Machines, error)
@@ -30,29 +30,34 @@ type (
 	}
 )
 
-func NewPoolScaler(log *zap.SugaredLogger, manager MachineManager) *PoolScaler {
+func NewPoolScaler(c *PoolScalerConfig) *PoolScaler {
 	return &PoolScaler{
-		log:     log,
-		manager: manager,
+		log:       c.Log.With("partition", c.Partition.ID),
+		manager:   c.Manager,
+		partition: c.Partition,
 	}
 }
 
 // AdjustNumberOfWaitingMachines compares the number of waiting machines to the required pool size of the partition and shuts down or powers on machines accordingly
-func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) error {
+func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
+	if p.partition.WaitingPoolRange.IsDisabled() {
+		return nil
+	}
+
 	waitingMachines, err := p.manager.WaitingMachines()
 	if err != nil {
 		return err
 	}
 
-	poolSizeExcess := 0
-	poolSizeExcess = p.calculatePoolSizeExcess(len(waitingMachines), partition.WaitingPoolMinSize, partition.WaitingPoolMaxSize)
+	var poolSizeExcess int
+	poolSizeExcess = p.calculatePoolSizeExcess(len(waitingMachines), p.partition.WaitingPoolRange)
 
 	if poolSizeExcess == 0 {
 		return nil
 	}
 
 	if poolSizeExcess > 0 {
-		p.log.Infow("shut down spare machines", "number", poolSizeExcess, "partition", partition.ID)
+		p.log.Infow("shut down spare machines", "number", poolSizeExcess)
 		err := p.shutdownMachines(waitingMachines, poolSizeExcess)
 		if err != nil {
 			return err
@@ -65,7 +70,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) e
 
 		poolSizeExcess = int(math.Abs(float64(poolSizeExcess)))
 		if len(shutdownMachines) < poolSizeExcess {
-			p.log.Infow("not enough machines to meet waiting pool size; power on all remaining", "number", len(shutdownMachines), "partition", partition.ID)
+			p.log.Infow("not enough machines to meet waiting pool size; power on all remaining", "number", len(shutdownMachines))
 			err = p.powerOnMachines(shutdownMachines, len(shutdownMachines))
 			if err != nil {
 				return err
@@ -73,7 +78,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) e
 			return nil
 		}
 
-		p.log.Infow("power on missing machines", "number", poolSizeExcess, "partition", partition.ID)
+		p.log.Infow("power on missing machines", "number", poolSizeExcess)
 		err = p.powerOnMachines(shutdownMachines, poolSizeExcess)
 		if err != nil {
 			return err
@@ -86,56 +91,37 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) e
 // calculatePoolSizeExcess checks if there are less waiting machines than minRequired or more than maxRequired
 // if yes, it returns the difference between the actual amount of waiting machines and the average of minRequired and maxRequired
 // if no, it returns 0
-func (p *PoolScaler) calculatePoolSizeExcess(actual int, minRequired, maxRequired string) int {
-	if strings.Contains(minRequired, "%") != strings.Contains(maxRequired, "%") {
+func (p *PoolScaler) calculatePoolSizeExcess(actual int, scalerRange metal.ScalerRange) int {
+	rangeMin, err, inPercent := scalerRange.GetMin()
+	if err != nil {
 		return 0
 	}
 
-	if !strings.Contains(minRequired, "%") && !strings.Contains(maxRequired, "%") {
-		min, err := strconv.ParseInt(minRequired, 10, 64)
+	rangeMax, err, _ := scalerRange.GetMax()
+	if err != nil {
+		return 0
+	}
+
+	min := rangeMin
+	max := rangeMax
+	average := float64(rangeMax) + float64(rangeMin)/2
+
+	if inPercent {
+		allMachines, err := p.manager.AllMachines()
 		if err != nil {
 			return 0
 		}
 
-		max, err := strconv.ParseInt(maxRequired, 10, 64)
-		if err != nil {
-			return 0
-		}
-
-		if int64(actual) >= min && int64(actual) <= max {
-			return 0
-		}
-
-		average := int(math.Round((float64(max) + float64(min)) / 2))
-		return actual - average
+		min = int64(math.Round(float64(len(allMachines)) * float64(rangeMin) / 100))
+		max = int64(math.Round(float64(len(allMachines)) * float64(rangeMax) / 100))
+		average = float64(len(allMachines)) * average / 100
 	}
 
-	minString := strings.Split(minRequired, "%")[0]
-	minPercent, err := strconv.ParseInt(minString, 10, 64)
-	if err != nil {
+	if int64(actual) >= min && int64(actual) <= max {
 		return 0
 	}
 
-	maxString := strings.Split(maxRequired, "%")[0]
-	maxPercent, err := strconv.ParseInt(maxString, 10, 64)
-	if err != nil {
-		return 0
-	}
-
-	allMachines, err := p.manager.AllMachines()
-	if err != nil {
-		return 0
-	}
-
-	min := int(math.Round(float64(len(allMachines)) * float64(minPercent) / 100))
-	max := int(math.Round(float64(len(allMachines)) * float64(maxPercent) / 100))
-
-	if actual >= min && actual <= max {
-		return 0
-	}
-
-	average := int(math.Round((float64(max) + float64(min)) / 2))
-	return actual - average
+	return actual - int(average)
 }
 
 func randomIndices(n, k int) []int {
@@ -144,13 +130,10 @@ func randomIndices(n, k int) []int {
 		indices[i] = i
 	}
 
-	for i := 0; i < (n - k); i++ {
-		rand.Seed(time.Now().UnixNano())
-		r := rand.Intn(len(indices)) //nolint:gosec
-		indices = append(indices[:r], indices[r+1:]...)
-	}
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(indices), func(i, j int) { indices[i], indices[j] = indices[j], indices[i] })
 
-	return indices
+	return indices[:k]
 }
 
 func (p *PoolScaler) shutdownMachines(machines metal.Machines, number int) error {

@@ -26,6 +26,7 @@ const (
 
 type FSMState interface {
 	OnTransition(e *fsm.Event)
+	OnLeave(e *fsm.Event)
 }
 
 type stateType string
@@ -40,7 +41,6 @@ type StateConfig struct {
 	Event     *metal.ProvisioningEvent
 	Scaler    *scaler.PoolScaler
 	Machine   *metal.Machine
-	Partition *metal.Partition
 }
 
 func (c *StateConfig) Validate() error {

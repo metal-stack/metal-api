@@ -7,6 +7,7 @@ import (
 )
 
 type AliveState struct {
+	noopState
 	log       *zap.SugaredLogger
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent

@@ -12,6 +12,7 @@ import (
 const failedMachineReclaimThreshold = 5 * time.Minute
 
 type PhonedHomeState struct {
+	noopState
 	log       *zap.SugaredLogger
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent

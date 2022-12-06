@@ -31,12 +31,10 @@ func (m *manager) AllMachines() (metal.Machines, error) {
 
 func (m *manager) WaitingMachines() (metal.Machines, error) {
 	stateValue := string(metal.AvailableState)
-	waiting := true
 	q := MachineSearchQuery{
 		PartitionID: &m.partitionid,
 		SizeID:      &m.sizeid,
 		StateValue:  &stateValue,
-		Waiting:     &waiting,
 	}
 
 	waitingMachines := metal.Machines{}

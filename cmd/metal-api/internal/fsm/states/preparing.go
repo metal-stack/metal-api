@@ -6,6 +6,7 @@ import (
 )
 
 type PreparingState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }

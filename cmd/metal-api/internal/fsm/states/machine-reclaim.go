@@ -6,6 +6,7 @@ import (
 )
 
 type MachineReclaimState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }

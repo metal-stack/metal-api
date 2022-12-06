@@ -58,7 +58,6 @@ type MachineSearchQuery struct {
 
 	// state
 	StateValue *string `json:"state_value" optional:"true"`
-	Waiting    *bool   `json:"waiting" optional:"true"`
 
 	// ipmi
 	IpmiAddress    *string `json:"ipmi_address" optional:"true"`
