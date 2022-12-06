@@ -228,9 +228,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "waiting": {
-          "type": "boolean"
         }
       }
     },
@@ -1128,9 +1125,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "waiting": {
-          "type": "boolean"
         }
       }
     },
@@ -2241,9 +2235,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "waiting": {
-          "type": "boolean"
         }
       }
     },
