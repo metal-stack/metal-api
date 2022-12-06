@@ -104,7 +104,7 @@ func (p *PoolScaler) calculatePoolSizeExcess(actual int, scalerRange metal.Scale
 
 	min := rangeMin
 	max := rangeMax
-	average := float64(rangeMax) + float64(rangeMin)/2
+	average := (float64(rangeMax) + float64(rangeMin)) / 2
 
 	if inPercent {
 		allMachines, err := p.manager.AllMachines()
@@ -121,7 +121,7 @@ func (p *PoolScaler) calculatePoolSizeExcess(actual int, scalerRange metal.Scale
 		return 0
 	}
 
-	return actual - int(average)
+	return actual - int(math.Round(average))
 }
 
 func randomIndices(n, k int) []int {
