@@ -65,7 +65,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) e
 
 		poolSizeExcess = int(math.Abs(float64(poolSizeExcess)))
 		if len(shutdownMachines) < poolSizeExcess {
-			p.log.Infow("not enough machines to meet waiting pool size; power on all remaining", "number", len(shutdownMachines), "partition", p)
+			p.log.Infow("not enough machines to meet waiting pool size; power on all remaining", "number", len(shutdownMachines), "partition", partition.ID)
 			err = p.powerOnMachines(shutdownMachines, len(shutdownMachines))
 			if err != nil {
 				return err
