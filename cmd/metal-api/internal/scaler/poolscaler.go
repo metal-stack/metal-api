@@ -52,7 +52,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines(partition *metal.Partition) e
 	}
 
 	if poolSizeExcess > 0 {
-		p.log.Infow("shut down spare machines", "number", poolSizeExcess, "partition", p)
+		p.log.Infow("shut down spare machines", "number", poolSizeExcess, "partition", partition.ID)
 		err := p.shutdownMachines(waitingMachines, poolSizeExcess)
 		if err != nil {
 			return err
