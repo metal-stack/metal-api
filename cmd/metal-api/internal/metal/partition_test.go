@@ -102,7 +102,8 @@ func TestScalerRange_Validate(t *testing.T) {
 			wantErr: nil,
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			r := &ScalerRange{
 				WaitingPoolMinSize: tt.min,
