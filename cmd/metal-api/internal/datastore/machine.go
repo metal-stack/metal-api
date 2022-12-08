@@ -328,7 +328,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 
 	if p.StateValue != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("state_value").Eq(*p.StateValue)
+			return row.Field("state").Field("value").Eq(*p.StateValue)
 		})
 	}
 
