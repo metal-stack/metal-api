@@ -75,8 +75,10 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			},
 		},
 		PartitionBase: PartitionBase{
-			MgmtServiceAddress:         &p.MgmtServiceAddress,
-			PrivateNetworkPrefixLength: &prefixLength,
+			MgmtServiceAddress:          &p.MgmtServiceAddress,
+			PrivateNetworkPrefixLength:  &prefixLength,
+			PartitionWaitingPoolMinSize: &p.WaitingPoolMinSize,
+			PartitionWaitingPoolMaxSize: &p.WaitingPoolMaxSize,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,
