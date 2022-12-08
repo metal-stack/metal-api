@@ -5,8 +5,10 @@ import (
 )
 
 type PartitionBase struct {
-	MgmtServiceAddress         *string `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
-	PrivateNetworkPrefixLength *int    `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
+	MgmtServiceAddress          *string `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
+	PrivateNetworkPrefixLength  *int    `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
+	PartitionWaitingPoolMinSize *string `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition" optional:"true"`
+	PartitionWaitingPoolMaxSize *string `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition" optional:"true"`
 }
 
 type PartitionBootConfiguration struct {
@@ -18,17 +20,15 @@ type PartitionBootConfiguration struct {
 type PartitionCreateRequest struct {
 	Common
 	PartitionBase
-	PartitionBootConfiguration  PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
-	PartitionWaitingPoolMinSize *string                    `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition" optional:"true"`
-	PartitionWaitingPoolMaxSize *string                    `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition" optional:"true"`
+	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
 }
 
 type PartitionUpdateRequest struct {
 	Common
 	MgmtServiceAddress          *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
 	PartitionBootConfiguration  *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
-	PartitionWaitingPoolMinSize *string                     `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition"`
-	PartitionWaitingPoolMaxSize *string                     `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition"`
+	PartitionWaitingPoolMinSize *string                     `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition" optional:"true"`
+	PartitionWaitingPoolMaxSize *string                     `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition" optional:"true"`
 }
 
 type PartitionResponse struct {

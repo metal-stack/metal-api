@@ -3368,6 +3368,14 @@
           "maximum": 30,
           "minimum": 16,
           "type": "integer"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
       }
     },
@@ -3513,6 +3521,14 @@
           "maximum": 30,
           "minimum": 16,
           "type": "integer"
+        },
+        "waitingpoolmaxsize": {
+          "description": "the maximum waiting pool size of this partition",
+          "type": "string"
+        },
+        "waitingpoolminsize": {
+          "description": "the minimum waiting pool size of this partition",
+          "type": "string"
         }
       },
       "required": [
@@ -3553,9 +3569,7 @@
         }
       },
       "required": [
-        "id",
-        "waitingpoolmaxsize",
-        "waitingpoolminsize"
+        "id"
       ]
     },
     "v1.Project": {
