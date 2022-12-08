@@ -17,23 +17,20 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 		{
 			name: "waiting machines match pool size; do nothing",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "10",
-					WaitingPoolMaxSize: "20",
-				},
+				WaitingPoolMinSize: "10",
+				WaitingPoolMaxSize: "20",
 			},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
+				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
 			},
 			wantErr: false,
 		},
 		{
 			name: "waiting machines match pool size in percent; do nothing",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "25%",
-					WaitingPoolMaxSize: "30%",
-				},
+				WaitingPoolMinSize: "25%",
+				WaitingPoolMaxSize: "30%",
 			},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
@@ -44,12 +41,11 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 		{
 			name: "more waiting machines needed; power on 8 machines",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "15",
-					WaitingPoolMaxSize: "20",
-				},
+				WaitingPoolMinSize: "15",
+				WaitingPoolMaxSize: "20",
 			},
 			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
 				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
 				mock.On("ShutdownMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
 				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(8)
@@ -59,10 +55,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 		{
 			name: "more waiting machines needed in percent; power on 10 machines",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "30%",
-					WaitingPoolMaxSize: "40%",
-				},
+				WaitingPoolMinSize: "30%",
+				WaitingPoolMaxSize: "40%",
 			},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
@@ -75,13 +69,12 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 		{
 			name: "pool size exceeded; power off 7 machines",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "10",
-					WaitingPoolMaxSize: "15",
-				},
+				WaitingPoolMinSize: "10",
+				WaitingPoolMaxSize: "15",
 			},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 20)...), nil)
+				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
 				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(7)
 			},
 			wantErr: false,
@@ -89,29 +82,26 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 		{
 			name: "pool size exceeded in percent; power off 5 machines",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "15%",
-					WaitingPoolMaxSize: "20%",
-				},
+				WaitingPoolMinSize: "15%",
+				WaitingPoolMaxSize: "20%",
 			},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
 				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 31)...), nil)
-				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(5)
+				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(4)
 			},
 			wantErr: false,
 		},
 		{
 			name: "more machines needed than available; power on all remaining",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "30",
-					WaitingPoolMaxSize: "40",
-				},
+				WaitingPoolMinSize: "30",
+				WaitingPoolMaxSize: "40",
 			},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("ShutdownMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 10)...), nil)
 				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 15)...), nil)
+				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
 				mock.On("PowerOn", &metal.Machine{}).Return(nil).Times(10)
 			},
 			wantErr: false,
@@ -119,10 +109,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 		{
 			name: "no more machines left; do nothing",
 			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "15%",
-					WaitingPoolMaxSize: "20%",
-				},
+				WaitingPoolMinSize: "15%",
+				WaitingPoolMaxSize: "20%",
 			},
 			mockFn: func(mock *MockMachineManager) {
 				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 150)...), nil)
@@ -132,14 +120,9 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "pool scaling disabled; do nothing",
-			partition: &metal.Partition{
-				WaitingPoolRange: metal.ScalerRange{
-					WaitingPoolMinSize: "",
-					WaitingPoolMaxSize: "",
-				},
-			},
-			wantErr: false,
+			name:      "pool scaling disabled; do nothing",
+			partition: &metal.Partition{},
+			wantErr:   false,
 		},
 	}
 	for i := range tests {

@@ -160,8 +160,5 @@ func eventCallbacks(config *states.StateConfig) fsm.Callbacks {
 		callbacks["leave_"+name] = state.OnLeave
 	}
 
-	waiting := allStates[states.Waiting.String()].(*states.WaitingState)
-	callbacks["leave_"+states.Waiting.String()] = waiting.OnLeave
-
 	return callbacks
 }

@@ -2,6 +2,7 @@ package metal
 
 import (
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -12,7 +13,8 @@ type Partition struct {
 	BootConfiguration          BootConfiguration `rethinkdb:"bootconfig" json:"bootconfig"`
 	MgmtServiceAddress         string            `rethinkdb:"mgmtserviceaddr" json:"mgmtserviceaddr"`
 	PrivateNetworkPrefixLength uint8             `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
-	WaitingPoolRange           ScalerRange       `rethinkdb:"waitingpoolrange" json:"waitingpoolrange"`
+	WaitingPoolMinSize         string            `rethinkdb:"waitingpoolminsize" json:"waitingpoolminsize"`
+	WaitingPoolMaxSize         string            `rethinkdb:"waitingpoolmaxsize" json:"waitingpoolmaxsize"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline
@@ -42,24 +44,41 @@ type ScalerRange struct {
 	WaitingPoolMaxSize string
 }
 
-func (r *ScalerRange) GetMin() (min int64, err error, inPercent bool) {
+func NewScalerRange(min, max string) (*ScalerRange, error) {
+	r := &ScalerRange{WaitingPoolMinSize: min, WaitingPoolMaxSize: max}
+
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (r *ScalerRange) Min(of int) (int64, error) {
 	if strings.HasSuffix(r.WaitingPoolMinSize, "%") {
 		s := strings.Split(r.WaitingPoolMinSize, "%")[0]
 		min, err := strconv.ParseInt(s, 10, 64)
-		return min, err, true
+		if err != nil {
+			return 0, err
+		}
+
+		return int64(math.Round(float64(of) * float64(min) / 100)), nil
 	}
-	min, err = strconv.ParseInt(r.WaitingPoolMinSize, 10, 64)
-	return min, err, false
+
+	return strconv.ParseInt(r.WaitingPoolMinSize, 10, 64)
 }
 
-func (r *ScalerRange) GetMax() (min int64, err error, inPercent bool) {
+func (r *ScalerRange) Max(of int) (int64, error) {
 	if strings.HasSuffix(r.WaitingPoolMaxSize, "%") {
 		s := strings.Split(r.WaitingPoolMaxSize, "%")[0]
 		min, err := strconv.ParseInt(s, 10, 64)
-		return min, err, true
+		if err != nil {
+			return 0, err
+		}
+
+		return int64(math.Round(float64(of) * float64(min) / 100)), nil
 	}
-	min, err = strconv.ParseInt(r.WaitingPoolMaxSize, 10, 64)
-	return min, err, false
+
+	return strconv.ParseInt(r.WaitingPoolMaxSize, 10, 64)
 }
 
 func (r *ScalerRange) IsDisabled() bool {
@@ -71,17 +90,17 @@ func (r *ScalerRange) Validate() error {
 		return nil
 	}
 
-	min, err, minInPercent := r.GetMin()
+	min, err := r.Min(100)
 	if err != nil {
 		return errors.New("could not parse minimum waiting pool size")
 	}
 
-	max, err, maxInPercent := r.GetMax()
+	max, err := r.Max(100)
 	if err != nil {
 		return errors.New("could not parse maximum waiting pool size")
 	}
 
-	if minInPercent != maxInPercent {
+	if strings.HasSuffix(r.WaitingPoolMinSize, "%") != strings.HasSuffix(r.WaitingPoolMaxSize, "%") {
 		return errors.New("minimum and maximum pool sizes must either be both in percent or both an absolute value")
 	}
 

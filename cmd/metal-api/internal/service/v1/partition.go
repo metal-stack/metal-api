@@ -19,8 +19,8 @@ type PartitionCreateRequest struct {
 	Common
 	PartitionBase
 	PartitionBootConfiguration  PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
-	PartitionWaitingPoolMinSize *string                    `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition"`
-	PartitionWaitingPoolMaxSize *string                    `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition"`
+	PartitionWaitingPoolMinSize *string                    `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition" optional:"true"`
+	PartitionWaitingPoolMaxSize *string                    `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition" optional:"true"`
 }
 
 type PartitionUpdateRequest struct {

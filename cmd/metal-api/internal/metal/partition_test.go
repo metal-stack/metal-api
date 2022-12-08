@@ -101,6 +101,10 @@ func TestScalerRange_Validate(t *testing.T) {
 			max:     "30%",
 			wantErr: nil,
 		},
+		{
+			name:    "pool scaling disabled",
+			wantErr: nil,
+		},
 	}
 	for i := range tests {
 		tt := tests[i]

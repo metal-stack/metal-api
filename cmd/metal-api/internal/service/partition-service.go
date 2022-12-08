@@ -207,19 +207,13 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	waitingPoolRange := metal.ScalerRange{
-		WaitingPoolMinSize: "",
-		WaitingPoolMaxSize: "",
-	}
-
+	var waitingPoolRange *metal.ScalerRange
 	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
-		waitingPoolRange.WaitingPoolMinSize = *requestPayload.PartitionWaitingPoolMinSize
-		waitingPoolRange.WaitingPoolMaxSize = *requestPayload.PartitionWaitingPoolMaxSize
-	}
-
-	if err = waitingPoolRange.Validate(); err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
+		waitingPoolRange, err = metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMaxSize)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
 	}
 
 	p := &metal.Partition{
@@ -235,7 +229,8 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
-		WaitingPoolRange: waitingPoolRange,
+		WaitingPoolMinSize: waitingPoolRange.WaitingPoolMinSize,
+		WaitingPoolMaxSize: waitingPoolRange.WaitingPoolMaxSize,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -319,17 +314,14 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 
 	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
-		waitingPoolRange := metal.ScalerRange{
-			WaitingPoolMinSize: *requestPayload.PartitionWaitingPoolMinSize,
-			WaitingPoolMaxSize: *requestPayload.PartitionWaitingPoolMaxSize,
-		}
-
-		if err = waitingPoolRange.Validate(); err != nil {
+		waitingPoolRange, err := metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMinSize)
+		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
 
-		newPartition.WaitingPoolRange = waitingPoolRange
+		newPartition.WaitingPoolMinSize = waitingPoolRange.WaitingPoolMinSize
+		newPartition.WaitingPoolMaxSize = waitingPoolRange.WaitingPoolMaxSize
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)

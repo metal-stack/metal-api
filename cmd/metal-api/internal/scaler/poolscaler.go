@@ -40,7 +40,12 @@ func NewPoolScaler(c *PoolScalerConfig) *PoolScaler {
 
 // AdjustNumberOfWaitingMachines compares the number of waiting machines to the required pool size of the partition and shuts down or powers on machines accordingly
 func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
-	if p.partition.WaitingPoolRange.IsDisabled() {
+	waitingPoolRange, err := metal.NewScalerRange(p.partition.WaitingPoolMinSize, p.partition.WaitingPoolMaxSize)
+	if err != nil {
+		return err
+	}
+
+	if waitingPoolRange.IsDisabled() {
 		return nil
 	}
 
@@ -50,7 +55,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 	}
 
 	var poolSizeExcess int
-	poolSizeExcess = p.calculatePoolSizeExcess(len(waitingMachines), p.partition.WaitingPoolRange)
+	poolSizeExcess = p.calculatePoolSizeExcess(len(waitingMachines), *waitingPoolRange)
 
 	if poolSizeExcess == 0 {
 		return nil
@@ -92,30 +97,22 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 // if yes, it returns the difference between the actual amount of waiting machines and the average of minRequired and maxRequired
 // if no, it returns 0
 func (p *PoolScaler) calculatePoolSizeExcess(actual int, scalerRange metal.ScalerRange) int {
-	rangeMin, err, inPercent := scalerRange.GetMin()
+	allMachines, err := p.manager.AllMachines()
 	if err != nil {
 		return 0
 	}
 
-	rangeMax, err, _ := scalerRange.GetMax()
+	min, err := scalerRange.Min(len(allMachines))
 	if err != nil {
 		return 0
 	}
 
-	min := rangeMin
-	max := rangeMax
-	average := (float64(rangeMax) + float64(rangeMin)) / 2
-
-	if inPercent {
-		allMachines, err := p.manager.AllMachines()
-		if err != nil {
-			return 0
-		}
-
-		min = int64(math.Round(float64(len(allMachines)) * float64(rangeMin) / 100))
-		max = int64(math.Round(float64(len(allMachines)) * float64(rangeMax) / 100))
-		average = float64(len(allMachines)) * average / 100
+	max, err := scalerRange.Max(len(allMachines))
+	if err != nil {
+		return 0
 	}
+
+	average := (float64(max) + float64(min)) / 2
 
 	if int64(actual) >= min && int64(actual) <= max {
 		return 0
