@@ -207,7 +207,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	var waitingPoolRange *metal.ScalerRange
+	waitingPoolRange := &metal.ScalerRange{}
 	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
 		waitingPoolRange, err = metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMaxSize)
 		if err != nil {
