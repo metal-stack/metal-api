@@ -61,8 +61,10 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publ
 	}
 
 	manager := &manager{
-		rs:        rs,
-		publisher: publisher,
+		rs:          rs,
+		publisher:   publisher,
+		partitionid: p.ID,
+		sizeid:      machine.SizeID,
 	}
 
 	c := &s.PoolScalerConfig{

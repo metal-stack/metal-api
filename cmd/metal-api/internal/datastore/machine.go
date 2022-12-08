@@ -22,6 +22,7 @@ type MachineSearchQuery struct {
 	Tags        []string `json:"tags" optional:"true"`
 
 	// allocation
+	NotAllocated        *bool       `json:"not_allocated" optional:"true"`
 	AllocationName      *string     `json:"allocation_name" optional:"true"`
 	AllocationProject   *string     `json:"allocation_project" optional:"true"`
 	AllocationImageID   *string     `json:"allocation_image_id" optional:"true"`
@@ -115,6 +116,10 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("tags").Contains(r.Expr(tag))
 		})
+	}
+
+	if p.NotAllocated != nil && *p.NotAllocated {
+		q = q.Filter(map[string]any{"allocation": nil})
 	}
 
 	if p.AllocationName != nil {

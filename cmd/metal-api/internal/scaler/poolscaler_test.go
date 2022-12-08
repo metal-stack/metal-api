@@ -120,6 +120,19 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "edge case 2 waiting machines; min = max = 1",
+			partition: &metal.Partition{
+				WaitingPoolMinSize: "1",
+				WaitingPoolMaxSize: "1",
+			},
+			mockFn: func(mock *MockMachineManager) {
+				mock.On("AllMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 2)...), nil)
+				mock.On("WaitingMachines").Once().Return(append(metal.Machines{}, make([]metal.Machine, 2)...), nil)
+				mock.On("Shutdown", &metal.Machine{}).Return(nil).Times(1)
+			},
+			wantErr: false,
+		},
+		{
 			name:      "pool scaling disabled; do nothing",
 			partition: &metal.Partition{},
 			wantErr:   false,
