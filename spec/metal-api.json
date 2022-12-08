@@ -3469,9 +3469,7 @@
       },
       "required": [
         "bootconfig",
-        "id",
-        "waitingpoolmaxsize",
-        "waitingpoolminsize"
+        "id"
       ]
     },
     "v1.PartitionResponse": {
