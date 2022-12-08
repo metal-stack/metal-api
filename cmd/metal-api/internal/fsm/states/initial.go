@@ -20,6 +20,6 @@ func newInitial(c *StateConfig) *InitialState {
 	}
 }
 
-func (p *InitialState) OnTransition(e *fsm.Event) {
+func (p *InitialState) OnEnter(e *fsm.Event) {
 	e.Err = fmt.Errorf("unexpected transition back to initial state")
 }

@@ -6,5 +6,5 @@ import (
 
 type noopState struct{}
 
-func (_ noopState) OnTransition(e *fsm.Event) {}
-func (_ noopState) OnLeave(e *fsm.Event)      {}
+func (_ noopState) OnEnter(e *fsm.Event) {}
+func (_ noopState) OnLeave(e *fsm.Event) {}

@@ -14,7 +14,7 @@ func newWaiting(c *StateConfig) *WaitingState {
 	}
 }
 
-func (p *WaitingState) OnTransition(e *fsm.Event) {
+func (p *WaitingState) OnEnter(e *fsm.Event) {
 	appendEventToContainer(p.config.Event, p.config.Container)
 
 	if p.config.Scaler != nil {

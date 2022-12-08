@@ -26,7 +26,7 @@ func newPhonedHome(c *StateConfig) *PhonedHomeState {
 	}
 }
 
-func (p *PhonedHomeState) OnTransition(e *fsm.Event) {
+func (p *PhonedHomeState) OnEnter(e *fsm.Event) {
 	switch e.Src {
 	case PhonedHome.String():
 		updateTimeAndLiveliness(p.event, p.container)

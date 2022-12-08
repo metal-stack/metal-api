@@ -18,7 +18,7 @@ func newPlannedReboot(c *StateConfig) *PlannedRebootState {
 	}
 }
 
-func (p *PlannedRebootState) OnTransition(e *fsm.Event) {
+func (p *PlannedRebootState) OnEnter(e *fsm.Event) {
 	p.container.CrashLoop = false
 	appendEventToContainer(p.event, p.container)
 }

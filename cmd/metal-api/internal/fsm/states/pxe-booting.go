@@ -18,7 +18,7 @@ func newPXEBooting(c *StateConfig) *PXEBootingState {
 	}
 }
 
-func (p *PXEBootingState) OnTransition(e *fsm.Event) {
+func (p *PXEBootingState) OnEnter(e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
 	if e.Src == PXEBooting.String() {

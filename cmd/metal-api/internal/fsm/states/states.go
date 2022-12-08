@@ -25,7 +25,7 @@ const (
 )
 
 type FSMState interface {
-	OnTransition(e *fsm.Event)
+	OnEnter(e *fsm.Event)
 	OnLeave(e *fsm.Event)
 }
 

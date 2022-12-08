@@ -18,7 +18,7 @@ func newPreparing(c *StateConfig) *PreparingState {
 	}
 }
 
-func (p *PreparingState) OnTransition(e *fsm.Event) {
+func (p *PreparingState) OnEnter(e *fsm.Event) {
 	p.container.FailedMachineReclaim = false
 
 	appendEventToContainer(p.event, p.container)
