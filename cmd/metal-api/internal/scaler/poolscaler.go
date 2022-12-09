@@ -102,19 +102,11 @@ func (p *PoolScaler) calculatePoolSizeExcess(actual int, scalerRange metal.Scale
 		return 0
 	}
 
-	min, err := scalerRange.Min(len(allMachines))
-	if err != nil {
-		return 0
-	}
-
-	max, err := scalerRange.Max(len(allMachines))
-	if err != nil {
-		return 0
-	}
-
+	min := scalerRange.Min(len(allMachines))
+	max := scalerRange.Max(len(allMachines))
 	average := (float64(max) + float64(min)) / 2
 
-	if int64(actual) >= min && int64(actual) <= max {
+	if actual >= min && actual <= max {
 		return 0
 	}
 

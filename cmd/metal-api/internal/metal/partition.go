@@ -40,49 +40,96 @@ func (sz Partitions) ByID() PartitionMap {
 }
 
 type ScalerRange struct {
-	WaitingPoolMinSize string
-	WaitingPoolMaxSize string
+	isDisabled bool
+	inPercent  bool
+	minSize    int
+	maxSize    int
 }
 
 func NewScalerRange(min, max string) (*ScalerRange, error) {
-	r := &ScalerRange{WaitingPoolMinSize: min, WaitingPoolMaxSize: max}
+	r := &ScalerRange{}
+	if r.setDisabled(min, max); r.IsDisabled() {
+		return r, nil
+	}
+
+	if err := r.setRange(min, max); err != nil {
+		return nil, err
+	}
 
 	if err := r.Validate(); err != nil {
 		return nil, err
 	}
+
 	return r, nil
 }
 
-func (r *ScalerRange) Min(of int) (int64, error) {
-	if strings.HasSuffix(r.WaitingPoolMinSize, "%") {
-		s := strings.Split(r.WaitingPoolMinSize, "%")[0]
-		min, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-
-		return int64(math.Round(float64(of) * float64(min) / 100)), nil
+func (r *ScalerRange) setDisabled(min, max string) {
+	if min == "" && max == "" {
+		r.isDisabled = true
+		return
 	}
-
-	return strconv.ParseInt(r.WaitingPoolMinSize, 10, 64)
-}
-
-func (r *ScalerRange) Max(of int) (int64, error) {
-	if strings.HasSuffix(r.WaitingPoolMaxSize, "%") {
-		s := strings.Split(r.WaitingPoolMaxSize, "%")[0]
-		min, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-
-		return int64(math.Round(float64(of) * float64(min) / 100)), nil
-	}
-
-	return strconv.ParseInt(r.WaitingPoolMaxSize, 10, 64)
+	r.isDisabled = false
 }
 
 func (r *ScalerRange) IsDisabled() bool {
-	return r.WaitingPoolMinSize == "" && r.WaitingPoolMaxSize == ""
+	return r.isDisabled
+}
+
+func (r *ScalerRange) setRange(min, max string) error {
+	minSize, err, minInPercent := stringToSize(min)
+	if err != nil {
+		return errors.New("could not parse minimum waiting pool size")
+	}
+
+	maxSize, err, maxInPercent := stringToSize(max)
+	if err != nil {
+		return errors.New("could not parse maximum waiting pool size")
+	}
+
+	if minInPercent != maxInPercent {
+		return errors.New("minimum and maximum pool sizes must either be both in percent or both an absolute value")
+	}
+
+	if minInPercent {
+		r.inPercent = true
+	} else {
+		r.inPercent = false
+	}
+
+	r.minSize = int(minSize)
+	r.maxSize = int(maxSize)
+	return nil
+}
+
+func stringToSize(input string) (size int64, err error, inPercent bool) {
+	s := input
+	inPercent = false
+
+	if strings.HasSuffix(input, "%") {
+		s = strings.Split(input, "%")[0]
+		inPercent = true
+	}
+
+	size, err = strconv.ParseInt(s, 10, 64)
+	return size, err, inPercent
+}
+
+func (r *ScalerRange) Min(of int) int {
+	if r.inPercent {
+		return percentOf(r.minSize, of)
+	}
+	return r.minSize
+}
+
+func (r *ScalerRange) Max(of int) int {
+	if r.inPercent {
+		return percentOf(r.maxSize, of)
+	}
+	return r.maxSize
+}
+
+func percentOf(percent, of int) int {
+	return int(math.Round(float64(of) * float64(percent) / 100))
 }
 
 func (r *ScalerRange) Validate() error {
@@ -90,25 +137,11 @@ func (r *ScalerRange) Validate() error {
 		return nil
 	}
 
-	min, err := r.Min(100)
-	if err != nil {
-		return errors.New("could not parse minimum waiting pool size")
-	}
-
-	max, err := r.Max(100)
-	if err != nil {
-		return errors.New("could not parse maximum waiting pool size")
-	}
-
-	if strings.HasSuffix(r.WaitingPoolMinSize, "%") != strings.HasSuffix(r.WaitingPoolMaxSize, "%") {
-		return errors.New("minimum and maximum pool sizes must either be both in percent or both an absolute value")
-	}
-
-	if min < 0 || max < 0 {
+	if r.minSize < 0 || r.maxSize < 0 {
 		return errors.New("minimum and maximum waiting pool sizes must be greater or equal to 0")
 	}
 
-	if max < min {
+	if r.maxSize < r.minSize {
 		return errors.New("minimum waiting pool size must be less or equal to maximum pool size")
 	}
 

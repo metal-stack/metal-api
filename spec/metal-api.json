@@ -211,6 +211,9 @@
           },
           "type": "array"
         },
+        "not_allocated": {
+          "type": "boolean"
+        },
         "partition_id": {
           "type": "string"
         },
@@ -1107,6 +1110,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "not_allocated": {
+          "type": "boolean"
         },
         "partition_id": {
           "type": "string"
@@ -2217,6 +2223,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "not_allocated": {
+          "type": "boolean"
         },
         "partition_id": {
           "type": "string"

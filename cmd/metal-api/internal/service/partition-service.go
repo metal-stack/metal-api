@@ -207,13 +207,15 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
-	waitingPoolRange := &metal.ScalerRange{}
+	var minSize, maxSize string
 	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
-		waitingPoolRange, err = metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMaxSize)
+		_, err = metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMaxSize)
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
+		minSize = *requestPayload.PartitionWaitingPoolMinSize
+		maxSize = *requestPayload.PartitionWaitingPoolMaxSize
 	}
 
 	p := &metal.Partition{
@@ -229,8 +231,8 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
-		WaitingPoolMinSize: waitingPoolRange.WaitingPoolMinSize,
-		WaitingPoolMaxSize: waitingPoolRange.WaitingPoolMaxSize,
+		WaitingPoolMinSize: minSize,
+		WaitingPoolMaxSize: maxSize,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -314,14 +316,14 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 
 	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
-		waitingPoolRange, err := metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMinSize)
+		_, err := metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMinSize)
 		if err != nil {
 			r.sendError(request, response, httperrors.BadRequest(err))
 			return
 		}
 
-		newPartition.WaitingPoolMinSize = waitingPoolRange.WaitingPoolMinSize
-		newPartition.WaitingPoolMaxSize = waitingPoolRange.WaitingPoolMaxSize
+		newPartition.WaitingPoolMinSize = *requestPayload.PartitionWaitingPoolMinSize
+		newPartition.WaitingPoolMaxSize = *requestPayload.PartitionWaitingPoolMaxSize
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)
