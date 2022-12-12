@@ -24,7 +24,7 @@ require (
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/spf13/cobra v1.6.0
-	github.com/spf13/viper v1.13.0
+	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
 	github.com/testcontainers/testcontainers-go v0.14.0
 	github.com/undefinedlabs/go-mpatch v1.0.6
@@ -60,7 +60,7 @@ require (
 	github.com/docker/docker v20.10.20+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/fsnotify/fsnotify v1.5.4 // indirect
+	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/gin-gonic/gin v1.7.7 // indirect
 	github.com/glebarez/go-sqlite v1.17.3 // indirect
@@ -159,13 +159,13 @@ require (
 	go4.org/netipx v0.0.0-20220812043211-3cc044ffd68d // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/net v0.1.0 // indirect
-	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
+	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect; indirecct
+	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect; indirecct
 	golang.zx2c4.com/wireguard/windows v0.4.10 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220902135211-223410557253 // indirect
+	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
 	gopkg.in/cenkalti/backoff.v2 v2.2.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
