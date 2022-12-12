@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.101
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful-openapi/v2 v2.9.1
-	github.com/emicklei/go-restful/v3 v3.9.0
+	github.com/emicklei/go-restful/v3 v3.10.1
 	github.com/go-openapi/spec v0.20.7
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
