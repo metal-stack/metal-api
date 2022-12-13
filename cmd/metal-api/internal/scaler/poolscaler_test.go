@@ -53,7 +53,7 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "more waiting machines needed in percent; power on 10 machines",
+			name: "more waiting machines needed in percent; power on 18 machines",
 			partition: &metal.Partition{
 				WaitingPoolMinSize: "30%",
 				WaitingPoolMaxSize: "40%",
@@ -80,7 +80,7 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "pool size exceeded in percent; power off 5 machines",
+			name: "pool size exceeded in percent; power off 4 machines",
 			partition: &metal.Partition{
 				WaitingPoolMinSize: "15%",
 				WaitingPoolMaxSize: "20%",

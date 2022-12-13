@@ -18,12 +18,18 @@ func (p *WaitingState) OnEnter(e *fsm.Event) {
 	appendEventToContainer(p.config.Event, p.config.Container)
 
 	if p.config.Scaler != nil {
-		e.Err = p.config.Scaler.AdjustNumberOfWaitingMachines()
+		err := p.config.Scaler.AdjustNumberOfWaitingMachines()
+		if err != nil {
+			p.config.Log.Errorw("received error from pool scaler", "error", err)
+		}
 	}
 }
 
 func (p *WaitingState) OnLeave(e *fsm.Event) {
 	if p.config.Scaler != nil {
-		e.Err = p.config.Scaler.AdjustNumberOfWaitingMachines()
+		err := p.config.Scaler.AdjustNumberOfWaitingMachines()
+		if err != nil {
+			p.config.Log.Errorw("received error from pool scaler", "error", err)
+		}
 	}
 }
