@@ -155,6 +155,8 @@ func TestPoolScaler_AdjustNumberOfWaitingMachines(t *testing.T) {
 			if err := p.AdjustNumberOfWaitingMachines(); (err != nil) != tt.wantErr {
 				t.Errorf("PoolScaler.AdjustNumberOfWaitingMachines() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			manager.AssertExpectations(t)
 		})
 	}
 }
