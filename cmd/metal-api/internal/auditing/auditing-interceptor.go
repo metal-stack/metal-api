@@ -17,6 +17,11 @@ type auditingContextKey string
 var auditingCorrelationIDKey auditingContextKey = "auditing-correlation-id"
 
 func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit func(fullMethod string) bool) grpc.UnaryServerInterceptor {
+	if a == nil {
+		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+			return handler(ctx, req)
+		}
+	}
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		if !shouldAudit(info.FullMethod) {
 			return handler(ctx, req)
@@ -41,6 +46,11 @@ func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit f
 }
 
 func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit func(fullMethod string) bool) grpc.StreamServerInterceptor {
+	if a == nil {
+		return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+			return handler(srv, ss)
+		}
+	}
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if !shouldAudit(info.FullMethod) {
 			return handler(srv, ss)
@@ -64,6 +74,11 @@ func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit 
 }
 
 func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL) bool) func(h http.Handler) http.Handler {
+	if a == nil {
+		return func(h http.Handler) http.Handler {
+			return h
+		}
+	}
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
