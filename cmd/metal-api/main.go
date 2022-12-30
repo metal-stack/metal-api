@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	httppprof "net/http/pprof"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -278,6 +280,12 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-capath", "", "", "the tls ca certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
+
+	rootCmd.Flags().Bool("auditing-enabled", false, "enable auditing")
+	rootCmd.Flags().String("auditing-url", "http://localhost:7700", "url of the auditing service")
+	rootCmd.Flags().String("auditing-api-key", "secret", "api key for the auditing service")
+	rootCmd.Flags().String("auditing-index-prefix", "auditing", "auditing index prefix")
+	rootCmd.Flags().String("auditing-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
@@ -677,7 +685,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initRestServices(withauth bool) *restfulspec.Config {
+func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
 		logger.Fatal("base path must start and end with a slash")
@@ -693,6 +701,10 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	ipAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("ip-audit-middleware"), func(u *url.URL) bool {
+		return !strings.HasSuffix(u.Path, "/find")
+	})
+	ipService.Filter(restful.HttpMiddlewareHandlerToFilter(ipAuditMiddleware))
 
 	var s3Client *s3client.Client
 	s3Address := viper.GetString("s3-address")
@@ -722,6 +734,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	machineAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("machine-audit-middleware"), func(u *url.URL) bool {
+		return !strings.HasSuffix(u.Path, "/find")
+	})
+	machineService.Filter(restful.HttpMiddlewareHandlerToFilter(machineAuditMiddleware))
+
 	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
 	if err != nil {
 		logger.Fatal(err)
@@ -732,11 +749,17 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		logger.Fatal(err)
 	}
 
+	networkService := service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc)
+	networkAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("network-audit-middleware"), func(u *url.URL) bool {
+		return !strings.HasSuffix(u.Path, "/find")
+	})
+	networkService.Filter(restful.HttpMiddlewareHandlerToFilter(networkAuditMiddleware))
+
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
 	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds))
 	restful.DefaultContainer.Add(service.NewSizeImageConstraint(logger.Named("size-image-constraint-service"), ds))
-	restful.DefaultContainer.Add(service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc))
+	restful.DefaultContainer.Add(networkService)
 	restful.DefaultContainer.Add(ipService)
 	restful.DefaultContainer.Add(firmwareService)
 	restful.DefaultContainer.Add(machineService)
@@ -789,7 +812,11 @@ func initHeadscale() {
 }
 
 func dumpSwaggerJSON() {
-	cfg := initRestServices(false)
+	audit, err := createAuditingClient(logger.Named("audit"))
+	if err != nil {
+		logger.Fatal(err)
+	}
+	cfg := initRestServices(audit, false)
 	actual := restfulspec.BuildSwagger(*cfg)
 
 	// declare custom type for default errors, see:
@@ -894,8 +921,24 @@ func evaluateVPNConnected() error {
 	return updateErr
 }
 
+func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
+	c := auditing.Config{
+		Enabled:          viper.GetBool("auditing-enabled"),
+		URL:              viper.GetString("auditing-url"),
+		APIKey:           viper.GetString("auditing-api-key"),
+		Log:              log,
+		IndexPrefix:      viper.GetString("auditing-index-prefix"),
+		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
+	}
+	return auditing.New(c)
+}
+
 func run() error {
-	initRestServices(true)
+	audit, err := createAuditingClient(logger)
+	if err != nil {
+		logger.Fatalw("cannot create auditing client", "error", err)
+	}
+	initRestServices(audit, true)
 
 	// enable OPTIONS-request so clients can query CORS information
 	restful.DefaultContainer.Filter(restful.DefaultContainer.OPTIONSFilter)
@@ -948,6 +991,7 @@ func run() error {
 			ServerCertFile:           viper.GetString("grpc-server-cert-file"),
 			ServerKeyFile:            viper.GetString("grpc-server-key-file"),
 			BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
+			Auditing:                 audit,
 		})
 		if err != nil {
 			logger.Fatalw("error running grpc server", "error", err)

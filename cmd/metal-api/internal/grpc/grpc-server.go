@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
@@ -46,6 +47,7 @@ type ServerConfig struct {
 	ResponseInterval         time.Duration
 	CheckInterval            time.Duration
 	BMCSuperUserPasswordFile string
+	Auditing                 auditing.Auditing
 
 	integrationTestAllocator chan string
 }
@@ -77,10 +79,21 @@ func Run(cfg *ServerConfig) error {
 		},
 	)
 
+	shouldAudit := func(fullMethod string) bool {
+		switch fullMethod {
+		case "/api.v1.BootService/Register",
+			"/api.v1.EventService/Send":
+			return true
+		default:
+			return false
+		}
+	}
+
 	server := grpc.NewServer(
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+			auditing.StreamServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit),
 			grpc_ctxtags.StreamServerInterceptor(),
 			grpc_prometheus.StreamServerInterceptor,
 			grpc_zap.StreamServerInterceptor(log.Desugar()),
@@ -88,6 +101,7 @@ func Run(cfg *ServerConfig) error {
 			grpc_recovery.StreamServerInterceptor(recoveryOpt),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit),
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_zap.UnaryServerInterceptor(log.Desugar()),
