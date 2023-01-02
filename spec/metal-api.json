@@ -4032,9 +4032,21 @@
     "v1.SwitchBase": {
       "description": "A switch that can register at the api.",
       "properties": {
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
+        },
         "mode": {
           "description": "the mode the switch currently has",
           "type": "string"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "rack_id": {
           "description": "the id of the rack in which this switch is located",
@@ -4105,6 +4117,18 @@
         "sync_duration"
       ]
     },
+    "v1.SwitchOS": {
+      "properties": {
+        "vendor": {
+          "description": "the operating system vendor the switch currently has",
+          "type": "string"
+        },
+        "version": {
+          "description": "the operating system version the switch currently has",
+          "type": "string"
+        }
+      }
+    },
     "v1.SwitchRegisterRequest": {
       "properties": {
         "description": {
@@ -4115,6 +4139,14 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
         },
         "mode": {
           "description": "the mode the switch currently has",
@@ -4130,6 +4162,10 @@
             "$ref": "#/definitions/v1.SwitchNic"
           },
           "type": "array"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "partition_id": {
           "description": "the partition in which this switch is located",
@@ -4185,6 +4221,14 @@
           "$ref": "#/definitions/v1.SwitchSync",
           "description": "last synchronization to the switch that was erroneous"
         },
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
+        },
         "mode": {
           "description": "the mode the switch currently has",
           "type": "string"
@@ -4199,6 +4243,10 @@
             "$ref": "#/definitions/v1.SwitchNic"
           },
           "type": "array"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "partition": {
           "$ref": "#/definitions/v1.PartitionResponse",
@@ -4250,6 +4298,14 @@
           "type": "string",
           "uniqueItems": true
         },
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
+        },
         "mode": {
           "description": "the mode the switch currently has",
           "type": "string"
@@ -4257,6 +4313,10 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "rack_id": {
           "description": "the id of the rack in which this switch is located",
