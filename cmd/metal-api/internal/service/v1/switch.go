@@ -8,8 +8,17 @@ import (
 )
 
 type SwitchBase struct {
-	RackID string `json:"rack_id" modelDescription:"A switch that can register at the api." description:"the id of the rack in which this switch is located"`
-	Mode   string `json:"mode" description:"the mode the switch currently has" optional:"true"`
+	RackID         string    `json:"rack_id" modelDescription:"A switch that can register at the api." description:"the id of the rack in which this switch is located"`
+	Mode           string    `json:"mode" description:"the mode the switch currently has" optional:"true"`
+	OS             *SwitchOS `json:"os" description:"the operating system the switch currently has" optional:"true"`
+	ManagementIP   string    `json:"management_ip" description:"the ip address of the management interface of the switch" optional:"true"`
+	ManagementUser string    `json:"management_user" description:"the user to connect to the switch" optional:"true"`
+	ConsoleCommand string    `json:"console_command" description:"command to access the console of the switch" optional:"true"`
+}
+
+type SwitchOS struct {
+	Vendor  string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
+	Version string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
 }
 
 type SwitchNics []SwitchNic
@@ -105,6 +114,13 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 			Error:    s.LastSyncError.Error,
 		}
 	}
+	var os *SwitchOS
+	if s.OS != nil {
+		os = &SwitchOS{
+			Vendor:  s.OS.Vendor,
+			Version: s.OS.Version,
+		}
+	}
 
 	return &SwitchResponse{
 		Common: Common{
@@ -117,8 +133,12 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 			},
 		},
 		SwitchBase: SwitchBase{
-			RackID: s.RackID,
-			Mode:   string(s.Mode),
+			RackID:         s.RackID,
+			Mode:           string(s.Mode),
+			OS:             os,
+			ManagementIP:   s.ManagementIP,
+			ManagementUser: s.ManagementUser,
+			ConsoleCommand: s.ConsoleCommand,
 		},
 		Nics:          nics,
 		Partition:     *NewPartitionResponse(p),
@@ -153,6 +173,14 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		description = *r.Description
 	}
 
+	var os *metal.SwitchOS
+	if r.OS != nil {
+		os = &metal.SwitchOS{
+			Vendor:  r.OS.Vendor,
+			Version: r.OS.Version,
+		}
+	}
+
 	return &metal.Switch{
 		Base: metal.Base{
 			ID:          r.ID,
@@ -163,5 +191,9 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		RackID:             r.RackID,
 		MachineConnections: make(metal.ConnectionMap),
 		Nics:               nics,
+		OS:                 os,
+		ManagementIP:       r.ManagementIP,
+		ManagementUser:     r.ManagementUser,
+		ConsoleCommand:     r.ConsoleCommand,
 	}
 }
