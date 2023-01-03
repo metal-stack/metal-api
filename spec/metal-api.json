@@ -4032,6 +4032,10 @@
     "v1.SwitchBase": {
       "description": "A switch that can register at the api.",
       "properties": {
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
+        },
         "management_ip": {
           "description": "the ip address of the management interface of the switch",
           "type": "string"
@@ -4054,6 +4058,7 @@
         }
       },
       "required": [
+        "console_command",
         "rack_id"
       ]
     },
@@ -4131,6 +4136,10 @@
     },
     "v1.SwitchRegisterRequest": {
       "properties": {
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -4177,6 +4186,7 @@
         }
       },
       "required": [
+        "console_command",
         "id",
         "nics",
         "partition_id",
@@ -4197,6 +4207,10 @@
             "$ref": "#/definitions/v1.SwitchConnection"
           },
           "type": "array"
+        },
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
         },
         "created": {
           "description": "the creation time of this entity",
@@ -4259,6 +4273,7 @@
       },
       "required": [
         "connections",
+        "console_command",
         "id",
         "nics",
         "partition",
@@ -4289,6 +4304,10 @@
     },
     "v1.SwitchUpdateRequest": {
       "properties": {
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -4324,6 +4343,7 @@
         }
       },
       "required": [
+        "console_command",
         "id",
         "rack_id"
       ]

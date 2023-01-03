@@ -20,6 +20,7 @@ type Switch struct {
 	OS                 *SwitchOS     `rethinkdb:"os" json:"os"`
 	ManagementIP       string        `rethinkdb:"management_ip" json:"management_ip"`
 	ManagementUser     string        `rethinkdb:"management_user" json:"management_user"`
+	ConsoleCommand     string        `rethinkdb:"console_command" json:"console_command"`
 }
 
 type SwitchOS struct {

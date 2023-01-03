@@ -13,6 +13,7 @@ type SwitchBase struct {
 	OS             *SwitchOS `json:"os" description:"the operating system the switch currently has" optional:"true"`
 	ManagementIP   string    `json:"management_ip" description:"the ip address of the management interface of the switch" optional:"true"`
 	ManagementUser string    `json:"management_user" description:"the user to connect to the switch" optional:"true"`
+	ConsoleCommand string    `json:"console_command" description:"command to access the console of the switch"`
 }
 
 type SwitchOS struct {
@@ -137,6 +138,7 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 			OS:             os,
 			ManagementIP:   s.ManagementIP,
 			ManagementUser: s.ManagementUser,
+			ConsoleCommand: s.ConsoleCommand,
 		},
 		Nics:          nics,
 		Partition:     *NewPartitionResponse(p),
@@ -191,5 +193,7 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		Nics:               nics,
 		OS:                 os,
 		ManagementIP:       r.ManagementIP,
+		ManagementUser:     r.ManagementUser,
+		ConsoleCommand:     r.ConsoleCommand,
 	}
 }
