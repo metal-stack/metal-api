@@ -226,6 +226,7 @@ func (r *switchResource) updateSwitch(request *restful.Request, response *restfu
 	if requestPayload.Description != nil {
 		newSwitch.Description = *requestPayload.Description
 	}
+	newSwitch.ConsoleCommand = requestPayload.ConsoleCommand
 
 	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
 
