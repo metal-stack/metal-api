@@ -328,6 +328,16 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 		}
 		s.RackID = spec.RackID
 		s.PartitionID = spec.PartitionID
+		if spec.OS != nil {
+			if s.OS == nil {
+				s.OS = &metal.SwitchOS{}
+			}
+			s.OS.Vendor = spec.OS.Vendor
+			s.OS.Version = spec.OS.Version
+		}
+		s.ConsoleCommand = spec.ConsoleCommand
+		s.ManagementIP = spec.ManagementIP
+		s.ManagementUser = spec.ManagementUser
 
 		s.Nics = nics
 		// Do not replace connections here: We do not want to loose them!
