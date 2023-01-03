@@ -4058,7 +4058,6 @@
         }
       },
       "required": [
-        "console_command",
         "rack_id"
       ]
     },
@@ -4186,7 +4185,6 @@
         }
       },
       "required": [
-        "console_command",
         "id",
         "nics",
         "partition_id",
@@ -4273,7 +4271,6 @@
       },
       "required": [
         "connections",
-        "console_command",
         "id",
         "nics",
         "partition",
@@ -4343,7 +4340,6 @@
         }
       },
       "required": [
-        "console_command",
         "id",
         "rack_id"
       ]
