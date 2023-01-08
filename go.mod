@@ -25,12 +25,15 @@ require (
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/prometheus/client_golang v1.13.0
+	github.com/spf13/cobra v1.5.0
+	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.1
 	github.com/testcontainers/testcontainers-go v0.15.0
 	github.com/undefinedlabs/go-mpatch v1.0.6
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.3.0
+	golang.org/x/sync v0.1.0
 	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
@@ -40,7 +43,7 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
-	github.com/spf13/viper v1.13.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/xdg-go/stringprep v1.0.3 // indirect
@@ -49,7 +52,6 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.5.5 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.5 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 )
 

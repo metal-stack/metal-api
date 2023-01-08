@@ -14,8 +14,16 @@ import (
 	"time"
 
 	"github.com/bufbuild/connect-go"
+	compress "github.com/klauspost/connect-compress"
+
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"go.uber.org/multierr"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -31,7 +39,6 @@ import (
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-openapi/spec"
-	compress "github.com/klauspost/connect-compress"
 	"github.com/metal-stack/go-ipam/api/v1/apiv1connect"
 
 	"github.com/metal-stack/masterdata-api/pkg/auth"
@@ -541,13 +548,11 @@ func initMasterData() {
 func initIpam() {
 	ipamgrpcendpoint := viper.GetString("ipam-grpc-server-endpoint")
 
-	clientOpts, _ := compress.All(compress.LevelBalanced)
-
 	ipamer = ipam.New(apiv1connect.NewIpamServiceClient(
 		http.DefaultClient,
 		ipamgrpcendpoint,
 		connect.WithGRPC(),
-		clientOpts,
+		compress.WithAll(compress.LevelBalanced),
 	))
 
 	logger.Info("ipam initialized")
