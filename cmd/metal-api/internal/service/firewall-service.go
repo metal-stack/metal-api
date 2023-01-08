@@ -3,12 +3,17 @@ package service
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"net/http"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
 	"github.com/metal-stack/security"
 
-	"github.com/metal-stack/metal-lib/httperrors"
 	"go.uber.org/zap"
+
+	"github.com/metal-stack/metal-lib/httperrors"
 
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
@@ -19,16 +24,18 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+
 	"github.com/metal-stack/metal-lib/bus"
 )
 
 type firewallResource struct {
 	webResource
 	bus.Publisher
-	ipamer     ipam.IPAMer
-	mdc        mdm.Client
-	userGetter security.UserGetter
-	actor      *asyncActor
+	ipamer          ipam.IPAMer
+	mdc             mdm.Client
+	userGetter      security.UserGetter
+	actor           *asyncActor
+	headscaleClient *headscale.HeadscaleClient
 }
 
 // NewFirewall returns a webservice for firewall specific endpoints.
@@ -40,16 +47,18 @@ func NewFirewall(
 	ep *bus.Endpoints,
 	mdc mdm.Client,
 	userGetter security.UserGetter,
+	headscaleClient *headscale.HeadscaleClient,
 ) (*restful.WebService, error) {
 	r := firewallResource{
 		webResource: webResource{
 			log: log,
 			ds:  ds,
 		},
-		Publisher:  pub,
-		ipamer:     ipamer,
-		mdc:        mdc,
-		userGetter: userGetter,
+		Publisher:       pub,
+		ipamer:          ipamer,
+		mdc:             mdc,
+		userGetter:      userGetter,
+		headscaleClient: headscaleClient,
 	}
 
 	var err error
@@ -200,6 +209,11 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 		return
 	}
 
+	if err := r.setVPNConfigInSpec(spec); err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
 	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -215,12 +229,36 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 	r.send(request, response, http.StatusOK, resp)
 }
 
+func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSpec) error {
+	if r.headscaleClient == nil {
+		return nil
+	}
+
+	// Try to create namespace in Headscale DB
+	projectID := allocationSpec.ProjectID
+	if err := r.headscaleClient.CreateNamespace(projectID); err != nil {
+		return fmt.Errorf("failed to create new VPN namespace for the project: %w", err)
+	}
+
+	expiration := time.Now().Add(2 * time.Hour)
+	key, err := r.headscaleClient.CreatePreAuthKey(projectID, expiration, false)
+	if err != nil {
+		return fmt.Errorf("failed to create new auth key for the firewall: %w", err)
+	}
+
+	allocationSpec.VPN = &metal.MachineVPN{
+		ControlPlaneAddress: r.headscaleClient.GetControlPlaneAddress(),
+		AuthKey:             key,
+	}
+
+	return nil
+}
+
 func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.FirewallResponse, error) {
 	ms, err := makeMachineResponse(fw, ds)
 	if err != nil {
 		return nil, err
 	}
-
 	return &v1.FirewallResponse{MachineResponse: *ms}, nil
 }
 

@@ -22,19 +22,19 @@ jobs:
 
     steps:
     - name: Log in to the container registry
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.DOCKER_REGISTRY_USER }}
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
 
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Set up Go 1.18
-      uses: actions/setup-go@v2
+    - name: Set up Go 1.19
+      uses: actions/setup-go@v3
       with:
-        go-version: '1.18.x'
+        go-version: '1.19.x'
 
     - name: setup buf
       uses: bufbuild/buf-setup-action@v1
@@ -47,7 +47,7 @@ jobs:
       run: make protoc
 
     - name: Lint
-      uses: golangci/golangci-lint-action@v2
+      uses: golangci/golangci-lint-action@v3
       with:
         args: --build-tags integration -p bugs -p unused --timeout=3m
 
@@ -58,7 +58,7 @@ jobs:
         [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
 
     - name: Build and push image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         push: true
@@ -68,12 +68,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Set up Go 1.18
-      uses: actions/setup-go@v2
+    - name: Set up Go 1.19
+      uses: actions/setup-go@v3
       with:
-        go-version: '1.18.x'
+        go-version: '1.19.x'
 
     - name: Run integration tests
       run: |

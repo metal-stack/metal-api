@@ -14,12 +14,22 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
+
 	"github.com/avast/retry-go/v4"
 	"github.com/emicklei/go-restful/v3"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
+	"golang.org/x/sync/errgroup"
+
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -27,9 +37,6 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/rest"
 	"github.com/metal-stack/security"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
-	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -43,20 +50,34 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	rs, container := setupTestEnvironment(machineCount, t)
 	defer rs.Close()
 
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	port := 50006
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+	require.NoError(t, err)
+
+	c := grpcv1.NewBootServiceClient(conn)
+
 	// Register
 	e, _ := errgroup.WithContext(context.Background())
 	for i := 0; i < machineCount; i++ {
 		i := i
 		e.Go(func() error {
-			var ma v1.MachineResponse
+			var ma *grpcv1.BootServiceRegisterResponse
 			mr := createMachineRegisterRequest(i)
 			err := retry.Do(
 				func() error {
 					var err2 error
-					ma, err2 = registerMachine(container, mr)
+					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+					defer cancel()
+					ma, err2 = c.Register(ctx, mr)
 					if err2 != nil {
-						// FIXME err is a machineResponse ?
-						// t.Logf("machine registration failed, retrying:%v", err2.Error())
+						t.Logf("machine registration failed, retrying:%v", err2.Error())
 						return err2
 					}
 					return nil
@@ -69,15 +90,12 @@ func TestMachineAllocationIntegration(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			nics := ma.Hardware.Nics
-			if len(nics) < 2 {
-				return fmt.Errorf("did not get 2 nics")
-			}
-			t.Logf("machine:%s registered", ma.ID)
+
+			t.Logf("machine:%s registered", ma.Uuid)
 			return nil
 		})
 	}
-	err := e.Wait()
+	err = e.Wait()
 	require.NoError(t, err)
 
 	// Allocate
@@ -224,28 +242,6 @@ func freeMachine(container *restful.Container, id string) (v1.MachineResponse, e
 	return result, err
 }
 
-func registerMachine(container *restful.Container, rm v1.MachineRegisterRequest) (v1.MachineResponse, error) {
-	js, err := json.Marshal(rm)
-	if err != nil {
-		return v1.MachineResponse{}, err
-	}
-	body := bytes.NewBuffer(js)
-	req := httptest.NewRequest("POST", "/v1/machine/register", body)
-	req.Header.Add("Content-Type", "application/json")
-	hma.AddAuth(req, time.Now(), js)
-	w := httptest.NewRecorder()
-	container.ServeHTTP(w, req)
-
-	resp := w.Result()
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return v1.MachineResponse{}, fmt.Errorf(w.Body.String())
-	}
-	var result v1.MachineResponse
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	return result, err
-}
-
 // Helper -----------------------------------------------------------------------------------------------
 
 const (
@@ -253,30 +249,35 @@ const (
 	swp2MacPrefix = "bb:cb"
 )
 
-func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
-	return v1.MachineRegisterRequest{
-		UUID:        fmt.Sprintf("WaitingMachine%d", i),
-		PartitionID: "p1",
-		Hardware: v1.MachineHardware{
-			MachineHardwareBase: v1.MachineHardwareBase{Memory: 4, CPUCores: 4},
-			Nics: v1.MachineNics{
+func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
+	return &grpcv1.BootServiceRegisterRequest{
+		Uuid: fmt.Sprintf("WaitingMachine%d", i),
+		Bios: &grpcv1.MachineBIOS{
+			Version: "a",
+			Vendor:  "metal",
+			Date:    "1970",
+		},
+		Hardware: &grpcv1.MachineHardware{
+			Memory:   4,
+			CpuCores: 4,
+			Nics: []*grpcv1.MachineNic{
 				{
-					Name:       "lan0",
-					MacAddress: fmt.Sprintf("aa:ba:%d", i),
-					Neighbors: v1.MachineNics{
+					Name: "lan0",
+					Mac:  fmt.Sprintf("aa:ba:%d", i),
+					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name:       fmt.Sprintf("swp-%d", i),
-							MacAddress: fmt.Sprintf("%s:%d", swp1MacPrefix, i),
+							Name: fmt.Sprintf("swp-%d", i),
+							Mac:  fmt.Sprintf("%s:%d", swp1MacPrefix, i),
 						},
 					},
 				},
 				{
-					Name:       "lan1",
-					MacAddress: fmt.Sprintf("aa:bb:%d", i),
-					Neighbors: v1.MachineNics{
+					Name: "lan1",
+					Mac:  fmt.Sprintf("aa:bb:%d", i),
+					Neighbors: []*grpcv1.MachineNic{
 						{
-							Name:       fmt.Sprintf("swp-%d", i),
-							MacAddress: fmt.Sprintf("%s:%d", swp2MacPrefix, i),
+							Name: fmt.Sprintf("swp-%d", i),
+							Mac:  fmt.Sprintf("%s:%d", swp2MacPrefix, i),
 						},
 					},
 				},
@@ -288,7 +289,7 @@ func createMachineRegisterRequest(i int) v1.MachineRegisterRequest {
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
 	log := zaptest.NewLogger(t).Sugar()
 
-	_, c, err := test.StartRethink()
+	_, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 
 	rs := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
@@ -307,8 +308,22 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	ipamer := ipam.InitTestIpam(t)
 	createTestdata(machineCount, rs, ipamer, t)
 
+	go func() {
+		err := metalgrpc.Run(&metalgrpc.ServerConfig{
+			Context:          context.Background(),
+			Store:            rs,
+			Publisher:        NopPublisher{},
+			Logger:           log,
+			GrpcPort:         50006,
+			TlsEnabled:       false,
+			ResponseInterval: 2 * time.Millisecond,
+			CheckInterval:    1 * time.Hour,
+		})
+		require.NoError(t, err)
+	}()
+
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0)
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
@@ -317,7 +332,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
 	for i := 0; i < machineCount; i++ {
-		id := fmt.Sprintf("WaitingMaschine%d", i)
+		id := fmt.Sprintf("WaitingMachine%d", i)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
 			SizeID:      "s1",

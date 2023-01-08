@@ -102,7 +102,7 @@ func (b *BootService) initWaitEndpoint() error {
 		return nil
 	}
 	var r uint64
-	randomByte, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+	randomByte, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64)) //nolint:gosec
 	if err == nil {
 		r = randomByte.Uint64()
 	} else {

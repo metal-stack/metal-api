@@ -23,7 +23,7 @@ import (
 )
 
 func TestGetImagesIntegration(t *testing.T) {
-	rethinkContainer, c, err := test.StartRethink()
+	rethinkContainer, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 	defer func() {
 		_ = rethinkContainer.Terminate(context.Background())

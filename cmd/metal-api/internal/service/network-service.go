@@ -500,7 +500,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
 	vrf, err := acquireRandomVRF(ds)
 	if err != nil {
-		return nil, fmt.Errorf("Could not acquire a vrf: %w", err)
+		return nil, fmt.Errorf("could not acquire a vrf: %w", err)
 	}
 
 	childPrefix, err := createChildPrefix(parent.Prefixes, childLength, ipamer)
@@ -625,19 +625,13 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	var prefixesToBeAdded metal.Prefixes
 
 	if len(requestPayload.Prefixes) > 0 {
-		var prefixesFromRequest metal.Prefixes
-		for _, prefixCidr := range requestPayload.Prefixes {
-			requestPrefix, err := metal.NewPrefixFromCIDR(prefixCidr)
-			if err != nil {
-				r.sendError(request, response, defaultError(err))
-				return
-			}
-
-			prefixesFromRequest = append(prefixesFromRequest, *requestPrefix)
+		newNetwork.Prefixes, err = prefixesFromCidr(requestPayload.Prefixes)
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
 		}
-		newNetwork.Prefixes = prefixesFromRequest
 
-		prefixesToBeRemoved = oldNetwork.SubstractPrefixes(prefixesFromRequest...)
+		prefixesToBeRemoved = oldNetwork.SubstractPrefixes(newNetwork.Prefixes...)
 
 		// now validate if there are ips which have a prefix to be removed as a parent
 		allIPs, err := r.ds.ListIPs()
@@ -671,6 +665,14 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		}
 	}
 
+	if len(requestPayload.DestinationPrefixes) > 0 {
+		newNetwork.DestinationPrefixes, err = prefixesFromCidr(requestPayload.DestinationPrefixes)
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+	}
+
 	err = r.ds.UpdateNetwork(oldNetwork, &newNetwork)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -680,6 +682,18 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	usage := getNetworkUsage(&newNetwork, r.ipamer)
 
 	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
+}
+
+func prefixesFromCidr(PrefixesCidr []string) (metal.Prefixes, error) {
+	var prefixes metal.Prefixes
+	for _, prefixCidr := range PrefixesCidr {
+		Prefix, err := metal.NewPrefixFromCIDR(prefixCidr)
+		if err != nil {
+			return nil, err
+		}
+		prefixes = append(prefixes, *Prefix)
+	}
+	return prefixes, nil
 }
 
 func (r *networkResource) deleteNetwork(request *restful.Request, response *restful.Response) {

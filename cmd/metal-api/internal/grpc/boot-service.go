@@ -100,6 +100,9 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 	if req.Hardware == nil {
 		return nil, errors.New("hardware is nil")
 	}
+	if req.Bios == nil {
+		return nil, errors.New("bios is nil")
+	}
 
 	disks := []metal.BlockDevice{}
 	for i := range req.Hardware.Disks {
@@ -241,9 +244,8 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 
 	if ec == nil {
 		err = b.ds.CreateProvisioningEventContainer(&metal.ProvisioningEventContainer{
-			Base:                         metal.Base{ID: m.ID},
-			Liveliness:                   metal.MachineLivelinessAlive,
-			IncompleteProvisioningCycles: "0",
+			Base:       metal.Base{ID: m.ID},
+			Liveliness: metal.MachineLivelinessAlive,
 		},
 		)
 		if err != nil {

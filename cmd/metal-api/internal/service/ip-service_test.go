@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -189,9 +190,11 @@ func TestAllocateIP(t *testing.T) {
 	tests := []struct {
 		name            string
 		allocateRequest v1.IPAllocateRequest
+		specificIP      string
 		wantedStatus    int
 		wantedType      metal.IPType
 		wantedIP        string
+		wantErr         error
 	}{
 		{
 			name: "allocate an ephemeral ip",
@@ -213,6 +216,35 @@ func TestAllocateIP(t *testing.T) {
 			wantedType:   metal.Static,
 			wantedIP:     "10.0.0.2",
 		},
+		{
+			name: "allocate a static specific ip",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Static,
+				},
+			},
+			specificIP:   "10.0.0.5",
+			wantedStatus: http.StatusCreated,
+			wantedType:   metal.Static,
+			wantedIP:     "10.0.0.5",
+		},
+		{
+			name: "allocate a static specific ip outside prefix",
+			allocateRequest: v1.IPAllocateRequest{
+				Describable: v1.Describable{},
+				IPBase: v1.IPBase{
+					ProjectID: "123",
+					NetworkID: testdata.NwIPAM.ID,
+					Type:      metal.Static,
+				},
+			},
+			specificIP:   "11.0.0.5",
+			wantedStatus: http.StatusUnprocessableEntity,
+			wantErr:      errors.New("cannot allocate free ip in ipam"),
+		},
 	}
 	for i := range tests {
 		tt := tests[i]
@@ -221,7 +253,12 @@ func TestAllocateIP(t *testing.T) {
 			js, err := json.Marshal(tt.allocateRequest)
 			require.NoError(t, err)
 			body := bytes.NewBuffer(js)
-			req := httptest.NewRequest("POST", "/v1/ip/allocate", body)
+			var req *http.Request
+			if tt.specificIP == "" {
+				req = httptest.NewRequest("POST", "/v1/ip/allocate", body)
+			} else {
+				req = httptest.NewRequest("POST", "/v1/ip/allocate/"+tt.specificIP, body)
+			}
 			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -230,13 +267,22 @@ func TestAllocateIP(t *testing.T) {
 			defer resp.Body.Close()
 
 			require.Equal(t, tt.wantedStatus, resp.StatusCode, w.Body.String())
-			var result v1.IPResponse
-			err = json.NewDecoder(resp.Body).Decode(&result)
 
-			require.NoError(t, err)
-			require.Equal(t, tt.wantedType, result.Type)
-			require.Equal(t, tt.wantedIP, result.IPAddress)
-			require.Equal(t, tt.name, *result.Name)
+			if tt.wantErr == nil {
+				var result v1.IPResponse
+				err = json.NewDecoder(resp.Body).Decode(&result)
+
+				require.NoError(t, err)
+				require.Equal(t, tt.wantedType, result.Type)
+				require.Equal(t, tt.wantedIP, result.IPAddress)
+				require.Equal(t, tt.name, *result.Name)
+			} else {
+				var result httperrors.HTTPErrorResponse
+				err = json.NewDecoder(resp.Body).Decode(&result)
+				require.NoError(t, err)
+				require.Equal(t, tt.wantedStatus, resp.StatusCode)
+				require.Equal(t, tt.wantErr.Error(), result.Message)
+			}
 		})
 	}
 }

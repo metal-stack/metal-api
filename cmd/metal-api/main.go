@@ -16,20 +16,17 @@ import (
 	"github.com/bufbuild/connect-go"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	"github.com/metal-stack/metal-lib/rest"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	nsq2 "github.com/nsqio/go-nsq"
 
 	"github.com/metal-stack/metal-lib/jwt/grp"
 	"github.com/metal-stack/metal-lib/jwt/sec"
-
-	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
@@ -40,6 +37,9 @@ import (
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service"
@@ -47,10 +47,6 @@ import (
 	httperrors "github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
 	"github.com/metal-stack/v"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type dsConnectOpt int
@@ -73,6 +69,7 @@ var (
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	mdc                mdm.Client
+	headscaleClient    *headscale.HeadscaleClient
 )
 
 var rootCmd = &cobra.Command{
@@ -98,6 +95,7 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
+		initHeadscale()
 		return run()
 	},
 }
@@ -164,6 +162,16 @@ var machineLiveliness = &cobra.Command{
 		return evaluateLiveliness()
 	},
 }
+var machineConnectedToVPN = &cobra.Command{
+	Use:     "machines-vpn-connected",
+	Short:   "evaluates whether machines connected to vpn",
+	Version: v.V.String(),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		initLogging()
+		initHeadscale()
+		return evaluateVPNConnected()
+	},
+}
 
 var deleteOrphanImagesCmd = &cobra.Command{
 	Use:     "delete-orphan-images",
@@ -199,6 +207,7 @@ func init() {
 		resurrectMachines,
 		machineLiveliness,
 		deleteOrphanImagesCmd,
+		machineConnectedToVPN,
 	)
 
 	rootCmd.Flags().StringP("config", "c", "", "alternative path to config file")
@@ -264,6 +273,10 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-capath", "", "", "the tls ca certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
+
+	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
+	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
+	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
 
 	must(viper.BindPFlags(rootCmd.Flags()))
 	must(viper.BindPFlags(rootCmd.PersistentFlags()))
@@ -341,7 +354,13 @@ func initMetrics() {
 	metricsServer.Handle("/pprof/goroutine", httppprof.Handler("goroutine"))
 
 	go func() {
-		err := http.ListenAndServe(viper.GetString("metrics-server-bind-addr"), metricsServer)
+		server := &http.Server{
+			Addr:              viper.GetString("metrics-server-bind-addr"),
+			Handler:           metricsServer,
+			ReadHeaderTimeout: time.Minute,
+		}
+
+		err := server.ListenAndServe()
 		if err != nil {
 			logger.Errorw("failed to start metrics endpoint, exiting...", "error", err)
 			os.Exit(1)
@@ -363,8 +382,16 @@ func initSignalHandlers() {
 				logger.Info("Unable to properly shutdown datastore", "error", err)
 				os.Exit(1)
 			}
-			os.Exit(0)
 		}
+		if headscaleClient != nil {
+			logger.Info("Closing connection to Headscale")
+			if err := headscaleClient.Close(); err != nil {
+				logger.Info("Failed to close connection to Headscale", "error", err)
+				os.Exit(1)
+			}
+		}
+
+		os.Exit(0)
 	}()
 }
 
@@ -673,11 +700,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength)
+	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter)
+	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -702,6 +729,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	restful.DefaultContainer.Add(service.NewFilesystemLayout(logger.Named("filesystem-layout-service"), ds))
 	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
+	restful.DefaultContainer.Add(service.NewVPN(logger.Named("vpn-service"), headscaleClient))
 	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
 	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
@@ -721,6 +749,25 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
 	return &config
+}
+
+func initHeadscale() {
+	var err error
+
+	headscaleClient, err = headscale.NewHeadscaleClient(
+		viper.GetString("headscale-addr"),
+		viper.GetString("headscale-cp-addr"),
+		viper.GetString("headscale-api-key"),
+		logger.Named("headscale"),
+	)
+	if err != nil {
+		logger.Errorw("failed to init headscale client", "error", err)
+	}
+	if headscaleClient == nil {
+		return
+	}
+
+	logger.Info("headscale initialized")
 }
 
 func dumpSwaggerJSON() {
@@ -767,7 +814,7 @@ func resurrectDeadMachines() error {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	err = service.ResurrectMachines(ds, p, ep, ipamer, logger)
+	err = service.ResurrectMachines(ds, p, ep, ipamer, headscaleClient, logger)
 	if err != nil {
 		return fmt.Errorf("unable to resurrect machines: %w", err)
 	}
@@ -787,6 +834,46 @@ func evaluateLiveliness() error {
 	}
 
 	return nil
+}
+
+func evaluateVPNConnected() error {
+	err := connectDataStore()
+	if err != nil {
+		return err
+	}
+
+	ms, err := ds.ListMachines()
+	if err != nil {
+		return err
+	}
+
+	connectedMap, err := headscaleClient.MachinesConnected()
+	if err != nil {
+		return err
+	}
+
+	var updateErr error
+	for _, m := range ms {
+		m := m
+		if m.Allocation == nil || m.Allocation.VPN == nil {
+			continue
+		}
+		connected := connectedMap[m.ID]
+		if m.Allocation.VPN.Connected == connected {
+			continue
+		}
+
+		old := m
+		m.Allocation.VPN.Connected = connected
+		err := ds.UpdateMachine(&old, &m)
+		if err != nil {
+			updateErr = multierr.Append(updateErr, err)
+			logger.Errorw("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
+			continue
+		}
+		logger.Infow("updated vpn connected state", "machine", m.ID, "connected", connected)
+	}
+	return updateErr
 }
 
 func run() error {
@@ -850,8 +937,15 @@ func run() error {
 	}()
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("bind-addr"), viper.GetInt("port"))
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           restful.DefaultContainer,
+		ReadHeaderTimeout: time.Minute,
+	}
+
 	logger.Infow("start metal api", "version", v.V.String(), "address", addr, "base-path", service.BasePath)
-	err = http.ListenAndServe(addr, nil)
+
+	err = server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("failed to start metal api: %w", err)
 	}
