@@ -3,7 +3,7 @@ module github.com/metal-stack/metal-api
 go 1.19
 
 require (
-	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/avast/retry-go/v4 v4.1.0
 	github.com/aws/aws-sdk-go v1.44.101
 	github.com/dustin/go-humanize v1.0.0
