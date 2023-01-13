@@ -68,14 +68,14 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publ
 	}
 
 	c := &s.PoolScalerConfig{
-		Log:       log,
+		Log:       log.Named("pool-scaler"),
 		Manager:   manager,
 		Partition: *p,
 	}
 	scaler := s.NewPoolScaler(c)
 
 	config := states.StateConfig{
-		Log:       log,
+		Log:       log.Named("fsm"),
 		Container: ec,
 		Event:     event,
 		Scaler:    scaler,
