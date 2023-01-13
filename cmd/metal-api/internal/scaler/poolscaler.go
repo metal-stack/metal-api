@@ -58,6 +58,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 	poolSizeExcess = p.calculatePoolSizeExcess(len(waitingMachines), *waitingPoolRange)
 
 	if poolSizeExcess == 0 {
+		p.log.Info("pool size condition met; doing nothing")
 		return nil
 	}
 
