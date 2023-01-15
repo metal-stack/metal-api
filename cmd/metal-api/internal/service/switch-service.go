@@ -336,7 +336,6 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			s.OS.Vendor = spec.OS.Vendor
 			s.OS.Version = spec.OS.Version
 		}
-		s.ConsoleCommand = spec.ConsoleCommand
 		s.ManagementIP = spec.ManagementIP
 		s.ManagementUser = spec.ManagementUser
 
