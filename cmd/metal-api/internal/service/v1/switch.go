@@ -181,7 +181,7 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		}
 	}
 
-	result := &metal.Switch{
+	return &metal.Switch{
 		Base: metal.Base{
 			ID:          r.ID,
 			Name:        name,
@@ -194,11 +194,6 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		OS:                 os,
 		ManagementIP:       r.ManagementIP,
 		ManagementUser:     r.ManagementUser,
+		ConsoleCommand:     r.ConsoleCommand,
 	}
-
-	if r.ConsoleCommand != "" {
-		result.ConsoleCommand = r.ConsoleCommand
-	}
-
-	return result
 }
