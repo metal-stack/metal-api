@@ -2356,6 +2356,9 @@
         "password": {
           "type": "string"
         },
+        "powermetric": {
+          "$ref": "#/definitions/v1.PowerMetric"
+        },
         "powerstate": {
           "type": "string"
         },
@@ -2370,6 +2373,7 @@
         "interface",
         "mac",
         "password",
+        "powermetric",
         "powerstate",
         "user"
       ]
@@ -2485,6 +2489,9 @@
         "IndicatorLEDState": {
           "type": "string"
         },
+        "PowerMetric": {
+          "$ref": "#/definitions/v1.PowerMetric"
+        },
         "PowerState": {
           "type": "string"
         }
@@ -2495,6 +2502,7 @@
         "BMCVersion",
         "FRU",
         "IndicatorLEDState",
+        "PowerMetric",
         "PowerState"
       ]
     },
@@ -3543,6 +3551,32 @@
       },
       "required": [
         "id"
+      ]
+    },
+    "v1.PowerMetric": {
+      "properties": {
+        "averageconsumedwatts": {
+          "format": "float",
+          "type": "number"
+        },
+        "intervalinmin": {
+          "format": "float",
+          "type": "number"
+        },
+        "maxconsumedwatts": {
+          "format": "float",
+          "type": "number"
+        },
+        "minconsumedwatts": {
+          "format": "float",
+          "type": "number"
+        }
+      },
+      "required": [
+        "averageconsumedwatts",
+        "intervalinmin",
+        "maxconsumedwatts",
+        "minconsumedwatts"
       ]
     },
     "v1.Project": {
