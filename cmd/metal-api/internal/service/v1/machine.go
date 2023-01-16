@@ -242,6 +242,7 @@ type MachineIpmiReport struct {
 	BMCVersion        string
 	PowerState        string
 	IndicatorLEDState string
+	PowerMetric       *PowerMetric
 }
 
 type MachineIpmiReports struct {

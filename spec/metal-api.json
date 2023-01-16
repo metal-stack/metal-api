@@ -2489,6 +2489,9 @@
         "IndicatorLEDState": {
           "type": "string"
         },
+        "PowerMetric": {
+          "$ref": "#/definitions/v1.PowerMetric"
+        },
         "PowerState": {
           "type": "string"
         }
@@ -2499,6 +2502,7 @@
         "BMCVersion",
         "FRU",
         "IndicatorLEDState",
+        "PowerMetric",
         "PowerState"
       ]
     },
