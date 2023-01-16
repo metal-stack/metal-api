@@ -137,14 +137,35 @@ type MachineBIOS struct {
 }
 
 type MachineIPMI struct {
-	Address    string     `json:"address" modelDescription:"The IPMI connection data"`
-	MacAddress string     `json:"mac"`
-	User       string     `json:"user"`
-	Password   string     `json:"password"`
-	Interface  string     `json:"interface"`
-	Fru        MachineFru `json:"fru"`
-	BMCVersion string     `json:"bmcversion"`
-	PowerState string     `json:"powerstate"`
+	Address     string       `json:"address" modelDescription:"The IPMI connection data"`
+	MacAddress  string       `json:"mac"`
+	User        string       `json:"user"`
+	Password    string       `json:"password"`
+	Interface   string       `json:"interface"`
+	Fru         MachineFru   `json:"fru"`
+	BMCVersion  string       `json:"bmcversion"`
+	PowerState  string       `json:"powerstate"`
+	PowerMetric *PowerMetric `json:"powermetric"`
+}
+
+type PowerMetric struct {
+	// AverageConsumedWatts shall represent the
+	// average power level that occurred averaged over the last IntervalInMin
+	// minutes.
+	AverageConsumedWatts float32 `json:"averageconsumedwatts"`
+	// IntervalInMin shall represent the time
+	// interval (or window), in minutes, in which the PowerMetrics properties
+	// are measured over.
+	// Should be an integer, but some Dell implementations return as a float.
+	IntervalInMin float32 `json:"intervalinmin"`
+	// MaxConsumedWatts shall represent the
+	// maximum power level in watts that occurred within the last
+	// IntervalInMin minutes.
+	MaxConsumedWatts float32 `json:"maxconsumedwatts"`
+	// MinConsumedWatts shall represent the
+	// minimum power level in watts that occurred within the last
+	// IntervalInMin minutes.
+	MinConsumedWatts float32 `json:"minconsumedwatts"`
 }
 
 type MachineFru struct {
@@ -315,6 +336,15 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 	if r.Fru.ProductSerial != nil {
 		productSerial = *r.Fru.ProductSerial
 	}
+	var powerMetric *metal.PowerMetric
+	if r.PowerMetric != nil {
+		powerMetric = &metal.PowerMetric{
+			AverageConsumedWatts: r.PowerMetric.AverageConsumedWatts,
+			IntervalInMin:        r.PowerMetric.IntervalInMin,
+			MaxConsumedWatts:     r.PowerMetric.MaxConsumedWatts,
+			MinConsumedWatts:     r.PowerMetric.MinConsumedWatts,
+		}
+	}
 
 	return metal.IPMI{
 		Address:    r.Address,
@@ -333,23 +363,36 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 			ProductPartNumber:   productPartNumber,
 			ProductSerial:       productSerial,
 		},
-		PowerState: r.PowerState,
+		PowerState:  r.PowerState,
+		PowerMetric: powerMetric,
 	}
 }
 
 func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineIPMIResponse {
 	machineResponse := NewMachineResponse(m, s, p, i, ec)
+
+	var powerMetric *PowerMetric
+	if m.IPMI.PowerMetric != nil {
+		powerMetric = &PowerMetric{
+			AverageConsumedWatts: m.IPMI.PowerMetric.AverageConsumedWatts,
+			IntervalInMin:        m.IPMI.PowerMetric.IntervalInMin,
+			MaxConsumedWatts:     m.IPMI.PowerMetric.MaxConsumedWatts,
+			MinConsumedWatts:     m.IPMI.PowerMetric.MinConsumedWatts,
+		}
+	}
+
 	return &MachineIPMIResponse{
 		Common:      machineResponse.Common,
 		MachineBase: machineResponse.MachineBase,
 		IPMI: MachineIPMI{
-			Address:    m.IPMI.Address,
-			MacAddress: m.IPMI.MacAddress,
-			User:       m.IPMI.User,
-			Password:   m.IPMI.Password,
-			Interface:  m.IPMI.Interface,
-			BMCVersion: m.IPMI.BMCVersion,
-			PowerState: m.IPMI.PowerState,
+			Address:     m.IPMI.Address,
+			MacAddress:  m.IPMI.MacAddress,
+			User:        m.IPMI.User,
+			Password:    m.IPMI.Password,
+			Interface:   m.IPMI.Interface,
+			BMCVersion:  m.IPMI.BMCVersion,
+			PowerState:  m.IPMI.PowerState,
+			PowerMetric: powerMetric,
 			Fru: MachineFru{
 				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
 				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,
