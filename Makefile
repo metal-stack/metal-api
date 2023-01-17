@@ -28,8 +28,8 @@ protoc:
 .PHONY: protoc-docker
 protoc-docker:
 	rm -rf pkg/api/v1
-	docker pull bufbuild/buf:1.5.0
-	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.5.0 generate -v
+	docker pull bufbuild/buf:1.12.0
+	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.12.0 generate -v
 
 .PHONY: mini-lab-push
 mini-lab-push:
