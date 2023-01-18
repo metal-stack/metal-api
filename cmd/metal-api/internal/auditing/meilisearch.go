@@ -63,7 +63,7 @@ func (a *meiliAuditing) Index(keysAndValues ...any) error {
 	e["component"] = "api-server"
 	documents := []map[string]any{e}
 
-	task, err := a.index.AddDocuments(documents, "correlation-id")
+	task, err := a.index.AddDocuments(documents, "id")
 	if err != nil {
 		a.log.Errorw("index", "error", err)
 		return err

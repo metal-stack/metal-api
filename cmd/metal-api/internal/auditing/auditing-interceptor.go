@@ -7,14 +7,12 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/emicklei/go-restful/v3"
 	"github.com/google/uuid"
+	"github.com/metal-stack/metal-lib/rest"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
-
-type auditingContextKey string
-
-var auditingCorrelationIDKey auditingContextKey = "auditing-correlation-id"
 
 func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit func(fullMethod string) bool) grpc.UnaryServerInterceptor {
 	if a == nil {
@@ -24,21 +22,21 @@ func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit f
 		if !shouldAudit(info.FullMethod) {
 			return handler(ctx, req)
 		}
-		correlationID := uuid.New().String()
-		childCtx := context.WithValue(ctx, auditingCorrelationIDKey, correlationID)
-		err = a.Index("correlation-id", correlationID, "method", info.FullMethod, "kind", "grpc", "req", req)
+		requestID := uuid.New().String()
+		childCtx := context.WithValue(ctx, rest.RequestIDKey, requestID)
+		err = a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc", "req", req)
 		if err != nil {
 			return nil, err
 		}
 		resp, err = handler(childCtx, req)
 		if err != nil {
-			err2 := a.Index("correlation-id", correlationID, "method", info.FullMethod, "kind", "grpc", "err", err)
+			err2 := a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc", "err", err)
 			if err2 != nil {
 				logger.Errorf("unable to index error: %v", err2)
 			}
 			return nil, err
 		}
-		err = a.Index("correlation-id", correlationID, "method", info.FullMethod, "kind", "grpc", "resp", resp)
+		err = a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc", "resp", resp)
 		return resp, err
 	}
 }
@@ -51,25 +49,25 @@ func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit 
 		if !shouldAudit(info.FullMethod) {
 			return handler(srv, ss)
 		}
-		correlationID := uuid.New().String()
+		requestID := uuid.New().String()
 		err := a.Index("kind", "grpc-stream", "stream", srv)
 		if err != nil {
 			return err
 		}
 		err = handler(srv, ss)
 		if err != nil {
-			err2 := a.Index("correlation-id", correlationID, "method", info.FullMethod, "kind", "grpc-stream", "err", err)
+			err2 := a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc-stream", "err", err)
 			if err2 != nil {
 				logger.Errorf("unable to index error: %v", err2)
 			}
 			return err
 		}
-		err = a.Index("correlation-id", correlationID, "method", info.FullMethod, "kind", "grpc-stream")
+		err = a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc-stream")
 		return err
 	}
 }
 
-func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL) bool) func(h http.Handler) http.Handler {
+func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL) bool) restful.HttpMiddlewareHandler {
 	if a == nil {
 		logger.Fatal("cannot use nil auditing to create http middleware")
 	}
@@ -86,11 +84,10 @@ func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url
 				h.ServeHTTP(w, r)
 				return
 			}
-			correlationID := uuid.NewString()
-			r = r.WithContext(context.WithValue(r.Context(), auditingCorrelationIDKey, correlationID))
+			requestID := r.Context().Value(rest.RequestIDKey)
 
 			auditReqContext := []any{
-				"correlation-id", correlationID,
+				"rqid", requestID,
 				"method", r.Method,
 				"path", r.URL.Path,
 			}
