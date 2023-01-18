@@ -701,10 +701,12 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	if err != nil {
 		logger.Fatal(err)
 	}
-	ipAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("ip-audit-middleware"), func(u *url.URL) bool {
-		return !strings.HasSuffix(u.Path, "/find")
-	})
-	ipService.Filter(restful.HttpMiddlewareHandlerToFilter(ipAuditMiddleware))
+	if audit != nil {
+		ipAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("ip-audit-middleware"), func(u *url.URL) bool {
+			return !strings.HasSuffix(u.Path, "/find")
+		})
+		ipService.Filter(restful.HttpMiddlewareHandlerToFilter(ipAuditMiddleware))
+	}
 
 	var s3Client *s3client.Client
 	s3Address := viper.GetString("s3-address")
@@ -734,10 +736,12 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	if err != nil {
 		logger.Fatal(err)
 	}
-	machineAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("machine-audit-middleware"), func(u *url.URL) bool {
-		return !strings.HasSuffix(u.Path, "/find")
-	})
-	machineService.Filter(restful.HttpMiddlewareHandlerToFilter(machineAuditMiddleware))
+	if audit != nil {
+		machineAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("machine-audit-middleware"), func(u *url.URL) bool {
+			return !strings.HasSuffix(u.Path, "/find")
+		})
+		machineService.Filter(restful.HttpMiddlewareHandlerToFilter(machineAuditMiddleware))
+	}
 
 	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
 	if err != nil {
@@ -750,10 +754,12 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	}
 
 	networkService := service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc)
-	networkAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("network-audit-middleware"), func(u *url.URL) bool {
-		return !strings.HasSuffix(u.Path, "/find")
-	})
-	networkService.Filter(restful.HttpMiddlewareHandlerToFilter(networkAuditMiddleware))
+	if audit != nil {
+		networkAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("network-audit-middleware"), func(u *url.URL) bool {
+			return !strings.HasSuffix(u.Path, "/find")
+		})
+		networkService.Filter(restful.HttpMiddlewareHandlerToFilter(networkAuditMiddleware))
+	}
 
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
@@ -812,11 +818,7 @@ func initHeadscale() {
 }
 
 func dumpSwaggerJSON() {
-	audit, err := createAuditingClient(logger.Named("audit"))
-	if err != nil {
-		logger.Fatal(err)
-	}
-	cfg := initRestServices(audit, false)
+	cfg := initRestServices(nil, false)
 	actual := restfulspec.BuildSwagger(*cfg)
 
 	// declare custom type for default errors, see:
@@ -921,9 +923,15 @@ func evaluateVPNConnected() error {
 	return updateErr
 }
 
+// might return (nil, nil) if auditing is disabled!
 func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
+	isEnabled := viper.GetBool("auditing-enabled")
+	if !isEnabled {
+		log.Warn("auditing is disabled, can be enabled by setting --auditing-enabled=true")
+		return nil, nil
+	}
+
 	c := auditing.Config{
-		Enabled:          viper.GetBool("auditing-enabled"),
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
 		Log:              log,

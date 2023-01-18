@@ -3,7 +3,6 @@ package auditing
 import "go.uber.org/zap"
 
 type Config struct {
-	Enabled          bool
 	URL              string
 	APIKey           string
 	IndexPrefix      string

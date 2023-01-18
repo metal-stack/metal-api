@@ -19,11 +19,6 @@ type meiliAuditing struct {
 }
 
 func New(c Config) (Auditing, error) {
-	if !c.Enabled {
-		c.Log.Warn("auditing is disabled, can be enabled by setting --auditing-enabled=true")
-		return &noop{}, nil
-	}
-
 	client := meilisearch.NewClient(meilisearch.ClientConfig{
 		Host:   c.URL,
 		APIKey: c.APIKey,

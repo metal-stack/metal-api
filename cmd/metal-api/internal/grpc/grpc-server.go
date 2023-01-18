@@ -89,25 +89,32 @@ func Run(cfg *ServerConfig) error {
 		}
 	}
 
+	streamInterceptors := []grpc.StreamServerInterceptor{}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{}
+	if cfg.Auditing != nil {
+		streamInterceptors = append(streamInterceptors, auditing.StreamServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
+		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
+	}
+	streamInterceptors = append(streamInterceptors,
+		grpc_ctxtags.StreamServerInterceptor(),
+		grpc_prometheus.StreamServerInterceptor,
+		grpc_zap.StreamServerInterceptor(log.Desugar()),
+		grpc_internalerror.StreamServerInterceptor(),
+		grpc_recovery.StreamServerInterceptor(recoveryOpt),
+	)
+	unaryInterceptors = append(unaryInterceptors,
+		grpc_ctxtags.UnaryServerInterceptor(),
+		grpc_prometheus.UnaryServerInterceptor,
+		grpc_zap.UnaryServerInterceptor(log.Desugar()),
+		grpc_internalerror.UnaryServerInterceptor(),
+		grpc_recovery.UnaryServerInterceptor(recoveryOpt),
+	)
+
 	server := grpc.NewServer(
 		grpc.KeepaliveEnforcementPolicy(kaep),
 		grpc.KeepaliveParams(kasp),
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-			auditing.StreamServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit),
-			grpc_ctxtags.StreamServerInterceptor(),
-			grpc_prometheus.StreamServerInterceptor,
-			grpc_zap.StreamServerInterceptor(log.Desugar()),
-			grpc_internalerror.StreamServerInterceptor(),
-			grpc_recovery.StreamServerInterceptor(recoveryOpt),
-		)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit),
-			grpc_ctxtags.UnaryServerInterceptor(),
-			grpc_prometheus.UnaryServerInterceptor,
-			grpc_zap.UnaryServerInterceptor(log.Desugar()),
-			grpc_internalerror.UnaryServerInterceptor(),
-			grpc_recovery.UnaryServerInterceptor(recoveryOpt),
-		)),
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
 	)
 	grpc_prometheus.Register(server)
 

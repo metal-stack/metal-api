@@ -18,9 +18,7 @@ var auditingCorrelationIDKey auditingContextKey = "auditing-correlation-id"
 
 func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit func(fullMethod string) bool) grpc.UnaryServerInterceptor {
 	if a == nil {
-		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-			return handler(ctx, req)
-		}
+		logger.Fatal("cannot use nil auditing to create unary server interceptor")
 	}
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		if !shouldAudit(info.FullMethod) {
@@ -47,9 +45,7 @@ func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit f
 
 func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit func(fullMethod string) bool) grpc.StreamServerInterceptor {
 	if a == nil {
-		return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-			return handler(srv, ss)
-		}
+		logger.Fatal("cannot use nil auditing to create stream server interceptor")
 	}
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if !shouldAudit(info.FullMethod) {
@@ -75,9 +71,7 @@ func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit 
 
 func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL) bool) func(h http.Handler) http.Handler {
 	if a == nil {
-		return func(h http.Handler) http.Handler {
-			return h
-		}
+		logger.Fatal("cannot use nil auditing to create http middleware")
 	}
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
