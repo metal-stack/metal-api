@@ -100,7 +100,7 @@ func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url
 				"method", r.Method,
 				"path", r.URL.Path,
 			}
-			if r.Method != "GET" && r != nil && r.Body != nil {
+			if r.Method != http.MethodGet && r != nil && r.Body != nil {
 				bodyReader := r.Body
 				body, err := io.ReadAll(bodyReader)
 				r.Body = io.NopCloser(bytes.NewReader(body))
