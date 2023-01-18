@@ -702,10 +702,10 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 		logger.Fatal(err)
 	}
 	if audit != nil {
-		ipAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("ip-audit-middleware"), func(u *url.URL) bool {
+		ipAuditMiddleware := auditing.HttpFilter(audit, logger.Named("ip-audit-middleware"), func(u *url.URL) bool {
 			return !strings.HasSuffix(u.Path, "/find")
 		})
-		ipService.Filter(restful.HttpMiddlewareHandlerToFilter(ipAuditMiddleware))
+		ipService.Filter(ipAuditMiddleware)
 	}
 
 	var s3Client *s3client.Client
@@ -737,10 +737,10 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 		logger.Fatal(err)
 	}
 	if audit != nil {
-		machineAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("machine-audit-middleware"), func(u *url.URL) bool {
+		machineAuditMiddleware := auditing.HttpFilter(audit, logger.Named("machine-audit-middleware"), func(u *url.URL) bool {
 			return !strings.HasSuffix(u.Path, "/find")
 		})
-		machineService.Filter(restful.HttpMiddlewareHandlerToFilter(machineAuditMiddleware))
+		machineService.Filter(machineAuditMiddleware)
 	}
 
 	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
@@ -755,10 +755,10 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 
 	networkService := service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc)
 	if audit != nil {
-		networkAuditMiddleware := auditing.HttpMiddleware(audit, logger.Named("network-audit-middleware"), func(u *url.URL) bool {
+		networkAuditMiddleware := auditing.HttpFilter(audit, logger.Named("network-audit-middleware"), func(u *url.URL) bool {
 			return !strings.HasSuffix(u.Path, "/find")
 		})
-		networkService.Filter(restful.HttpMiddlewareHandlerToFilter(networkAuditMiddleware))
+		networkService.Filter(networkAuditMiddleware)
 	}
 
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))

@@ -67,11 +67,11 @@ func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit 
 	}
 }
 
-func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL) bool) restful.HttpMiddlewareHandler {
+func HttpFilter(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL) bool) restful.FilterFunction {
 	if a == nil {
 		logger.Fatal("cannot use nil auditing to create http middleware")
 	}
-	return func(h http.Handler) http.Handler {
+	return restful.HttpMiddlewareHandlerToFilter(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
@@ -128,7 +128,7 @@ func HttpMiddleware(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url
 				return
 			}
 		})
-	}
+	})
 }
 
 type bufferedHttpResponseWriter struct {
