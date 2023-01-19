@@ -127,7 +127,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "valid transition from registering to preparing (metal-hammer wait skip)",
+			name: "valid transition from registering to installing (metal-hammer wait skip)",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{

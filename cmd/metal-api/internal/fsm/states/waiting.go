@@ -26,7 +26,7 @@ func (p *WaitingState) OnEnter(e *fsm.Event) {
 }
 
 func (p *WaitingState) OnLeave(e *fsm.Event) {
-	if p.config.Scaler != nil {
+	if p.config.Scaler != nil && e.Dst != Alive.String() {
 		err := p.config.Scaler.AdjustNumberOfWaitingMachines()
 		if err != nil {
 			p.config.Log.Errorw("received error from pool scaler", "error", err)

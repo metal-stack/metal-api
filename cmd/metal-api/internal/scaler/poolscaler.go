@@ -97,7 +97,7 @@ func (p *PoolScaler) AdjustNumberOfWaitingMachines() error {
 // calculatePoolSizeExcess checks if there are less waiting machines than minRequired or more than maxRequired
 // if yes, it returns the difference between the actual amount of waiting machines and the average of minRequired and maxRequired
 // if no, it returns 0
-func (p *PoolScaler) calculatePoolSizeExcess(actual int, scalerRange metal.ScalerRange) int {
+func (p *PoolScaler) calculatePoolSizeExcess(current int, scalerRange metal.ScalerRange) int {
 	allMachines, err := p.manager.AllMachines()
 	if err != nil {
 		return 0
@@ -107,11 +107,13 @@ func (p *PoolScaler) calculatePoolSizeExcess(actual int, scalerRange metal.Scale
 	max := scalerRange.Max(len(allMachines))
 	average := (float64(max) + float64(min)) / 2
 
-	if actual >= min && actual <= max {
+	p.log.Infow("checking pool size condition", "minimum pool size", min, "maximum pool size", max, "current pool size", current)
+
+	if current >= min && current <= max {
 		return 0
 	}
 
-	return actual - int(math.Round(average))
+	return current - int(math.Round(average))
 }
 
 func randomIndices(n, k int) []int {

@@ -71,7 +71,7 @@ func (m *manager) Shutdown(machine *metal.Machine) error {
 		Description: "shut down as exceeding maximum partition poolsize",
 	}
 
-	err := m.rs.publishCommandAndUpdate(m.rs.log, machine, m.publisher, metal.MachineOnCmd, state)
+	err := m.rs.publishCommandAndUpdate(m.rs.log, machine, m.publisher, metal.MachineOffCmd, state)
 	if err != nil {
 		return err
 	}
