@@ -2014,6 +2014,8 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			Description: description,
 		}
 		needsUpdate = true
+	case metal.MachineOnCmd:
+		newMachine.State = metal.MachineState{Value: metal.AvailableState}
 	}
 
 	if needsUpdate {
