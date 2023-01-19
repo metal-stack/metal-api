@@ -343,14 +343,35 @@ type Fru struct {
 // IPMI connection data
 type IPMI struct {
 	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
-	Address    string `rethinkdb:"address" json:"address"`
-	MacAddress string `rethinkdb:"mac" json:"mac"`
-	User       string `rethinkdb:"user" json:"user"`
-	Password   string `rethinkdb:"password" json:"password"`
-	Interface  string `rethinkdb:"interface" json:"interface"`
-	Fru        Fru    `rethinkdb:"fru" json:"fru"`
-	BMCVersion string `rethinkdb:"bmcversion" json:"bmcversion"`
-	PowerState string `rethinkdb:"powerstate" json:"powerstate"`
+	Address     string       `rethinkdb:"address" json:"address"`
+	MacAddress  string       `rethinkdb:"mac" json:"mac"`
+	User        string       `rethinkdb:"user" json:"user"`
+	Password    string       `rethinkdb:"password" json:"password"`
+	Interface   string       `rethinkdb:"interface" json:"interface"`
+	Fru         Fru          `rethinkdb:"fru" json:"fru"`
+	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
+	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
+	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
+}
+
+type PowerMetric struct {
+	// AverageConsumedWatts shall represent the
+	// average power level that occurred averaged over the last IntervalInMin
+	// minutes.
+	AverageConsumedWatts float32 `rethinkdb:"averageconsumedwatts" json:"averageconsumedwatts"`
+	// IntervalInMin shall represent the time
+	// interval (or window), in minutes, in which the PowerMetrics properties
+	// are measured over.
+	// Should be an integer, but some Dell implementations return as a float.
+	IntervalInMin float32 `rethinkdb:"intervalinmin" json:"intervalinmin"`
+	// MaxConsumedWatts shall represent the
+	// maximum power level in watts that occurred within the last
+	// IntervalInMin minutes.
+	MaxConsumedWatts float32 `rethinkdb:"maxconsumedwatts" json:"maxconsumedwatts"`
+	// MinConsumedWatts shall represent the
+	// minimum power level in watts that occurred within the last
+	// IntervalInMin minutes.
+	MinConsumedWatts float32 `rethinkdb:"minconsumedwatts" json:"minconsumedwatts"`
 }
 
 // BIOS contains machine bios information

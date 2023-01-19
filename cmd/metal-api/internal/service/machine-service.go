@@ -758,6 +758,14 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		if report.PowerState != "" {
 			newMachine.IPMI.PowerState = report.PowerState
 		}
+		if report.PowerMetric != nil {
+			newMachine.IPMI.PowerMetric = &metal.PowerMetric{
+				AverageConsumedWatts: report.PowerMetric.AverageConsumedWatts,
+				IntervalInMin:        report.PowerMetric.IntervalInMin,
+				MaxConsumedWatts:     report.PowerMetric.MaxConsumedWatts,
+				MinConsumedWatts:     report.PowerMetric.MinConsumedWatts,
+			}
+		}
 
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
 		if err == nil {
