@@ -10,6 +10,7 @@ import (
 	"github.com/avast/retry-go/v4"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -96,6 +97,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("notifySwitch").
 		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.SwitchNotifyRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))

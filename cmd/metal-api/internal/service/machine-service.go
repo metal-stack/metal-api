@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
 	"github.com/avast/retry-go/v4"
@@ -179,6 +180,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findMachines").
 		Doc("find machines by multiple criteria").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
@@ -261,6 +263,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findIPMIMachines").
 		Doc("returns machines including the ipmi connection data").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineIPMIResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIPMIResponse{}).

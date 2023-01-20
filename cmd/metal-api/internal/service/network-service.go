@@ -13,6 +13,7 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -73,6 +74,7 @@ func (r *networkResource) webService() *restful.WebService {
 		Operation("findNetworks").
 		Doc("get all networks that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.NetworkFindRequest{}).
 		Writes([]v1.NetworkResponse{}).
 		Returns(http.StatusOK, "OK", []v1.NetworkResponse{}).

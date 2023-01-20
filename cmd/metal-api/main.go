@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	httppprof "net/http/pprof"
-	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -701,12 +700,6 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	if err != nil {
 		logger.Fatal(err)
 	}
-	if audit != nil {
-		ipAuditMiddleware := auditing.HttpFilter(audit, logger.Named("ip-audit-middleware"), func(u *url.URL) bool {
-			return !strings.HasSuffix(u.Path, "/find")
-		})
-		ipService.Filter(ipAuditMiddleware)
-	}
 
 	var s3Client *s3client.Client
 	s3Address := viper.GetString("s3-address")
@@ -736,12 +729,6 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	if err != nil {
 		logger.Fatal(err)
 	}
-	if audit != nil {
-		machineAuditMiddleware := auditing.HttpFilter(audit, logger.Named("machine-audit-middleware"), func(u *url.URL) bool {
-			return !strings.HasSuffix(u.Path, "/find")
-		})
-		machineService.Filter(machineAuditMiddleware)
-	}
 
 	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
 	if err != nil {
@@ -754,12 +741,6 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	}
 
 	networkService := service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc)
-	if audit != nil {
-		networkAuditMiddleware := auditing.HttpFilter(audit, logger.Named("network-audit-middleware"), func(u *url.URL) bool {
-			return !strings.HasSuffix(u.Path, "/find")
-		})
-		networkService.Filter(networkAuditMiddleware)
-	}
 
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
@@ -787,6 +768,10 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
 		ensurer := service.NewTenantEnsurer(logger.Named("tenant-ensurer-filter"), []string{providerTenant}, excludedPathSuffixes)
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
+	}
+
+	if audit != nil {
+		restful.DefaultContainer.Filter(auditing.HttpFilter(audit, logger.Named("audit-middleware")))
 	}
 
 	config := restfulspec.Config{
