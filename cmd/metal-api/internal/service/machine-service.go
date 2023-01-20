@@ -1769,6 +1769,10 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 }
 
 func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
+	if m.State.Value == metal.ShutdownState {
+		return metal.MachineLivelinessAlive, nil
+	}
+
 	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
