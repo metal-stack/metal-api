@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/url"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/google/uuid"
@@ -13,6 +12,10 @@ import (
 	"github.com/metal-stack/security"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+)
+
+const (
+	Exclude string = "exclude-from-auditing"
 )
 
 func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit func(fullMethod string) bool) grpc.UnaryServerInterceptor {
@@ -102,84 +105,87 @@ func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit 
 	}
 }
 
-func HttpFilter(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL) bool) restful.FilterFunction {
+func HttpFilter(a Auditing, logger *zap.SugaredLogger) restful.FilterFunction {
 	if a == nil {
 		logger.Fatal("cannot use nil auditing to create http middleware")
 	}
-	return restful.HttpMiddlewareHandlerToFilter(func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch r.Method {
-			case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
-				break
-			default:
-				h.ServeHTTP(w, r)
-				return
-			}
-			if !shouldAudit(r.URL) {
-				h.ServeHTTP(w, r)
-				return
-			}
-			requestID := r.Context().Value(rest.RequestIDKey)
+	return func(request *restful.Request, response *restful.Response, chain *restful.FilterChain) {
+		r := request.Request
 
-			auditReqContext := []any{
-				"rqid", requestID,
-				"method", r.Method,
-				"path", r.URL.Path,
-			}
-			user := security.GetUserFromContext(r.Context())
-			if user != nil {
-				auditReqContext = append(
-					auditReqContext,
-					"user", user.EMail,
-					"subject", user.Subject,
-					"tenant", user.Tenant,
-				)
-			}
-			if r.Method != http.MethodGet && r != nil && r.Body != nil {
-				bodyReader := r.Body
-				body, err := io.ReadAll(bodyReader)
-				r.Body = io.NopCloser(bytes.NewReader(body))
-				if err != nil {
-					logger.Errorf("unable to read request body: %v", err)
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				auditReqContext = append(auditReqContext, "body", string(body))
-			}
+		switch r.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			break
+		default:
+			chain.ProcessFilter(request, response)
+			return
+		}
 
-			err := a.Index(auditReqContext...)
-			if err != nil {
-				logger.Errorf("unable to index error: %v", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+		excluded, ok := request.SelectedRoute().Metadata()[Exclude].(bool)
+		if ok && excluded {
+			logger.Debugw("excluded route from auditing through metadata annotation", "path", request.SelectedRoute().Path())
+			chain.ProcessFilter(request, response)
+			return
+		}
 
-			bufferedResponseWriter := &bufferedHttpResponseWriter{
-				ResponseWriter: w,
-			}
-			h.ServeHTTP(bufferedResponseWriter, r)
-
-			respBody := string(bufferedResponseWriter.body)
-
-			auditRespContext := append(auditReqContext,
-				"resp", respBody,
-				"status-code", bufferedResponseWriter.statusCode,
+		requestID := r.Context().Value(rest.RequestIDKey)
+		auditReqContext := []any{
+			"rqid", requestID,
+			"method", r.Method,
+			"path", r.URL.Path,
+		}
+		user := security.GetUserFromContext(r.Context())
+		if user != nil {
+			auditReqContext = append(
+				auditReqContext,
+				"user", user.EMail,
+				"subject", user.Subject,
+				"tenant", user.Tenant,
 			)
-			err = a.Index(auditRespContext...)
+		}
+
+		if r.Method != http.MethodGet && r.Body != nil {
+			bodyReader := r.Body
+			body, err := io.ReadAll(bodyReader)
+			r.Body = io.NopCloser(bytes.NewReader(body))
 			if err != nil {
-				logger.Errorf("unable to index error: %v", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				logger.Errorf("unable to read request body: %v", err)
+				response.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-		})
-	})
+			auditReqContext = append(auditReqContext, "body", string(body))
+		}
+
+		err := a.Index(auditReqContext...)
+		if err != nil {
+			logger.Errorf("unable to index error: %v", err)
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bufferedResponseWriter := &bufferedHttpResponseWriter{
+			ResponseWriter: response,
+		}
+		response.ResponseWriter = bufferedResponseWriter
+
+		chain.ProcessFilter(request, response)
+
+		auditRespContext := append(auditReqContext,
+			"resp", string(bufferedResponseWriter.body),
+			"status-code", response.StatusCode(),
+		)
+		err = a.Index(auditRespContext...)
+		if err != nil {
+			logger.Errorf("unable to index error: %v", err)
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 type bufferedHttpResponseWriter struct {
 	http.ResponseWriter
 
-	statusCode int
-	body       []byte
+	body []byte
 }
 
 func (w *bufferedHttpResponseWriter) Header() http.Header {
@@ -192,6 +198,5 @@ func (w *bufferedHttpResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (w *bufferedHttpResponseWriter) WriteHeader(statusCode int) {
-	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
 }
