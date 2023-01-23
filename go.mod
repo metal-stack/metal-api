@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/avast/retry-go/v4 v4.3.2
 	github.com/aws/aws-sdk-go v1.44.175
-	github.com/dustin/go-humanize v1.0.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/go-restful-openapi/v2 v2.9.1
 	// FIXME go-restful v3.10.x breaks imageCreate
 	github.com/emicklei/go-restful/v3 v3.9.0
