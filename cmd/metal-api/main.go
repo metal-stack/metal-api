@@ -747,6 +747,12 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	if err != nil {
 		logger.Fatal(err)
 	}
+	if audit != nil {
+		firewallAuditMiddleware := auditing.HttpFilter(audit, logger.Named("firewall-audit-middleware"), func(u *url.URL) bool {
+			return !strings.HasSuffix(u.Path, "/find")
+		})
+		firewallService.Filter(firewallAuditMiddleware)
+	}
 
 	healthService, err := rest.NewHealth(logger.Desugar(), service.BasePath, ds)
 	if err != nil {

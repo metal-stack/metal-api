@@ -10,6 +10,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/google/uuid"
 	"github.com/metal-stack/metal-lib/rest"
+	"github.com/metal-stack/security"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -24,19 +25,36 @@ func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit f
 		}
 		requestID := uuid.New().String()
 		childCtx := context.WithValue(ctx, rest.RequestIDKey, requestID)
-		err = a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc", "req", req)
+
+		auditReqContext := []any{
+			"rqid", requestID,
+			"method", info.FullMethod,
+			"kind", "grpc",
+		}
+		user := security.GetUserFromContext(ctx)
+		if user != nil {
+			auditReqContext = append(
+				auditReqContext,
+				"user", user.EMail,
+				"subject", user.Subject,
+				"tenant", user.Tenant,
+			)
+		}
+		err = a.Index(auditReqContext...)
 		if err != nil {
 			return nil, err
 		}
 		resp, err = handler(childCtx, req)
 		if err != nil {
-			err2 := a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc", "err", err)
+			auditRespContext := append(auditReqContext, "err", err)
+			err2 := a.Index(auditRespContext...)
 			if err2 != nil {
 				logger.Errorf("unable to index error: %v", err2)
 			}
 			return nil, err
 		}
-		err = a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc", "resp", resp)
+		auditRespContext := append(auditReqContext, "resp", resp)
+		err = a.Index(auditRespContext...)
 		return resp, err
 	}
 }
@@ -50,19 +68,36 @@ func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit 
 			return handler(srv, ss)
 		}
 		requestID := uuid.New().String()
-		err := a.Index("kind", "grpc-stream", "stream", srv)
+		auditReqContext := []any{
+			"rqid", requestID,
+			"method", info.FullMethod,
+			"kind", "grpc-stream",
+		}
+
+		user := security.GetUserFromContext(ss.Context())
+		if user != nil {
+			auditReqContext = append(
+				auditReqContext,
+				"user", user.EMail,
+				"subject", user.Subject,
+				"tenant", user.Tenant,
+			)
+		}
+		err := a.Index(auditReqContext...)
 		if err != nil {
 			return err
 		}
 		err = handler(srv, ss)
 		if err != nil {
-			err2 := a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc-stream", "err", err)
+			auditRespContext := append(auditReqContext, "err", err)
+			err2 := a.Index(auditRespContext...)
 			if err2 != nil {
 				logger.Errorf("unable to index error: %v", err2)
 			}
 			return err
 		}
-		err = a.Index("rqid", requestID, "method", info.FullMethod, "kind", "grpc-stream")
+		auditRespContext := append(auditReqContext, "finished", true)
+		err = a.Index(auditRespContext...)
 		return err
 	}
 }
@@ -90,6 +125,15 @@ func HttpFilter(a Auditing, logger *zap.SugaredLogger, shouldAudit func(*url.URL
 				"rqid", requestID,
 				"method", r.Method,
 				"path", r.URL.Path,
+			}
+			user := security.GetUserFromContext(r.Context())
+			if user != nil {
+				auditReqContext = append(
+					auditReqContext,
+					"user", user.EMail,
+					"subject", user.Subject,
+					"tenant", user.Tenant,
+				)
 			}
 			if r.Method != http.MethodGet && r != nil && r.Body != nil {
 				bodyReader := r.Body

@@ -60,7 +60,7 @@ func (a *meiliAuditing) Index(keysAndValues ...any) error {
 	id := uuid.NewString()
 	e["id"] = id
 	e["timestamp"] = time.Now()
-	e["component"] = "api-server"
+	e["component"] = "metal-api"
 	documents := []map[string]any{e}
 
 	task, err := a.index.AddDocuments(documents, "id")

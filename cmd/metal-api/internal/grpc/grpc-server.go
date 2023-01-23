@@ -81,8 +81,7 @@ func Run(cfg *ServerConfig) error {
 
 	shouldAudit := func(fullMethod string) bool {
 		switch fullMethod {
-		case "/api.v1.BootService/Register",
-			"/api.v1.EventService/Send":
+		case "/api.v1.BootService/Register":
 			return true
 		default:
 			return false
