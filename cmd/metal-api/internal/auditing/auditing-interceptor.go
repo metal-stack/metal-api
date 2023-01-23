@@ -39,7 +39,6 @@ func UnaryServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit f
 			auditReqContext = append(
 				auditReqContext,
 				"user", user.EMail,
-				"subject", user.Subject,
 				"tenant", user.Tenant,
 			)
 		}
@@ -82,7 +81,6 @@ func StreamServerInterceptor(a Auditing, logger *zap.SugaredLogger, shouldAudit 
 			auditReqContext = append(
 				auditReqContext,
 				"user", user.EMail,
-				"subject", user.Subject,
 				"tenant", user.Tenant,
 			)
 		}
@@ -138,7 +136,6 @@ func HttpFilter(a Auditing, logger *zap.SugaredLogger) restful.FilterFunction {
 			auditReqContext = append(
 				auditReqContext,
 				"user", user.EMail,
-				"subject", user.Subject,
 				"tenant", user.Tenant,
 			)
 		}
@@ -163,14 +160,14 @@ func HttpFilter(a Auditing, logger *zap.SugaredLogger) restful.FilterFunction {
 		}
 
 		bufferedResponseWriter := &bufferedHttpResponseWriter{
-			ResponseWriter: response,
+			w: response.ResponseWriter,
 		}
 		response.ResponseWriter = bufferedResponseWriter
 
 		chain.ProcessFilter(request, response)
 
 		auditRespContext := append(auditReqContext,
-			"resp", string(bufferedResponseWriter.body),
+			"resp", bufferedResponseWriter.Content(),
 			"status-code", response.StatusCode(),
 		)
 		err = a.Index(auditRespContext...)
@@ -183,20 +180,26 @@ func HttpFilter(a Auditing, logger *zap.SugaredLogger) restful.FilterFunction {
 }
 
 type bufferedHttpResponseWriter struct {
-	http.ResponseWriter
+	w http.ResponseWriter
 
-	body []byte
+	buf    bytes.Buffer
+	header int
 }
 
 func (w *bufferedHttpResponseWriter) Header() http.Header {
-	return w.ResponseWriter.Header()
+	return w.w.Header()
 }
 
 func (w *bufferedHttpResponseWriter) Write(b []byte) (int, error) {
-	w.body = append(w.body, b...)
-	return w.ResponseWriter.Write(b)
+	(&w.buf).Write(b)
+	return w.w.Write(b)
 }
 
-func (w *bufferedHttpResponseWriter) WriteHeader(statusCode int) {
-	w.ResponseWriter.WriteHeader(statusCode)
+func (w *bufferedHttpResponseWriter) WriteHeader(h int) {
+	w.header = h
+	w.w.WriteHeader(h)
+}
+
+func (w *bufferedHttpResponseWriter) Content() string {
+	return w.buf.String()
 }
