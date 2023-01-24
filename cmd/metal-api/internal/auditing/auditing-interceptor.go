@@ -133,6 +133,8 @@ func HttpFilter(a Auditing, logger *zap.SugaredLogger) restful.FilterFunction {
 			"rqid", requestID,
 			"method", r.Method,
 			"path", r.URL.Path,
+			"forwarded-for", request.HeaderParameter("x-forwarded-for"),
+			"remote-addr", r.RemoteAddr,
 		}
 		user := security.GetUserFromContext(r.Context())
 		if user != nil {
