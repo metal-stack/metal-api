@@ -126,6 +126,9 @@ func HttpFilter(a Auditing, logger *zap.SugaredLogger) restful.FilterFunction {
 		}
 
 		requestID := r.Context().Value(rest.RequestIDKey)
+		if requestID == nil {
+			requestID = uuid.New().String()
+		}
 		auditReqContext := []any{
 			"rqid", requestID,
 			"method", r.Method,
