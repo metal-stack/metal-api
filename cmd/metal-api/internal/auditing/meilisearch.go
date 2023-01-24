@@ -63,13 +63,11 @@ func (a *meiliAuditing) Index(keysAndValues ...any) error {
 	e["component"] = "metal-api"
 	documents := []map[string]any{e}
 
-	task, err := a.index.AddDocuments(documents, "id")
+	_, err := a.index.AddDocuments(documents, "id")
 	if err != nil {
 		a.log.Errorw("index", "error", err)
 		return err
 	}
-	stats, _ := a.index.GetStats()
-	a.log.Debugw("index", "task status", task.Status, "index stats", stats)
 	return nil
 }
 
