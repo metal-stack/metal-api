@@ -19,7 +19,7 @@ require (
 	github.com/looplab/fsm v0.3.0
 	github.com/metal-stack/go-ipam v1.8.5
 	github.com/metal-stack/masterdata-api v0.9.0
-	github.com/metal-stack/metal-lib v0.11.2
+	github.com/metal-stack/metal-lib v0.11.3
 	github.com/metal-stack/security v0.6.6
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
@@ -45,6 +45,7 @@ require (
 	github.com/Microsoft/hcsshim v0.9.6 // indirect
 	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
+	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
@@ -103,7 +104,7 @@ require (
 	github.com/josharian/native v1.0.0 // indirect
 	github.com/jsimonetti/rtnetlink v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.15.12 // indirect
+	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
@@ -119,6 +120,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mdlayher/netlink v1.7.0 // indirect
 	github.com/mdlayher/socket v0.4.0 // indirect
+	github.com/meilisearch/meilisearch-go v0.22.0
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/sys/mount v0.3.3 // indirect
@@ -143,6 +145,7 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/puzpuzpuz/xsync/v2 v2.4.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20220927061507-ef77025ab5aa // indirect
+	github.com/robfig/cron v1.2.0
 	github.com/rs/zerolog v1.28.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
@@ -152,6 +155,8 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/tailscale/hujson v0.0.0-20220630195928-54599719472f // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.44.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.mongodb.org/mongo-driver v1.11.1 // indirect
 	go.opencensus.io v0.23.0 // indirect

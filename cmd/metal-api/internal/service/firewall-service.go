@@ -7,6 +7,7 @@ import (
 
 	"net/http"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
 	"github.com/metal-stack/security"
@@ -96,6 +97,7 @@ func (r *firewallResource) webService() *restful.WebService {
 		Doc("find firewalls by multiple criteria").
 		Reads(v1.FirewallFindRequest{}).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Writes([]v1.FirewallResponse{}).
 		Returns(http.StatusOK, "OK", []v1.FirewallResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))

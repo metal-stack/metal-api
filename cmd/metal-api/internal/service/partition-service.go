@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
@@ -102,6 +103,7 @@ func (r *partitionResource) webService() *restful.WebService {
 		Operation("partitionCapacityCompat").
 		Doc("get partition capacity").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Writes([]v1.PartitionCapacity{}).
 		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).
@@ -112,6 +114,7 @@ func (r *partitionResource) webService() *restful.WebService {
 		Operation("partitionCapacity").
 		Doc("get partition capacity").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.PartitionCapacityRequest{}).
 		Writes([]v1.PartitionCapacity{}).
 		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
