@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -93,6 +94,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Operation("fromHardware").
 		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.MachineHardware{}).
 		Returns(http.StatusOK, "OK", v1.SizeMatchingLog{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))

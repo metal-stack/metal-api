@@ -13,6 +13,7 @@ import (
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -84,6 +85,7 @@ func (r *ipResource) webService() *restful.WebService {
 		Operation("findIPs").
 		Doc("get all ips that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.IPFindRequest{}).
 		Writes([]v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
