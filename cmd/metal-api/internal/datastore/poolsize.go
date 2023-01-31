@@ -49,11 +49,11 @@ func (m *manager) WaitingMachines() (metal.Machines, error) {
 }
 
 func (m *manager) ShutdownMachines() (metal.Machines, error) {
-	stateValue := string(metal.ShutdownState)
+	sleeping := true
 	q := MachineSearchQuery{
 		PartitionID: &m.partitionid,
 		SizeID:      &m.sizeid,
-		StateValue:  &stateValue,
+		Sleeping:    &sleeping,
 	}
 
 	shutdownMachines := metal.Machines{}
@@ -67,7 +67,7 @@ func (m *manager) ShutdownMachines() (metal.Machines, error) {
 
 func (m *manager) Shutdown(machine *metal.Machine) error {
 	state := metal.MachineState{
-		Value:       metal.ShutdownState,
+		Sleeping:    true,
 		Description: "shut down as exceeding maximum partition poolsize",
 	}
 
@@ -79,7 +79,7 @@ func (m *manager) Shutdown(machine *metal.Machine) error {
 }
 
 func (m *manager) PowerOn(machine *metal.Machine) error {
-	state := metal.MachineState{Value: metal.AvailableState}
+	state := metal.MachineState{Sleeping: false}
 
 	err := m.rs.publishCommandAndUpdate(m.rs.log, machine, m.publisher, metal.MachineOnCmd, state)
 	if err != nil {

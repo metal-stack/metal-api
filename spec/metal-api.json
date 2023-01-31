@@ -223,6 +223,9 @@
         "sizeid": {
           "type": "string"
         },
+        "sleeping": {
+          "type": "boolean"
+        },
         "state_value": {
           "type": "string"
         },
@@ -1122,6 +1125,9 @@
         },
         "sizeid": {
           "type": "string"
+        },
+        "sleeping": {
+          "type": "boolean"
         },
         "state_value": {
           "type": "string"
@@ -2235,6 +2241,9 @@
         },
         "sizeid": {
           "type": "string"
+        },
+        "sleeping": {
+          "type": "boolean"
         },
         "state_value": {
           "type": "string"

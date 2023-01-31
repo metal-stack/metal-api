@@ -21,8 +21,6 @@ const (
 	ReservedState MState = "RESERVED"
 	// LockedState describes a machine state where a machine cannot be deleted or allocated anymore
 	LockedState MState = "LOCKED"
-	// ShutdownState describes a machine state where a machine was shut down on purpose and should not be resurrected
-	ShutdownState MState = "SHUTDOWN"
 )
 
 var (
@@ -50,6 +48,7 @@ type MachineState struct {
 	Description        string `rethinkdb:"description" json:"description"`
 	Issuer             string `rethinkdb:"issuer" json:"issuer,omitempty"`
 	MetalHammerVersion string `rethinkdb:"metal_hammer_version" json:"metal_hammer_version"`
+	Sleeping           bool   `rethinkdb:"sleeping" json:"sleeping"`
 }
 
 // MachineStateFrom converts a machineState string to the type

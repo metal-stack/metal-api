@@ -1769,7 +1769,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 }
 
 func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
-	if m.State.Value == metal.ShutdownState {
+	if m.State.Sleeping {
 		return metal.MachineLivelinessAlive, nil
 	}
 
@@ -1833,7 +1833,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if m.State.Value == metal.ShutdownState {
+		if m.State.Sleeping {
 			continue
 		}
 
@@ -2027,7 +2027,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 		}
 		needsUpdate = true
 	case metal.MachineOnCmd:
-		newMachine.State = metal.MachineState{Value: metal.AvailableState}
+		newMachine.State = metal.MachineState{Sleeping: false}
 	}
 
 	if needsUpdate {
