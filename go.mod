@@ -15,7 +15,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/juanfont/headscale v0.17.1
+	github.com/juanfont/headscale v0.20.0
 	github.com/looplab/fsm v0.3.0
 	github.com/metal-stack/go-ipam v1.8.5
 	github.com/metal-stack/masterdata-api v0.9.0
@@ -188,5 +188,7 @@ require (
 	modernc.org/memory v1.5.0 // indirect
 	modernc.org/sqlite v1.20.0 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
-	tailscale.com v1.32.3 // indirect
+	tailscale.com v1.34.0 // indirect
 )
+
+require golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561 // indirect
