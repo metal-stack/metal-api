@@ -25,7 +25,7 @@ type Switch struct {
 
 type SwitchOS struct {
 	Vendor  string `rethinkdb:"vendor" json:"vendor"`
-	Version string `ethinkdb:"version" json:"version"`
+	Version string `rethinkdb:"version" json:"version"`
 }
 
 // Connection between switch port and machine.
