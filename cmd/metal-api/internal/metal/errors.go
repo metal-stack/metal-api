@@ -34,7 +34,7 @@ func IsConflict(e error) bool {
 
 // Internal creates a new Internal error with a given error message and the original error.
 func Internal(err error, format string, args ...interface{}) error {
-	return fmt.Errorf("%w %s", errInternal, fmt.Errorf("%w %s", err, fmt.Sprintf(format, args...)))
+	return fmt.Errorf("%w %w", errInternal, fmt.Errorf("%w %s", err, fmt.Sprintf(format, args...)))
 }
 
 // IsInternal checks if an error is a Internal error.
