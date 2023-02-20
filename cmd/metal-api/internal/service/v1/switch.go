@@ -46,14 +46,6 @@ func NewBGPFilter(vnis, cidrs []string) BGPFilter {
 	}
 }
 
-func (ss SwitchNics) ByMac() map[string]SwitchNic {
-	res := make(map[string]SwitchNic)
-	for i, s := range ss {
-		res[s.MacAddress] = ss[i]
-	}
-	return res
-}
-
 type SwitchConnection struct {
 	Nic       SwitchNic `json:"nic" description:"a network interface on the switch"`
 	MachineID string    `json:"machine_id" optional:"true" description:"the machine id of the machine connected to the nic"`

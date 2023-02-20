@@ -698,6 +698,10 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 		nics = append(nics, nic)
 	}
 
+	sort.Slice(nics, func(i, j int) bool {
+		return nics[i].Name < nics[j].Name
+	})
+
 	return nics
 }
 
@@ -719,6 +723,10 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			cons = append(cons, con)
 		}
 	}
+
+	sort.SliceStable(cons, func(i, j int) bool {
+		return cons[i].MachineID < cons[j].MachineID
+	})
 
 	return cons
 }
