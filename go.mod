@@ -120,7 +120,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mdlayher/netlink v1.7.0 // indirect
 	github.com/mdlayher/socket v0.4.0 // indirect
-	github.com/meilisearch/meilisearch-go v0.22.0
+	github.com/meilisearch/meilisearch-go v0.23.0
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/sys/mount v0.3.3 // indirect

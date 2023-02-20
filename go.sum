@@ -502,7 +502,6 @@ github.com/gogo/protobuf v1.3.0/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXP
 github.com/gogo/protobuf v1.3.1/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
-github.com/golang-jwt/jwt/v4 v4.4.2/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
 github.com/golang-jwt/jwt/v4 v4.4.3 h1:Hxl6lhQFj4AnOX6MLrsCb/+7tCj7DxP7VA+2rDIq5AU=
 github.com/golang-jwt/jwt/v4 v4.4.3/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
@@ -827,8 +826,8 @@ github.com/mdlayher/netlink v1.7.0 h1:ZNGI4V7i1fJ94DPYtWhI/R85i/Q7ZxnuhUJQcJMood
 github.com/mdlayher/netlink v1.7.0/go.mod h1:nKO5CSjE/DJjVhk/TNp6vCE1ktVxEA8VEh8drhZzxsQ=
 github.com/mdlayher/socket v0.4.0 h1:280wsy40IC9M9q1uPGcLBwXpcTQDtoGwVt+BNoITxIw=
 github.com/mdlayher/socket v0.4.0/go.mod h1:xxFqz5GRCUN3UEOm9CZqEJsAbe1C8OwSK46NlmWuVoc=
-github.com/meilisearch/meilisearch-go v0.22.0 h1:1J8VO5M8+WpGCOAjeUZy239RsLMWyRxqC2oN703J1cM=
-github.com/meilisearch/meilisearch-go v0.22.0/go.mod h1:XmVwi0ZyCdkEQ4cQvA3nh5TT0UByux4kBEWs4WUEp20=
+github.com/meilisearch/meilisearch-go v0.23.0 h1:CuqB+/NyEJKXF2SovTetAZW7lX+nSH+QTqbgSH6bv+Q=
+github.com/meilisearch/meilisearch-go v0.23.0/go.mod h1:sAPJgywANHUCFUo/spCQ8SoP6sJhmfIKFWIXu7Dd5GQ=
 github.com/metal-stack/go-ipam v1.8.5 h1:XE1XfaU6Ck1Ucc7svTO25dlT7kEcE1oxOM3lBrWIQmE=
 github.com/metal-stack/go-ipam v1.8.5/go.mod h1:JgsddJabu8A7lWD+4MJKqbQhmSA/zhBbO+Bp8pLhRZM=
 github.com/metal-stack/masterdata-api v0.9.0 h1:bKsUkIYRSckVEQsZQfeG10dY17/N+/SfwkUMCCLniEA=
