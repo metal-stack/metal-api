@@ -3,7 +3,6 @@ package scaler
 import (
 	"math"
 	"math/rand"
-	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"go.uber.org/zap"
@@ -122,7 +121,6 @@ func randomIndices(n, k int) []int {
 		indices[i] = i
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(indices), func(i, j int) { indices[i], indices[j] = indices[j], indices[i] })
 
 	return indices[:k]
