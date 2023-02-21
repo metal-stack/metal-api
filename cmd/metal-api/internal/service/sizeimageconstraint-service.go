@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -93,6 +94,7 @@ func (r *sizeImageConstraintResource) webService() *restful.WebService {
 		Operation("trySizeImageConstraint").
 		Doc("try if the given combination of image and size is supported and possible to allocate").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.SizeImageConstraintTryRequest{}).
 		Returns(http.StatusOK, "OK", v1.EmptyBody{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))

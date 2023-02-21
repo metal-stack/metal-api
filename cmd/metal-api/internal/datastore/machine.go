@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	mathrand "math/rand"
-	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -506,14 +504,11 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 
 	// pick a random machine from all available ones
 	var idx int
-	b, err := rand.Int(rand.Reader, big.NewInt(int64(len(available)))) //nolint:gosec
+	b, err := rand.Int(rand.Reader, big.NewInt(int64(len(available))))
 	if err != nil {
-		idx = int(b.Uint64())
-	} else {
-		mathrand.Seed(time.Now().UnixNano())
-		// nolint
-		idx = mathrand.Intn(len(available))
+		return nil, err
 	}
+	idx = int(b.Uint64())
 
 	oldMachine := available[idx]
 	newMachine := oldMachine
