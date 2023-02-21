@@ -725,7 +725,7 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient)
+	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient, viper.GetString("bmc-superuser-pwd-file"))
 	if err != nil {
 		logger.Fatal(err)
 	}

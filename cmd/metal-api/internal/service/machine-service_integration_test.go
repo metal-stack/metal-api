@@ -271,7 +271,7 @@ func BenchmarkMachineList(b *testing.B) {
 		require.NoError(b, err)
 	}
 
-	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), nil, nil, nil, nil, 0, nil)
+	machineService, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), nil, nil, nil, nil, 0, nil, "")
 	require.NoError(b, err)
 
 	b.ResetTimer()
