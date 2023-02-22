@@ -17,7 +17,7 @@ type SwitchSearchQuery struct {
 	OSVersion   *string `json:"osversion" optional:"true"`
 }
 
-// GenerateTerm generates the project search query term.
+// GenerateTerm generates the switch search query term.
 func (p *SwitchSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	q := *rs.switchTable()
 
