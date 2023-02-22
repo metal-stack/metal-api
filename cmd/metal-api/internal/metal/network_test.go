@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNics_ByMac(t *testing.T) {
+func TestNics_ByIdentifier(t *testing.T) {
 	// Create Nics
 	countOfNics := 3
 	nicArray := make([]Nic, countOfNics)
@@ -33,9 +33,8 @@ func TestNics_ByMac(t *testing.T) {
 		nics Nics
 		want map[string]*Nic
 	}{
-		// Test Data Array (only 1 data):
 		{
-			name: "TestNics_ByMac Test 1",
+			name: "TestNics_ByIdentifier Test 1",
 			nics: nicArray,
 			want: map1,
 		},
@@ -44,7 +43,7 @@ func TestNics_ByMac(t *testing.T) {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.nics.ByIdentifier(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Nics.ByMac() = %v, want %v", got, tt.want)
+				t.Errorf("Nics.ByIdentifier() = %v, want %v", got, tt.want)
 			}
 		})
 	}

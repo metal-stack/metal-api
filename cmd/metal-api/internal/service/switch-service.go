@@ -582,10 +582,8 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 	for _, nicThatGetsLost := range nicsThatGetLost {
 		for machineID, connections := range currentConnections {
 			for _, c := range connections {
-				if nicThatGetsLost.Identifier != "" && (c.Nic.Identifier == nicThatGetsLost.Identifier) {
-					return nil, fmt.Errorf("nic with identifier %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.Identifier, machineID)
-				} else if c.Nic.MacAddress == nicThatGetsLost.MacAddress {
-					return nil, fmt.Errorf("nic with mac address %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.MacAddress, machineID)
+				if c.Nic.GetIdentifier() == nicThatGetsLost.GetIdentifier() {
+					return nil, fmt.Errorf("nic with identifier %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.GetIdentifier(), machineID)
 				}
 			}
 		}
@@ -601,7 +599,7 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 			// check if connection exists and name changes
 			for machineID, connections := range currentConnections {
 				for _, c := range connections {
-					if c.Nic.MacAddress == nic.MacAddress && c.Nic.Identifier == nic.Identifier && oldNic.Name != nic.Name {
+					if c.Nic.MacAddress == nic.MacAddress && c.Nic.GetIdentifier() == nic.GetIdentifier() && oldNic.Name != nic.Name {
 						return nil, fmt.Errorf("nic with mac address %s and identifier %s wants to be renamed from %q to %q, but already has a connection to machine with id %q, which is currently not supported", nic.MacAddress, nic.Identifier, oldNic.Name, nic.Name, machineID)
 					}
 				}

@@ -20,6 +20,16 @@ type Nic struct {
 	Hostname   string     `rethinkdb:"hostname" json:"hostname"`
 }
 
+// GetIdentifier returns the identifier of a nic.
+// It returns the mac address as a fallback if no identifier was found.
+// (this is for backwards compatibility with old metal-core and metal-hammer versions)
+func (n *Nic) GetIdentifier() string {
+	if n.Identifier != "" {
+		return n.Identifier
+	}
+	return string(n.MacAddress)
+}
+
 // Nics is a list of nics.
 type Nics []Nic
 
@@ -149,24 +159,6 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	return result
 }
 
-// byMac creates an indexed map from a nic list.
-func (nics Nics) byMac() map[string]*Nic {
-	res := make(map[string]*Nic)
-	for i, n := range nics {
-		res[string(n.MacAddress)] = &nics[i]
-	}
-	return res
-}
-
-// ByName creates an indexed map from a nic list.
-func (nics Nics) ByName() map[string]*Nic {
-	res := make(map[string]*Nic)
-	for i, n := range nics {
-		res[n.Name] = &nics[i]
-	}
-	return res
-}
-
 func (nics Nics) FilterByHostname(hostname string) (res Nics) {
 	if hostname == "" {
 		return nics
@@ -181,15 +173,23 @@ func (nics Nics) FilterByHostname(hostname string) (res Nics) {
 	return res
 }
 
-// ByIdentifier creates an indexed map from a nic list.
-func (nics Nics) ByIdentifier() (res map[string]*Nic) {
-	if len(nics) > 0 && nics[0].Identifier != "" {
-		res = make(map[string]*Nic)
-		for i, n := range nics {
-			res[n.Identifier] = &nics[i]
-		}
-	} else {
-		res = nics.byMac()
+// ByName creates a map (nic names --> nic) from a nic list.
+func (nics Nics) ByName() map[string]*Nic {
+	res := make(map[string]*Nic)
+
+	for i, n := range nics {
+		res[n.Name] = &nics[i]
+	}
+
+	return res
+}
+
+// ByIdentifier creates a map (nic identifier --> nic) from a nic list.
+func (nics Nics) ByIdentifier() map[string]*Nic {
+	res := make(map[string]*Nic)
+
+	for i, n := range nics {
+		res[n.GetIdentifier()] = &nics[i]
 	}
 
 	return res

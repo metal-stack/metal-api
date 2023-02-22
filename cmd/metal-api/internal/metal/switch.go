@@ -103,12 +103,8 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 			var has bool
 
 			neighMap := machineNic.Neighbors.FilterByHostname(s.Name).ByIdentifier()
-			if switchNic.Identifier != "" {
-				_, has = neighMap[switchNic.Identifier]
-			} else {
-				_, has = neighMap[string(switchNic.MacAddress)]
-			}
 
+			_, has = neighMap[switchNic.GetIdentifier()]
 			if has {
 				conn := Connection{
 					Nic:       switchNic,
@@ -125,13 +121,7 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 	affected := map[string]bool{}
 	for _, c := range s.MachineConnections[m.ID] {
-		var id string
-		if c.Nic.Identifier != "" {
-			id = c.Nic.Identifier
-		} else {
-			id = string(c.Nic.MacAddress)
-		}
-		affected[id] = true
+		affected[c.Nic.GetIdentifier()] = true
 	}
 
 	if len(affected) == 0 {
