@@ -190,3 +190,5 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 	tailscale.com v1.32.3 // indirect
 )
+
+require gopkg.in/inf.v0 v0.9.1 // indirect
