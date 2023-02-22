@@ -938,7 +938,7 @@ func run() error {
 	// if we will add support for api-tokens as headers, we had to add them
 	// here to. note: the token's should not contain the product (aka. metal)
 	// because customers should have ONE token for many products.
-	// ExposeHeaders:  []string{"X-TOKEN"},
+	// ExposeHeaders:  []string{"X-FITS-TOKEN"},
 	cors := restful.CrossOriginResourceSharing{
 		AllowedHeaders: []string{"Content-Type", "Accept", "Authorization"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
