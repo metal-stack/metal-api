@@ -10,11 +10,13 @@ import (
 	"github.com/avast/retry-go/v4"
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"go.uber.org/zap"
 )
 
@@ -57,6 +59,17 @@ func (r *switchResource) webService() *restful.WebService {
 		Operation("listSwitches").
 		Doc("get all switches").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.SwitchResponse{}).
+		Returns(http.StatusOK, "OK", []v1.SwitchResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/find").
+		To(viewer(r.findSwitches)).
+		Operation("findSwitches").
+		Doc("get all switches that match given properties").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.SwitchFindRequest{}).
 		Writes([]v1.SwitchResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SwitchResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -125,6 +138,30 @@ func (r *switchResource) findSwitch(request *restful.Request, response *restful.
 
 func (r *switchResource) listSwitches(request *restful.Request, response *restful.Response) {
 	ss, err := r.ds.ListSwitches()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	resp, err := makeSwitchResponseList(ss, r.ds)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusOK, resp)
+}
+
+func (r *switchResource) findSwitches(request *restful.Request, response *restful.Response) {
+	var requestPayload datastore.SwitchSearchQuery
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	var ss metal.Switches
+	err = r.ds.SearchSwitches(&requestPayload, &ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -227,6 +264,7 @@ func (r *switchResource) updateSwitch(request *restful.Request, response *restfu
 	if requestPayload.Description != nil {
 		newSwitch.Description = *requestPayload.Description
 	}
+	newSwitch.ConsoleCommand = requestPayload.ConsoleCommand
 
 	newSwitch.Mode = metal.SwitchModeFrom(requestPayload.Mode)
 
@@ -390,7 +428,8 @@ func (r *switchResource) replaceSwitch(old, new *metal.Switch) error {
 
 // findTwinSwitch finds the neighboring twin of a switch for the given partition and rack
 func (r *switchResource) findTwinSwitch(newSwitch *metal.Switch) (*metal.Switch, error) {
-	rackSwitches, err := r.ds.SearchSwitches(newSwitch.RackID, nil)
+	var rackSwitches metal.Switches
+	err := r.ds.SearchSwitches(&datastore.SwitchSearchQuery{RackID: pointer.Pointer(newSwitch.RackID)}, &rackSwitches)
 	if err != nil {
 		return nil, fmt.Errorf("could not search switches in rack: %v", newSwitch.RackID)
 	}
@@ -732,7 +771,7 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*
 	return p, ips.ByProjectID(), m, nil
 }
 
-func makeSwitchResponseList(ss []metal.Switch, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
+func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
 	pMap, ips, err := getSwitchReferencedEntityMaps(ds)
 	if err != nil {
 		return nil, err
