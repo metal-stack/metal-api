@@ -92,7 +92,7 @@ func (h *HeadscaleClient) UserExists(name string) bool {
 	return true
 }
 
-func (h *HeadscaleClient) CreateNamespace(name string) error {
+func (h *HeadscaleClient) CreateUser(name string) error {
 	req := &headscalev1.CreateUserRequest{
 		Name: name,
 	}
