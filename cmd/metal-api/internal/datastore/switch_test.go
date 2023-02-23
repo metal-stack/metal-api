@@ -1,294 +1,445 @@
+//go:build integration
+// +build integration
+
 package datastore
 
 import (
+	"sort"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/metal-stack/metal-lib/pkg/testcommon"
 	"github.com/stretchr/testify/require"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestRethinkStore_FindSwitch(t *testing.T) {
-	ds, mock := InitMockDB(t)
-	testdata.InitMockDBData(mock)
+	defer func() {
+		wipeSwitchTable(t, sharedDS)
+	}()
 
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
 		id      string
+		mock    metal.Switches
 		want    *metal.Switch
-		wantErr bool
+		wantErr error
 	}{
 		{
-			name:    "TestRethinkStore_FindSwitch Test 1",
-			rs:      ds,
-			id:      testdata.Switch1.ID,
-			want:    &testdata.Switch1,
-			wantErr: false,
+			name: "find",
+			id:   "2",
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+				{Base: metal.Base{ID: "2"}},
+				{Base: metal.Base{ID: "3"}},
+			},
+			want: &metal.Switch{
+				Base: metal.Base{ID: "2"}, Nics: metal.Nics{},
+			},
+			wantErr: nil,
 		},
 		{
-			name:    "TestRethinkStore_FindSwitch Test 2",
-			rs:      ds,
-			id:      "switch404",
+			name:    "not found",
+			id:      "4",
 			want:    nil,
-			wantErr: true,
+			wantErr: metal.NotFound(`no switch with id "4" found`),
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.FindSwitch(tt.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.FindSwitch() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			wipeSwitchTable(t, sharedDS)
+
+			for _, s := range tt.mock {
+				s := s
+				err := sharedDS.CreateSwitch(&s)
+				require.NoError(t, err)
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("RethinkStore.FindSwitch() mismatch (-want +got):\n%s", diff)
+
+			got, err := sharedDS.FindSwitch(tt.id)
+
+			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff (-want +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tt.want, got, ignoreTimestamps()); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestRethinkStore_FindSwitchByRack(t *testing.T) {
-	returnSwitches := []metal.Switch{
-		testdata.Switch2,
-	}
+func TestRethinkStore_SearchSwitches(t *testing.T) {
+	defer func() {
+		wipeSwitchTable(t, sharedDS)
+	}()
 
 	tests := []struct {
 		name    string
-		rackid  string
-		want    []metal.Switch
-		wantErr bool
+		q       *SwitchSearchQuery
+		mock    metal.Switches
+		want    metal.Switches
+		wantErr error
 	}{
 		{
-			name:    "TestRethinkStore_SearchSwitches Test 1 by rack id",
-			rackid:  "2",
-			want:    returnSwitches,
-			wantErr: false,
+			name: "empty result",
+			q: &SwitchSearchQuery{
+				ID: pointer.Pointer("2"),
+			},
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+			},
+			want:    nil,
+			wantErr: nil,
+		},
+		{
+			name: "search by id",
+			q: &SwitchSearchQuery{
+				ID: pointer.Pointer("2"),
+			},
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+				{Base: metal.Base{ID: "2"}},
+				{Base: metal.Base{ID: "3"}},
+			},
+			want: metal.Switches{
+				{Base: metal.Base{ID: "2"}, Nics: metal.Nics{}},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by partition",
+			q: &SwitchSearchQuery{
+				PartitionID: pointer.Pointer("b"),
+			},
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}, PartitionID: "a"},
+				{Base: metal.Base{ID: "2"}, PartitionID: "b"},
+				{Base: metal.Base{ID: "3"}, PartitionID: "c"},
+				{Base: metal.Base{ID: "4"}, PartitionID: "b"},
+			},
+			want: metal.Switches{
+				{Base: metal.Base{ID: "2"}, PartitionID: "b", Nics: metal.Nics{}},
+				{Base: metal.Base{ID: "4"}, PartitionID: "b", Nics: metal.Nics{}},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by rack",
+			q: &SwitchSearchQuery{
+				RackID: pointer.Pointer("b"),
+			},
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}, RackID: "a"},
+				{Base: metal.Base{ID: "2"}, RackID: "b"},
+				{Base: metal.Base{ID: "3"}, RackID: "c"},
+			},
+			want: metal.Switches{
+				{Base: metal.Base{ID: "2"}, RackID: "b", Nics: metal.Nics{}},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by os vendor",
+			q: &SwitchSearchQuery{
+				OSVendor: pointer.Pointer("sonic"),
+			},
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}, OS: &metal.SwitchOS{Vendor: "cumulus"}},
+				{Base: metal.Base{ID: "2"}, OS: &metal.SwitchOS{Vendor: "sonic"}},
+				{Base: metal.Base{ID: "3"}, OS: &metal.SwitchOS{Vendor: "sonic"}},
+			},
+			want: metal.Switches{
+				{Base: metal.Base{ID: "2"}, OS: &metal.SwitchOS{Vendor: "sonic"}, Nics: metal.Nics{}},
+				{Base: metal.Base{ID: "3"}, OS: &metal.SwitchOS{Vendor: "sonic"}, Nics: metal.Nics{}},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by os version",
+			q: &SwitchSearchQuery{
+				OSVersion: pointer.Pointer("1.2.3"),
+			},
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}, OS: &metal.SwitchOS{Version: "1.2.1"}},
+				{Base: metal.Base{ID: "2"}, OS: &metal.SwitchOS{Version: "1.2.2"}},
+				{Base: metal.Base{ID: "3"}, OS: &metal.SwitchOS{Version: "1.2.3"}},
+			},
+			want: metal.Switches{
+				{Base: metal.Base{ID: "3"}, OS: &metal.SwitchOS{Version: "1.2.3"}, Nics: metal.Nics{}},
+			},
+			wantErr: nil,
 		},
 	}
+
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			ds, mock := InitMockDB(t)
+			wipeSwitchTable(t, sharedDS)
 
-			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return(returnSwitches, nil)
-
-			got, err := ds.SearchSwitches(tt.rackid, nil)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			for _, s := range tt.mock {
+				s := s
+				err := sharedDS.CreateSwitch(&s)
+				require.NoError(t, err)
 			}
-			// Because deepequal of two same objects here returns false, here are some attribute validations:
-			require.Equal(t, got[0].ID, tt.want[0].ID)
-			require.Equal(t, got[0].PartitionID, tt.want[0].PartitionID)
-			require.Equal(t, got[0].RackID, tt.want[0].RackID)
 
-			mock.AssertExpectations(t)
+			var got metal.Switches
+			err := sharedDS.SearchSwitches(tt.q, &got)
+			sort.Slice(got, func(i, j int) bool { return got[i].ID < got[j].ID })
+
+			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff (-want +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tt.want, got, ignoreTimestamps()); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
 		})
 	}
 }
 
 func TestRethinkStore_ListSwitches(t *testing.T) {
-	ds, mock := InitMockDB(t)
-	testdata.InitMockDBData(mock)
-
-	mock.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
-		testdata.Switch1, testdata.Switch2,
-	}, nil)
-	ds2, mock2 := InitMockDB(t)
-	mock2.On(r.DB("mockdb").Table("switch")).Return([]metal.Switch{
-		testdata.Switch2,
-	}, nil)
+	defer func() {
+		wipeSwitchTable(t, sharedDS)
+	}()
 
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
-		want    []metal.Switch
-		wantErr bool
+		mock    metal.Switches
+		want    metal.Switches
+		wantErr error
 	}{
 		{
-			name: "TestRethinkStore_ListSwitches Test 1",
-			rs:   ds,
-			want: []metal.Switch{
-				testdata.Switch1, testdata.Switch2,
+			name: "list",
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+				{Base: metal.Base{ID: "2"}},
+				{Base: metal.Base{ID: "3"}},
 			},
-			wantErr: false,
-		},
-		{
-			name: "TestRethinkStore_ListSwitches Test 2",
-			rs:   ds2,
-			want: []metal.Switch{
-				testdata.Switch2,
+			want: metal.Switches{
+				{Base: metal.Base{ID: "1"}, Nics: metal.Nics{}},
+				{Base: metal.Base{ID: "2"}, Nics: metal.Nics{}},
+				{Base: metal.Base{ID: "3"}, Nics: metal.Nics{}},
 			},
-			wantErr: false,
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rs.ListSwitches()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.ListSwitches() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			wipeSwitchTable(t, sharedDS)
+
+			for _, s := range tt.mock {
+				s := s
+				err := sharedDS.CreateSwitch(&s)
+				require.NoError(t, err)
 			}
-			// Because deepequal of two same objects here returns false, here are some attribute validations:
-			require.Equal(t, got[0].ID, tt.want[0].ID)
-			require.Equal(t, got[0].PartitionID, tt.want[0].PartitionID)
-			require.Equal(t, got[0].RackID, tt.want[0].RackID)
+
+			got, err := sharedDS.ListSwitches()
+			sort.Slice(got, func(i, j int) bool { return got[i].ID < got[j].ID })
+
+			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff (-want +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tt.want, got, ignoreTimestamps()); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
 		})
 	}
 }
 
 func TestRethinkStore_CreateSwitch(t *testing.T) {
-	ds, mock := InitMockDB(t)
-	testdata.InitMockDBData(mock)
+	defer func() {
+		wipeSwitchTable(t, sharedDS)
+	}()
 
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
-		s       *metal.Switch
+		mock    metal.Switches
 		want    *metal.Switch
-		wantErr bool
+		wantErr error
 	}{
 		{
-			name:    "TestRethinkStore_CreateSwitch Test 1",
-			rs:      ds,
-			s:       &testdata.Switch1,
-			want:    &testdata.Switch1,
-			wantErr: false,
+			name: "create",
+			want: &metal.Switch{
+				Base: metal.Base{ID: "1"}, Nics: metal.Nics{},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "already exists",
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+			},
+			want: &metal.Switch{
+				Base: metal.Base{ID: "1"}, Nics: metal.Nics{},
+			},
+			wantErr: metal.Conflict(`cannot create switch in database, entity already exists: 1`),
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.CreateSwitch(tt.s)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.CreateSwitch() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			wipeSwitchTable(t, sharedDS)
+
+			for _, s := range tt.mock {
+				s := s
+				err := sharedDS.CreateSwitch(&s)
+				require.NoError(t, err)
+			}
+
+			err := sharedDS.CreateSwitch(tt.want)
+			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff (-want +got):\n%s", diff)
+			}
+
+			if tt.wantErr == nil {
+				got, err := sharedDS.FindSwitch(tt.want.ID)
+				require.NoError(t, err)
+
+				if diff := cmp.Diff(tt.want, got, ignoreTimestamps()); diff != "" {
+					t.Errorf("diff (-want +got):\n%s", diff)
+				}
 			}
 		})
 	}
 }
 
 func TestRethinkStore_DeleteSwitch(t *testing.T) {
-	ds, mock := InitMockDB(t)
-	testdata.InitMockDBData(mock)
+	defer func() {
+		wipeSwitchTable(t, sharedDS)
+	}()
 
 	tests := []struct {
 		name    string
-		rs      *RethinkStore
-		s       *metal.Switch
-		wantErr bool
+		id      string
+		mock    metal.Switches
+		want    metal.Switches
+		wantErr error
 	}{
 		{
-			name:    "TestRethinkStore_DeleteSwitch Test 1",
-			rs:      ds,
-			s:       &testdata.Switch1,
-			wantErr: false,
+			name: "delete",
+			id:   "2",
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+				{Base: metal.Base{ID: "2"}},
+				{Base: metal.Base{ID: "3"}},
+			},
+			want: metal.Switches{
+				{Base: metal.Base{ID: "1"}, Nics: metal.Nics{}},
+				{Base: metal.Base{ID: "3"}, Nics: metal.Nics{}},
+			},
 		},
 		{
-			name:    "TestRethinkStore_DeleteSwitch Test 2",
-			rs:      ds,
-			s:       &testdata.Switch2,
-			wantErr: false,
+			name: "not exists results in noop",
+			id:   "abc",
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+				{Base: metal.Base{ID: "2"}},
+				{Base: metal.Base{ID: "3"}},
+			},
+			want: metal.Switches{
+				{Base: metal.Base{ID: "1"}, Nics: metal.Nics{}},
+				{Base: metal.Base{ID: "2"}, Nics: metal.Nics{}},
+				{Base: metal.Base{ID: "3"}, Nics: metal.Nics{}},
+			},
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.rs.DeleteSwitch(tt.s)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.DeleteSwitch() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			wipeSwitchTable(t, sharedDS)
+
+			for _, s := range tt.mock {
+				s := s
+				err := sharedDS.CreateSwitch(&s)
+				require.NoError(t, err)
+			}
+
+			err := sharedDS.DeleteSwitch(&metal.Switch{Base: metal.Base{ID: tt.id}})
+			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff (-want +got):\n%s", diff)
+			}
+
+			if tt.wantErr == nil {
+				got, err := sharedDS.ListSwitches()
+				require.NoError(t, err)
+
+				sort.Slice(got, func(i, j int) bool { return got[i].ID < got[j].ID })
+
+				if diff := cmp.Diff(tt.want, got, ignoreTimestamps()); diff != "" {
+					t.Errorf("diff (-want +got):\n%s", diff)
+				}
 			}
 		})
 	}
 }
 
 func TestRethinkStore_UpdateSwitch(t *testing.T) {
-	ds, mock := InitMockDB(t)
-	testdata.InitMockDBData(mock)
+	defer func() {
+		wipeSwitchTable(t, sharedDS)
+	}()
 
-	type args struct {
-		oldSwitch *metal.Switch
-		newSwitch *metal.Switch
-	}
 	tests := []struct {
-		name    string
-		rs      *RethinkStore
-		args    args
-		wantErr bool
+		name     string
+		mock     metal.Switches
+		mutateFn func(s *metal.Switch)
+		want     *metal.Switch
+		wantErr  error
 	}{
 		{
-			name: "TestRethinkStore_UpdateSwitch Test 1",
-			rs:   ds,
-			args: args{
-				&testdata.Switch2, &testdata.Switch3,
+			name: "update",
+			mock: metal.Switches{
+				{Base: metal.Base{ID: "1"}},
+				{Base: metal.Base{ID: "2"}},
+				{Base: metal.Base{ID: "3"}},
 			},
-			wantErr: false,
-		},
-		{
-			name: "TestRethinkStore_UpdateSwitch Test 2",
-			rs:   ds,
-			args: args{
-				&testdata.Switch3, &testdata.Switch2,
+			mutateFn: func(s *metal.Switch) {
+				s.RackID = "abc"
 			},
-			wantErr: false,
+			want: &metal.Switch{
+				Base:   metal.Base{ID: "1"},
+				Nics:   metal.Nics{},
+				RackID: "abc",
+			},
 		},
 	}
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.rs.UpdateSwitch(tt.args.oldSwitch, tt.args.newSwitch); (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.UpdateSwitch() error = %v, wantErr %v", err, tt.wantErr)
+			wipeSwitchTable(t, sharedDS)
+
+			for _, s := range tt.mock {
+				s := s
+				err := sharedDS.CreateSwitch(&s)
+				require.NoError(t, err)
+			}
+
+			old, err := sharedDS.FindSwitch(tt.want.ID)
+			require.NoError(t, err)
+
+			mod := *old
+			if tt.mutateFn != nil {
+				tt.mutateFn(&mod)
+			}
+
+			err = sharedDS.UpdateSwitch(old, &mod)
+			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff (-want +got):\n%s", diff)
+			}
+
+			got, err := sharedDS.FindSwitch(tt.want.ID)
+			require.NoError(t, err)
+
+			if diff := cmp.Diff(tt.want, got, ignoreTimestamps()); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestRethinkStore_FindSwitchByMac(t *testing.T) {
-	tests := []struct {
-		name    string
-		macs    []string
-		want    []metal.Switch
-		wantErr bool
-	}{
-		{
-			name: "TestRethinkStore_FindSwitch Test 1",
-			macs: []string{string(testdata.Switch1.Nics[0].MacAddress)},
-			want: []metal.Switch{
-				testdata.Switch1,
-			},
-			wantErr: false,
-		},
-	}
-
-	// TODO: for some reason the monotonic clock reading gets lost somewhere and a special comparer is required. find out why.
-	timeComparer := cmp.Comparer(func(x, y time.Time) bool {
-		return x.Unix() == y.Unix()
-	})
-
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			ds, mock := InitMockDB(t)
-			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return([]metal.Switch{
-				testdata.Switch1,
-			}, nil)
-
-			got, err := ds.SearchSwitches("", tt.macs)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RethinkStore.SearchSwitches() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if diff := cmp.Diff(got, tt.want, timeComparer); diff != "" {
-				t.Errorf("RethinkStore.SearchSwitches() mismatch (-want +got):\n%s", diff)
-			}
-			mock.AssertExpectations(t)
-		})
-	}
+func wipeSwitchTable(t *testing.T, ds *RethinkStore) {
+	_, err := ds.switchTable().Delete().RunWrite(ds.session)
+	require.NoError(t, err)
 }

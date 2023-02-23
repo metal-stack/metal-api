@@ -17,6 +17,17 @@ type Switch struct {
 	Mode               SwitchMode    `rethinkdb:"mode" json:"mode"`
 	LastSync           *SwitchSync   `rethinkdb:"last_sync" json:"last_sync"`
 	LastSyncError      *SwitchSync   `rethinkdb:"last_sync_error" json:"last_sync_error"`
+	OS                 *SwitchOS     `rethinkdb:"os" json:"os"`
+	ManagementIP       string        `rethinkdb:"management_ip" json:"management_ip"`
+	ManagementUser     string        `rethinkdb:"management_user" json:"management_user"`
+	ConsoleCommand     string        `rethinkdb:"console_command" json:"console_command"`
+}
+
+type Switches []Switch
+
+type SwitchOS struct {
+	Vendor  string `rethinkdb:"vendor" json:"vendor"`
+	Version string `rethinkdb:"version" json:"version"`
 }
 
 // Connection between switch port and machine.

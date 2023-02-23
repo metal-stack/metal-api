@@ -85,31 +85,6 @@ func TestRethinkStore_db(t *testing.T) {
 	}
 }
 
-func TestRethinkStore_Mock(t *testing.T) {
-	ds, mock := InitMockDB(t)
-	testdata.InitMockDBData(mock)
-
-	tests := []struct {
-		name string
-		rs   *RethinkStore
-		want *r.Mock
-	}{
-		{
-			name: "TestRethinkStore_Mock Test 1",
-			rs:   ds,
-			want: r.NewMock(),
-		},
-	}
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.rs.Mock(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RethinkStore.Mock() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRethinkStore_Close(t *testing.T) {
 	ds, mock := InitMockDB(t)
 	testdata.InitMockDBData(mock)
