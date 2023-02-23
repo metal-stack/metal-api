@@ -151,15 +151,15 @@ func TestBootService_Register(t *testing.T) {
 			}
 
 			bootService := &BootService{
-				log:               zaptest.NewLogger(t).Sugar(),
-				ds:                ds,
-				superUserPassword: new(string),
-				publisher:         &emptyPublisher{},
-				consumer:          &bus.Consumer{},
-				eventService:      &EventService{},
-				queue:             sync.Map{},
-				responseInterval:  0,
-				checkInterval:     0,
+				log:              zaptest.NewLogger(t).Sugar(),
+				ds:               ds,
+				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
+				publisher:        &emptyPublisher{},
+				consumer:         &bus.Consumer{},
+				eventService:     &EventService{},
+				queue:            sync.Map{},
+				responseInterval: 0,
+				checkInterval:    0,
 			}
 
 			result, err := bootService.Register(context.Background(), req)
@@ -216,15 +216,15 @@ func TestBootService_Report(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BootService{
-				log:               zaptest.NewLogger(t).Sugar(),
-				ds:                ds,
-				superUserPassword: new(string),
-				publisher:         &emptyPublisher{},
-				consumer:          &bus.Consumer{},
-				eventService:      &EventService{},
-				queue:             sync.Map{},
-				responseInterval:  0,
-				checkInterval:     0,
+				log:              zaptest.NewLogger(t).Sugar(),
+				ds:               ds,
+				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
+				publisher:        &emptyPublisher{},
+				consumer:         &bus.Consumer{},
+				eventService:     &EventService{},
+				queue:            sync.Map{},
+				responseInterval: 0,
+				checkInterval:    0,
 			}
 			got, err := b.Report(context.Background(), tt.req)
 			if (err != nil) != tt.wantErr {

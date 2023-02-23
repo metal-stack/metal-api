@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -45,14 +44,14 @@ import (
 type machineResource struct {
 	webResource
 	bus.Publisher
-	ipamer            ipam.IPAMer
-	mdc               mdm.Client
-	actor             *asyncActor
-	s3Client          *s3server.Client
-	userGetter        security.UserGetter
-	reasonMinLength   uint
-	headscaleClient   *headscale.HeadscaleClient
-	superUserPassword string
+	ipamer          ipam.IPAMer
+	mdc             mdm.Client
+	actor           *asyncActor
+	s3Client        *s3server.Client
+	userGetter      security.UserGetter
+	reasonMinLength uint
+	headscaleClient *headscale.HeadscaleClient
+	ipmiSuperUser   metal.MachineIPMISuperUser
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -115,29 +114,24 @@ func NewMachine(
 	userGetter security.UserGetter,
 	reasonMinLength uint,
 	headscaleClient *headscale.HeadscaleClient,
-	superuserpasswordfile string,
+	ipmiSuperUser metal.MachineIPMISuperUser,
 ) (*restful.WebService, error) {
-	var superUserPassword string
-	pwd, err := os.ReadFile(superUserPassword)
-	if err == nil {
-		superUserPassword = strings.TrimSpace(string(pwd))
-	}
-
 	r := machineResource{
 		webResource: webResource{
 			log: log,
 			ds:  ds,
 		},
-		Publisher:         pub,
-		ipamer:            ipamer,
-		mdc:               mdc,
-		s3Client:          s3Client,
-		userGetter:        userGetter,
-		reasonMinLength:   reasonMinLength,
-		headscaleClient:   headscaleClient,
-		superUserPassword: superUserPassword,
+		Publisher:       pub,
+		ipamer:          ipamer,
+		mdc:             mdc,
+		s3Client:        s3Client,
+		userGetter:      userGetter,
+		reasonMinLength: reasonMinLength,
+		headscaleClient: headscaleClient,
+		ipmiSuperUser:   ipmiSuperUser,
 	}
 
+	var err error
 	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create async actor: %w", err)
@@ -2040,13 +2034,13 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 		}
 	}
 
-	if newMachine.IPMI.User == "" && r.superUserPassword != "" {
+	if newMachine.IPMI.User == "" && r.ipmiSuperUser.IsEnabled() {
 		// when removing a machine from the database, the metal-bmc will loose the ability
 		// to manage the machine after it reported it back to API.
 		//
 		// to mitigate this scenario, we use the super user as a fallback.
-		newMachine.IPMI.User = "root"
-		newMachine.IPMI.Password = r.superUserPassword
+		newMachine.IPMI.User = r.ipmiSuperUser.User()
+		newMachine.IPMI.Password = r.ipmiSuperUser.Password()
 	}
 
 	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
