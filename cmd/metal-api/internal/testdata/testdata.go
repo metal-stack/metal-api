@@ -708,7 +708,7 @@ var (
 	}
 
 	// All Switches
-	TestSwitches = []metal.Switch{
+	TestSwitches = metal.Switches{
 		Switch1, Switch2, Switch3, SwitchReplaceFor1,
 	}
 	TestMacs = []string{
