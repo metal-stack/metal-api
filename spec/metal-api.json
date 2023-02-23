@@ -281,6 +281,28 @@
         }
       }
     },
+    "datastore.SwitchSearchQuery": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "osvendor": {
+          "type": "string"
+        },
+        "osversion": {
+          "type": "string"
+        },
+        "partitionid": {
+          "type": "string"
+        },
+        "rackid": {
+          "type": "string"
+        }
+      }
+    },
     "httperrors.HTTPErrorResponse": {
       "properties": {
         "message": {
@@ -4109,6 +4131,28 @@
       "required": [
         "nic"
       ]
+    },
+    "v1.SwitchFindRequest": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "osvendor": {
+          "type": "string"
+        },
+        "osversion": {
+          "type": "string"
+        },
+        "partitionid": {
+          "type": "string"
+        },
+        "rackid": {
+          "type": "string"
+        }
+      }
     },
     "v1.SwitchNic": {
       "properties": {
@@ -8205,6 +8249,48 @@
           }
         },
         "summary": "updates a switch. if the switch was changed since this one was read, a conflict is returned",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
+    "/v1/switch/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findSwitches",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SwitchResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all switches that match given properties",
         "tags": [
           "switch"
         ]

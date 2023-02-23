@@ -4,6 +4,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
@@ -56,6 +57,11 @@ type SwitchRegisterRequest struct {
 	Nics        SwitchNics `json:"nics" description:"the list of network interfaces on the switch"`
 	PartitionID string     `json:"partition_id" description:"the partition in which this switch is located"`
 	SwitchBase
+}
+
+// SwitchFindRequest is used to find a switch with different criteria.
+type SwitchFindRequest struct {
+	datastore.SwitchSearchQuery
 }
 
 type SwitchUpdateRequest struct {

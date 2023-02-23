@@ -7,6 +7,59 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+// SwitchSearchQuery can be used to search switches.
+type SwitchSearchQuery struct {
+	ID          *string `json:"id" optional:"true"`
+	Name        *string `json:"name" optional:"true"`
+	PartitionID *string `json:"partitionid" optional:"true"`
+	RackID      *string `json:"rackid" optional:"true"`
+	OSVendor    *string `json:"osvendor" optional:"true"`
+	OSVersion   *string `json:"osversion" optional:"true"`
+}
+
+// GenerateTerm generates the switch search query term.
+func (p *SwitchSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
+	q := *rs.switchTable()
+
+	if p.ID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("id").Eq(*p.ID)
+		})
+	}
+
+	if p.Name != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("name").Eq(*p.Name)
+		})
+	}
+
+	if p.PartitionID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("partitionid").Eq(*p.PartitionID)
+		})
+	}
+
+	if p.RackID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("rackid").Eq(*p.RackID)
+		})
+	}
+
+	if p.OSVendor != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("os").Field("vendor").Eq(*p.OSVendor)
+		})
+	}
+
+	if p.OSVersion != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("os").Field("version").Eq(*p.OSVersion)
+		})
+	}
+
+	return &q
+}
+
 // FindSwitch returns a switch for a given id.
 func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 	var s metal.Switch
@@ -18,8 +71,8 @@ func (rs *RethinkStore) FindSwitch(id string) (*metal.Switch, error) {
 }
 
 // ListSwitches returns all known switches.
-func (rs *RethinkStore) ListSwitches() ([]metal.Switch, error) {
-	ss := make([]metal.Switch, 0)
+func (rs *RethinkStore) ListSwitches() (metal.Switches, error) {
+	ss := make(metal.Switches, 0)
 	err := rs.listEntities(rs.switchTable(), &ss)
 	return ss, err
 }
@@ -40,75 +93,37 @@ func (rs *RethinkStore) UpdateSwitch(oldSwitch *metal.Switch, newSwitch *metal.S
 }
 
 // SearchSwitches searches for switches by the given parameters.
-func (rs *RethinkStore) SearchSwitches(rackid string, macs []string) ([]metal.Switch, error) {
-	q := *rs.switchTable()
-
-	if rackid != "" {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("rackid").Eq(rackid)
-		})
-	}
-
-	if len(macs) > 0 {
-		macexpr := r.Expr(macs)
-
-		q = q.Filter(func(row r.Term) r.Term {
-			return macexpr.SetIntersection(row.Field("network_interfaces").Field("macAddress")).Count().Gt(1)
-		})
-	}
-
-	var ss []metal.Switch
-	err := rs.searchEntities(&q, &ss)
-	if err != nil {
-		return nil, err
-	}
-
-	return ss, nil
-}
-
-// SearchSwitchesByPartition searches for switches by the given partition.
-func (rs *RethinkStore) SearchSwitchesByPartition(partitionID string) ([]metal.Switch, error) {
-	q := *rs.switchTable()
-
-	if partitionID != "" {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("partitionid").Eq(partitionID)
-		})
-	}
-
-	var ss []metal.Switch
-	err := rs.searchEntities(&q, &ss)
-	if err != nil {
-		return nil, err
-	}
-
-	return ss, nil
+func (rs *RethinkStore) SearchSwitches(q *SwitchSearchQuery, ss *metal.Switches) error {
+	return rs.searchEntities(q.generateTerm(rs), ss)
 }
 
 // SearchSwitchesConnectedToMachine searches switches that are connected to the given machine.
-func (rs *RethinkStore) SearchSwitchesConnectedToMachine(m *metal.Machine) ([]metal.Switch, error) {
-	switches, err := rs.SearchSwitches(m.RackID, nil)
+func (rs *RethinkStore) SearchSwitchesConnectedToMachine(m *metal.Machine) (metal.Switches, error) {
+	switches := metal.Switches{}
+
+	err := rs.SearchSwitches(&SwitchSearchQuery{RackID: &m.RackID}, &switches)
 	if err != nil {
 		return nil, err
 	}
 
-	res := []metal.Switch{}
+	res := metal.Switches{}
 	for _, sw := range switches {
 		if _, has := sw.MachineConnections[m.ID]; has {
 			res = append(res, sw)
 		}
 	}
+
 	return res, nil
 }
 
 // SetVrfAtSwitches finds the switches connected to the given machine and puts the switch ports into the given vrf.
 // Returns the updated switches.
-func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.Switch, error) {
+func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) (metal.Switches, error) {
 	switches, err := rs.SearchSwitchesConnectedToMachine(m)
 	if err != nil {
 		return nil, err
 	}
-	newSwitches := make([]metal.Switch, 0)
+	newSwitches := make(metal.Switches, 0)
 	for i := range switches {
 		sw := switches[i]
 		oldSwitch := sw
@@ -123,12 +138,13 @@ func (rs *RethinkStore) SetVrfAtSwitches(m *metal.Machine, vrf string) ([]metal.
 }
 
 func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
-	switches, err := rs.SearchSwitchesByPartition(m.PartitionID)
+	switches, err := rs.ListSwitches()
 	if err != nil {
 		return err
 	}
-	oldSwitches := []metal.Switch{}
-	newSwitches := []metal.Switch{}
+
+	oldSwitches := metal.Switches{}
+	newSwitches := metal.Switches{}
 	for _, sw := range switches {
 		oldSwitch := sw
 		if cons := sw.ConnectMachine(m); cons > 0 {

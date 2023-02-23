@@ -5,43 +5,61 @@ package datastore
 
 import (
 	"context"
+	"os"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/test"
-	"go.uber.org/zap/zaptest"
+	"github.com/testcontainers/testcontainers-go"
+	"go.uber.org/zap"
 
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
-func TestRethinkStore_ConflictIsReturned(t *testing.T) {
-	container, c, err := test.StartRethink(t)
-	require.NoError(t, err)
+// sharedDS is started before running the tests of this package (only once because it saves a lot of time then).
+// it can be used for integration testing with a real rethinkdb.
+//
+// please make sure that after every test you clean up the data of the test in order not to have to deal with side-effects across
+// the tests.
+var sharedDS *RethinkStore
+
+func TestMain(m *testing.M) {
+	var container testcontainers.Container
+	container, sharedDS = startRethinkInitialized()
 	defer func() {
-		_ = container.Terminate(context.Background())
+		err := container.Terminate(context.Background())
+		panic(err)
 	}()
 
-	rs := New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	code := m.Run()
+	os.Exit(code)
+}
+
+func startRethinkInitialized() (container testcontainers.Container, ds *RethinkStore) {
+	container, c, err := test.StartRethink(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	rs := New(zap.L().Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
 	rs.ASNPoolRangeMax = 10010
 
 	err = rs.Connect()
-	require.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
 	err = rs.Initialize()
-	require.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
 
-	err = rs.CreateImage(&metal.Image{Base: metal.Base{ID: "ubuntu"}})
-	require.NoError(t, err)
-	err = rs.CreateImage(&metal.Image{Base: metal.Base{ID: "debian"}})
-	require.NoError(t, err)
-	err = rs.CreateImage(&metal.Image{Base: metal.Base{ID: "ubuntu"}})
-	require.EqualError(t, err, "Conflict cannot create image in database, entity already exists: ubuntu")
+	return container, rs
+}
 
-	genID := metal.Image{Base: metal.Base{ID: ""}}
-	err = rs.CreateImage(&genID)
-	require.NoError(t, err)
-	require.NotEmpty(t, genID.ID)
+func ignoreTimestamps() cmp.Option {
+	return cmpopts.IgnoreFields(metal.Base{}, "Created", "Changed")
 }

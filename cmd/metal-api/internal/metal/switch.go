@@ -23,6 +23,8 @@ type Switch struct {
 	ConsoleCommand     string        `rethinkdb:"console_command" json:"console_command"`
 }
 
+type Switches []Switch
+
 type SwitchOS struct {
 	Vendor  string `rethinkdb:"vendor" json:"vendor"`
 	Version string `rethinkdb:"version" json:"version"`
