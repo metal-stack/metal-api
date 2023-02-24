@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -453,7 +454,7 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string, tags []string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -496,15 +497,19 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		return nil, errors.New("no machine available")
 	}
 
-	// pick a random machine from all available ones
-	var idx int
-	b, err := rand.Int(rand.Reader, big.NewInt(int64(len(available))))
+	query := MachineSearchQuery{
+		AllocationProject: &projectid,
+		PartitionID:       &partitionid,
+	}
+	q = *query.generateTerm(rs)
+
+	var projectMachines metal.Machines
+	err = rs.searchEntities(&q, &projectMachines)
 	if err != nil {
 		return nil, err
 	}
-	idx = int(b.Uint64())
 
-	oldMachine := available[idx]
+	oldMachine := electMachine(available, projectMachines, tags)
 	newMachine := oldMachine
 	newMachine.PreAllocated = true
 	err = rs.updateEntity(rs.machineTable(), &newMachine, &oldMachine)
@@ -512,4 +517,143 @@ func (rs *RethinkStore) FindWaitingMachine(partitionid, sizeid string) (*metal.M
 		return nil, err
 	}
 	return &newMachine, nil
+}
+
+func electMachine(allMachines, projectMachines metal.Machines, tags []string) metal.Machine {
+	rackids := make([]string, 0)
+
+	for i := range allMachines {
+		rackids = append(rackids, allMachines[i].RackID)
+	}
+
+	allRacks := groupByRack(allMachines, rackids)
+	projectRacks := groupByRack(projectMachines, rackids)
+
+	if len(tags) == 0 {
+		winners := electRacks(projectRacks)
+		candidates := flatten(filter(allRacks, winners...))
+		return candidates[randomIndex(len(candidates))]
+	}
+
+	tagged := filter(groupByTags(projectMachines), tags...)
+	taggedRacks := make([]map[string]metal.Machines, 0)
+
+	for tag := range tagged {
+		taggedRacks = append(taggedRacks, groupByRack(tagged[tag], rackids))
+	}
+
+	candidateRacks := make([][]string, 0)
+	for i := range taggedRacks {
+		candidateRacks = append(candidateRacks, electRacks(taggedRacks[i]))
+	}
+
+	winners := finalElection(candidateRacks)
+	candidates := flatten(filter(allRacks, winners...))
+
+	return candidates[randomIndex(len(candidates))]
+}
+
+func groupByRack(machines metal.Machines, rackids []string) map[string]metal.Machines {
+	racks := make(map[string]metal.Machines)
+
+	for i := range rackids {
+		racks[rackids[i]] = make(metal.Machines, 0)
+	}
+
+	for i := range machines {
+		ms := racks[machines[i].RackID]
+		racks[machines[i].RackID] = append(ms, machines[i])
+	}
+
+	return racks
+}
+
+func electRacks(racks map[string]metal.Machines) []string {
+	winners := make([]string, 0)
+	min := math.MaxInt
+
+	for id := range racks {
+		switch {
+		case len(racks[id]) < min:
+			min = len(racks[id])
+			winners = []string{id}
+		case len(racks[id]) == min:
+			winners = append(winners, id)
+		}
+	}
+
+	return winners
+}
+
+func groupByTags(machines metal.Machines) map[string]metal.Machines {
+	groups := make(map[string]metal.Machines)
+
+	for i := range machines {
+		m := machines[i]
+
+		for j := range m.Tags {
+			ms := groups[m.Tags[j]]
+			groups[m.Tags[j]] = append(ms, m)
+		}
+	}
+
+	return groups
+}
+
+func flatten(racks map[string]metal.Machines) metal.Machines {
+	machines := make(metal.Machines, 0)
+
+	for id := range racks {
+		machines = append(machines, racks[id]...)
+	}
+
+	return machines
+}
+
+func filter(machines map[string]metal.Machines, keys ...string) map[string]metal.Machines {
+	result := make(map[string]metal.Machines)
+
+	for i := range keys {
+		ms, ok := machines[keys[i]]
+		if ok {
+			result[keys[i]] = ms
+		}
+	}
+
+	return result
+}
+
+func randomIndex(max int) int {
+	if max <= 0 {
+		return 0
+	}
+
+	b, _ := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	idx := int(b.Uint64())
+
+	return idx
+}
+
+func finalElection(candidates [][]string) []string {
+	results := make(map[string]int)
+	winners := make([]string, 0)
+
+	for i := range candidates {
+		for j := range candidates[i] {
+			results[candidates[i][j]]++
+		}
+	}
+
+	var max int
+	for key := range results {
+		switch {
+		case results[key] > max:
+			winners = []string{key}
+			max = results[key]
+		case results[key] == max:
+			winners = append(winners, key)
+		}
+	}
+
+	return winners
 }

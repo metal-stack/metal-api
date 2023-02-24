@@ -41,6 +41,7 @@ type MachineAllocation struct {
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
+	PlacementTags    []string                  `json:"tags" description:"by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags"`
 }
 
 type BootInfo struct {

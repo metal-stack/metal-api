@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"reflect"
 	"testing"
 	"testing/quick"
 
@@ -478,3 +479,422 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 }
 
 // TODO: Add tests for UpdateWaitingMachine, WaitForMachineAllocation, FindAvailableMachine
+
+func Test_groupByRack(t *testing.T) {
+	type args struct {
+		machines metal.Machines
+		rackids  []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want map[string]metal.Machines
+	}{
+		{
+			name: "racks of size 1",
+			args: args{
+				machines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+				},
+				rackids: []string{"1", "2", "3"},
+			},
+			want: map[string]metal.Machines{
+				"1": {{RackID: "1"}},
+				"2": {{RackID: "2"}},
+				"3": {{RackID: "3"}},
+			},
+		},
+		{
+			name: "bigger racks",
+			args: args{
+				machines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+				},
+				rackids: []string{"1", "2", "3"},
+			},
+			want: map[string]metal.Machines{
+				"1": {
+					{RackID: "1"},
+					{RackID: "1"},
+					{RackID: "1"},
+				},
+				"2": {
+					{RackID: "2"},
+					{RackID: "2"},
+					{RackID: "2"},
+				},
+				"3": {
+					{RackID: "3"},
+					{RackID: "3"},
+					{RackID: "3"},
+				},
+			},
+		},
+		{
+			name: "empty racks",
+			args: args{
+				machines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+				},
+				rackids: []string{"1", "2", "3", "4"},
+			},
+			want: map[string]metal.Machines{
+				"1": {{RackID: "1"}},
+				"2": {{RackID: "2"}},
+				"3": {{RackID: "3"}},
+				"4": {},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := groupByRack(tt.args.machines, tt.args.rackids); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("groupByRack() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_groupByTags(t *testing.T) {
+	type args struct {
+		machines metal.Machines
+	}
+	tests := []struct {
+		name string
+		args args
+		want map[string]metal.Machines
+	}{
+		{
+			name: "one machine with multiple tags",
+			args: args{
+				machines: metal.Machines{
+					{Tags: []string{"1", "2", "3", "4"}},
+				},
+			},
+			want: map[string]metal.Machines{
+				"1": {
+					{Tags: []string{"1", "2", "3", "4"}},
+				},
+				"2": {
+					{Tags: []string{"1", "2", "3", "4"}},
+				},
+				"3": {
+					{Tags: []string{"1", "2", "3", "4"}},
+				},
+				"4": {
+					{Tags: []string{"1", "2", "3", "4"}},
+				},
+			},
+		},
+		{
+			name: "multiple machines with intersecting tags",
+			args: args{
+				machines: metal.Machines{
+					{Tags: []string{"1", "2", "3"}},
+					{Tags: []string{"1", "2", "4"}},
+				},
+			},
+			want: map[string]metal.Machines{
+				"1": {
+					{Tags: []string{"1", "2", "3"}},
+					{Tags: []string{"1", "2", "4"}},
+				},
+				"2": {
+					{Tags: []string{"1", "2", "3"}},
+					{Tags: []string{"1", "2", "4"}},
+				},
+				"3": {
+					{Tags: []string{"1", "2", "3"}},
+				},
+				"4": {
+					{Tags: []string{"1", "2", "4"}},
+				},
+			},
+		},
+		{
+			name: "multiple machines with disjunct tags",
+			args: args{
+				machines: metal.Machines{
+					{Tags: []string{"1", "2", "3"}},
+					{Tags: []string{"4", "5", "6"}},
+				},
+			},
+			want: map[string]metal.Machines{
+				"1": {
+					{Tags: []string{"1", "2", "3"}},
+				},
+				"2": {
+					{Tags: []string{"1", "2", "3"}},
+				},
+				"3": {
+					{Tags: []string{"1", "2", "3"}},
+				},
+				"4": {
+					{Tags: []string{"4", "5", "6"}},
+				},
+				"5": {
+					{Tags: []string{"4", "5", "6"}},
+				},
+				"6": {
+					{Tags: []string{"4", "5", "6"}},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := groupByTags(tt.args.machines); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("groupByTags() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_electRacks(t *testing.T) {
+	type args struct {
+		racks map[string]metal.Machines
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "no racks",
+			args: args{
+				racks: map[string]metal.Machines{},
+			},
+			want: []string{},
+		},
+		{
+			name: "one winner",
+			args: args{
+				racks: map[string]metal.Machines{
+					"1": {{}, {}, {}},
+					"2": {{}, {}},
+					"3": {{}},
+					"4": {},
+				},
+			},
+			want: []string{"4"},
+		},
+		{
+			name: "two winners",
+			args: args{
+				racks: map[string]metal.Machines{
+					"1": {{}, {}, {}},
+					"2": {{}, {}, {}},
+					"3": {{}},
+					"4": {{}},
+				},
+			},
+			want: []string{"3", "4"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := electRacks(tt.args.racks); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("electRacks() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_filter(t *testing.T) {
+	type args struct {
+		machines map[string]metal.Machines
+		keys     []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want map[string]metal.Machines
+	}{
+		{
+			name: "idempotent",
+			args: args{
+				machines: map[string]metal.Machines{
+					"1": {{Tags: []string{"1"}}},
+					"2": {{Tags: []string{"2"}}},
+					"3": {{Tags: []string{"3"}}},
+				},
+				keys: []string{"1", "2", "3"},
+			},
+			want: map[string]metal.Machines{
+				"1": {{Tags: []string{"1"}}},
+				"2": {{Tags: []string{"2"}}},
+				"3": {{Tags: []string{"3"}}},
+			},
+		},
+		{
+			name: "return empty",
+			args: args{
+				machines: map[string]metal.Machines{
+					"1": {{Tags: []string{"1"}}},
+					"2": {{Tags: []string{"2"}}},
+					"3": {{Tags: []string{"3"}}},
+				},
+				keys: []string{"4", "5", "6"},
+			},
+			want: map[string]metal.Machines{},
+		},
+		{
+			name: "return filtered",
+			args: args{
+				machines: map[string]metal.Machines{
+					"1": {{Tags: []string{"1"}}},
+					"2": {{Tags: []string{"2"}}},
+					"3": {{Tags: []string{"3"}}},
+				},
+				keys: []string{"1", "5", "6"},
+			},
+			want: map[string]metal.Machines{
+				"1": {{Tags: []string{"1"}}},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := filter(tt.args.machines, tt.args.keys...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("filter() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_finalElection(t *testing.T) {
+	type args struct {
+		candidates [][]string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "no candidates",
+			args: args{
+				candidates: [][]string{},
+			},
+			want: []string{},
+		},
+		{
+			name: "one winner",
+			args: args{
+				candidates: [][]string{
+					{"1", "2", "3", "4"},
+					{"1", "2", "3", "5"},
+					{"1", "2", "4", "5"},
+					{"1", "3", "4", "5"},
+					{"1", "3", "4", "5"},
+				},
+			},
+			want: []string{"1"},
+		},
+		{
+			name: "two winners",
+			args: args{
+				candidates: [][]string{
+					{"1", "2", "3", "4"},
+					{"1", "2", "3", "5"},
+					{"1", "3", "4", "5"},
+					{"1", "3", "4", "5"},
+					{"1", "3", "4", "5"},
+				},
+			},
+			want: []string{"1", "3"},
+		},
+		{
+			name: "all win",
+			args: args{
+				candidates: [][]string{
+					{"1", "2", "3", "4"},
+					{"1", "2", "3", "5"},
+					{"1", "2", "4", "5"},
+					{"1", "3", "4", "5"},
+					{"2", "3", "4", "5"},
+				},
+			},
+			want: []string{"1", "2", "3", "4", "5"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := finalElection(tt.args.candidates); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("finalElection() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_electMachine(t *testing.T) {
+	type args struct {
+		allMachines     metal.Machines
+		projectMachines metal.Machines
+		tags            []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want metal.Machine
+	}{
+		{
+			name: "one available machine",
+			args: args{
+				allMachines:     metal.Machines{{RackID: "1"}},
+				projectMachines: metal.Machines{},
+				tags:            []string{},
+			},
+			want: metal.Machine{RackID: "1"},
+		},
+		{
+			name: "no tags, spread by project only",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1"},
+				},
+				tags: []string{},
+			},
+			want: metal.Machine{RackID: "2"},
+		},
+		{
+			name: "spread by tags",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1", Tags: []string{"tag1"}},
+					{RackID: "2"},
+					{RackID: "2"},
+				},
+				tags: []string{"tag1"},
+			},
+			want: metal.Machine{RackID: "2"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := electMachine(tt.args.allMachines, tt.args.projectMachines, tt.args.tags); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("electMachine() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
