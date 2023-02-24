@@ -28,6 +28,10 @@ type ConnectionDetails struct {
 
 func StartRethink(t testing.TB) (container testcontainers.Container, c *ConnectionDetails, err error) {
 	ctx := context.Background()
+	var log testcontainers.Logging
+	if t != nil {
+		log = testcontainers.TestLogger(t)
+	}
 	req := testcontainers.ContainerRequest{
 		Image:        "rethinkdb:2.4.0",
 		ExposedPorts: []string{"8080/tcp", "28015/tcp"},
@@ -40,7 +44,7 @@ func StartRethink(t testing.TB) (container testcontainers.Container, c *Connecti
 	rtContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
-		Logger:           testcontainers.TestLogger(t),
+		Logger:           log,
 	})
 	if err != nil {
 		panic(err.Error())
