@@ -38,13 +38,13 @@ func webRequest(t require.TestingT, method string, service *restful.WebService, 
 	jsonBody, err := json.Marshal(request)
 	require.NoError(t, err)
 	body := io.NopCloser(strings.NewReader(string(jsonBody)))
-	createReq := httptest.NewRequest(method, path, body)
-	createReq.Header.Set("Content-Type", "application/json")
+	req := httptest.NewRequest(method, path, body)
+	req.Header.Set("Content-Type", "application/json")
 
 	container.Filter(MockAuth(user))
 
 	w := httptest.NewRecorder()
-	container.ServeHTTP(w, createReq)
+	container.ServeHTTP(w, req)
 
 	resp := w.Result()
 	defer resp.Body.Close()

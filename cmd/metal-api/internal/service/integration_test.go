@@ -344,11 +344,11 @@ func createTestEnvironment(t *testing.T) testEnv {
 }
 
 func (te *testEnv) sizeCreate(t *testing.T, icr v1.SizeCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.sizeService, &testUserDirectory.admin, icr, "/v1/size/", response)
+	return webRequestPut(t, te.sizeService, &testUserDirectory.admin, icr, "/v1/size", response)
 }
 
 func (te *testEnv) partitionCreate(t *testing.T, icr v1.PartitionCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.partitionService, &testUserDirectory.admin, icr, "/v1/partition/", response)
+	return webRequestPut(t, te.partitionService, &testUserDirectory.admin, icr, "/v1/partition", response)
 }
 
 func (te *testEnv) switchRegister(t *testing.T, srr v1.SwitchRegisterRequest, response interface{}) int {
@@ -360,15 +360,15 @@ func (te *testEnv) switchGet(t *testing.T, swid string, response interface{}) in
 }
 
 func (te *testEnv) imageCreate(t *testing.T, icr v1.ImageCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.imageService, &testUserDirectory.admin, icr, "/v1/image/", response)
+	return webRequestPut(t, te.imageService, &testUserDirectory.admin, icr, "/v1/image", response)
 }
 
 func (te *testEnv) sizeImageConstraintCreate(t *testing.T, siccr v1.SizeImageConstraintCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.sizeImageConstraintService, &testUserDirectory.admin, siccr, "/v1/size-image-constraint/", response)
+	return webRequestPut(t, te.sizeImageConstraintService, &testUserDirectory.admin, siccr, "/v1/size-image-constraint", response)
 }
 
 func (te *testEnv) networkCreate(t *testing.T, icr v1.NetworkCreateRequest, response interface{}) int {
-	return webRequestPut(t, te.networkService, &testUserDirectory.admin, icr, "/v1/network/", response)
+	return webRequestPut(t, te.networkService, &testUserDirectory.admin, icr, "/v1/network", response)
 }
 
 func (te *testEnv) networkAcquire(t *testing.T, nar v1.NetworkAllocateRequest, response interface{}) int {
