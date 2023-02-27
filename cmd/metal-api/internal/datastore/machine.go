@@ -33,10 +33,7 @@ type MachineSearchQuery struct {
 	NetworkIPs                 []string `json:"network_ips" optional:"true"`
 	NetworkDestinationPrefixes []string `json:"network_destination_prefixes" optional:"true"`
 	NetworkVrfs                []int64  `json:"network_vrfs" optional:"true"`
-	NetworkPrivate             *bool    `json:"network_private" optional:"true"`
 	NetworkASNs                []int64  `json:"network_asns" optional:"true"`
-	NetworkNat                 *bool    `json:"network_nat" optional:"true"`
-	NetworkUnderlay            *bool    `json:"network_underlay" optional:"true"`
 
 	// hardware
 	HardwareMemory   *int64 `json:"hardware_memory" optional:"true"`
@@ -55,7 +52,7 @@ type MachineSearchQuery struct {
 	DiskSizes []int64  `json:"disk_sizes" optional:"true"`
 
 	// state
-	StateValue *string `json:"state_value" optional:"true"`
+	StateValue *string `json:"state_value" optional:"true" enum:"|RESERVED|LOCKED"`
 
 	// ipmi
 	IpmiAddress    *string `json:"ipmi_address" optional:"true"`
@@ -163,44 +160,36 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	for _, prefix := range p.NetworkPrefixes {
 		prefix := prefix
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("prefixes")
-			}).Contains(r.Expr(prefix))
+			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
+				return nw.Field("prefixes").Contains(r.Expr(prefix))
+			})
 		})
 	}
 
 	for _, ip := range p.NetworkIPs {
 		ip := ip
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("ips")
-			}).Contains(r.Expr(ip))
+			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
+				return nw.Field("ips").Contains(r.Expr(ip))
+			})
 		})
 	}
 
 	for _, destPrefix := range p.NetworkDestinationPrefixes {
 		destPrefix := destPrefix
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("destinationprefixes")
-			}).Contains(r.Expr(destPrefix))
+			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
+				return nw.Field("destinationprefixes").Contains(r.Expr(destPrefix))
+			})
 		})
 	}
 
 	for _, vrf := range p.NetworkVrfs {
 		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("vrf")
-			}).Contains(r.Expr(vrf))
-		})
-	}
-
-	if p.NetworkPrivate != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("private")
-			}).Contains(*p.NetworkPrivate)
+			return row.Field("allocation").Field("networks").Contains(func(nw r.Term) r.Term {
+				return nw.Field("vrf").Eq(r.Expr(vrf))
+			})
 		})
 	}
 
@@ -210,22 +199,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
 				return nw.Field("asn")
 			}).Contains(r.Expr(asn))
-		})
-	}
-
-	if p.NetworkNat != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("nat")
-			}).Contains(*p.NetworkNat)
-		})
-	}
-
-	if p.NetworkUnderlay != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("allocation").Field("networks").Map(func(nw r.Term) r.Term {
-				return nw.Field("underlay")
-			}).Contains(*p.NetworkUnderlay)
 		})
 	}
 
@@ -271,40 +244,40 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	for _, mac := range p.NicsNeighborMacAddresses {
 		mac := mac
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
-				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
-					return neigh.Field("macAddress")
+			return row.Field("hardware").Field("network_interfaces").Contains(func(nic r.Term) r.Term {
+				return nic.Field("neighbors").Contains(func(neigh r.Term) r.Term {
+					return neigh.Field("macAddress").Eq(mac)
 				})
-			}).Contains(r.Expr(mac))
+			})
 		})
 	}
 
-	for _, name := range p.NicsNames {
+	for _, name := range p.NicsNeighborNames {
 		name := name
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
-				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
-					return neigh.Field("name")
+			return row.Field("hardware").Field("network_interfaces").Contains(func(nic r.Term) r.Term {
+				return nic.Field("neighbors").Contains(func(neigh r.Term) r.Term {
+					return neigh.Field("name").Eq(name)
 				})
-			}).Contains(r.Expr(name))
+			})
 		})
 	}
 
-	for _, vrf := range p.NicsVrfs {
+	for _, vrf := range p.NicsNeighborVrfs {
 		vrf := vrf
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("network_interfaces").Map(func(nic r.Term) r.Term {
-				return nic.Field("neighbors").Map(func(neigh r.Term) r.Term {
-					return neigh.Field("vrf")
+			return row.Field("hardware").Field("network_interfaces").Contains(func(nic r.Term) r.Term {
+				return nic.Field("neighbors").Contains(func(neigh r.Term) r.Term {
+					return neigh.Field("vrf").Eq(vrf)
 				})
-			}).Contains(r.Expr(vrf))
+			})
 		})
 	}
 
 	for _, name := range p.DiskNames {
 		name := name
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
+			return row.Field("hardware").Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("name")
 			}).Contains(r.Expr(name))
 		})
@@ -313,7 +286,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	for _, size := range p.DiskSizes {
 		size := size
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("block_devices").Map(func(bd r.Term) r.Term {
+			return row.Field("hardware").Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("size")
 			}).Contains(r.Expr(size))
 		})
@@ -321,7 +294,7 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 
 	if p.StateValue != nil {
 		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("state_value").Eq(*p.StateValue)
+			return row.Field("state").Field("value").Eq(*p.StateValue)
 		})
 	}
 

@@ -153,20 +153,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -221,6 +212,11 @@
           "type": "string"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -1072,20 +1068,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -1140,6 +1127,11 @@
           "type": "string"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -2182,20 +2174,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -2250,6 +2233,11 @@
           "type": "string"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/stretchr/testify/assert"
 )
 
 type switchTestable struct{}
@@ -17,15 +18,15 @@ func (_ *switchTestable) wipe() error {
 	return err
 }
 
-func (_ *switchTestable) create(s *metal.Switch) error {
+func (_ *switchTestable) create(s *metal.Switch) error { // nolint:unused
 	return sharedDS.CreateSwitch(s)
 }
 
-func (_ *switchTestable) delete(id string) error {
+func (_ *switchTestable) delete(id string) error { // nolint:unused
 	return sharedDS.DeleteSwitch(&metal.Switch{Base: metal.Base{ID: id}})
 }
 
-func (_ *switchTestable) update(old *metal.Switch, mutateFn func(s *metal.Switch)) error {
+func (_ *switchTestable) update(old *metal.Switch, mutateFn func(s *metal.Switch)) error { // nolint:unused
 	mod := *old
 	if mutateFn != nil {
 		mutateFn(&mod)
@@ -34,11 +35,11 @@ func (_ *switchTestable) update(old *metal.Switch, mutateFn func(s *metal.Switch
 	return sharedDS.UpdateSwitch(old, &mod)
 }
 
-func (_ *switchTestable) find(id string) (*metal.Switch, error) {
+func (_ *switchTestable) find(id string) (*metal.Switch, error) { // nolint:unused
 	return sharedDS.FindSwitch(id)
 }
 
-func (_ *switchTestable) list() ([]*metal.Switch, error) {
+func (_ *switchTestable) list() ([]*metal.Switch, error) { // nolint:unused
 	res, err := sharedDS.ListSwitches()
 	if err != nil {
 		return nil, err
@@ -47,7 +48,7 @@ func (_ *switchTestable) list() ([]*metal.Switch, error) {
 	return derefSlice(res), nil
 }
 
-func (_ *switchTestable) search(q *SwitchSearchQuery) ([]*metal.Switch, error) {
+func (_ *switchTestable) search(q *SwitchSearchQuery) ([]*metal.Switch, error) { // nolint:unused
 	var res metal.Switches
 	err := sharedDS.SearchSwitches(q, &res)
 	if err != nil {
@@ -65,7 +66,7 @@ func (_ *switchTestable) defaultBody(m *metal.Switch) *metal.Switch {
 func TestRethinkStore_FindSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []findTest[*metal.Switch, *SwitchSearchQuery]{
@@ -96,7 +97,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 func TestRethinkStore_SearchSwitches(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []searchTest[*metal.Switch, *SwitchSearchQuery]{
@@ -199,7 +200,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 func TestRethinkStore_ListSwitches(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []listTest[*metal.Switch, *SwitchSearchQuery]{
@@ -225,7 +226,7 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 func TestRethinkStore_CreateSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []createTest[*metal.Switch, *SwitchSearchQuery]{
@@ -253,7 +254,7 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 func TestRethinkStore_DeleteSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []deleteTest[*metal.Switch, *SwitchSearchQuery]{
@@ -293,7 +294,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 func TestRethinkStore_UpdateSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []updateTest[*metal.Switch, *SwitchSearchQuery]{

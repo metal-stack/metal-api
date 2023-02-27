@@ -8,6 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/stretchr/testify/assert"
 )
 
 type imageTestable struct{}
@@ -17,15 +18,15 @@ func (_ *imageTestable) wipe() error {
 	return err
 }
 
-func (_ *imageTestable) create(s *metal.Image) error {
+func (_ *imageTestable) create(s *metal.Image) error { // nolint:unused
 	return sharedDS.CreateImage(s)
 }
 
-func (_ *imageTestable) delete(id string) error {
+func (_ *imageTestable) delete(id string) error { // nolint:unused
 	return sharedDS.DeleteImage(&metal.Image{Base: metal.Base{ID: id}})
 }
 
-func (_ *imageTestable) update(old *metal.Image, mutateFn func(s *metal.Image)) error {
+func (_ *imageTestable) update(old *metal.Image, mutateFn func(s *metal.Image)) error { // nolint:unused
 	mod := *old
 	if mutateFn != nil {
 		mutateFn(&mod)
@@ -34,11 +35,11 @@ func (_ *imageTestable) update(old *metal.Image, mutateFn func(s *metal.Image)) 
 	return sharedDS.UpdateImage(old, &mod)
 }
 
-func (_ *imageTestable) find(id string) (*metal.Image, error) {
+func (_ *imageTestable) find(id string) (*metal.Image, error) { // nolint:unused
 	return sharedDS.GetImage(id)
 }
 
-func (_ *imageTestable) list() ([]*metal.Image, error) {
+func (_ *imageTestable) list() ([]*metal.Image, error) { // nolint:unused
 	res, err := sharedDS.ListImages()
 	if err != nil {
 		return nil, err
@@ -47,7 +48,7 @@ func (_ *imageTestable) list() ([]*metal.Image, error) {
 	return derefSlice(res), nil
 }
 
-func (_ *imageTestable) search(q *ImageSearchQuery) ([]*metal.Image, error) {
+func (_ *imageTestable) search(q *ImageSearchQuery) ([]*metal.Image, error) { // nolint:unused
 	var res metal.Images
 	err := sharedDS.SearchImages(q, &res)
 	if err != nil {
@@ -60,7 +61,7 @@ func (_ *imageTestable) search(q *ImageSearchQuery) ([]*metal.Image, error) {
 func TestRethinkStore_FindImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []findTest[*metal.Image, *ImageSearchQuery]{
@@ -93,7 +94,7 @@ func TestRethinkStore_FindImage(t *testing.T) {
 func TestRethinkStore_SearchImages(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []searchTest[*metal.Image, *ImageSearchQuery]{
@@ -227,7 +228,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 func TestRethinkStore_ListImages(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []listTest[*metal.Image, *ImageSearchQuery]{
@@ -253,7 +254,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 func TestRethinkStore_CreateImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []createTest[*metal.Image, *ImageSearchQuery]{
@@ -283,7 +284,7 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 func TestRethinkStore_DeleteImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []deleteTest[*metal.Image, *ImageSearchQuery]{
@@ -323,7 +324,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 func TestRethinkStore_UpdateImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		tt.wipe()
+		assert.NoError(t, tt.wipe())
 	}()
 
 	tests := []updateTest[*metal.Image, *ImageSearchQuery]{

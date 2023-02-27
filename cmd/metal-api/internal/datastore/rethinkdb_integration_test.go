@@ -85,30 +85,6 @@ type findTest[R metal.Entity, Q any] struct {
 	wantErr error
 }
 
-func (tt *findTest[R, Q]) testFind(t *testing.T, testable testable[R, Q]) {
-	t.Helper()
-
-	t.Run(tt.name, func(t *testing.T) {
-		err := testable.wipe()
-		require.NoError(t, err)
-
-		for _, s := range tt.mock {
-			s := s
-			err := testable.create(s)
-			require.NoError(t, err)
-		}
-
-		got, err := testable.find(tt.id)
-		if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
-			t.Errorf("error diff (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff(tt.want, got, ignoreTimestamps()); diff != "" {
-			t.Errorf("diff (-want +got):\n%s", diff)
-		}
-	})
-}
-
 func (tt *findTest[R, Q]) run(t *testing.T, testable testable[R, Q]) {
 	t.Helper()
 
@@ -313,7 +289,7 @@ func (tt *updateTest[R, Q]) run(t *testing.T, testable testable[R, Q]) {
 	})
 }
 
-func derefSlice[R any](s []R) []*R {
+func derefSlice[R any](s []R) []*R { // nolint:unused
 	var res []*R
 	for _, e := range s {
 		e := e
