@@ -45,6 +45,36 @@
         }
       }
     },
+    "datastore.ImageSearchQuery": {
+      "properties": {
+        "classification": {
+          "enum": [
+            "deprecated",
+            "preview",
+            "supported"
+          ],
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
     "datastore.MachineSearchQuery": {
       "properties": {
         "allocation_hostname": {
@@ -1589,6 +1619,36 @@
         "id",
         "url"
       ]
+    },
+    "v1.ImageFindRequest": {
+      "properties": {
+        "classification": {
+          "enum": [
+            "deprecated",
+            "preview",
+            "supported"
+          ],
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
     },
     "v1.ImageResponse": {
       "properties": {
@@ -5347,6 +5407,55 @@
           }
         },
         "summary": "create an image. if the given ID already exists a conflict is returned",
+        "tags": [
+          "image"
+        ]
+      }
+    },
+    "/v1/image/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findImages",
+        "parameters": [
+          {
+            "default": false,
+            "description": "include image usage into response",
+            "in": "query",
+            "name": "show-usage",
+            "type": "boolean"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.ImageFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.ImageResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all images that match given properties",
         "tags": [
           "image"
         ]
