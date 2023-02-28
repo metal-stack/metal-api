@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"golang.org/x/exp/slices"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -774,71 +775,6 @@ func Test_filter(t *testing.T) {
 	}
 }
 
-func Test_finalElection(t *testing.T) {
-	type args struct {
-		candidates [][]string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
-	}{
-		{
-			name: "no candidates",
-			args: args{
-				candidates: [][]string{},
-			},
-			want: []string{},
-		},
-		{
-			name: "one winner",
-			args: args{
-				candidates: [][]string{
-					{"1", "2", "3", "4"},
-					{"1", "2", "3", "5"},
-					{"1", "2", "4", "5"},
-					{"1", "3", "4", "5"},
-					{"1", "3", "4", "5"},
-				},
-			},
-			want: []string{"1"},
-		},
-		{
-			name: "two winners",
-			args: args{
-				candidates: [][]string{
-					{"1", "2", "3", "4"},
-					{"1", "2", "3", "5"},
-					{"1", "3", "4", "5"},
-					{"1", "3", "4", "5"},
-					{"1", "3", "4", "5"},
-				},
-			},
-			want: []string{"1", "3"},
-		},
-		{
-			name: "all win",
-			args: args{
-				candidates: [][]string{
-					{"1", "2", "3", "4"},
-					{"1", "2", "3", "5"},
-					{"1", "2", "4", "5"},
-					{"1", "3", "4", "5"},
-					{"2", "3", "4", "5"},
-				},
-			},
-			want: []string{"1", "2", "3", "4", "5"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := finalElection(tt.args.candidates); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("finalElection() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_electMachine(t *testing.T) {
 	type args struct {
 		allMachines     metal.Machines
@@ -854,8 +790,8 @@ func Test_electMachine(t *testing.T) {
 			name: "one available machine",
 			args: args{
 				allMachines:     metal.Machines{{RackID: "1"}},
-				projectMachines: metal.Machines{},
-				tags:            []string{},
+				projectMachines: metal.Machines{{RackID: "1", Tags: []string{"tag"}}},
+				tags:            []string{"tag"},
 			},
 			want: metal.Machine{RackID: "1"},
 		},
@@ -868,6 +804,8 @@ func Test_electMachine(t *testing.T) {
 				},
 				projectMachines: metal.Machines{
 					{RackID: "1"},
+					{RackID: "1"},
+					{RackID: "2", Tags: []string{"tag"}},
 				},
 				tags: []string{},
 			},
@@ -882,18 +820,179 @@ func Test_electMachine(t *testing.T) {
 				},
 				projectMachines: metal.Machines{
 					{RackID: "1", Tags: []string{"tag1"}},
-					{RackID: "2"},
+					{RackID: "2", Tags: []string{"irrelevant-tag"}},
 					{RackID: "2"},
 				},
 				tags: []string{"tag1"},
 			},
 			want: metal.Machine{RackID: "2"},
 		},
+		{
+			name: "no machines match relevant tags",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2", Tags: []string{"irrelevant-tag"}},
+					{RackID: "2"},
+				},
+				tags: []string{"tag1"},
+			},
+			want: metal.Machine{RackID: "1"},
+		},
+		{
+			name: "two racks in a draw, let project decide",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1", Tags: []string{"tag2"}},
+					{RackID: "2", Tags: []string{"tag1"}},
+					{RackID: "3", Tags: []string{"tag1", "tag2"}},
+					{RackID: "2", Tags: []string{"tag1"}},
+				},
+				tags: []string{"tag1", "tag2"},
+			},
+			want: metal.Machine{RackID: "1"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := electMachine(tt.args.allMachines, tt.args.projectMachines, tt.args.tags); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("electMachine() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_mostVoted(t *testing.T) {
+	type args struct {
+		candidates []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "empty set",
+			args: args{
+				candidates: []string{},
+			},
+			want: []string{},
+		},
+		{
+			name: "one candidate",
+			args: args{
+				candidates: []string{"1"},
+			},
+			want: []string{"1"},
+		},
+		{
+			name: "all win",
+			args: args{
+				candidates: []string{"1", "2", "3"},
+			},
+			want: []string{"1", "2", "3"},
+		},
+		{
+			name: "one winner",
+			args: args{
+				candidates: []string{"1", "2", "3", "1"},
+			},
+			want: []string{"1"},
+		},
+		{
+			name: "multiple winners",
+			args: args{
+				candidates: []string{"1", "2", "3", "2", "3"},
+			},
+			want: []string{"2", "3"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := mostVoted(tt.args.candidates)
+			slices.Sort(got)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("mostVoted() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_intersect(t *testing.T) {
+	type args struct {
+		a []string
+		b []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "both empty",
+			want: []string{},
+		},
+		{
+			name: "one empty",
+			args: args{
+				a: []string{""},
+			},
+			want: []string{},
+		},
+		{
+			name: "empty intersection",
+			args: args{
+				a: []string{"1"},
+				b: []string{"2"},
+			},
+			want: []string{},
+		},
+		{
+			name: "non-empty intersection",
+			args: args{
+				a: []string{"1", "2", "3"},
+				b: []string{"1", "3", "4"},
+			},
+			want: []string{"1", "3"},
+		},
+		{
+			name: "intersection equals a",
+			args: args{
+				a: []string{"3", "2", "1"},
+				b: []string{"1", "3", "4", "2"},
+			},
+			want: []string{"3", "2", "1"},
+		},
+		{
+			name: "intersection contains same elements as b",
+			args: args{
+				a: []string{"3", "2", "1", "4"},
+				b: []string{"1", "3", "4"},
+			},
+			want: []string{"3", "1", "4"},
+		},
+		{
+			name: "a and b contain same elements",
+			args: args{
+				a: []string{"3", "2", "1", "4"},
+				b: []string{"1", "3", "4", "2"},
+			},
+			want: []string{"3", "2", "1", "4"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := intersect(tt.args.a, tt.args.b); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("intersect() = %v, want %v", got, tt.want)
 			}
 		})
 	}

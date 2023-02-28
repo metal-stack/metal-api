@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"golang.org/x/exp/slices"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -519,6 +520,10 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 	return &newMachine, nil
 }
 
+// TODO:
+// in case tags are provided, think of alternative election procedures and see if it can be simplified
+// do a benchmark
+// see if map, filter and functional programming methods are an option for the many for loops and if they improve performance
 func electMachine(allMachines, projectMachines metal.Machines, tags []string) metal.Machine {
 	rackids := make([]string, 0)
 
@@ -542,14 +547,21 @@ func electMachine(allMachines, projectMachines metal.Machines, tags []string) me
 		taggedRacks = append(taggedRacks, groupByRack(tagged[tag], rackids))
 	}
 
-	candidateRacks := make([][]string, 0)
+	candidateRacks := make([]string, 0)
 	for i := range taggedRacks {
-		candidateRacks = append(candidateRacks, electRacks(taggedRacks[i]))
+		candidateRacks = append(candidateRacks, electRacks(taggedRacks[i])...)
 	}
 
-	winners := finalElection(candidateRacks)
-	candidates := flatten(filter(allRacks, winners...))
+	winners := mostVoted(candidateRacks)
+	projectWinners := electRacks(projectRacks)
 
+	if len(winners) == 0 {
+		winners = projectWinners
+	} else if w := intersect(winners, projectWinners); len(w) > 0 {
+		winners = w
+	}
+
+	candidates := flatten(filter(allRacks, winners...))
 	return candidates[randomIndex(len(candidates))]
 }
 
@@ -634,26 +646,36 @@ func randomIndex(max int) int {
 	return idx
 }
 
-func finalElection(candidates [][]string) []string {
-	results := make(map[string]int)
+func mostVoted(candidates []string) []string {
 	winners := make([]string, 0)
+	votes := make(map[string]int)
+	var max int
 
 	for i := range candidates {
-		for j := range candidates[i] {
-			results[candidates[i][j]]++
-		}
+		votes[candidates[i]]++
 	}
 
-	var max int
-	for key := range results {
+	for c := range votes {
 		switch {
-		case results[key] > max:
-			winners = []string{key}
-			max = results[key]
-		case results[key] == max:
-			winners = append(winners, key)
+		case votes[c] > max:
+			max = votes[c]
+			winners = []string{c}
+		case votes[c] == max:
+			winners = append(winners, c)
 		}
 	}
 
 	return winners
+}
+
+func intersect[T comparable](a, b []T) []T {
+	c := make([]T, 0)
+
+	for i := range a {
+		if slices.Contains(b, a[i]) {
+			c = append(c, a[i])
+		}
+	}
+
+	return c
 }
