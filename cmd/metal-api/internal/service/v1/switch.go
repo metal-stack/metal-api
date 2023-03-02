@@ -27,6 +27,7 @@ type SwitchNics []SwitchNic
 type SwitchNic struct {
 	MacAddress string     `json:"mac" description:"the mac address of this network interface"`
 	Name       string     `json:"name" description:"the name of this network interface"`
+	Identifier string     `json:"identifier" description:"the identifier of this network interface"`
 	Vrf        string     `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
 	BGPFilter  *BGPFilter `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
 }
@@ -44,14 +45,6 @@ func NewBGPFilter(vnis, cidrs []string) BGPFilter {
 		VNIs:  vnis,
 		CIDRs: cidrs,
 	}
-}
-
-func (ss SwitchNics) ByMac() map[string]SwitchNic {
-	res := make(map[string]SwitchNic)
-	for i, s := range ss {
-		res[s.MacAddress] = ss[i]
-	}
-	return res
 }
 
 type SwitchConnection struct {
@@ -163,6 +156,7 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		nic := metal.Nic{
 			MacAddress: metal.MacAddress(r.Nics[i].MacAddress),
 			Name:       r.Nics[i].Name,
+			Identifier: r.Nics[i].Identifier,
 			Vrf:        r.Nics[i].Vrf,
 		}
 		nics = append(nics, nic)

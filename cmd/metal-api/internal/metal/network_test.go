@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNics_ByMac(t *testing.T) {
+func TestNics_ByIdentifier(t *testing.T) {
 	// Create Nics
 	countOfNics := 3
 	nicArray := make([]Nic, countOfNics)
@@ -23,19 +23,18 @@ func TestNics_ByMac(t *testing.T) {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
 
-	map1 := NicMap{}
+	map1 := map[string]*Nic{}
 	for i, n := range nicArray {
-		map1[n.MacAddress] = &nicArray[i]
+		map1[string(n.MacAddress)] = &nicArray[i]
 	}
 
 	tests := []struct {
 		name string
 		nics Nics
-		want NicMap
+		want map[string]*Nic
 	}{
-		// Test Data Array (only 1 data):
 		{
-			name: "TestNics_ByMac Test 1",
+			name: "TestNics_ByIdentifier Test 1",
 			nics: nicArray,
 			want: map1,
 		},
@@ -43,8 +42,8 @@ func TestNics_ByMac(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.nics.ByMac(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Nics.ByMac() = %v, want %v", got, tt.want)
+			if got := tt.nics.ByIdentifier(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Nics.ByIdentifier() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -2691,6 +2691,10 @@
     },
     "v1.MachineNic": {
       "properties": {
+        "identifier": {
+          "description": "the unique identifier of this network interface",
+          "type": "string"
+        },
         "mac": {
           "description": "the mac address of this network interface",
           "type": "string"
@@ -2708,6 +2712,7 @@
         }
       },
       "required": [
+        "identifier",
         "mac",
         "name",
         "neighbors"
@@ -4211,6 +4216,10 @@
           "$ref": "#/definitions/v1.BGPFilter",
           "description": "configures the bgp filter applied at the switch port"
         },
+        "identifier": {
+          "description": "the identifier of this network interface",
+          "type": "string"
+        },
         "mac": {
           "description": "the mac address of this network interface",
           "type": "string"
@@ -4225,6 +4234,7 @@
         }
       },
       "required": [
+        "identifier",
         "mac",
         "name"
       ]
