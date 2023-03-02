@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/meilisearch/meilisearch-go"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/robfig/cron"
 	"go.uber.org/zap"
 )
@@ -34,6 +35,13 @@ func New(c Config) (Auditing, error) {
 		index = client.Index(indexName(c.IndexPrefix, c.RotationInterval))
 	}
 
+	_, err = index.UpdateFilterableAttributes(pointer.Pointer([]string{
+		"rqid",
+	}))
+	if err != nil {
+		return nil, fmt.Errorf("unable to update filterable attributes for index: %w", err)
+	}
+
 	a := &meiliAuditing{
 		client:           client,
 		index:            index,
@@ -55,6 +63,11 @@ func New(c Config) (Auditing, error) {
 }
 
 func (a *meiliAuditing) Index(keysAndValues ...any) error {
+	_, err := a.add(keysAndValues...)
+	return err
+}
+
+func (a *meiliAuditing) add(keysAndValues ...any) (*meilisearch.TaskInfo, error) {
 	e := a.toMap(keysAndValues)
 	a.log.Debugw("index", "entry", e)
 	id := uuid.NewString()
@@ -63,17 +76,51 @@ func (a *meiliAuditing) Index(keysAndValues ...any) error {
 	e["component"] = "metal-api"
 	documents := []map[string]any{e}
 
-	_, err := a.index.AddDocuments(documents, "id")
+	task, err := a.index.AddDocuments(documents, "id")
 	if err != nil {
 		a.log.Errorw("index", "error", err)
-		return err
+		return nil, err
 	}
-	return nil
+
+	return task, nil
+}
+
+type searchResponse struct {
+	RequestID string `json:"rqid"`
+}
+
+func (a *meiliAuditing) search(requestID string) ([]*searchResponse, error) {
+	a.log.Debugw("search", "rqid", requestID)
+
+	resp, err := a.index.Search("", &meilisearch.SearchRequest{
+		Filter: fmt.Sprintf("rqid = %s", requestID),
+	})
+	if err != nil {
+		a.log.Errorw("search", "error", err)
+		return nil, err
+	}
+
+	var result []*searchResponse
+
+	for i := range resp.Hits {
+		m := resp.Hits[i].(map[string]interface{})
+		result = append(result, &searchResponse{
+			RequestID: m["rqid"].(string),
+		})
+	}
+
+	return result, nil
 }
 
 func (a *meiliAuditing) newIndex() {
 	a.log.Debugw("auditing", "create new index", a.rotationInterval)
 	a.index = a.client.Index(indexName(a.indexPrefix, a.rotationInterval))
+	_, err := a.index.UpdateFilterableAttributes(pointer.Pointer([]string{
+		"rqid",
+	}))
+	if err != nil {
+		a.log.Errorw("unable to update filterable attributes for index", "error", err)
+	}
 }
 
 func indexName(prefix string, i Interval) string {
