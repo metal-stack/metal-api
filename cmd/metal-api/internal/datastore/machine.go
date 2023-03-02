@@ -502,15 +502,11 @@ func electMachine(allMachines, projectMachines metal.Machines, tags []string) me
 
 	allRacks := groupByRack(allMachines, rackids)
 	projectRacks := groupByRack(projectMachines, rackids)
-	tagged := flatten(filter(groupByTags(projectMachines), tags...))
-	taggedRacks := groupByRack(tagged, rackids)
-	tagWinners := electRacks(taggedRacks)
 	projectWinners := electRacks(projectRacks)
-
-	winners := make([]string, 0)
-	if w := intersect(tagWinners, projectWinners); len(w) > 0 {
-		winners = w
-	}
+	taggedMachines := flatten(filter(groupByTags(projectMachines), tags...))
+	taggedRacks := groupByRack(taggedMachines, rackids)
+	tagWinners := electRacks(taggedRacks)
+	winners := intersect(tagWinners, projectWinners)
 
 	candidates := allMachines
 	if c := flatten(filter(allRacks, winners...)); len(c) > 0 {
