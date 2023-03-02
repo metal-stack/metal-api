@@ -45,6 +45,36 @@
         }
       }
     },
+    "datastore.ImageSearchQuery": {
+      "properties": {
+        "classification": {
+          "enum": [
+            "deprecated",
+            "preview",
+            "supported"
+          ],
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
     "datastore.MachineSearchQuery": {
       "properties": {
         "allocation_hostname": {
@@ -153,20 +183,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -227,6 +248,11 @@
           "type": "boolean"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -1078,20 +1104,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -1152,6 +1169,11 @@
           "type": "boolean"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -1609,6 +1631,36 @@
         "id",
         "url"
       ]
+    },
+    "v1.ImageFindRequest": {
+      "properties": {
+        "classification": {
+          "enum": [
+            "deprecated",
+            "preview",
+            "supported"
+          ],
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
     },
     "v1.ImageResponse": {
       "properties": {
@@ -2194,20 +2246,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -2268,6 +2311,11 @@
           "type": "boolean"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -2653,6 +2701,10 @@
     },
     "v1.MachineNic": {
       "properties": {
+        "identifier": {
+          "description": "the unique identifier of this network interface",
+          "type": "string"
+        },
         "mac": {
           "description": "the mac address of this network interface",
           "type": "string"
@@ -2670,6 +2722,7 @@
         }
       },
       "required": [
+        "identifier",
         "mac",
         "name",
         "neighbors"
@@ -4205,6 +4258,10 @@
           "$ref": "#/definitions/v1.BGPFilter",
           "description": "configures the bgp filter applied at the switch port"
         },
+        "identifier": {
+          "description": "the identifier of this network interface",
+          "type": "string"
+        },
         "mac": {
           "description": "the mac address of this network interface",
           "type": "string"
@@ -4219,6 +4276,7 @@
         }
       },
       "required": [
+        "identifier",
         "mac",
         "name"
       ]
@@ -5409,6 +5467,55 @@
           }
         },
         "summary": "create an image. if the given ID already exists a conflict is returned",
+        "tags": [
+          "image"
+        ]
+      }
+    },
+    "/v1/image/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findImages",
+        "parameters": [
+          {
+            "default": false,
+            "description": "include image usage into response",
+            "in": "query",
+            "name": "show-usage",
+            "type": "boolean"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.ImageFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.ImageResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all images that match given properties",
         "tags": [
           "image"
         ]

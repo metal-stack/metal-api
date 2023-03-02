@@ -127,6 +127,7 @@ type MachineNics []MachineNic
 type MachineNic struct {
 	MacAddress string      `json:"mac"  description:"the mac address of this network interface"`
 	Name       string      `json:"name"  description:"the name of this network interface"`
+	Identifier string      `json:"identifier"  description:"the unique identifier of this network interface"`
 	Neighbors  MachineNics `json:"neighbors" description:"the neighbors visible to this network interface"`
 }
 
@@ -278,12 +279,14 @@ func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
 			neighbor := metal.Nic{
 				MacAddress: metal.MacAddress(r.Nics[i].Neighbors[i2].MacAddress),
 				Name:       r.Nics[i].Neighbors[i2].Name,
+				Identifier: r.Nics[i].Neighbors[i2].Identifier,
 			}
 			neighbors = append(neighbors, neighbor)
 		}
 		nic := metal.Nic{
 			MacAddress: metal.MacAddress(r.Nics[i].MacAddress),
 			Name:       r.Nics[i].Name,
+			Identifier: r.Nics[i].Identifier,
 			Neighbors:  neighbors,
 		}
 		nics = append(nics, nic)
@@ -418,11 +421,17 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		neighs := MachineNics{}
 		for j := range n.Neighbors {
 			neigh := n.Neighbors[j]
-			neighs = append(neighs, MachineNic{MacAddress: string(neigh.MacAddress), Name: neigh.Name, Neighbors: MachineNics{}})
+			neighs = append(neighs, MachineNic{
+				MacAddress: string(neigh.MacAddress),
+				Name:       neigh.Name,
+				Identifier: neigh.Identifier,
+				Neighbors:  MachineNics{},
+			})
 		}
 		nic := MachineNic{
 			MacAddress: string(n.MacAddress),
 			Name:       n.Name,
+			Identifier: n.Identifier,
 			Neighbors:  neighs,
 		}
 		nics = append(nics, nic)

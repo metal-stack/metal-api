@@ -320,12 +320,10 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 	}
 
 	returnCode := http.StatusOK
-
 	if s == nil {
 		s = v1.NewSwitch(requestPayload)
-
-		if len(requestPayload.Nics) != len(s.Nics.ByMac()) {
-			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
+		if len(requestPayload.Nics) != len(s.Nics.ByIdentifier()) {
+			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate identifier found in nics")))
 			return
 		}
 
@@ -348,12 +346,14 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 	} else {
 		old := *s
 		spec := v1.NewSwitch(requestPayload)
-		if len(requestPayload.Nics) != len(spec.Nics.ByMac()) {
-			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate mac addresses found in nics")))
+
+		uniqueNewNics := spec.Nics.ByIdentifier()
+		if len(requestPayload.Nics) != len(uniqueNewNics) {
+			r.sendError(request, response, httperrors.BadRequest(errors.New("duplicate identifier found in nics")))
 			return
 		}
 
-		nics, err := updateSwitchNics(old.Nics.ByMac(), spec.Nics.ByMac(), old.MachineConnections)
+		nics, err := updateSwitchNics(old.Nics.ByIdentifier(), uniqueNewNics, old.MachineConnections)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -550,6 +550,7 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 		for _, con := range cons {
 			if n, ok := newNicMap[con.Nic.Name]; ok {
 				newCon := con
+				newCon.Nic.Identifier = n.Identifier
 				newCon.Nic.MacAddress = n.MacAddress
 				newConnections = append(newConnections, newCon)
 			} else {
@@ -567,11 +568,11 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 	return newConnectionMap, nil
 }
 
-func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnections metal.ConnectionMap) (metal.Nics, error) {
+func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections metal.ConnectionMap) (metal.Nics, error) {
 	// To start off we just prevent basic things that can go wrong
 	nicsThatGetLost := metal.Nics{}
-	for mac, nic := range oldNics {
-		_, ok := newNics[mac]
+	for k, nic := range oldNics {
+		_, ok := newNics[k]
 		if !ok {
 			nicsThatGetLost = append(nicsThatGetLost, *nic)
 		}
@@ -581,8 +582,8 @@ func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnect
 	for _, nicThatGetsLost := range nicsThatGetLost {
 		for machineID, connections := range currentConnections {
 			for _, c := range connections {
-				if c.Nic.MacAddress == nicThatGetsLost.MacAddress {
-					return nil, fmt.Errorf("nic with mac address %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.MacAddress, machineID)
+				if c.Nic.GetIdentifier() == nicThatGetsLost.GetIdentifier() {
+					return nil, fmt.Errorf("nic with identifier %s gets removed but the machine with id %q is already connected to this nic, which is currently not supported", nicThatGetsLost.GetIdentifier(), machineID)
 				}
 			}
 		}
@@ -598,8 +599,8 @@ func updateSwitchNics(oldNics metal.NicMap, newNics metal.NicMap, currentConnect
 			// check if connection exists and name changes
 			for machineID, connections := range currentConnections {
 				for _, c := range connections {
-					if c.Nic.MacAddress == nic.MacAddress && oldNic.Name != nic.Name {
-						return nil, fmt.Errorf("nic with mac address %s wants to be renamed from %q to %q, but already has a connection to machine with id %q, which is currently not supported", nic.MacAddress, oldNic.Name, nic.Name, machineID)
+					if c.Nic.MacAddress == nic.MacAddress && c.Nic.GetIdentifier() == nic.GetIdentifier() && oldNic.Name != nic.Name {
+						return nil, fmt.Errorf("nic with mac address %s and identifier %s wants to be renamed from %q to %q, but already has a connection to machine with id %q, which is currently not supported", nic.MacAddress, nic.Identifier, oldNic.Name, nic.Name, machineID)
 					}
 				}
 			}
@@ -725,11 +726,16 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 		nic := v1.SwitchNic{
 			MacAddress: string(n.MacAddress),
 			Name:       n.Name,
+			Identifier: n.Identifier,
 			Vrf:        n.Vrf,
 			BGPFilter:  filter,
 		}
 		nics = append(nics, nic)
 	}
+
+	sort.Slice(nics, func(i, j int) bool {
+		return nics[i].Name < nics[j].Name
+	})
 
 	return nics
 }
@@ -742,6 +748,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			nic := v1.SwitchNic{
 				MacAddress: string(mc.Nic.MacAddress),
 				Name:       mc.Nic.Name,
+				Identifier: mc.Nic.Identifier,
 				Vrf:        mc.Nic.Vrf,
 			}
 			con := v1.SwitchConnection{
@@ -751,6 +758,10 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			cons = append(cons, con)
 		}
 	}
+
+	sort.SliceStable(cons, func(i, j int) bool {
+		return cons[i].MachineID < cons[j].MachineID
+	})
 
 	return cons
 }
