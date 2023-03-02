@@ -3,6 +3,7 @@ package v1
 import (
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
@@ -27,6 +28,11 @@ type ImageUpdateRequest struct {
 	ImageBase
 	ExpirationDate *time.Time `json:"expirationDate" description:"expirationDate of this image" optional:"true"`
 	Classification *string    `json:"classification" description:"classification of this image" optional:"true"`
+}
+
+// ImageFindRequest is used to find a image with different criteria.
+type ImageFindRequest struct {
+	datastore.ImageSearchQuery
 }
 
 type ImageResponse struct {
