@@ -521,8 +521,6 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 }
 
 // TODO:
-// in case tags are provided, think of alternative election procedures and see if it can be simplified
-// do a benchmark
 // see if map, filter and functional programming methods are an option for the many for loops and if they improve performance
 func electMachine(allMachines, projectMachines metal.Machines, tags []string) metal.Machine {
 	rackids := make([]string, 0)
@@ -533,35 +531,22 @@ func electMachine(allMachines, projectMachines metal.Machines, tags []string) me
 
 	allRacks := groupByRack(allMachines, rackids)
 	projectRacks := groupByRack(projectMachines, rackids)
-
-	if len(tags) == 0 {
-		winners := electRacks(projectRacks)
-		candidates := flatten(filter(allRacks, winners...))
-		return candidates[randomIndex(len(candidates))]
-	}
-
-	tagged := filter(groupByTags(projectMachines), tags...)
-	taggedRacks := make([]map[string]metal.Machines, 0)
-
-	for tag := range tagged {
-		taggedRacks = append(taggedRacks, groupByRack(tagged[tag], rackids))
-	}
-
-	candidateRacks := make([]string, 0)
-	for i := range taggedRacks {
-		candidateRacks = append(candidateRacks, electRacks(taggedRacks[i])...)
-	}
-
-	winners := mostVoted(candidateRacks)
+	tagged := flatten(filter(groupByTags(projectMachines), tags...))
+	taggedRacks := groupByRack(tagged, rackids)
+	winners := electRacks(taggedRacks)
 	projectWinners := electRacks(projectRacks)
 
-	if len(winners) == 0 {
-		winners = projectWinners
-	} else if w := intersect(winners, projectWinners); len(w) > 0 {
+	if w := intersect(winners, projectWinners); len(w) > 0 {
 		winners = w
 	}
 
-	candidates := flatten(filter(allRacks, winners...))
+	candidates := allMachines
+	if c := flatten(filter(allRacks, winners...)); len(c) > 0 {
+		candidates = c
+	} else if c := flatten(filter(allRacks, projectWinners...)); len(c) > 0 {
+		candidates = c
+	}
+
 	return candidates[randomIndex(len(candidates))]
 }
 

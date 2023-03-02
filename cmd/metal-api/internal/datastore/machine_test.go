@@ -492,6 +492,18 @@ func Test_groupByRack(t *testing.T) {
 		want map[string]metal.Machines
 	}{
 		{
+			name: "no machines",
+			args: args{
+				machines: metal.Machines{},
+				rackids:  []string{"1", "2", "3"},
+			},
+			want: map[string]metal.Machines{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+		},
+		{
 			name: "racks of size 1",
 			args: args{
 				machines: metal.Machines{
@@ -577,6 +589,13 @@ func Test_groupByTags(t *testing.T) {
 		args args
 		want map[string]metal.Machines
 	}{
+		{
+			name: "one machine with no tags",
+			args: args{
+				machines: metal.Machines{{}},
+			},
+			want: map[string]metal.Machines{},
+		},
 		{
 			name: "one machine with multiple tags",
 			args: args{
@@ -724,6 +743,14 @@ func Test_filter(t *testing.T) {
 		want map[string]metal.Machines
 	}{
 		{
+			name: "empty map",
+			args: args{
+				machines: map[string]metal.Machines{},
+				keys:     []string{"1", "2", "3"},
+			},
+			want: map[string]metal.Machines{},
+		},
+		{
 			name: "idempotent",
 			args: args{
 				machines: map[string]metal.Machines{
@@ -812,6 +839,21 @@ func Test_electMachine(t *testing.T) {
 			want: metal.Machine{RackID: "2"},
 		},
 		{
+			name: "no tags and preferred racks aren't available",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "1"},
+					{RackID: "2"},
+				},
+				tags: []string{},
+			},
+			want: metal.Machine{RackID: "1"},
+		},
+		{
 			name: "spread by tags",
 			args: args{
 				allMachines: metal.Machines{
@@ -860,6 +902,49 @@ func Test_electMachine(t *testing.T) {
 				tags: []string{"tag1", "tag2"},
 			},
 			want: metal.Machine{RackID: "1"},
+		},
+		{
+			name: "preferred racks aren't available",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "3"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1", Tags: []string{"tag1"}},
+					{RackID: "2", Tags: []string{"tag1"}},
+					{RackID: "3", Tags: []string{"tag1", "tag2"}},
+					{RackID: "3", Tags: []string{"tag2"}},
+					{RackID: "2", Tags: []string{"tag2"}},
+				},
+				tags: []string{"tag1", "tag2"},
+			},
+			want: metal.Machine{RackID: "3"},
+		},
+		{
+			name: "racks preferred by tags aren't available, choose by project",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "3"},
+					{RackID: "2"},
+					{RackID: "2"},
+					{RackID: "2"},
+					{RackID: "2"},
+					{RackID: "2"},
+					{RackID: "2"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1", Tags: []string{"tag1"}},
+					{RackID: "2", Tags: []string{"tag1"}},
+					{RackID: "2", Tags: []string{"tag1"}},
+					{RackID: "3", Tags: []string{"tag1"}},
+					{RackID: "3", Tags: []string{"tag1"}},
+					{RackID: "1"},
+					{RackID: "1"},
+					{RackID: "2"},
+				},
+				tags: []string{"tag1"},
+			},
+			want: metal.Machine{RackID: "3"},
 		},
 	}
 	for _, tt := range tests {
@@ -996,4 +1081,65 @@ func Test_intersect(t *testing.T) {
 			}
 		})
 	}
+}
+
+func BenchmarkElectMachine(b *testing.B) {
+	type args struct {
+		allMachines     metal.Machines
+		projectMachines metal.Machines
+		tags            []string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "10 available, 11 project",
+			args: args{
+				allMachines:     getTestMachines(2, []string{"1", "2", "3", "4", "5"}, []string{}),
+				projectMachines: append(getTestMachines(2, []string{"1", "2", "3", "4", "5"}, []string{"tag1", "tag2", "tag3", "tag4"}), getTestMachines(1, []string{"6"}, []string{})...),
+				tags:            []string{"tag1", "tag2", "tag3", "tag4"},
+			},
+		},
+		{
+			name: "100 available",
+			args: args{
+				allMachines:     getTestMachines(20, []string{"1", "2", "3", "4", "5"}, []string{}),
+				projectMachines: append(getTestMachines(20, []string{"1", "2", "3", "4", "5"}, []string{"tag1", "tag2", "tag3", "tag4"}), getTestMachines(10, []string{"6"}, []string{})...),
+				tags:            []string{"tag1", "tag2", "tag3", "tag4"},
+			},
+		},
+		{
+			name: "1000 available, 1100 project",
+			args: args{
+				allMachines:     getTestMachines(200, []string{"1", "2", "3", "4", "5"}, []string{}),
+				projectMachines: append(getTestMachines(200, []string{"1", "2", "3", "4", "5"}, []string{"tag1", "tag2", "tag3", "tag4"}), getTestMachines(100, []string{"6"}, []string{})...),
+				tags:            []string{"tag1", "tag2", "tag3", "tag4"},
+			},
+		},
+	}
+	for _, t := range tests {
+		b.Run(t.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				electMachine(t.args.allMachines, t.args.projectMachines, t.args.tags)
+			}
+		})
+	}
+}
+
+func getTestMachines(numPerRack int, rackids []string, tags []string) metal.Machines {
+	machines := make(metal.Machines, 0)
+
+	for _, id := range rackids {
+		for i := 0; i < numPerRack; i++ {
+			m := metal.Machine{
+				RackID: id,
+				Tags:   tags,
+			}
+
+			machines = append(machines, m)
+		}
+	}
+
+	return machines
 }
