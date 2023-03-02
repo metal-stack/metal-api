@@ -7,8 +7,8 @@ import (
 
 	"net/http"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/metal-stack/security"
 

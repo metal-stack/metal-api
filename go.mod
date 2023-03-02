@@ -19,14 +19,14 @@ require (
 	github.com/looplab/fsm v0.3.0
 	github.com/metal-stack/go-ipam v1.8.5
 	github.com/metal-stack/masterdata-api v0.9.0
-	github.com/metal-stack/metal-lib v0.11.3
+	github.com/metal-stack/metal-lib v0.11.5-0.20230301132509-dd0049f9eee7
 	github.com/metal-stack/security v0.6.6
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/testcontainers/testcontainers-go v0.18.0
 	github.com/undefinedlabs/go-mpatch v1.0.6
 	go.uber.org/multierr v1.9.0
@@ -102,7 +102,7 @@ require (
 	github.com/josharian/native v1.0.0 // indirect
 	github.com/jsimonetti/rtnetlink v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.15.15 // indirect
+	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
@@ -118,7 +118,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mdlayher/netlink v1.7.1 // indirect
 	github.com/mdlayher/socket v0.4.0 // indirect
-	github.com/meilisearch/meilisearch-go v0.23.0
+	github.com/meilisearch/meilisearch-go v0.23.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
@@ -142,10 +142,10 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/puzpuzpuz/xsync/v2 v2.4.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20220927061507-ef77025ab5aa // indirect
-	github.com/robfig/cron v1.2.0
+	github.com/robfig/cron v1.2.0 // indirect
 	github.com/rs/zerolog v1.29.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	github.com/spf13/afero v1.9.3 // indirect
+	github.com/spf13/afero v1.9.4 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -188,3 +188,5 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 	tailscale.com v1.32.3 // indirect
 )
+
+require golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2 // indirect
