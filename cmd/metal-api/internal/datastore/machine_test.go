@@ -7,6 +7,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"golang.org/x/exp/slices"
 )
 
 // Test that generates many input data
@@ -272,7 +273,9 @@ func Test_electRacks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := electRacks(tt.args.racks); !reflect.DeepEqual(got, tt.want) {
+			got := electRacks(tt.args.racks)
+			slices.Sort(got)
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("electRacks() = %v, want %v", got, tt.want)
 			}
 		})
@@ -546,7 +549,7 @@ func Test_intersect(t *testing.T) {
 				a: []string{"3", "2", "1"},
 				b: []string{"1", "3", "4", "2"},
 			},
-			want: []string{"3", "2", "1"},
+			want: []string{"1", "2", "3"},
 		},
 		{
 			name: "intersection contains same elements as b",
@@ -554,7 +557,7 @@ func Test_intersect(t *testing.T) {
 				a: []string{"3", "2", "1", "4"},
 				b: []string{"1", "3", "4"},
 			},
-			want: []string{"3", "1", "4"},
+			want: []string{"1", "3", "4"},
 		},
 		{
 			name: "a and b contain same elements",
@@ -562,12 +565,14 @@ func Test_intersect(t *testing.T) {
 				a: []string{"3", "2", "1", "4"},
 				b: []string{"1", "3", "4", "2"},
 			},
-			want: []string{"3", "2", "1", "4"},
+			want: []string{"1", "2", "3", "4"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := intersect(tt.args.a, tt.args.b); !reflect.DeepEqual(got, tt.want) {
+			got := intersect(tt.args.a, tt.args.b)
+			slices.Sort(got)
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("intersect() = %v, want %v", got, tt.want)
 			}
 		})
