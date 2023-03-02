@@ -496,8 +496,8 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 func electMachine(allMachines, projectMachines metal.Machines, tags []string) metal.Machine {
 	rackids := make([]string, 0)
 
-	for i := range allMachines {
-		rackids = append(rackids, allMachines[i].RackID)
+	for _, m := range allMachines {
+		rackids = append(rackids, m.RackID)
 	}
 
 	allRacks := groupByRack(allMachines, rackids)
@@ -523,13 +523,13 @@ func electMachine(allMachines, projectMachines metal.Machines, tags []string) me
 func groupByRack(machines metal.Machines, rackids []string) map[string]metal.Machines {
 	racks := make(map[string]metal.Machines)
 
-	for i := range rackids {
-		racks[rackids[i]] = make(metal.Machines, 0)
+	for _, id := range rackids {
+		racks[id] = make(metal.Machines, 0)
 	}
 
-	for i := range machines {
-		ms := racks[machines[i].RackID]
-		racks[machines[i].RackID] = append(ms, machines[i])
+	for _, m := range machines {
+		ms := racks[m.RackID]
+		racks[m.RackID] = append(ms, m)
 	}
 
 	return racks
@@ -555,9 +555,7 @@ func electRacks(racks map[string]metal.Machines) []string {
 func groupByTags(machines metal.Machines) map[string]metal.Machines {
 	groups := make(map[string]metal.Machines)
 
-	for i := range machines {
-		m := machines[i]
-
+	for _, m := range machines {
 		for j := range m.Tags {
 			ms := groups[m.Tags[j]]
 			groups[m.Tags[j]] = append(ms, m)
