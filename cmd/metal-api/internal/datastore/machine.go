@@ -520,8 +520,6 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 	return &newMachine, nil
 }
 
-// TODO:
-// see if map, filter and functional programming methods are an option for the many for loops and if they improve performance
 func electMachine(allMachines, projectMachines metal.Machines, tags []string) metal.Machine {
 	rackids := make([]string, 0)
 
@@ -629,28 +627,6 @@ func randomIndex(max int) int {
 	idx := int(b.Uint64())
 
 	return idx
-}
-
-func mostVoted(candidates []string) []string {
-	winners := make([]string, 0)
-	votes := make(map[string]int)
-	var max int
-
-	for i := range candidates {
-		votes[candidates[i]]++
-	}
-
-	for c := range votes {
-		switch {
-		case votes[c] > max:
-			max = votes[c]
-			winners = []string{c}
-		case votes[c] == max:
-			winners = append(winners, c)
-		}
-	}
-
-	return winners
 }
 
 func intersect[T comparable](a, b []T) []T {

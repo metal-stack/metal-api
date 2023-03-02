@@ -8,7 +8,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
-	"golang.org/x/exp/slices"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -951,62 +950,6 @@ func Test_electMachine(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := electMachine(tt.args.allMachines, tt.args.projectMachines, tt.args.tags); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("electMachine() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_mostVoted(t *testing.T) {
-	type args struct {
-		candidates []string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
-	}{
-		{
-			name: "empty set",
-			args: args{
-				candidates: []string{},
-			},
-			want: []string{},
-		},
-		{
-			name: "one candidate",
-			args: args{
-				candidates: []string{"1"},
-			},
-			want: []string{"1"},
-		},
-		{
-			name: "all win",
-			args: args{
-				candidates: []string{"1", "2", "3"},
-			},
-			want: []string{"1", "2", "3"},
-		},
-		{
-			name: "one winner",
-			args: args{
-				candidates: []string{"1", "2", "3", "1"},
-			},
-			want: []string{"1"},
-		},
-		{
-			name: "multiple winners",
-			args: args{
-				candidates: []string{"1", "2", "3", "2", "3"},
-			},
-			want: []string{"2", "3"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := mostVoted(tt.args.candidates)
-			slices.Sort(got)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("mostVoted() = %v, want %v", got, tt.want)
 			}
 		})
 	}
