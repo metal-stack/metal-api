@@ -19,6 +19,7 @@ import (
 	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -293,4 +294,122 @@ func BenchmarkMachineList(b *testing.B) {
 	}
 
 	b.StopTimer()
+}
+
+func TestMachineLivelinessEvaluation(t *testing.T) {
+	te := createTestEnvironment(t)
+	defer te.teardown()
+
+	now := time.Now()
+
+	machinesWithECs := []struct {
+		m    metal.Machine
+		ec   *metal.ProvisioningEventContainer
+		want metal.MachineLiveliness
+	}{
+		{
+			m: metal.Machine{
+				Base: metal.Base{
+					ID:          "1",
+					Description: "waiting machine",
+				},
+				Waiting: true,
+			},
+			ec: &metal.ProvisioningEventContainer{
+				Base:          metal.Base{ID: "1"},
+				LastEventTime: pointer.Pointer(now.Add(-1 * time.Minute)),
+			},
+			want: metal.MachineLivelinessAlive,
+		},
+		{
+			m: metal.Machine{
+				Base: metal.Base{
+					ID:          "2",
+					Description: "dead machine",
+				},
+			},
+			ec: &metal.ProvisioningEventContainer{
+				Base:          metal.Base{ID: "2"},
+				LastEventTime: pointer.Pointer(now.Add(-1*time.Minute - metal.MachineDeadAfter)),
+			},
+			want: metal.MachineLivelinessDead,
+		},
+		{
+			m: metal.Machine{
+				Base: metal.Base{
+					ID:          "3",
+					Description: "machine where user disabled lldp daemon",
+				},
+				Allocation: &metal.MachineAllocation{
+					Creator: "someone",
+				},
+			},
+			ec: &metal.ProvisioningEventContainer{
+				Base:          metal.Base{ID: "3"},
+				LastEventTime: pointer.Pointer(now.Add(-1*time.Minute - metal.MachineDeadAfter)),
+			},
+			want: metal.MachineLivelinessUnknown,
+		},
+		{
+			m: metal.Machine{
+				Base: metal.Base{
+					ID:          "4",
+					Description: "hibernated machine",
+				},
+				State: metal.MachineState{
+					Hibernation: metal.MachineHibernation{
+						Enabled: true,
+					},
+				},
+			},
+			ec: &metal.ProvisioningEventContainer{
+				Base:          metal.Base{ID: "4"},
+				LastEventTime: pointer.Pointer(now.Add(-1*time.Minute - metal.MachineDeadAfter)),
+			},
+			want: metal.MachineLivelinesHibernated,
+		},
+		{
+			m: metal.Machine{
+				Base: metal.Base{
+					ID:          "5",
+					Description: "machine without event container",
+				},
+			},
+			ec:   nil,
+			want: metal.MachineLivelinessUnknown,
+		},
+	}
+
+	for i := range machinesWithECs {
+		skeleton := &metal.Machine{Base: machinesWithECs[i].m.Base}
+		err := te.ds.CreateMachine(skeleton)
+		require.NoError(t, err)
+
+		updatedMachine := *skeleton
+		updatedMachine.Waiting = machinesWithECs[i].m.Waiting
+		updatedMachine.Allocation = machinesWithECs[i].m.Allocation
+		updatedMachine.State = machinesWithECs[i].m.State
+
+		err = te.ds.UpdateMachine(skeleton, &updatedMachine)
+		require.NoError(t, err)
+
+		if machinesWithECs[i].ec != nil {
+			err = te.ds.CreateProvisioningEventContainer(machinesWithECs[i].ec)
+			require.NoError(t, err)
+		}
+	}
+
+	err := MachineLiveliness(te.ds, zaptest.NewLogger(t).Sugar())
+	require.NoError(t, err)
+
+	for i := range machinesWithECs {
+		if machinesWithECs[i].ec == nil {
+			continue
+		}
+
+		ec, err := te.ds.FindProvisioningEventContainer(machinesWithECs[i].m.ID)
+		require.NoError(t, err)
+
+		assert.Equal(t, machinesWithECs[i].want, ec.Liveliness, "machine %q", machinesWithECs[i].m.ID)
+	}
 }
