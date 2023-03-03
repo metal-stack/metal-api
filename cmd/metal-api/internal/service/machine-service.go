@@ -1780,8 +1780,6 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 			hibernated++
 		case metal.MachineLivelinessUnknown:
 			unknown++
-		default:
-			unknown++
 		}
 	}
 
