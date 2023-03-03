@@ -140,6 +140,9 @@
           "format": "int64",
           "type": "integer"
         },
+        "hibernation_enabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -243,9 +246,6 @@
         },
         "sizeid": {
           "type": "string"
-        },
-        "sleeping": {
-          "type": "boolean"
         },
         "state_value": {
           "enum": [
@@ -1061,6 +1061,9 @@
           "format": "int64",
           "type": "integer"
         },
+        "hibernation_enabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -1165,9 +1168,6 @@
         "sizeid": {
           "type": "string"
         },
-        "sleeping": {
-          "type": "boolean"
-        },
         "state_value": {
           "enum": [
             "",
@@ -1229,6 +1229,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "name": {
@@ -2041,6 +2047,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "partition": {
@@ -2203,6 +2215,9 @@
           "format": "int64",
           "type": "integer"
         },
+        "hibernation_enabled": {
+          "type": "boolean"
+        },
         "id": {
           "type": "string"
         },
@@ -2306,9 +2321,6 @@
         },
         "sizeid": {
           "type": "string"
-        },
-        "sleeping": {
-          "type": "boolean"
         },
         "state_value": {
           "enum": [
@@ -2423,6 +2435,27 @@
         "memory"
       ]
     },
+    "v1.MachineHibernation": {
+      "properties": {
+        "changed": {
+          "description": "last changed timestamp",
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "description": "describes last state change of hibernation",
+          "type": "string"
+        },
+        "enabled": {
+          "description": "true if hibernation is enabled",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "description",
+        "enabled"
+      ]
+    },
     "v1.MachineIPMI": {
       "description": "The IPMI connection data",
       "properties": {
@@ -2515,6 +2548,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "name": {
@@ -2852,6 +2891,12 @@
         },
         "liveliness": {
           "description": "the liveliness of this machine",
+          "enum": [
+            "Alive",
+            "Dead",
+            "Hibernated",
+            "Unknown"
+          ],
           "type": "string"
         },
         "name": {
@@ -2902,6 +2947,10 @@
           "description": "a description why this machine is in the given state",
           "type": "string"
         },
+        "hibernation": {
+          "$ref": "#/definitions/v1.MachineHibernation",
+          "description": "indicates that a machine was sent to sleep or woken up by the pool scaler"
+        },
         "issuer": {
           "description": "the user that changed the state",
           "type": "string"
@@ -2922,6 +2971,7 @@
       },
       "required": [
         "description",
+        "hibernation",
         "metal_hammer_version",
         "value"
       ]

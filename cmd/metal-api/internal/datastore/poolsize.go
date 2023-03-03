@@ -1,9 +1,12 @@
 package datastore
 
 import (
+	"time"
+
 	e "github.com/metal-stack/metal-api/cmd/metal-api/internal/eventbus"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"go.uber.org/zap"
 )
 
@@ -30,13 +33,11 @@ func (m *manager) AllMachines() (metal.Machines, error) {
 }
 
 func (m *manager) WaitingMachines() (metal.Machines, error) {
-	stateValue := string(metal.AvailableState)
-	notAllocated := true
 	q := MachineSearchQuery{
 		PartitionID:  &m.partitionid,
 		SizeID:       &m.sizeid,
-		StateValue:   &stateValue,
-		NotAllocated: &notAllocated,
+		StateValue:   pointer.Pointer(string(metal.AvailableState)),
+		NotAllocated: pointer.Pointer(true),
 	}
 
 	waitingMachines := metal.Machines{}
@@ -49,11 +50,10 @@ func (m *manager) WaitingMachines() (metal.Machines, error) {
 }
 
 func (m *manager) ShutdownMachines() (metal.Machines, error) {
-	sleeping := true
 	q := MachineSearchQuery{
-		PartitionID: &m.partitionid,
-		SizeID:      &m.sizeid,
-		Sleeping:    &sleeping,
+		PartitionID:        &m.partitionid,
+		SizeID:             &m.sizeid,
+		HibernationEnabled: pointer.Pointer(true),
 	}
 
 	shutdownMachines := metal.Machines{}
@@ -67,8 +67,11 @@ func (m *manager) ShutdownMachines() (metal.Machines, error) {
 
 func (m *manager) Shutdown(machine *metal.Machine) error {
 	state := metal.MachineState{
-		Sleeping:    true,
-		Description: "shut down as exceeding maximum partition poolsize",
+		Hibernation: metal.MachineHibernation{
+			Enabled:     true,
+			Description: "shutdown by pool scaler due to exceeding pool size",
+			Changed:     pointer.Pointer(time.Now()),
+		},
 	}
 
 	err := m.rs.publishCommandAndUpdate(m.rs.log, machine, m.publisher, metal.MachineOffCmd, state)
@@ -79,7 +82,13 @@ func (m *manager) Shutdown(machine *metal.Machine) error {
 }
 
 func (m *manager) PowerOn(machine *metal.Machine) error {
-	state := metal.MachineState{Sleeping: false}
+	state := metal.MachineState{
+		Hibernation: metal.MachineHibernation{
+			Enabled:     false,
+			Description: "powered on by pool scaler to increase pool size",
+			Changed:     pointer.Pointer(time.Now()),
+		},
+	}
 
 	err := m.rs.publishCommandAndUpdate(m.rs.log, machine, m.publisher, metal.MachineOnCmd, state)
 	if err != nil {

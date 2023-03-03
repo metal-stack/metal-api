@@ -24,6 +24,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -761,6 +762,17 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		if report.PowerState != "" {
 			newMachine.IPMI.PowerState = report.PowerState
 		}
+
+		h := newMachine.State.Hibernation
+		// TODO: an enum for PowerState would be nice
+		if newMachine.IPMI.PowerState == "ON" && h.Enabled && h.Changed != nil && time.Since(*h.Changed) > 10*time.Minute {
+			newMachine.State.Hibernation = metal.MachineHibernation{
+				Enabled:     false,
+				Description: "machine was hibernated by poolscaler but is still powered on or was powered on by user",
+				Changed:     pointer.Pointer(time.Now()),
+			}
+		}
+
 		if report.PowerMetric != nil {
 			newMachine.IPMI.PowerMetric = &metal.PowerMetric{
 				AverageConsumedWatts: report.PowerMetric.AverageConsumedWatts,
@@ -1772,8 +1784,8 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 }
 
 func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
-	if m.State.Sleeping {
-		return metal.MachineLivelinessAlive, nil
+	if m.State.Hibernation.Enabled {
+		return metal.MachineLivelinesHibernated, nil
 	}
 
 	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
@@ -1836,7 +1848,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if m.State.Sleeping {
+		if provisioningEvents.Liveliness.Is(string(metal.MachineLivelinesHibernated)) {
 			continue
 		}
 
@@ -2029,8 +2041,6 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			Description: description,
 		}
 		needsUpdate = true
-	case metal.MachineOnCmd:
-		newMachine.State = metal.MachineState{Sleeping: false}
 	}
 
 	if needsUpdate {

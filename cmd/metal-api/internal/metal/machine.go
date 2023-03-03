@@ -44,11 +44,18 @@ var (
 // the machine will be available for allocation. In all other cases the allocation
 // must explicitly point to this machine.
 type MachineState struct {
-	Value              MState `rethinkdb:"value" json:"value"`
-	Description        string `rethinkdb:"description" json:"description"`
-	Issuer             string `rethinkdb:"issuer" json:"issuer,omitempty"`
-	MetalHammerVersion string `rethinkdb:"metal_hammer_version" json:"metal_hammer_version"`
-	Sleeping           bool   `rethinkdb:"sleeping" json:"sleeping"`
+	Value              MState             `rethinkdb:"value" json:"value"`
+	Description        string             `rethinkdb:"description" json:"description"`
+	Issuer             string             `rethinkdb:"issuer" json:"issuer,omitempty"`
+	MetalHammerVersion string             `rethinkdb:"metal_hammer_version" json:"metal_hammer_version"`
+	Hibernation        MachineHibernation `rethinkdb:"hibernation" json:"hibernation"`
+}
+
+// A MachineHibernation indicates that a machine was sent to sleep or woken up by the pool scaler
+type MachineHibernation struct {
+	Enabled     bool       `rethinkdb:"enabled" json:"enabled"`
+	Description string     `rethinkdb:"description" json:"description"`
+	Changed     *time.Time `rethinkdb:"changed" json:"changed"`
 }
 
 // MachineStateFrom converts a machineState string to the type
@@ -295,11 +302,12 @@ type MachineLiveliness string
 
 // The enums for the machine liveliness states.
 const (
-	MachineLivelinessAlive   MachineLiveliness = "Alive"
-	MachineLivelinessDead    MachineLiveliness = "Dead"
-	MachineLivelinessUnknown MachineLiveliness = "Unknown"
-	MachineDeadAfter         time.Duration     = 5 * time.Minute
-	MachineResurrectAfter    time.Duration     = time.Hour
+	MachineLivelinessAlive     MachineLiveliness = "Alive"
+	MachineLivelinessDead      MachineLiveliness = "Dead"
+	MachineLivelinessUnknown   MachineLiveliness = "Unknown"
+	MachineLivelinesHibernated MachineLiveliness = "Hibernated"
+	MachineDeadAfter           time.Duration     = 5 * time.Minute
+	MachineResurrectAfter      time.Duration     = time.Hour
 )
 
 // Is return true if given liveliness is equal to specific Liveliness

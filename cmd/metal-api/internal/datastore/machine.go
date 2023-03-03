@@ -54,8 +54,8 @@ type MachineSearchQuery struct {
 	DiskSizes []int64  `json:"disk_sizes" optional:"true"`
 
 	// state
-	Sleeping   *bool   `json:"sleeping" optional:"true"`
-	StateValue *string `json:"state_value" optional:"true" enum:"|RESERVED|LOCKED"`
+	HibernationEnabled *bool   `json:"hibernation_enabled" optional:"true"`
+	StateValue         *string `json:"state_value" optional:"true" enum:"|RESERVED|LOCKED"`
 
 	// ipmi
 	IpmiAddress    *string `json:"ipmi_address" optional:"true"`
@@ -115,8 +115,14 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 		})
 	}
 
-	if p.NotAllocated != nil && *p.NotAllocated {
-		q = q.Filter(map[string]any{"allocation": nil})
+	if p.NotAllocated != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			if *p.NotAllocated {
+				return row.Field("allocation").Eq(nil)
+			} else {
+				return row.Field("allocation").Ne(nil)
+			}
+		})
 	}
 
 	if p.AllocationName != nil {
@@ -296,6 +302,12 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 			return row.Field("hardware").Field("block_devices").Map(func(bd r.Term) r.Term {
 				return bd.Field("size")
 			}).Contains(r.Expr(size))
+		})
+	}
+
+	if p.HibernationEnabled != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("state").Field("hibernation").Field("enabled").Eq(*p.HibernationEnabled)
 		})
 	}
 
