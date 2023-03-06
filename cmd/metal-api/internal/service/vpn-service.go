@@ -69,7 +69,7 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	if ok := r.headscaleClient.UserExists(pid); !ok {
 		r.sendError(
 			request, response,
-			httperrors.NotFound(fmt.Errorf("vpn usere doesn't exist for project with ID %s", pid)),
+			httperrors.NotFound(fmt.Errorf("vpn user doesn't exist for project with ID %s", pid)),
 		)
 		return
 	}
