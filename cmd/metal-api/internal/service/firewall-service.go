@@ -236,7 +236,7 @@ func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSp
 		return nil
 	}
 
-	// Try to create usere in Headscale DB
+	// Try to create user in Headscale DB
 	projectID := allocationSpec.ProjectID
 	if err := r.headscaleClient.CreateUser(projectID); err != nil {
 		return fmt.Errorf("failed to create new VPN user for the project: %w", err)
