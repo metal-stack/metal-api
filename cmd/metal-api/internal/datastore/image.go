@@ -9,7 +9,61 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
+
+// ImageSearchQuery can be used to search images.
+type ImageSearchQuery struct {
+	ID             *string  `json:"id" optional:"true"`
+	Name           *string  `json:"name" optional:"true"`
+	Features       []string `json:"features" optional:"true"`
+	OS             *string  `json:"os" optional:"true"`
+	Version        *string  `json:"version" optional:"true"`
+	Classification *string  `json:"classification" enum:"preview|supported|deprecated" optional:"true"`
+}
+
+// GenerateTerm generates the switch search query term.
+func (p *ImageSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
+	q := *rs.imageTable()
+
+	if p.ID != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("id").Eq(*p.ID)
+		})
+	}
+
+	if p.Name != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("name").Eq(*p.Name)
+		})
+	}
+
+	if p.OS != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("os").Eq(*p.OS)
+		})
+	}
+
+	if p.Version != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("version").Eq(*p.Version)
+		})
+	}
+
+	if p.Classification != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("classification").Eq(*p.Classification)
+		})
+	}
+
+	if len(p.Features) > 0 {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("features").HasFields(p.Features)
+		})
+	}
+
+	return &q
+}
 
 // GetImage return a image for a given id without semver matching.
 func (rs *RethinkStore) GetImage(id string) (*metal.Image, error) {
@@ -71,6 +125,11 @@ func (rs *RethinkStore) DeleteImage(i *metal.Image) error {
 // UpdateImage updates an image.
 func (rs *RethinkStore) UpdateImage(oldImage *metal.Image, newImage *metal.Image) error {
 	return rs.updateEntity(rs.imageTable(), newImage, oldImage)
+}
+
+// SearchImages searches for images by the given parameters.
+func (rs *RethinkStore) SearchImages(q *ImageSearchQuery, images *metal.Images) error {
+	return rs.searchEntities(q.generateTerm(rs), images)
 }
 
 // DeleteOrphanImages deletes Images which are no longer allocated by a machine and older than allowed.
