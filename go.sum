@@ -282,8 +282,8 @@ github.com/emicklei/go-restful v2.9.5+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT
 github.com/emicklei/go-restful-openapi/v2 v2.9.1 h1:Of8B1rXdG81il5TTiSY+9Qrh7pYOr8aLdynHIpvo7fM=
 github.com/emicklei/go-restful-openapi/v2 v2.9.1/go.mod h1:VKNgZyYviM1hnyrjD9RDzP2RuE94xTXxV+u6MGN4v4k=
 github.com/emicklei/go-restful/v3 v3.7.3/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
-github.com/emicklei/go-restful/v3 v3.10.1 h1:rc42Y5YTp7Am7CS630D7JmhRjq4UlEUuEKfrDac4bSQ=
-github.com/emicklei/go-restful/v3 v3.10.1/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
+github.com/emicklei/go-restful/v3 v3.9.0 h1:XwGDlfxEnQZzuopoqxwSEllNcCOM9DhhFyhFIIGKwxE=
+github.com/emicklei/go-restful/v3 v3.9.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
@@ -711,8 +711,8 @@ github.com/metal-stack/go-ipam v1.8.5 h1:XE1XfaU6Ck1Ucc7svTO25dlT7kEcE1oxOM3lBrW
 github.com/metal-stack/go-ipam v1.8.5/go.mod h1:JgsddJabu8A7lWD+4MJKqbQhmSA/zhBbO+Bp8pLhRZM=
 github.com/metal-stack/masterdata-api v0.9.0 h1:bKsUkIYRSckVEQsZQfeG10dY17/N+/SfwkUMCCLniEA=
 github.com/metal-stack/masterdata-api v0.9.0/go.mod h1:IBRuTb37nc0q65R7CpNVNjYZ0RHsBfCIg5n4n5w1M2c=
-github.com/metal-stack/metal-lib v0.11.5-0.20230307123557-7b33a28c997a h1:zv+tMA9E1FSftUHKh0d6raBqHLaDO9JiootlzFpkcdE=
-github.com/metal-stack/metal-lib v0.11.5-0.20230307123557-7b33a28c997a/go.mod h1:aVbLIrNFFMS48Oqyel5G6cODvpq5jLdehGR0QCRr62o=
+github.com/metal-stack/metal-lib v0.11.5-0.20230307132611-d05c658b0d5a h1:P1qPKRhKq7SphVoFJhzwNAKVwrTHQmiJkV5c+tMSass=
+github.com/metal-stack/metal-lib v0.11.5-0.20230307132611-d05c658b0d5a/go.mod h1:dUlNcar6S42YBEyTsqHQcSX3wrBrPeCNgBr2weG/Rhg=
 github.com/metal-stack/security v0.6.6 h1:KSPNN8YZd2EJEjsJ0xCBcd5o53uU0iFupahHA9Twuh0=
 github.com/metal-stack/security v0.6.6/go.mod h1:WchPm3+2Xjj1h7AxM+DsnR9EWgLw+ktoGCl/0gcmgSA=
 github.com/metal-stack/v v1.0.3 h1:Sh2oBlnxrCUD+mVpzfC8HiqL045YWkxs0gpTvkjppqs=
