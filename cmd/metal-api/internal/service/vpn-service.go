@@ -66,10 +66,10 @@ func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.
 	}
 
 	pid := requestPayload.Pid
-	if ok := r.headscaleClient.NamespaceExists(pid); !ok {
+	if ok := r.headscaleClient.UserExists(pid); !ok {
 		r.sendError(
 			request, response,
-			httperrors.NotFound(fmt.Errorf("vpn namespace doesn't exist for project with ID %s", pid)),
+			httperrors.NotFound(fmt.Errorf("vpn user doesn't exist for project with ID %s", pid)),
 		)
 		return
 	}
