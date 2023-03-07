@@ -366,7 +366,7 @@ func TestMachineLivelinessEvaluation(t *testing.T) {
 				Base:          metal.Base{ID: "4"},
 				LastEventTime: pointer.Pointer(now.Add(-1*time.Minute - metal.MachineDeadAfter)),
 			},
-			want: metal.MachineLivelinesHibernated,
+			want: metal.MachineLivelinessHibernated,
 		},
 		{
 			m: metal.Machine{

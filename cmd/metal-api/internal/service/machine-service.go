@@ -1776,7 +1776,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 			alive++
 		case metal.MachineLivelinessDead:
 			dead++
-		case metal.MachineLivelinesHibernated:
+		case metal.MachineLivelinessHibernated:
 			hibernated++
 		case metal.MachineLivelinessUnknown:
 			unknown++
@@ -1803,7 +1803,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 	}
 
 	if m.State.Hibernation.Enabled {
-		return updateLiveliness(metal.MachineLivelinesHibernated)
+		return updateLiveliness(metal.MachineLivelinessHibernated)
 	}
 
 	if time.Since(pointer.SafeDeref(ec.LastEventTime)) < metal.MachineDeadAfter {
@@ -1849,7 +1849,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 			continue
 		}
 
-		if provisioningEvents.Liveliness.Is(string(metal.MachineLivelinesHibernated)) {
+		if provisioningEvents.Liveliness.Is(string(metal.MachineLivelinessHibernated)) {
 			continue
 		}
 

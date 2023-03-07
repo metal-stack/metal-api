@@ -302,12 +302,12 @@ type MachineLiveliness string
 
 // The enums for the machine liveliness states.
 const (
-	MachineLivelinessAlive     MachineLiveliness = "Alive"
-	MachineLivelinessDead      MachineLiveliness = "Dead"
-	MachineLivelinessUnknown   MachineLiveliness = "Unknown"
-	MachineLivelinesHibernated MachineLiveliness = "Hibernated"
-	MachineDeadAfter           time.Duration     = 5 * time.Minute
-	MachineResurrectAfter      time.Duration     = time.Hour
+	MachineLivelinessAlive      MachineLiveliness = "Alive"
+	MachineLivelinessDead       MachineLiveliness = "Dead"
+	MachineLivelinessUnknown    MachineLiveliness = "Unknown"
+	MachineLivelinessHibernated MachineLiveliness = "Hibernated"
+	MachineDeadAfter            time.Duration     = 5 * time.Minute
+	MachineResurrectAfter       time.Duration     = time.Hour
 )
 
 // Is return true if given liveliness is equal to specific Liveliness
