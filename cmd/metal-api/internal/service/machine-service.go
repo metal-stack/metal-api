@@ -1757,64 +1757,65 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		return err
 	}
 
-	unknown := 0
-	alive := 0
-	dead := 0
-	errs := 0
+	var (
+		unknown    = 0
+		alive      = 0
+		dead       = 0
+		hibernated = 0
+		errs       = 0
+	)
 	for _, m := range machines {
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
 			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
 			errs++
-			// fall through, so the rest of the machines is getting evaluated
+			// fall through, so the machine counted anyway and rest of the machines is getting evaluated
 		}
 		switch lvlness {
 		case metal.MachineLivelinessAlive:
 			alive++
 		case metal.MachineLivelinessDead:
 			dead++
+		case metal.MachineLivelinesHibernated:
+			hibernated++
 		case metal.MachineLivelinessUnknown:
 			unknown++
 		}
 	}
 
-	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
+	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "hibernated", hibernated, "unknown", unknown, "errors", errs)
 
 	return nil
 }
 
 func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (metal.MachineLiveliness, error) {
-	if m.State.Hibernation.Enabled {
-		return metal.MachineLivelinesHibernated, nil
-	}
-
-	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
+	ec, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
-		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
+		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioning events found for machine: %s", m.ID)
 	}
 
-	old := *provisioningEvents
+	updateLiveliness := func(liveliness metal.MachineLiveliness) (metal.MachineLiveliness, error) {
+		old := *ec
+		ec.Liveliness = liveliness
 
-	if provisioningEvents.LastEventTime != nil {
-		if time.Since(*provisioningEvents.LastEventTime) > metal.MachineDeadAfter {
-			if m.Allocation != nil {
-				// the machine is either dead or the customer did turn off the phone home service
-				provisioningEvents.Liveliness = metal.MachineLivelinessUnknown
-			} else {
-				// the machine is just dead
-				provisioningEvents.Liveliness = metal.MachineLivelinessDead
-			}
-		} else {
-			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
-		}
-		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
-		if err != nil {
-			return provisioningEvents.Liveliness, err
-		}
+		return ec.Liveliness, ds.UpdateProvisioningEventContainer(&old, ec)
 	}
 
-	return provisioningEvents.Liveliness, nil
+	if m.State.Hibernation.Enabled {
+		return updateLiveliness(metal.MachineLivelinesHibernated)
+	}
+
+	if time.Since(pointer.SafeDeref(ec.LastEventTime)) < metal.MachineDeadAfter {
+		return updateLiveliness(metal.MachineLivelinessAlive)
+	}
+
+	if m.Allocation != nil {
+		// the machine is either dead or the customer did turn off the phone home service
+		return updateLiveliness(metal.MachineLivelinessUnknown)
+	}
+
+	return updateLiveliness(metal.MachineLivelinessDead)
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
