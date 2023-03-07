@@ -55,24 +55,28 @@ func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, publ
 		}
 	}
 
-	p, err := rs.FindPartition(machine.PartitionID)
-	if err != nil {
-		return nil, err
-	}
+	var scaler *s.PoolScaler
+	if machine.PartitionID != "" && machine.SizeID != "" {
+		// in the early lifecycle, when the pxe booting event is submitted
+		// a machine does not have a partition or size , so the pool scaler
+		// can not work at this stage
 
-	manager := &manager{
-		rs:          rs,
-		publisher:   publisher,
-		partitionid: p.ID,
-		sizeid:      machine.SizeID,
-	}
+		p, err := rs.FindPartition(machine.PartitionID)
+		if err != nil {
+			return nil, err
+		}
 
-	c := &s.PoolScalerConfig{
-		Log:       log.Named("pool-scaler"),
-		Manager:   manager,
-		Partition: *p,
+		scaler = s.NewPoolScaler(&s.PoolScalerConfig{
+			Log: log.Named("pool-scaler"),
+			Manager: &manager{
+				rs:          rs,
+				publisher:   publisher,
+				partitionid: p.ID,
+				sizeid:      machine.SizeID,
+			},
+			Partition: *p,
+		})
 	}
-	scaler := s.NewPoolScaler(c)
 
 	config := states.StateConfig{
 		Log:       log.Named("fsm"),
