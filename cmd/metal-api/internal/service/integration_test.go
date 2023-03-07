@@ -53,10 +53,14 @@ type testEnv struct {
 	privateNetwork             *v1.NetworkResponse
 	rethinkContainer           testcontainers.Container
 	ctx                        context.Context
+	cancel                     context.CancelFunc
 }
 
 func (te *testEnv) teardown() {
-	_ = te.rethinkContainer.Terminate(te.ctx)
+	ctx, cancel := context.WithTimeout(te.ctx, 3*time.Second)
+	defer cancel()
+	_ = te.rethinkContainer.Terminate(ctx)
+	te.cancel()
 }
 
 //nolint:deadcode
@@ -83,10 +87,11 @@ func createTestEnvironment(t *testing.T) testEnv {
 	mdc := mdm.NewMock(psc, nil)
 
 	log := zaptest.NewLogger(t).Sugar()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		err := metalgrpc.Run(&metalgrpc.ServerConfig{
-			Context:          context.Background(),
+		err := metalgrpc.Run(&metalgrpc.ServerConfig{ //nolint
+			Context:          ctx,
 			Store:            ds,
 			Publisher:        NopPublisher{},
 			Logger:           log,
@@ -122,7 +127,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 		ipService:                  ipService,
 		ds:                         ds,
 		rethinkContainer:           rethinkContainer,
-		ctx:                        context.TODO(),
+		ctx:                        ctx,
+		cancel:                     cancel,
 	}
 
 	imageID := "test-image-1.0.0"
