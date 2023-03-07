@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
+	"go.uber.org/zap"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/zap"
 )
 
 type BootService struct {
@@ -122,11 +123,14 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 			neighs = append(neighs, metal.Nic{
 				Name:       neigh.Name,
 				MacAddress: metal.MacAddress(neigh.Mac),
+				Hostname:   neigh.Hostname,
+				Identifier: neigh.Identifier,
 			})
 		}
 		nics = append(nics, metal.Nic{
 			Name:       nic.Name,
 			MacAddress: metal.MacAddress(nic.Mac),
+			Identifier: nic.Identifier,
 			Neighbors:  neighs,
 		})
 	}

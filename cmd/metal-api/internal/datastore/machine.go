@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
+
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 // MachineSearchQuery can be used to search machines.
@@ -403,7 +404,7 @@ func (rs *RethinkStore) ListMachines() (metal.Machines, error) {
 // CreateMachine creates a new machine in the database as "unallocated new machines".
 // If the given machine has an allocation, the function returns an error because
 // allocated machines cannot be created. If there is already a machine with the
-// given ID in the database it will be replaced the the given machine.
+// given ID in the database it will be replaced the given machine.
 // CreateNetwork creates a new network.
 func (rs *RethinkStore) CreateMachine(m *metal.Machine) error {
 	if m.Allocation != nil {
