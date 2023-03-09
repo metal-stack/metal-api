@@ -81,33 +81,33 @@ func (h *HeadscaleClient) GetControlPlaneAddress() string {
 	return h.controlPlaneAddress
 }
 
-func (h *HeadscaleClient) NamespaceExists(name string) bool {
-	getNSRequest := &headscalev1.GetNamespaceRequest{
+func (h *HeadscaleClient) UserExists(name string) bool {
+	req := &headscalev1.GetUserRequest{
 		Name: name,
 	}
-	if _, err := h.client.GetNamespace(h.ctx, getNSRequest); err != nil {
+	if _, err := h.client.GetUser(h.ctx, req); err != nil {
 		return false
 	}
 
 	return true
 }
 
-func (h *HeadscaleClient) CreateNamespace(name string) error {
-	req := &headscalev1.CreateNamespaceRequest{
+func (h *HeadscaleClient) CreateUser(name string) error {
+	req := &headscalev1.CreateUserRequest{
 		Name: name,
 	}
-	_, err := h.client.CreateNamespace(h.ctx, req)
+	_, err := h.client.CreateUser(h.ctx, req)
 	// TODO: this error check is pretty rough, but it's not easily possible to compare the proto error directly :/
-	if err != nil && !strings.Contains(err.Error(), headscalecore.ErrNamespaceExists.Error()) {
-		return fmt.Errorf("failed to create new VPN namespace: %w", err)
+	if err != nil && !strings.Contains(err.Error(), headscalecore.ErrUserExists.Error()) {
+		return fmt.Errorf("failed to create new VPN user: %w", err)
 	}
 
 	return nil
 }
 
-func (h *HeadscaleClient) CreatePreAuthKey(namespace string, expiration time.Time, isEphemeral bool) (key string, err error) {
+func (h *HeadscaleClient) CreatePreAuthKey(user string, expiration time.Time, isEphemeral bool) (key string, err error) {
 	req := &headscalev1.CreatePreAuthKeyRequest{
-		Namespace:  namespace,
+		User:       user,
 		Expiration: timestamppb.New(expiration),
 		Ephemeral:  isEphemeral,
 	}
@@ -128,8 +128,7 @@ func (h *HeadscaleClient) MachinesConnected() (connectedMap, error) {
 	}
 	result := connectedMap{}
 	for _, m := range resp.Machines {
-		connected := m.LastSeen.AsTime().After(time.Now().Add(-5 * time.Minute))
-		result[m.Name] = connected
+		result[m.Name] = m.Online
 	}
 
 	return result, nil
@@ -154,7 +153,7 @@ func (h *HeadscaleClient) DeleteMachine(machineID, projectID string) (err error)
 
 func (h *HeadscaleClient) getMachine(machineID, projectID string) (machine *headscalev1.Machine, err error) {
 	req := &headscalev1.ListMachinesRequest{
-		Namespace: projectID,
+		User: projectID,
 	}
 	resp, err := h.client.ListMachines(h.ctx, req)
 	if err != nil || resp == nil {
