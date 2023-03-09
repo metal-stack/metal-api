@@ -241,6 +241,9 @@
         "partition_id": {
           "type": "string"
         },
+        "preallocated": {
+          "type": "boolean"
+        },
         "rackid": {
           "type": "string"
         },
@@ -260,6 +263,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -1162,6 +1168,9 @@
         "partition_id": {
           "type": "string"
         },
+        "preallocated": {
+          "type": "boolean"
+        },
         "rackid": {
           "type": "string"
         },
@@ -1181,6 +1190,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },
@@ -2316,6 +2328,9 @@
         "partition_id": {
           "type": "string"
         },
+        "preallocated": {
+          "type": "boolean"
+        },
         "rackid": {
           "type": "string"
         },
@@ -2335,6 +2350,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "waiting": {
+          "type": "boolean"
         }
       }
     },

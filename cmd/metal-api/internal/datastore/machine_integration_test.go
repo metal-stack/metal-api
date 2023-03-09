@@ -684,6 +684,40 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "search by waiting true",
+			q: &MachineSearchQuery{
+				Waiting: pointer.Pointer(true),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, Waiting: true},
+				{Base: metal.Base{ID: "2"}, Waiting: true},
+				{Base: metal.Base{ID: "3"}, Waiting: false},
+				{Base: metal.Base{ID: "4"}, Waiting: false},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, Waiting: true}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, Waiting: true}),
+			},
+			wantErr: nil,
+		},
+		{
+			name: "search by preallocated true",
+			q: &MachineSearchQuery{
+				PreAllocated: pointer.Pointer(true),
+			},
+			mock: []*metal.Machine{
+				{Base: metal.Base{ID: "1"}, PreAllocated: true},
+				{Base: metal.Base{ID: "2"}, PreAllocated: true},
+				{Base: metal.Base{ID: "3"}, PreAllocated: false},
+				{Base: metal.Base{ID: "4"}, PreAllocated: false},
+			},
+			want: []*metal.Machine{
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "1"}, PreAllocated: true}),
+				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "2"}, PreAllocated: true}),
+			},
+			wantErr: nil,
+		},
+		{
 			name: "search by hibernation_enabled true",
 			q: &MachineSearchQuery{
 				HibernationEnabled: pointer.Pointer(true),

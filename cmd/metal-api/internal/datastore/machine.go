@@ -56,6 +56,8 @@ type MachineSearchQuery struct {
 	// state
 	HibernationEnabled *bool   `json:"hibernation_enabled" optional:"true"`
 	StateValue         *string `json:"state_value" optional:"true" enum:"|RESERVED|LOCKED"`
+	PreAllocated       *bool   `json:"preallocated" optional:"true"`
+	Waiting            *bool   `json:"waiting" optional:"true"`
 
 	// ipmi
 	IpmiAddress    *string `json:"ipmi_address" optional:"true"`
@@ -314,6 +316,18 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.StateValue != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("state").Field("value").Eq(*p.StateValue)
+		})
+	}
+
+	if p.PreAllocated != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("preallocated").Eq(*p.PreAllocated)
+		})
+	}
+
+	if p.Waiting != nil {
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("waiting").Eq(*p.Waiting)
 		})
 	}
 

@@ -38,6 +38,8 @@ func (m *manager) WaitingMachines() (metal.Machines, error) {
 		SizeID:       &m.sizeid,
 		StateValue:   pointer.Pointer(string(metal.AvailableState)),
 		NotAllocated: pointer.Pointer(true),
+		Waiting:      pointer.Pointer(true),
+		PreAllocated: pointer.Pointer(false),
 	}
 
 	waitingMachines := metal.Machines{}
