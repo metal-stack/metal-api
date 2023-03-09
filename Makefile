@@ -32,8 +32,8 @@ protoc-docker:
 	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.14.0 generate -v
 
 .PHONY: mini-lab-push
-mini-lab-push:
-	docker build -t metalstack/metal-api:latest .
+mini-lab-push: all
+	docker build -f Dockerfile.dev -t metalstack/metal-api:latest .
 	kind --name metal-control-plane load docker-image metalstack/metal-api:latest
 	kubectl --kubeconfig=$(MINI_LAB_KUBECONFIG) patch deployments.apps -n metal-control-plane metal-api --patch='{"spec":{"template":{"spec":{"containers":[{"name": "metal-api","imagePullPolicy":"IfNotPresent","image":"metalstack/metal-api:latest"}]}}}}'
 	kubectl --kubeconfig=$(MINI_LAB_KUBECONFIG) delete pod -n metal-control-plane -l app=metal-api
