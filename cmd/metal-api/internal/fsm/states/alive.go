@@ -11,6 +11,7 @@ type AliveState struct {
 	log       *zap.SugaredLogger
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
+	machine   *metal.Machine
 }
 
 func newAlive(c *StateConfig) *AliveState {
@@ -18,10 +19,17 @@ func newAlive(c *StateConfig) *AliveState {
 		log:       c.Log,
 		container: c.Container,
 		event:     c.Event,
+		machine:   c.Machine,
 	}
 }
 
 func (p *AliveState) OnEnter(e *fsm.Event) {
-	updateTimeAndLiveliness(p.event, p.container)
 	p.log.Debugw("received provisioning alive event", "id", p.container.ID)
+
+	if p.machine.State.Hibernation.Enabled {
+		p.container.LastEventTime = &p.event.Time // machine is about to shutdown and is still sending alive events
+		return
+	}
+
+	updateTimeAndLiveliness(p.event, p.container)
 }
