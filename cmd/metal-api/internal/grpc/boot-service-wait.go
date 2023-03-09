@@ -34,9 +34,6 @@ func (b *BootService) Wait(req *v1.BootServiceWaitRequest, srv v1.BootService_Wa
 		return err
 	}
 	defer func() {
-		if err != nil {
-			return
-		}
 		err := b.updateWaitingFlag(machineID, false)
 		if err != nil {
 			b.log.Errorw("unable to remove waiting flag from machine", "machineID", machineID, "error", err)
