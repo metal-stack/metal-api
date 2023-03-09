@@ -26,7 +26,7 @@ func newAlive(c *StateConfig) *AliveState {
 func (p *AliveState) OnEnter(e *fsm.Event) {
 	p.log.Debugw("received provisioning alive event", "id", p.container.ID)
 
-	if p.machine.State.Hibernation.Enabled {
+	if p.machine != nil && p.machine.State.Hibernation.Enabled {
 		p.container.LastEventTime = &p.event.Time // machine is about to shutdown and is still sending alive events
 		return
 	}
