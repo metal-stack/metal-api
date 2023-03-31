@@ -49,6 +49,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bufbuild/connect-go v1.5.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/containerd v1.6.19 // indirect
@@ -189,5 +190,3 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 	tailscale.com v1.34.0 // indirect
 )
-
-require github.com/bufbuild/connect-go v1.5.2 // indirect
