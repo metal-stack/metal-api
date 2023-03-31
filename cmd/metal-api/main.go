@@ -16,13 +16,13 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/rest"
 
 	nsq2 "github.com/nsqio/go-nsq"
@@ -915,6 +915,7 @@ func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
 	}
 
 	c := auditing.Config{
+		Component:        "metal-api",
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
 		Log:              log,
