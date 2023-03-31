@@ -355,9 +355,9 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
 
-	super, err := ipamer.NewPrefix("10.0.0.0/20")
+	super, err := ipamer.NewPrefix(context.Background(), "10.0.0.0/20")
 	require.NoError(t, err)
-	private, err := ipamer.AcquireChildPrefix(super.Cidr, 22)
+	private, err := ipamer.AcquireChildPrefix(context.Background(), super.Cidr, 22)
 	require.NoError(t, err)
 	privateNetwork, err := metal.NewPrefixFromCIDR(private.Cidr)
 	require.NoError(t, err)
