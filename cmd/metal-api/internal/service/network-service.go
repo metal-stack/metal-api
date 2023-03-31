@@ -293,18 +293,18 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		}
 	}
 
-	existingPrefixes := metal.Prefixes{}
-	existingPrefixesMap := make(map[string]bool)
-	for _, nw := range allNws {
-		for _, p := range nw.Prefixes {
-			_, ok := existingPrefixesMap[p.String()]
-			if !ok {
-				existingPrefixes = append(existingPrefixes, p)
-				existingPrefixesMap[p.String()] = true
-			}
-		}
-	}
-
+	// existingPrefixes := metal.Prefixes{}
+	// existingPrefixesMap := make(map[string]bool)
+	// for _, nw := range allNws {
+	// 	for _, p := range nw.Prefixes {
+	// 		_, ok := existingPrefixesMap[p.String()]
+	// 		if !ok {
+	// 			existingPrefixes = append(existingPrefixes, p)
+	// 			existingPrefixesMap[p.String()] = true
+	// 		}
+	// 	}
+	// }
+	//
 	// err = r.ipamer.PrefixesOverlapping(existingPrefixes, prefixes)
 	// if err != nil {
 	// 	r.sendError(request, response, httperrors.UnprocessableEntity(err))
