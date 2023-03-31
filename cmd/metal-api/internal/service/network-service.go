@@ -304,11 +304,11 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		}
 	}
 
-	err = r.ipamer.PrefixesOverlapping(existingPrefixes, prefixes)
-	if err != nil {
-		r.sendError(request, response, httperrors.UnprocessableEntity(err))
-		return
-	}
+	// err = r.ipamer.PrefixesOverlapping(existingPrefixes, prefixes)
+	// if err != nil {
+	// 	r.sendError(request, response, httperrors.UnprocessableEntity(err))
+	// 	return
+	// }
 
 	var partitionID string
 	if requestPayload.PartitionID != nil {

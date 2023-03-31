@@ -1,6 +1,7 @@
 package ipam
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -9,25 +10,27 @@ import (
 )
 
 type Ipam struct {
-	ip ipam.Ipamer
+	ip  ipam.Ipamer
+	ctx context.Context
 }
 
 // New creates a new IPAM module.
 func New(ip ipam.Ipamer) *Ipam {
 	return &Ipam{
-		ip: ip,
+		ip:  ip,
+		ctx: context.Background(),
 	}
 }
 
 // AllocateChildPrefix creates a child prefix from a parent prefix in the IPAM.
 func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
-	ipamParentPrefix := i.ip.PrefixFrom(parentPrefix.String())
+	ipamParentPrefix := i.ip.PrefixFrom(i.ctx, parentPrefix.String())
 
 	if ipamParentPrefix == nil {
 		return nil, fmt.Errorf("error finding parent prefix in ipam: %s", parentPrefix.String())
 	}
 
-	ipamPrefix, err := i.ip.AcquireChildPrefix(ipamParentPrefix.Cidr, childLength)
+	ipamPrefix, err := i.ip.AcquireChildPrefix(i.ctx, ipamParentPrefix.Cidr, childLength)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new prefix in ipam: %w", err)
 	}
@@ -42,13 +45,13 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8)
 
 // ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
 func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
-	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
+	ipamChildPrefix := i.ip.PrefixFrom(i.ctx, childPrefix.String())
 
 	if ipamChildPrefix == nil {
 		return fmt.Errorf("error finding child prefix in ipam: %s", childPrefix.String())
 	}
 
-	err := i.ip.ReleaseChildPrefix(ipamChildPrefix)
+	err := i.ip.ReleaseChildPrefix(i.ctx, ipamChildPrefix)
 	if err != nil {
 		return fmt.Errorf("error releasing child prefix in ipam: %w", err)
 	}
@@ -58,7 +61,7 @@ func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
 
 // CreatePrefix creates a prefix in the IPAM.
 func (i *Ipam) CreatePrefix(prefix metal.Prefix) error {
-	_, err := i.ip.NewPrefix(prefix.String())
+	_, err := i.ip.NewPrefix(i.ctx, prefix.String())
 	if err != nil {
 		return fmt.Errorf("unable to create prefix in ipam: %w", err)
 	}
@@ -67,7 +70,7 @@ func (i *Ipam) CreatePrefix(prefix metal.Prefix) error {
 
 // DeletePrefix remove a prefix in the IPAM.
 func (i *Ipam) DeletePrefix(prefix metal.Prefix) error {
-	_, err := i.ip.DeletePrefix(prefix.String())
+	_, err := i.ip.DeletePrefix(i.ctx, prefix.String())
 	if err != nil {
 		return err
 	}
@@ -76,12 +79,12 @@ func (i *Ipam) DeletePrefix(prefix metal.Prefix) error {
 
 // AllocateIP an ip in the IPAM and returns the allocated IP as a string.
 func (i *Ipam) AllocateIP(prefix metal.Prefix) (string, error) {
-	ipamPrefix := i.ip.PrefixFrom(prefix.String())
+	ipamPrefix := i.ip.PrefixFrom(i.ctx, prefix.String())
 	if ipamPrefix == nil {
 		return "", fmt.Errorf("error finding prefix in ipam: %s", prefix.String())
 	}
 
-	ipamIP, err := i.ip.AcquireIP(ipamPrefix.Cidr)
+	ipamIP, err := i.ip.AcquireIP(i.ctx, ipamPrefix.Cidr)
 	if err != nil {
 		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %w", prefix.String(), err)
 	}
@@ -94,11 +97,11 @@ func (i *Ipam) AllocateIP(prefix metal.Prefix) (string, error) {
 
 // AllocateSpecificIP a specific ip in the IPAM and returns the allocated IP as a string.
 func (i *Ipam) AllocateSpecificIP(prefix metal.Prefix, specificIP string) (string, error) {
-	ipamPrefix := i.ip.PrefixFrom(prefix.String())
+	ipamPrefix := i.ip.PrefixFrom(i.ctx, prefix.String())
 	if ipamPrefix == nil {
 		return "", fmt.Errorf("error finding prefix in ipam: %s", prefix.String())
 	}
-	ipamIP, err := i.ip.AcquireSpecificIP(ipamPrefix.Cidr, specificIP)
+	ipamIP, err := i.ip.AcquireSpecificIP(i.ctx, ipamPrefix.Cidr, specificIP)
 	if err != nil {
 		return "", fmt.Errorf("cannot allocate ip in prefix %s in ipam: %w", prefix.String(), err)
 	}
@@ -111,12 +114,12 @@ func (i *Ipam) AllocateSpecificIP(prefix metal.Prefix, specificIP string) (strin
 
 // ReleaseIP an ip in the IPAM.
 func (i *Ipam) ReleaseIP(ip metal.IP) error {
-	ipamPrefix := i.ip.PrefixFrom(ip.ParentPrefixCidr)
+	ipamPrefix := i.ip.PrefixFrom(i.ctx, ip.ParentPrefixCidr)
 	if ipamPrefix == nil {
 		return fmt.Errorf("error finding parent prefix %s of ip %s in ipam", ip.ParentPrefixCidr, ip.IPAddress)
 	}
 
-	err := i.ip.ReleaseIPFromPrefix(ipamPrefix.Cidr, ip.IPAddress)
+	err := i.ip.ReleaseIPFromPrefix(i.ctx, ipamPrefix.Cidr, ip.IPAddress)
 	if err != nil {
 		return fmt.Errorf("error release ip %s in prefix %s: %w", ip.IPAddress, ip.ParentPrefixCidr, err)
 	}
@@ -125,7 +128,7 @@ func (i *Ipam) ReleaseIP(ip metal.IP) error {
 
 // PrefixUsage calculates the IP and Prefix Usage
 func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
-	prefix := i.ip.PrefixFrom(cidr)
+	prefix := i.ip.PrefixFrom(i.ctx, cidr)
 	if prefix == nil {
 		return nil, fmt.Errorf("prefix for cidr:%s not found", cidr)
 	}
@@ -140,7 +143,7 @@ func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	}, nil
 }
 
-// PrefixesOverlapping returns an error if prefixes overlap.
-func (i *Ipam) PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error {
-	return i.ip.PrefixesOverlapping(existingPrefixes.String(), newPrefixes.String())
-}
+// // PrefixesOverlapping returns an error if prefixes overlap.
+// func (i *Ipam) PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error {
+// 	return i.ip.PrefixesOverlapping(existingPrefixes.String(), newPrefixes.String())
+// }
