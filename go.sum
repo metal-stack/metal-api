@@ -707,8 +707,8 @@ github.com/mdlayher/socket v0.4.0 h1:280wsy40IC9M9q1uPGcLBwXpcTQDtoGwVt+BNoITxIw
 github.com/mdlayher/socket v0.4.0/go.mod h1:xxFqz5GRCUN3UEOm9CZqEJsAbe1C8OwSK46NlmWuVoc=
 github.com/meilisearch/meilisearch-go v0.23.0 h1:CuqB+/NyEJKXF2SovTetAZW7lX+nSH+QTqbgSH6bv+Q=
 github.com/meilisearch/meilisearch-go v0.23.0/go.mod h1:sAPJgywANHUCFUo/spCQ8SoP6sJhmfIKFWIXu7Dd5GQ=
-github.com/metal-stack/go-ipam v1.8.5 h1:XE1XfaU6Ck1Ucc7svTO25dlT7kEcE1oxOM3lBrWIQmE=
-github.com/metal-stack/go-ipam v1.8.5/go.mod h1:JgsddJabu8A7lWD+4MJKqbQhmSA/zhBbO+Bp8pLhRZM=
+github.com/metal-stack/go-ipam v1.8.6-0.20230403103100-dbd67ca3c165 h1:QpFU3LDYnfAyPydS9xFX/WfFCuDS0/3BPsVLTtTVibs=
+github.com/metal-stack/go-ipam v1.8.6-0.20230403103100-dbd67ca3c165/go.mod h1:JgsddJabu8A7lWD+4MJKqbQhmSA/zhBbO+Bp8pLhRZM=
 github.com/metal-stack/masterdata-api v0.9.0 h1:bKsUkIYRSckVEQsZQfeG10dY17/N+/SfwkUMCCLniEA=
 github.com/metal-stack/masterdata-api v0.9.0/go.mod h1:IBRuTb37nc0q65R7CpNVNjYZ0RHsBfCIg5n4n5w1M2c=
 github.com/metal-stack/metal-lib v0.11.6 h1:wu05Dq+3PA6R9ZEwVmiQmNSI0S5eZukxqxKxxa3HmS8=

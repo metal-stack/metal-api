@@ -17,7 +17,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/juanfont/headscale v0.20.0
 	github.com/looplab/fsm v0.3.0
-	github.com/metal-stack/go-ipam v1.8.5
+	github.com/metal-stack/go-ipam v1.8.6-0.20230403103100-dbd67ca3c165
 	github.com/metal-stack/masterdata-api v0.9.0
 	github.com/metal-stack/metal-lib v0.11.6
 	github.com/metal-stack/security v0.6.6
