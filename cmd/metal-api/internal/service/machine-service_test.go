@@ -352,6 +352,8 @@ func TestFreeMachine(t *testing.T) {
 
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1}, nil)
+
 	log := zaptest.NewLogger(t).Sugar()
 
 	pub := &emptyPublisher{}

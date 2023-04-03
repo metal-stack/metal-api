@@ -4,12 +4,22 @@ import (
 	"sort"
 	"time"
 
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
 type SwitchBase struct {
-	RackID string `json:"rack_id" modelDescription:"A switch that can register at the api." description:"the id of the rack in which this switch is located"`
-	Mode   string `json:"mode" description:"the mode the switch currently has" optional:"true"`
+	RackID         string    `json:"rack_id" modelDescription:"A switch that can register at the api." description:"the id of the rack in which this switch is located"`
+	Mode           string    `json:"mode" description:"the mode the switch currently has" optional:"true"`
+	OS             *SwitchOS `json:"os" description:"the operating system the switch currently has" optional:"true"`
+	ManagementIP   string    `json:"management_ip" description:"the ip address of the management interface of the switch" optional:"true"`
+	ManagementUser string    `json:"management_user" description:"the user to connect to the switch" optional:"true"`
+	ConsoleCommand string    `json:"console_command" description:"command to access the console of the switch" optional:"true"`
+}
+
+type SwitchOS struct {
+	Vendor  string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
+	Version string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
 }
 
 type SwitchNics []SwitchNic
@@ -17,6 +27,7 @@ type SwitchNics []SwitchNic
 type SwitchNic struct {
 	MacAddress string     `json:"mac" description:"the mac address of this network interface"`
 	Name       string     `json:"name" description:"the name of this network interface"`
+	Identifier string     `json:"identifier" description:"the identifier of this network interface"`
 	Vrf        string     `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
 	BGPFilter  *BGPFilter `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
 }
@@ -36,14 +47,6 @@ func NewBGPFilter(vnis, cidrs []string) BGPFilter {
 	}
 }
 
-func (ss SwitchNics) ByMac() map[string]SwitchNic {
-	res := make(map[string]SwitchNic)
-	for i, s := range ss {
-		res[s.MacAddress] = ss[i]
-	}
-	return res
-}
-
 type SwitchConnection struct {
 	Nic       SwitchNic `json:"nic" description:"a network interface on the switch"`
 	MachineID string    `json:"machine_id" optional:"true" description:"the machine id of the machine connected to the nic"`
@@ -54,6 +57,11 @@ type SwitchRegisterRequest struct {
 	Nics        SwitchNics `json:"nics" description:"the list of network interfaces on the switch"`
 	PartitionID string     `json:"partition_id" description:"the partition in which this switch is located"`
 	SwitchBase
+}
+
+// SwitchFindRequest is used to find a switch with different criteria.
+type SwitchFindRequest struct {
+	datastore.SwitchSearchQuery
 }
 
 type SwitchUpdateRequest struct {
@@ -104,6 +112,13 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 			Error:    s.LastSyncError.Error,
 		}
 	}
+	var os *SwitchOS
+	if s.OS != nil {
+		os = &SwitchOS{
+			Vendor:  s.OS.Vendor,
+			Version: s.OS.Version,
+		}
+	}
 
 	return &SwitchResponse{
 		Common: Common{
@@ -116,8 +131,12 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 			},
 		},
 		SwitchBase: SwitchBase{
-			RackID: s.RackID,
-			Mode:   string(s.Mode),
+			RackID:         s.RackID,
+			Mode:           string(s.Mode),
+			OS:             os,
+			ManagementIP:   s.ManagementIP,
+			ManagementUser: s.ManagementUser,
+			ConsoleCommand: s.ConsoleCommand,
 		},
 		Nics:          nics,
 		Partition:     *NewPartitionResponse(p),
@@ -137,6 +156,7 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		nic := metal.Nic{
 			MacAddress: metal.MacAddress(r.Nics[i].MacAddress),
 			Name:       r.Nics[i].Name,
+			Identifier: r.Nics[i].Identifier,
 			Vrf:        r.Nics[i].Vrf,
 		}
 		nics = append(nics, nic)
@@ -151,6 +171,14 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		description = *r.Description
 	}
 
+	var os *metal.SwitchOS
+	if r.OS != nil {
+		os = &metal.SwitchOS{
+			Vendor:  r.OS.Vendor,
+			Version: r.OS.Version,
+		}
+	}
+
 	return &metal.Switch{
 		Base: metal.Base{
 			ID:          r.ID,
@@ -161,5 +189,9 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 		RackID:             r.RackID,
 		MachineConnections: make(metal.ConnectionMap),
 		Nics:               nics,
+		OS:                 os,
+		ManagementIP:       r.ManagementIP,
+		ManagementUser:     r.ManagementUser,
+		ConsoleCommand:     r.ConsoleCommand,
 	}
 }

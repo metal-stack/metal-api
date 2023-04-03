@@ -95,8 +95,9 @@ func (ip *IntegerPool) String() string {
 // - asn-id offset added to 4210000000 (ASNBase)
 //
 // the integer range has a vxlan-id constraint from Cumulus:
-// 	net add vxlan vxlan10 vxlan id
-//  <1-16777214>  :  An integer from 1 to 16777214
+//
+//		net add vxlan vxlan10 vxlan id
+//	 <1-16777214>  :  An integer from 1 to 16777214
 //
 // in order not to impact performance too much, we limited the range of integers to 2^17=131072,
 // which includes the range that we typically used for vrf names in the past.
@@ -211,7 +212,7 @@ func (ip *IntegerPool) genericAcquire(term *r.Term) (uint, error) {
 		}
 
 		if count <= 0 {
-			return 0, metal.Internal(errors.New("acquisition of a value failed for exhausted pool"), "")
+			return 0, metal.Internal("acquisition of a value failed for exhausted pool")
 		}
 		return 0, metal.Conflict("integer is already acquired by another")
 	}

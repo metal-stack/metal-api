@@ -47,7 +47,7 @@ func (a *asyncActor) freeMachine(pub bus.Publisher, m *metal.Machine, headscaleC
 		return errors.New("machine is locked")
 	}
 
-	if headscaleClient != nil {
+	if headscaleClient != nil && m.Allocation != nil {
 		// always call DeleteMachine, in case machine is not registered it will return nil
 		if err := headscaleClient.DeleteMachine(m.ID, m.Allocation.Project); err != nil {
 			logger.Error("unable to delete Node entry from headscale DB", zap.String("machineID", m.ID), zap.Error(err))

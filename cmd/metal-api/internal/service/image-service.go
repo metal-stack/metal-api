@@ -11,6 +11,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
+	"github.com/metal-stack/metal-lib/auditing"
 	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -79,6 +80,18 @@ func (ir imageResource) webService() *restful.WebService {
 		Doc("get all images").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(ws.QueryParameter("show-usage", "include image usage into response").DataType("boolean").DefaultValue("false")).
+		Writes([]v1.ImageResponse{}).
+		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/find").
+		To(viewer(ir.findImages)).
+		Operation("findImages").
+		Doc("get all images that match given properties").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Param(ws.QueryParameter("show-usage", "include image usage into response").DataType("boolean").DefaultValue("false")).
+		Reads(v1.ImageFindRequest{}).
 		Writes([]v1.ImageResponse{}).
 		Returns(http.StatusOK, "OK", []v1.ImageResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -160,6 +173,54 @@ func (r *imageResource) findLatestImage(request *restful.Request, response *rest
 
 func (r *imageResource) listImages(request *restful.Request, response *restful.Response) {
 	imgs, err := r.ds.ListImages()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	ms := metal.Machines{}
+	showUsage := false
+	if request.QueryParameter("show-usage") != "" {
+		showUsage, err = strconv.ParseBool(request.QueryParameter("show-usage"))
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+
+		if showUsage {
+			ms, err = r.ds.ListMachines()
+			if err != nil {
+				r.sendError(request, response, defaultError(err))
+				return
+			}
+		}
+	}
+
+	result := []*v1.ImageResponse{}
+	for i := range imgs {
+		img := v1.NewImageResponse(&imgs[i])
+		if showUsage {
+			machines := r.machinesByImage(ms, imgs[i].ID)
+			if len(machines) > 0 {
+				img.UsedBy = machines
+			}
+		}
+		result = append(result, img)
+	}
+
+	r.send(request, response, http.StatusOK, result)
+}
+
+func (r *imageResource) findImages(request *restful.Request, response *restful.Response) {
+	var requestPayload datastore.ImageSearchQuery
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	var imgs metal.Images
+	err = r.ds.SearchImages(&requestPayload, &imgs)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

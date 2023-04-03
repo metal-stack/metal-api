@@ -17,6 +17,17 @@ type Switch struct {
 	Mode               SwitchMode    `rethinkdb:"mode" json:"mode"`
 	LastSync           *SwitchSync   `rethinkdb:"last_sync" json:"last_sync"`
 	LastSyncError      *SwitchSync   `rethinkdb:"last_sync_error" json:"last_sync_error"`
+	OS                 *SwitchOS     `rethinkdb:"os" json:"os"`
+	ManagementIP       string        `rethinkdb:"management_ip" json:"management_ip"`
+	ManagementUser     string        `rethinkdb:"management_user" json:"management_user"`
+	ConsoleCommand     string        `rethinkdb:"console_command" json:"console_command"`
+}
+
+type Switches []Switch
+
+type SwitchOS struct {
+	Vendor  string `rethinkdb:"vendor" json:"vendor"`
+	Version string `rethinkdb:"version" json:"version"`
 }
 
 // Connection between switch port and machine.
@@ -89,8 +100,12 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 	// calculate the connections for this machine
 	for _, switchNic := range s.Nics {
 		for _, machineNic := range machine.Hardware.Nics {
-			devNeighbors := machineNic.Neighbors.ByMac()
-			if _, has := devNeighbors[switchNic.MacAddress]; has {
+			var has bool
+
+			neighMap := machineNic.Neighbors.FilterByHostname(s.Name).ByIdentifier()
+
+			_, has = neighMap[switchNic.GetIdentifier()]
+			if has {
 				conn := Connection{
 					Nic:       switchNic,
 					MachineID: machine.ID,
@@ -104,20 +119,19 @@ func (s *Switch) ConnectMachine(machine *Machine) int {
 
 // SetVrfOfMachine set port on switch where machine is connected to given vrf
 func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
-	affectedMacs := map[MacAddress]bool{}
+	affected := map[string]bool{}
 	for _, c := range s.MachineConnections[m.ID] {
-		mac := c.Nic.MacAddress
-		affectedMacs[mac] = true
+		affected[c.Nic.GetIdentifier()] = true
 	}
 
-	if len(affectedMacs) == 0 {
+	if len(affected) == 0 {
 		return
 	}
 
 	nics := Nics{}
-	for mac, old := range s.Nics.ByMac() {
+	for k, old := range s.Nics.ByIdentifier() {
 		e := old
-		if _, ok := affectedMacs[mac]; ok {
+		if _, ok := affected[k]; ok {
 			e.Vrf = vrf
 		}
 		nics = append(nics, *e)

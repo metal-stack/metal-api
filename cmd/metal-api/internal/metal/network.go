@@ -16,8 +16,20 @@ type MacAddress string
 type Nic struct {
 	MacAddress MacAddress `rethinkdb:"macAddress" json:"macAddress"`
 	Name       string     `rethinkdb:"name" json:"name"`
+	Identifier string     `rethinkdb:"identifier" json:"identifier"`
 	Vrf        string     `rethinkdb:"vrf" json:"vrf"`
 	Neighbors  Nics       `rethinkdb:"neighbors" json:"neighbors"`
+	Hostname   string     `rethinkdb:"hostname" json:"hostname"`
+}
+
+// GetIdentifier returns the identifier of a nic.
+// It returns the mac address as a fallback if no identifier was found.
+// (this is for backwards compatibility with old metal-core and metal-hammer versions)
+func (n *Nic) GetIdentifier() string {
+	if n.Identifier != "" {
+		return n.Identifier
+	}
+	return string(n.MacAddress)
 }
 
 // Nics is a list of nics.
@@ -50,13 +62,13 @@ func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
 // TODO this is kinda duplicate of NewPrefixFromCIDR
 // TODO use net/netip helpers
 func SplitCIDR(cidr string) (string, *int) {
-	parts := strings.Split(cidr, "/")
-	if len(parts) == 2 {
-		length, err := strconv.Atoi(parts[1])
+	ip, bits, ok := strings.Cut(cidr, "/")
+	if ok {
+		length, err := strconv.Atoi(bits)
 		if err != nil {
-			return parts[0], nil
+			return ip, nil
 		}
-		return parts[0], &length
+		return ip, &length
 	}
 
 	return cidr, nil
@@ -165,22 +177,38 @@ func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
 	return result
 }
 
-type NicMap map[MacAddress]*Nic
-
-// ByMac creates a indexed map from a nic list.
-func (nics Nics) ByMac() NicMap {
-	res := make(map[MacAddress]*Nic)
-	for i, n := range nics {
-		res[n.MacAddress] = &nics[i]
+func (nics Nics) FilterByHostname(hostname string) (res Nics) {
+	if hostname == "" {
+		return nics
 	}
+
+	for i, n := range nics {
+		if n.Hostname == hostname {
+			res = append(res, nics[i])
+		}
+	}
+
 	return res
 }
 
-// ByName creates a indexed map from a nic list.
+// ByName creates a map (nic names --> nic) from a nic list.
 func (nics Nics) ByName() map[string]*Nic {
 	res := make(map[string]*Nic)
+
 	for i, n := range nics {
 		res[n.Name] = &nics[i]
 	}
+
+	return res
+}
+
+// ByIdentifier creates a map (nic identifier --> nic) from a nic list.
+func (nics Nics) ByIdentifier() map[string]*Nic {
+	res := make(map[string]*Nic)
+
+	for i, n := range nics {
+		res[n.GetIdentifier()] = &nics[i]
+	}
+
 	return res
 }

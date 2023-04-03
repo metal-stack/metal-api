@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -179,6 +180,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findMachines").
 		Doc("find machines by multiple criteria").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
@@ -261,6 +263,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findIPMIMachines").
 		Doc("returns machines including the ipmi connection data").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineIPMIResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIPMIResponse{}).
@@ -756,6 +759,14 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 
 		if report.PowerState != "" {
 			newMachine.IPMI.PowerState = report.PowerState
+		}
+		if report.PowerMetric != nil {
+			newMachine.IPMI.PowerMetric = &metal.PowerMetric{
+				AverageConsumedWatts: report.PowerMetric.AverageConsumedWatts,
+				IntervalInMin:        report.PowerMetric.IntervalInMin,
+				MaxConsumedWatts:     report.PowerMetric.MaxConsumedWatts,
+				MinConsumedWatts:     report.PowerMetric.MinConsumedWatts,
+			}
 		}
 
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)

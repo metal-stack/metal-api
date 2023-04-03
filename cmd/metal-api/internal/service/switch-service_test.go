@@ -11,13 +11,14 @@ import (
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
+
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -265,7 +266,7 @@ func TestConnectMachineWithSwitches(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		ds, mock := datastore.InitMockDB(t)
-		mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return(testSwitches, nil)
+		mock.On(r.DB("mockdb").Table("switch")).Return(testSwitches, nil)
 		mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
 		t.Run(tt.name, func(t *testing.T) {
@@ -300,7 +301,7 @@ func TestSetVrfAtSwitch(t *testing.T) {
 		},
 	}
 	sws := []metal.Switch{sw}
-	mock.On(r.DB("mockdb").Table("switch")).Return(sws, nil)
+	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything())).Return(sws, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(testdata.EmptyResult, nil)
 
 	vrf := "123"
@@ -886,7 +887,7 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 				t.Errorf("adoptNics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got.ByMac(), tt.want.ByMac()) {
+			if !reflect.DeepEqual(got.ByIdentifier(), tt.want.ByIdentifier()) {
 				t.Errorf("adoptNics() = %v, want %v", got, tt.want)
 			}
 		})
@@ -1005,8 +1006,8 @@ func Test_adoptMachineConnections(t *testing.T) {
 
 func Test_updateSwitchNics(t *testing.T) {
 	type args struct {
-		oldNics            metal.NicMap
-		newNics            metal.NicMap
+		oldNics            map[string]*metal.Nic
+		newNics            map[string]*metal.Nic
 		currentConnections metal.ConnectionMap
 	}
 	tests := []struct {
@@ -1018,10 +1019,10 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "idempotence",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
-				newNics: metal.NicMap{
+				newNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
 				currentConnections: metal.ConnectionMap{},
@@ -1034,10 +1035,10 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "adding a nic",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
-				newNics: metal.NicMap{
+				newNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 					"11:11:11:11:11:12": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"},
 				},
@@ -1052,10 +1053,10 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "removing a nic",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
-				newNics:            metal.NicMap{},
+				newNics:            map[string]*metal.Nic{},
 				currentConnections: metal.ConnectionMap{},
 			},
 			want:    metal.Nics{},
@@ -1064,11 +1065,11 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "removing a nic 2",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 					"11:11:11:11:11:12": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"},
 				},
-				newNics: metal.NicMap{
+				newNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
 				currentConnections: metal.ConnectionMap{},
@@ -1081,11 +1082,11 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "removing a used nic",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 					"11:11:11:11:11:12": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:12"},
 				},
-				newNics: metal.NicMap{
+				newNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
 				currentConnections: metal.ConnectionMap{
@@ -1098,10 +1099,10 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "updating a nic",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
-				newNics: metal.NicMap{
+				newNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:11"},
 				},
 				currentConnections: metal.ConnectionMap{},
@@ -1114,10 +1115,10 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "updating a nic, vrf should not be altered",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", Vrf: "vrf1", MacAddress: "11:11:11:11:11:11"},
 				},
-				newNics: metal.NicMap{
+				newNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp2", Vrf: "vrf2", MacAddress: "11:11:11:11:11:11"},
 				},
 				currentConnections: metal.ConnectionMap{},
@@ -1130,10 +1131,10 @@ func Test_updateSwitchNics(t *testing.T) {
 		{
 			name: "updating a nic name, which already has a connection",
 			args: args{
-				oldNics: metal.NicMap{
+				oldNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp1", MacAddress: "11:11:11:11:11:11"},
 				},
-				newNics: metal.NicMap{
+				newNics: map[string]*metal.Nic{
 					"11:11:11:11:11:11": &metal.Nic{Name: "swp2", MacAddress: "11:11:11:11:11:11"},
 				},
 				currentConnections: metal.ConnectionMap{
@@ -1152,7 +1153,7 @@ func Test_updateSwitchNics(t *testing.T) {
 				t.Errorf("updateSwitchNics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got.ByMac(), tt.want.ByMac()) {
+			if !reflect.DeepEqual(got.ByIdentifier(), tt.want.ByIdentifier()) {
 				t.Errorf("updateSwitchNics() = %v, want %v", got, tt.want)
 			}
 		})
