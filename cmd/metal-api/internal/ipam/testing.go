@@ -1,6 +1,7 @@
 package ipam
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,9 +13,11 @@ import (
 )
 
 func InitTestIpam(t *testing.T) IPAMer {
+
+	ctx := context.Background()
 	mux := http.NewServeMux()
 	mux.Handle(apiv1connect.NewIpamServiceHandler(
-		service.New(zaptest.NewLogger(t).Sugar(), goipam.New()),
+		service.New(zaptest.NewLogger(t).Sugar(), goipam.New(ctx)),
 	))
 	server := httptest.NewUnstartedServer(mux)
 	server.EnableHTTP2 = true
