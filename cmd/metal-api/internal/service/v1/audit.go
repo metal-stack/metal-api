@@ -33,20 +33,29 @@ type AuditFindRequest struct {
 }
 
 type AuditResponse struct {
-	RequestID string    `json:"rqid" optional:"true"`
-	Phase     string    `json:"phase" optional:"true"`
+	Component string    `json:"component" optional:"true"`
+	RequestId string    `json:"rqid" optional:"true"`
+	Type      string    `json:"type" optional:"true"`
 	Timestamp time.Time `json:"timestamp" optional:"true"`
 
 	User   string `json:"user" optional:"true"`
 	Tenant string `json:"tenant" optional:"true"`
 
-	Path string `json:"path" optional:"true"`
-
+	// HTTP method get, post, put, delete, ...
+	// or for grpc unary, stream
+	Detail string `json:"detail" optional:"true"`
+	// e.g. Request, Response, Error, Opened, Close
+	Phase string `json:"phase" optional:"true"`
+	// /api/v1/... or the method name
+	Path         string `json:"path" optional:"true"`
 	ForwardedFor string `json:"forwarded_for" optional:"true"`
-	RemoteAddr   string `json:"remote_address" optional:"true"`
+	RemoteAddr   string `json:"remote_addr" optional:"true"`
 
 	Body       string `json:"body" optional:"true"`
-	StatusCode int    `json:"code" optional:"true"`
+	StatusCode int    `json:"status_code" optional:"true"`
+
+	// Internal errors
+	Error string `json:"error" optional:"true"`
 }
 
 func NewAuditResponse(e auditing.Entry) *AuditResponse {
@@ -57,17 +66,25 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 	case []byte:
 		body = string(v)
 	}
+	err := ""
+	if e.Error != nil {
+		err = e.Error.Error()
+	}
 
 	return &AuditResponse{
-		RequestID:    e.RequestId,
-		Phase:        string(e.Phase),
+		Component:    e.Component,
+		RequestId:    e.RequestId,
+		Type:         string(e.Type),
 		Timestamp:    e.Timestamp,
 		User:         e.User,
 		Tenant:       e.Tenant,
+		Detail:       string(e.Detail),
+		Phase:        string(e.Phase),
 		Path:         e.Path,
 		ForwardedFor: e.ForwardedFor,
 		RemoteAddr:   e.RemoteAddr,
 		Body:         body,
 		StatusCode:   e.StatusCode,
+		Error:        err,
 	}
 }

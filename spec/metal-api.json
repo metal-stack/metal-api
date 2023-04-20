@@ -474,9 +474,14 @@
         "body": {
           "type": "string"
         },
-        "code": {
-          "format": "int32",
-          "type": "integer"
+        "component": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
         },
         "forwarded_for": {
           "type": "string"
@@ -487,17 +492,24 @@
         "phase": {
           "type": "string"
         },
-        "remote_address": {
+        "remote_addr": {
           "type": "string"
         },
         "rqid": {
           "type": "string"
+        },
+        "status_code": {
+          "format": "int32",
+          "type": "integer"
         },
         "tenant": {
           "type": "string"
         },
         "timestamp": {
           "format": "date-time",
+          "type": "string"
+        },
+        "type": {
           "type": "string"
         },
         "user": {
