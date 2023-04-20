@@ -103,7 +103,7 @@ func StartPostgres() (container testcontainers.Container, c *ConnectionDetails, 
 }
 
 func StartMeilisearch(t testing.TB) (container testcontainers.Container, c *ConnectionDetails, err error) {
-	meilisearchMasterKey := "meili" // TODO: is this accepted?
+	meilisearchMasterKey := "meili"
 
 	ctx := context.Background()
 	var log testcontainers.Logging
