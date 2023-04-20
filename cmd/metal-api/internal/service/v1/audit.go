@@ -33,7 +33,6 @@ type AuditFindRequest struct {
 }
 
 type AuditResponse struct {
-	// TODO: this is not yet finalized
 	RequestID string    `json:"rqid" optional:"true"`
 	Phase     string    `json:"phase" optional:"true"`
 	Timestamp time.Time `json:"timestamp" optional:"true"`
