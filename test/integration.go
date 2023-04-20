@@ -8,11 +8,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-var (
-	rtContainer testcontainers.Container
-	pgContainer testcontainers.Container
-)
-
 func init() {
 	// prevent testcontainer logging mangle test and benchmark output
 	// log.SetOutput(io.Discard)
@@ -41,7 +36,7 @@ func StartRethink(t testing.TB) (container testcontainers.Container, c *Connecti
 		),
 		Cmd: []string{"rethinkdb", "--bind", "all", "--directory", "/tmp", "--initial-password", "rethink", "--io-threads", "500"},
 	}
-	rtContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	rtContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 		Logger:           log,
@@ -81,7 +76,7 @@ func StartPostgres() (container testcontainers.Container, c *ConnectionDetails, 
 		),
 		Cmd: []string{"postgres", "-c", "max_connections=500"},
 	}
-	pgContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	pgContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
@@ -105,4 +100,50 @@ func StartPostgres() (container testcontainers.Container, c *ConnectionDetails, 
 	}
 
 	return pgContainer, c, err
+}
+
+func StartMeilisearch(t testing.TB) (container testcontainers.Container, c *ConnectionDetails, err error) {
+	meilisearchMasterKey := "meili" // TODO: is this accepted?
+
+	ctx := context.Background()
+	var log testcontainers.Logging
+	if t != nil {
+		log = testcontainers.TestLogger(t)
+	}
+
+	meiliContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "getmeili/meilisearch:v1.1.0",
+			ExposedPorts: []string{"7700/tcp"},
+			Env: map[string]string{
+				"MEILI_MASTER_KEY":   meilisearchMasterKey,
+				"MEILI_NO_ANALYTICS": "true",
+			},
+			WaitingFor: wait.ForAll(
+				wait.ForListeningPort("7700/tcp"),
+			),
+		},
+		Started: true,
+		Logger:  log,
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	host, err := meiliContainer.Host(ctx)
+	if err != nil {
+		return meiliContainer, nil, err
+	}
+	port, err := meiliContainer.MappedPort(ctx, "7700")
+	if err != nil {
+		return meiliContainer, nil, err
+	}
+
+	conn := &ConnectionDetails{
+		IP:       host,
+		Port:     port.Port(),
+		Password: meilisearchMasterKey,
+	}
+
+	return meiliContainer, conn, err
 }
