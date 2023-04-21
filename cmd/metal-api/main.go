@@ -739,7 +739,7 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	if err != nil {
 		logger.Fatal(err)
 	}
-
+	restful.DefaultContainer.Add(service.NewAudit(logger.Named("audit-service"), audit))
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
 	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds))
@@ -1027,6 +1027,10 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{
+		{TagProps: spec.TagProps{
+			Name:        "audit",
+			Description: "Managing audit entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "image",
 			Description: "Managing image entities",
