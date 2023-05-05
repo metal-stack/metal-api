@@ -99,16 +99,18 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 		PartitionID        string
 		RackID             string
 	}
+
+	switchName1 := "switch-1"
+	switchName2 := "switch-2"
 	tests := []struct {
 		name    string
 		fields  fields
 		machine *Machine
 	}{
-		// Test Data Array (Only 1 Value):
 		{
 			name: "simple connection",
 			fields: fields{
-				ID: "switch-1",
+				ID: switchName1,
 				Nics: []Nic{
 					{
 						Name:       "eth0",
@@ -155,9 +157,11 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 							Neighbors: []Nic{
 								{
 									MacAddress: "11:11:11",
+									Hostname:   switchName1,
 								},
 								{
 									MacAddress: "11:11:12",
+									Hostname:   switchName1,
 								},
 							},
 						},
@@ -166,9 +170,79 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 							Neighbors: []Nic{
 								{
 									MacAddress: "22:11:11",
+									Hostname:   switchName1,
 								},
 								{
 									MacAddress: "11:11:13",
+									Hostname:   switchName1,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "multiple switch connection",
+			fields: fields{
+				ID: switchName1,
+				Nics: []Nic{
+					{
+						Name:       "eth0",
+						MacAddress: "00:11:11",
+					},
+					{
+						Name:       "swp1",
+						MacAddress: "11:11:11",
+					},
+					{
+						Name:       "swp2",
+						MacAddress: "22:11:11",
+					},
+				},
+				PartitionID: "nbg1",
+				RackID:      "rack1",
+				MachineConnections: ConnectionMap{
+					"machine-1": []Connection{
+						{
+							Nic: Nic{
+								Name:       "swp1",
+								MacAddress: "11:11:11",
+							},
+							MachineID: "machine-1",
+						},
+					},
+				},
+			},
+			machine: &Machine{
+				Base: Base{
+					ID: "machine-1",
+				},
+				Hardware: MachineHardware{
+					Nics: []Nic{
+						{
+							Name: "eth0",
+							Neighbors: []Nic{
+								{
+									MacAddress: "11:11:11",
+									Hostname:   switchName1,
+								},
+								{
+									MacAddress: "11:11:12",
+									Hostname:   switchName1,
+								},
+							},
+						},
+						{
+							Name: "eth1",
+							Neighbors: []Nic{
+								{
+									MacAddress: "22:11:11",
+									Hostname:   switchName2,
+								},
+								{
+									MacAddress: "11:11:13",
+									Hostname:   switchName2,
 								},
 							},
 						},
@@ -182,7 +256,8 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := Switch{
 				Base: Base{
-					ID: tt.fields.ID,
+					ID:   tt.fields.ID,
+					Name: tt.fields.ID,
 				},
 				RackID:             tt.fields.RackID,
 				Nics:               tt.fields.Nics,

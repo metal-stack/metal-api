@@ -21,10 +21,10 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
 )
