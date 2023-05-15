@@ -37,6 +37,7 @@ func (rs *RethinkStore) CreateProvisioningEventContainer(ec *metal.ProvisioningE
 func (rs *RethinkStore) UpsertProvisioningEventContainer(ec *metal.ProvisioningEventContainer) error {
 	return rs.upsertEntity(rs.eventTable(), ec)
 }
+
 func (rs *RethinkStore) ProvisioningEventForMachine(log *zap.SugaredLogger, event *metal.ProvisioningEvent, machineID string) (*metal.ProvisioningEventContainer, error) {
 	ec, err := rs.FindProvisioningEventContainer(machineID)
 	if err != nil && !metal.IsNotFound(err) {

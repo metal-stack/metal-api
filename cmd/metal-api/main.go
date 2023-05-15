@@ -684,7 +684,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Config {
+func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser metal.MachineIPMISuperUser) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
 		logger.Fatal("base path must start and end with a slash")
@@ -725,7 +725,7 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient)
+	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient, ipmiSuperUser)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -801,7 +801,7 @@ func initHeadscale() {
 }
 
 func dumpSwaggerJSON() {
-	cfg := initRestServices(nil, false)
+	cfg := initRestServices(nil, false, metal.DisabledIPMISuperUser())
 	actual := restfulspec.BuildSwagger(*cfg)
 
 	// declare custom type for default errors, see:
@@ -926,11 +926,13 @@ func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
 }
 
 func run() error {
+	ipmiSuperUser := metal.NewIPMISuperUser(logger, viper.GetString("bmc-superuser-pwd-file"))
+
 	audit, err := createAuditingClient(logger)
 	if err != nil {
 		logger.Fatalw("cannot create auditing client", "error", err)
 	}
-	initRestServices(audit, true)
+	initRestServices(audit, true, ipmiSuperUser)
 
 	// enable OPTIONS-request so clients can query CORS information
 	restful.DefaultContainer.Filter(restful.DefaultContainer.OPTIONSFilter)
@@ -984,6 +986,7 @@ func run() error {
 			ServerKeyFile:            viper.GetString("grpc-server-key-file"),
 			BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
 			Auditing:                 audit,
+			IPMISuperUser:            ipmiSuperUser,
 		})
 		if err != nil {
 			logger.Fatalw("error running grpc server", "error", err)
