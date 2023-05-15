@@ -35,7 +35,6 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -882,7 +881,7 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	var updateErr error
+	var errs []error
 	for _, m := range ms {
 		m := m
 		if m.Allocation == nil || m.Allocation.VPN == nil {
@@ -897,13 +896,13 @@ func evaluateVPNConnected() error {
 		m.Allocation.VPN.Connected = connected
 		err := ds.UpdateMachine(&old, &m)
 		if err != nil {
-			updateErr = multierr.Append(updateErr, err)
+			errs = append(errs, err)
 			logger.Errorw("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
 			continue
 		}
 		logger.Infow("updated vpn connected state", "machine", m.ID, "connected", connected)
 	}
-	return updateErr
+	return errors.Join(errs...)
 }
 
 // might return (nil, nil) if auditing is disabled!
