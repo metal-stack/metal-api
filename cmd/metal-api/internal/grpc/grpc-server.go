@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/bus"
@@ -48,6 +49,7 @@ type ServerConfig struct {
 	CheckInterval            time.Duration
 	BMCSuperUserPasswordFile string
 	Auditing                 auditing.Auditing
+	IPMISuperUser            metal.MachineIPMISuperUser
 
 	integrationTestAllocator chan string
 }

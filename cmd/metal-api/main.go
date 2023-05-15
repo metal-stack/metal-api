@@ -20,7 +20,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -671,7 +670,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Config {
+func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser metal.MachineIPMISuperUser) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
 		logger.Fatal("base path must start and end with a slash")
@@ -712,7 +711,7 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient)
+	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient, ipmiSuperUser)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -726,7 +725,7 @@ func initRestServices(audit auditing.Auditing, withauth bool) *restfulspec.Confi
 	if err != nil {
 		logger.Fatal(err)
 	}
-
+	restful.DefaultContainer.Add(service.NewAudit(logger.Named("audit-service"), audit))
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
 	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds))
@@ -788,7 +787,7 @@ func initHeadscale() {
 }
 
 func dumpSwaggerJSON() {
-	cfg := initRestServices(nil, false)
+	cfg := initRestServices(nil, false, metal.DisabledIPMISuperUser())
 	actual := restfulspec.BuildSwagger(*cfg)
 
 	// declare custom type for default errors, see:
@@ -869,7 +868,7 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	var updateErr error
+	var errs []error
 	for _, m := range ms {
 		m := m
 		if m.Allocation == nil || m.Allocation.VPN == nil {
@@ -884,13 +883,13 @@ func evaluateVPNConnected() error {
 		m.Allocation.VPN.Connected = connected
 		err := ds.UpdateMachine(&old, &m)
 		if err != nil {
-			updateErr = multierr.Append(updateErr, err)
+			errs = append(errs, err)
 			logger.Errorw("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
 			continue
 		}
 		logger.Infow("updated vpn connected state", "machine", m.ID, "connected", connected)
 	}
-	return updateErr
+	return errors.Join(errs...)
 }
 
 // might return (nil, nil) if auditing is disabled!
@@ -913,11 +912,13 @@ func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
 }
 
 func run() error {
+	ipmiSuperUser := metal.NewIPMISuperUser(logger, viper.GetString("bmc-superuser-pwd-file"))
+
 	audit, err := createAuditingClient(logger)
 	if err != nil {
 		logger.Fatalw("cannot create auditing client", "error", err)
 	}
-	initRestServices(audit, true)
+	initRestServices(audit, true, ipmiSuperUser)
 
 	// enable OPTIONS-request so clients can query CORS information
 	restful.DefaultContainer.Filter(restful.DefaultContainer.OPTIONSFilter)
@@ -971,6 +972,7 @@ func run() error {
 			ServerKeyFile:            viper.GetString("grpc-server-key-file"),
 			BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
 			Auditing:                 audit,
+			IPMISuperUser:            ipmiSuperUser,
 		})
 		if err != nil {
 			logger.Fatalw("error running grpc server", "error", err)
@@ -1014,6 +1016,10 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{
+		{TagProps: spec.TagProps{
+			Name:        "audit",
+			Description: "Managing audit entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "image",
 			Description: "Managing image entities",

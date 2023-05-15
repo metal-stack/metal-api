@@ -51,6 +51,7 @@ type machineResource struct {
 	userGetter      security.UserGetter
 	reasonMinLength uint
 	headscaleClient *headscale.HeadscaleClient
+	ipmiSuperUser   metal.MachineIPMISuperUser
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -113,6 +114,7 @@ func NewMachine(
 	userGetter security.UserGetter,
 	reasonMinLength uint,
 	headscaleClient *headscale.HeadscaleClient,
+	ipmiSuperUser metal.MachineIPMISuperUser,
 ) (*restful.WebService, error) {
 	r := machineResource{
 		webResource: webResource{
@@ -126,7 +128,9 @@ func NewMachine(
 		userGetter:      userGetter,
 		reasonMinLength: reasonMinLength,
 		headscaleClient: headscaleClient,
+		ipmiSuperUser:   ipmiSuperUser,
 	}
+
 	var err error
 	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
@@ -2028,6 +2032,15 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			r.sendError(request, response, defaultError(err))
 			return
 		}
+	}
+
+	if newMachine.IPMI.User == "" && r.ipmiSuperUser.IsEnabled() {
+		// when removing a machine from the database, the metal-bmc will loose the ability
+		// to manage the machine after it reported it back to API.
+		//
+		// to mitigate this scenario, we use the super user as a fallback.
+		newMachine.IPMI.User = r.ipmiSuperUser.User()
+		newMachine.IPMI.Password = r.ipmiSuperUser.Password()
 	}
 
 	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
