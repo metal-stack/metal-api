@@ -205,6 +205,7 @@ type MachineAllocationNetwork struct {
 
 type MachineFindRequest struct {
 	datastore.MachineSearchQuery
+	WithoutTransitives bool
 }
 
 // MachineUpdateRequest defines the properties of a machine which can be updated.

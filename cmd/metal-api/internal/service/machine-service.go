@@ -407,7 +407,7 @@ func (r *machineResource) listMachines(request *restful.Request, response *restf
 		return
 	}
 
-	resp, err := makeMachineResponseList(ms, r.ds)
+	resp, err := makeMachineResponseList(ms, r.ds, false)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -517,7 +517,7 @@ func (r *machineResource) getMachineConsolePassword(request *restful.Request, re
 }
 
 func (r *machineResource) findMachines(request *restful.Request, response *restful.Response) {
-	var requestPayload datastore.MachineSearchQuery
+	var requestPayload v1.MachineFindRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
@@ -525,13 +525,13 @@ func (r *machineResource) findMachines(request *restful.Request, response *restf
 	}
 
 	ms := metal.Machines{}
-	err = r.ds.SearchMachines(&requestPayload, &ms)
+	err = r.ds.SearchMachines(&requestPayload.MachineSearchQuery, &ms)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	resp, err := makeMachineResponseList(ms, r.ds)
+	resp, err := makeMachineResponseList(ms, r.ds, requestPayload.WithoutTransitives)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -2106,13 +2106,19 @@ func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore) (*v1.Mach
 	return v1.NewMachineResponse(m, s, p, i, ec), nil
 }
 
-func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore) ([]*v1.MachineResponse, error) {
+func makeMachineResponseList(ms metal.Machines, ds *datastore.RethinkStore, withoutTransitives bool) ([]*v1.MachineResponse, error) {
+	result := []*v1.MachineResponse{}
+	if withoutTransitives {
+		for index := range ms {
+			result = append(result, v1.NewMachineResponse(&ms[index], nil, nil, nil, nil))
+		}
+		return result, nil
+	}
+
 	sMap, pMap, iMap, ecMap, err := getMachineReferencedEntityMaps(ds)
 	if err != nil {
 		return nil, err
 	}
-
-	result := []*v1.MachineResponse{}
 
 	for index := range ms {
 		var s *metal.Size

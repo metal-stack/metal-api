@@ -375,7 +375,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	if err != nil {
 		return nil, err
 	}
-	machines, err := makeMachineResponseList(ms, r.ds)
+	machines, err := makeMachineResponseList(ms, r.ds, false)
 	if err != nil {
 		return nil, err
 	}

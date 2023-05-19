@@ -147,7 +147,7 @@ func (r *firewallResource) findFirewall(request *restful.Request, response *rest
 }
 
 func (r *firewallResource) findFirewalls(request *restful.Request, response *restful.Response) {
-	var requestPayload datastore.MachineSearchQuery
+	var requestPayload v1.MachineFindRequest
 	err := request.ReadEntity(&requestPayload)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
@@ -157,13 +157,13 @@ func (r *firewallResource) findFirewalls(request *restful.Request, response *res
 	requestPayload.AllocationRole = &metal.RoleFirewall
 
 	var fws metal.Machines
-	err = r.ds.SearchMachines(&requestPayload, &fws)
+	err = r.ds.SearchMachines(&requestPayload.MachineSearchQuery, &fws)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	resp, err := makeFirewallResponseList(fws, r.ds)
+	resp, err := makeFirewallResponseList(fws, r.ds, requestPayload.WithoutTransitives)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -182,7 +182,7 @@ func (r *firewallResource) listFirewalls(request *restful.Request, response *res
 		return
 	}
 
-	resp, err := makeFirewallResponseList(fws, r.ds)
+	resp, err := makeFirewallResponseList(fws, r.ds, false)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -264,8 +264,8 @@ func makeFirewallResponse(fw *metal.Machine, ds *datastore.RethinkStore) (*v1.Fi
 	return &v1.FirewallResponse{MachineResponse: *ms}, nil
 }
 
-func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore) ([]*v1.FirewallResponse, error) {
-	machineResponseList, err := makeMachineResponseList(fws, ds)
+func makeFirewallResponseList(fws metal.Machines, ds *datastore.RethinkStore, withoutTransitives bool) ([]*v1.FirewallResponse, error) {
+	machineResponseList, err := makeMachineResponseList(fws, ds, withoutTransitives)
 	if err != nil {
 		return nil, err
 	}
