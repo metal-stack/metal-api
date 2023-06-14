@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go v1.44.175
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/go-restful-openapi/v2 v2.9.1
-	// FIXME go-restful v3.10.x breaks imageCreate
 	github.com/emicklei/go-restful/v3 v3.10.2
 	github.com/go-openapi/spec v0.20.9
 	github.com/google/go-cmp v0.5.9
@@ -36,6 +35,9 @@ require (
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
+
+// Keep this because v3.10.x breaks image-create
+replace github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.9.0
 
 require (
 	filippo.io/edwards25519 v1.0.0 // indirect
