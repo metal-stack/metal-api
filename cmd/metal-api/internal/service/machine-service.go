@@ -397,6 +397,17 @@ func (r *machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/sshpubkeys").
+		To(editor(r.machineSSHPubKeys)).
+		Operation("machineSSHPubKeys").
+		Doc("update ssh public keys of allocated machine").
+		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Reads(v1.SSHPubKeysUpdate{}).
+		Writes(v1.MachineResponse{}).
+		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		Returns(http.StatusBadRequest, "Bad Request", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	return ws
 }
 
@@ -841,6 +852,43 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 		return
 	}
 
+	r.send(request, response, http.StatusOK, resp)
+}
+
+func (r *machineResource) machineSSHPubKeys(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	oldMachine, err := r.ds.FindMachineByID(id)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	if oldMachine.Allocation == nil {
+		r.sendError(request, response, httperrors.BadRequest(errors.New("ssh public keys can only be updated on allocated machines")))
+		return
+	}
+
+	var requestPayload v1.SSHPubKeysUpdate
+	err = request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	newMachine := oldMachine
+	newMachine.Allocation.SSHPubKeys = requestPayload.SSHPubKeys
+
+	err = r.ds.UpdateMachine(oldMachine, newMachine)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+	resp, err := makeMachineResponse(newMachine, r.ds)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
 	r.send(request, response, http.StatusOK, resp)
 }
 
