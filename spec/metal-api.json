@@ -3065,8 +3065,7 @@
       },
       "required": [
         "description",
-        "id",
-        "ssh_pub_keys"
+        "id"
       ]
     },
     "v1.MachineVPN": {

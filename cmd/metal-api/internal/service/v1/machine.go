@@ -212,7 +212,7 @@ type MachineUpdateRequest struct {
 	Identifiable
 	Description *string  `json:"description" description:"a description for this machine"`
 	Tags        []string `json:"tags" description:"tags for this machine." optional:"true"`
-	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with" optional:"true"`
 }
 
 type MachineResponse struct {
