@@ -43,10 +43,6 @@ type MachineAllocation struct {
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 }
 
-type SSHPubKeysUpdate struct {
-	SSHPubKeys []string `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
-}
-
 type BootInfo struct {
 	ImageID      string `json:"image_id" description:"the ID of the current image"`
 	PrimaryDisk  string `json:"primary_disk" description:"the primary disk"`
@@ -216,6 +212,7 @@ type MachineUpdateRequest struct {
 	Identifiable
 	Description *string  `json:"description" description:"a description for this machine"`
 	Tags        []string `json:"tags" description:"tags for this machine." optional:"true"`
+	SSHPubKeys  []string `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
 }
 
 type MachineResponse struct {

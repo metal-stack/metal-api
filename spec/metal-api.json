@@ -3048,6 +3048,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "tags": {
           "description": "tags for this machine.",
           "items": {
@@ -3058,7 +3065,8 @@
       },
       "required": [
         "description",
-        "id"
+        "id",
+        "ssh_pub_keys"
       ]
     },
     "v1.MachineVPN": {
@@ -3907,20 +3915,6 @@
         "arrayname",
         "level",
         "spares"
-      ]
-    },
-    "v1.SSHPubKeysUpdate": {
-      "properties": {
-        "ssh_pub_keys": {
-          "description": "the public ssh keys to access the machine with",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "required": [
-        "ssh_pub_keys"
       ]
     },
     "v1.ServerCapacity": {
@@ -7057,58 +7051,6 @@
           }
         },
         "summary": "reinstall this machine",
-        "tags": [
-          "machine"
-        ]
-      }
-    },
-    "/v1/machine/{id}/sshpubkeys": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "machineSSHPubKeys",
-        "parameters": [
-          {
-            "description": "identifier of the machine",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.SSHPubKeysUpdate"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.MachineResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "update ssh public keys of allocated machine",
         "tags": [
           "machine"
         ]
