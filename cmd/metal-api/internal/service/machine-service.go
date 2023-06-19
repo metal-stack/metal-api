@@ -459,7 +459,9 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 		newMachine.Allocation.Description = *requestPayload.Description
 	}
 
-	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+	if len(requestPayload.Tags) > 0 {
+		newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+	}
 
 	if len(requestPayload.SSHPubKeys) > 0 {
 		newMachine.Allocation.SSHPubKeys = requestPayload.SSHPubKeys
