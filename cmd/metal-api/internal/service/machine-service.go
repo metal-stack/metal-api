@@ -402,6 +402,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("machineSSHPubKeys").
 		Doc("update ssh public keys of allocated machine").
 		Param(ws.PathParameter("id", "identifier of the machine").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SSHPubKeysUpdate{}).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).

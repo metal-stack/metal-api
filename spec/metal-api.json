@@ -7108,7 +7108,10 @@
             }
           }
         },
-        "summary": "update ssh public keys of allocated machine"
+        "summary": "update ssh public keys of allocated machine",
+        "tags": [
+          "machine"
+        ]
       }
     },
     "/v1/machine/{id}/state": {
