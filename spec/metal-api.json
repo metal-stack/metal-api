@@ -3048,6 +3048,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "tags": {
           "description": "tags for this machine.",
           "items": {
