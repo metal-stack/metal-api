@@ -72,7 +72,7 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 		if err == nil {
 			body = string(b)
 		} else {
-			body = fmt.Sprintf("unknown body: %v", err)
+			body = fmt.Sprintf("unknown body: %v", v)
 		}
 	}
 	err := ""
