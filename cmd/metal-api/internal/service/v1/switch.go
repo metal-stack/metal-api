@@ -18,8 +18,9 @@ type SwitchBase struct {
 }
 
 type SwitchOS struct {
-	Vendor  string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
-	Version string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	Vendor           string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
+	Version          string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	MetalCoreVersion string `json:"metal_core_version" description:"the version of metal-core running" optional:"true"`
 }
 
 type SwitchNics []SwitchNic

@@ -373,6 +373,7 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			}
 			s.OS.Vendor = spec.OS.Vendor
 			s.OS.Version = spec.OS.Version
+			s.OS.MetalCoreVersion = spec.OS.MetalCoreVersion
 		}
 		s.ManagementIP = spec.ManagementIP
 		s.ManagementUser = spec.ManagementUser
