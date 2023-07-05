@@ -18,8 +18,9 @@ type SwitchBase struct {
 }
 
 type SwitchOS struct {
-	Vendor  string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
-	Version string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	Vendor           string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
+	Version          string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	MetalCoreVersion string `json:"metal_core_version" description:"the version of metal-core running" optional:"true"`
 }
 
 type SwitchNics []SwitchNic
@@ -115,8 +116,9 @@ func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, con
 	var os *SwitchOS
 	if s.OS != nil {
 		os = &SwitchOS{
-			Vendor:  s.OS.Vendor,
-			Version: s.OS.Version,
+			Vendor:           s.OS.Vendor,
+			Version:          s.OS.Version,
+			MetalCoreVersion: s.OS.MetalCoreVersion,
 		}
 	}
 
@@ -174,8 +176,9 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 	var os *metal.SwitchOS
 	if r.OS != nil {
 		os = &metal.SwitchOS{
-			Vendor:  r.OS.Vendor,
-			Version: r.OS.Version,
+			Vendor:           r.OS.Vendor,
+			Version:          r.OS.Version,
+			MetalCoreVersion: r.OS.MetalCoreVersion,
 		}
 	}
 

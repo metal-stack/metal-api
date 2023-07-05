@@ -4360,6 +4360,10 @@
     },
     "v1.SwitchOS": {
       "properties": {
+        "metal_core_version": {
+          "description": "the version of metal-core running",
+          "type": "string"
+        },
         "vendor": {
           "description": "the operating system vendor the switch currently has",
           "type": "string"

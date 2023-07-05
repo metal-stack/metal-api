@@ -26,8 +26,9 @@ type Switch struct {
 type Switches []Switch
 
 type SwitchOS struct {
-	Vendor  string `rethinkdb:"vendor" json:"vendor"`
-	Version string `rethinkdb:"version" json:"version"`
+	Vendor           string `rethinkdb:"vendor" json:"vendor"`
+	Version          string `rethinkdb:"version" json:"version"`
+	MetalCoreVersion string `rethinkdb:"metal_core_version" json:"metal_core_version"`
 }
 
 // Connection between switch port and machine.
