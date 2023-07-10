@@ -150,6 +150,8 @@ func Run(cfg *ServerConfig) error {
 	v1.RegisterEventServiceServer(server, eventService)
 	v1.RegisterBootServiceServer(server, bootService)
 
+	srvMetrics.InitializeMetrics(server)
+
 	// this is only for the integration test of this package
 	if cfg.integrationTestAllocator != nil {
 		go func() {
