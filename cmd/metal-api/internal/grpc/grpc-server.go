@@ -12,15 +12,12 @@ import (
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-
 
 	"github.com/metal-stack/masterdata-api/pkg/interceptors/grpc_internalerror"
 	"google.golang.org/grpc"
@@ -102,15 +99,14 @@ func Run(cfg *ServerConfig) error {
 		grpcprom.WithServerHandlingTimeHistogram(
 			grpcprom.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 0.3, 0.6, 1, 3, 6, 9, 20, 30, 60, 90, 120}),
 		),
+		grpcprom.WithServerCounterOptions(
+			grpcprom.WithConstLabels(prometheus.Labels{
+				"metal-api": "grpc-service",
+			}),
+		),
 	)
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(srvMetrics)
-	exemplarFromContext := func(ctx context.Context) prometheus.Labels {
-		if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
-			return prometheus.Labels{"traceID": span.TraceID().String()}
-		}
-		return nil
-	}
 
 	streamInterceptors := []grpc.StreamServerInterceptor{}
 	unaryInterceptors := []grpc.UnaryServerInterceptor{}
@@ -119,8 +115,7 @@ func Run(cfg *ServerConfig) error {
 		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
 	}
 	streamInterceptors = append(streamInterceptors,
-		otelgrpc.StreamServerInterceptor(),
-		srvMetrics.StreamServerInterceptor(grpcprom.WithExemplarFromContext(exemplarFromContext)),
+		srvMetrics.StreamServerInterceptor(),
 		grpc_ctxtags.StreamServerInterceptor(),
 		grpc_prometheus.StreamServerInterceptor,
 		grpc_zap.StreamServerInterceptor(log.Desugar()),
@@ -128,8 +123,7 @@ func Run(cfg *ServerConfig) error {
 		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 	)
 	unaryInterceptors = append(unaryInterceptors,
-		otelgrpc.UnaryServerInterceptor(),
-		srvMetrics.UnaryServerInterceptor(grpcprom.WithExemplarFromContext(exemplarFromContext)),
+		srvMetrics.UnaryServerInterceptor(),
 		grpc_ctxtags.UnaryServerInterceptor(),
 		grpc_prometheus.UnaryServerInterceptor,
 		grpc_zap.UnaryServerInterceptor(log.Desugar()),
