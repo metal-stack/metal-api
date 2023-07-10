@@ -15,7 +15,6 @@ import (
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -101,7 +100,6 @@ func Run(cfg *ServerConfig) error {
 		),
 	)
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(srvMetrics)
 
 	streamInterceptors := []grpc.StreamServerInterceptor{}
 	unaryInterceptors := []grpc.UnaryServerInterceptor{}
@@ -112,7 +110,6 @@ func Run(cfg *ServerConfig) error {
 	streamInterceptors = append(streamInterceptors,
 		srvMetrics.StreamServerInterceptor(),
 		grpc_ctxtags.StreamServerInterceptor(),
-		grpc_prometheus.StreamServerInterceptor,
 		grpc_zap.StreamServerInterceptor(log.Desugar()),
 		grpc_internalerror.StreamServerInterceptor(),
 		grpc_recovery.StreamServerInterceptor(recoveryOpt),
@@ -120,7 +117,6 @@ func Run(cfg *ServerConfig) error {
 	unaryInterceptors = append(unaryInterceptors,
 		srvMetrics.UnaryServerInterceptor(),
 		grpc_ctxtags.UnaryServerInterceptor(),
-		grpc_prometheus.UnaryServerInterceptor,
 		grpc_zap.UnaryServerInterceptor(log.Desugar()),
 		grpc_internalerror.UnaryServerInterceptor(),
 		grpc_recovery.UnaryServerInterceptor(recoveryOpt),
@@ -132,7 +128,6 @@ func Run(cfg *ServerConfig) error {
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
 	)
-	grpc_prometheus.Register(server)
 
 	eventService := NewEventService(cfg)
 	bootService := NewBootService(cfg, eventService)
@@ -146,6 +141,7 @@ func Run(cfg *ServerConfig) error {
 	v1.RegisterBootServiceServer(server, bootService)
 
 	srvMetrics.InitializeMetrics(server)
+	reg.MustRegister(srvMetrics)
 
 	// this is only for the integration test of this package
 	if cfg.integrationTestAllocator != nil {
