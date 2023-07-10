@@ -15,6 +15,13 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+
+
 	"github.com/metal-stack/masterdata-api/pkg/interceptors/grpc_internalerror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -90,6 +97,21 @@ func Run(cfg *ServerConfig) error {
 		}
 	}
 
+	// Setup metrics.
+	srvMetrics := grpcprom.NewServerMetrics(
+		grpcprom.WithServerHandlingTimeHistogram(
+			grpcprom.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 0.3, 0.6, 1, 3, 6, 9, 20, 30, 60, 90, 120}),
+		),
+	)
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(srvMetrics)
+	exemplarFromContext := func(ctx context.Context) prometheus.Labels {
+		if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
+			return prometheus.Labels{"traceID": span.TraceID().String()}
+		}
+		return nil
+	}
+
 	streamInterceptors := []grpc.StreamServerInterceptor{}
 	unaryInterceptors := []grpc.UnaryServerInterceptor{}
 	if cfg.Auditing != nil {
@@ -97,6 +119,8 @@ func Run(cfg *ServerConfig) error {
 		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
 	}
 	streamInterceptors = append(streamInterceptors,
+		otelgrpc.StreamServerInterceptor(),
+		srvMetrics.StreamServerInterceptor(grpcprom.WithExemplarFromContext(exemplarFromContext)),
 		grpc_ctxtags.StreamServerInterceptor(),
 		grpc_prometheus.StreamServerInterceptor,
 		grpc_zap.StreamServerInterceptor(log.Desugar()),
@@ -104,6 +128,8 @@ func Run(cfg *ServerConfig) error {
 		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 	)
 	unaryInterceptors = append(unaryInterceptors,
+		otelgrpc.UnaryServerInterceptor(),
+		srvMetrics.UnaryServerInterceptor(grpcprom.WithExemplarFromContext(exemplarFromContext)),
 		grpc_ctxtags.UnaryServerInterceptor(),
 		grpc_prometheus.UnaryServerInterceptor,
 		grpc_zap.UnaryServerInterceptor(log.Desugar()),
