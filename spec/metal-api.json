@@ -3048,6 +3048,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "tags": {
           "description": "tags for this machine.",
           "items": {
@@ -4353,6 +4360,10 @@
     },
     "v1.SwitchOS": {
       "properties": {
+        "metal_core_version": {
+          "description": "the version of metal-core running",
+          "type": "string"
+        },
         "vendor": {
           "description": "the operating system vendor the switch currently has",
           "type": "string"
