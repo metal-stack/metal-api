@@ -1205,6 +1205,7 @@ func TestUpdateSwitch(t *testing.T) {
 }
 
 // FIXME enable
+// nolint:unused
 func _TestNotifySwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
@@ -1241,6 +1242,7 @@ func _TestNotifySwitch(t *testing.T) {
 }
 
 // FIXME enable
+// nolint:unused
 func _TestNotifyErrorSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
