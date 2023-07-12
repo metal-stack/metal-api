@@ -216,31 +216,35 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		return
 	}
 
-	old := *s
 	sync := &metal.SwitchSync{
 		Time:     time.Now(),
 		Duration: requestPayload.Duration,
 	}
-
-	if requestPayload.Error == nil {
-		s.LastSync = sync
-	} else {
-		sync.Error = requestPayload.Error
-		s.LastSyncError = sync
+	ss := &metal.SwitchStatus{
+		Base: s.Base,
 	}
 
-	// FIXME needs https://github.com/metal-stack/metal-api/issues/263
-	err = r.ds.UpdateSwitch(&old, s)
+	if requestPayload.Error == nil {
+		ss.LastSync = sync
+	} else {
+		sync.Error = requestPayload.Error
+		ss.LastSyncError = sync
+	}
+
+	_, err = r.ds.SetSwitchStatus(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
+
+	r.log.Infow("switchservice notify", "state", ss)
 
 	resp, err := makeSwitchResponse(s, r.ds)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
+	r.log.Infow("switchservice notify", "switch", resp)
 
 	r.send(request, response, http.StatusOK, resp)
 }
@@ -628,8 +632,14 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.Switch
 
 	nics := makeSwitchNics(s, ips, machines)
 	cons := makeSwitchCons(s)
+	ss, err := ds.GetSwitchStatus(s.ID)
+	if err != nil {
+		return nil, err
+	}
 
-	return v1.NewSwitchResponse(s, p, nics, cons), nil
+	fmt.Printf("got switchstate:%#v\n", ss)
+
+	return v1.NewSwitchResponse(s, ss, p, nics, cons), nil
 }
 
 func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
@@ -814,7 +824,11 @@ func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v
 
 		nics := makeSwitchNics(&sw, ips, m)
 		cons := makeSwitchCons(&sw)
-		result = append(result, v1.NewSwitchResponse(&sw, p, nics, cons))
+		ss, err := ds.GetSwitchStatus(sw.ID)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, v1.NewSwitchResponse(&sw, ss, p, nics, cons))
 	}
 
 	return result, nil

@@ -18,7 +18,7 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
+	"image", "size", "partition", "machine", "switch", "switchstatus", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
@@ -161,7 +161,10 @@ func (rs *RethinkStore) switchTable() *r.Term {
 	res := r.DB(rs.dbname).Table("switch")
 	return &res
 }
-
+func (rs *RethinkStore) switchStatusTable() *r.Term {
+	res := r.DB(rs.dbname).Table("switchstatus")
+	return &res
+}
 func (rs *RethinkStore) eventTable() *r.Term {
 	res := r.DB(rs.dbname).Table("event")
 	return &res

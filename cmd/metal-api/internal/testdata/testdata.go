@@ -12,7 +12,7 @@ import (
 
 // If you want to add some Test Data, add it also to the following places:
 // -- To the Mocks, ==> eof
-// -- To the corrisponding lists,
+// -- To the corresponding lists,
 
 // Also run the Tests:
 // cd ./cloud-native/metal/metal-api/
@@ -747,7 +747,7 @@ var (
 		M1, M2, M3, M4, M5,
 	}
 
-	EmptyResult = map[string]interface{}{}
+	EmptyResult = map[string]any{}
 )
 
 /*
@@ -756,10 +756,10 @@ InitMockDBData ...
 Description:
 This Function initializes the Data of a mocked rethink DB.
 To get a Mocked r, execute datastore.InitMockDB().
-If custom mocks should be used insted of here defined mocks, they can be added to the Mock Object bevore this function is called.
+If custom mocks should be used instead of here defined mocks, they can be added to the Mock Object before this function is called.
 
 Hints for modifying this function:
-If there need to be additional mocks added, they should be added before default mocs, which contain "r.MockAnything()"
+If there need to be additional mocks added, they should be added before default mocks, which contain "r.MockAnything()"
 
 Parameters:
 - Mock 			// The Mock endpoint (Used for mocks)
@@ -828,6 +828,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3")).Return(Switch3, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("switch").Get("switch999")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("switchtable").Get("switch999")).Return(&metal.SwitchStatus{Base: metal.Base{ID: "switch999"}, LastSync: &metal.SwitchSync{Time: time.Now(), Duration: 5 * time.Second}}, nil)
 	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
 		map[string]interface{}{"new_val": M3},
 	}, nil)
@@ -841,6 +842,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("network").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("ip").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switchstatus").Get(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("project").Get(r.MockAnything())).Return(EmptyResult, nil)
 
 	mock.On(r.DB("mockdb").Table("event").Get(r.MockAnything())).Return(EmptyResult, nil)
@@ -853,6 +855,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip")).Return(TestIPs, nil)
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
+	mock.On(r.DB("mockdb").Table("switchstatus")).Return(TestSwitches, nil)
 	mock.On(r.DB("mockdb").Table("event")).Return(TestEvents, nil)
 
 	// X.Delete
@@ -873,6 +876,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("partition").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switchstatus").Get(r.MockAnything()).Replace(r.MockAnything())).Return(EmptyResult, nil)
 
 	// X.insert
 	mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything())).Return(EmptyResult, nil)
@@ -882,6 +886,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("partition").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("size").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything())).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switchstatus").Insert(r.MockAnything())).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything())).Return(EmptyResult, nil)
 
 	mock.On(r.DB("mockdb").Table("machine").Insert(r.MockAnything(), r.InsertOpts{
