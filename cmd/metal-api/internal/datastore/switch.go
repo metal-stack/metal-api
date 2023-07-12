@@ -199,6 +199,7 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 
 // GetSwitchStatus get SwitchStatus for a given switch id
 func (rs *RethinkStore) GetSwitchStatus(id string) (*metal.SwitchStatus, error) {
+	rs.log.Infow("get state", "id", id)
 	var ss metal.SwitchStatus
 	err := rs.findEntityByID(rs.switchStatusTable(), &ss, id)
 	if err != nil && !metal.IsNotFound(err) {
@@ -207,6 +208,8 @@ func (rs *RethinkStore) GetSwitchStatus(id string) (*metal.SwitchStatus, error) 
 	if err != nil && metal.IsNotFound(err) {
 		return &metal.SwitchStatus{}, nil
 	}
+	rs.log.Infow("get state", "state", ss)
+
 	return &ss, nil
 }
 
@@ -225,7 +228,7 @@ func (rs *RethinkStore) SetSwitchStatus(state *metal.SwitchStatus) (*metal.Switc
 		}
 		return state, nil
 	}
-	rs.log.Infow("update state", "old", state, "new", ss)
-	err = rs.updateEntity(rs.switchStatusTable(), &ss, state)
+	rs.log.Infow("update state", "old", ss, "new", state)
+	err = rs.updateEntity(rs.switchStatusTable(), state, &ss)
 	return state, err
 }

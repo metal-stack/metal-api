@@ -711,7 +711,8 @@ var (
 	TestSwitches = metal.Switches{
 		Switch1, Switch2, Switch3, SwitchReplaceFor1,
 	}
-	TestMacs = []string{
+	TestSwitchStates = []metal.SwitchStatus{}
+	TestMacs         = []string{
 		"11:11:11:11:11:11",
 		"11:11:11:11:11:22",
 		"11:11:11:11:11:33",
@@ -828,7 +829,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Get("switch3")).Return(Switch3, nil)
 	mock.On(r.DB("mockdb").Table("switch").Get("switch404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("switch").Get("switch999")).Return(nil, nil)
-	mock.On(r.DB("mockdb").Table("switchtable").Get("switch999")).Return(&metal.SwitchStatus{Base: metal.Base{ID: "switch999"}, LastSync: &metal.SwitchSync{Time: time.Now(), Duration: 5 * time.Second}}, nil)
+	mock.On(r.DB("mockdb").Table("switchtable").Get("switch999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
 		map[string]interface{}{"new_val": M3},
 	}, nil)
@@ -855,7 +856,7 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("ip")).Return(TestIPs, nil)
 	mock.On(r.DB("mockdb").Table("machine")).Return(TestMachines, nil)
 	mock.On(r.DB("mockdb").Table("switch")).Return(TestSwitches, nil)
-	mock.On(r.DB("mockdb").Table("switchstatus")).Return(TestSwitches, nil)
+	mock.On(r.DB("mockdb").Table("switchstatus")).Return(TestSwitchStates, nil)
 	mock.On(r.DB("mockdb").Table("event")).Return(TestEvents, nil)
 
 	// X.Delete
@@ -908,6 +909,9 @@ func InitMockDBData(mock *r.Mock) {
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("switch").Insert(r.MockAnything(), r.InsertOpts{
+		Conflict: "replace",
+	})).Return(EmptyResult, nil)
+	mock.On(r.DB("mockdb").Table("switchstate").Insert(r.MockAnything(), r.InsertOpts{
 		Conflict: "replace",
 	})).Return(EmptyResult, nil)
 	mock.On(r.DB("mockdb").Table("wait").Insert(r.MockAnything(), r.InsertOpts{

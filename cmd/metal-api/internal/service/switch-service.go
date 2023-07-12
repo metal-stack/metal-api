@@ -231,13 +231,13 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		ss.LastSyncError = sync
 	}
 
-	_, err = r.ds.SetSwitchStatus(ss)
+	newSS, err := r.ds.SetSwitchStatus(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	r.log.Infow("switchservice notify", "state", ss)
+	r.log.Infow("switchservice notify", "state", newSS)
 
 	resp, err := makeSwitchResponse(s, r.ds)
 	if err != nil {
