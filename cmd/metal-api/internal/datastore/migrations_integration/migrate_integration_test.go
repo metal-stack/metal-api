@@ -87,7 +87,12 @@ func Test_Migration(t *testing.T) {
 		CrashLoop:            false,
 		FailedMachineReclaim: false,
 		// time comparison with time from rethink db is not possible due to different formats
-	}, cmpopts.IgnoreFields(metal.Base{}, "Changed"), cmpopts.IgnoreFields(metal.ProvisioningEvent{}, "Time"), cmpopts.IgnoreFields(metal.ProvisioningEventContainer{}, "LastEventTime")); diff != "" {
+	},
+		cmpopts.IgnoreFields(metal.Base{}, "Changed"),
+		cmpopts.IgnoreFields(metal.ProvisioningEvent{}, "Time"),
+		cmpopts.IgnoreFields(metal.ProvisioningEventContainer{}, "LastEventTime"),
+		cmpopts.IgnoreFields(metal.ProvisioningEventContainer{}, "Created"),
+	); diff != "" {
 		t.Errorf("RethinkStore.Migrate() mismatch (-want +got):\n%s", diff)
 	}
 
