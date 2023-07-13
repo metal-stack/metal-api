@@ -232,14 +232,11 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		ss.LastSyncError = sync
 	}
 
-	newSS, err := r.ds.SetSwitchStatus(ss)
+	err = r.ds.SetSwitchStatus(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-
-	r.log.Infow("switchservice notify", "state", newSS, "resp", resp)
-
 	r.send(request, response, http.StatusOK, resp)
 }
 
@@ -619,17 +616,13 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 }
 
 func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
-	p, ips, machines, err := findSwitchReferencedEntites(s, ds)
+	p, ips, machines, ss, err := findSwitchReferencedEntites(s, ds)
 	if err != nil {
 		return nil, err
 	}
 
 	nics := makeSwitchNics(s, ips, machines)
 	cons := makeSwitchCons(s)
-	ss, err := ds.GetSwitchStatus(s.ID)
-	if err != nil {
-		return nil, err
-	}
 
 	return v1.NewSwitchResponse(s, ss, p, nics, cons), nil
 }
@@ -769,7 +762,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, error) {
+func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
 	var err error
 	var p *metal.Partition
 	var m metal.Machines
@@ -777,21 +770,26 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
+			return nil, nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
 		}
 
 		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
+			return nil, nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
 		}
 	}
 
 	ips, err := ds.ListIPs()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
 
-	return p, ips.ByProjectID(), m, nil
+	ss, err := ds.GetSwitchStatus(s.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, nil, nil, nil, fmt.Errorf("switchStatus could not be listed: %w", err)
+	}
+
+	return p, ips.ByProjectID(), m, ss, nil
 }
 
 func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
@@ -817,7 +815,7 @@ func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v
 		nics := makeSwitchNics(&sw, ips, m)
 		cons := makeSwitchCons(&sw)
 		ss, err := ds.GetSwitchStatus(sw.ID)
-		if err != nil {
+		if err != nil && !metal.IsNotFound(err) {
 			return nil, err
 		}
 		result = append(result, v1.NewSwitchResponse(&sw, ss, p, nics, cons))

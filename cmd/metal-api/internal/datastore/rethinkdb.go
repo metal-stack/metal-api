@@ -397,8 +397,8 @@ func (rs *RethinkStore) createEntity(table *r.Term, entity metal.Entity) error {
 
 func (rs *RethinkStore) upsertEntity(table *r.Term, entity metal.Entity) error {
 	now := time.Now()
-	if entity.GetChanged().IsZero() {
-		entity.SetChanged(now)
+	if entity.GetCreated().IsZero() {
+		entity.SetCreated(now)
 	}
 	entity.SetChanged(now)
 
