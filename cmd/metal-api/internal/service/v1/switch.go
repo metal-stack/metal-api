@@ -18,8 +18,9 @@ type SwitchBase struct {
 }
 
 type SwitchOS struct {
-	Vendor  string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
-	Version string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	Vendor           string `json:"vendor" description:"the operating system vendor the switch currently has" optional:"true"`
+	Version          string `json:"version" description:"the operating system version the switch currently has" optional:"true"`
+	MetalCoreVersion string `json:"metal_core_version" description:"the version of metal-core running" optional:"true"`
 }
 
 type SwitchNics []SwitchNic
@@ -74,6 +75,12 @@ type SwitchNotifyRequest struct {
 	Error    *string       `json:"error"`
 }
 
+type SwitchNotifyResponse struct {
+	Common
+	LastSync      *SwitchSync `json:"last_sync" description:"last successful synchronization to the switch" optional:"true"`
+	LastSyncError *SwitchSync `json:"last_sync_error" description:"last synchronization to the switch that was erroneous" optional:"true"`
+}
+
 type SwitchResponse struct {
 	Common
 	SwitchBase
@@ -91,32 +98,37 @@ type SwitchSync struct {
 	Error    *string       `json:"error" description:"shows the error occurred during the sync" optional:"true"`
 }
 
-func NewSwitchResponse(s *metal.Switch, p *metal.Partition, nics SwitchNics, cons []SwitchConnection) *SwitchResponse {
+func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partition, nics SwitchNics, cons []SwitchConnection) *SwitchResponse {
 	if s == nil {
 		return nil
 	}
 
 	var lastSync *SwitchSync
-	if s.LastSync != nil {
+	if ss != nil && ss.LastSync != nil {
 		lastSync = &SwitchSync{
-			Time:     s.LastSync.Time,
-			Duration: s.LastSync.Duration,
-			Error:    s.LastSync.Error,
+			Time:     ss.LastSync.Time,
+			Duration: ss.LastSync.Duration,
+			Error:    ss.LastSync.Error,
 		}
+	} else {
+		lastSync = &SwitchSync{}
 	}
 	var lastSyncError *SwitchSync
-	if s.LastSyncError != nil {
+	if ss != nil && ss.LastSyncError != nil {
 		lastSyncError = &SwitchSync{
-			Time:     s.LastSyncError.Time,
-			Duration: s.LastSyncError.Duration,
-			Error:    s.LastSyncError.Error,
+			Time:     ss.LastSyncError.Time,
+			Duration: ss.LastSyncError.Duration,
+			Error:    ss.LastSyncError.Error,
 		}
+	} else {
+		lastSyncError = &SwitchSync{}
 	}
 	var os *SwitchOS
 	if s.OS != nil {
 		os = &SwitchOS{
-			Vendor:  s.OS.Vendor,
-			Version: s.OS.Version,
+			Vendor:           s.OS.Vendor,
+			Version:          s.OS.Version,
+			MetalCoreVersion: s.OS.MetalCoreVersion,
 		}
 	}
 
@@ -174,8 +186,9 @@ func NewSwitch(r SwitchRegisterRequest) *metal.Switch {
 	var os *metal.SwitchOS
 	if r.OS != nil {
 		os = &metal.SwitchOS{
-			Vendor:  r.OS.Vendor,
-			Version: r.OS.Version,
+			Vendor:           r.OS.Vendor,
+			Version:          r.OS.Version,
+			MetalCoreVersion: r.OS.MetalCoreVersion,
 		}
 	}
 

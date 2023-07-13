@@ -112,7 +112,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).
 		Reads(v1.SwitchNotifyRequest{}).
-		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
+		Returns(http.StatusOK, "OK", v1.SwitchNotifyResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -210,38 +210,33 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	}
 
 	id := request.PathParameter("id")
-	s, err := r.ds.FindSwitch(id)
-	if err != nil && !metal.IsNotFound(err) {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
 
-	old := *s
 	sync := &metal.SwitchSync{
 		Time:     time.Now(),
 		Duration: requestPayload.Duration,
 	}
+	ss := &metal.SwitchStatus{
+		Base: metal.Base{ID: id},
+	}
+
+	resp := &v1.SwitchNotifyResponse{
+		Common: v1.Common{Identifiable: v1.Identifiable{ID: id}},
+	}
 
 	if requestPayload.Error == nil {
-		s.LastSync = sync
+		resp.LastSync = &v1.SwitchSync{Time: sync.Time, Duration: sync.Duration}
+		ss.LastSync = sync
 	} else {
+		resp.LastSyncError = &v1.SwitchSync{Time: sync.Time, Duration: sync.Duration, Error: requestPayload.Error}
 		sync.Error = requestPayload.Error
-		s.LastSyncError = sync
+		ss.LastSyncError = sync
 	}
 
-	// FIXME needs https://github.com/metal-stack/metal-api/issues/263
-	err = r.ds.UpdateSwitch(&old, s)
+	err = r.ds.SetSwitchStatus(ss)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-
-	resp, err := makeSwitchResponse(s, r.ds)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
 	r.send(request, response, http.StatusOK, resp)
 }
 
@@ -373,6 +368,7 @@ func (r *switchResource) registerSwitch(request *restful.Request, response *rest
 			}
 			s.OS.Vendor = spec.OS.Vendor
 			s.OS.Version = spec.OS.Version
+			s.OS.MetalCoreVersion = spec.OS.MetalCoreVersion
 		}
 		s.ManagementIP = spec.ManagementIP
 		s.ManagementUser = spec.ManagementUser
@@ -620,7 +616,7 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 }
 
 func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
-	p, ips, machines, err := findSwitchReferencedEntites(s, ds)
+	p, ips, machines, ss, err := findSwitchReferencedEntites(s, ds)
 	if err != nil {
 		return nil, err
 	}
@@ -628,7 +624,7 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.Switch
 	nics := makeSwitchNics(s, ips, machines)
 	cons := makeSwitchCons(s)
 
-	return v1.NewSwitchResponse(s, p, nics, cons), nil
+	return v1.NewSwitchResponse(s, ss, p, nics, cons), nil
 }
 
 func makeBGPFilterFirewall(m metal.Machine) v1.BGPFilter {
@@ -766,7 +762,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, error) {
+func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
 	var err error
 	var p *metal.Partition
 	var m metal.Machines
@@ -774,21 +770,26 @@ func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*
 	if s.PartitionID != "" {
 		p, err = ds.FindPartition(s.PartitionID)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
+			return nil, nil, nil, nil, fmt.Errorf("switch %q references partition, but partition %q cannot be found in database: %w", s.ID, s.PartitionID, err)
 		}
 
 		err = ds.SearchMachines(&datastore.MachineSearchQuery{PartitionID: &s.PartitionID}, &m)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
+			return nil, nil, nil, nil, fmt.Errorf("could not search machines of partition %q for switch %q: %w", s.PartitionID, s.ID, err)
 		}
 	}
 
 	ips, err := ds.ListIPs()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("ips could not be listed: %w", err)
 	}
 
-	return p, ips.ByProjectID(), m, nil
+	ss, err := ds.GetSwitchStatus(s.ID)
+	if err != nil && !metal.IsNotFound(err) {
+		return nil, nil, nil, nil, fmt.Errorf("switchStatus could not be listed: %w", err)
+	}
+
+	return p, ips.ByProjectID(), m, ss, nil
 }
 
 func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v1.SwitchResponse, error) {
@@ -813,7 +814,11 @@ func makeSwitchResponseList(ss metal.Switches, ds *datastore.RethinkStore) ([]*v
 
 		nics := makeSwitchNics(&sw, ips, m)
 		cons := makeSwitchCons(&sw)
-		result = append(result, v1.NewSwitchResponse(&sw, p, nics, cons))
+		ss, err := ds.GetSwitchStatus(sw.ID)
+		if err != nil && !metal.IsNotFound(err) {
+			return nil, err
+		}
+		result = append(result, v1.NewSwitchResponse(&sw, ss, p, nics, cons))
 	}
 
 	return result, nil

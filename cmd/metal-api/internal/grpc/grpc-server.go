@@ -23,6 +23,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/bus"
@@ -96,6 +97,9 @@ func Run(cfg *ServerConfig) error {
 		streamInterceptors = append(streamInterceptors, auditing.StreamServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
 		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
 	}
+
+	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics)
+
 	streamInterceptors = append(streamInterceptors,
 		grpc_ctxtags.StreamServerInterceptor(),
 		grpc_prometheus.StreamServerInterceptor,

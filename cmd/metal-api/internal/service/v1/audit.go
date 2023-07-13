@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/metal-stack/metal-lib/auditing"
@@ -65,6 +67,13 @@ func NewAuditResponse(e auditing.Entry) *AuditResponse {
 		body = v
 	case []byte:
 		body = string(v)
+	default:
+		b, err := json.Marshal(v)
+		if err == nil {
+			body = string(b)
+		} else {
+			body = fmt.Sprintf("unknown body: %v", v)
+		}
 	}
 	err := ""
 	if e.Error != nil {
