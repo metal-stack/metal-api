@@ -1,14 +1,10 @@
 package grpc
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math"
-	"math/big"
 	"time"
 
-	mathrand "math/rand"
-
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
@@ -101,17 +97,7 @@ func (b *BootService) initWaitEndpoint() error {
 	if b.publisher == nil || b.consumer == nil {
 		return nil
 	}
-	var r uint64
-	randomByte, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64)) //nolint:gosec
-	if err == nil {
-		r = randomByte.Uint64()
-	} else {
-		b.log.Warnw("failed to generate crypto random number -> fallback to math random number", "error", err)
-		mathrand.Seed(time.Now().UnixNano())
-		// nolint
-		r = mathrand.Uint64()
-	}
-	channel := fmt.Sprintf("alloc-%d#ephemeral", r)
+	channel := fmt.Sprintf("alloc-%s#ephemeral", uuid.NewString())
 	return b.consumer.With(bus.LogLevel(bus.Warning)).
 		MustRegister(metal.TopicAllocation.Name, channel).
 		Consume(metal.AllocationEvent{}, func(message interface{}) error {

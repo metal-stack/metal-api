@@ -59,7 +59,7 @@ func TestGetMachines(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(machineservice)
 	req := httptest.NewRequest("GET", "/v1/machine", nil)
@@ -122,7 +122,7 @@ func TestMachineIPMIReport(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 			js, err := json.Marshal(tt.input)
@@ -173,7 +173,7 @@ func TestMachineFindIPMI(t *testing.T) {
 			mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{*tt.machine}, nil)
 			testdata.InitMockDBData(mock)
 
-			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+			machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 			require.NoError(t, err)
 			container := restful.NewContainer().Add(machineservice)
 
@@ -229,7 +229,7 @@ func TestSetMachineState(t *testing.T) {
 		Name:  "anonymous",
 	}}
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0, nil)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -270,7 +270,7 @@ func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
 		Name:  "anonymous",
 	}}
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0, nil)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, userGetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -306,7 +306,7 @@ func TestGetMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -334,7 +334,7 @@ func TestGetMachineNotFound(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -353,6 +353,8 @@ func TestFreeMachine(t *testing.T) {
 
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
+	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1}, nil)
+
 	log := zaptest.NewLogger(t).Sugar()
 
 	pub := &emptyPublisher{}
@@ -368,7 +370,7 @@ func TestFreeMachine(t *testing.T) {
 		return nil
 	}
 
-	machineservice, err := NewMachine(log, ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+	machineservice, err := NewMachine(log, ds, pub, bus.NewEndpoints(nil, pub), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -395,7 +397,7 @@ func TestSearchMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(machineservice)
@@ -487,7 +489,7 @@ func TestOnMachine(t *testing.T) {
 				return nil
 			}
 
-			machineservice, err := NewMachine(log, ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil)
+			machineservice, err := NewMachine(log, ds, pub, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 			require.NoError(t, err)
 
 			js, err := json.Marshal([]string{tt.param})

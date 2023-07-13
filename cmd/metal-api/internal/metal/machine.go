@@ -2,10 +2,13 @@ package metal
 
 import (
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
+	"go.uber.org/zap"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -341,14 +344,35 @@ type Fru struct {
 // IPMI connection data
 type IPMI struct {
 	// Address is host:port of the connection to the ipmi BMC, host can be either a ip address or a hostname
-	Address    string `rethinkdb:"address" json:"address"`
-	MacAddress string `rethinkdb:"mac" json:"mac"`
-	User       string `rethinkdb:"user" json:"user"`
-	Password   string `rethinkdb:"password" json:"password"`
-	Interface  string `rethinkdb:"interface" json:"interface"`
-	Fru        Fru    `rethinkdb:"fru" json:"fru"`
-	BMCVersion string `rethinkdb:"bmcversion" json:"bmcversion"`
-	PowerState string `rethinkdb:"powerstate" json:"powerstate"`
+	Address     string       `rethinkdb:"address" json:"address"`
+	MacAddress  string       `rethinkdb:"mac" json:"mac"`
+	User        string       `rethinkdb:"user" json:"user"`
+	Password    string       `rethinkdb:"password" json:"password"`
+	Interface   string       `rethinkdb:"interface" json:"interface"`
+	Fru         Fru          `rethinkdb:"fru" json:"fru"`
+	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
+	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
+	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
+}
+
+type PowerMetric struct {
+	// AverageConsumedWatts shall represent the
+	// average power level that occurred averaged over the last IntervalInMin
+	// minutes.
+	AverageConsumedWatts float32 `rethinkdb:"averageconsumedwatts" json:"averageconsumedwatts"`
+	// IntervalInMin shall represent the time
+	// interval (or window), in minutes, in which the PowerMetrics properties
+	// are measured over.
+	// Should be an integer, but some Dell implementations return as a float.
+	IntervalInMin float32 `rethinkdb:"intervalinmin" json:"intervalinmin"`
+	// MaxConsumedWatts shall represent the
+	// maximum power level in watts that occurred within the last
+	// IntervalInMin minutes.
+	MaxConsumedWatts float32 `rethinkdb:"maxconsumedwatts" json:"maxconsumedwatts"`
+	// MinConsumedWatts shall represent the
+	// minimum power level in watts that occurred within the last
+	// IntervalInMin minutes.
+	MinConsumedWatts float32 `rethinkdb:"minconsumedwatts" json:"minconsumedwatts"`
 }
 
 // BIOS contains machine bios information
@@ -420,4 +444,39 @@ type MachineVPN struct {
 	ControlPlaneAddress string `rethinkdb:"address" json:"address"`
 	AuthKey             string `rethinkdb:"auth_key" json:"auth_key"`
 	Connected           bool   `rethinkdb:"connected" json:"connected"`
+}
+
+type MachineIPMISuperUser struct {
+	password string
+}
+
+func NewIPMISuperUser(log *zap.SugaredLogger, path string) MachineIPMISuperUser {
+	password := ""
+
+	if raw, err := os.ReadFile(path); err == nil {
+		log.Infow("ipmi superuser password found, feature is enabled")
+		password = strings.TrimSpace(string(raw))
+	} else {
+		log.Infow("ipmi superuser password could not be read, feature is disabled", "error", err)
+	}
+
+	return MachineIPMISuperUser{
+		password: password,
+	}
+}
+
+func (i *MachineIPMISuperUser) IsEnabled() bool {
+	return i.password != ""
+}
+
+func (i *MachineIPMISuperUser) Password() string {
+	return i.password
+}
+
+func (i *MachineIPMISuperUser) User() string {
+	return "root"
+}
+
+func DisabledIPMISuperUser() MachineIPMISuperUser {
+	return MachineIPMISuperUser{}
 }

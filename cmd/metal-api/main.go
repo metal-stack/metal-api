@@ -22,6 +22,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
+	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/rest"
 
 	nsq2 "github.com/nsqio/go-nsq"
@@ -34,7 +35,6 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -278,6 +278,12 @@ func init() {
 	rootCmd.Flags().StringP("masterdata-capath", "", "", "the tls ca certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certpath", "", "", "the tls certificate to talk to the masterdata-api")
 	rootCmd.Flags().StringP("masterdata-certkeypath", "", "", "the tls certificate key to talk to the masterdata-api")
+
+	rootCmd.Flags().Bool("auditing-enabled", false, "enable auditing")
+	rootCmd.Flags().String("auditing-url", "http://localhost:7700", "url of the auditing service")
+	rootCmd.Flags().String("auditing-api-key", "secret", "api key for the auditing service")
+	rootCmd.Flags().String("auditing-index-prefix", "auditing", "auditing index prefix")
+	rootCmd.Flags().String("auditing-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
@@ -677,7 +683,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	return security.NewCreds(auths...)
 }
 
-func initRestServices(withauth bool) *restfulspec.Config {
+func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser metal.MachineIPMISuperUser) *restfulspec.Config {
 	service.BasePath = viper.GetString("base-path")
 	if !strings.HasPrefix(service.BasePath, "/") || !strings.HasSuffix(service.BasePath, "/") {
 		logger.Fatal("base path must start and end with a slash")
@@ -718,10 +724,11 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	}
 	reasonMinLength := viper.GetUint("password-reason-minlength")
 
-	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient)
+	machineService, err := service.NewMachine(logger.Named("machine-service"), ds, p, ep, ipamer, mdc, s3Client, userGetter, reasonMinLength, headscaleClient, ipmiSuperUser)
 	if err != nil {
 		logger.Fatal(err)
 	}
+
 	firewallService, err := service.NewFirewall(logger.Named("firewall-service"), ds, p, ipamer, ep, mdc, userGetter, headscaleClient)
 	if err != nil {
 		logger.Fatal(err)
@@ -731,7 +738,7 @@ func initRestServices(withauth bool) *restfulspec.Config {
 	if err != nil {
 		logger.Fatal(err)
 	}
-
+	restful.DefaultContainer.Add(service.NewAudit(logger.Named("audit-service"), audit))
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
 	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds))
@@ -758,6 +765,10 @@ func initRestServices(withauth bool) *restfulspec.Config {
 		excludedPathSuffixes := []string{"liveliness", "health", "version", "apidocs.json"}
 		ensurer := service.NewTenantEnsurer(logger.Named("tenant-ensurer-filter"), []string{providerTenant}, excludedPathSuffixes)
 		restful.DefaultContainer.Filter(ensurer.EnsureAllowedTenantFilter)
+	}
+
+	if audit != nil {
+		restful.DefaultContainer.Filter(auditing.HttpFilter(audit, logger.Named("audit-middleware")))
 	}
 
 	config := restfulspec.Config{
@@ -789,7 +800,7 @@ func initHeadscale() {
 }
 
 func dumpSwaggerJSON() {
-	cfg := initRestServices(false)
+	cfg := initRestServices(nil, false, metal.DisabledIPMISuperUser())
 	actual := restfulspec.BuildSwagger(*cfg)
 
 	// declare custom type for default errors, see:
@@ -870,7 +881,7 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	var updateErr error
+	var errs []error
 	for _, m := range ms {
 		m := m
 		if m.Allocation == nil || m.Allocation.VPN == nil {
@@ -885,17 +896,42 @@ func evaluateVPNConnected() error {
 		m.Allocation.VPN.Connected = connected
 		err := ds.UpdateMachine(&old, &m)
 		if err != nil {
-			updateErr = multierr.Append(updateErr, err)
+			errs = append(errs, err)
 			logger.Errorw("unable to update vpn connected state, continue anyway", "machine", m.ID, "error", err)
 			continue
 		}
 		logger.Infow("updated vpn connected state", "machine", m.ID, "connected", connected)
 	}
-	return updateErr
+	return errors.Join(errs...)
+}
+
+// might return (nil, nil) if auditing is disabled!
+func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
+	isEnabled := viper.GetBool("auditing-enabled")
+	if !isEnabled {
+		log.Warn("auditing is disabled, can be enabled by setting --auditing-enabled=true")
+		return nil, nil
+	}
+
+	c := auditing.Config{
+		Component:        "metal-api",
+		URL:              viper.GetString("auditing-url"),
+		APIKey:           viper.GetString("auditing-api-key"),
+		Log:              log,
+		IndexPrefix:      viper.GetString("auditing-index-prefix"),
+		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
+	}
+	return auditing.New(c)
 }
 
 func run() error {
-	initRestServices(true)
+	ipmiSuperUser := metal.NewIPMISuperUser(logger, viper.GetString("bmc-superuser-pwd-file"))
+
+	audit, err := createAuditingClient(logger)
+	if err != nil {
+		logger.Fatalw("cannot create auditing client", "error", err)
+	}
+	initRestServices(audit, true, ipmiSuperUser)
 
 	// enable OPTIONS-request so clients can query CORS information
 	restful.DefaultContainer.Filter(restful.DefaultContainer.OPTIONSFilter)
@@ -904,7 +940,7 @@ func run() error {
 	// if we will add support for api-tokens as headers, we had to add them
 	// here to. note: the token's should not contain the product (aka. metal)
 	// because customers should have ONE token for many products.
-	// ExposeHeaders:  []string{"X-FITS-TOKEN"},
+	// ExposeHeaders:  []string{"X-TOKEN"},
 	cors := restful.CrossOriginResourceSharing{
 		AllowedHeaders: []string{"Content-Type", "Accept", "Authorization"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -948,6 +984,8 @@ func run() error {
 			ServerCertFile:           viper.GetString("grpc-server-cert-file"),
 			ServerKeyFile:            viper.GetString("grpc-server-key-file"),
 			BMCSuperUserPasswordFile: viper.GetString("bmc-superuser-pwd-file"),
+			Auditing:                 audit,
+			IPMISuperUser:            ipmiSuperUser,
 		})
 		if err != nil {
 			logger.Fatalw("error running grpc server", "error", err)
@@ -991,6 +1029,10 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{
+		{TagProps: spec.TagProps{
+			Name:        "audit",
+			Description: "Managing audit entities",
+		}},
 		{TagProps: spec.TagProps{
 			Name:        "image",
 			Description: "Managing image entities",

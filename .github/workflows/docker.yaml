@@ -31,16 +31,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Set up Go 1.19
-      uses: actions/setup-go@v3
+    - name: Set up Go 1.20
+      uses: actions/setup-go@v4
       with:
-        go-version: '1.19.x'
-
-    - name: setup buf
-      uses: bufbuild/buf-setup-action@v1
-      with:
-        version: '1.5.0'
-        github_token: ${{ github.token }}
+        go-version: '1.20.x'
 
     - name: generate proto and lint
       working-directory: proto
@@ -58,7 +52,7 @@ jobs:
         [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
 
     - name: Build and push image
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         context: .
         push: true
@@ -70,10 +64,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Set up Go 1.19
-      uses: actions/setup-go@v3
+    - name: Set up Go 1.20
+      uses: actions/setup-go@v4
       with:
-        go-version: '1.19.x'
+        go-version: '1.20.x'
 
     - name: Run integration tests
       run: |

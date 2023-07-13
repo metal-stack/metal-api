@@ -205,7 +205,7 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 			name:              "verify fails for unavailability error",
 			value:             10000,
 			runWriteErr:       nil,
-			expectedErr:       metal.Internal(errors.New("acquisition of a value failed for exhausted pool"), ""),
+			expectedErr:       metal.Internal("acquisition of a value failed for exhausted pool"),
 			requiresMock:      true,
 			requiresCountMock: true,
 			tableChanges:      false,

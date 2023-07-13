@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -50,6 +51,7 @@ type machineResource struct {
 	userGetter      security.UserGetter
 	reasonMinLength uint
 	headscaleClient *headscale.HeadscaleClient
+	ipmiSuperUser   metal.MachineIPMISuperUser
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -112,6 +114,7 @@ func NewMachine(
 	userGetter security.UserGetter,
 	reasonMinLength uint,
 	headscaleClient *headscale.HeadscaleClient,
+	ipmiSuperUser metal.MachineIPMISuperUser,
 ) (*restful.WebService, error) {
 	r := machineResource{
 		webResource: webResource{
@@ -125,7 +128,9 @@ func NewMachine(
 		userGetter:      userGetter,
 		reasonMinLength: reasonMinLength,
 		headscaleClient: headscaleClient,
+		ipmiSuperUser:   ipmiSuperUser,
 	}
+
 	var err error
 	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
@@ -179,6 +184,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findMachines").
 		Doc("find machines by multiple criteria").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineResponse{}).
@@ -261,6 +267,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("findIPMIMachines").
 		Doc("returns machines including the ipmi connection data").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.MachineFindRequest{}).
 		Writes([]v1.MachineIPMIResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIPMIResponse{}).
@@ -452,7 +459,13 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 		newMachine.Allocation.Description = *requestPayload.Description
 	}
 
-	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+	if len(requestPayload.Tags) > 0 {
+		newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+	}
+
+	if len(requestPayload.SSHPubKeys) > 0 {
+		newMachine.Allocation.SSHPubKeys = requestPayload.SSHPubKeys
+	}
 
 	err = r.ds.UpdateMachine(oldMachine, &newMachine)
 	if err != nil {
@@ -756,6 +769,14 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 
 		if report.PowerState != "" {
 			newMachine.IPMI.PowerState = report.PowerState
+		}
+		if report.PowerMetric != nil {
+			newMachine.IPMI.PowerMetric = &metal.PowerMetric{
+				AverageConsumedWatts: report.PowerMetric.AverageConsumedWatts,
+				IntervalInMin:        report.PowerMetric.IntervalInMin,
+				MaxConsumedWatts:     report.PowerMetric.MaxConsumedWatts,
+				MinConsumedWatts:     report.PowerMetric.MinConsumedWatts,
+			}
 		}
 
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
@@ -2017,6 +2038,15 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 			r.sendError(request, response, defaultError(err))
 			return
 		}
+	}
+
+	if newMachine.IPMI.User == "" && r.ipmiSuperUser.IsEnabled() {
+		// when removing a machine from the database, the metal-bmc will loose the ability
+		// to manage the machine after it reported it back to API.
+		//
+		// to mitigate this scenario, we use the super user as a fallback.
+		newMachine.IPMI.User = r.ipmiSuperUser.User()
+		newMachine.IPMI.Password = r.ipmiSuperUser.Password()
 	}
 
 	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)

@@ -45,6 +45,36 @@
         }
       }
     },
+    "datastore.ImageSearchQuery": {
+      "properties": {
+        "classification": {
+          "enum": [
+            "deprecated",
+            "preview",
+            "supported"
+          ],
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
     "datastore.MachineSearchQuery": {
       "properties": {
         "allocation_hostname": {
@@ -153,20 +183,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -221,6 +242,11 @@
           "type": "string"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -278,6 +304,28 @@
         "vrf": {
           "format": "int64",
           "type": "integer"
+        }
+      }
+    },
+    "datastore.SwitchSearchQuery": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "osvendor": {
+          "type": "string"
+        },
+        "osversion": {
+          "type": "string"
+        },
+        "partitionid": {
+          "type": "string"
+        },
+        "rackid": {
+          "type": "string"
         }
       }
     },
@@ -364,6 +412,110 @@
         "revision",
         "version"
       ]
+    },
+    "v1.AuditFindRequest": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "component": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "forwarded_for": {
+          "type": "string"
+        },
+        "from": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "limit": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "remote_addr": {
+          "type": "string"
+        },
+        "rqid": {
+          "type": "string"
+        },
+        "status_code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "to": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.AuditResponse": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "component": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "forwarded_for": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "remote_addr": {
+          "type": "string"
+        },
+        "rqid": {
+          "type": "string"
+        },
+        "status_code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
     },
     "v1.BGPFilter": {
       "properties": {
@@ -1050,20 +1202,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -1118,6 +1261,11 @@
           "type": "string"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -1575,6 +1723,36 @@
         "id",
         "url"
       ]
+    },
+    "v1.ImageFindRequest": {
+      "properties": {
+        "classification": {
+          "enum": [
+            "deprecated",
+            "preview",
+            "supported"
+          ],
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
     },
     "v1.ImageResponse": {
       "properties": {
@@ -2160,20 +2338,11 @@
           },
           "type": "array"
         },
-        "network_nat": {
-          "type": "boolean"
-        },
         "network_prefixes": {
           "items": {
             "type": "string"
           },
           "type": "array"
-        },
-        "network_private": {
-          "type": "boolean"
-        },
-        "network_underlay": {
-          "type": "boolean"
         },
         "network_vrfs": {
           "items": {
@@ -2228,6 +2397,11 @@
           "type": "string"
         },
         "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
           "type": "string"
         },
         "tags": {
@@ -2356,6 +2530,9 @@
         "password": {
           "type": "string"
         },
+        "powermetric": {
+          "$ref": "#/definitions/v1.PowerMetric"
+        },
         "powerstate": {
           "type": "string"
         },
@@ -2370,6 +2547,7 @@
         "interface",
         "mac",
         "password",
+        "powermetric",
         "powerstate",
         "user"
       ]
@@ -2485,6 +2663,9 @@
         "IndicatorLEDState": {
           "type": "string"
         },
+        "PowerMetric": {
+          "$ref": "#/definitions/v1.PowerMetric"
+        },
         "PowerState": {
           "type": "string"
         }
@@ -2495,6 +2676,7 @@
         "BMCVersion",
         "FRU",
         "IndicatorLEDState",
+        "PowerMetric",
         "PowerState"
       ]
     },
@@ -2605,6 +2787,10 @@
     },
     "v1.MachineNic": {
       "properties": {
+        "identifier": {
+          "description": "the unique identifier of this network interface",
+          "type": "string"
+        },
         "mac": {
           "description": "the mac address of this network interface",
           "type": "string"
@@ -2622,6 +2808,7 @@
         }
       },
       "required": [
+        "identifier",
         "mac",
         "name",
         "neighbors"
@@ -2860,6 +3047,13 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "tags": {
           "description": "tags for this machine.",
@@ -3552,6 +3746,32 @@
         "id"
       ]
     },
+    "v1.PowerMetric": {
+      "properties": {
+        "averageconsumedwatts": {
+          "format": "float",
+          "type": "number"
+        },
+        "intervalinmin": {
+          "format": "float",
+          "type": "number"
+        },
+        "maxconsumedwatts": {
+          "format": "float",
+          "type": "number"
+        },
+        "minconsumedwatts": {
+          "format": "float",
+          "type": "number"
+        }
+      },
+      "required": [
+        "averageconsumedwatts",
+        "intervalinmin",
+        "maxconsumedwatts",
+        "minconsumedwatts"
+      ]
+    },
     "v1.Project": {
       "properties": {
         "description": {
@@ -4039,9 +4259,25 @@
     "v1.SwitchBase": {
       "description": "A switch that can register at the api.",
       "properties": {
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
+        },
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
+        },
         "mode": {
           "description": "the mode the switch currently has",
           "type": "string"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "rack_id": {
           "description": "the id of the rack in which this switch is located",
@@ -4067,11 +4303,37 @@
         "nic"
       ]
     },
+    "v1.SwitchFindRequest": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "osvendor": {
+          "type": "string"
+        },
+        "osversion": {
+          "type": "string"
+        },
+        "partitionid": {
+          "type": "string"
+        },
+        "rackid": {
+          "type": "string"
+        }
+      }
+    },
     "v1.SwitchNic": {
       "properties": {
         "filter": {
           "$ref": "#/definitions/v1.BGPFilter",
           "description": "configures the bgp filter applied at the switch port"
+        },
+        "identifier": {
+          "description": "the identifier of this network interface",
+          "type": "string"
         },
         "mac": {
           "description": "the mac address of this network interface",
@@ -4087,6 +4349,7 @@
         }
       },
       "required": [
+        "identifier",
         "mac",
         "name"
       ]
@@ -4107,7 +4370,7 @@
         "sync_duration"
       ]
     },
-    "v1.SwitchRegisterRequest": {
+    "v1.SwitchNotifyResponse": {
       "properties": {
         "description": {
           "description": "a description for this entity",
@@ -4117,6 +4380,62 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "last_sync": {
+          "$ref": "#/definitions/v1.SwitchSync",
+          "description": "last successful synchronization to the switch"
+        },
+        "last_sync_error": {
+          "$ref": "#/definitions/v1.SwitchSync",
+          "description": "last synchronization to the switch that was erroneous"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "v1.SwitchOS": {
+      "properties": {
+        "metal_core_version": {
+          "description": "the version of metal-core running",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "the operating system vendor the switch currently has",
+          "type": "string"
+        },
+        "version": {
+          "description": "the operating system version the switch currently has",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SwitchRegisterRequest": {
+      "properties": {
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
+        },
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
         },
         "mode": {
           "description": "the mode the switch currently has",
@@ -4132,6 +4451,10 @@
             "$ref": "#/definitions/v1.SwitchNic"
           },
           "type": "array"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "partition_id": {
           "description": "the partition in which this switch is located",
@@ -4164,6 +4487,10 @@
           },
           "type": "array"
         },
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
+        },
         "created": {
           "description": "the creation time of this entity",
           "format": "date-time",
@@ -4187,6 +4514,14 @@
           "$ref": "#/definitions/v1.SwitchSync",
           "description": "last synchronization to the switch that was erroneous"
         },
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
+        },
         "mode": {
           "description": "the mode the switch currently has",
           "type": "string"
@@ -4201,6 +4536,10 @@
             "$ref": "#/definitions/v1.SwitchNic"
           },
           "type": "array"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "partition": {
           "$ref": "#/definitions/v1.PartitionResponse",
@@ -4243,6 +4582,10 @@
     },
     "v1.SwitchUpdateRequest": {
       "properties": {
+        "console_command": {
+          "description": "command to access the console of the switch",
+          "type": "string"
+        },
         "description": {
           "description": "a description for this entity",
           "type": "string"
@@ -4252,6 +4595,14 @@
           "type": "string",
           "uniqueItems": true
         },
+        "management_ip": {
+          "description": "the ip address of the management interface of the switch",
+          "type": "string"
+        },
+        "management_user": {
+          "description": "the user to connect to the switch",
+          "type": "string"
+        },
         "mode": {
           "description": "the mode the switch currently has",
           "type": "string"
@@ -4259,6 +4610,10 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "os": {
+          "$ref": "#/definitions/v1.SwitchOS",
+          "description": "the operating system the switch currently has"
         },
         "rack_id": {
           "description": "the id of the rack in which this switch is located",
@@ -4515,6 +4870,48 @@
     "title": "metal-api"
   },
   "paths": {
+    "/v1/audit/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findAuditTraces",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.AuditFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.AuditResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "find all audit traces that match given properties",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
     "/v1/filesystemlayout": {
       "get": {
         "consumes": [
@@ -5280,6 +5677,55 @@
           }
         },
         "summary": "create an image. if the given ID already exists a conflict is returned",
+        "tags": [
+          "image"
+        ]
+      }
+    },
+    "/v1/image/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findImages",
+        "parameters": [
+          {
+            "default": false,
+            "description": "include image usage into response",
+            "in": "query",
+            "name": "show-usage",
+            "type": "boolean"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.ImageFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.ImageResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all images that match given properties",
         "tags": [
           "image"
         ]
@@ -8165,6 +8611,48 @@
         ]
       }
     },
+    "/v1/switch/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findSwitches",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SwitchResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all switches that match given properties",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
     "/v1/switch/register": {
       "post": {
         "consumes": [
@@ -8314,7 +8802,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.SwitchResponse"
+              "$ref": "#/definitions/v1.SwitchNotifyResponse"
             }
           },
           "default": {
@@ -8686,6 +9174,10 @@
   },
   "swagger": "2.0",
   "tags": [
+    {
+      "description": "Managing audit entities",
+      "name": "audit"
+    },
     {
       "description": "Managing image entities",
       "name": "image"
