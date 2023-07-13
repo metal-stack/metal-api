@@ -154,8 +154,8 @@ func (r *networkResource) findNetwork(request *restful.Request, response *restfu
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-
-	usage := getNetworkUsage(nw, r.ipamer)
+	ctx := request.Request.Context()
+	usage := getNetworkUsage(ctx, nw, r.ipamer)
 
 	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, usage))
 }
@@ -166,10 +166,11 @@ func (r *networkResource) listNetworks(request *restful.Request, response *restf
 		r.sendError(request, response, defaultError(err))
 		return
 	}
+	ctx := request.Request.Context()
 
 	var result []*v1.NetworkResponse
 	for i := range nws {
-		usage := getNetworkUsage(&nws[i], r.ipamer)
+		usage := getNetworkUsage(ctx, &nws[i], r.ipamer)
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
@@ -191,9 +192,11 @@ func (r *networkResource) findNetworks(request *restful.Request, response *restf
 		return
 	}
 
+	ctx := request.Request.Context()
+
 	result := []*v1.NetworkResponse{}
 	for i := range nws {
-		usage := getNetworkUsage(&nws[i], r.ipamer)
+		usage := getNetworkUsage(ctx, &nws[i], r.ipamer)
 		result = append(result, v1.NewNetworkResponse(&nws[i], usage))
 	}
 
@@ -384,8 +387,9 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		Labels:              labels,
 	}
 
+	ctx := request.Request.Context()
 	for _, p := range nw.Prefixes {
-		err := r.ipamer.CreatePrefix(p)
+		err := r.ipamer.CreatePrefix(ctx, p)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -398,7 +402,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	usage := getNetworkUsage(nw, r.ipamer)
+	usage := getNetworkUsage(ctx, nw, r.ipamer)
 
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
@@ -489,24 +493,25 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		Nat:                 nat,
 	}
 
-	nw, err := createChildNetwork(r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
+	ctx := request.Request.Context()
+	nw, err := createChildNetwork(ctx, r.ds, r.ipamer, nwSpec, &superNetwork, partition.PrivateNetworkPrefixLength)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	usage := getNetworkUsage(nw, r.ipamer)
+	usage := getNetworkUsage(ctx, nw, r.ipamer)
 
 	r.send(request, response, http.StatusCreated, v1.NewNetworkResponse(nw, usage))
 }
 
-func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
+func createChildNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *metal.Network, parent *metal.Network, childLength uint8) (*metal.Network, error) {
 	vrf, err := acquireRandomVRF(ds)
 	if err != nil {
 		return nil, fmt.Errorf("could not acquire a vrf: %w", err)
 	}
 
-	childPrefix, err := createChildPrefix(parent.Prefixes, childLength, ipamer)
+	childPrefix, err := createChildPrefix(ctx, parent.Prefixes, childLength, ipamer)
 	if err != nil {
 		return nil, err
 	}
@@ -544,6 +549,7 @@ func createChildNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, nwSpec *
 func (r *networkResource) freeNetwork(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
+	ctx := request.Request.Context()
 	nw, err := r.ds.FindNetworkByID(id)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -551,7 +557,7 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	}
 
 	for _, prefix := range nw.Prefixes {
-		usage, err := r.ipamer.PrefixUsage(prefix.String())
+		usage, err := r.ipamer.PrefixUsage(ctx, prefix.String())
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -566,7 +572,7 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	}
 
 	for _, prefix := range nw.Prefixes {
-		err = r.ipamer.ReleaseChildPrefix(prefix)
+		err = r.ipamer.ReleaseChildPrefix(ctx, prefix)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -652,8 +658,9 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		prefixesToBeAdded = newNetwork.SubstractPrefixes(oldNetwork.Prefixes...)
 	}
 
+	ctx := request.Request.Context()
 	for _, p := range prefixesToBeRemoved {
-		err := r.ipamer.DeletePrefix(p)
+		err := r.ipamer.DeletePrefix(ctx, p)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -661,7 +668,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 	}
 
 	for _, p := range prefixesToBeAdded {
-		err := r.ipamer.CreatePrefix(p)
+		err := r.ipamer.CreatePrefix(ctx, p)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -682,7 +689,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 		return
 	}
 
-	usage := getNetworkUsage(&newNetwork, r.ipamer)
+	usage := getNetworkUsage(ctx, &newNetwork, r.ipamer)
 
 	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(&newNetwork, usage))
 }
@@ -734,8 +741,10 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	ctx := request.Request.Context()
+
 	for _, p := range nw.Prefixes {
-		err := r.ipamer.DeletePrefix(p)
+		err := r.ipamer.DeletePrefix(ctx, p)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -759,13 +768,13 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 	r.send(request, response, http.StatusOK, v1.NewNetworkResponse(nw, &metal.NetworkUsage{}))
 }
 
-func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage {
+func getNetworkUsage(ctx context.Context, nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage {
 	usage := &metal.NetworkUsage{}
 	if nw == nil {
 		return usage
 	}
 	for _, prefix := range nw.Prefixes {
-		u, err := ipamer.PrefixUsage(prefix.String())
+		u, err := ipamer.PrefixUsage(ctx, prefix.String())
 		if err != nil {
 			continue
 		}
@@ -777,12 +786,12 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 	return usage
 }
 
-func createChildPrefix(parentPrefixes metal.Prefixes, childLength uint8, ipamer ipam.IPAMer) (*metal.Prefix, error) {
+func createChildPrefix(ctx context.Context, parentPrefixes metal.Prefixes, childLength uint8, ipamer ipam.IPAMer) (*metal.Prefix, error) {
 	var errors []error
 	var err error
 	var childPrefix *metal.Prefix
 	for _, parentPrefix := range parentPrefixes {
-		childPrefix, err = ipamer.AllocateChildPrefix(parentPrefix, childLength)
+		childPrefix, err = ipamer.AllocateChildPrefix(ctx, parentPrefix, childLength)
 		if err != nil {
 			errors = append(errors, err)
 			continue

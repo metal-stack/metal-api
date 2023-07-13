@@ -348,10 +348,12 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IP
 	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
 
+	ctx := context.Background()
+
 	super := metal.Prefix{IP: "10.0.0.0", Length: "20"}
-	err = ipamer.CreatePrefix(super)
+	err = ipamer.CreatePrefix(ctx, super)
 	require.NoError(t, err)
-	private, err := ipamer.AllocateChildPrefix(super, 22)
+	private, err := ipamer.AllocateChildPrefix(ctx, super, 22)
 	require.NoError(t, err)
 	privateNetwork, err := metal.NewPrefixFromCIDR(private.String())
 	require.NoError(t, err)

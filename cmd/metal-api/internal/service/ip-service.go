@@ -321,7 +321,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	// TODO: Following operations should span a database transaction if possible
 
-	ipAddress, ipParentCidr, err := allocateIP(nw, specificIP, r.ipamer)
+	ipAddress, ipParentCidr, err := allocateIP(request.Request.Context(), nw, specificIP, r.ipamer)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -398,14 +398,14 @@ func (r *ipResource) updateIP(request *restful.Request, response *restful.Respon
 	r.send(request, response, http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
-func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
+func allocateIP(ctx context.Context, parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
 	var ee []error
 	var err error
 	var ipAddress string
 	var parentPrefixCidr string
 	for _, prefix := range parent.Prefixes {
 		if specificIP == "" {
-			ipAddress, err = ipamer.AllocateIP(prefix)
+			ipAddress, err = ipamer.AllocateIP(ctx, prefix)
 		} else {
 			pfx, perr := netip.ParsePrefix(prefix.String())
 			if perr != nil {
@@ -418,7 +418,7 @@ func allocateIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (s
 			if !pfx.Contains(sip) {
 				continue
 			}
-			ipAddress, err = ipamer.AllocateSpecificIP(prefix, specificIP)
+			ipAddress, err = ipamer.AllocateSpecificIP(ctx, prefix, specificIP)
 		}
 		if err != nil {
 			ee = append(ee, err)

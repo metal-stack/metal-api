@@ -15,14 +15,14 @@ import (
 // On the other hand it should release the IP.
 // Later Implementations should also allocate and release Networks.
 type IPAMer interface {
-	AllocateIP(prefix metal.Prefix) (string, error)
-	AllocateSpecificIP(prefix metal.Prefix, specificIP string) (string, error)
-	ReleaseIP(ip metal.IP) error
-	AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error)
-	ReleaseChildPrefix(childPrefix metal.Prefix) error
-	CreatePrefix(prefix metal.Prefix) error
-	DeletePrefix(prefix metal.Prefix) error
-	PrefixUsage(cidr string) (*metal.NetworkUsage, error)
+	AllocateIP(ctx context.Context, prefix metal.Prefix) (string, error)
+	AllocateSpecificIP(ctx context.Context, prefix metal.Prefix, specificIP string) (string, error)
+	ReleaseIP(ctx context.Context, ip metal.IP) error
+	AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error)
+	ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix) error
+	CreatePrefix(ctx context.Context, prefix metal.Prefix) error
+	DeletePrefix(ctx context.Context, prefix metal.Prefix) error
+	PrefixUsage(ctx context.Context, cidr string) (*metal.NetworkUsage, error)
 	PrefixesOverlapping(existingPrefixes metal.Prefixes, newPrefixes metal.Prefixes) error
 }
 
@@ -38,9 +38,7 @@ func New(ip apiv1connect.IpamServiceClient) IPAMer {
 }
 
 // AllocateChildPrefix creates a child prefix from a parent prefix in the IPAM.
-func (i *ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefix, childLength uint8) (*metal.Prefix, error) {
 	ipamParentPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
 		Cidr: parentPrefix.String(),
 	}))
@@ -69,9 +67,7 @@ func (i *ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8)
 }
 
 // ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
-func (i *ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix) error {
 	ipamChildPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
 		Cidr: childPrefix.String(),
 	}))
@@ -93,9 +89,7 @@ func (i *ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
 }
 
 // CreatePrefix creates a prefix in the IPAM.
-func (i *ipam) CreatePrefix(prefix metal.Prefix) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) CreatePrefix(ctx context.Context, prefix metal.Prefix) error {
 	_, err := i.ip.CreatePrefix(ctx, connect.NewRequest(&apiv1.CreatePrefixRequest{
 		Cidr: prefix.String(),
 	}))
@@ -106,9 +100,7 @@ func (i *ipam) CreatePrefix(prefix metal.Prefix) error {
 }
 
 // DeletePrefix remove a prefix in the IPAM.
-func (i *ipam) DeletePrefix(prefix metal.Prefix) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) DeletePrefix(ctx context.Context, prefix metal.Prefix) error {
 	_, err := i.ip.DeletePrefix(ctx, connect.NewRequest(&apiv1.DeletePrefixRequest{
 		Cidr: prefix.String(),
 	}))
@@ -119,9 +111,7 @@ func (i *ipam) DeletePrefix(prefix metal.Prefix) error {
 }
 
 // AllocateIP an ip in the IPAM and returns the allocated IP as a string.
-func (i *ipam) AllocateIP(prefix metal.Prefix) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) AllocateIP(ctx context.Context, prefix metal.Prefix) (string, error) {
 	ipamPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
 		Cidr: prefix.String(),
 	}))
@@ -147,9 +137,7 @@ func (i *ipam) AllocateIP(prefix metal.Prefix) (string, error) {
 }
 
 // AllocateSpecificIP a specific ip in the IPAM and returns the allocated IP as a string.
-func (i *ipam) AllocateSpecificIP(prefix metal.Prefix, specificIP string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) AllocateSpecificIP(ctx context.Context, prefix metal.Prefix, specificIP string) (string, error) {
 	ipamPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
 		Cidr: prefix.String(),
 	}))
@@ -174,9 +162,7 @@ func (i *ipam) AllocateSpecificIP(prefix metal.Prefix, specificIP string) (strin
 }
 
 // ReleaseIP an ip in the IPAM.
-func (i *ipam) ReleaseIP(ip metal.IP) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) ReleaseIP(ctx context.Context, ip metal.IP) error {
 	ipamPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
 		Cidr: ip.ParentPrefixCidr,
 	}))
@@ -198,9 +184,7 @@ func (i *ipam) ReleaseIP(ip metal.IP) error {
 }
 
 // PrefixUsage calculates the IP and Prefix Usage
-func (i *ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (i *ipam) PrefixUsage(ctx context.Context, cidr string) (*metal.NetworkUsage, error) {
 	usage, err := i.ip.PrefixUsage(ctx, connect.NewRequest(&apiv1.PrefixUsageRequest{
 		Cidr: cidr,
 	}))

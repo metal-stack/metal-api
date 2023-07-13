@@ -835,7 +835,7 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 		return
 	}
 
-	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
+	m, err := allocateMachine(request.Request.Context(), r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -940,7 +940,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 	}, nil
 }
 
-func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
+func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -1058,7 +1058,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to gather networks:%w", err))
 	}
-	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
+	err = makeNetworks(ctx, ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to make networks:%w", err))
 	}
@@ -1178,9 +1178,9 @@ func findWaitingMachine(ds *datastore.RethinkStore, partitionID, sizeID string) 
 // makeNetworks creates network entities and ip addresses as specified in the allocation network map.
 // created networks are added to the machine allocation directly after their creation. This way, the rollback mechanism
 // is enabled to clean up networks that were already created.
-func makeNetworks(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
+func makeNetworks(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, networks allocationNetworkMap, alloc *metal.MachineAllocation) error {
 	for _, n := range networks {
-		machineNetwork, err := makeMachineNetwork(ds, ipamer, allocationSpec, n)
+		machineNetwork, err := makeMachineNetwork(ctx, ds, ipamer, allocationSpec, n)
 		if err != nil {
 			return err
 		}
@@ -1394,9 +1394,9 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 	}, nil
 }
 
-func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
+func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
+		ipAddress, ipParentCidr, err := allocateIP(ctx, n.network, "", ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}
