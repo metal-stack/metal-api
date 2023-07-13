@@ -631,8 +631,6 @@ func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.Switch
 		return nil, err
 	}
 
-	fmt.Printf("got switchstate:%#v\n", ss)
-
 	return v1.NewSwitchResponse(s, ss, p, nics, cons), nil
 }
 
