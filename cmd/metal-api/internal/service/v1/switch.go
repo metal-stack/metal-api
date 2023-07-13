@@ -75,6 +75,12 @@ type SwitchNotifyRequest struct {
 	Error    *string       `json:"error"`
 }
 
+type SwitchNotifyResponse struct {
+	Common
+	LastSync      *SwitchSync `json:"last_sync" description:"last successful synchronization to the switch" optional:"true"`
+	LastSyncError *SwitchSync `json:"last_sync_error" description:"last synchronization to the switch that was erroneous" optional:"true"`
+}
+
 type SwitchResponse struct {
 	Common
 	SwitchBase

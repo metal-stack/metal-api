@@ -4358,6 +4358,34 @@
         "sync_duration"
       ]
     },
+    "v1.SwitchNotifyResponse": {
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "last_sync": {
+          "$ref": "#/definitions/v1.SwitchSync",
+          "description": "last successful synchronization to the switch"
+        },
+        "last_sync_error": {
+          "$ref": "#/definitions/v1.SwitchSync",
+          "description": "last synchronization to the switch that was erroneous"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
     "v1.SwitchOS": {
       "properties": {
         "metal_core_version": {
@@ -8699,7 +8727,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.SwitchResponse"
+              "$ref": "#/definitions/v1.SwitchNotifyResponse"
             }
           },
           "default": {

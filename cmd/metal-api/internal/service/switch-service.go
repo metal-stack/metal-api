@@ -112,7 +112,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).
 		Reads(v1.SwitchNotifyRequest{}).
-		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
+		Returns(http.StatusOK, "OK", v1.SwitchNotifyResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	return ws
@@ -210,23 +210,24 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	}
 
 	id := request.PathParameter("id")
-	s, err := r.ds.FindSwitch(id)
-	if err != nil && !metal.IsNotFound(err) {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
 
 	sync := &metal.SwitchSync{
 		Time:     time.Now(),
 		Duration: requestPayload.Duration,
 	}
 	ss := &metal.SwitchStatus{
-		Base: s.Base,
+		Base: metal.Base{ID: id},
+	}
+
+	resp := &v1.SwitchNotifyResponse{
+		Common: v1.Common{Identifiable: v1.Identifiable{ID: id}},
 	}
 
 	if requestPayload.Error == nil {
+		resp.LastSync = &v1.SwitchSync{Time: sync.Time, Duration: sync.Duration}
 		ss.LastSync = sync
 	} else {
+		resp.LastSyncError = &v1.SwitchSync{Time: sync.Time, Duration: sync.Duration, Error: requestPayload.Error}
 		sync.Error = requestPayload.Error
 		ss.LastSyncError = sync
 	}
@@ -237,14 +238,7 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		return
 	}
 
-	r.log.Infow("switchservice notify", "state", newSS)
-
-	resp, err := makeSwitchResponse(s, r.ds)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-	r.log.Infow("switchservice notify", "switch", resp)
+	r.log.Infow("switchservice notify", "state", newSS, "resp", resp)
 
 	r.send(request, response, http.StatusOK, resp)
 }

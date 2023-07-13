@@ -1204,9 +1204,7 @@ func TestUpdateSwitch(t *testing.T) {
 	require.Equal(t, string(metal.SwitchReplace), result.Mode)
 }
 
-// FIXME enable
-// nolint:unused
-func _TestNotifySwitch(t *testing.T) {
+func TestNotifySwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
@@ -1231,7 +1229,7 @@ func _TestNotifySwitch(t *testing.T) {
 	resp := w.Result()
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.SwitchResponse
+	var result v1.SwitchNotifyResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
@@ -1241,9 +1239,7 @@ func _TestNotifySwitch(t *testing.T) {
 	require.Nil(t, result.LastSyncError)
 }
 
-// FIXME enable
-// nolint:unused
-func _TestNotifyErrorSwitch(t *testing.T) {
+func TestNotifyErrorSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
@@ -1270,7 +1266,7 @@ func _TestNotifyErrorSwitch(t *testing.T) {
 	resp := w.Result()
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.SwitchResponse
+	var result v1.SwitchNotifyResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
