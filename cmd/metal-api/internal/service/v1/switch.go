@@ -114,7 +114,7 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 		lastSync = &SwitchSync{}
 	}
 	var lastSyncError *SwitchSync
-	if ss != nil && 	ss.LastSyncError != nil {
+	if ss != nil && ss.LastSyncError != nil {
 		lastSyncError = &SwitchSync{
 			Time:     ss.LastSyncError.Time,
 			Duration: ss.LastSyncError.Duration,
