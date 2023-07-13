@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	headscalecore "github.com/juanfont/headscale"
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
+	"github.com/juanfont/headscale/hscontrol"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -98,7 +98,7 @@ func (h *HeadscaleClient) CreateUser(name string) error {
 	}
 	_, err := h.client.CreateUser(h.ctx, req)
 	// TODO: this error check is pretty rough, but it's not easily possible to compare the proto error directly :/
-	if err != nil && !strings.Contains(err.Error(), headscalecore.ErrUserExists.Error()) {
+	if err != nil && !strings.Contains(err.Error(), hscontrol.ErrUserExists.Error()) {
 		return fmt.Errorf("failed to create new VPN user: %w", err)
 	}
 
