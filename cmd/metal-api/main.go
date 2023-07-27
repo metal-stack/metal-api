@@ -843,7 +843,7 @@ func resurrectDeadMachines() error {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	err = service.ResurrectMachines(ds, p, ep, ipamer, headscaleClient, logger)
+	err = service.ResurrectMachines(context.Background(), ds, p, ep, ipamer, headscaleClient, logger)
 	if err != nil {
 		return fmt.Errorf("unable to resurrect machines: %w", err)
 	}
@@ -876,7 +876,10 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	connectedMap, err := headscaleClient.MachinesConnected()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	connectedMap, err := headscaleClient.MachinesConnected(ctx)
 	if err != nil {
 		return err
 	}
