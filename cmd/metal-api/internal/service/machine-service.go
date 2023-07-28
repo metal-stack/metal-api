@@ -1531,7 +1531,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
 	}
 
-	err = r.actor.freeMachine(r.Publisher, m, r.headscaleClient, logger)
+	err = r.actor.freeMachine(request.Request.Context(), r.Publisher, m, r.headscaleClient, logger)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -1811,7 +1811,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1843,7 +1843,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
 			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m, headscaleClient, logger)
+			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
@@ -1852,7 +1852,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.FailedMachineReclaim {
 			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m, headscaleClient, logger)
+			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
