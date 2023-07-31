@@ -284,6 +284,7 @@ func init() {
 	rootCmd.Flags().String("auditing-api-key", "secret", "api key for the auditing service")
 	rootCmd.Flags().String("auditing-index-prefix", "auditing", "auditing index prefix")
 	rootCmd.Flags().String("auditing-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
+	rootCmd.Flags().Int64("auditing-keep", 14, "the amount of indexes to keep until cleanup")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
@@ -920,9 +921,10 @@ func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
 		Component:        "metal-api",
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
-		Log:              log,
 		IndexPrefix:      viper.GetString("auditing-index-prefix"),
 		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
+		Keep:             viper.GetInt64("auditing-keep"),
+		Log:              log,
 	}
 	return auditing.New(c)
 }
