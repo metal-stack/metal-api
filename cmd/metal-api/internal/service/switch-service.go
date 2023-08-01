@@ -211,25 +211,28 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 
 	id := request.PathParameter("id")
 
+	ss, err := r.ds.GetSwitchStatus(id)
+	if err != nil {
+		if !metal.IsNotFound(err) {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+
+		ss = &metal.SwitchStatus{
+			Base: metal.Base{ID: id},
+		}
+	}
+
 	sync := &metal.SwitchSync{
 		Time:     time.Now(),
 		Duration: requestPayload.Duration,
 	}
-	ss := &metal.SwitchStatus{
-		Base: metal.Base{ID: id},
-	}
-
-	resp := &v1.SwitchNotifyResponse{
-		Common: v1.Common{Identifiable: v1.Identifiable{ID: id}},
-	}
 
 	if requestPayload.Error == nil {
-		resp.LastSync = &v1.SwitchSync{Time: sync.Time, Duration: sync.Duration}
 		ss.LastSync = sync
 	} else {
-		resp.LastSyncError = &v1.SwitchSync{Time: sync.Time, Duration: sync.Duration, Error: requestPayload.Error}
-		sync.Error = requestPayload.Error
 		ss.LastSyncError = sync
+		ss.LastSyncError.Error = requestPayload.Error
 	}
 
 	err = r.ds.SetSwitchStatus(ss)
@@ -237,7 +240,8 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-	r.send(request, response, http.StatusOK, resp)
+
+	r.send(request, response, http.StatusOK, v1.NewSwitchNotifyResponse(ss))
 }
 
 func (r *switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
