@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -53,6 +53,7 @@ type machineResource struct {
 	userGetter      security.UserGetter
 	reasonMinLength uint
 	headscaleClient *headscale.HeadscaleClient
+	ipmiSuperUser   metal.MachineIPMISuperUser
 }
 
 // machineAllocationSpec is a specification for a machine allocation
@@ -115,6 +116,7 @@ func NewMachine(
 	userGetter security.UserGetter,
 	reasonMinLength uint,
 	headscaleClient *headscale.HeadscaleClient,
+	ipmiSuperUser metal.MachineIPMISuperUser,
 ) (*restful.WebService, error) {
 	r := machineResource{
 		webResource: webResource{
@@ -128,7 +130,9 @@ func NewMachine(
 		userGetter:      userGetter,
 		reasonMinLength: reasonMinLength,
 		headscaleClient: headscaleClient,
+		ipmiSuperUser:   ipmiSuperUser,
 	}
+
 	var err error
 	r.actor, err = newAsyncActor(log, ep, ds, ipamer)
 	if err != nil {
@@ -457,7 +461,13 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 		newMachine.Allocation.Description = *requestPayload.Description
 	}
 
-	newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+	if len(requestPayload.Tags) > 0 {
+		newMachine.Tags = makeMachineTags(&newMachine, requestPayload.Tags)
+	}
+
+	if len(requestPayload.SSHPubKeys) > 0 {
+		newMachine.Allocation.SSHPubKeys = requestPayload.SSHPubKeys
+	}
 
 	err = r.ds.UpdateMachine(oldMachine, &newMachine)
 	if err != nil {
@@ -1534,7 +1544,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
 	}
 
-	err = r.actor.freeMachine(r.Publisher, m, r.headscaleClient, logger)
+	err = r.actor.freeMachine(request.Request.Context(), r.Publisher, m, r.headscaleClient, logger)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -1819,7 +1829,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1855,7 +1865,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
 			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m, headscaleClient, logger)
+			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
@@ -1864,7 +1874,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.FailedMachineReclaim {
 			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m, headscaleClient, logger)
+			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
@@ -2052,7 +2062,16 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 		}
 	}
 
-	err = e.PublishMachineCmd(logger, newMachine, r.Publisher, cmd)
+	if newMachine.IPMI.User == "" && r.ipmiSuperUser.IsEnabled() {
+		// when removing a machine from the database, the metal-bmc will loose the ability
+		// to manage the machine after it reported it back to API.
+		//
+		// to mitigate this scenario, we use the super user as a fallback.
+		newMachine.IPMI.User = r.ipmiSuperUser.User()
+		newMachine.IPMI.Password = r.ipmiSuperUser.Password()
+	}
+
+	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

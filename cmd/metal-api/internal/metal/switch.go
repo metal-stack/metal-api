@@ -15,8 +15,6 @@ type Switch struct {
 	PartitionID        string        `rethinkdb:"partitionid" json:"partitionid"`
 	RackID             string        `rethinkdb:"rackid" json:"rackid"`
 	Mode               SwitchMode    `rethinkdb:"mode" json:"mode"`
-	LastSync           *SwitchSync   `rethinkdb:"last_sync" json:"last_sync"`
-	LastSyncError      *SwitchSync   `rethinkdb:"last_sync_error" json:"last_sync_error"`
 	OS                 *SwitchOS     `rethinkdb:"os" json:"os"`
 	ManagementIP       string        `rethinkdb:"management_ip" json:"management_ip"`
 	ManagementUser     string        `rethinkdb:"management_user" json:"management_user"`
@@ -26,8 +24,9 @@ type Switch struct {
 type Switches []Switch
 
 type SwitchOS struct {
-	Vendor  string `rethinkdb:"vendor" json:"vendor"`
-	Version string `rethinkdb:"version" json:"version"`
+	Vendor           string `rethinkdb:"vendor" json:"vendor"`
+	Version          string `rethinkdb:"version" json:"version"`
+	MetalCoreVersion string `rethinkdb:"metal_core_version" json:"metal_core_version"`
 }
 
 // Connection between switch port and machine.
@@ -56,6 +55,13 @@ type SwitchEvent struct {
 	Type     EventType `json:"type"`
 	Machine  Machine   `json:"machine"`
 	Switches []Switch  `json:"switches"`
+}
+
+// SwitchStatus stores the received switch notifications in a separate table
+type SwitchStatus struct {
+	Base
+	LastSync      *SwitchSync `rethinkdb:"last_sync" json:"last_sync" description:"last successful synchronization to the switch" optional:"true"`
+	LastSyncError *SwitchSync `rethinkdb:"last_sync_error" json:"last_sync_error" description:"last synchronization to the switch that was erroneous" optional:"true"`
 }
 
 // SwitchSync contains information about the last synchronization of the state held in the metal-api to a switch.

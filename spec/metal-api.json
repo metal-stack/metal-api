@@ -425,6 +425,110 @@
         "version"
       ]
     },
+    "v1.AuditFindRequest": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "component": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "forwarded_for": {
+          "type": "string"
+        },
+        "from": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "limit": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "remote_addr": {
+          "type": "string"
+        },
+        "rqid": {
+          "type": "string"
+        },
+        "status_code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "to": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.AuditResponse": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "component": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "forwarded_for": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "remote_addr": {
+          "type": "string"
+        },
+        "rqid": {
+          "type": "string"
+        },
+        "status_code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "tenant": {
+          "type": "string"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
     "v1.BGPFilter": {
       "properties": {
         "cidrs": {
@@ -3030,6 +3134,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "ssh_pub_keys": {
+          "description": "the public ssh keys to access the machine with",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "tags": {
           "description": "tags for this machine.",
           "items": {
@@ -4365,8 +4476,40 @@
         "sync_duration"
       ]
     },
+    "v1.SwitchNotifyResponse": {
+      "properties": {
+        "description": {
+          "description": "a description for this entity",
+          "type": "string"
+        },
+        "id": {
+          "description": "the unique ID of this entity",
+          "type": "string",
+          "uniqueItems": true
+        },
+        "last_sync": {
+          "$ref": "#/definitions/v1.SwitchSync",
+          "description": "last successful synchronization to the switch"
+        },
+        "last_sync_error": {
+          "$ref": "#/definitions/v1.SwitchSync",
+          "description": "last synchronization to the switch that was erroneous"
+        },
+        "name": {
+          "description": "a readable name for this entity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
     "v1.SwitchOS": {
       "properties": {
+        "metal_core_version": {
+          "description": "the version of metal-core running",
+          "type": "string"
+        },
         "vendor": {
           "description": "the operating system vendor the switch currently has",
           "type": "string"
@@ -4770,6 +4913,48 @@
     "title": "metal-api"
   },
   "paths": {
+    "/v1/audit/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findAuditTraces",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.AuditFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.AuditResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "find all audit traces that match given properties",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
     "/v1/filesystemlayout": {
       "get": {
         "consumes": [
@@ -8660,7 +8845,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/v1.SwitchResponse"
+              "$ref": "#/definitions/v1.SwitchNotifyResponse"
             }
           },
           "default": {
@@ -8868,6 +9053,10 @@
   },
   "swagger": "2.0",
   "tags": [
+    {
+      "description": "Managing audit entities",
+      "name": "audit"
+    },
     {
       "description": "Managing image entities",
       "name": "image"

@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -19,39 +17,30 @@ import (
 )
 
 type BootService struct {
-	log               *zap.SugaredLogger
-	ds                *datastore.RethinkStore
-	superUserPassword *string
-	publisher         bus.Publisher
-	consumer          *bus.Consumer
-	eventService      *EventService
-	queue             sync.Map
-	responseInterval  time.Duration
-	checkInterval     time.Duration
+	log              *zap.SugaredLogger
+	ds               *datastore.RethinkStore
+	ipmiSuperUser    metal.MachineIPMISuperUser
+	publisher        bus.Publisher
+	consumer         *bus.Consumer
+	eventService     *EventService
+	queue            sync.Map
+	responseInterval time.Duration
+	checkInterval    time.Duration
 }
 
 func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService {
 	log := cfg.Logger.Named("boot-service")
 
-	var superUserPassword *string
-	pwd, err := os.ReadFile(cfg.BMCSuperUserPasswordFile)
-	if err != nil {
-		log.Infow("superuserpassword not found, disabling feature", "error", err)
-	} else {
-		s := strings.TrimSpace(string(pwd))
-		superUserPassword = &s
-	}
-
 	return &BootService{
-		ds:                cfg.Store,
-		log:               log,
-		publisher:         cfg.Publisher,
-		consumer:          cfg.Consumer,
-		superUserPassword: superUserPassword,
-		eventService:      eventService,
-		queue:             sync.Map{},
-		responseInterval:  cfg.ResponseInterval,
-		checkInterval:     cfg.CheckInterval,
+		ds:               cfg.Store,
+		log:              log,
+		publisher:        cfg.Publisher,
+		consumer:         cfg.Consumer,
+		ipmiSuperUser:    cfg.IPMISuperUser,
+		eventService:     eventService,
+		queue:            sync.Map{},
+		responseInterval: cfg.ResponseInterval,
+		checkInterval:    cfg.CheckInterval,
 	}
 }
 
@@ -291,14 +280,10 @@ func (b *BootService) SuperUserPassword(ctx context.Context, req *v1.BootService
 	defer ctx.Done()
 
 	resp := &v1.BootServiceSuperUserPasswordResponse{
-		FeatureDisabled: true,
-	}
-	if b.superUserPassword == nil {
-		return resp, nil
+		FeatureDisabled:   b.ipmiSuperUser.IsEnabled(),
+		SuperUserPassword: b.ipmiSuperUser.Password(),
 	}
 
-	resp.FeatureDisabled = false
-	resp.SuperUserPassword = *b.superUserPassword
 	return resp, nil
 }
 

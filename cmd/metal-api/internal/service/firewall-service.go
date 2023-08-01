@@ -1,14 +1,15 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"net/http"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/metal-stack/security"
 
@@ -211,7 +212,7 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 		return
 	}
 
-	if err := r.setVPNConfigInSpec(spec); err != nil {
+	if err := r.setVPNConfigInSpec(request.Request.Context(), spec); err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
@@ -231,19 +232,19 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func (r firewallResource) setVPNConfigInSpec(allocationSpec *machineAllocationSpec) error {
+func (r firewallResource) setVPNConfigInSpec(ctx context.Context, allocationSpec *machineAllocationSpec) error {
 	if r.headscaleClient == nil {
 		return nil
 	}
 
 	// Try to create user in Headscale DB
 	projectID := allocationSpec.ProjectID
-	if err := r.headscaleClient.CreateUser(projectID); err != nil {
+	if err := r.headscaleClient.CreateUser(ctx, projectID); err != nil {
 		return fmt.Errorf("failed to create new VPN user for the project: %w", err)
 	}
 
 	expiration := time.Now().Add(2 * time.Hour)
-	key, err := r.headscaleClient.CreatePreAuthKey(projectID, expiration, false)
+	key, err := r.headscaleClient.CreatePreAuthKey(ctx, projectID, expiration, false)
 	if err != nil {
 		return fmt.Errorf("failed to create new auth key for the firewall: %w", err)
 	}

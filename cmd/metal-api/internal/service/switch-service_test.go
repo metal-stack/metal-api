@@ -1229,11 +1229,12 @@ func TestNotifySwitch(t *testing.T) {
 	resp := w.Result()
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.SwitchResponse
+	var result v1.SwitchNotifyResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
 	require.Equal(t, id, result.ID)
+	require.NotNil(t, result.LastSync)
 	require.Equal(t, d, result.LastSync.Duration)
 	require.Nil(t, result.LastSyncError)
 }
@@ -1265,7 +1266,7 @@ func TestNotifyErrorSwitch(t *testing.T) {
 	resp := w.Result()
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
-	var result v1.SwitchResponse
+	var result v1.SwitchNotifyResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
