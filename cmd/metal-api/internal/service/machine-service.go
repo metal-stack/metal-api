@@ -2071,7 +2071,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 		newMachine.IPMI.Password = r.ipmiSuperUser.Password()
 	}
 
-	err = publishMachineCmd(logger, newMachine, r.Publisher, cmd)
+	err = e.PublishMachineCmd(logger, newMachine, r.Publisher, cmd)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

@@ -10,7 +10,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
