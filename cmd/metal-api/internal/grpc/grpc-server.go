@@ -21,9 +21,11 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metrics"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
+	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/bus"
 	"go.uber.org/zap"
 )
@@ -48,6 +50,7 @@ type ServerConfig struct {
 	CheckInterval            time.Duration
 	BMCSuperUserPasswordFile string
 	Auditing                 auditing.Auditing
+	IPMISuperUser            metal.MachineIPMISuperUser
 
 	integrationTestAllocator chan string
 }
@@ -94,6 +97,9 @@ func Run(cfg *ServerConfig) error {
 		streamInterceptors = append(streamInterceptors, auditing.StreamServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
 		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
 	}
+
+	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics)
+
 	streamInterceptors = append(streamInterceptors,
 		grpc_ctxtags.StreamServerInterceptor(),
 		grpc_prometheus.StreamServerInterceptor,

@@ -2,13 +2,13 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -31,12 +31,12 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 
 	failed := []string{}
 	processed := uint64(0)
-	var processErr error
+	var processErrs []error
 	for machineID, event := range req.Events {
 
 		m, err := e.ds.FindMachineByID(machineID)
 		if err != nil && !metal.IsNotFound(err) {
-			processErr = multierr.Append(processErr, fmt.Errorf("machine with ID:%s not found %w", machineID, err))
+			processErrs = append(processErrs, fmt.Errorf("machine with ID:%s not found %w", machineID, err))
 			failed = append(failed, machineID)
 			continue
 		}
@@ -51,7 +51,7 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 			}
 			err = e.ds.CreateMachine(m)
 			if err != nil {
-				processErr = multierr.Append(processErr, err)
+				processErrs = append(processErrs, err)
 				failed = append(failed, machineID)
 				continue
 			}
@@ -59,7 +59,7 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 
 		ok := metal.AllProvisioningEventTypes[metal.ProvisioningEventType(event.Event)]
 		if !ok {
-			processErr = multierr.Append(processErr, err)
+			processErrs = append(processErrs, err)
 			failed = append(failed, machineID)
 			continue
 		}
@@ -72,7 +72,7 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 
 		_, err = e.ds.ProvisioningEventForMachine(e.log, &ev, machineID)
 		if err != nil {
-			processErr = multierr.Append(processErr, err)
+			processErrs = append(processErrs, err)
 			failed = append(failed, machineID)
 			continue
 		}
@@ -82,5 +82,5 @@ func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest
 	return &v1.EventServiceSendResponse{
 		Events: processed,
 		Failed: failed,
-	}, processErr
+	}, errors.Join(processErrs...)
 }
