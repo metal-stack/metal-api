@@ -951,6 +951,13 @@
           "description": "the partition id to assign this machine to",
           "type": "string"
         },
+        "placement_tags": {
+          "description": "by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "projectid": {
           "description": "the project id to assign this machine to",
           "type": "string"
@@ -1835,6 +1842,13 @@
           "description": "the partition id to assign this machine to",
           "type": "string"
         },
+        "placement_tags": {
+          "description": "by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "projectid": {
           "description": "the project id to assign this machine to",
           "type": "string"
@@ -1944,13 +1958,6 @@
           "description": "if the allocation of the machine was successful, this is set to true",
           "type": "boolean"
         },
-        "tags": {
-          "description": "by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
         "user_data": {
           "description": "userdata to execute post installation tasks",
           "type": "string"
@@ -1970,8 +1977,7 @@
         "reinstall",
         "role",
         "ssh_pub_keys",
-        "succeeded",
-        "tags"
+        "succeeded"
       ]
     },
     "v1.MachineAllocationNetwork": {
