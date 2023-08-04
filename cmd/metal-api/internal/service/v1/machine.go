@@ -194,6 +194,7 @@ type MachineAllocateRequest struct {
 	Tags               []string                  `json:"tags" description:"tags for this machine" optional:"true"`
 	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
 	IPs                []string                  `json:"ips" description:"the ips to attach to this machine additionally" optional:"true"`
+	PlacementTags      []string                  `json:"placement_tags,omitempty" description:"by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags"`
 }
 
 type MachineAllocationNetworks []MachineAllocationNetwork
