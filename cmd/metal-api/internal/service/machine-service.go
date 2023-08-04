@@ -20,7 +20,6 @@ import (
 	"github.com/metal-stack/security"
 
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/exp/slices"
 
 	"go.uber.org/zap"
 
