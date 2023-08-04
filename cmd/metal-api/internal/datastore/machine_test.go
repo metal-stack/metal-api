@@ -2,9 +2,11 @@ package datastore
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 	"testing/quick"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"golang.org/x/exp/slices"
@@ -32,24 +34,18 @@ func TestRethinkStore_FindMachineByIDQuick(t *testing.T) {
 func Test_groupByRack(t *testing.T) {
 	type args struct {
 		machines metal.Machines
-		rackids  []string
 	}
 	tests := []struct {
 		name string
 		args args
-		want map[string]metal.Machines
+		want groupedMachines
 	}{
 		{
 			name: "no machines",
 			args: args{
 				machines: metal.Machines{},
-				rackids:  []string{"1", "2", "3"},
 			},
-			want: map[string]metal.Machines{
-				"1": {},
-				"2": {},
-				"3": {},
-			},
+			want: groupedMachines{},
 		},
 		{
 			name: "racks of size 1",
@@ -59,9 +55,8 @@ func Test_groupByRack(t *testing.T) {
 					{RackID: "2"},
 					{RackID: "3"},
 				},
-				rackids: []string{"1", "2", "3"},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {{RackID: "1"}},
 				"2": {{RackID: "2"}},
 				"3": {{RackID: "3"}},
@@ -81,9 +76,8 @@ func Test_groupByRack(t *testing.T) {
 					{RackID: "2"},
 					{RackID: "3"},
 				},
-				rackids: []string{"1", "2", "3"},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {
 					{RackID: "1"},
 					{RackID: "1"},
@@ -109,20 +103,18 @@ func Test_groupByRack(t *testing.T) {
 					{RackID: "2"},
 					{RackID: "3"},
 				},
-				rackids: []string{"1", "2", "3", "4"},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {{RackID: "1"}},
 				"2": {{RackID: "2"}},
 				"3": {{RackID: "3"}},
-				"4": {},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := groupByRack(tt.args.machines, tt.args.rackids); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("groupByRack() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(groupByRack(tt.args.machines), tt.want); diff != "" {
+				t.Errorf("groupByRack() = %s", diff)
 			}
 		})
 	}
@@ -135,14 +127,14 @@ func Test_groupByTags(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want map[string]metal.Machines
+		want groupedMachines
 	}{
 		{
 			name: "one machine with no tags",
 			args: args{
 				machines: metal.Machines{{}},
 			},
-			want: map[string]metal.Machines{},
+			want: groupedMachines{},
 		},
 		{
 			name: "one machine with multiple tags",
@@ -151,7 +143,7 @@ func Test_groupByTags(t *testing.T) {
 					{Tags: []string{"1", "2", "3", "4"}},
 				},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {
 					{Tags: []string{"1", "2", "3", "4"}},
 				},
@@ -174,7 +166,7 @@ func Test_groupByTags(t *testing.T) {
 					{Tags: []string{"1", "2", "4"}},
 				},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {
 					{Tags: []string{"1", "2", "3"}},
 					{Tags: []string{"1", "2", "4"}},
@@ -199,7 +191,7 @@ func Test_groupByTags(t *testing.T) {
 					{Tags: []string{"4", "5", "6"}},
 				},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {
 					{Tags: []string{"1", "2", "3"}},
 				},
@@ -232,7 +224,8 @@ func Test_groupByTags(t *testing.T) {
 
 func Test_electRacks(t *testing.T) {
 	type args struct {
-		racks map[string]metal.Machines
+		allRacks      groupedMachines
+		occupiedRacks groupedMachines
 	}
 	tests := []struct {
 		name string
@@ -242,14 +235,21 @@ func Test_electRacks(t *testing.T) {
 		{
 			name: "no racks",
 			args: args{
-				racks: map[string]metal.Machines{},
+				allRacks:      groupedMachines{},
+				occupiedRacks: groupedMachines{},
 			},
 			want: []string{},
 		},
 		{
 			name: "one winner",
 			args: args{
-				racks: map[string]metal.Machines{
+				allRacks: groupedMachines{
+					"1": nil,
+					"2": nil,
+					"3": nil,
+					"4": nil,
+				},
+				occupiedRacks: groupedMachines{
 					"1": {{}, {}, {}},
 					"2": {{}, {}},
 					"3": {{}},
@@ -261,7 +261,13 @@ func Test_electRacks(t *testing.T) {
 		{
 			name: "two winners",
 			args: args{
-				racks: map[string]metal.Machines{
+				allRacks: groupedMachines{
+					"1": nil,
+					"2": nil,
+					"3": nil,
+					"4": nil,
+				},
+				occupiedRacks: groupedMachines{
 					"1": {{}, {}, {}},
 					"2": {{}, {}, {}},
 					"3": {{}},
@@ -270,10 +276,28 @@ func Test_electRacks(t *testing.T) {
 			},
 			want: []string{"3", "4"},
 		},
+		{
+			name: "considering non occupied racks as well",
+			args: args{
+				allRacks: groupedMachines{
+					"1": nil,
+					"2": nil,
+					"3": nil,
+					"5": nil,
+				},
+				occupiedRacks: groupedMachines{
+					"1": {{}, {}, {}},
+					"2": {{}, {}, {}},
+					"3": {{}},
+					"4": {{}},
+				},
+			},
+			want: []string{"5"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := electRacks(tt.args.racks)
+			got := electRacks(tt.args.allRacks, tt.args.occupiedRacks)
 			slices.Sort(got)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("electRacks() = %v, want %v", got, tt.want)
@@ -284,33 +308,33 @@ func Test_electRacks(t *testing.T) {
 
 func Test_filter(t *testing.T) {
 	type args struct {
-		machines map[string]metal.Machines
+		machines groupedMachines
 		keys     []string
 	}
 	tests := []struct {
 		name string
 		args args
-		want map[string]metal.Machines
+		want groupedMachines
 	}{
 		{
 			name: "empty map",
 			args: args{
-				machines: map[string]metal.Machines{},
+				machines: groupedMachines{},
 				keys:     []string{"1", "2", "3"},
 			},
-			want: map[string]metal.Machines{},
+			want: groupedMachines{},
 		},
 		{
 			name: "idempotent",
 			args: args{
-				machines: map[string]metal.Machines{
+				machines: groupedMachines{
 					"1": {{Tags: []string{"1"}}},
 					"2": {{Tags: []string{"2"}}},
 					"3": {{Tags: []string{"3"}}},
 				},
 				keys: []string{"1", "2", "3"},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {{Tags: []string{"1"}}},
 				"2": {{Tags: []string{"2"}}},
 				"3": {{Tags: []string{"3"}}},
@@ -319,40 +343,40 @@ func Test_filter(t *testing.T) {
 		{
 			name: "return empty",
 			args: args{
-				machines: map[string]metal.Machines{
+				machines: groupedMachines{
 					"1": {{Tags: []string{"1"}}},
 					"2": {{Tags: []string{"2"}}},
 					"3": {{Tags: []string{"3"}}},
 				},
 				keys: []string{"4", "5", "6"},
 			},
-			want: map[string]metal.Machines{},
+			want: groupedMachines{},
 		},
 		{
 			name: "return filtered",
 			args: args{
-				machines: map[string]metal.Machines{
+				machines: groupedMachines{
 					"1": {{Tags: []string{"1"}}},
 					"2": {{Tags: []string{"2"}}},
 					"3": {{Tags: []string{"3"}}},
 				},
 				keys: []string{"1", "5", "6"},
 			},
-			want: map[string]metal.Machines{
+			want: groupedMachines{
 				"1": {{Tags: []string{"1"}}},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := filter(tt.args.machines, tt.args.keys...); !reflect.DeepEqual(got, tt.want) {
+			if got := tt.args.machines.filter(tt.args.keys...); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("filter() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_electMachine(t *testing.T) {
+func Test_spreadAcrossRacks(t *testing.T) {
 	type args struct {
 		allMachines     metal.Machines
 		projectMachines metal.Machines
@@ -361,7 +385,7 @@ func Test_electMachine(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want metal.Machine
+		want metal.Machines
 	}{
 		{
 			name: "one available machine",
@@ -370,7 +394,7 @@ func Test_electMachine(t *testing.T) {
 				projectMachines: metal.Machines{{RackID: "1", Tags: []string{"tag"}}},
 				tags:            []string{"tag"},
 			},
-			want: metal.Machine{RackID: "1"},
+			want: metal.Machines{{RackID: "1"}},
 		},
 		{
 			name: "no tags, spread by project only",
@@ -386,7 +410,7 @@ func Test_electMachine(t *testing.T) {
 				},
 				tags: []string{},
 			},
-			want: metal.Machine{RackID: "2"},
+			want: metal.Machines{{RackID: "2"}},
 		},
 		{
 			name: "no tags and preferred racks aren't available",
@@ -401,7 +425,7 @@ func Test_electMachine(t *testing.T) {
 				},
 				tags: []string{},
 			},
-			want: metal.Machine{RackID: "1"},
+			want: metal.Machines{{RackID: "1"}},
 		},
 		{
 			name: "spread by tags",
@@ -417,7 +441,7 @@ func Test_electMachine(t *testing.T) {
 				},
 				tags: []string{"tag1"},
 			},
-			want: metal.Machine{RackID: "2"},
+			want: metal.Machines{{RackID: "2"}},
 		},
 		{
 			name: "no machines match relevant tags",
@@ -433,7 +457,7 @@ func Test_electMachine(t *testing.T) {
 				},
 				tags: []string{"tag1"},
 			},
-			want: metal.Machine{RackID: "1"},
+			want: metal.Machines{{RackID: "1"}},
 		},
 		{
 			name: "two racks in a draw, let project decide",
@@ -451,7 +475,7 @@ func Test_electMachine(t *testing.T) {
 				},
 				tags: []string{"tag1", "tag2"},
 			},
-			want: metal.Machine{RackID: "1"},
+			want: metal.Machines{{RackID: "1"}},
 		},
 		{
 			name: "preferred racks aren't available",
@@ -468,7 +492,7 @@ func Test_electMachine(t *testing.T) {
 				},
 				tags: []string{"tag1", "tag2"},
 			},
-			want: metal.Machine{RackID: "3"},
+			want: metal.Machines{{RackID: "3"}},
 		},
 		{
 			name: "racks preferred by tags aren't available, choose by project",
@@ -494,13 +518,39 @@ func Test_electMachine(t *testing.T) {
 				},
 				tags: []string{"tag1"},
 			},
-			want: metal.Machine{RackID: "3"},
+			want: metal.Machines{{RackID: "3"}},
+		},
+		{
+			name: "two winners",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "1"},
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+					{RackID: "3"},
+					{RackID: "2"},
+				},
+				tags: []string{},
+			},
+			want: metal.Machines{{RackID: "2"}, {RackID: "3"}},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := electMachine(tt.args.allMachines, tt.args.projectMachines, tt.args.tags); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("electMachine() = %v, want %v", got, tt.want)
+			machines := spreadAcrossRacks(tt.args.allMachines, tt.args.projectMachines, tt.args.tags)
+			sort.SliceStable(machines, func(i, j int) bool {
+				return machines[i].RackID < machines[j].RackID
+			})
+
+			if diff := cmp.Diff(spreadAcrossRacks(tt.args.allMachines, tt.args.projectMachines, tt.args.tags), tt.want); diff != "" {
+				t.Errorf("spreadAcrossRacks() = %s", diff)
 			}
 		})
 	}
@@ -617,7 +667,7 @@ func BenchmarkElectMachine(b *testing.B) {
 	for _, t := range tests {
 		b.Run(t.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				electMachine(t.args.allMachines, t.args.projectMachines, t.args.tags)
+				spreadAcrossRacks(t.args.allMachines, t.args.projectMachines, t.args.tags)
 			}
 		})
 	}

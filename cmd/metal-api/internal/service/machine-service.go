@@ -20,6 +20,7 @@ import (
 	"github.com/metal-stack/security"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/exp/slices"
 
 	"go.uber.org/zap"
 
@@ -74,6 +75,7 @@ type machineAllocationSpec struct {
 	IPs                []string
 	Role               metal.Role
 	VPN                *metal.MachineVPN
+	PlacementTags      []string
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -937,6 +939,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		IPs:                requestPayload.IPs,
 		Role:               role,
 		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
+		PlacementTags:      requestPayload.PlacementTags,
 	}, nil
 }
 
@@ -1130,6 +1133,12 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 		return errors.New("missing ip(s) for network(s) without automatic ip allocation")
 	}
 
+	for _, tag := range allocationSpec.PlacementTags {
+		if !slices.Contains(allocationSpec.Machine.Tags, tag) {
+			return fmt.Errorf("placement tag must be contained in machine tags: %s", tag)
+		}
+	}
+
 	return nil
 }
 
@@ -1169,7 +1178,7 @@ func findWaitingMachine(ds *datastore.RethinkStore, allocationSpec *machineAlloc
 		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 
-	machine, err := ds.FindWaitingMachine(allocationSpec.ProjectID, partition.ID, size.ID, allocationSpec.Tags)
+	machine, err := ds.FindWaitingMachine(allocationSpec.ProjectID, partition.ID, size.ID, allocationSpec.PlacementTags)
 	if err != nil {
 		return nil, err
 	}

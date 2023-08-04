@@ -428,7 +428,7 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string, tags []string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string, placementTags []string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -475,76 +475,113 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 		AllocationProject: &projectid,
 		PartitionID:       &partitionid,
 	}
-	q = *query.generateTerm(rs)
 
 	var projectMachines metal.Machines
-	err = rs.searchEntities(&q, &projectMachines)
+	err = rs.SearchMachines(&query, &projectMachines)
 	if err != nil {
 		return nil, err
 	}
 
-	oldMachine := electMachine(available, projectMachines, tags)
+	spreadCandidates := spreadAcrossRacks(available, projectMachines, placementTags)
+	if len(spreadCandidates) == 0 {
+		return nil, errors.New("no machine available")
+	}
+
+	oldMachine := spreadCandidates[randomIndex(len(spreadCandidates))]
 	newMachine := oldMachine
 	newMachine.PreAllocated = true
+
 	err = rs.updateEntity(rs.machineTable(), &newMachine, &oldMachine)
 	if err != nil {
 		return nil, err
 	}
+
 	return &newMachine, nil
 }
 
-func electMachine(allMachines, projectMachines metal.Machines, tags []string) metal.Machine {
-	rackids := make([]string, 0)
+func spreadAcrossRacks(allMachines, projectMachines metal.Machines, tags []string) metal.Machines {
+	allRacks := groupByRack(allMachines)
+	projectRacks := groupByRack(projectMachines)
+	projectWinnerRackIDs := electRacks(allRacks, projectRacks)
 
-	for _, m := range allMachines {
-		rackids = append(rackids, m.RackID)
+	taggedMachines := groupByTags(projectMachines).filter(tags...).getMachines()
+	taggedRacks := groupByRack(taggedMachines)
+	tagWinnerRackIDs := electRacks(allRacks, taggedRacks)
+
+	winnerRackIDs := intersect(tagWinnerRackIDs, projectWinnerRackIDs)
+
+	if c := allRacks.filter(winnerRackIDs...).getMachines(); len(c) > 0 {
+		return c
 	}
 
-	allRacks := groupByRack(allMachines, rackids)
-	projectRacks := groupByRack(projectMachines, rackids)
-	projectWinners := electRacks(projectRacks)
-	taggedMachines := flatten(filter(groupByTags(projectMachines), tags...))
-	taggedRacks := groupByRack(taggedMachines, rackids)
-	tagWinners := electRacks(taggedRacks)
-	winners := intersect(tagWinners, projectWinners)
-
-	candidates := allMachines
-	if c := flatten(filter(allRacks, winners...)); len(c) > 0 {
-		candidates = c
-	} else if c := flatten(filter(allRacks, tagWinners...)); len(c) > 0 {
-		candidates = c
-	} else if c := flatten(filter(allRacks, projectWinners...)); len(c) > 0 {
-		candidates = c
+	if c := allRacks.filter(tagWinnerRackIDs...).getMachines(); len(c) > 0 {
+		return c
 	}
 
-	return candidates[randomIndex(len(candidates))]
+	if c := allRacks.filter(projectWinnerRackIDs...).getMachines(); len(c) > 0 {
+		return c
+	}
+
+	return allMachines // if there are no winners, choose from all machines; best effort
 }
 
-func groupByRack(machines metal.Machines, rackids []string) map[string]metal.Machines {
-	racks := make(map[string]metal.Machines)
+type groupedMachines map[string]metal.Machines
 
-	for _, id := range rackids {
-		racks[id] = make(metal.Machines, 0)
+func (g groupedMachines) getMachines() metal.Machines {
+	machines := make(metal.Machines, 0)
+
+	for id := range g {
+		machines = append(machines, g[id]...)
 	}
 
+	return machines
+}
+
+func (g groupedMachines) filter(keys ...string) groupedMachines {
+	result := make(groupedMachines)
+
+	for i := range keys {
+		ms, ok := g[keys[i]]
+		if ok {
+			result[keys[i]] = ms
+		}
+	}
+
+	return result
+}
+
+func groupByRack(machines metal.Machines) groupedMachines {
+	racks := make(groupedMachines)
+
 	for _, m := range machines {
-		ms := racks[m.RackID]
-		racks[m.RackID] = append(ms, m)
+		racks[m.RackID] = append(racks[m.RackID], m)
 	}
 
 	return racks
 }
 
-func electRacks(racks map[string]metal.Machines) []string {
+// electRacks returns the least occupied racks from all racks
+func electRacks(allRacks, occupiedRacks groupedMachines) []string {
 	winners := make([]string, 0)
 	min := math.MaxInt
 
-	for id := range racks {
+	for id := range allRacks {
+		if _, ok := occupiedRacks[id]; ok {
+			continue
+		}
+		occupiedRacks[id] = nil
+	}
+
+	for id := range occupiedRacks {
+		if _, ok := allRacks[id]; !ok {
+			continue
+		}
+
 		switch {
-		case len(racks[id]) < min:
-			min = len(racks[id])
+		case len(occupiedRacks[id]) < min:
+			min = len(occupiedRacks[id])
 			winners = []string{id}
-		case len(racks[id]) == min:
+		case len(occupiedRacks[id]) == min:
 			winners = append(winners, id)
 		}
 	}
@@ -552,8 +589,8 @@ func electRacks(racks map[string]metal.Machines) []string {
 	return winners
 }
 
-func groupByTags(machines metal.Machines) map[string]metal.Machines {
-	groups := make(map[string]metal.Machines)
+func groupByTags(machines metal.Machines) groupedMachines {
+	groups := make(groupedMachines)
 
 	for _, m := range machines {
 		for j := range m.Tags {
@@ -563,29 +600,6 @@ func groupByTags(machines metal.Machines) map[string]metal.Machines {
 	}
 
 	return groups
-}
-
-func flatten(racks map[string]metal.Machines) metal.Machines {
-	machines := make(metal.Machines, 0)
-
-	for id := range racks {
-		machines = append(machines, racks[id]...)
-	}
-
-	return machines
-}
-
-func filter(machines map[string]metal.Machines, keys ...string) map[string]metal.Machines {
-	result := make(map[string]metal.Machines)
-
-	for i := range keys {
-		ms, ok := machines[keys[i]]
-		if ok {
-			result[keys[i]] = ms
-		}
-	}
-
-	return result
 }
 
 func randomIndex(max int) int {
