@@ -11,9 +11,9 @@ import (
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"go.uber.org/zap"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-lib/auditing"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"

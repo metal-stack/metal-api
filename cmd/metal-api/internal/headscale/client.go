@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	headscalecore "github.com/juanfont/headscale"
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
+	"github.com/juanfont/headscale/hscontrol"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -21,10 +21,8 @@ type HeadscaleClient struct {
 	address             string
 	controlPlaneAddress string
 
-	ctx        context.Context
-	conn       *grpc.ClientConn
-	cancelFunc context.CancelFunc
-	logger     *zap.SugaredLogger
+	conn   *grpc.ClientConn
+	logger *zap.SugaredLogger
 }
 
 func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *zap.SugaredLogger) (client *HeadscaleClient, err error) {
@@ -45,7 +43,6 @@ func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *zap.Sugar
 
 		logger: logger,
 	}
-	h.ctx, h.cancelFunc = context.WithCancel(context.Background())
 
 	if err = h.connect(apiKey); err != nil {
 		return nil, fmt.Errorf("failed to connect to Headscale server: %w", err)
@@ -56,7 +53,7 @@ func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *zap.Sugar
 
 // Connect or reconnect to Headscale server
 func (h *HeadscaleClient) connect(apiKey string) (err error) {
-	ctx, cancel := context.WithTimeout(h.ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	grpcOptions := []grpc.DialOption{
@@ -81,37 +78,37 @@ func (h *HeadscaleClient) GetControlPlaneAddress() string {
 	return h.controlPlaneAddress
 }
 
-func (h *HeadscaleClient) UserExists(name string) bool {
+func (h *HeadscaleClient) UserExists(ctx context.Context, name string) bool {
 	req := &headscalev1.GetUserRequest{
 		Name: name,
 	}
-	if _, err := h.client.GetUser(h.ctx, req); err != nil {
+	if _, err := h.client.GetUser(ctx, req); err != nil {
 		return false
 	}
 
 	return true
 }
 
-func (h *HeadscaleClient) CreateUser(name string) error {
+func (h *HeadscaleClient) CreateUser(ctx context.Context, name string) error {
 	req := &headscalev1.CreateUserRequest{
 		Name: name,
 	}
-	_, err := h.client.CreateUser(h.ctx, req)
+	_, err := h.client.CreateUser(ctx, req)
 	// TODO: this error check is pretty rough, but it's not easily possible to compare the proto error directly :/
-	if err != nil && !strings.Contains(err.Error(), headscalecore.ErrUserExists.Error()) {
+	if err != nil && !strings.Contains(err.Error(), hscontrol.ErrUserExists.Error()) {
 		return fmt.Errorf("failed to create new VPN user: %w", err)
 	}
 
 	return nil
 }
 
-func (h *HeadscaleClient) CreatePreAuthKey(user string, expiration time.Time, isEphemeral bool) (key string, err error) {
+func (h *HeadscaleClient) CreatePreAuthKey(ctx context.Context, user string, expiration time.Time, isEphemeral bool) (key string, err error) {
 	req := &headscalev1.CreatePreAuthKeyRequest{
 		User:       user,
 		Expiration: timestamppb.New(expiration),
 		Ephemeral:  isEphemeral,
 	}
-	resp, err := h.client.CreatePreAuthKey(h.ctx, req)
+	resp, err := h.client.CreatePreAuthKey(ctx, req)
 	if err != nil || resp == nil || resp.PreAuthKey == nil {
 		return "", fmt.Errorf("failed to create new Auth Key: %w", err)
 	}
@@ -121,8 +118,8 @@ func (h *HeadscaleClient) CreatePreAuthKey(user string, expiration time.Time, is
 
 type connectedMap map[string]bool
 
-func (h *HeadscaleClient) MachinesConnected() (connectedMap, error) {
-	resp, err := h.client.ListMachines(h.ctx, &headscalev1.ListMachinesRequest{})
+func (h *HeadscaleClient) MachinesConnected(ctx context.Context) (connectedMap, error) {
+	resp, err := h.client.ListMachines(ctx, &headscalev1.ListMachinesRequest{})
 	if err != nil || resp == nil {
 		return nil, fmt.Errorf("failed to list machines: %w", err)
 	}
@@ -135,8 +132,8 @@ func (h *HeadscaleClient) MachinesConnected() (connectedMap, error) {
 }
 
 // DeleteMachine removes the node entry from headscale DB
-func (h *HeadscaleClient) DeleteMachine(machineID, projectID string) (err error) {
-	machine, err := h.getMachine(machineID, projectID)
+func (h *HeadscaleClient) DeleteMachine(ctx context.Context, machineID, projectID string) (err error) {
+	machine, err := h.getMachine(ctx, machineID, projectID)
 	if err != nil || machine == nil {
 		return err
 	}
@@ -144,18 +141,18 @@ func (h *HeadscaleClient) DeleteMachine(machineID, projectID string) (err error)
 	req := &headscalev1.DeleteMachineRequest{
 		MachineId: machine.Id,
 	}
-	if _, err := h.client.DeleteMachine(h.ctx, req); err != nil {
+	if _, err := h.client.DeleteMachine(ctx, req); err != nil {
 		return fmt.Errorf("failed to delete machine: %w", err)
 	}
 
 	return nil
 }
 
-func (h *HeadscaleClient) getMachine(machineID, projectID string) (machine *headscalev1.Machine, err error) {
+func (h *HeadscaleClient) getMachine(ctx context.Context, machineID, projectID string) (machine *headscalev1.Machine, err error) {
 	req := &headscalev1.ListMachinesRequest{
 		User: projectID,
 	}
-	resp, err := h.client.ListMachines(h.ctx, req)
+	resp, err := h.client.ListMachines(ctx, req)
 	if err != nil || resp == nil {
 		return nil, fmt.Errorf("failed to list machines: %w", err)
 	}
@@ -171,6 +168,5 @@ func (h *HeadscaleClient) getMachine(machineID, projectID string) (machine *head
 
 // Close client
 func (h *HeadscaleClient) Close() error {
-	h.cancelFunc()
 	return h.conn.Close()
 }

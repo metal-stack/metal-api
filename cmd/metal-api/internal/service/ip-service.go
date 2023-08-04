@@ -13,11 +13,11 @@ import (
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/auditing"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
+	"github.com/metal-stack/metal-lib/auditing"
 	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
