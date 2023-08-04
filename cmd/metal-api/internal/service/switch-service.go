@@ -223,25 +223,28 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		}
 	}
 
-	sync := &metal.SwitchSync{
-		Time:     time.Now(),
-		Duration: requestPayload.Duration,
-	}
+	newSS := *ss
 
 	if requestPayload.Error == nil {
-		ss.LastSync = sync
+		newSS.LastSync = &metal.SwitchSync{
+			Time:     time.Now(),
+			Duration: requestPayload.Duration,
+		}
 	} else {
-		ss.LastSyncError = sync
-		ss.LastSyncError.Error = requestPayload.Error
+		newSS.LastSyncError = &metal.SwitchSync{
+			Time:     time.Now(),
+			Duration: requestPayload.Duration,
+			Error:    requestPayload.Error,
+		}
 	}
 
-	err = r.ds.SetSwitchStatus(ss)
+	err = r.ds.SetSwitchStatus(&newSS)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	r.send(request, response, http.StatusOK, v1.NewSwitchNotifyResponse(ss))
+	r.send(request, response, http.StatusOK, v1.NewSwitchNotifyResponse(&newSS))
 }
 
 func (r *switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
