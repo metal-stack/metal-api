@@ -76,6 +76,7 @@ type machineAllocationSpec struct {
 	IPs                []string
 	Role               metal.Role
 	VPN                *metal.MachineVPN
+	PlacementTags      []string
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -950,6 +951,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		IPs:                requestPayload.IPs,
 		Role:               role,
 		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
+		PlacementTags:      requestPayload.PlacementTags,
 	}, nil
 }
 
@@ -1151,7 +1153,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	var machine *metal.Machine
 	if allocationSpec.Machine == nil {
 		// requesting allocation of an arbitrary ready machine in partition with given size
-		machine, err = findWaitingMachine(ds, allocationSpec.PartitionID, allocationSpec.Size.ID)
+		machine, err = findWaitingMachine(ds, allocationSpec)
 		if err != nil {
 			return nil, err
 		}
@@ -1172,16 +1174,17 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	return machine, err
 }
 
-func findWaitingMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
-	size, err := ds.FindSize(sizeID)
+func findWaitingMachine(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
+	size, err := ds.FindSize(allocationSpec.Size.ID)
 	if err != nil {
 		return nil, fmt.Errorf("size cannot be found: %w", err)
 	}
-	partition, err := ds.FindPartition(partitionID)
+	partition, err := ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
 		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
-	machine, err := ds.FindWaitingMachine(partition.ID, size.ID)
+
+	machine, err := ds.FindWaitingMachine(allocationSpec.ProjectID, partition.ID, size.ID, allocationSpec.PlacementTags)
 	if err != nil {
 		return nil, err
 	}
