@@ -500,29 +500,24 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 }
 
 func spreadAcrossRacks(allMachines, projectMachines metal.Machines, tags []string) metal.Machines {
-	allRacks := groupByRack(allMachines)
-	projectRacks := groupByRack(projectMachines)
-	projectWinnerRackIDs := electRacks(allRacks, projectRacks)
+	var (
+		allRacks = groupByRack(allMachines)
 
-	taggedMachines := groupByTags(projectMachines).filter(tags...).getMachines()
-	taggedRacks := groupByRack(taggedMachines)
-	tagWinnerRackIDs := electRacks(allRacks, taggedRacks)
+		projectRacks                = groupByRack(projectMachines)
+		leastOccupiedByProjectRacks = electRacks(allRacks, projectRacks)
 
-	winnerRackIDs := intersect(tagWinnerRackIDs, projectWinnerRackIDs)
+		taggedMachines           = groupByTags(projectMachines).filter(tags...).getMachines()
+		taggedRacks              = groupByRack(taggedMachines)
+		leastOccupiedByTagsRacks = electRacks(allRacks, taggedRacks)
 
-	if c := allRacks.filter(winnerRackIDs...).getMachines(); len(c) > 0 {
+		intersection = intersect(leastOccupiedByTagsRacks, leastOccupiedByProjectRacks)
+	)
+
+	if c := allRacks.filter(intersection...).getMachines(); len(c) > 0 {
 		return c
 	}
 
-	if c := allRacks.filter(tagWinnerRackIDs...).getMachines(); len(c) > 0 {
-		return c
-	}
-
-	if c := allRacks.filter(projectWinnerRackIDs...).getMachines(); len(c) > 0 {
-		return c
-	}
-
-	return allMachines // if there are no winners, choose from all machines; best effort
+	return allRacks.filter(leastOccupiedByTagsRacks...).getMachines() // tags have precedence over project
 }
 
 type groupedMachines map[string]metal.Machines

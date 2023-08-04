@@ -1133,12 +1133,6 @@ func validateAllocationSpec(allocationSpec *machineAllocationSpec) error {
 		return errors.New("missing ip(s) for network(s) without automatic ip allocation")
 	}
 
-	for _, tag := range allocationSpec.PlacementTags {
-		if !slices.Contains(allocationSpec.Machine.Tags, tag) {
-			return fmt.Errorf("placement tag must be contained in machine tags: %s", tag)
-		}
-	}
-
 	return nil
 }
 

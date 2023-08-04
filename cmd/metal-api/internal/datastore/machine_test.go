@@ -95,21 +95,6 @@ func Test_groupByRack(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "empty racks",
-			args: args{
-				machines: metal.Machines{
-					{RackID: "1"},
-					{RackID: "2"},
-					{RackID: "3"},
-				},
-			},
-			want: groupedMachines{
-				"1": {{RackID: "1"}},
-				"2": {{RackID: "2"}},
-				"3": {{RackID: "3"}},
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -397,6 +382,15 @@ func Test_spreadAcrossRacks(t *testing.T) {
 			want: metal.Machines{{RackID: "1"}},
 		},
 		{
+			name: "no project machines",
+			args: args{
+				allMachines:     metal.Machines{{RackID: "1"}, {RackID: "2"}},
+				projectMachines: metal.Machines{},
+				tags:            []string{},
+			},
+			want: metal.Machines{{RackID: "1"}, {RackID: "2"}},
+		},
+		{
 			name: "no tags, spread by project only",
 			args: args{
 				allMachines: metal.Machines{
@@ -468,14 +462,48 @@ func Test_spreadAcrossRacks(t *testing.T) {
 					{RackID: "3"},
 				},
 				projectMachines: metal.Machines{
-					{RackID: "1", Tags: []string{"tag2"}},
-					{RackID: "2", Tags: []string{"tag1"}},
-					{RackID: "3", Tags: []string{"tag1", "tag2"}},
-					{RackID: "2", Tags: []string{"tag1"}},
+					{RackID: "1", Tags: []string{"cluster1"}},
+					{RackID: "2", Tags: []string{"cluster1"}},
+					{RackID: "2", Tags: []string{}},
+					{RackID: "3", Tags: []string{"cluster1", "postgres"}},
 				},
-				tags: []string{"tag1", "tag2"},
+				tags: []string{"cluster1", "postgres"},
 			},
 			want: metal.Machines{{RackID: "1"}},
+		},
+		{
+			name: "equal tag affinity for all racks",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1", Tags: []string{"cluster1"}},
+					{RackID: "2", Tags: []string{"cluster1"}},
+					{RackID: "3", Tags: []string{"postgres"}},
+				},
+				tags: []string{"cluster1", "postgres"},
+			},
+			want: metal.Machines{{RackID: "1"}, {RackID: "2"}, {RackID: "3"}},
+		},
+		{
+			name: "racks with fewer tags win",
+			args: args{
+				allMachines: metal.Machines{
+					{RackID: "1"},
+					{RackID: "2"},
+					{RackID: "3"},
+				},
+				projectMachines: metal.Machines{
+					{RackID: "1", Tags: []string{"cluster1"}},
+					{RackID: "2", Tags: []string{"cluster1"}},
+					{RackID: "3", Tags: []string{"cluster1", "postgres"}},
+				},
+				tags: []string{"cluster1", "postgres"},
+			},
+			want: metal.Machines{{RackID: "1"}, {RackID: "2"}},
 		},
 		{
 			name: "preferred racks aren't available",
@@ -549,7 +577,7 @@ func Test_spreadAcrossRacks(t *testing.T) {
 				return machines[i].RackID < machines[j].RackID
 			})
 
-			if diff := cmp.Diff(spreadAcrossRacks(tt.args.allMachines, tt.args.projectMachines, tt.args.tags), tt.want); diff != "" {
+			if diff := cmp.Diff(machines, tt.want); diff != "" {
 				t.Errorf("spreadAcrossRacks() = %s", diff)
 			}
 		})
@@ -574,6 +602,7 @@ func Test_intersect(t *testing.T) {
 			name: "one empty",
 			args: args{
 				a: []string{""},
+				b: []string{},
 			},
 			want: []string{},
 		},
