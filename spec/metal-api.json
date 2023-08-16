@@ -1055,6 +1055,13 @@
           "description": "the partition id to assign this machine to",
           "type": "string"
         },
+        "placement_tags": {
+          "description": "by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "projectid": {
           "description": "the project id to assign this machine to",
           "type": "string"
@@ -1938,6 +1945,13 @@
         "partitionid": {
           "description": "the partition id to assign this machine to",
           "type": "string"
+        },
+        "placement_tags": {
+          "description": "by default machines are spread across the racks inside a partition for every project. if placement tags are provided, the machine candidate has an additional anti-affinity to other machines having the same tags",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "projectid": {
           "description": "the project id to assign this machine to",

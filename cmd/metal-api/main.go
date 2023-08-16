@@ -284,6 +284,7 @@ func init() {
 	rootCmd.Flags().String("auditing-api-key", "secret", "api key for the auditing service")
 	rootCmd.Flags().String("auditing-index-prefix", "auditing", "auditing index prefix")
 	rootCmd.Flags().String("auditing-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
+	rootCmd.Flags().Int64("auditing-keep", 14, "the amount of indexes to keep until cleanup")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
@@ -843,7 +844,7 @@ func resurrectDeadMachines() error {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	err = service.ResurrectMachines(ds, p, ep, ipamer, headscaleClient, logger)
+	err = service.ResurrectMachines(context.Background(), ds, p, ep, ipamer, headscaleClient, logger)
 	if err != nil {
 		return fmt.Errorf("unable to resurrect machines: %w", err)
 	}
@@ -876,7 +877,10 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	connectedMap, err := headscaleClient.MachinesConnected()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	connectedMap, err := headscaleClient.MachinesConnected(ctx)
 	if err != nil {
 		return err
 	}
@@ -917,9 +921,10 @@ func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
 		Component:        "metal-api",
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
-		Log:              log,
 		IndexPrefix:      viper.GetString("auditing-index-prefix"),
 		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
+		Keep:             viper.GetInt64("auditing-keep"),
+		Log:              log,
 	}
 	return auditing.New(c)
 }

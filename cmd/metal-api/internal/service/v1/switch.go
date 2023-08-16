@@ -103,26 +103,8 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 		return nil
 	}
 
-	var lastSync *SwitchSync
-	if ss != nil && ss.LastSync != nil {
-		lastSync = &SwitchSync{
-			Time:     ss.LastSync.Time,
-			Duration: ss.LastSync.Duration,
-			Error:    ss.LastSync.Error,
-		}
-	} else {
-		lastSync = &SwitchSync{}
-	}
-	var lastSyncError *SwitchSync
-	if ss != nil && ss.LastSyncError != nil {
-		lastSyncError = &SwitchSync{
-			Time:     ss.LastSyncError.Time,
-			Duration: ss.LastSyncError.Duration,
-			Error:    ss.LastSyncError.Error,
-		}
-	} else {
-		lastSyncError = &SwitchSync{}
-	}
+	snr := NewSwitchNotifyResponse(ss)
+
 	var os *SwitchOS
 	if s.OS != nil {
 		os = &SwitchOS{
@@ -153,12 +135,49 @@ func NewSwitchResponse(s *metal.Switch, ss *metal.SwitchStatus, p *metal.Partiti
 		Nics:          nics,
 		Partition:     *NewPartitionResponse(p),
 		Connections:   cons,
-		LastSync:      lastSync,
-		LastSyncError: lastSyncError,
+		LastSync:      snr.LastSync,
+		LastSyncError: snr.LastSyncError,
 		Timestamps: Timestamps{
 			Created: s.Created,
 			Changed: s.Changed,
 		},
+	}
+}
+
+func NewSwitchNotifyResponse(s *metal.SwitchStatus) *SwitchNotifyResponse {
+	if s == nil {
+		return &SwitchNotifyResponse{}
+	}
+
+	var lastSync *SwitchSync
+	if s.LastSync != nil {
+		lastSync = &SwitchSync{
+			Time:     s.LastSync.Time,
+			Duration: s.LastSync.Duration,
+		}
+	}
+
+	var lastSyncError *SwitchSync
+	if s.LastSyncError != nil {
+		lastSyncError = &SwitchSync{
+			Time:     s.LastSyncError.Time,
+			Duration: s.LastSyncError.Duration,
+			Error:    s.LastSyncError.Error,
+		}
+	}
+
+	return &SwitchNotifyResponse{
+		Common: Common{
+			Identifiable: Identifiable{
+				ID: s.ID,
+			},
+			Describable: Describable{
+				Name:        &s.Name,
+				Description: &s.Description,
+			},
+		},
+		LastSync:      lastSync,
+		LastSyncError: lastSyncError,
 	}
 }
 
