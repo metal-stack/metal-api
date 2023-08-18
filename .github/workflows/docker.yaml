@@ -31,19 +31,16 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Set up Go 1.21
+    - name: Setup Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.21.x'
-
-    - name: generate proto and lint
-      working-directory: proto
-      run: make protoc
+        go-version-file: 'go.mod'
+        cache: false
 
     - name: Lint
       uses: golangci/golangci-lint-action@v3
       with:
-        args: --build-tags integration -p bugs -p unused --timeout=3m
+        args: --build-tags integration -p bugs -p unused --timeout=5m
 
     - name: Make tag
       run: |
@@ -51,7 +48,11 @@ jobs:
         [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
         [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
 
-    - name: Build and push image
+    - name: Build
+      run: |
+        make release
+
+    - name: Push image
       uses: docker/build-push-action@v4
       with:
         context: .
@@ -64,11 +65,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Set up Go 1.21
+    - name: Setup Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.21.x'
+        go-version-file: 'go.mod'
 
     - name: Run integration tests
       run: |
-        go test -tags=integration -timeout 600s -p 1 ./...
+        make test-integration
