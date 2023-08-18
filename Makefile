@@ -33,11 +33,11 @@ build:
 test: test-unit check-diff
 
 .PHONY: test-unit
-test-unit: build
-	go test -cover ./...
+test-unit:
+	go test -race -cover ./...
 
 .PHONY: test-integration
-test-integration: build
+test-integration:
 	go test -tags=integration -timeout 600s -p 1 ./...
 
 .PHONY: check-diff
