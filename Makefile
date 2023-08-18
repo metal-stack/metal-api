@@ -1,35 +1,53 @@
-BINARY := metal-api
-MAINMODULE := github.com/metal-stack/metal-api/cmd/metal-api
-COMMONDIR := $(or ${COMMONDIR},../builder)
+CGO_ENABLED := 1
+
+SHA := $(shell git rev-parse --short=8 HEAD)
+GITVERSION := $(shell git describe --long --all)
+BUILDDATE := $(shell date --rfc-3339=seconds)
+VERSION := $(or ${VERSION},$(shell git describe --tags --exact-match 2> /dev/null || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD))
+
 MINI_LAB_KUBECONFIG := $(shell pwd)/../mini-lab/.kubeconfig
 
-include $(COMMONDIR)/Makefile.inc
+LINKMODE := -linkmode external -extldflags '-static -s -w' \
+		 -X 'github.com/metal-stack/v.Version=$(VERSION)' \
+		 -X 'github.com/metal-stack/v.Revision=$(GITVERSION)' \
+		 -X 'github.com/metal-stack/v.GitSHA1=$(SHA)' \
+		 -X 'github.com/metal-stack/v.BuildDate=$(BUILDDATE)'
 
-release:: spec check-diff all ;
+.PHONY: release
+release: protoc test build
 
-.PHONY: spec
-spec: all
-	bin/$(BINARY) dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
+.PHONY: build
+build:
+	go build \
+		-tags 'osusergo netgo static_build' \
+		-ldflags \
+		"$(LINKMODE)" \
+		-o bin/metal-api \
+		github.com/metal-stack/metal-api/cmd/metal-api
+
+	md5sum bin/metal-api > bin/metal-api.md5
+
+	bin/metal-api dump-swagger | jq -r -S 'walk(if type == "array" then sort_by(strings) else . end)' > spec/metal-api.json || { echo "jq >=1.6 required"; exit 1; }
+
+.PHONY: test
+test: test-unit check-diff
+
+.PHONY: test-unit
+test-unit: build
+	go test -cover ./...
+
+.PHONY: test-integration
+test-integration: build
+	go test -tags=integration -timeout 600s -p 1 ./...
 
 .PHONY: check-diff
 check-diff: spec
 	git diff --exit-code spec pkg
 
-.PHONY: redoc
-redoc:
-	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work -w /work letsdeal/redoc-cli bundle -o generate/index.html /work/spec/metal-api.json
-	xdg-open generate/index.html
-
 .PHONY: protoc
 protoc:
 	rm -rf pkg/api/v1
 	make -C proto protoc
-
-.PHONY: protoc-docker
-protoc-docker:
-	rm -rf pkg/api/v1
-	docker pull bufbuild/buf:1.14.0
-	docker run --rm --user $$(id -u):$$(id -g) -v $(PWD):/work --tmpfs /.cache -w /work/proto bufbuild/buf:1.14.0 generate -v
 
 .PHONY: mini-lab-push
 mini-lab-push:
