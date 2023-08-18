@@ -37,10 +37,6 @@ jobs:
         go-version-file: 'go.mod'
         cache: false
 
-    - name: generate proto and lint
-      working-directory: proto
-      run: make protoc
-
     - name: Lint
       uses: golangci/golangci-lint-action@v3
       with:
