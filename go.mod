@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/avast/retry-go/v4 v4.5.0
-	github.com/aws/aws-sdk-go v1.44.324
+	github.com/aws/aws-sdk-go v1.44.326
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/go-restful-openapi/v2 v2.9.1
 	github.com/emicklei/go-restful/v3 v3.10.2
@@ -17,8 +17,8 @@ require (
 	github.com/juanfont/headscale v0.22.3
 	github.com/looplab/fsm v0.3.0
 	github.com/metal-stack/go-ipam v1.8.5
-	github.com/metal-stack/masterdata-api v0.9.1-0.20230627170430-6209ab68e1a9
-	github.com/metal-stack/metal-lib v0.13.0
+	github.com/metal-stack/masterdata-api v0.10.0
+	github.com/metal-stack/metal-lib v0.13.1
 	github.com/metal-stack/security v0.6.6
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
@@ -39,6 +39,10 @@ require (
 replace (
 	// Keep this because v3.10.x breaks image-create
 	github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.9.0
+	// netipx and x/exp must be replaced for tailscale < 1.48
+	go4.org/netipx => go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35
+	golang.org/x/exp => golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	// tailscale 1.48 and headscale 0.22 are not compatible yet
 	tailscale.com => tailscale.com v1.44.0
 )
 
@@ -131,7 +135,7 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
-	github.com/opencontainers/runc v1.1.8 // indirect
+	github.com/opencontainers/runc v1.1.9 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
@@ -150,31 +154,31 @@ require (
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
-	github.com/subosito/gotenv v1.4.2 // indirect
+	github.com/stretchr/objx v0.5.1 // indirect
+	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.48.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.mongodb.org/mongo-driver v1.12.0 // indirect
+	go.mongodb.org/mongo-driver v1.12.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org/intern v0.0.0-20230205224052-192e9f60865c // indirect
 	go4.org/mem v0.0.0-20220726221520-4f986261bf13 // indirect
-	go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35 // indirect
+	go4.org/netipx v0.0.0-20230728180743-ad4cb58a6516 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/oauth2 v0.11.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/time v0.3.0 // indirect; indirecct
-	golang.org/x/tools v0.12.0 // indirect
+	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20230726155614-23370e0ffb3e // indirect
+	google.golang.org/genproto v0.0.0-20230803162519-f966b187b2e5 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230726155614-23370e0ffb3e // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230726155614-23370e0ffb3e // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230815205213-6bfd019c3878 // indirect
 	gopkg.in/cenkalti/backoff.v2 v2.2.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -188,5 +192,5 @@ require (
 	modernc.org/memory v1.5.0 // indirect
 	modernc.org/sqlite v1.20.3 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
-	tailscale.com v1.46.0 // indirect
+	tailscale.com v1.48.0 // indirect
 )
