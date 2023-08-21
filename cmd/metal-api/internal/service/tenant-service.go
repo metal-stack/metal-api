@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
@@ -14,6 +13,7 @@ import (
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
+	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/httperrors"
 )
 
@@ -66,6 +66,7 @@ func (r *tenantResource) webService() *restful.WebService {
 		Operation("findTenants").
 		Doc("get all tenants that match given properties").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Reads(v1.TenantFindRequest{}).
 		Writes([]v1.TenantResponse{}).
 		Returns(http.StatusOK, "OK", []v1.TenantResponse{}).
@@ -107,7 +108,7 @@ func (r *tenantResource) webService() *restful.WebService {
 func (r *tenantResource) getTenant(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	tres, err := r.mdc.Tenant().Get(context.Background(), &mdmv1.TenantGetRequest{Id: id})
+	tres, err := r.mdc.Tenant().Get(request.Request.Context(), &mdmv1.TenantGetRequest{Id: id})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -119,7 +120,7 @@ func (r *tenantResource) getTenant(request *restful.Request, response *restful.R
 }
 
 func (r *tenantResource) listTenants(request *restful.Request, response *restful.Response) {
-	tres, err := r.mdc.Tenant().Find(context.Background(), &mdmv1.TenantFindRequest{})
+	tres, err := r.mdc.Tenant().Find(request.Request.Context(), &mdmv1.TenantFindRequest{})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -142,7 +143,7 @@ func (r *tenantResource) findTenants(request *restful.Request, response *restful
 		return
 	}
 
-	res, err := r.mdc.Tenant().Find(context.Background(), mapper.ToMdmV1TenantFindRequest(&requestPayload))
+	res, err := r.mdc.Tenant().Find(request.Request.Context(), mapper.ToMdmV1TenantFindRequest(&requestPayload))
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -171,7 +172,7 @@ func (r *tenantResource) createTenant(request *restful.Request, response *restfu
 		Tenant: tenant,
 	}
 
-	p, err := r.mdc.Tenant().Create(context.Background(), mdmv1pcr)
+	p, err := r.mdc.Tenant().Create(request.Request.Context(), mdmv1pcr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -191,26 +192,26 @@ func (r *tenantResource) deleteTenant(request *restful.Request, response *restfu
 	pgr := &mdmv1.TenantGetRequest{
 		Id: id,
 	}
-	p, err := r.mdc.Tenant().Get(context.Background(), pgr)
+	p, err := r.mdc.Tenant().Get(request.Request.Context(), pgr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 
-	plr, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{TenantId: wrapperspb.String(id)})
+	plr, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{TenantId: wrapperspb.String(id)})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
 	}
 	if len(plr.Projects) > 0 {
-		r.sendError(request, response, httperrors.BadRequest(errors.New("there are still projects allocated by this tenant")))
+		r.sendError(request, response, httperrors.UnprocessableEntity(errors.New("there are still projects allocated by this tenant")))
 		return
 	}
 
 	pdr := &mdmv1.TenantDeleteRequest{
 		Id: p.Tenant.Meta.Id,
 	}
-	pdresponse, err := r.mdc.Tenant().Delete(context.Background(), pdr)
+	pdresponse, err := r.mdc.Tenant().Delete(request.Request.Context(), pdr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -237,7 +238,7 @@ func (r *tenantResource) updateTenant(request *restful.Request, response *restfu
 		return
 	}
 
-	existingTenant, err := r.mdc.Tenant().Get(context.Background(), &mdmv1.TenantGetRequest{Id: requestPayload.Tenant.Meta.Id})
+	existingTenant, err := r.mdc.Tenant().Get(request.Request.Context(), &mdmv1.TenantGetRequest{Id: requestPayload.Tenant.Meta.Id})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -248,7 +249,7 @@ func (r *tenantResource) updateTenant(request *restful.Request, response *restfu
 	// created date is not updateable
 	tenantUpdateData.Meta.CreatedTime = existingTenant.Tenant.Meta.CreatedTime
 
-	pur, err := r.mdc.Tenant().Update(context.TODO(), &mdmv1.TenantUpdateRequest{
+	pur, err := r.mdc.Tenant().Update(request.Request.Context(), &mdmv1.TenantUpdateRequest{
 		Tenant: tenantUpdateData,
 	})
 	if err != nil {
