@@ -238,16 +238,8 @@ func (r *tenantResource) updateTenant(request *restful.Request, response *restfu
 		return
 	}
 
-	existingTenant, err := r.mdc.Tenant().Get(request.Request.Context(), &mdmv1.TenantGetRequest{Id: requestPayload.Tenant.Meta.Id})
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
 	// new data
 	tenantUpdateData := mapper.ToMdmV1Tenant(&requestPayload.Tenant)
-	// created date is not updateable
-	tenantUpdateData.Meta.CreatedTime = existingTenant.Tenant.Meta.CreatedTime
 
 	pur, err := r.mdc.Tenant().Update(request.Request.Context(), &mdmv1.TenantUpdateRequest{
 		Tenant: tenantUpdateData,
