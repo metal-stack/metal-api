@@ -19,8 +19,7 @@ service BootService {
   rpc Report(BootServiceReportRequest) returns (BootServiceReportResponse) {}
   // If reinstall failed and tell metal-api to restore to previous state
   rpc AbortReinstall(BootServiceAbortReinstallRequest) returns (BootServiceAbortReinstallResponse) {}
-
-  // ReportIPMI tells metal-api the ipmi details from the metal-bmc
+  // ReportIPMI tells metal-api the ipmi details from the metal-bmc for every machine
   rpc ReportIPMI(BootServiceReportIPMIRequest) returns (BootServiceReportIPMIResponse) {}
 }
 
