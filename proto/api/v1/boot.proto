@@ -19,6 +19,9 @@ service BootService {
   rpc Report(BootServiceReportRequest) returns (BootServiceReportResponse) {}
   // If reinstall failed and tell metal-api to restore to previous state
   rpc AbortReinstall(BootServiceAbortReinstallRequest) returns (BootServiceAbortReinstallResponse) {}
+
+  // ReportIPMI tells metal-api the ipmi details from the metal-bmc
+  rpc ReportIPMI(BootServiceReportIPMIRequest) returns (BootServiceReportIPMIResponse) {}
 }
 
 message BootServiceDhcpRequest {
@@ -59,6 +62,15 @@ message BootServiceWaitRequest {
 
 message BootServiceWaitResponse {}
 
+message BootServiceReportIPMIRequest {
+  string partition_id = 1;
+  map<string, MachineIPMI> reports = 2;
+}
+message BootServiceReportIPMIResponse {
+  repeated string created = 1;
+  repeated string updated = 2;
+}
+
 message MachineHardware {
   uint64 memory = 1;
   uint32 cpu_cores = 2;
@@ -93,7 +105,10 @@ message MachineIPMI {
   string interface = 5;
   MachineFRU fru = 6;
   string bmc_version = 7;
-  string power_state = 8;
+  string bios_version = 8;
+  string power_state = 9;
+  string indicator_led_state = 10;
+  PowerMetric power_metric = 11;
 }
 
 message MachineFRU {
@@ -105,6 +120,26 @@ message MachineFRU {
   optional string product_manufacturer = 6;
   optional string product_part_number = 7;
   optional string product_serial = 8;
+}
+
+message PowerMetric {
+  // AverageConsumedWatts shall represent the
+  // average power level that occurred averaged over the last IntervalInMin
+  // minutes.
+  float average_consumed_watts = 1;
+  // IntervalInMin shall represent the time
+  // interval (or window), in minutes, in which the PowerMetrics properties
+  // are measured over.
+  // Should be an integer, but some Dell implementations return as a float.
+  float interval_in_min = 2;
+  // MaxConsumedWatts shall represent the
+  // maximum power level in watts that occurred within the last
+  // IntervalInMin minutes.
+  float max_consumed_watts = 3;
+  // MinConsumedWatts shall represent the
+  // minimum power level in watts that occurred within the last
+  // IntervalInMin minutes.
+  float min_consumed_watts = 4;
 }
 
 message BootServiceReportRequest {

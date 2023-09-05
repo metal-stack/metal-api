@@ -26,6 +26,7 @@ const (
 	BootService_Wait_FullMethodName              = "/api.v1.BootService/Wait"
 	BootService_Report_FullMethodName            = "/api.v1.BootService/Report"
 	BootService_AbortReinstall_FullMethodName    = "/api.v1.BootService/AbortReinstall"
+	BootService_ReportIPMI_FullMethodName        = "/api.v1.BootService/ReportIPMI"
 )
 
 // BootServiceClient is the client API for BootService service.
@@ -46,6 +47,8 @@ type BootServiceClient interface {
 	Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(ctx context.Context, in *BootServiceAbortReinstallRequest, opts ...grpc.CallOption) (*BootServiceAbortReinstallResponse, error)
+	// ReportIPMI tells metal-api the ipmi details from the metal-bmc
+	ReportIPMI(ctx context.Context, in *BootServiceReportIPMIRequest, opts ...grpc.CallOption) (*BootServiceReportIPMIResponse, error)
 }
 
 type bootServiceClient struct {
@@ -142,6 +145,15 @@ func (c *bootServiceClient) AbortReinstall(ctx context.Context, in *BootServiceA
 	return out, nil
 }
 
+func (c *bootServiceClient) ReportIPMI(ctx context.Context, in *BootServiceReportIPMIRequest, opts ...grpc.CallOption) (*BootServiceReportIPMIResponse, error) {
+	out := new(BootServiceReportIPMIResponse)
+	err := c.cc.Invoke(ctx, BootService_ReportIPMI_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BootServiceServer is the server API for BootService service.
 // All implementations should embed UnimplementedBootServiceServer
 // for forward compatibility
@@ -160,6 +172,8 @@ type BootServiceServer interface {
 	Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(context.Context, *BootServiceAbortReinstallRequest) (*BootServiceAbortReinstallResponse, error)
+	// ReportIPMI tells metal-api the ipmi details from the metal-bmc
+	ReportIPMI(context.Context, *BootServiceReportIPMIRequest) (*BootServiceReportIPMIResponse, error)
 }
 
 // UnimplementedBootServiceServer should be embedded to have forward compatible implementations.
@@ -186,6 +200,9 @@ func (UnimplementedBootServiceServer) Report(context.Context, *BootServiceReport
 }
 func (UnimplementedBootServiceServer) AbortReinstall(context.Context, *BootServiceAbortReinstallRequest) (*BootServiceAbortReinstallResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AbortReinstall not implemented")
+}
+func (UnimplementedBootServiceServer) ReportIPMI(context.Context, *BootServiceReportIPMIRequest) (*BootServiceReportIPMIResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportIPMI not implemented")
 }
 
 // UnsafeBootServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -328,6 +345,24 @@ func _BootService_AbortReinstall_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BootService_ReportIPMI_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BootServiceReportIPMIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BootServiceServer).ReportIPMI(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BootService_ReportIPMI_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BootServiceServer).ReportIPMI(ctx, req.(*BootServiceReportIPMIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BootService_ServiceDesc is the grpc.ServiceDesc for BootService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -358,6 +393,10 @@ var BootService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AbortReinstall",
 			Handler:    _BootService_AbortReinstall_Handler,
+		},
+		{
+			MethodName: "ReportIPMI",
+			Handler:    _BootService_ReportIPMI_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

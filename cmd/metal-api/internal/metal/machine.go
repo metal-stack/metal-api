@@ -353,6 +353,7 @@ type IPMI struct {
 	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
 	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
 	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
+	LastUpdated time.Time    `rethinkdb:"last_updated" json:"last_updated"`
 }
 
 type PowerMetric struct {

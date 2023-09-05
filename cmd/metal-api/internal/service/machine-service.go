@@ -649,6 +649,7 @@ func (r *machineResource) findIPMIMachines(request *restful.Request, response *r
 	r.send(request, response, http.StatusOK, resp)
 }
 
+// FIXME move to grpc as well
 func (r *machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineIpmiReports
 	logger := r.logger(request)
@@ -717,6 +718,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		} else {
 			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
+		m.IPMI.LastUpdated = time.Now()
 		err = r.ds.CreateMachine(m)
 		if err != nil {
 			logger.Errorw("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
@@ -789,6 +791,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		} else {
 			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
+		newMachine.IPMI.LastUpdated = time.Now()
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
