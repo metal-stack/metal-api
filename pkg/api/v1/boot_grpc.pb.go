@@ -47,7 +47,7 @@ type BootServiceClient interface {
 	Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(ctx context.Context, in *BootServiceAbortReinstallRequest, opts ...grpc.CallOption) (*BootServiceAbortReinstallResponse, error)
-	// ReportIPMI tells metal-api the ipmi details from the metal-bmc
+	// ReportIPMI tells metal-api the ipmi details from the metal-bmc for every machine
 	ReportIPMI(ctx context.Context, in *BootServiceReportIPMIRequest, opts ...grpc.CallOption) (*BootServiceReportIPMIResponse, error)
 }
 
@@ -172,7 +172,7 @@ type BootServiceServer interface {
 	Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(context.Context, *BootServiceAbortReinstallRequest) (*BootServiceAbortReinstallResponse, error)
-	// ReportIPMI tells metal-api the ipmi details from the metal-bmc
+	// ReportIPMI tells metal-api the ipmi details from the metal-bmc for every machine
 	ReportIPMI(context.Context, *BootServiceReportIPMIRequest) (*BootServiceReportIPMIResponse, error)
 }
 
