@@ -105,8 +105,8 @@ message MachineIPMI {
   string interface = 5;
   MachineFRU fru = 6;
   string bmc_version = 7;
-  string bios_version = 8;
-  string power_state = 9;
+  string power_state = 8;
+  string bios_version = 9;
   string indicator_led_state = 10;
   PowerMetric power_metric = 11;
 }
