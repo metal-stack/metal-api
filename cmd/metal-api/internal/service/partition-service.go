@@ -385,6 +385,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		p := p
 		capacities := make(map[string]*v1.ServerCapacity)
 		for _, m := range machines {
+			m := m
 			if m.Partition == nil {
 				continue
 			}
