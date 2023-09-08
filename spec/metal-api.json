@@ -3564,6 +3564,18 @@
         "used_prefixes"
       ]
     },
+    "v1.Paging": {
+      "properties": {
+        "count": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "page": {
+          "format": "integer",
+          "type": "integer"
+        }
+      }
+    },
     "v1.PartitionBase": {
       "properties": {
         "mgmtserviceaddress": {
@@ -4649,7 +4661,70 @@
         }
       }
     },
+    "v1.TenantCreateRequest": {
+      "properties": {
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
+    },
+    "v1.TenantFindRequest": {
+      "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "paging": {
+          "$ref": "#/definitions/v1.Paging"
+        }
+      }
+    },
     "v1.TenantResponse": {
+      "properties": {
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
+    },
+    "v1.TenantUpdateRequest": {
       "properties": {
         "default_quotas": {
           "$ref": "#/definitions/v1.QuotaSet"
@@ -8787,9 +8862,173 @@
         "tags": [
           "tenant"
         ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateTenant",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.TenantUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "412": {
+            "description": "OptimisticLock",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "update a tenant. optimistic lock error can occur.",
+        "tags": [
+          "tenant"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "createTenant",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.TenantCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a tenant. if the given ID already exists a conflict is returned",
+        "tags": [
+          "tenant"
+        ]
+      }
+    },
+    "/v1/tenant/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findTenants",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.TenantFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.TenantResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all tenants that match given properties",
+        "tags": [
+          "tenant"
+        ]
       }
     },
     "/v1/tenant/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteTenant",
+        "parameters": [
+          {
+            "description": "identifier of the tenant",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes a tenant and returns the deleted entity",
+        "tags": [
+          "tenant"
+        ]
+      },
       "get": {
         "consumes": [
           "application/json"
