@@ -17,7 +17,6 @@ import (
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
-	"gopkg.in/rethinkdb/rethinkdb-go.v6"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -210,7 +209,7 @@ func Test_projectResource_deleteProject(t *testing.T) {
 		name               string
 		userScenarios      []security.User
 		projectServiceMock func(mock *mdmv1mock.ProjectServiceClient)
-		dsMock             func(mock *rethinkdb.Mock)
+		dsMock             func(mock *r.Mock)
 		id                 string
 		wantStatus         int
 		want               *v1.ProjectResponse
@@ -241,7 +240,7 @@ func Test_projectResource_deleteProject(t *testing.T) {
 				mock.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{Meta: &mdmv1.Meta{Id: "123"}}}, nil)
 				mock.On("Delete", context.Background(), &mdmv1.ProjectDeleteRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 			},
-			dsMock: func(mock *rethinkdb.Mock) {
+			dsMock: func(mock *r.Mock) {
 				mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Machines{}, nil)
 				mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Networks{}, nil)
 				mock.On(r.DB("mockdb").Table("ip").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.IPs{}, nil)
