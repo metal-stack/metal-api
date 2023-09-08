@@ -707,7 +707,8 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 			},
 			PartitionID: p.ID,
 			IPMI: metal.IPMI{
-				Address: report.BMCIp + ":" + defaultIPMIPort,
+				Address:     report.BMCIp + ":" + defaultIPMIPort,
+				LastUpdated: time.Now(),
 			},
 		}
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
@@ -718,7 +719,6 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		} else {
 			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
-		m.IPMI.LastUpdated = time.Now()
 		err = r.ds.CreateMachine(m)
 		if err != nil {
 			logger.Errorw("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
