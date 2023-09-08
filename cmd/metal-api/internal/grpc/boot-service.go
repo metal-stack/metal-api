@@ -364,11 +364,6 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 	return &v1.BootServiceReportResponse{}, nil
 }
 
-// ReportIPMI implements v1.BootServiceServer.
-func (*BootService) ReportIPMI(context.Context, *v1.BootServiceReportIPMIRequest) (*v1.BootServiceReportIPMIResponse, error) {
-	panic("unimplemented")
-}
-
 func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbortReinstallRequest) (*v1.BootServiceAbortReinstallResponse, error) {
 	b.log.Infow("abortreinstall", "req", req)
 	m, err := b.ds.FindMachineByID(req.Uuid)
