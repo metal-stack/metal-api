@@ -2538,6 +2538,10 @@
         "interface": {
           "type": "string"
         },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
         "mac": {
           "type": "string"
         },
@@ -2559,6 +2563,7 @@
         "bmcversion",
         "fru",
         "interface",
+        "last_updated",
         "mac",
         "password",
         "powermetric",

@@ -147,6 +147,7 @@ type MachineIPMI struct {
 	BMCVersion  string       `json:"bmcversion"`
 	PowerState  string       `json:"powerstate"`
 	PowerMetric *PowerMetric `json:"powermetric"`
+	LastUpdated time.Time    `json:"last_updated"`
 }
 
 type PowerMetric struct {
@@ -353,12 +354,13 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 	}
 
 	return metal.IPMI{
-		Address:    r.Address,
-		MacAddress: r.MacAddress,
-		User:       r.User,
-		Password:   r.Password,
-		Interface:  r.Interface,
-		BMCVersion: r.BMCVersion,
+		Address:     r.Address,
+		MacAddress:  r.MacAddress,
+		User:        r.User,
+		Password:    r.Password,
+		Interface:   r.Interface,
+		BMCVersion:  r.BMCVersion,
+		LastUpdated: r.LastUpdated,
 		Fru: metal.Fru{
 			ChassisPartNumber:   chassisPartNumber,
 			ChassisPartSerial:   chassisPartSerial,
@@ -399,6 +401,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			BMCVersion:  m.IPMI.BMCVersion,
 			PowerState:  m.IPMI.PowerState,
 			PowerMetric: powerMetric,
+			LastUpdated: m.IPMI.LastUpdated,
 			Fru: MachineFru{
 				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
 				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,
