@@ -59,6 +59,8 @@ func (r *sizeResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/suggest"))
+
 	ws.Route(ws.DELETE("/{id}").
 		To(admin(r.deleteSize)).
 		Operation("deleteSize").

@@ -26,6 +26,11 @@ type SizeResponse struct {
 	Timestamps
 }
 
+type SizeSuggestRequest struct {
+	Common
+	MachineHardware []MachineHardwareBase `json:"type" hardware:"???" enum:"cores|memory|storage" description:"the type of the machine"`
+}
+
 type SizeConstraintMatchingLog struct {
 	Constraint SizeConstraint `json:"constraint" description:"the size constraint to which this log relates to"`
 	Match      bool           `json:"match" description:"indicates whether the constraint matched or not"`

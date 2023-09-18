@@ -70,6 +70,45 @@ func TestGetSize(t *testing.T) {
 	require.Equal(t, len(testdata.Sz1.Constraints), len(result.SizeConstraints))
 }
 
+func TestSuggest(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+
+	createRequest := v1.SizeSuggestRequest{
+		Common: v1.Common{
+			Identifiable: v1.Identifiable{
+				ID: testdata.Sz1.ID,
+			},
+			Describable: v1.Describable{
+				Name:        &testdata.Sz1.Name,
+				Description: &testdata.Sz1.Description,
+			},
+		},
+		MachineHardware: []v1.MachineHardwareBase{
+			{
+				Memory:   1,
+				CPUCores: 8,
+			},
+		},
+	}
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
+	container := restful.NewContainer().Add(sizeservice)
+	req := httptest.NewRequest("POST", "/v1/size/suggest", nil)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+
+	var result httperrors.HTTPErrorResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+}
+
 func TestGetSizeNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)

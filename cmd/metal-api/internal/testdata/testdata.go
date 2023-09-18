@@ -43,6 +43,10 @@ var (
 				},
 			},
 		},
+		Hardware: metal.MachineHardware{
+			CPUCores: 8,
+		},
+
 		IPMI: IPMI1,
 		Tags: []string{"1"},
 	}
