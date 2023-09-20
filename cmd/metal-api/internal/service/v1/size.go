@@ -29,6 +29,7 @@ type SizeResponse struct {
 type SizeSuggestRequest struct {
 	Common
 	MachineHardware []MachineHardwareBase `json:"type" hardware:"???" enum:"cores|memory|storage" description:"the type of the machine"`
+	SizeConstraints []SizeConstraint      `json:"hardware" description:"a list of constraints that defines this size"`
 }
 
 type SizeConstraintMatchingLog struct {

@@ -84,12 +84,7 @@ func TestSuggest(t *testing.T) {
 				Description: &testdata.Sz1.Description,
 			},
 		},
-		MachineHardware: []v1.MachineHardwareBase{
-			{
-				Memory:   1,
-				CPUCores: 8,
-			},
-		},
+		MachineID: "1",
 	}
 	js, err := json.Marshal(createRequest)
 	require.NoError(t, err)

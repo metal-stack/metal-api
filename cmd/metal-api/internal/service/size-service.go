@@ -59,7 +59,15 @@ func (r *sizeResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/suggest"))
+	ws.Route(ws.POST("/suggest").
+		To(r.fromHardware).
+		Operation("suggest").
+		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.MachineHardware{}).
+		Returns(http.StatusOK, "OK", v1.SizeMatchingLog{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
 		To(admin(r.deleteSize)).
