@@ -4248,6 +4248,17 @@
         "id"
       ]
     },
+    "v1.SizeSuggestRequest": {
+      "properties": {
+        "machineID": {
+          "description": "machineID to retrieve size suggestion for",
+          "type": "string"
+        }
+      },
+      "required": [
+        "machineID"
+      ]
+    },
     "v1.SizeUpdateRequest": {
       "properties": {
         "constraints": {
@@ -8476,6 +8487,48 @@
           }
         },
         "summary": "Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/suggest": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "suggest",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeSuggestRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeConstraint"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "from a given machineID returns the appropiate size",
         "tags": [
           "size"
         ]

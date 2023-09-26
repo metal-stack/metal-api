@@ -45,6 +45,18 @@ var (
 		},
 		Hardware: metal.MachineHardware{
 			CPUCores: 8,
+			Memory:   1 << 30,
+			Disks: []metal.BlockDevice{
+				{
+					Size: 1000,
+				},
+				{
+					Size: 1000,
+				},
+				{
+					Size: 1000,
+				},
+			},
 		},
 
 		IPMI: IPMI1,

@@ -60,13 +60,13 @@ func (r *sizeResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/suggest").
-		To(r.fromHardware).
+		To(r.suggestSize).
 		Operation("suggest").
-		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
+		Doc("from a given machineID returns the appropiate size").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).
-		Reads(v1.MachineHardware{}).
-		Returns(http.StatusOK, "OK", v1.SizeMatchingLog{}).
+		Reads(v1.SizeSuggestRequest{}).
+		Returns(http.StatusOK, "OK", []v1.SizeConstraint{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.DELETE("/{id}").
@@ -122,6 +122,45 @@ func (r *sizeResource) findSize(request *restful.Request, response *restful.Resp
 	}
 
 	r.send(request, response, http.StatusOK, v1.NewSizeResponse(s))
+}
+
+func (r *sizeResource) suggestSize(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SizeSuggestRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	if requestPayload.MachineID == "" {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("machineID must be given")))
+		return
+	}
+
+	m, err := r.ds.FindMachineByID(requestPayload.MachineID)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusOK, []v1.SizeConstraint{
+		{
+			Type: metal.CoreConstraint,
+			Min:  uint64(m.Hardware.CPUCores),
+			Max:  uint64(m.Hardware.CPUCores),
+		},
+		{
+			Type: metal.MemoryConstraint,
+			Min:  m.Hardware.Memory,
+			Max:  m.Hardware.Memory,
+		},
+		{
+			Type: metal.StorageConstraint,
+			Min:  m.Hardware.DiskCapacity(),
+			Max:  m.Hardware.DiskCapacity(),
+		},
+	})
+
 }
 
 func (r *sizeResource) listSizes(request *restful.Request, response *restful.Response) {
