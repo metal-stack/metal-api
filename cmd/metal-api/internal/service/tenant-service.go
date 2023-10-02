@@ -8,8 +8,8 @@ import (
 	v1 "github.com/metal-stack/masterdata-api/api/rest/v1"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
-	internalV1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -79,7 +79,8 @@ func (r *tenantResource) webService() *restful.WebService {
 		Doc("get tenant with this id at the given timestamp").
 		Param(ws.PathParameter("id", "identifier of the tenant").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Reads(internalV1.TenantGetHistoryRequest{}).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.TenantGetHistoryRequest{}).
 		Writes(v1.TenantResponse{}).
 		Returns(http.StatusOK, "OK", v1.TenantResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -201,14 +202,14 @@ func (r *tenantResource) createTenant(request *restful.Request, response *restfu
 func (r *tenantResource) getTenantHistory(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	var tghr internalV1.TenantGetHistoryRequest
+	var tghr v1.TenantGetHistoryRequest
 	err := request.ReadEntity(&tghr)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
 	}
 
-	thres, err := r.mdc.Tenant().GetHistory(request.Request.Context(), &mdmv1.TenantGetHistoryRequest{Id: id, At: tghr.At})
+	thres, err := r.mdc.Tenant().GetHistory(request.Request.Context(), &mdmv1.TenantGetHistoryRequest{Id: id, At: timestamppb.New(tghr.At)})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
