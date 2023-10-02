@@ -63,7 +63,7 @@ func AllIssues() Issues {
 	var res Issues
 
 	for _, t := range AllIssueTypes() {
-		i, err := newIssueFromType(t)
+		i, err := NewIssueFromType(t)
 		if err != nil {
 			continue
 		}
@@ -97,7 +97,7 @@ func FindIssues(c *IssueConfig) (MachineIssues, error) {
 		for _, m := range c.Machines {
 			m := m
 
-			i, err := newIssueFromType(t)
+			i, err := NewIssueFromType(t)
 			if err != nil {
 				return nil, err
 			}
@@ -134,7 +134,7 @@ func (mis MachineIssues) Get(id string) *MachineWithIssues {
 }
 
 func (c *IssueConfig) includeIssue(t IssueType) bool {
-	issue, err := newIssueFromType(t)
+	issue, err := NewIssueFromType(t)
 	if err != nil {
 		return false
 	}

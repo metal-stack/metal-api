@@ -1,6 +1,7 @@
 package issues
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -246,26 +247,32 @@ func TestFindIssues(t *testing.T) {
 				}
 			},
 		},
+		// FIXME:
 		// {
 		// 	name: "last event error",
 		// 	only: []IssueType{IssueTypeLastEventError},
 		// 	machines: func() metal.Machines {
 		// 		lastEventErrorMachine := machineTemplate("last")
-		// 		lastEventErrorMachine.Events = &models.V1MachineRecentProvisioningEvents{
-		// 			LastErrorEvent: &models.V1MachineProvisioningEvent{
-		// 				Time: strfmt.DateTime(testTime.Add(-5 * time.Minute)),
-		// 			},
-		// 		}
 
 		// 		return metal.Machines{
-		// 			machineTemplate("0"),
+		// 			machineTemplate("good"),
 		// 			lastEventErrorMachine,
+		// 		}
+		// 	},
+		// 	eventContainers: func() metal.ProvisioningEventContainers {
+		// 		last := eventContainerTemplate("last")
+		// 		last.LastErrorEvent = &metal.ProvisioningEvent{
+		// 			Time: time.Now().Add(-5 * time.Minute),
+		// 		}
+		// 		return metal.ProvisioningEventContainers{
+		// 			last,
+		// 			eventContainerTemplate("good"),
 		// 		}
 		// 	},
 		// 	want: func(machines metal.Machines) MachineIssues {
 		// 		return MachineIssues{
 		// 			{
-		// 				Machine: machines[1],
+		// 				Machine: &machines[1],
 		// 				Issues: Issues{
 		// 					toIssue(&IssueLastEventError{details: "occurred 5m0s ago"}),
 		// 				},
@@ -273,68 +280,93 @@ func TestFindIssues(t *testing.T) {
 		// 		}
 		// 	},
 		// },
-		// {
-		// 	name: "bmc without mac",
-		// 	only: []IssueType{IssueTypeBMCWithoutMAC},
-		// 	machines: func() metal.Machines {
-		// 		bmcWithoutMacMachine := machineTemplate("no-mac")
-		// 		bmcWithoutMacMachine.Ipmi.Mac = nil
+		{
+			name: "bmc without mac",
+			only: []IssueType{IssueTypeBMCWithoutMAC},
+			machines: func() metal.Machines {
+				noMac := machineTemplate("no-mac")
+				noMac.IPMI.MacAddress = ""
 
-		// 		return metal.Machines{
-		// 			machineTemplate("0"),
-		// 			bmcWithoutMacMachine,
-		// 		}
-		// 	},
-		// 	want: func(machines metal.Machines) MachineIssues {
-		// 		return MachineIssues{
-		// 			{
-		// 				Machine: machines[1],
-		// 				Issues: Issues{
-		// 					toIssue(&IssueBMCWithoutMAC{}),
-		// 				},
-		// 			},
-		// 		}
-		// 	},
-		// },
-		// {
-		// 	name: "bmc without ip",
-		// 	only: []IssueType{IssueTypeBMCWithoutIP},
-		// 	machines: func() metal.Machines {
-		// 		bmcWithoutMacMachine := machineTemplate("no-ip")
-		// 		bmcWithoutMacMachine.Ipmi.Address = nil
+				return metal.Machines{
+					machineTemplate("good"),
+					noMac,
+				}
+			},
+			eventContainers: func() metal.ProvisioningEventContainers {
+				crash := eventContainerTemplate("crash")
+				crash.CrashLoop = true
 
-		// 		return metal.Machines{
-		// 			machineTemplate("0"),
-		// 			bmcWithoutMacMachine,
-		// 		}
-		// 	},
-		// 	want: func(machines metal.Machines) MachineIssues {
-		// 		return MachineIssues{
-		// 			{
-		// 				Machine: machines[1],
-		// 				Issues: Issues{
-		// 					toIssue(&IssueBMCWithoutIP{}),
-		// 				},
-		// 			},
-		// 		}
-		// 	},
-		// },
+				return metal.ProvisioningEventContainers{
+					eventContainerTemplate("no-mac"),
+					eventContainerTemplate("good"),
+				}
+			},
+			want: func(machines metal.Machines) MachineIssues {
+				return MachineIssues{
+					{
+						Machine: &machines[1],
+						Issues: Issues{
+							toIssue(&IssueBMCWithoutMAC{}),
+						},
+					},
+				}
+			},
+		},
+		{
+			name: "bmc without ip",
+			only: []IssueType{IssueTypeBMCWithoutIP},
+			machines: func() metal.Machines {
+				noIP := machineTemplate("no-ip")
+				noIP.IPMI.Address = ""
+
+				return metal.Machines{
+					machineTemplate("good"),
+					noIP,
+				}
+			},
+			eventContainers: func() metal.ProvisioningEventContainers {
+				crash := eventContainerTemplate("crash")
+				crash.CrashLoop = true
+
+				return metal.ProvisioningEventContainers{
+					eventContainerTemplate("no-ip"),
+					eventContainerTemplate("good"),
+				}
+			},
+			want: func(machines metal.Machines) MachineIssues {
+				return MachineIssues{
+					{
+						Machine: &machines[1],
+						Issues: Issues{
+							toIssue(&IssueBMCWithoutIP{}),
+						},
+					},
+				}
+			},
+		},
+		// FIXME:
 		// {
 		// 	name: "bmc info outdated",
 		// 	only: []IssueType{IssueTypeBMCInfoOutdated},
 		// 	machines: func() metal.Machines {
-		// 		bmcOutdatedMachine := machineTemplate("outdated")
-		// 		bmcOutdatedMachine.Ipmi.LastUpdated = pointer.Pointer(strfmt.DateTime(testTime.Add(-3 * 60 * time.Minute)))
+		// 		outdated := machineTemplate("outdated")
+		// 		outdated.IPMI.LastUpdated = time.Now().Add(-3 * 60 * time.Minute)
 
 		// 		return metal.Machines{
-		// 			machineTemplate("0"),
-		// 			bmcOutdatedMachine,
+		// 			machineTemplate("good"),
+		// 			outdated,
+		// 		}
+		// 	},
+		// 	eventContainers: func() metal.ProvisioningEventContainers {
+		// 		return metal.ProvisioningEventContainers{
+		// 			eventContainerTemplate("outdated"),
+		// 			eventContainerTemplate("good"),
 		// 		}
 		// 	},
 		// 	want: func(machines metal.Machines) MachineIssues {
 		// 		return MachineIssues{
 		// 			{
-		// 				Machine: machines[1],
+		// 				Machine: &machines[1],
 		// 				Issues: Issues{
 		// 					toIssue(&IssueBMCInfoOutdated{
 		// 						details: "last updated 3h0m0s ago",
@@ -344,106 +376,120 @@ func TestFindIssues(t *testing.T) {
 		// 		}
 		// 	},
 		// },
-		// {
-		// 	name: "asn shared",
-		// 	only: []IssueType{IssueTypeASNUniqueness},
-		// 	machines: func() metal.Machines {
-		// 		asnSharedMachine1 := machineTemplate("shared1")
-		// 		asnSharedMachine1.Allocation = &models.V1MachineAllocation{
-		// 			Role: pointer.Pointer(models.V1MachineAllocationRoleFirewall),
-		// 			Networks: []*models.V1MachineNetwork{
-		// 				{
-		// 					Asn: pointer.Pointer(int64(0)),
-		// 				},
-		// 				{
-		// 					Asn: pointer.Pointer(int64(100)),
-		// 				},
-		// 				{
-		// 					Asn: pointer.Pointer(int64(200)),
-		// 				},
-		// 			},
-		// 		}
+		{
+			name: "asn shared",
+			only: []IssueType{IssueTypeASNUniqueness},
+			machines: func() metal.Machines {
+				shared1 := machineTemplate("shared1")
+				shared1.Allocation = &metal.MachineAllocation{
+					Role: metal.RoleFirewall,
+					MachineNetworks: []*metal.MachineNetwork{
+						{
+							ASN: 0,
+						},
+						{
+							ASN: 100,
+						},
+						{
+							ASN: 200,
+						},
+					},
+				}
 
-		// 		asnSharedMachine2 := machineTemplate("shared2")
-		// 		asnSharedMachine2.Allocation = &models.V1MachineAllocation{
-		// 			Role: pointer.Pointer(models.V1MachineAllocationRoleFirewall),
-		// 			Networks: []*models.V1MachineNetwork{
-		// 				{
-		// 					Asn: pointer.Pointer(int64(1)),
-		// 				},
-		// 				{
-		// 					Asn: pointer.Pointer(int64(100)),
-		// 				},
-		// 				{
-		// 					Asn: pointer.Pointer(int64(200)),
-		// 				},
-		// 			},
-		// 		}
+				shared2 := machineTemplate("shared2")
+				shared2.Allocation = &metal.MachineAllocation{
+					Role: metal.RoleFirewall,
+					MachineNetworks: []*metal.MachineNetwork{
+						{
+							ASN: 1,
+						},
+						{
+							ASN: 100,
+						},
+						{
+							ASN: 200,
+						},
+					},
+				}
 
-		// 		return metal.Machines{
-		// 			asnSharedMachine1,
-		// 			asnSharedMachine2,
-		// 			machineTemplate("0"),
-		// 		}
-		// 	},
-		// 	want: func(machines metal.Machines) MachineIssues {
-		// 		return MachineIssues{
-		// 			{
-		// 				Machine: machines[0],
-		// 				Issues: Issues{
-		// 					toIssue(&IssueASNUniqueness{
-		// 						details: fmt.Sprintf("- ASN (100) not unique, shared with [%[1]s]\n- ASN (200) not unique, shared with [%[1]s]", *machines[1].ID),
-		// 					}),
-		// 				},
-		// 			},
-		// 			{
-		// 				Machine: machines[1],
-		// 				Issues: Issues{
-		// 					toIssue(&IssueASNUniqueness{
-		// 						details: fmt.Sprintf("- ASN (100) not unique, shared with [%[1]s]\n- ASN (200) not unique, shared with [%[1]s]", *machines[0].ID),
-		// 					}),
-		// 				},
-		// 			},
-		// 		}
-		// 	},
-		// },
-		// {
-		// 	name: "non distinct bmc ip",
-		// 	only: []IssueType{IssueTypeNonDistinctBMCIP},
-		// 	machines: func() metal.Machines {
-		// 		nonDistinctBMCMachine1 := machineTemplate("bmc1")
-		// 		nonDistinctBMCMachine1.Ipmi.Address = pointer.Pointer("127.0.0.1")
+				return metal.Machines{
+					shared1,
+					shared2,
+					machineTemplate("good"),
+				}
+			},
+			eventContainers: func() metal.ProvisioningEventContainers {
+				return metal.ProvisioningEventContainers{
+					eventContainerTemplate("shared1"),
+					eventContainerTemplate("shared2"),
+					eventContainerTemplate("good"),
+				}
+			},
+			want: func(machines metal.Machines) MachineIssues {
+				return MachineIssues{
+					{
+						Machine: &machines[0],
+						Issues: Issues{
+							toIssue(&IssueASNUniqueness{
+								details: fmt.Sprintf("- ASN (100) not unique, shared with [%[1]s]\n- ASN (200) not unique, shared with [%[1]s]", machines[1].ID),
+							}),
+						},
+					},
+					{
+						Machine: &machines[1],
+						Issues: Issues{
+							toIssue(&IssueASNUniqueness{
+								details: fmt.Sprintf("- ASN (100) not unique, shared with [%[1]s]\n- ASN (200) not unique, shared with [%[1]s]", machines[0].ID),
+							}),
+						},
+					},
+				}
+			},
+		},
+		{
+			name: "non distinct bmc ip",
+			only: []IssueType{IssueTypeNonDistinctBMCIP},
+			machines: func() metal.Machines {
+				bmc1 := machineTemplate("bmc1")
+				bmc1.IPMI.Address = "127.0.0.1"
 
-		// 		nonDistinctBMCMachine2 := machineTemplate("bmc2")
-		// 		nonDistinctBMCMachine2.Ipmi.Address = pointer.Pointer("127.0.0.1")
+				bmc2 := machineTemplate("bmc2")
+				bmc2.IPMI.Address = "127.0.0.1"
 
-		// 		return metal.Machines{
-		// 			nonDistinctBMCMachine1,
-		// 			nonDistinctBMCMachine2,
-		// 			machineTemplate("0"),
-		// 		}
-		// 	},
-		// 	want: func(machines metal.Machines) MachineIssues {
-		// 		return MachineIssues{
-		// 			{
-		// 				Machine: machines[0],
-		// 				Issues: Issues{
-		// 					toIssue(&IssueNonDistinctBMCIP{
-		// 						details: fmt.Sprintf("BMC IP (127.0.0.1) not unique, shared with [%[1]s]", *machines[1].ID),
-		// 					}),
-		// 				},
-		// 			},
-		// 			{
-		// 				Machine: machines[1],
-		// 				Issues: Issues{
-		// 					toIssue(&IssueNonDistinctBMCIP{
-		// 						details: fmt.Sprintf("BMC IP (127.0.0.1) not unique, shared with [%[1]s]", *machines[0].ID),
-		// 					}),
-		// 				},
-		// 			},
-		// 		}
-		// 	},
-		// },
+				return metal.Machines{
+					bmc1,
+					bmc2,
+					machineTemplate("good"),
+				}
+			},
+			eventContainers: func() metal.ProvisioningEventContainers {
+				return metal.ProvisioningEventContainers{
+					eventContainerTemplate("bmc1"),
+					eventContainerTemplate("bmc2"),
+					eventContainerTemplate("good"),
+				}
+			},
+			want: func(machines metal.Machines) MachineIssues {
+				return MachineIssues{
+					{
+						Machine: &machines[0],
+						Issues: Issues{
+							toIssue(&IssueNonDistinctBMCIP{
+								details: fmt.Sprintf("BMC IP (127.0.0.1) not unique, shared with [%[1]s]", machines[1].ID),
+							}),
+						},
+					},
+					{
+						Machine: &machines[1],
+						Issues: Issues{
+							toIssue(&IssueNonDistinctBMCIP{
+								details: fmt.Sprintf("BMC IP (127.0.0.1) not unique, shared with [%[1]s]", machines[0].ID),
+							}),
+						},
+					},
+				}
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
