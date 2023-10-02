@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/avast/retry-go/v4"
@@ -241,6 +242,17 @@ func (r *machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/issues").
+		To(viewer(r.issues)).
+		Operation("issues").
+		Doc("returns machine issues").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.MachineIssuesRequest{}).
+		Writes([]v1.MachineIssueResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineIssueResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/ipmi").
@@ -481,6 +493,73 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 	}
 
 	r.send(request, response, http.StatusOK, resp)
+}
+
+func (r *machineResource) issues(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineIssuesRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	ms := metal.Machines{}
+	err = r.ds.SearchMachines(&requestPayload.MachineSearchQuery, &ms)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	ecs, err := r.ds.ListProvisioningEventContainers()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	var (
+		severity           = issues.IssueSeverityMinor
+		only               []issues.IssueType
+		omit               []issues.IssueType
+		lastErrorThreshold = issues.DefaultLastErrorThreshold()
+	)
+
+	issues, err := issues.FindIssues(&issues.IssueConfig{
+		Machines:           ms,
+		EventContainers:    ecs,
+		Severity:           severity,
+		Only:               only,
+		Omit:               omit,
+		LastErrorThreshold: lastErrorThreshold,
+	})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	var issueResponse []*v1.MachineIssueResponse
+	for _, machineWithIssues := range issues {
+		machineWithIssues := machineWithIssues
+
+		entry := &v1.MachineIssueResponse{
+			MachineID: machineWithIssues.Machine.ID,
+		}
+
+		for _, issue := range machineWithIssues.Issues {
+			issue := issue
+
+			entry.Issues = append(entry.Issues, v1.MachineIssue{
+				ID:          string(issue.Type),
+				Severity:    string(issue.Severity),
+				Description: issue.Description,
+				RefURL:      issue.RefURL,
+				Details:     issue.Details,
+			})
+		}
+
+		issueResponse = append(issueResponse, entry)
+	}
+
+	r.send(request, response, http.StatusOK, issueResponse)
 }
 
 func (r *machineResource) getMachineConsolePassword(request *restful.Request, response *restful.Response) {
