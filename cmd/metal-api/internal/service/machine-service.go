@@ -245,7 +245,7 @@ func (r *machineResource) webService() *restful.WebService {
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.GET("/issues").
-		To(viewer(r.issues)).
+		To(viewer(r.listIssues)).
 		Operation("listIssues").
 		Doc("returns the list of issues that exist in the API").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
