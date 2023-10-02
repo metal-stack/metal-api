@@ -6769,6 +6769,38 @@
       }
     },
     "/v1/machine/issues": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listIssues",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.MachineIssue"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "returns the list of issues that exist in the API",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/issues/evaluate": {
       "post": {
         "consumes": [
           "application/json"

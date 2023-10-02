@@ -244,7 +244,17 @@ func (r *machineResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/issues").
+	ws.Route(ws.GET("/issues").
+		To(viewer(r.issues)).
+		Operation("listIssues").
+		Doc("returns the list of issues that exist in the API").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Writes([]v1.MachineIssue{}).
+		Returns(http.StatusOK, "OK", []v1.MachineIssue{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/issues/evaluate").
 		To(viewer(r.issues)).
 		Operation("issues").
 		Doc("returns machine issues").
@@ -493,6 +503,25 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 	}
 
 	r.send(request, response, http.StatusOK, resp)
+}
+
+func (r *machineResource) listIssues(request *restful.Request, response *restful.Response) {
+	issues := issues.AllIssues()
+
+	var issueResponse []v1.MachineIssue
+	for _, issue := range issues {
+		issue := issue
+
+		issueResponse = append(issueResponse, v1.MachineIssue{
+			ID:          string(issue.Type),
+			Severity:    string(issue.Severity),
+			Description: issue.Description,
+			RefURL:      issue.RefURL,
+			Details:     issue.Details,
+		})
+	}
+
+	r.send(request, response, http.StatusOK, issueResponse)
 }
 
 func (r *machineResource) issues(request *restful.Request, response *restful.Response) {
