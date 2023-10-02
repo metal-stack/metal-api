@@ -503,7 +503,55 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 		return
 	}
 
-	ms := metal.Machines{}
+	var (
+		ms = metal.Machines{}
+
+		severity           = issues.IssueSeverityMinor
+		only               []issues.IssueType
+		omit               []issues.IssueType
+		lastErrorThreshold = issues.DefaultLastErrorThreshold()
+	)
+
+	if requestPayload.Severity != "" {
+		severity, err = issues.SeverityFromString(requestPayload.Severity)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+	}
+
+	if len(requestPayload.Omit) > 0 {
+		for _, o := range requestPayload.Omit {
+			o := o
+
+			_, err := issues.NewIssueFromType(o)
+			if err != nil {
+				r.sendError(request, response, httperrors.BadRequest(err))
+				return
+			}
+
+			omit = append(omit, o)
+		}
+	}
+
+	if len(requestPayload.Only) > 0 {
+		for _, o := range requestPayload.Only {
+			o := o
+
+			_, err := issues.NewIssueFromType(o)
+			if err != nil {
+				r.sendError(request, response, httperrors.BadRequest(err))
+				return
+			}
+
+			only = append(only, o)
+		}
+	}
+
+	if requestPayload.LastErrorThreshold > 0 {
+		lastErrorThreshold = requestPayload.LastErrorThreshold
+	}
+
 	err = r.ds.SearchMachines(&requestPayload.MachineSearchQuery, &ms)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
@@ -515,13 +563,6 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-
-	var (
-		severity           = issues.IssueSeverityMinor
-		only               []issues.IssueType
-		omit               []issues.IssueType
-		lastErrorThreshold = issues.DefaultLastErrorThreshold()
-	)
 
 	issues, err := issues.FindIssues(&issues.IssueConfig{
 		Machines:           ms,
