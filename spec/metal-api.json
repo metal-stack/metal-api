@@ -4707,6 +4707,14 @@
         }
       }
     },
+    "v1.TenantGetHistoryRequest": {
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      }
+    },
     "v1.TenantResponse": {
       "properties": {
         "default_quotas": {
@@ -9066,6 +9074,52 @@
           }
         },
         "summary": "get tenant by id",
+        "tags": [
+          "tenant"
+        ]
+      }
+    },
+    "/v1/tenant/{id}/history": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "getTenantHistory",
+        "parameters": [
+          {
+            "description": "identifier of the tenant",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.TenantGetHistoryRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get tenant with this id at the given timestamp",
         "tags": [
           "tenant"
         ]
