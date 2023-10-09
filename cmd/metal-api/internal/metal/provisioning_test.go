@@ -5,42 +5,6 @@ import (
 	"time"
 )
 
-func TestProvisioningEventType_Is(t *testing.T) {
-	tests := []struct {
-		name  string
-		event ProvisioningEventType
-		p     ProvisioningEventType
-		want  bool
-	}{
-		{
-			name:  "simple",
-			event: "Waiting",
-			p:     ProvisioningEventWaiting,
-			want:  true,
-		},
-		{
-			name:  "simple",
-			event: "Waiting",
-			p:     ProvisioningEventInstalling,
-			want:  false,
-		},
-		{
-			name:  "simple",
-			event: "Alive",
-			p:     ProvisioningEventAlive,
-			want:  true,
-		},
-	}
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.p.Is(tt.event); got != tt.want {
-				t.Errorf("ProvisioningEventType.Is() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestProvisioningEventContainer_Validate(t *testing.T) {
 	now := time.Now()
 	tests := []struct {

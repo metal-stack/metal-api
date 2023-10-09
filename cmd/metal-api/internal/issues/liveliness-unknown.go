@@ -20,7 +20,7 @@ func (i *IssueLivelinessUnknown) Spec() *spec {
 }
 
 func (i *IssueLivelinessUnknown) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
-	return ec.Liveliness.Is(string(metal.MachineLivelinessUnknown))
+	return ec.Liveliness == metal.MachineLivelinessUnknown
 }
 
 func (i *IssueLivelinessUnknown) Details() string {

@@ -1731,7 +1731,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-	if err == nil && !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
+	if err == nil && ec.Liveliness != metal.MachineLivelinessDead {
 		r.sendError(request, response, defaultError(errors.New("can only delete dead machines")))
 		return
 	}

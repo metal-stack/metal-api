@@ -430,7 +430,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			continue
 		}
 
-		if m.State.Value == metal.AvailableState && metal.ProvisioningEventWaiting.Is(pointer.FirstOrZero(ec.Events).Event) {
+		if m.State.Value == metal.AvailableState && metal.ProvisioningEventWaiting == pointer.FirstOrZero(ec.Events).Event {
 			cap.Free++
 			continue
 		}
