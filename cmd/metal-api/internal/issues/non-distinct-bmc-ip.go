@@ -16,8 +16,8 @@ type (
 	}
 )
 
-func (i *IssueNonDistinctBMCIP) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueNonDistinctBMCIP) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeNonDistinctBMCIP,
 		Description: "BMC IP address is not distinct",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#bmc-no-distinct-ip",

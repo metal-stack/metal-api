@@ -24,7 +24,7 @@ func AllIssueTypes() []IssueType {
 	}
 }
 
-func NewIssueFromType(t IssueType) (issueImpl, error) {
+func NewIssueFromType(t IssueType) (issue, error) {
 	switch t {
 	case IssueTypeNoPartition:
 		return &IssueNoPartition{}, nil

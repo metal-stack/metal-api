@@ -10,8 +10,8 @@ type (
 	IssueBMCWithoutMAC struct{}
 )
 
-func (i *IssueBMCWithoutMAC) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueBMCWithoutMAC) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeBMCWithoutMAC,
 		Severity:    IssueSeverityMajor,
 		Description: "BMC has no mac address",

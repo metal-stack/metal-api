@@ -13,8 +13,8 @@ type (
 	IssueFailedMachineReclaim struct{}
 )
 
-func (i *IssueFailedMachineReclaim) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueFailedMachineReclaim) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeFailedMachineReclaim,
 		Severity:    IssueSeverityCritical,
 		Description: "machine phones home but not allocated",

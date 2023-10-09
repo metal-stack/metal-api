@@ -509,7 +509,7 @@ func TestFindIssues(t *testing.T) {
 				want = tt.want(ms)
 			}
 
-			if diff := cmp.Diff(want, got, cmp.AllowUnexported(IssueLastEventError{}, IssueASNUniqueness{}, IssueNonDistinctBMCIP{})); diff != "" {
+			if diff := cmp.Diff(want, got.ToList(), cmp.AllowUnexported(IssueLastEventError{}, IssueASNUniqueness{}, IssueNonDistinctBMCIP{})); diff != "" {
 				t.Errorf("diff (+got -want):\n %s", diff)
 			}
 		})

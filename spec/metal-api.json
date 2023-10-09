@@ -8048,37 +8048,6 @@
       }
     },
     "/v1/partition/capacity": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "deprecated": true,
-        "operationId": "partitionCapacityCompat",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v1.PartitionCapacity"
-              },
-              "type": "array"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "get partition capacity",
-        "tags": [
-          "Partition"
-        ]
-      },
       "post": {
         "consumes": [
           "application/json"

@@ -39,9 +39,11 @@ type PartitionCapacityRequest struct {
 	Size *string `json:"sizeid" description:"the size to filter for" optional:"true"`
 }
 
+type ServerCapacities []*ServerCapacity
+
 type PartitionCapacity struct {
 	Common
-	ServerCapacities []ServerCapacity `json:"servers" description:"servers available in this partition"`
+	ServerCapacities ServerCapacities `json:"servers" description:"servers available in this partition"`
 }
 
 type ServerCapacity struct {
@@ -84,4 +86,15 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			Changed: p.Changed,
 		},
 	}
+}
+
+func (s ServerCapacities) FindBySize(size string) *ServerCapacity {
+	for _, sc := range s {
+		sc := sc
+		if sc.Size == size {
+			return sc
+		}
+	}
+
+	return nil
 }

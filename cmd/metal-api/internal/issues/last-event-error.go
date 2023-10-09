@@ -21,8 +21,8 @@ func DefaultLastErrorThreshold() time.Duration {
 	return 7 * 24 * time.Hour
 }
 
-func (i *IssueLastEventError) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueLastEventError) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeLastEventError,
 		Severity:    IssueSeverityMinor,
 		Description: "the machine had an error during the provisioning lifecycle",

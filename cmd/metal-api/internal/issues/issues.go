@@ -38,20 +38,20 @@ type (
 	// MachineIssues is map of a machine response to a list of machine issues
 	MachineIssues []*MachineWithIssues
 
-	machineIssueMap map[*metal.Machine]Issues
+	MachineIssuesMap map[*metal.Machine]Issues
 
-	issueImpl interface {
+	issue interface {
 		// Evaluate decides whether a given machine has the machine issue.
 		// the third argument contains additional information that may be required for the issue evaluation
 		Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool
 		// Spec returns the issue spec of this issue.
-		Spec() *issueSpec
+		Spec() *spec
 		// Details returns additional information on the issue after the evaluation.
 		Details() string
 	}
 
-	// issueSpec defines the specification of an issue.
-	issueSpec struct {
+	// spec defines the specification of an issue.
+	spec struct {
 		Type        IssueType
 		Severity    IssueSeverity
 		Description string
@@ -74,7 +74,7 @@ func AllIssues() Issues {
 	return res
 }
 
-func toIssue(i issueImpl) Issue {
+func toIssue(i issue) Issue {
 	return Issue{
 		Type:        i.Spec().Type,
 		Severity:    i.Spec().Severity,
@@ -84,8 +84,12 @@ func toIssue(i issueImpl) Issue {
 	}
 }
 
-func FindIssues(c *IssueConfig) (MachineIssues, error) {
-	res := machineIssueMap{}
+func FindIssues(c *IssueConfig) (MachineIssuesMap, error) {
+	if c.LastErrorThreshold == 0 {
+		c.LastErrorThreshold = DefaultLastErrorThreshold()
+	}
+
+	res := MachineIssuesMap{}
 
 	ecs := c.EventContainers.ByID()
 
@@ -114,7 +118,7 @@ func FindIssues(c *IssueConfig) (MachineIssues, error) {
 		}
 	}
 
-	return res.toList(), nil
+	return res, nil
 }
 
 func (mis MachineIssues) Get(id string) *MachineWithIssues {
@@ -161,7 +165,7 @@ func (c *IssueConfig) includeIssue(t IssueType) bool {
 	return true
 }
 
-func (mim machineIssueMap) add(m metal.Machine, issue Issue) {
+func (mim MachineIssuesMap) add(m metal.Machine, issue Issue) {
 	issues, ok := mim[&m]
 	if !ok {
 		issues = Issues{}
@@ -170,7 +174,7 @@ func (mim machineIssueMap) add(m metal.Machine, issue Issue) {
 	mim[&m] = issues
 }
 
-func (mim machineIssueMap) toList() MachineIssues {
+func (mim MachineIssuesMap) ToList() MachineIssues {
 	var res MachineIssues
 
 	for m, issues := range mim {

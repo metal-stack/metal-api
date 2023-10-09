@@ -12,8 +12,8 @@ type (
 	IssueNoEventContainer struct{}
 )
 
-func (i *IssueNoEventContainer) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueNoEventContainer) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeNoEventContainer,
 		Severity:    IssueSeverityMajor,
 		Description: "machine has no event container",

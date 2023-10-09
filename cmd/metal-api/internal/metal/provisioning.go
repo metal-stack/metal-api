@@ -48,8 +48,8 @@ var (
 type ProvisioningEvents []ProvisioningEvent
 
 // Is return true if given event is equal to specific EventType
-func (p ProvisioningEventType) Is(event string) bool {
-	return string(p) == event
+func (p ProvisioningEventType) Is(event ProvisioningEventType) bool {
+	return p == event
 }
 
 // TrimEvents trim the events to maxCount

@@ -10,8 +10,8 @@ type (
 	IssueLivelinessDead struct{}
 )
 
-func (i *IssueLivelinessDead) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueLivelinessDead) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeLivelinessDead,
 		Severity:    IssueSeverityMajor,
 		Description: "the machine is not sending events anymore",

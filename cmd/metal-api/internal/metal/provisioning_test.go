@@ -8,7 +8,7 @@ import (
 func TestProvisioningEventType_Is(t *testing.T) {
 	tests := []struct {
 		name  string
-		event string
+		event ProvisioningEventType
 		p     ProvisioningEventType
 		want  bool
 	}{

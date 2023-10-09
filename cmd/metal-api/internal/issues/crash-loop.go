@@ -13,8 +13,8 @@ type (
 	IssueCrashLoop struct{}
 )
 
-func (i *IssueCrashLoop) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueCrashLoop) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeCrashLoop,
 		Severity:    IssueSeverityMajor,
 		Description: "machine is in a provisioning crash loop (⭕)",

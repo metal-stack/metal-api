@@ -10,8 +10,8 @@ type (
 	IssueNoPartition struct{}
 )
 
-func (i *IssueNoPartition) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueNoPartition) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeNoPartition,
 		Severity:    IssueSeverityMajor,
 		Description: "machine with no partition",

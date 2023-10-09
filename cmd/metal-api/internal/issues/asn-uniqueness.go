@@ -18,8 +18,8 @@ type (
 	}
 )
 
-func (i *IssueASNUniqueness) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueASNUniqueness) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeASNUniqueness,
 		Severity:    IssueSeverityMinor,
 		Description: "The ASN is not unique (only impact on firewalls)",

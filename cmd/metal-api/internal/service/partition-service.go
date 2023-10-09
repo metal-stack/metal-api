@@ -2,11 +2,14 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/auditing"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -96,18 +99,6 @@ func (r *partitionResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", v1.PartitionResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	// Deprecated, can be removed in the future
-	ws.Route(ws.GET("/capacity").
-		To(r.partitionCapacityCompat).
-		Operation("partitionCapacityCompat").
-		Doc("get partition capacity").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
-		Writes([]v1.PartitionCapacity{}).
-		Returns(http.StatusOK, "OK", []v1.PartitionCapacity{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).
-		Deprecate())
 
 	ws.Route(ws.POST("/capacity").
 		To(r.partitionCapacity).
@@ -314,16 +305,6 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	r.send(request, response, http.StatusOK, v1.NewPartitionResponse(&newPartition))
 }
 
-func (r *partitionResource) partitionCapacityCompat(request *restful.Request, response *restful.Response) {
-	partitionCapacities, err := r.calcPartitionCapacity(nil)
-	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
-	}
-
-	r.send(request, response, http.StatusOK, partitionCapacities)
-}
-
 func (r *partitionResource) partitionCapacity(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.PartitionCapacityRequest
 	err := request.ReadEntity(&requestPayload)
@@ -342,15 +323,13 @@ func (r *partitionResource) partitionCapacity(request *restful.Request, response
 }
 
 func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityRequest) ([]v1.PartitionCapacity, error) {
-	// FIXME bad workaround to be able to run make spec
-	if r.ds == nil {
-		return nil, nil
-	}
-
 	var (
-		ps  metal.Partitions
-		ms  metal.Machines
-		err error
+		ps metal.Partitions
+		ms metal.Machines
+
+		pcs = map[string]*v1.PartitionCapacity{}
+
+		machineQuery = datastore.MachineSearchQuery{}
 	)
 
 	if pcr != nil && pcr.ID != nil {
@@ -359,96 +338,118 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			return nil, err
 		}
 		ps = metal.Partitions{*p}
+
+		machineQuery.PartitionID = pcr.ID
 	} else {
+		var err error
 		ps, err = r.ds.ListPartitions()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	msq := datastore.MachineSearchQuery{}
 	if pcr != nil && pcr.Size != nil {
-		msq.SizeID = pcr.Size
+		machineQuery.SizeID = pcr.Size
 	}
 
-	err = r.ds.SearchMachines(&msq, &ms)
-	if err != nil {
-		return nil, err
-	}
-	machines, err := makeMachineResponseList(ms, r.ds)
+	err := r.ds.SearchMachines(&machineQuery, &ms)
 	if err != nil {
 		return nil, err
 	}
 
-	partitionCapacities := []v1.PartitionCapacity{}
-	for _, p := range ps {
-		p := p
-		capacities := make(map[string]*v1.ServerCapacity)
-		for _, m := range machines {
-			m := m
-			if m.Partition == nil {
-				continue
-			}
-			if m.Partition.ID != p.ID {
-				continue
-			}
-
-			size := metal.UnknownSize.ID
-			if m.Size != nil {
-				size = m.Size.ID
-			}
-
-			available := false
-			if m.State.Value == string(metal.AvailableState) && len(m.RecentProvisioningEvents.Events) > 0 {
-				events := m.RecentProvisioningEvents.Events
-				if metal.ProvisioningEventWaiting.Is(events[0].Event) && metal.ProvisioningEventAlive.Is(m.Liveliness) {
-					available = true
-				}
-			}
-
-			cap, ok := capacities[size]
-			if !ok {
-				cap = &v1.ServerCapacity{Size: size}
-				capacities[size] = cap
-			}
-
-			if m.Allocation != nil {
-				cap.Allocated++
-			} else if machineHasIssues(m) {
-				cap.Faulty++
-				cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
-			} else if available {
-				cap.Free++
-			} else {
-				cap.Other++
-				cap.OtherMachines = append(cap.OtherMachines, m.ID)
-			}
-
-			cap.Total++
-		}
-		sc := []v1.ServerCapacity{}
-		for i := range capacities {
-			if capacities[i] == nil {
-				continue
-			}
-			sc = append(sc, *capacities[i])
-		}
-
-		pc := v1.PartitionCapacity{
-			Common: v1.Common{
-				Identifiable: v1.Identifiable{
-					ID: p.ID,
-				},
-				Describable: v1.Describable{
-					Name:        &p.Name,
-					Description: &p.Description,
-				},
-			},
-			ServerCapacities: sc,
-		}
-
-		partitionCapacities = append(partitionCapacities, pc)
+	ecs, err := r.ds.ListProvisioningEventContainers()
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch provisioning event containers: %w", err)
 	}
 
-	return partitionCapacities, err
+	machinesWithIssues, err := issues.FindIssues(&issues.IssueConfig{
+		Machines:        ms,
+		EventContainers: ecs,
+		Only: []issues.IssueType{
+			issues.IssueTypeLivelinessDead,
+			issues.IssueTypeLivelinessUnknown,
+			issues.IssueTypeLivelinessNotAvailable,
+			issues.IssueTypeFailedMachineReclaim,
+			issues.IssueTypeCrashLoop,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to calculate machine issues: %w", err)
+	}
+
+	partitionsByID := ps.ByID()
+	ecsByID := ecs.ByID()
+
+	for _, m := range ms {
+		m := m
+
+		ec, ok := ecsByID[m.ID]
+		if !ok {
+			continue
+		}
+
+		p, ok := partitionsByID[m.PartitionID]
+		if !ok {
+			continue
+		}
+
+		pc, ok := pcs[m.PartitionID]
+		if !ok {
+			pc = &v1.PartitionCapacity{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: p.ID,
+					},
+					Describable: v1.Describable{
+						Name:        &p.Name,
+						Description: &p.Description,
+					},
+				},
+				ServerCapacities: v1.ServerCapacities{},
+			}
+		}
+		pcs[m.PartitionID] = pc
+
+		size := metal.UnknownSize.ID
+		if m.SizeID != "" {
+			size = m.SizeID
+		}
+
+		cap := pc.ServerCapacities.FindBySize(size)
+		if cap == nil {
+			cap = &v1.ServerCapacity{
+				Size: size,
+			}
+			pc.ServerCapacities = append(pc.ServerCapacities, cap)
+		}
+
+		cap.Total++
+
+		if m.Allocation != nil {
+			cap.Allocated++
+			continue
+		}
+
+		if _, ok := machinesWithIssues[&m]; ok {
+			cap.Faulty++
+			cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
+			continue
+		}
+
+		if m.State.Value == metal.AvailableState && metal.ProvisioningEventWaiting.Is(pointer.FirstOrZero(ec.Events).Event) {
+			cap.Free++
+			continue
+		}
+
+		cap.Other++
+		cap.OtherMachines = append(cap.OtherMachines, m.ID)
+	}
+
+	res := []v1.PartitionCapacity{}
+	for _, pc := range pcs {
+		pc := pc
+		res = append(res, *pc)
+	}
+
+	return res, nil
 }

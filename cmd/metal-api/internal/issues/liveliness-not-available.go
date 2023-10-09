@@ -10,8 +10,8 @@ type (
 	IssueLivelinessNotAvailable struct{}
 )
 
-func (i *IssueLivelinessNotAvailable) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueLivelinessNotAvailable) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeLivelinessNotAvailable,
 		Severity:    IssueSeverityMinor,
 		Description: "the machine liveliness is not available",

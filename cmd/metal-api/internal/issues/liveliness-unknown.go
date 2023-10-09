@@ -10,8 +10,8 @@ type (
 	IssueLivelinessUnknown struct{}
 )
 
-func (i *IssueLivelinessUnknown) Spec() *issueSpec {
-	return &issueSpec{
+func (i *IssueLivelinessUnknown) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeLivelinessUnknown,
 		Severity:    IssueSeverityMajor,
 		Description: "the machine is not sending LLDP alive messages anymore",

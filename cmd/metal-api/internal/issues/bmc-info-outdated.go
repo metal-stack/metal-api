@@ -37,8 +37,8 @@ func (i *IssueBMCInfoOutdated) Evaluate(m metal.Machine, ec metal.ProvisioningEv
 	return false
 }
 
-func (*IssueBMCInfoOutdated) Spec() *issueSpec {
-	return &issueSpec{
+func (*IssueBMCInfoOutdated) Spec() *spec {
+	return &spec{
 		Type:        IssueTypeBMCInfoOutdated,
 		Severity:    IssueSeverityMajor,
 		Description: "BMC has not been updated from either metal-hammer or metal-bmc",
