@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	TypeLastEventError IssueType = "last-event-error"
+	TypeLastEventError Type = "last-event-error"
 )
 
 type (

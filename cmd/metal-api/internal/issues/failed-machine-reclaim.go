@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	TypeFailedMachineReclaim IssueType = "failed-machine-reclaim"
+	TypeFailedMachineReclaim Type = "failed-machine-reclaim"
 )
 
 type (

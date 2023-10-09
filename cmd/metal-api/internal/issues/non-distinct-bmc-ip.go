@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	TypeNonDistinctBMCIP IssueType = "bmc-no-distinct-ip"
+	TypeNonDistinctBMCIP Type = "bmc-no-distinct-ip"
 )
 
 type (

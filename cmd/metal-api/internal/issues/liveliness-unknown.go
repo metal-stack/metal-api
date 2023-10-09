@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	TypeLivelinessUnknown IssueType = "liveliness-unknown"
+	TypeLivelinessUnknown Type = "liveliness-unknown"
 )
 
 type (

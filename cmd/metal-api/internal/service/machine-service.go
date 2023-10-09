@@ -536,8 +536,8 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 		ms = metal.Machines{}
 
 		severity           = issues.SeverityMinor
-		only               []issues.IssueType
-		omit               []issues.IssueType
+		only               []issues.Type
+		omit               []issues.Type
 		lastErrorThreshold = issues.DefaultLastErrorThreshold()
 	)
 

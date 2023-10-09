@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	TypeBMCWithoutMAC IssueType = "bmc-without-mac"
+	TypeBMCWithoutMAC Type = "bmc-without-mac"
 )
 
 type (

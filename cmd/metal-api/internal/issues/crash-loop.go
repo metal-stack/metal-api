@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	TypeCrashLoop IssueType = "crashloop"
+	TypeCrashLoop Type = "crashloop"
 )
 
 type (

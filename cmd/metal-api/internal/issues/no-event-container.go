@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	TypeNoEventContainer IssueType = "no-event-container"
+	TypeNoEventContainer Type = "no-event-container"
 )
 
 type (

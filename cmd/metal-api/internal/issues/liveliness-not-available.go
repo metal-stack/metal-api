@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	TypeLivelinessNotAvailable IssueType = "liveliness-not-available"
+	TypeLivelinessNotAvailable Type = "liveliness-not-available"
 )
 
 type (

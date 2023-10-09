@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	TypeBMCInfoOutdated IssueType = "bmc-info-outdated"
+	TypeBMCInfoOutdated Type = "bmc-info-outdated"
 )
 
 type (

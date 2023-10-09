@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	TypeASNUniqueness IssueType = "asn-not-unique"
+	TypeASNUniqueness Type = "asn-not-unique"
 )
 
 type (

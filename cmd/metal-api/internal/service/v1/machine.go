@@ -269,8 +269,8 @@ type MachineReinstallRequest struct {
 type MachineIssuesRequest struct {
 	datastore.MachineSearchQuery
 
-	Only []issues.IssueType `json:"only" description:"a list of machine issues to include"`
-	Omit []issues.IssueType `json:"omit" description:"a list of machine issues to omit"`
+	Only []issues.Type `json:"only" description:"a list of machine issues to include"`
+	Omit []issues.Type `json:"omit" description:"a list of machine issues to omit"`
 
 	Severity           string        `json:"severity" description:"filters issue for given severity"`
 	LastErrorThreshold time.Duration `json:"last_error_threshold" description:"defines the last error threshold"`

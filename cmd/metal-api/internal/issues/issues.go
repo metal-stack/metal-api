@@ -13,14 +13,14 @@ type (
 		Machines           metal.Machines
 		EventContainers    metal.ProvisioningEventContainers
 		Severity           IssueSeverity
-		Only               []IssueType
-		Omit               []IssueType
+		Only               []Type
+		Omit               []Type
 		LastErrorThreshold time.Duration
 	}
 
 	// Issue formulates an issue of a machine
 	Issue struct {
-		Type        IssueType
+		Type        Type
 		Severity    IssueSeverity
 		Description string
 		RefURL      string
@@ -52,7 +52,7 @@ type (
 
 	// spec defines the specification of an issue.
 	spec struct {
-		Type        IssueType
+		Type        Type
 		Severity    IssueSeverity
 		Description string
 		RefURL      string
@@ -137,7 +137,7 @@ func (mis MachineIssues) Get(id string) *MachineWithIssues {
 	return nil
 }
 
-func (c *Config) includeIssue(t IssueType) bool {
+func (c *Config) includeIssue(t Type) bool {
 	issue, err := NewIssueFromType(t)
 	if err != nil {
 		return false

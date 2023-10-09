@@ -3,11 +3,11 @@ package issues
 import "fmt"
 
 type (
-	IssueType string
+	Type string
 )
 
-func AllIssueTypes() []IssueType {
-	return []IssueType{
+func AllIssueTypes() []Type {
+	return []Type{
 		TypeNoPartition,
 		TypeLivelinessDead,
 		TypeLivelinessUnknown,
@@ -24,7 +24,19 @@ func AllIssueTypes() []IssueType {
 	}
 }
 
-func NewIssueFromType(t IssueType) (issue, error) {
+func NotAllocatableIssueTypes() []Type {
+	return []Type{
+		TypeNoPartition,
+		TypeLivelinessDead,
+		TypeLivelinessUnknown,
+		TypeLivelinessNotAvailable,
+		TypeFailedMachineReclaim,
+		TypeCrashLoop,
+		TypeNoEventContainer,
+	}
+}
+
+func NewIssueFromType(t Type) (issue, error) {
 	switch t {
 	case TypeNoPartition:
 		return &IssueNoPartition{}, nil

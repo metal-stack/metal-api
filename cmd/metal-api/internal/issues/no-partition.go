@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	TypeNoPartition IssueType = "no-partition"
+	TypeNoPartition Type = "no-partition"
 )
 
 type (

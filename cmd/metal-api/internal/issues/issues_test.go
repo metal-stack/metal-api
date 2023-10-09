@@ -35,7 +35,7 @@ func TestFindIssues(t *testing.T) {
 
 	tests := []struct {
 		name string
-		only []IssueType
+		only []Type
 
 		machines        func() metal.Machines
 		eventContainers func() metal.ProvisioningEventContainers
@@ -58,7 +58,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "no partition",
-			only: []IssueType{TypeNoPartition},
+			only: []Type{TypeNoPartition},
 			machines: func() metal.Machines {
 				noPartitionMachine := machineTemplate("no-partition")
 				noPartitionMachine.PartitionID = ""
@@ -87,7 +87,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "liveliness dead",
-			only: []IssueType{TypeLivelinessDead},
+			only: []Type{TypeLivelinessDead},
 			machines: func() metal.Machines {
 				return metal.Machines{
 					machineTemplate("dead"),
@@ -116,7 +116,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "liveliness unknown",
-			only: []IssueType{TypeLivelinessUnknown},
+			only: []Type{TypeLivelinessUnknown},
 			machines: func() metal.Machines {
 				return metal.Machines{
 					machineTemplate("unknown"),
@@ -145,7 +145,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "liveliness not available",
-			only: []IssueType{TypeLivelinessNotAvailable},
+			only: []Type{TypeLivelinessNotAvailable},
 			machines: func() metal.Machines {
 				return metal.Machines{
 					machineTemplate("n/a"),
@@ -174,7 +174,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "failed machine reclaim",
-			only: []IssueType{TypeFailedMachineReclaim},
+			only: []Type{TypeFailedMachineReclaim},
 			machines: func() metal.Machines {
 				failedOld := machineTemplate("failed-old")
 
@@ -220,7 +220,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "crashloop",
-			only: []IssueType{TypeCrashLoop},
+			only: []Type{TypeCrashLoop},
 			machines: func() metal.Machines {
 				return metal.Machines{
 					machineTemplate("good"),
@@ -282,7 +282,7 @@ func TestFindIssues(t *testing.T) {
 		// },
 		{
 			name: "bmc without mac",
-			only: []IssueType{TypeBMCWithoutMAC},
+			only: []Type{TypeBMCWithoutMAC},
 			machines: func() metal.Machines {
 				noMac := machineTemplate("no-mac")
 				noMac.IPMI.MacAddress = ""
@@ -314,7 +314,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "bmc without ip",
-			only: []IssueType{TypeBMCWithoutIP},
+			only: []Type{TypeBMCWithoutIP},
 			machines: func() metal.Machines {
 				noIP := machineTemplate("no-ip")
 				noIP.IPMI.Address = ""
@@ -378,7 +378,7 @@ func TestFindIssues(t *testing.T) {
 		// },
 		{
 			name: "asn shared",
-			only: []IssueType{TypeASNUniqueness},
+			only: []Type{TypeASNUniqueness},
 			machines: func() metal.Machines {
 				shared1 := machineTemplate("shared1")
 				shared1.Allocation = &metal.MachineAllocation{
@@ -448,7 +448,7 @@ func TestFindIssues(t *testing.T) {
 		},
 		{
 			name: "non distinct bmc ip",
-			only: []IssueType{TypeNonDistinctBMCIP},
+			only: []Type{TypeNonDistinctBMCIP},
 			machines: func() metal.Machines {
 				bmc1 := machineTemplate("bmc1")
 				bmc1.IPMI.Address = "127.0.0.1"
@@ -517,7 +517,7 @@ func TestFindIssues(t *testing.T) {
 }
 
 func TestAllIssues(t *testing.T) {
-	issuesTypes := map[IssueType]bool{}
+	issuesTypes := map[Type]bool{}
 	for _, i := range AllIssues() {
 		issuesTypes[i.Type] = true
 	}

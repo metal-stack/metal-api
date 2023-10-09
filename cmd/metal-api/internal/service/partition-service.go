@@ -365,13 +365,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	machinesWithIssues, err := issues.FindIssues(&issues.Config{
 		Machines:        ms,
 		EventContainers: ecs,
-		Only: []issues.IssueType{
-			issues.TypeLivelinessDead,
-			issues.TypeLivelinessUnknown,
-			issues.TypeLivelinessNotAvailable,
-			issues.TypeFailedMachineReclaim,
-			issues.TypeCrashLoop,
-		},
+		Only:            issues.NotAllocatableIssueTypes(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to calculate machine issues: %w", err)
