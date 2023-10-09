@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	IssueTypeCrashLoop IssueType = "crashloop"
+	TypeCrashLoop IssueType = "crashloop"
 )
 
 type (
@@ -15,14 +15,14 @@ type (
 
 func (i *IssueCrashLoop) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeCrashLoop,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeCrashLoop,
+		Severity:    SeverityMajor,
 		Description: "machine is in a provisioning crash loop (⭕)",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#crashloop",
 	}
 }
 
-func (i *IssueCrashLoop) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueCrashLoop) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if ec.CrashLoop {
 		if pointer.FirstOrZero(ec.Events).Event == metal.ProvisioningEventWaiting {
 			// Machine which are waiting are not considered to have issues

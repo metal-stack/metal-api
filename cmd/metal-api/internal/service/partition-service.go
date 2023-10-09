@@ -362,15 +362,15 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, fmt.Errorf("unable to fetch provisioning event containers: %w", err)
 	}
 
-	machinesWithIssues, err := issues.FindIssues(&issues.IssueConfig{
+	machinesWithIssues, err := issues.FindIssues(&issues.Config{
 		Machines:        ms,
 		EventContainers: ecs,
 		Only: []issues.IssueType{
-			issues.IssueTypeLivelinessDead,
-			issues.IssueTypeLivelinessUnknown,
-			issues.IssueTypeLivelinessNotAvailable,
-			issues.IssueTypeFailedMachineReclaim,
-			issues.IssueTypeCrashLoop,
+			issues.TypeLivelinessDead,
+			issues.TypeLivelinessUnknown,
+			issues.TypeLivelinessNotAvailable,
+			issues.TypeFailedMachineReclaim,
+			issues.TypeCrashLoop,
 		},
 	})
 	if err != nil {

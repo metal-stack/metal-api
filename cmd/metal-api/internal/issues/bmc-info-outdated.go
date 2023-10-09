@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	IssueTypeBMCInfoOutdated IssueType = "bmc-info-outdated"
+	TypeBMCInfoOutdated IssueType = "bmc-info-outdated"
 )
 
 type (
@@ -21,7 +21,7 @@ func (i *IssueBMCInfoOutdated) Details() string {
 	return i.details
 }
 
-func (i *IssueBMCInfoOutdated) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueBMCInfoOutdated) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if m.IPMI.LastUpdated.IsZero() {
 		i.details = "machine ipmi has never been set"
 		return true
@@ -39,8 +39,8 @@ func (i *IssueBMCInfoOutdated) Evaluate(m metal.Machine, ec metal.ProvisioningEv
 
 func (*IssueBMCInfoOutdated) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeBMCInfoOutdated,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeBMCInfoOutdated,
+		Severity:    SeverityMajor,
 		Description: "BMC has not been updated from either metal-hammer or metal-bmc",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#bmc-info-outdated",
 	}

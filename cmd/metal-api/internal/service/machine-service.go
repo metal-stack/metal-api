@@ -535,7 +535,7 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 	var (
 		ms = metal.Machines{}
 
-		severity           = issues.IssueSeverityMinor
+		severity           = issues.SeverityMinor
 		only               []issues.IssueType
 		omit               []issues.IssueType
 		lastErrorThreshold = issues.DefaultLastErrorThreshold()
@@ -593,7 +593,7 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 		return
 	}
 
-	machinesWithIssues, err := issues.FindIssues(&issues.IssueConfig{
+	machinesWithIssues, err := issues.FindIssues(&issues.Config{
 		Machines:           ms,
 		EventContainers:    ecs,
 		Severity:           severity,

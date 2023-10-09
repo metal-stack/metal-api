@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	IssueTypeLastEventError IssueType = "last-event-error"
+	TypeLastEventError IssueType = "last-event-error"
 )
 
 type (
@@ -23,14 +23,14 @@ func DefaultLastErrorThreshold() time.Duration {
 
 func (i *IssueLastEventError) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeLastEventError,
-		Severity:    IssueSeverityMinor,
+		Type:        TypeLastEventError,
+		Severity:    SeverityMinor,
 		Description: "the machine had an error during the provisioning lifecycle",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#last-event-error",
 	}
 }
 
-func (i *IssueLastEventError) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueLastEventError) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if c.LastErrorThreshold == 0 {
 		return false
 	}

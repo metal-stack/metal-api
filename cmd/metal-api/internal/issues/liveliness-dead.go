@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	IssueTypeLivelinessDead IssueType = "liveliness-dead"
+	TypeLivelinessDead IssueType = "liveliness-dead"
 )
 
 type (
@@ -12,14 +12,14 @@ type (
 
 func (i *IssueLivelinessDead) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeLivelinessDead,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeLivelinessDead,
+		Severity:    SeverityMajor,
 		Description: "the machine is not sending events anymore",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#liveliness-dead",
 	}
 }
 
-func (i *IssueLivelinessDead) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueLivelinessDead) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return ec.Liveliness.Is(string(metal.MachineLivelinessDead))
 }
 

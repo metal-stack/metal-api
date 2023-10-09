@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	IssueTypeLivelinessUnknown IssueType = "liveliness-unknown"
+	TypeLivelinessUnknown IssueType = "liveliness-unknown"
 )
 
 type (
@@ -12,14 +12,14 @@ type (
 
 func (i *IssueLivelinessUnknown) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeLivelinessUnknown,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeLivelinessUnknown,
+		Severity:    SeverityMajor,
 		Description: "the machine is not sending LLDP alive messages anymore",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#liveliness-unknown",
 	}
 }
 
-func (i *IssueLivelinessUnknown) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueLivelinessUnknown) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return ec.Liveliness.Is(string(metal.MachineLivelinessUnknown))
 }
 

@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	IssueTypeNoPartition IssueType = "no-partition"
+	TypeNoPartition IssueType = "no-partition"
 )
 
 type (
@@ -12,14 +12,14 @@ type (
 
 func (i *IssueNoPartition) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeNoPartition,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeNoPartition,
+		Severity:    SeverityMajor,
 		Description: "machine with no partition",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#no-partition",
 	}
 }
 
-func (i *IssueNoPartition) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueNoPartition) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return m.PartitionID == ""
 }
 

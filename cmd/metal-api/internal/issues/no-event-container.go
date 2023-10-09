@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	IssueTypeNoEventContainer IssueType = "no-event-container"
+	TypeNoEventContainer IssueType = "no-event-container"
 )
 
 type (
@@ -14,14 +14,14 @@ type (
 
 func (i *IssueNoEventContainer) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeNoEventContainer,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeNoEventContainer,
+		Severity:    SeverityMajor,
 		Description: "machine has no event container",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#no-event-container",
 	}
 }
 
-func (i *IssueNoEventContainer) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueNoEventContainer) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return ec.Base.ID == ""
 }
 

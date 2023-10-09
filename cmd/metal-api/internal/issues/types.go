@@ -8,49 +8,49 @@ type (
 
 func AllIssueTypes() []IssueType {
 	return []IssueType{
-		IssueTypeNoPartition,
-		IssueTypeLivelinessDead,
-		IssueTypeLivelinessUnknown,
-		IssueTypeLivelinessNotAvailable,
-		IssueTypeFailedMachineReclaim,
-		IssueTypeCrashLoop,
-		IssueTypeLastEventError,
-		IssueTypeBMCWithoutMAC,
-		IssueTypeBMCWithoutIP,
-		IssueTypeBMCInfoOutdated,
-		IssueTypeASNUniqueness,
-		IssueTypeNonDistinctBMCIP,
-		IssueTypeNoEventContainer,
+		TypeNoPartition,
+		TypeLivelinessDead,
+		TypeLivelinessUnknown,
+		TypeLivelinessNotAvailable,
+		TypeFailedMachineReclaim,
+		TypeCrashLoop,
+		TypeLastEventError,
+		TypeBMCWithoutMAC,
+		TypeBMCWithoutIP,
+		TypeBMCInfoOutdated,
+		TypeASNUniqueness,
+		TypeNonDistinctBMCIP,
+		TypeNoEventContainer,
 	}
 }
 
 func NewIssueFromType(t IssueType) (issue, error) {
 	switch t {
-	case IssueTypeNoPartition:
+	case TypeNoPartition:
 		return &IssueNoPartition{}, nil
-	case IssueTypeLivelinessDead:
+	case TypeLivelinessDead:
 		return &IssueLivelinessDead{}, nil
-	case IssueTypeLivelinessUnknown:
+	case TypeLivelinessUnknown:
 		return &IssueLivelinessUnknown{}, nil
-	case IssueTypeLivelinessNotAvailable:
+	case TypeLivelinessNotAvailable:
 		return &IssueLivelinessNotAvailable{}, nil
-	case IssueTypeFailedMachineReclaim:
+	case TypeFailedMachineReclaim:
 		return &IssueFailedMachineReclaim{}, nil
-	case IssueTypeCrashLoop:
+	case TypeCrashLoop:
 		return &IssueCrashLoop{}, nil
-	case IssueTypeLastEventError:
+	case TypeLastEventError:
 		return &IssueLastEventError{}, nil
-	case IssueTypeBMCWithoutMAC:
+	case TypeBMCWithoutMAC:
 		return &IssueBMCWithoutMAC{}, nil
-	case IssueTypeBMCWithoutIP:
+	case TypeBMCWithoutIP:
 		return &IssueBMCWithoutIP{}, nil
-	case IssueTypeBMCInfoOutdated:
+	case TypeBMCInfoOutdated:
 		return &IssueBMCInfoOutdated{}, nil
-	case IssueTypeASNUniqueness:
+	case TypeASNUniqueness:
 		return &IssueASNUniqueness{}, nil
-	case IssueTypeNonDistinctBMCIP:
+	case TypeNonDistinctBMCIP:
 		return &IssueNonDistinctBMCIP{}, nil
-	case IssueTypeNoEventContainer:
+	case TypeNoEventContainer:
 		return &IssueNoEventContainer{}, nil
 	default:
 		return nil, fmt.Errorf("unknown issue type: %s", t)

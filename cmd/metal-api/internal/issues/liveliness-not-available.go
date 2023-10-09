@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	IssueTypeLivelinessNotAvailable IssueType = "liveliness-not-available"
+	TypeLivelinessNotAvailable IssueType = "liveliness-not-available"
 )
 
 type (
@@ -12,13 +12,13 @@ type (
 
 func (i *IssueLivelinessNotAvailable) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeLivelinessNotAvailable,
-		Severity:    IssueSeverityMinor,
+		Type:        TypeLivelinessNotAvailable,
+		Severity:    SeverityMinor,
 		Description: "the machine liveliness is not available",
 	}
 }
 
-func (i *IssueLivelinessNotAvailable) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueLivelinessNotAvailable) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	allowed := map[metal.MachineLiveliness]bool{
 		metal.MachineLivelinessAlive:   true,
 		metal.MachineLivelinessDead:    true,

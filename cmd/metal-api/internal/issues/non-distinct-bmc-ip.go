@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	IssueTypeNonDistinctBMCIP IssueType = "bmc-no-distinct-ip"
+	TypeNonDistinctBMCIP IssueType = "bmc-no-distinct-ip"
 )
 
 type (
@@ -18,13 +18,13 @@ type (
 
 func (i *IssueNonDistinctBMCIP) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeNonDistinctBMCIP,
+		Type:        TypeNonDistinctBMCIP,
 		Description: "BMC IP address is not distinct",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#bmc-no-distinct-ip",
 	}
 }
 
-func (i *IssueNonDistinctBMCIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueNonDistinctBMCIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if m.IPMI.Address == "" {
 		return false
 	}

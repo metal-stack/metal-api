@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	IssueTypeASNUniqueness IssueType = "asn-not-unique"
+	TypeASNUniqueness IssueType = "asn-not-unique"
 )
 
 type (
@@ -20,14 +20,14 @@ type (
 
 func (i *IssueASNUniqueness) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeASNUniqueness,
-		Severity:    IssueSeverityMinor,
+		Type:        TypeASNUniqueness,
+		Severity:    SeverityMinor,
 		Description: "The ASN is not unique (only impact on firewalls)",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#asn-not-unique",
 	}
 }
 
-func (i *IssueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	var (
 		machineASNs  = map[uint32]metal.Machines{}
 		overlaps     []string

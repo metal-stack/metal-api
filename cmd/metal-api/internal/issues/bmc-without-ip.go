@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	IssueTypeBMCWithoutIP IssueType = "bmc-without-ip"
+	TypeBMCWithoutIP IssueType = "bmc-without-ip"
 )
 
 type (
@@ -12,14 +12,14 @@ type (
 
 func (i *IssueBMCWithoutIP) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeBMCWithoutIP,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeBMCWithoutIP,
+		Severity:    SeverityMajor,
 		Description: "BMC has no ip address",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#bmc-without-ip",
 	}
 }
 
-func (i *IssueBMCWithoutIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueBMCWithoutIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return m.IPMI.Address == ""
 }
 

@@ -8,8 +8,8 @@ import (
 )
 
 type (
-	// IssueConfig contains configuration parameters for finding machine issues
-	IssueConfig struct {
+	// Config contains configuration parameters for finding machine issues
+	Config struct {
 		Machines           metal.Machines
 		EventContainers    metal.ProvisioningEventContainers
 		Severity           IssueSeverity
@@ -43,7 +43,7 @@ type (
 	issue interface {
 		// Evaluate decides whether a given machine has the machine issue.
 		// the third argument contains additional information that may be required for the issue evaluation
-		Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool
+		Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool
 		// Spec returns the issue spec of this issue.
 		Spec() *spec
 		// Details returns additional information on the issue after the evaluation.
@@ -84,7 +84,7 @@ func toIssue(i issue) Issue {
 	}
 }
 
-func FindIssues(c *IssueConfig) (MachineIssuesMap, error) {
+func FindIssues(c *Config) (MachineIssuesMap, error) {
 	if c.LastErrorThreshold == 0 {
 		c.LastErrorThreshold = DefaultLastErrorThreshold()
 	}
@@ -137,7 +137,7 @@ func (mis MachineIssues) Get(id string) *MachineWithIssues {
 	return nil
 }
 
-func (c *IssueConfig) includeIssue(t IssueType) bool {
+func (c *Config) includeIssue(t IssueType) bool {
 	issue, err := NewIssueFromType(t)
 	if err != nil {
 		return false

@@ -3,7 +3,7 @@ package issues
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 const (
-	IssueTypeBMCWithoutMAC IssueType = "bmc-without-mac"
+	TypeBMCWithoutMAC IssueType = "bmc-without-mac"
 )
 
 type (
@@ -12,14 +12,14 @@ type (
 
 func (i *IssueBMCWithoutMAC) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeBMCWithoutMAC,
-		Severity:    IssueSeverityMajor,
+		Type:        TypeBMCWithoutMAC,
+		Severity:    SeverityMajor,
 		Description: "BMC has no mac address",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#bmc-without-mac",
 	}
 }
 
-func (i *IssueBMCWithoutMAC) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueBMCWithoutMAC) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return m.IPMI.MacAddress == ""
 }
 

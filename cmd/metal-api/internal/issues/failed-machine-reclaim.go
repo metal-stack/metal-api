@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	IssueTypeFailedMachineReclaim IssueType = "failed-machine-reclaim"
+	TypeFailedMachineReclaim IssueType = "failed-machine-reclaim"
 )
 
 type (
@@ -15,14 +15,14 @@ type (
 
 func (i *IssueFailedMachineReclaim) Spec() *spec {
 	return &spec{
-		Type:        IssueTypeFailedMachineReclaim,
-		Severity:    IssueSeverityCritical,
+		Type:        TypeFailedMachineReclaim,
+		Severity:    SeverityCritical,
 		Description: "machine phones home but not allocated",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#failed-machine-reclaim",
 	}
 }
 
-func (i *IssueFailedMachineReclaim) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *IssueConfig) bool {
+func (i *IssueFailedMachineReclaim) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if ec.FailedMachineReclaim {
 		return true
 	}
