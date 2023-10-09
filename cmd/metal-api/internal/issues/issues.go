@@ -12,7 +12,7 @@ type (
 	Config struct {
 		Machines           metal.Machines
 		EventContainers    metal.ProvisioningEventContainers
-		Severity           IssueSeverity
+		Severity           Severity
 		Only               []Type
 		Omit               []Type
 		LastErrorThreshold time.Duration
@@ -21,7 +21,7 @@ type (
 	// Issue formulates an issue of a machine
 	Issue struct {
 		Type        Type
-		Severity    IssueSeverity
+		Severity    Severity
 		Description string
 		RefURL      string
 		Details     string
@@ -53,7 +53,7 @@ type (
 	// spec defines the specification of an issue.
 	spec struct {
 		Type        Type
-		Severity    IssueSeverity
+		Severity    Severity
 		Description string
 		RefURL      string
 	}
