@@ -424,7 +424,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 			continue
 		}
 
-		if _, ok := machinesWithIssues[&m]; ok {
+		if _, ok := machinesWithIssues[m.ID]; ok {
 			cap.Faulty++
 			cap.FaultyMachines = append(cap.FaultyMachines, m.ID)
 			continue

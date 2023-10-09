@@ -38,7 +38,7 @@ type (
 	// MachineIssues is map of a machine response to a list of machine issues
 	MachineIssues []*MachineWithIssues
 
-	MachineIssuesMap map[*metal.Machine]Issues
+	MachineIssuesMap map[string]*MachineWithIssues
 
 	issue interface {
 		// Evaluate decides whether a given machine has the machine issue.
@@ -166,21 +166,23 @@ func (c *Config) includeIssue(t Type) bool {
 }
 
 func (mim MachineIssuesMap) add(m metal.Machine, issue Issue) {
-	issues, ok := mim[&m]
+	machineWithIssues, ok := mim[m.ID]
 	if !ok {
-		issues = Issues{}
+		machineWithIssues = &MachineWithIssues{
+			Machine: &m,
+		}
 	}
-	issues = append(issues, issue)
-	mim[&m] = issues
+	machineWithIssues.Issues = append(machineWithIssues.Issues, issue)
+	mim[m.ID] = machineWithIssues
 }
 
 func (mim MachineIssuesMap) ToList() MachineIssues {
 	var res MachineIssues
 
-	for m, issues := range mim {
+	for _, machineWithIssues := range mim {
 		res = append(res, &MachineWithIssues{
-			Machine: m,
-			Issues:  issues,
+			Machine: machineWithIssues.Machine,
+			Issues:  machineWithIssues.Issues,
 		})
 	}
 
