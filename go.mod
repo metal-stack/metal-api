@@ -17,7 +17,7 @@ require (
 	github.com/juanfont/headscale v0.22.3
 	github.com/looplab/fsm v0.3.0
 	github.com/metal-stack/go-ipam v1.8.5
-	github.com/metal-stack/masterdata-api v0.10.2-0.20231002103627-7c3b81a6e893
+	github.com/metal-stack/masterdata-api v0.10.2-0.20231009131407-3b76a1501d8c
 	github.com/metal-stack/metal-lib v0.13.3
 	github.com/metal-stack/security v0.6.7
 	github.com/metal-stack/v v1.0.3

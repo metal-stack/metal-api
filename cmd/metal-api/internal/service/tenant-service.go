@@ -9,7 +9,6 @@ import (
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -209,7 +208,7 @@ func (r *tenantResource) getTenantHistory(request *restful.Request, response *re
 		return
 	}
 
-	thres, err := r.mdc.Tenant().GetHistory(request.Request.Context(), &mdmv1.TenantGetHistoryRequest{Id: id, At: timestamppb.New(tghr.At)})
+	thres, err := r.mdc.Tenant().GetHistory(request.Request.Context(), mapper.ToMdmV1TenantGetHistoryRequest(&tghr, id))
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
