@@ -93,23 +93,23 @@ func FindIssues(c *Config) (MachineIssuesMap, error) {
 
 	ecs := c.EventContainers.ByID()
 
-	for _, t := range AllIssueTypes() {
-		if !c.includeIssue(t) {
+	for _, m := range c.Machines {
+		m := m
+
+		ec, ok := ecs[m.ID]
+		if !ok {
+			res.add(m, toIssue(&IssueNoEventContainer{}))
 			continue
 		}
 
-		for _, m := range c.Machines {
-			m := m
+		for _, t := range AllIssueTypes() {
+			if !c.includeIssue(t) {
+				continue
+			}
 
 			i, err := NewIssueFromType(t)
 			if err != nil {
 				return nil, err
-			}
-
-			ec, ok := ecs[m.ID]
-			if !ok {
-				res.add(m, toIssue(&IssueNoEventContainer{}))
-				continue
 			}
 
 			if i.Evaluate(m, ec, c) {
