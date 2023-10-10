@@ -10,10 +10,10 @@ const (
 )
 
 type (
-	IssueFailedMachineReclaim struct{}
+	issueFailedMachineReclaim struct{}
 )
 
-func (i *IssueFailedMachineReclaim) Spec() *spec {
+func (i *issueFailedMachineReclaim) Spec() *spec {
 	return &spec{
 		Type:        TypeFailedMachineReclaim,
 		Severity:    SeverityCritical,
@@ -22,7 +22,7 @@ func (i *IssueFailedMachineReclaim) Spec() *spec {
 	}
 }
 
-func (i *IssueFailedMachineReclaim) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueFailedMachineReclaim) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if ec.FailedMachineReclaim {
 		return true
 	}
@@ -36,6 +36,6 @@ func (i *IssueFailedMachineReclaim) Evaluate(m metal.Machine, ec metal.Provision
 	return false
 }
 
-func (i *IssueFailedMachineReclaim) Details() string {
+func (i *issueFailedMachineReclaim) Details() string {
 	return ""
 }

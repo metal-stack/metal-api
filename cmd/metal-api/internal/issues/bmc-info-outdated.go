@@ -12,16 +12,16 @@ const (
 )
 
 type (
-	IssueBMCInfoOutdated struct {
+	issueBMCInfoOutdated struct {
 		details string
 	}
 )
 
-func (i *IssueBMCInfoOutdated) Details() string {
+func (i *issueBMCInfoOutdated) Details() string {
 	return i.details
 }
 
-func (i *IssueBMCInfoOutdated) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueBMCInfoOutdated) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if m.IPMI.LastUpdated.IsZero() {
 		i.details = "machine ipmi has never been set"
 		return true
@@ -37,7 +37,7 @@ func (i *IssueBMCInfoOutdated) Evaluate(m metal.Machine, ec metal.ProvisioningEv
 	return false
 }
 
-func (*IssueBMCInfoOutdated) Spec() *spec {
+func (*issueBMCInfoOutdated) Spec() *spec {
 	return &spec{
 		Type:        TypeBMCInfoOutdated,
 		Severity:    SeverityMajor,

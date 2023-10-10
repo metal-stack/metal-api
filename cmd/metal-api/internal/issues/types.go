@@ -39,31 +39,31 @@ func NotAllocatableIssueTypes() []Type {
 func NewIssueFromType(t Type) (issue, error) {
 	switch t {
 	case TypeNoPartition:
-		return &IssueNoPartition{}, nil
+		return &issueNoPartition{}, nil
 	case TypeLivelinessDead:
-		return &IssueLivelinessDead{}, nil
+		return &issueLivelinessDead{}, nil
 	case TypeLivelinessUnknown:
-		return &IssueLivelinessUnknown{}, nil
+		return &issueLivelinessUnknown{}, nil
 	case TypeLivelinessNotAvailable:
-		return &IssueLivelinessNotAvailable{}, nil
+		return &issueLivelinessNotAvailable{}, nil
 	case TypeFailedMachineReclaim:
-		return &IssueFailedMachineReclaim{}, nil
+		return &issueFailedMachineReclaim{}, nil
 	case TypeCrashLoop:
-		return &IssueCrashLoop{}, nil
+		return &issueCrashLoop{}, nil
 	case TypeLastEventError:
-		return &IssueLastEventError{}, nil
+		return &issueLastEventError{}, nil
 	case TypeBMCWithoutMAC:
-		return &IssueBMCWithoutMAC{}, nil
+		return &issueBMCWithoutMAC{}, nil
 	case TypeBMCWithoutIP:
-		return &IssueBMCWithoutIP{}, nil
+		return &issueBMCWithoutIP{}, nil
 	case TypeBMCInfoOutdated:
-		return &IssueBMCInfoOutdated{}, nil
+		return &issueBMCInfoOutdated{}, nil
 	case TypeASNUniqueness:
-		return &IssueASNUniqueness{}, nil
+		return &issueASNUniqueness{}, nil
 	case TypeNonDistinctBMCIP:
-		return &IssueNonDistinctBMCIP{}, nil
+		return &issueNonDistinctBMCIP{}, nil
 	case TypeNoEventContainer:
-		return &IssueNoEventContainer{}, nil
+		return &issueNoEventContainer{}, nil
 	default:
 		return nil, fmt.Errorf("unknown issue type: %s", t)
 	}

@@ -7,10 +7,10 @@ const (
 )
 
 type (
-	IssueNoPartition struct{}
+	issueNoPartition struct{}
 )
 
-func (i *IssueNoPartition) Spec() *spec {
+func (i *issueNoPartition) Spec() *spec {
 	return &spec{
 		Type:        TypeNoPartition,
 		Severity:    SeverityMajor,
@@ -19,10 +19,10 @@ func (i *IssueNoPartition) Spec() *spec {
 	}
 }
 
-func (i *IssueNoPartition) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueNoPartition) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return m.PartitionID == ""
 }
 
-func (i *IssueNoPartition) Details() string {
+func (i *issueNoPartition) Details() string {
 	return ""
 }

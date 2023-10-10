@@ -79,7 +79,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[0],
 						Issues: Issues{
-							toIssue(&IssueNoPartition{}),
+							toIssue(&issueNoPartition{}),
 						},
 					},
 				}
@@ -108,7 +108,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[0],
 						Issues: Issues{
-							toIssue(&IssueLivelinessDead{}),
+							toIssue(&issueLivelinessDead{}),
 						},
 					},
 				}
@@ -137,7 +137,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[0],
 						Issues: Issues{
-							toIssue(&IssueLivelinessUnknown{}),
+							toIssue(&issueLivelinessUnknown{}),
 						},
 					},
 				}
@@ -166,7 +166,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[0],
 						Issues: Issues{
-							toIssue(&IssueLivelinessNotAvailable{}),
+							toIssue(&issueLivelinessNotAvailable{}),
 						},
 					},
 				}
@@ -206,13 +206,13 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[1],
 						Issues: Issues{
-							toIssue(&IssueFailedMachineReclaim{}),
+							toIssue(&issueFailedMachineReclaim{}),
 						},
 					},
 					{
 						Machine: &machines[2],
 						Issues: Issues{
-							toIssue(&IssueFailedMachineReclaim{}),
+							toIssue(&issueFailedMachineReclaim{}),
 						},
 					},
 				}
@@ -241,7 +241,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[1],
 						Issues: Issues{
-							toIssue(&IssueCrashLoop{}),
+							toIssue(&issueCrashLoop{}),
 						},
 					},
 				}
@@ -306,7 +306,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[1],
 						Issues: Issues{
-							toIssue(&IssueBMCWithoutMAC{}),
+							toIssue(&issueBMCWithoutMAC{}),
 						},
 					},
 				}
@@ -338,7 +338,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[1],
 						Issues: Issues{
-							toIssue(&IssueBMCWithoutIP{}),
+							toIssue(&issueBMCWithoutIP{}),
 						},
 					},
 				}
@@ -430,7 +430,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[0],
 						Issues: Issues{
-							toIssue(&IssueASNUniqueness{
+							toIssue(&issueASNUniqueness{
 								details: fmt.Sprintf("- ASN (100) not unique, shared with [%[1]s]\n- ASN (200) not unique, shared with [%[1]s]", machines[1].ID),
 							}),
 						},
@@ -438,7 +438,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[1],
 						Issues: Issues{
-							toIssue(&IssueASNUniqueness{
+							toIssue(&issueASNUniqueness{
 								details: fmt.Sprintf("- ASN (100) not unique, shared with [%[1]s]\n- ASN (200) not unique, shared with [%[1]s]", machines[0].ID),
 							}),
 						},
@@ -474,7 +474,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[0],
 						Issues: Issues{
-							toIssue(&IssueNonDistinctBMCIP{
+							toIssue(&issueNonDistinctBMCIP{
 								details: fmt.Sprintf("BMC IP (127.0.0.1) not unique, shared with [%[1]s]", machines[1].ID),
 							}),
 						},
@@ -482,7 +482,7 @@ func TestFindIssues(t *testing.T) {
 					{
 						Machine: &machines[1],
 						Issues: Issues{
-							toIssue(&IssueNonDistinctBMCIP{
+							toIssue(&issueNonDistinctBMCIP{
 								details: fmt.Sprintf("BMC IP (127.0.0.1) not unique, shared with [%[1]s]", machines[0].ID),
 							}),
 						},
@@ -509,7 +509,7 @@ func TestFindIssues(t *testing.T) {
 				want = tt.want(ms)
 			}
 
-			if diff := cmp.Diff(want, got.ToList(), cmp.AllowUnexported(IssueLastEventError{}, IssueASNUniqueness{}, IssueNonDistinctBMCIP{})); diff != "" {
+			if diff := cmp.Diff(want, got.ToList(), cmp.AllowUnexported(issueLastEventError{}, issueASNUniqueness{}, issueNonDistinctBMCIP{})); diff != "" {
 				t.Errorf("diff (+got -want):\n %s", diff)
 			}
 		})

@@ -7,10 +7,10 @@ const (
 )
 
 type (
-	IssueBMCWithoutIP struct{}
+	issueBMCWithoutIP struct{}
 )
 
-func (i *IssueBMCWithoutIP) Spec() *spec {
+func (i *issueBMCWithoutIP) Spec() *spec {
 	return &spec{
 		Type:        TypeBMCWithoutIP,
 		Severity:    SeverityMajor,
@@ -19,10 +19,10 @@ func (i *IssueBMCWithoutIP) Spec() *spec {
 	}
 }
 
-func (i *IssueBMCWithoutIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueBMCWithoutIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return m.IPMI.Address == ""
 }
 
-func (i *IssueBMCWithoutIP) Details() string {
+func (i *issueBMCWithoutIP) Details() string {
 	return ""
 }

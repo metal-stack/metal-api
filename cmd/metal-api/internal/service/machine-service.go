@@ -259,7 +259,7 @@ func (r *machineResource) webService() *restful.WebService {
 		Operation("issues").
 		Doc("returns machine issues").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
+		// is an expensive call so we audit this as well even if it does not change anything
 		Reads(v1.MachineIssuesRequest{}).
 		Writes([]v1.MachineIssueResponse{}).
 		Returns(http.StatusOK, "OK", []v1.MachineIssueResponse{}).

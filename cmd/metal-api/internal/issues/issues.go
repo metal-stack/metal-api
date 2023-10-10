@@ -98,7 +98,7 @@ func FindIssues(c *Config) (MachineIssuesMap, error) {
 
 		ec, ok := ecs[m.ID]
 		if !ok {
-			res.add(m, toIssue(&IssueNoEventContainer{}))
+			res.add(m, toIssue(&issueNoEventContainer{}))
 			continue
 		}
 

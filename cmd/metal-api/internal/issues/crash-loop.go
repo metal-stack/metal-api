@@ -10,10 +10,10 @@ const (
 )
 
 type (
-	IssueCrashLoop struct{}
+	issueCrashLoop struct{}
 )
 
-func (i *IssueCrashLoop) Spec() *spec {
+func (i *issueCrashLoop) Spec() *spec {
 	return &spec{
 		Type:        TypeCrashLoop,
 		Severity:    SeverityMajor,
@@ -22,7 +22,7 @@ func (i *IssueCrashLoop) Spec() *spec {
 	}
 }
 
-func (i *IssueCrashLoop) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueCrashLoop) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if ec.CrashLoop {
 		if pointer.FirstOrZero(ec.Events).Event == metal.ProvisioningEventWaiting {
 			// Machine which are waiting are not considered to have issues
@@ -33,6 +33,6 @@ func (i *IssueCrashLoop) Evaluate(m metal.Machine, ec metal.ProvisioningEventCon
 	return false
 }
 
-func (i *IssueCrashLoop) Details() string {
+func (i *issueCrashLoop) Details() string {
 	return ""
 }

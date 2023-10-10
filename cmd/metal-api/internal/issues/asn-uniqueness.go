@@ -13,12 +13,12 @@ const (
 )
 
 type (
-	IssueASNUniqueness struct {
+	issueASNUniqueness struct {
 		details string
 	}
 )
 
-func (i *IssueASNUniqueness) Spec() *spec {
+func (i *issueASNUniqueness) Spec() *spec {
 	return &spec{
 		Type:        TypeASNUniqueness,
 		Severity:    SeverityMinor,
@@ -27,7 +27,7 @@ func (i *IssueASNUniqueness) Spec() *spec {
 	}
 }
 
-func (i *IssueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	var (
 		machineASNs  = map[uint32]metal.Machines{}
 		overlaps     []string
@@ -117,6 +117,6 @@ func (i *IssueASNUniqueness) Evaluate(m metal.Machine, ec metal.ProvisioningEven
 	return true
 }
 
-func (i *IssueASNUniqueness) Details() string {
+func (i *issueASNUniqueness) Details() string {
 	return i.details
 }

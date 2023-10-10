@@ -7,10 +7,10 @@ const (
 )
 
 type (
-	IssueLivelinessNotAvailable struct{}
+	issueLivelinessNotAvailable struct{}
 )
 
-func (i *IssueLivelinessNotAvailable) Spec() *spec {
+func (i *issueLivelinessNotAvailable) Spec() *spec {
 	return &spec{
 		Type:        TypeLivelinessNotAvailable,
 		Severity:    SeverityMinor,
@@ -18,7 +18,7 @@ func (i *IssueLivelinessNotAvailable) Spec() *spec {
 	}
 }
 
-func (i *IssueLivelinessNotAvailable) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueLivelinessNotAvailable) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	allowed := map[metal.MachineLiveliness]bool{
 		metal.MachineLivelinessAlive:   true,
 		metal.MachineLivelinessDead:    true,
@@ -28,6 +28,6 @@ func (i *IssueLivelinessNotAvailable) Evaluate(m metal.Machine, ec metal.Provisi
 	return !allowed[ec.Liveliness]
 }
 
-func (i *IssueLivelinessNotAvailable) Details() string {
+func (i *issueLivelinessNotAvailable) Details() string {
 	return ""
 }

@@ -12,7 +12,7 @@ const (
 )
 
 type (
-	IssueLastEventError struct {
+	issueLastEventError struct {
 		details string
 	}
 )
@@ -21,7 +21,7 @@ func DefaultLastErrorThreshold() time.Duration {
 	return 7 * 24 * time.Hour
 }
 
-func (i *IssueLastEventError) Spec() *spec {
+func (i *issueLastEventError) Spec() *spec {
 	return &spec{
 		Type:        TypeLastEventError,
 		Severity:    SeverityMinor,
@@ -30,7 +30,7 @@ func (i *IssueLastEventError) Spec() *spec {
 	}
 }
 
-func (i *IssueLastEventError) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueLastEventError) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if c.LastErrorThreshold == 0 {
 		return false
 	}
@@ -46,6 +46,6 @@ func (i *IssueLastEventError) Evaluate(m metal.Machine, ec metal.ProvisioningEve
 	return false
 }
 
-func (i *IssueLastEventError) Details() string {
+func (i *issueLastEventError) Details() string {
 	return i.details
 }

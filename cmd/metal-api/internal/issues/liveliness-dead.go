@@ -7,10 +7,10 @@ const (
 )
 
 type (
-	IssueLivelinessDead struct{}
+	issueLivelinessDead struct{}
 )
 
-func (i *IssueLivelinessDead) Spec() *spec {
+func (i *issueLivelinessDead) Spec() *spec {
 	return &spec{
 		Type:        TypeLivelinessDead,
 		Severity:    SeverityMajor,
@@ -19,10 +19,10 @@ func (i *IssueLivelinessDead) Spec() *spec {
 	}
 }
 
-func (i *IssueLivelinessDead) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueLivelinessDead) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return ec.Liveliness == metal.MachineLivelinessDead
 }
 
-func (i *IssueLivelinessDead) Details() string {
+func (i *issueLivelinessDead) Details() string {
 	return ""
 }

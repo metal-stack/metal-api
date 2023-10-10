@@ -11,12 +11,12 @@ const (
 )
 
 type (
-	IssueNonDistinctBMCIP struct {
+	issueNonDistinctBMCIP struct {
 		details string
 	}
 )
 
-func (i *IssueNonDistinctBMCIP) Spec() *spec {
+func (i *issueNonDistinctBMCIP) Spec() *spec {
 	return &spec{
 		Type:        TypeNonDistinctBMCIP,
 		Description: "BMC IP address is not distinct",
@@ -24,7 +24,7 @@ func (i *IssueNonDistinctBMCIP) Spec() *spec {
 	}
 }
 
-func (i *IssueNonDistinctBMCIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueNonDistinctBMCIP) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	if m.IPMI.Address == "" {
 		return false
 	}
@@ -60,6 +60,6 @@ func (i *IssueNonDistinctBMCIP) Evaluate(m metal.Machine, ec metal.ProvisioningE
 	return true
 }
 
-func (i *IssueNonDistinctBMCIP) Details() string {
+func (i *issueNonDistinctBMCIP) Details() string {
 	return i.details
 }

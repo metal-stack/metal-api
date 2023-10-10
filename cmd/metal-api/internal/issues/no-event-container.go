@@ -9,10 +9,10 @@ const (
 )
 
 type (
-	IssueNoEventContainer struct{}
+	issueNoEventContainer struct{}
 )
 
-func (i *IssueNoEventContainer) Spec() *spec {
+func (i *issueNoEventContainer) Spec() *spec {
 	return &spec{
 		Type:        TypeNoEventContainer,
 		Severity:    SeverityMajor,
@@ -21,10 +21,10 @@ func (i *IssueNoEventContainer) Spec() *spec {
 	}
 }
 
-func (i *IssueNoEventContainer) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
+func (i *issueNoEventContainer) Evaluate(m metal.Machine, ec metal.ProvisioningEventContainer, c *Config) bool {
 	return ec.Base.ID == ""
 }
 
-func (i *IssueNoEventContainer) Details() string {
+func (i *issueNoEventContainer) Details() string {
 	return ""
 }
