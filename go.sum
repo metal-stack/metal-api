@@ -36,6 +36,8 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 cloud.google.com/go/storage v1.14.0/go.mod h1:GrKmX003DSIwi9o29oFT7YDnHYwZoctc3fOKtUw0Xmo=
+connectrpc.com/connect v1.11.1 h1:dqRwblixqkVh+OFBOOL1yIf1jS/yP0MSJLijRj29bFg=
+connectrpc.com/connect v1.11.1/go.mod h1:3AGaO6RRGMx5IKFfqbe3hvK1NqLosFNP2BxDYTPmNPo=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 filippo.io/edwards25519 v1.0.0 h1:0wAIcmJUqRdI8IJ/3eGi5/HwXZWPujYXXlkrQogz0Ek=
@@ -124,8 +126,6 @@ github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dR
 github.com/bmizerany/perks v0.0.0-20230307044200-03f9df79da1e h1:mWOqoK5jV13ChKf/aF3plwQ96laasTJgZi4f1aSOu+M=
 github.com/bmizerany/perks v0.0.0-20230307044200-03f9df79da1e/go.mod h1:ac9efd0D1fsDb3EJvhqgXRbFx7bs2wqZ10HQPeU8U/Q=
 github.com/bshuster-repo/logrus-logstash-hook v0.4.1/go.mod h1:zsTqEiSzDgAa/8GZR7E1qaXrhYNDKBYy5/dWPTIflbk=
-github.com/bufbuild/connect-go v1.10.0 h1:QAJ3G9A1OYQW2Jbk3DeoJbkCxuKArrvZgDt47mjdTbg=
-github.com/bufbuild/connect-go v1.10.0/go.mod h1:CAIePUgkDR5pAFaylSMtNK45ANQjp9JvpluG20rhpV8=
 github.com/buger/jsonparser v0.0.0-20180808090653-f4dd9f5a6b44/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
 github.com/bugsnag/bugsnag-go v0.0.0-20141110184014-b1d153021fcd/go.mod h1:2oa8nejYd4cQ/b0hMIopN0lCRxU0bueqREvZLWFrtK8=
 github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b/go.mod h1:obH5gd0BsqsP2LwDJ9aOkm/6J86V6lyAXCoQWGw3K50=
@@ -637,8 +637,8 @@ github.com/metal-stack/go-ipam v1.8.5 h1:XE1XfaU6Ck1Ucc7svTO25dlT7kEcE1oxOM3lBrW
 github.com/metal-stack/go-ipam v1.8.5/go.mod h1:JgsddJabu8A7lWD+4MJKqbQhmSA/zhBbO+Bp8pLhRZM=
 github.com/metal-stack/masterdata-api v0.10.0 h1:xcB8kd1FK5etmRbcTlAPk2bQXY6i9tTTvAeDsTjmh6E=
 github.com/metal-stack/masterdata-api v0.10.0/go.mod h1:xwaMDC9hhNjXep3ppD+Iqeg2OEFM6hwq2zFyBDnlXGc=
-github.com/metal-stack/metal-lib v0.13.2 h1:gpsnKUxahT4r3N55QY1MTRBZy10CySTQCQKb9XFCDrA=
-github.com/metal-stack/metal-lib v0.13.2/go.mod h1:l18VEuS1YkxnVE35iF8AMP6QRxoYjRZ9e2NE3aGxVY0=
+github.com/metal-stack/metal-lib v0.13.4 h1:epuHE9EC3mgPyo/gs55VpibtaLhnbNldxJTfI9A3keM=
+github.com/metal-stack/metal-lib v0.13.4/go.mod h1:BAR7fjdoV7DDg8i9GpJQBDaNSFirOcBs0vLYTBnhHQU=
 github.com/metal-stack/security v0.6.7 h1:8wstGy0pdUmphVclAlT+9RKQmx9lF+cIGklJZAB5cIc=
 github.com/metal-stack/security v0.6.7/go.mod h1:dXyrQ8PYZuUiodWFQ/NwSROxu6tajwRBc5yR/PoK5uE=
 github.com/metal-stack/v v1.0.3 h1:Sh2oBlnxrCUD+mVpzfC8HiqL045YWkxs0gpTvkjppqs=
