@@ -617,13 +617,7 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 		for _, issue := range machineWithIssues.Issues {
 			issue := issue
 
-			entry.Issues = append(entry.Issues, v1.MachineIssue{
-				ID:          string(issue.Type),
-				Severity:    string(issue.Severity),
-				Description: issue.Description,
-				RefURL:      issue.RefURL,
-				Details:     issue.Details,
-			})
+			entry.Issues = append(entry.Issues, string(issue.Type))
 		}
 
 		issueResponse = append(issueResponse, entry)

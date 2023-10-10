@@ -287,8 +287,8 @@ type MachineVPN struct {
 }
 
 type MachineIssueResponse struct {
-	MachineID string         `json:"machineid" description:"the machine id that has the given issues"`
-	Issues    []MachineIssue `json:"issues" description:"the list of issues of this machine"`
+	MachineID string   `json:"machineid" description:"the machine id that has the given issues"`
+	Issues    []string `json:"issues" description:"the list of issues (only issue ids) of this machine"`
 }
 
 type MachineIssue struct {

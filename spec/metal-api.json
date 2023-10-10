@@ -2770,9 +2770,9 @@
     "v1.MachineIssueResponse": {
       "properties": {
         "issues": {
-          "description": "the list of issues of this machine",
+          "description": "the list of issues (only issue ids) of this machine",
           "items": {
-            "$ref": "#/definitions/v1.MachineIssue"
+            "type": "string"
           },
           "type": "array"
         },
