@@ -506,7 +506,7 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 }
 
 func (r *machineResource) listIssues(request *restful.Request, response *restful.Response) {
-	issues := issues.AllIssues()
+	issues := issues.All()
 
 	var issueResponse []v1.MachineIssue
 	for _, issue := range issues {
@@ -593,7 +593,7 @@ func (r *machineResource) issues(request *restful.Request, response *restful.Res
 		return
 	}
 
-	machinesWithIssues, err := issues.FindIssues(&issues.Config{
+	machinesWithIssues, err := issues.Find(&issues.Config{
 		Machines:           ms,
 		EventContainers:    ecs,
 		Severity:           severity,

@@ -496,7 +496,7 @@ func TestFindIssues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ms := tt.machines()
 
-			got, err := FindIssues(&Config{
+			got, err := Find(&Config{
 				Machines:           ms,
 				EventContainers:    tt.eventContainers(),
 				Only:               tt.only,
@@ -518,7 +518,7 @@ func TestFindIssues(t *testing.T) {
 
 func TestAllIssues(t *testing.T) {
 	issuesTypes := map[Type]bool{}
-	for _, i := range AllIssues() {
+	for _, i := range All() {
 		issuesTypes[i.Type] = true
 	}
 

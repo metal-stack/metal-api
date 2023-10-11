@@ -10,21 +10,33 @@ import (
 type (
 	// Config contains configuration parameters for finding machine issues
 	Config struct {
-		Machines           metal.Machines
-		EventContainers    metal.ProvisioningEventContainers
-		Severity           Severity
-		Only               []Type
-		Omit               []Type
+		// Machines are the machines to evaluate issues for
+		Machines metal.Machines
+		// EventContainers are the event containers of the machines to evaluate issues for
+		// if not provided the machines will have a no-event-container issue
+		EventContainers metal.ProvisioningEventContainers
+		// Severity filters issues for the given severity
+		Severity Severity
+		// Only includes only the given issue types
+		Only []Type
+		// Omit omits the given issue types, this has precedence over only
+		Omit []Type
+		// LastErrorThreshold specifies for how long in the past the last event error is counted as an error
 		LastErrorThreshold time.Duration
 	}
 
 	// Issue formulates an issue of a machine
 	Issue struct {
-		Type        Type
-		Severity    Severity
+		// Type specifies the issue type (id)
+		Type Type
+		// Severity specifies the severity of an issue
+		Severity Severity
+		// Description provides an issue description
 		Description string
-		RefURL      string
-		Details     string
+		// RefURL provides a link to a more detailed issue description in the metal-stack documentation
+		RefURL string
+		// Details may contain additional details on an evaluated issue
+		Details string
 	}
 
 	// Issues is a list of issues
@@ -38,6 +50,7 @@ type (
 	// MachineIssues is map of a machine response to a list of machine issues
 	MachineIssues []*MachineWithIssues
 
+	// MachineIssuesMap is a map of machine issues with the machine id as a map key
 	MachineIssuesMap map[string]*MachineWithIssues
 
 	issue interface {
@@ -59,7 +72,7 @@ type (
 	}
 )
 
-func AllIssues() Issues {
+func All() Issues {
 	var res Issues
 
 	for _, t := range AllIssueTypes() {
@@ -84,7 +97,7 @@ func toIssue(i issue) Issue {
 	}
 }
 
-func FindIssues(c *Config) (MachineIssuesMap, error) {
+func Find(c *Config) (MachineIssuesMap, error) {
 	if c.LastErrorThreshold == 0 {
 		c.LastErrorThreshold = DefaultLastErrorThreshold()
 	}

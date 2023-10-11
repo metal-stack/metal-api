@@ -362,7 +362,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, fmt.Errorf("unable to fetch provisioning event containers: %w", err)
 	}
 
-	machinesWithIssues, err := issues.FindIssues(&issues.Config{
+	machinesWithIssues, err := issues.Find(&issues.Config{
 		Machines:        ms,
 		EventContainers: ecs,
 		Only:            issues.NotAllocatableIssueTypes(),
