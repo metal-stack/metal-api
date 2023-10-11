@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/avast/retry-go/v4"
@@ -241,6 +242,27 @@ func (r *machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/issues").
+		To(viewer(r.listIssues)).
+		Operation("listIssues").
+		Doc("returns the list of issues that exist in the API").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Writes([]v1.MachineIssue{}).
+		Returns(http.StatusOK, "OK", []v1.MachineIssue{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/issues/evaluate").
+		To(viewer(r.issues)).
+		Operation("issues").
+		Doc("returns machine issues").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		// is an expensive call so we audit this as well even if it does not change anything
+		Reads(v1.MachineIssuesRequest{}).
+		Writes([]v1.MachineIssueResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineIssueResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/ipmi").
@@ -481,6 +503,127 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 	}
 
 	r.send(request, response, http.StatusOK, resp)
+}
+
+func (r *machineResource) listIssues(request *restful.Request, response *restful.Response) {
+	issues := issues.All()
+
+	var issueResponse []v1.MachineIssue
+	for _, issue := range issues {
+		issue := issue
+
+		issueResponse = append(issueResponse, v1.MachineIssue{
+			ID:          string(issue.Type),
+			Severity:    string(issue.Severity),
+			Description: issue.Description,
+			RefURL:      issue.RefURL,
+			Details:     issue.Details,
+		})
+	}
+
+	r.send(request, response, http.StatusOK, issueResponse)
+}
+
+func (r *machineResource) issues(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineIssuesRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	var (
+		ms = metal.Machines{}
+
+		severity           = issues.SeverityMinor
+		only               []issues.Type
+		omit               []issues.Type
+		lastErrorThreshold = issues.DefaultLastErrorThreshold()
+	)
+
+	if requestPayload.Severity != "" {
+		severity, err = issues.SeverityFromString(requestPayload.Severity)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+	}
+
+	if len(requestPayload.Omit) > 0 {
+		for _, o := range requestPayload.Omit {
+			o := o
+
+			_, err := issues.NewIssueFromType(o)
+			if err != nil {
+				r.sendError(request, response, httperrors.BadRequest(err))
+				return
+			}
+
+			omit = append(omit, o)
+		}
+	}
+
+	if len(requestPayload.Only) > 0 {
+		for _, o := range requestPayload.Only {
+			o := o
+
+			_, err := issues.NewIssueFromType(o)
+			if err != nil {
+				r.sendError(request, response, httperrors.BadRequest(err))
+				return
+			}
+
+			only = append(only, o)
+		}
+	}
+
+	if requestPayload.LastErrorThreshold > 0 {
+		lastErrorThreshold = requestPayload.LastErrorThreshold
+	}
+
+	err = r.ds.SearchMachines(&requestPayload.MachineSearchQuery, &ms)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	ecs, err := r.ds.ListProvisioningEventContainers()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	machinesWithIssues, err := issues.Find(&issues.Config{
+		Machines:           ms,
+		EventContainers:    ecs,
+		Severity:           severity,
+		Only:               only,
+		Omit:               omit,
+		LastErrorThreshold: lastErrorThreshold,
+	})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	var issueResponse []*v1.MachineIssueResponse
+	for _, machineWithIssues := range machinesWithIssues.ToList() {
+		machineWithIssues := machineWithIssues
+
+		entry := &v1.MachineIssueResponse{
+			MachineID: machineWithIssues.Machine.ID,
+		}
+
+		for _, issue := range machineWithIssues.Issues {
+			issue := issue
+
+			entry.Issues = append(entry.Issues, string(issue.Type))
+		}
+
+		issueResponse = append(issueResponse, entry)
+	}
+
+	r.send(request, response, http.StatusOK, issueResponse)
 }
 
 func (r *machineResource) getMachineConsolePassword(request *restful.Request, response *restful.Response) {
@@ -1582,7 +1725,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-	if err == nil && !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
+	if err == nil && ec.Liveliness != metal.MachineLivelinessDead {
 		r.sendError(request, response, defaultError(errors.New("can only delete dead machines")))
 		return
 	}
@@ -1790,7 +1933,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
-		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
+		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioning event container found for machine: %s", m.ID)
 	}
 
 	old := *provisioningEvents
@@ -1807,6 +1950,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 		} else {
 			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
 		}
+
 		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
 		if err != nil {
 			return provisioningEvents.Liveliness, err
@@ -1864,7 +2008,6 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 			}
 			continue
 		}
-
 	}
 
 	logger.Info("finished machine resurrection")
@@ -2087,27 +2230,6 @@ func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 	}
 
 	return nil
-}
-
-func machineHasIssues(m *v1.MachineResponse) bool {
-	if m.Partition == nil {
-		return true
-	}
-	if !metal.MachineLivelinessAlive.Is(m.Liveliness) {
-		return true
-	}
-	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventPhonedHome.Is(m.RecentProvisioningEvents.Events[0].Event) {
-		// not allocated, but phones home
-		return true
-	}
-	if m.RecentProvisioningEvents.CrashLoop || m.RecentProvisioningEvents.FailedMachineReclaim {
-		// Machines in crash loop but in "Waiting" state are considered available
-		if len(m.RecentProvisioningEvents.Events) > 0 && !metal.ProvisioningEventWaiting.Is(m.RecentProvisioningEvents.Events[0].Event) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore) (*v1.MachineResponse, error) {
