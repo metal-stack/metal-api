@@ -12,6 +12,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -68,6 +69,53 @@ func TestGetSize(t *testing.T) {
 	require.Equal(t, testdata.Sz1.Name, *result.Name)
 	require.Equal(t, testdata.Sz1.Description, *result.Description)
 	require.Equal(t, len(testdata.Sz1.Constraints), len(result.SizeConstraints))
+}
+
+func TestSuggest(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+
+	createRequest := v1.SizeSuggestRequest{
+		MachineID: "1",
+	}
+	js, err := json.Marshal(createRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
+	container := restful.NewContainer().Add(sizeservice)
+	req := httptest.NewRequest("POST", "/v1/size/suggest", body)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result []v1.SizeConstraint
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	require.NoError(t, err)
+
+	require.Len(t, result, 3)
+
+	assert.Contains(t, result, v1.SizeConstraint{
+		Type: metal.MemoryConstraint,
+		Min:  1 << 30,
+		Max:  1 << 30,
+	})
+
+	assert.Contains(t, result, v1.SizeConstraint{
+		Type: metal.CoreConstraint,
+		Min:  8,
+		Max:  8,
+	})
+
+	assert.Contains(t, result, v1.SizeConstraint{
+		Type: metal.StorageConstraint,
+		Min:  3000,
+		Max:  3000,
+	})
+
 }
 
 func TestGetSizeNotFound(t *testing.T) {

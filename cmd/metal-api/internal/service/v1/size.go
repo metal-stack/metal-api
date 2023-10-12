@@ -26,6 +26,10 @@ type SizeResponse struct {
 	Timestamps
 }
 
+type SizeSuggestRequest struct {
+	MachineID string `json:"machineID" description:"machineID to retrieve size suggestion for"`
+}
+
 type SizeConstraintMatchingLog struct {
 	Constraint SizeConstraint `json:"constraint" description:"the size constraint to which this log relates to"`
 	Match      bool           `json:"match" description:"indicates whether the constraint matched or not"`
