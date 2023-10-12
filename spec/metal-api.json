@@ -8832,7 +8832,7 @@
             }
           }
         },
-        "summary": "from a given machineID returns the appropiate size",
+        "summary": "from a given machine id returns the appropriate size",
         "tags": [
           "size"
         ]
