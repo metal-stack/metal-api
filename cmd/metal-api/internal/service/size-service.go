@@ -62,7 +62,7 @@ func (r *sizeResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/suggest").
 		To(r.suggestSize).
 		Operation("suggest").
-		Doc("from a given machineID returns the appropiate size").
+		Doc("from a given machine id returns the appropriate size").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).
 		Reads(v1.SizeSuggestRequest{}).
