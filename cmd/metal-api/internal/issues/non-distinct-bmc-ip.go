@@ -19,6 +19,7 @@ type (
 func (i *issueNonDistinctBMCIP) Spec() *spec {
 	return &spec{
 		Type:        TypeNonDistinctBMCIP,
+		Severity:    SeverityMajor,
 		Description: "BMC IP address is not distinct",
 		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#bmc-no-distinct-ip",
 	}

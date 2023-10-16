@@ -15,6 +15,7 @@ func (i *issueLivelinessNotAvailable) Spec() *spec {
 		Type:        TypeLivelinessNotAvailable,
 		Severity:    SeverityMinor,
 		Description: "the machine liveliness is not available",
+		RefURL:      "https://docs.metal-stack.io/stable/installation/troubleshoot/#liveliness-not-available",
 	}
 }
 
