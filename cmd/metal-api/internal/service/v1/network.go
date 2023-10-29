@@ -21,7 +21,6 @@ type NetworkImmutable struct {
 	PrivateSuper        bool     `json:"privatesuper" description:"if set to true, this network will serve as a partition's super network for the internal machine networks,there can only be one privatesuper network per partition"`
 	Underlay            bool     `json:"underlay" description:"if set to true, this network can be used for underlay communication"`
 	Vrf                 *uint    `json:"vrf" description:"the vrf this network is associated with" optional:"true"`
-	VrfShared           *bool    `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)" optional:"true"`
 	ParentNetworkID     *string  `json:"parentnetworkid" description:"the id of the parent network" optional:"true"`
 }
 
@@ -35,7 +34,8 @@ type NetworkUsage struct {
 
 // NetworkCreateRequest is used to create a new Network.
 type NetworkCreateRequest struct {
-	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
+	ID        *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
+	VrfShared *bool   `json:"vrfshared" description:"if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)" optional:"true"`
 	Describable
 	NetworkBase
 	NetworkImmutable
