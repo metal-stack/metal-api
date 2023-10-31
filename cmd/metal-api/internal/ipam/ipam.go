@@ -2,6 +2,7 @@ package ipam
 
 import (
 	"fmt"
+	"net/netip"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
@@ -42,13 +43,17 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8)
 
 // ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
 func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
-	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
-
-	if ipamChildPrefix == nil {
-		return fmt.Errorf("error finding child prefix in ipam: %s", childPrefix.String())
+	_, err := netip.ParsePrefix(childPrefix.String())
+	if err != nil {
+		return fmt.Errorf("invalid child prefix: %w", err)
 	}
 
-	err := i.ip.ReleaseChildPrefix(ipamChildPrefix)
+	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
+	if ipamChildPrefix == nil {
+		return nil
+	}
+
+	err = i.ip.ReleaseChildPrefix(ipamChildPrefix)
 	if err != nil {
 		return fmt.Errorf("error releasing child prefix in ipam: %w", err)
 	}
@@ -127,7 +132,7 @@ func (i *Ipam) ReleaseIP(ip metal.IP) error {
 func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	prefix := i.ip.PrefixFrom(cidr)
 	if prefix == nil {
-		return nil, fmt.Errorf("prefix for cidr:%s not found", cidr)
+		return nil, metal.NotFound("prefix for cidr:%s not found", cidr)
 	}
 	usage := prefix.Usage()
 

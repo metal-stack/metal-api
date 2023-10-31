@@ -553,6 +553,10 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	for _, prefix := range nw.Prefixes {
 		usage, err := r.ipamer.PrefixUsage(prefix.String())
 		if err != nil {
+			if metal.IsNotFound(err) {
+				continue
+			}
+
 			r.sendError(request, response, defaultError(err))
 			return
 		}
@@ -767,6 +771,7 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 	for _, prefix := range nw.Prefixes {
 		u, err := ipamer.PrefixUsage(prefix.String())
 		if err != nil {
+			// FIXME: the error should not be swallowed here as this can return wrong usage information to the clients
 			continue
 		}
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs
