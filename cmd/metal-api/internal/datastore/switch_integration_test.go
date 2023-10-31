@@ -8,7 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type switchTestable struct{}
@@ -66,7 +66,7 @@ func (_ *switchTestable) defaultBody(m *metal.Switch) *metal.Switch {
 func TestRethinkStore_FindSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []findTest[*metal.Switch, *SwitchSearchQuery]{
@@ -97,7 +97,7 @@ func TestRethinkStore_FindSwitch(t *testing.T) {
 func TestRethinkStore_SearchSwitches(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []searchTest[*metal.Switch, *SwitchSearchQuery]{
@@ -200,7 +200,7 @@ func TestRethinkStore_SearchSwitches(t *testing.T) {
 func TestRethinkStore_ListSwitches(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []listTest[*metal.Switch, *SwitchSearchQuery]{
@@ -226,7 +226,7 @@ func TestRethinkStore_ListSwitches(t *testing.T) {
 func TestRethinkStore_CreateSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []createTest[*metal.Switch, *SwitchSearchQuery]{
@@ -254,7 +254,7 @@ func TestRethinkStore_CreateSwitch(t *testing.T) {
 func TestRethinkStore_DeleteSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []deleteTest[*metal.Switch, *SwitchSearchQuery]{
@@ -294,7 +294,7 @@ func TestRethinkStore_DeleteSwitch(t *testing.T) {
 func TestRethinkStore_UpdateSwitch(t *testing.T) {
 	tt := &switchTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []updateTest[*metal.Switch, *SwitchSearchQuery]{

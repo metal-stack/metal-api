@@ -8,7 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type imageTestable struct{}
@@ -61,7 +61,7 @@ func (_ *imageTestable) search(q *ImageSearchQuery) ([]*metal.Image, error) { //
 func TestRethinkStore_FindImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []findTest[*metal.Image, *ImageSearchQuery]{
@@ -94,7 +94,7 @@ func TestRethinkStore_FindImage(t *testing.T) {
 func TestRethinkStore_SearchImages(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []searchTest[*metal.Image, *ImageSearchQuery]{
@@ -228,7 +228,7 @@ func TestRethinkStore_SearchImages(t *testing.T) {
 func TestRethinkStore_ListImages(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []listTest[*metal.Image, *ImageSearchQuery]{
@@ -254,7 +254,7 @@ func TestRethinkStore_ListImages(t *testing.T) {
 func TestRethinkStore_CreateImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []createTest[*metal.Image, *ImageSearchQuery]{
@@ -284,7 +284,7 @@ func TestRethinkStore_CreateImage(t *testing.T) {
 func TestRethinkStore_DeleteImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []deleteTest[*metal.Image, *ImageSearchQuery]{
@@ -324,7 +324,7 @@ func TestRethinkStore_DeleteImage(t *testing.T) {
 func TestRethinkStore_UpdateImage(t *testing.T) {
 	tt := &imageTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []updateTest[*metal.Image, *ImageSearchQuery]{

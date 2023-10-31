@@ -69,10 +69,10 @@ func TestWaitServer(t *testing.T) {
 	mm := [][]int{{10, 7}}
 	for _, a := range aa {
 		for _, m := range mm {
-			require.True(t, a > 0)
-			require.True(t, m[0] > 0)
-			require.True(t, m[1] > 0)
-			require.True(t, m[0] >= m[1])
+			require.Greater(t, a, 0)
+			require.Greater(t, m[0], 0)
+			require.Greater(t, m[1], 0)
+			require.GreaterOrEqual(t, m[0], m[1])
 			tt = append(tt, &test{
 				numberApiInstances:     a,
 				numberMachineInstances: m[0],
@@ -140,7 +140,7 @@ func (t *test) run() {
 	t.startMachineInstances()
 	t.notReadyMachines.Wait()
 
-	require.Equal(t, t.numberMachineInstances, len(wait))
+	require.Len(t, wait, t.numberMachineInstances)
 	for _, wait := range wait {
 		require.True(t, wait)
 	}
@@ -159,7 +159,7 @@ func (t *test) run() {
 		t.notReadyMachines.Wait()
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(wait))
+	require.Len(t, wait, t.numberMachineInstances)
 	for _, wait := range wait {
 		require.True(t, wait)
 	}
@@ -168,12 +168,12 @@ func (t *test) run() {
 
 	t.unallocatedMachines.Wait()
 
-	require.Equal(t, t.numberAllocations, len(t.allocations))
+	require.Len(t, t.allocations, t.numberAllocations)
 	for _, allocated := range t.allocations {
 		require.True(t, allocated)
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(wait))
+	require.Len(t, wait, t.numberMachineInstances)
 	for key, wait := range wait {
 		require.Equal(t, !containsKey(t.allocations, key), wait)
 	}

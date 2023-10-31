@@ -8,7 +8,7 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type machineTestable struct{}
@@ -111,7 +111,7 @@ func (_ *machineTestable) defaultBody(m *metal.Machine) *metal.Machine {
 func TestRethinkStore_FindMachine(t *testing.T) {
 	tt := &machineTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []findTest[*metal.Machine, *MachineSearchQuery]{
@@ -142,7 +142,7 @@ func TestRethinkStore_FindMachine(t *testing.T) {
 func TestRethinkStore_SearchMachines(t *testing.T) {
 	tt := &machineTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []searchTest[*metal.Machine, *MachineSearchQuery]{
@@ -827,7 +827,7 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 func TestRethinkStore_ListMachines(t *testing.T) {
 	tt := &machineTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []listTest[*metal.Machine, *MachineSearchQuery]{
@@ -853,7 +853,7 @@ func TestRethinkStore_ListMachines(t *testing.T) {
 func TestRethinkStore_CreateMachine(t *testing.T) {
 	tt := &machineTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []createTest[*metal.Machine, *MachineSearchQuery]{
@@ -879,7 +879,7 @@ func TestRethinkStore_CreateMachine(t *testing.T) {
 func TestRethinkStore_DeleteMachine(t *testing.T) {
 	tt := &machineTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []deleteTest[*metal.Machine, *MachineSearchQuery]{
@@ -919,7 +919,7 @@ func TestRethinkStore_DeleteMachine(t *testing.T) {
 func TestRethinkStore_UpdateMachine(t *testing.T) {
 	tt := &machineTestable{}
 	defer func() {
-		assert.NoError(t, tt.wipe())
+		require.NoError(t, tt.wipe())
 	}()
 
 	tests := []updateTest[*metal.Machine, *MachineSearchQuery]{
