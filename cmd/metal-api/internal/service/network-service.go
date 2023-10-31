@@ -551,21 +551,6 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	}
 
 	for _, prefix := range nw.Prefixes {
-		usage, err := r.ipamer.PrefixUsage(prefix.String())
-		if err != nil {
-			r.sendError(request, response, defaultError(err))
-			return
-		}
-
-		if usage.UsedIPs > 2 {
-			if err != nil {
-				r.sendError(request, response, defaultError(fmt.Errorf("cannot release child prefix %s because IPs in the prefix are still in use: %v", prefix.String(), usage.UsedIPs-2)))
-				return
-			}
-		}
-	}
-
-	for _, prefix := range nw.Prefixes {
 		err = r.ipamer.ReleaseChildPrefix(prefix)
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
@@ -767,6 +752,7 @@ func getNetworkUsage(nw *metal.Network, ipamer ipam.IPAMer) *metal.NetworkUsage 
 	for _, prefix := range nw.Prefixes {
 		u, err := ipamer.PrefixUsage(prefix.String())
 		if err != nil {
+			// FIXME: the error should not be swallowed here as this can return wrong usage information to the clients
 			continue
 		}
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs
