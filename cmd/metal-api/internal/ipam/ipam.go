@@ -50,6 +50,9 @@ func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
 
 	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
 	if ipamChildPrefix == nil {
+		// FIXME: unfortunately, go-ipam does not return a proper error here so we cannot deduce if the prefix
+		// was already deleted or not, so if the database is down or something we continue with network deletion
+		// even though there could be remainings in the go-ipam db
 		return nil
 	}
 
