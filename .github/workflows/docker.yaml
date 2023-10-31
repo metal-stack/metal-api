@@ -40,7 +40,7 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v3
       with:
-        args: --build-tags integration -p bugs -p unused --timeout=5m
+        args: --build-tags integration -p bugs -p unused -D protogetter --timeout=5m
 
     - name: Make tag
       run: |
@@ -53,7 +53,7 @@ jobs:
         make release
 
     - name: Push image
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v5
       with:
         context: .
         push: true

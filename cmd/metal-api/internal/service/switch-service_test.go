@@ -64,7 +64,7 @@ func TestRegisterSwitch(t *testing.T) {
 	require.Equal(t, "switch999", *result.Name)
 	require.Equal(t, "1", result.RackID)
 	require.Equal(t, "1", result.Partition.ID)
-	require.Len(t, result.Connections, 0)
+	require.Empty(t, result.Connections)
 }
 
 func TestRegisterExistingSwitch(t *testing.T) {
@@ -106,7 +106,7 @@ func TestRegisterExistingSwitch(t *testing.T) {
 	require.Equal(t, testdata.Switch2.Name, *result.Name)
 	require.Equal(t, testdata.Switch2.RackID, result.RackID)
 	require.Equal(t, testdata.Switch2.PartitionID, result.Partition.ID)
-	require.Len(t, result.Connections, 0)
+	require.Empty(t, result.Connections)
 	// con := result.Connections[0]
 	// require.Equal(t, testdata.Switch2.MachineConnections["1"][0].Nic.MacAddress, con.Nic.MacAddress)
 }
@@ -180,7 +180,7 @@ func TestReplaceSwitch(t *testing.T) {
 	require.Equal(t, testdata.Switch2.Name, *result.Name)
 	require.Equal(t, testdata.Switch2.RackID, result.RackID)
 	require.Equal(t, testdata.Switch2.PartitionID, result.Partition.ID)
-	require.Len(t, result.Connections, 0)
+	require.Empty(t, result.Connections)
 }
 
 func TestConnectMachineWithSwitches(t *testing.T) {

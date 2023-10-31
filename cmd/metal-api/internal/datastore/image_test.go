@@ -11,6 +11,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_getMostRecentImageFor(t *testing.T) {
@@ -282,15 +283,15 @@ func Test_sortImages(t *testing.T) {
 
 func TestSemver(t *testing.T) {
 	c, err := semver.NewConstraint("~1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, c)
 	v, err := semver.NewVersion("1.99.99")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, v)
 	satisfies := c.Check(v)
 	assert.True(t, satisfies)
 	v, err = semver.StrictNewVersion("19.01")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, v)
 }
 

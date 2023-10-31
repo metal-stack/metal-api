@@ -159,7 +159,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	}
 	err = g.Wait()
 	require.NoError(t, err)
-	require.Equal(t, len(ips), machineCount)
+	require.Len(t, ips, machineCount)
 	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
 
 	// Free

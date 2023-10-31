@@ -9,6 +9,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -98,9 +99,9 @@ func TestRethinkStore_ReleaseUniqueInteger(t *testing.T) {
 
 			got := ip.ReleaseUniqueInteger(tt.value)
 			if tt.err != nil {
-				assert.EqualError(t, got, tt.err.Error())
+				require.EqualError(t, got, tt.err.Error())
 			} else {
-				assert.NoError(t, got)
+				require.NoError(t, got)
 			}
 
 			if tt.requiresMock {
@@ -118,7 +119,7 @@ func TestRethinkStore_AcquireRandomUniqueInteger(t *testing.T) {
 		DeleteOpts{ReturnChanges: true})).Return(r.WriteResponse{Changes: changes}, nil)
 
 	got, err := ip.AcquireRandomUniqueInteger()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.EqualValues(t, rs.VRFPoolRangeMin, got)
 
 	mock.AssertExpectations(t)
@@ -160,9 +161,9 @@ func TestRethinkStore_AcquireUniqueInteger(t *testing.T) {
 
 			got, err := ip.AcquireUniqueInteger(tt.value)
 			if tt.err != nil {
-				assert.EqualError(t, err, tt.err.Error())
+				require.EqualError(t, err, tt.err.Error())
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.EqualValues(t, tt.value, got)
 			}
 
@@ -234,9 +235,9 @@ func TestRethinkStore_genericAcquire(t *testing.T) {
 
 			got, err := ip.genericAcquire(&term)
 			if tt.expectedErr != nil {
-				assert.EqualError(t, err, tt.expectedErr.Error())
+				require.EqualError(t, err, tt.expectedErr.Error())
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.EqualValues(t, tt.value, got)
 			}
 
