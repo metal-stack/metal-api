@@ -132,7 +132,7 @@ func (i *Ipam) ReleaseIP(ip metal.IP) error {
 func (i *Ipam) PrefixUsage(cidr string) (*metal.NetworkUsage, error) {
 	prefix := i.ip.PrefixFrom(cidr)
 	if prefix == nil {
-		return nil, metal.NotFound("prefix for cidr:%s not found", cidr)
+		return nil, fmt.Errorf("prefix for cidr:%s not found", cidr)
 	}
 	usage := prefix.Usage()
 
