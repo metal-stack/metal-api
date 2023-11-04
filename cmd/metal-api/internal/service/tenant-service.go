@@ -72,6 +72,18 @@ func (r *tenantResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.TenantResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
+	ws.Route(ws.POST("/{id}/history").
+		To(viewer(r.getTenantHistory)).
+		Operation("getTenantHistory").
+		Doc("get tenant with this id at the given timestamp").
+		Param(ws.PathParameter("id", "identifier of the tenant").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Reads(v1.TenantGetHistoryRequest{}).
+		Writes(v1.TenantResponse{}).
+		Returns(http.StatusOK, "OK", v1.TenantResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
 	ws.Route(ws.DELETE("/{id}").
 		To(admin(r.deleteTenant)).
 		Operation("deleteTenant").
@@ -184,6 +196,26 @@ func (r *tenantResource) createTenant(request *restful.Request, response *restfu
 	}
 
 	r.send(request, response, http.StatusCreated, pcres)
+}
+
+func (r *tenantResource) getTenantHistory(request *restful.Request, response *restful.Response) {
+	id := request.PathParameter("id")
+
+	var tghr v1.TenantGetHistoryRequest
+	err := request.ReadEntity(&tghr)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	thres, err := r.mdc.Tenant().GetHistory(request.Request.Context(), mapper.ToMdmV1TenantGetHistoryRequest(&tghr, id))
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+	v1t := mapper.ToV1Tenant(thres.Tenant)
+
+	r.send(request, response, http.StatusOK, &v1t)
 }
 
 func (r *tenantResource) deleteTenant(request *restful.Request, response *restful.Response) {
