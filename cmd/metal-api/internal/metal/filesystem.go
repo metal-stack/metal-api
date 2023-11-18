@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -249,6 +250,10 @@ func (f FilesystemLayout) Validate() error {
 		if !ok {
 			return fmt.Errorf("filesystem:%s format:%s is not supported", *fs.Path, fs.Format)
 		}
+		err := validateCreateOptions(fs.CreateOptions)
+		if err != nil {
+			return err
+		}
 	}
 
 	// validate constraints
@@ -257,6 +262,19 @@ func (f FilesystemLayout) Validate() error {
 		return err
 	}
 
+	return nil
+}
+
+func validateCreateOptions(opts []string) error {
+	var errs []error
+	for _, opt := range opts {
+		if len(strings.Fields(opt)) > 1 {
+			errs = append(errs, fmt.Errorf("the given createoption:%q contains whitespace and must be split into separate options", opt))
+		}
+	}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
 	return nil
 }
 

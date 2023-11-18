@@ -640,6 +640,48 @@ func TestFilesystemLayout_Validate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			id:   "fsl-19",
+			name: "invalid createoptions",
+			fields: fields{
+				Filesystems: []Filesystem{
+					{
+						Path:   strPtr("/boot/efi"),
+						Device: "/dev/sda1",
+						Format: VFAT,
+						CreateOptions: []string{
+							"-F 32",
+						},
+					},
+				},
+				Disks: []Disk{
+					{Device: "/dev/sda1"},
+				},
+			},
+			wantErr:   true,
+			errString: "the given createoption:\"-F 32\" contains whitespace and must be split into separate options",
+		},
+		{
+			id:   "fsl-20",
+			name: "valid createoptions",
+			fields: fields{
+				Filesystems: []Filesystem{
+					{
+						Path:   strPtr("/boot/efi"),
+						Device: "/dev/sda1",
+						Format: VFAT,
+						CreateOptions: []string{
+							"-F",
+							"32",
+						},
+					},
+				},
+				Disks: []Disk{
+					{Device: "/dev/sda1"},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
