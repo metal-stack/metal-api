@@ -598,6 +598,7 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
+	// FIXME create a slog.Logger instance with the same log level as configured for zap and pass this logger instance
 	issuerCache, err := security.NewMultiIssuerCache(nil, func() ([]*security.IssuerConfig, error) {
 		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
