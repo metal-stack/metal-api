@@ -15,6 +15,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/Masterminds/semver/v3"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
@@ -289,6 +290,8 @@ func init() {
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
 	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
+
+	rootCmd.Flags().StringP("minimum-client-version", "", "v0.0.1", "the minimum metalctl version required to talk to this version of metal-api")
 
 	must(viper.BindPFlags(rootCmd.Flags()))
 	must(viper.BindPFlags(rootCmd.PersistentFlags()))
@@ -595,7 +598,8 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
-	issuerCache, err := security.NewMultiIssuerCache(lg.Named("issuer-cache"), func() ([]*security.IssuerConfig, error) {
+	// FIXME create a slog.Logger instance with the same log level as configured for zap and pass this logger instance
+	issuerCache, err := security.NewMultiIssuerCache(nil, func() ([]*security.IssuerConfig, error) {
 		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
 		// get provider tenant from masterdata
@@ -739,6 +743,12 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	if err != nil {
 		logger.Fatal(err)
 	}
+
+	minClientVersion, err := semver.NewVersion(viper.GetString("minimum-client-version"))
+	if err != nil {
+		logger.Fatalf("given minimum client version is not semver parsable: %w", err)
+	}
+
 	restful.DefaultContainer.Add(service.NewAudit(logger.Named("audit-service"), audit))
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
@@ -756,7 +766,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
 	restful.DefaultContainer.Add(service.NewVPN(logger.Named("vpn-service"), headscaleClient))
-	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
+	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath, minClientVersion.Original()))
 	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
