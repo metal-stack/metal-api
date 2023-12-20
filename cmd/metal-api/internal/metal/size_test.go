@@ -3,6 +3,9 @@ package metal
 import (
 	"reflect"
 	"testing"
+
+	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -538,9 +541,79 @@ func TestSizes_Overlaps(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
+			err := tt.sz.Validate()
+			require.NoError(t, err)
 			got := tt.sz.Overlaps(&tt.args.sizes)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Sizes.Overlaps() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSize_Validate(t *testing.T) {
+	tests := []struct {
+		name           string
+		size           Size
+		wantErrMessage *string
+	}{
+		{
+			name: "cpu min and max wrong",
+			size: Size{
+				Base: Base{
+					ID: "broken-cpu-size",
+				},
+				Constraints: []Constraint{
+					{
+						Type: CoreConstraint,
+						Min:  8,
+						Max:  2,
+					},
+				},
+			},
+			wantErrMessage: pointer.Pointer("size:\"broken-cpu-size\" type:\"cores\" max:2 is smaller than min:8"),
+		},
+		{
+			name: "memory min and max wrong",
+			size: Size{
+				Base: Base{
+					ID: "broken-memory-size",
+				},
+				Constraints: []Constraint{
+					{
+						Type: MemoryConstraint,
+						Min:  8,
+						Max:  2,
+					},
+				},
+			},
+			wantErrMessage: pointer.Pointer("size:\"broken-memory-size\" type:\"memory\" max:2 is smaller than min:8"),
+		},
+		{
+			name: "storage is working",
+			size: Size{
+				Base: Base{
+					ID: "storage-size",
+				},
+				Constraints: []Constraint{
+					{
+						Type: StorageConstraint,
+						Min:  2,
+						Max:  8,
+					},
+				},
+			},
+			wantErrMessage: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.size.Validate()
+			if err != nil {
+				require.EqualError(t, err, *tt.wantErrMessage)
+			}
+			if err == nil && tt.wantErrMessage != nil {
+				t.Errorf("expected error not raise:%s", *tt.wantErrMessage)
 			}
 		})
 	}
