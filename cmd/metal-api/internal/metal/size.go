@@ -117,7 +117,17 @@ func (s *Size) overlaps(so *Size) bool {
 	return true
 }
 
-// Overlaps returns nil if Size does not overlap with any other size, otherwise returs overlapping Size
+// Validate a size, returns error if a invalid size is passed
+func (s *Size) Validate() error {
+	for _, c := range s.Constraints {
+		if c.Max < c.Min {
+			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
+		}
+	}
+	return nil
+}
+
+// Overlaps returns nil if Size does not overlap with any other size, otherwise returns overlapping Size
 func (s *Size) Overlaps(ss *Sizes) *Size {
 	for i := range *ss {
 		so := (*ss)[i]
