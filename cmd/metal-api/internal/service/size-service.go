@@ -213,6 +213,15 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		}
 		constraints = append(constraints, constraint)
 	}
+	var reservations metal.Reservations
+	for _, r := range requestPayload.SizeReservations {
+		reservations = append(reservations, metal.Reservation{
+			Amount:       r.Amount,
+			Description:  r.Description,
+			ProjectID:    r.ProjectID,
+			PartitionIDs: r.PartitionIDs,
+		})
+	}
 
 	s := &metal.Size{
 		Base: metal.Base{
@@ -220,7 +229,8 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 			Name:        name,
 			Description: description,
 		},
-		Constraints: constraints,
+		Constraints:  constraints,
+		Reservations: reservations,
 	}
 
 	ss, err := r.ds.ListSizes()
@@ -301,6 +311,18 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 			constraints = append(constraints, constraint)
 		}
 		newSize.Constraints = constraints
+	}
+	var reservations metal.Reservations
+	if requestPayload.SizeReservations != nil {
+		for _, r := range requestPayload.SizeReservations {
+			reservations = append(reservations, metal.Reservation{
+				Amount:       r.Amount,
+				Description:  r.Description,
+				ProjectID:    r.ProjectID,
+				PartitionIDs: r.PartitionIDs,
+			})
+		}
+		newSize.Reservations = reservations
 	}
 
 	ss, err := r.ds.ListSizes()

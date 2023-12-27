@@ -4340,6 +4340,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -4473,6 +4480,35 @@
         "name"
       ]
     },
+    "v1.SizeReservation": {
+      "properties": {
+        "amount": {
+          "description": "the amount of reserved machine allocations for this size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "description": {
+          "description": "a description for this reservation",
+          "type": "string"
+        },
+        "partitionids": {
+          "description": "the partitions in which this size reservation is considered, the amount is valid for every partition",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "projectid": {
+          "description": "the project for which this size reservation is considered",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "partitionids",
+        "projectid"
+      ]
+    },
     "v1.SizeResponse": {
       "properties": {
         "changed": {
@@ -4506,6 +4542,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -4545,6 +4588,13 @@
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [

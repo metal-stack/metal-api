@@ -10,19 +10,29 @@ type SizeConstraint struct {
 	Max  uint64               `json:"max" description:"the maximum value of the constraint"`
 }
 
+type SizeReservation struct {
+	Amount       int      `json:"amount" description:"the amount of reserved machine allocations for this size"`
+	Description  string   `json:"description,omitempty" description:"a description for this reservation"`
+	ProjectID    string   `json:"projectid" description:"the project for which this size reservation is considered"`
+	PartitionIDs []string `json:"partitionids" description:"the partitions in which this size reservation is considered, the amount is valid for every partition"`
+}
+
 type SizeCreateRequest struct {
 	Common
-	SizeConstraints []SizeConstraint `json:"constraints" description:"a list of constraints that defines this size"`
+	SizeConstraints  []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
+	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
 }
 
 type SizeUpdateRequest struct {
 	Common
-	SizeConstraints *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size" optional:"true"`
+	SizeConstraints  *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size" optional:"true"`
+	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
 }
 
 type SizeResponse struct {
 	Common
-	SizeConstraints []SizeConstraint `json:"constraints" description:"a list of constraints that defines this size"`
+	SizeConstraints  []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
+	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
 	Timestamps
 }
 
@@ -80,6 +90,17 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 		constraints = append(constraints, constraint)
 	}
 
+	reservations := []SizeReservation{}
+	for _, r := range s.Reservations {
+		reservation := SizeReservation{
+			Amount:       r.Amount,
+			Description:  r.Description,
+			ProjectID:    r.ProjectID,
+			PartitionIDs: r.PartitionIDs,
+		}
+		reservations = append(reservations, reservation)
+	}
+
 	return &SizeResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -90,7 +111,8 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 				Description: &s.Description,
 			},
 		},
-		SizeConstraints: constraints,
+		SizeReservations: reservations,
+		SizeConstraints:  constraints,
 		Timestamps: Timestamps{
 			Created: s.Created,
 			Changed: s.Changed,

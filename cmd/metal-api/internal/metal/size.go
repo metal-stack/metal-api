@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"slices"
 )
 
 // UnknownSize is the size to use, when someone requires a size we do not know.
@@ -15,8 +16,19 @@ var UnknownSize = &Size{
 // A Size represents a supported machine size.
 type Size struct {
 	Base
-	Constraints []Constraint `rethinkdb:"constraints" json:"constraints"`
+	Constraints  []Constraint `rethinkdb:"constraints" json:"constraints"`
+	Reservations Reservations `rethinkdb:"reservations" json:"reservations"`
 }
+
+// Reservation defines a reservation of a size for machine allocations
+type Reservation struct {
+	Amount       int      `rethinkdb:"amount" json:"amount"`
+	Description  string   `rethinkdb:"description" json:"description"`
+	ProjectID    string   `rethinkdb:"projectid" json:"projectid"`
+	PartitionIDs []string `rethinkdb:"partitionids" json:"partitionids"`
+}
+
+type Reservations []Reservation
 
 // ConstraintType ...
 type ConstraintType string
@@ -124,6 +136,13 @@ func (s *Size) Validate() error {
 			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
 		}
 	}
+
+	if s.Reservations != nil {
+		if err := s.Reservations.Validate(); err != nil {
+			return fmt.Errorf("invalid size reservation: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -135,6 +154,33 @@ func (s *Size) Overlaps(ss *Sizes) *Size {
 			return &so
 		}
 	}
+	return nil
+}
+
+func (rs Reservations) ForPartition(partitionID string) Reservations {
+	var result Reservations
+	for _, r := range rs {
+		r := r
+		if slices.Contains(r.PartitionIDs, partitionID) {
+			result = append(result, r)
+		}
+	}
+	return result
+}
+
+func (rs Reservations) Validate() error {
+	for _, r := range rs {
+		if r.Amount <= 0 {
+			return fmt.Errorf("amount must be a positive integer")
+		}
+		if len(r.PartitionIDs) == 0 {
+			return fmt.Errorf("at least one partition id must be specified")
+		}
+		if r.ProjectID == "" {
+			return fmt.Errorf("project id must be specified")
+		}
+	}
+
 	return nil
 }
 

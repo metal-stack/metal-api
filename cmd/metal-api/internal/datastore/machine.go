@@ -428,12 +428,12 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string, placementTags []string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
 		"partitionid": partitionid,
-		"sizeid":      sizeid,
+		"sizeid":      size.ID,
 		"state": map[string]string{
 			"value": string(metal.AvailableState),
 		},
@@ -467,20 +467,24 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 		available = append(available, m)
 	}
 
-	if available == nil || len(available) < 1 {
+	if len(available) == 0 {
 		return nil, errors.New("no machine available")
 	}
 
-	query := MachineSearchQuery{
-		AllocationProject: &projectid,
-		PartitionID:       &partitionid,
-	}
-
-	var projectMachines metal.Machines
-	err = rs.SearchMachines(&query, &projectMachines)
+	var partitionMachines metal.Machines
+	err = rs.SearchMachines(&MachineSearchQuery{
+		PartitionID: &partitionid,
+	}, &partitionMachines)
 	if err != nil {
 		return nil, err
 	}
+
+	ok := checkSizeReservations(available, projectid, partitionid, partitionMachines.WithSize(size.ID).ByProjectID(), size)
+	if !ok {
+		return nil, errors.New("no machine available")
+	}
+
+	projectMachines := partitionMachines.ByProjectID()[projectid]
 
 	spreadCandidates := spreadAcrossRacks(available, projectMachines, placementTags)
 	if len(spreadCandidates) == 0 {
@@ -497,6 +501,43 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid, sizeid string
 	}
 
 	return &newMachine, nil
+}
+
+// checkSizeReservations returns true when an allocation is possible and
+// false when size reservations prevent the allocation for the given project in the given partition
+func checkSizeReservations(available metal.Machines, projectid, partitionid string, machinesByProject map[string]metal.Machines, size metal.Size) bool {
+	if size.Reservations == nil {
+		return true
+	}
+
+	var (
+		reservations = 0
+		max          = func(x, y int) int {
+			if x > y {
+				return x
+			}
+			return y
+		}
+	)
+
+	for _, r := range size.Reservations.ForPartition(partitionid) {
+		r := r
+
+		// sum up the amount of reservations
+		reservations += r.Amount
+
+		alreadyAllocated := len(machinesByProject[r.ProjectID])
+
+		if projectid == r.ProjectID && alreadyAllocated < r.Amount {
+			// allow allocation for the project when it has a reservation and there are still allocations left
+			return true
+		}
+
+		// substract aleady used up reservations of the project
+		reservations = max(reservations-alreadyAllocated, 0)
+	}
+
+	return reservations < len(available)
 }
 
 func spreadAcrossRacks(allMachines, projectMachines metal.Machines, tags []string) metal.Machines {

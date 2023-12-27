@@ -171,6 +171,22 @@ func (ms Machines) ByProjectID() map[string]Machines {
 	return res
 }
 
+func (ms Machines) WithSize(id string) Machines {
+	var res Machines
+
+	for _, m := range ms {
+		m := m
+
+		if m.SizeID != id {
+			continue
+		}
+
+		res = append(res, m)
+	}
+
+	return res
+}
+
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
 	NetworkID           string   `rethinkdb:"networkid" json:"networkid"`
