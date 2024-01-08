@@ -80,6 +80,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 			Id: "test-project-1",
 		},
 	}}, nil)
+	psc.On("Find", context.Background(), &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
+	}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
 	log := zaptest.NewLogger(t).Sugar()
