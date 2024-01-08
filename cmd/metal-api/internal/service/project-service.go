@@ -255,9 +255,7 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	for _, size := range sizes {
 		size := size
 
-		if size.Reservations != nil {
-			sizeReservations = size.Reservations.ForProject(id)
-		}
+		sizeReservations = size.Reservations.ForProject(id)
 	}
 
 	if len(sizeReservations) > 0 {

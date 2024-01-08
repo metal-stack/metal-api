@@ -142,10 +142,8 @@ func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Proj
 		}
 	}
 
-	if s.Reservations != nil {
-		if err := s.Reservations.Validate(partitions, projects); err != nil {
-			return fmt.Errorf("invalid size reservation: %w", err)
-		}
+	if err := s.Reservations.Validate(partitions, projects); err != nil {
+		return fmt.Errorf("invalid size reservation: %w", err)
 	}
 
 	return nil
@@ -162,30 +160,44 @@ func (s *Size) Overlaps(ss *Sizes) *Size {
 	return nil
 }
 
-func (rs Reservations) ForPartition(partitionID string) Reservations {
+func (rs *Reservations) ForPartition(partitionID string) Reservations {
+	if rs == nil {
+		return nil
+	}
+
 	var result Reservations
-	for _, r := range rs {
+	for _, r := range *rs {
 		r := r
 		if slices.Contains(r.PartitionIDs, partitionID) {
 			result = append(result, r)
 		}
 	}
+
 	return result
 }
 
-func (rs Reservations) ForProject(projectID string) Reservations {
+func (rs *Reservations) ForProject(projectID string) Reservations {
+	if rs == nil {
+		return nil
+	}
+
 	var result Reservations
-	for _, r := range rs {
+	for _, r := range *rs {
 		r := r
 		if r.ProjectID == projectID {
 			result = append(result, r)
 		}
 	}
+
 	return result
 }
 
-func (rs Reservations) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
-	for _, r := range rs {
+func (rs *Reservations) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
+	if rs == nil {
+		return nil
+	}
+
+	for _, r := range *rs {
 		if r.Amount <= 0 {
 			return fmt.Errorf("amount must be a positive integer")
 		}
