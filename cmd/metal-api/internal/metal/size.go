@@ -5,14 +5,6 @@ import (
 	"slices"
 )
 
-// UnknownSize is the size to use, when someone requires a size we do not know.
-var UnknownSize = &Size{
-	Base: Base{
-		ID:   "unknown",
-		Name: "unknown",
-	},
-}
-
 // A Size represents a supported machine size.
 type Size struct {
 	Base
@@ -61,6 +53,16 @@ func (sz Sizes) ByID() SizeMap {
 		res[f.ID] = sz[i]
 	}
 	return res
+}
+
+// UnknownSize is the size to use, when someone requires a size we do not know.
+func UnknownSize() *Size {
+	return &Size{
+		Base: Base{
+			ID:   "unknown",
+			Name: "unknown",
+		},
+	}
 }
 
 // Matches returns true if the given machine hardware is inside the min/max values of the

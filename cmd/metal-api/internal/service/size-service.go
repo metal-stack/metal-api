@@ -191,8 +191,8 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	if requestPayload.ID == metal.UnknownSize.GetID() {
-		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("id cannot be %q", metal.UnknownSize.GetID())))
+	if requestPayload.ID == metal.UnknownSize().GetID() {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("id cannot be %q", metal.UnknownSize().GetID())))
 		return
 	}
 
