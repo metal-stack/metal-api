@@ -4248,12 +4248,22 @@
           },
           "type": "array"
         },
+        "reservations": {
+          "description": "the amount of reservations for this size",
+          "format": "int32",
+          "type": "integer"
+        },
         "size": {
           "description": "the size of the server",
           "type": "string"
         },
         "total": {
           "description": "total amount of servers with this size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "unusedreservations": {
+          "description": "the amount of unused reservations for this size",
           "format": "int32",
           "type": "integer"
         }
@@ -4265,8 +4275,10 @@
         "free",
         "other",
         "othermachines",
+        "reservations",
         "size",
-        "total"
+        "total",
+        "unusedreservations"
       ]
     },
     "v1.SizeConstraint": {
@@ -4336,6 +4348,13 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -4539,6 +4558,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
@@ -4553,7 +4579,8 @@
       },
       "required": [
         "constraints",
-        "id"
+        "id",
+        "labels"
       ]
     },
     "v1.SizeSuggestRequest": {
@@ -4584,6 +4611,13 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
         },
         "name": {
           "description": "a readable name for this entity",
