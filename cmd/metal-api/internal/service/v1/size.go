@@ -39,6 +39,17 @@ type SizeResponse struct {
 	Timestamps
 }
 
+type SizeReservationResponse struct {
+	SizeID             string `json:"sizeid" description:"the size id of this size reservation"`
+	PartitionID        string `json:"partitionid" description:"the partition id of this size reservation"`
+	Tenant             string `json:"tenant" description:"the tenant of this size reservation"`
+	ProjectID          string `json:"projectid" description:"the project id of this size reservation"`
+	ProjectName        string `json:"projectname" description:"the project name of this size reservation"`
+	Reservations       int    `json:"reservations" description:"the amount of reservations of this size reservation"`
+	UsedReservations   int    `json:"usedreservations" description:"the used amount of reservations of this size reservation"`
+	ProjectAllocations int    `json:"projectallocations" description:"the amount of allocations of this project referenced by this size reservation"`
+}
+
 type SizeSuggestRequest struct {
 	MachineID string `json:"machineID" description:"machineID to retrieve size suggestion for"`
 }

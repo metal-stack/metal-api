@@ -12,6 +12,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -62,6 +63,15 @@ func (r *sizeResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes([]v1.SizeResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/reservations").
+		To(r.listSizeReservations).
+		Operation("listSizeReservations").
+		Doc("get all size reservations").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes([]v1.SizeReservationResponse{}).
+		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/suggest").
@@ -261,18 +271,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	projectMap := map[string]*mdmv1.Project{}
-	for _, p := range projects.GetProjects() {
-		p := p
-
-		if p.Meta == nil {
-			continue
-		}
-
-		projectMap[p.GetMeta().GetId()] = p
-	}
-
-	err = s.Validate(ps.ByID(), projectMap)
+	err = s.Validate(ps.ByID(), projectsByID(projects.Projects))
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -379,18 +378,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	projectMap := map[string]*mdmv1.Project{}
-	for _, p := range projects.GetProjects() {
-		p := p
-
-		if p.Meta == nil {
-			continue
-		}
-
-		projectMap[p.GetMeta().GetId()] = p
-	}
-
-	err = newSize.Validate(ps.ByID(), projectMap)
+	err = newSize.Validate(ps.ByID(), projectsByID(projects.Projects))
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -431,4 +419,56 @@ func (r *sizeResource) fromHardware(request *restful.Request, response *restful.
 	}
 
 	r.send(request, response, http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
+}
+
+func (r *sizeResource) listSizeReservations(request *restful.Request, response *restful.Response) {
+	ss, err := r.ds.ListSizes()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	projects, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	ms, err := r.ds.ListMachines()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	var (
+		result              []*v1.SizeReservationResponse
+		projectsByID        = projectsByID(projects.Projects)
+		machinesByProjectID = ms.ByProjectID()
+	)
+
+	for _, size := range ss {
+		size := size
+
+		for _, reservation := range size.Reservations {
+			reservation := reservation
+
+			for _, partitionID := range reservation.PartitionIDs {
+				project := pointer.SafeDeref(projectsByID[reservation.ProjectID])
+				allocations := len(machinesByProjectID[reservation.ProjectID].WithSize(size.ID))
+
+				result = append(result, &v1.SizeReservationResponse{
+					SizeID:             size.ID,
+					PartitionID:        partitionID,
+					Tenant:             project.TenantId,
+					ProjectID:          reservation.ProjectID,
+					ProjectName:        project.Name,
+					Reservations:       reservation.Amount,
+					UsedReservations:   min(reservation.Amount, allocations),
+					ProjectAllocations: allocations,
+				})
+			}
+		}
+	}
+
+	r.send(request, response, http.StatusOK, result)
 }

@@ -357,3 +357,19 @@ func (r *projectResource) setProjectQuota(project *mdmv1.Project) (*v1.Project, 
 
 	return p, nil
 }
+
+func projectsByID(projects []*mdmv1.Project) map[string]*mdmv1.Project {
+	result := map[string]*mdmv1.Project{}
+
+	for _, p := range projects {
+		p := p
+
+		if p.Meta == nil {
+			continue
+		}
+
+		result[p.GetMeta().GetId()] = p
+	}
+
+	return result
+}

@@ -4528,6 +4528,55 @@
         "projectid"
       ]
     },
+    "v1.SizeReservationResponse": {
+      "properties": {
+        "partitionid": {
+          "description": "the partition id of this size reservation",
+          "type": "string"
+        },
+        "projectallocations": {
+          "description": "the amount of allocations of this project referenced by this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "projectid": {
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "projectname": {
+          "description": "the project name of this size reservation",
+          "type": "string"
+        },
+        "reservations": {
+          "description": "the amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
+          "type": "string"
+        },
+        "tenant": {
+          "description": "the tenant of this size reservation",
+          "type": "string"
+        },
+        "usedreservations": {
+          "description": "the used amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "partitionid",
+        "projectallocations",
+        "projectid",
+        "projectname",
+        "reservations",
+        "sizeid",
+        "tenant",
+        "usedreservations"
+      ]
+    },
     "v1.SizeResponse": {
       "properties": {
         "changed": {
@@ -8879,6 +8928,38 @@
           }
         },
         "summary": "Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/reservations": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listSizeReservations",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeReservationResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all size reservations",
         "tags": [
           "size"
         ]
