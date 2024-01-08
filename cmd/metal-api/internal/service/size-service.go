@@ -204,6 +204,10 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 	if requestPayload.Description != nil {
 		description = *requestPayload.Description
 	}
+	labels := map[string]string{}
+	if requestPayload.Labels != nil {
+		labels = requestPayload.Labels
+	}
 	var constraints []metal.Constraint
 	for _, c := range requestPayload.SizeConstraints {
 		constraint := metal.Constraint{
@@ -231,6 +235,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		},
 		Constraints:  constraints,
 		Reservations: reservations,
+		Labels:       labels,
 	}
 
 	ss, err := r.ds.ListSizes()
@@ -298,6 +303,9 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 	}
 	if requestPayload.Description != nil {
 		newSize.Description = *requestPayload.Description
+	}
+	if requestPayload.Labels != nil {
+		newSize.Labels = requestPayload.Labels
 	}
 	var constraints []metal.Constraint
 	if requestPayload.SizeConstraints != nil {

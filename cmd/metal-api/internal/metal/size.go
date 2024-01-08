@@ -8,8 +8,9 @@ import (
 // A Size represents a supported machine size.
 type Size struct {
 	Base
-	Constraints  []Constraint `rethinkdb:"constraints" json:"constraints"`
-	Reservations Reservations `rethinkdb:"reservations" json:"reservations"`
+	Constraints  []Constraint      `rethinkdb:"constraints" json:"constraints"`
+	Reservations Reservations      `rethinkdb:"reservations" json:"reservations"`
+	Labels       map[string]string `rethinkdb:"labels" json:"labels"`
 }
 
 // Reservation defines a reservation of a size for machine allocations
