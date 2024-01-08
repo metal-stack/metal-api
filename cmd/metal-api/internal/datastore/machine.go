@@ -512,12 +512,6 @@ func checkSizeReservations(available metal.Machines, projectid, partitionid stri
 
 	var (
 		reservations = 0
-		max          = func(x, y int) int {
-			if x > y {
-				return x
-			}
-			return y
-		}
 	)
 
 	for _, r := range size.Reservations.ForPartition(partitionid) {
@@ -533,7 +527,7 @@ func checkSizeReservations(available metal.Machines, projectid, partitionid stri
 			return true
 		}
 
-		// substract aleady used up reservations of the project
+		// substract already used up reservations of the project
 		reservations = max(reservations-alreadyAllocated, 0)
 	}
 
