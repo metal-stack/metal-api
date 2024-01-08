@@ -428,11 +428,13 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 		cap.Total++
 
-		for _, reservation := range size.Reservations.ForPartition(p.ID) {
-			reservation := reservation
+		if size.Reservations != nil {
+			for _, reservation := range size.Reservations.ForPartition(p.ID) {
+				reservation := reservation
 
-			cap.Reservations += reservation.Amount
-			cap.UnusedReservations += max(reservation.Amount-len(machinesByProject[reservation.ProjectID]), 0)
+				cap.Reservations += reservation.Amount
+				cap.UnusedReservations += max(reservation.Amount-len(machinesByProject[reservation.ProjectID]), 0)
+			}
 		}
 
 		if m.Allocation != nil {
