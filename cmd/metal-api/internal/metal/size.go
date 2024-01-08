@@ -176,9 +176,18 @@ func (rs Reservations) Validate() error {
 		if r.Amount <= 0 {
 			return fmt.Errorf("amount must be a positive integer")
 		}
+
 		if len(r.PartitionIDs) == 0 {
 			return fmt.Errorf("at least one partition id must be specified")
 		}
+		ids := map[string]bool{}
+		for _, partition := range r.PartitionIDs {
+			ids[partition] = true
+		}
+		if len(ids) != len(r.PartitionIDs) {
+			return fmt.Errorf("partitions must not contain duplicates")
+		}
+
 		if r.ProjectID == "" {
 			return fmt.Errorf("project id must be specified")
 		}
