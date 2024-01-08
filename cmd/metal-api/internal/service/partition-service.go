@@ -453,6 +453,8 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		pc := pc
 
 		for _, cap := range pc.ServerCapacities {
+			cap := cap
+
 			size := sizesByID[cap.Size]
 
 			if size.Reservations != nil {
@@ -460,7 +462,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 					reservation := reservation
 
 					cap.Reservations += reservation.Amount
-					cap.UsedReservations += len(machinesByProject[reservation.ProjectID])
+					cap.UsedReservations += min(len(machinesByProject[reservation.ProjectID]), reservation.Amount)
 				}
 			}
 		}
