@@ -4262,8 +4262,8 @@
           "format": "int32",
           "type": "integer"
         },
-        "unusedreservations": {
-          "description": "the amount of unused reservations for this size",
+        "usedreservations": {
+          "description": "the amount of used reservations for this size",
           "format": "int32",
           "type": "integer"
         }
@@ -4278,7 +4278,7 @@
         "reservations",
         "size",
         "total",
-        "unusedreservations"
+        "usedreservations"
       ]
     },
     "v1.SizeConstraint": {
