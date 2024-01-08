@@ -3,6 +3,8 @@ package metal
 import (
 	"fmt"
 	"slices"
+
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 )
 
 // A Size represents a supported machine size.
@@ -133,7 +135,7 @@ func (s *Size) overlaps(so *Size) bool {
 }
 
 // Validate a size, returns error if a invalid size is passed
-func (s *Size) Validate() error {
+func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
 	for _, c := range s.Constraints {
 		if c.Max < c.Min {
 			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
@@ -141,7 +143,7 @@ func (s *Size) Validate() error {
 	}
 
 	if s.Reservations != nil {
-		if err := s.Reservations.Validate(); err != nil {
+		if err := s.Reservations.Validate(partitions, projects); err != nil {
 			return fmt.Errorf("invalid size reservation: %w", err)
 		}
 	}
@@ -171,7 +173,18 @@ func (rs Reservations) ForPartition(partitionID string) Reservations {
 	return result
 }
 
-func (rs Reservations) Validate() error {
+func (rs Reservations) ForProject(projectID string) Reservations {
+	var result Reservations
+	for _, r := range rs {
+		r := r
+		if r.ProjectID == projectID {
+			result = append(result, r)
+		}
+	}
+	return result
+}
+
+func (rs Reservations) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
 	for _, r := range rs {
 		if r.Amount <= 0 {
 			return fmt.Errorf("amount must be a positive integer")
@@ -183,6 +196,9 @@ func (rs Reservations) Validate() error {
 		ids := map[string]bool{}
 		for _, partition := range r.PartitionIDs {
 			ids[partition] = true
+			if _, ok := partitions[partition]; !ok {
+				return fmt.Errorf("partition must exist before creating a size reservation")
+			}
 		}
 		if len(ids) != len(r.PartitionIDs) {
 			return fmt.Errorf("partitions must not contain duplicates")
@@ -190,6 +206,9 @@ func (rs Reservations) Validate() error {
 
 		if r.ProjectID == "" {
 			return fmt.Errorf("project id must be specified")
+		}
+		if _, ok := projects[r.ProjectID]; !ok {
+			return fmt.Errorf("project must exist before creating a size reservation")
 		}
 	}
 

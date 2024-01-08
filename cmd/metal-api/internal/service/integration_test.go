@@ -104,7 +104,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.NoError(t, err)
 	imageService := NewImage(log, ds)
 	switchService := NewSwitch(log, ds)
-	sizeService := NewSize(log, ds)
+	sizeService := NewSize(log, ds, mdc)
 	sizeImageConstraintService := NewSizeImageConstraint(log, ds)
 	networkService := NewNetwork(log, ds, ipamer, mdc)
 	partitionService := NewPartition(log, ds, &emptyPublisher{})

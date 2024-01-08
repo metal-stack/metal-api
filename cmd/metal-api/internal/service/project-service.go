@@ -245,6 +245,26 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 		return
 	}
 
+	sizes, err := r.ds.ListSizes()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	var sizeReservations metal.Reservations
+	for _, size := range sizes {
+		size := size
+
+		if size.Reservations != nil {
+			sizeReservations = size.Reservations.ForProject(id)
+		}
+	}
+
+	if len(sizeReservations) > 0 {
+		r.sendError(request, response, httperrors.BadRequest(errors.New("there are still size reservations made by this project")))
+		return
+	}
+
 	pdr := &mdmv1.ProjectDeleteRequest{
 		Id: p.Project.Meta.Id,
 	}

@@ -752,7 +752,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	restful.DefaultContainer.Add(service.NewAudit(logger.Named("audit-service"), audit))
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
-	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds))
+	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds, mdc))
 	restful.DefaultContainer.Add(service.NewSizeImageConstraint(logger.Named("size-image-constraint-service"), ds))
 	restful.DefaultContainer.Add(service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc))
 	restful.DefaultContainer.Add(ipService)

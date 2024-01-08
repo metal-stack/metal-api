@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -18,15 +21,17 @@ import (
 
 type sizeResource struct {
 	webResource
+	mdc mdm.Client
 }
 
 // NewSize returns a webservice for size specific endpoints.
-func NewSize(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
+func NewSize(log *zap.SugaredLogger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := sizeResource{
 		webResource: webResource{
 			log: log,
 			ds:  ds,
 		},
+		mdc: mdc,
 	}
 	return r.webService()
 }
@@ -244,7 +249,30 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	err = s.Validate()
+	ps, err := r.ds.ListPartitions()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	projects, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	projectMap := map[string]*mdmv1.Project{}
+	for _, p := range projects.GetProjects() {
+		p := p
+
+		if p.Meta == nil {
+			continue
+		}
+
+		projectMap[p.GetMeta().GetId()] = p
+	}
+
+	err = s.Validate(ps.ByID(), projectMap)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -339,7 +367,30 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	err = newSize.Validate()
+	ps, err := r.ds.ListPartitions()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	projects, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	projectMap := map[string]*mdmv1.Project{}
+	for _, p := range projects.GetProjects() {
+		p := p
+
+		if p.Meta == nil {
+			continue
+		}
+
+		projectMap[p.GetMeta().GetId()] = p
+	}
+
+	err = newSize.Validate(ps.ByID(), projectMap)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

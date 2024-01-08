@@ -244,6 +244,7 @@ func Test_projectResource_deleteProject(t *testing.T) {
 				mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Machines{}, nil)
 				mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Networks{}, nil)
 				mock.On(r.DB("mockdb").Table("ip").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.IPs{}, nil)
+				mock.On(r.DB("mockdb").Table("size")).Return([]metal.Size{}, nil)
 			},
 			want:       &v1.ProjectResponse{},
 			wantStatus: 200,
