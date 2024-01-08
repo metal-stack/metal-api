@@ -428,7 +428,7 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 
 		cap.Total++
 
-		for _, reservation := range size.Reservations {
+		for _, reservation := range size.Reservations.ForPartition(p.ID) {
 			reservation := reservation
 
 			cap.Reservations += reservation.Amount
