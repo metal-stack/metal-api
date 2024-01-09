@@ -2,21 +2,28 @@ package metal
 
 import (
 	"fmt"
-)
+	"slices"
 
-// UnknownSize is the size to use, when someone requires a size we do not know.
-var UnknownSize = &Size{
-	Base: Base{
-		ID:   "unknown",
-		Name: "unknown",
-	},
-}
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+)
 
 // A Size represents a supported machine size.
 type Size struct {
 	Base
-	Constraints []Constraint `rethinkdb:"constraints" json:"constraints"`
+	Constraints  []Constraint      `rethinkdb:"constraints" json:"constraints"`
+	Reservations Reservations      `rethinkdb:"reservations" json:"reservations"`
+	Labels       map[string]string `rethinkdb:"labels" json:"labels"`
 }
+
+// Reservation defines a reservation of a size for machine allocations
+type Reservation struct {
+	Amount       int      `rethinkdb:"amount" json:"amount"`
+	Description  string   `rethinkdb:"description" json:"description"`
+	ProjectID    string   `rethinkdb:"projectid" json:"projectid"`
+	PartitionIDs []string `rethinkdb:"partitionids" json:"partitionids"`
+}
+
+type Reservations []Reservation
 
 // ConstraintType ...
 type ConstraintType string
@@ -49,6 +56,16 @@ func (sz Sizes) ByID() SizeMap {
 		res[f.ID] = sz[i]
 	}
 	return res
+}
+
+// UnknownSize is the size to use, when someone requires a size we do not know.
+func UnknownSize() *Size {
+	return &Size{
+		Base: Base{
+			ID:   "unknown",
+			Name: "unknown",
+		},
+	}
 }
 
 // Matches returns true if the given machine hardware is inside the min/max values of the
@@ -118,12 +135,17 @@ func (s *Size) overlaps(so *Size) bool {
 }
 
 // Validate a size, returns error if a invalid size is passed
-func (s *Size) Validate() error {
+func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
 	for _, c := range s.Constraints {
 		if c.Max < c.Min {
 			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
 		}
 	}
+
+	if err := s.Reservations.Validate(partitions, projects); err != nil {
+		return fmt.Errorf("invalid size reservation: %w", err)
+	}
+
 	return nil
 }
 
@@ -135,6 +157,73 @@ func (s *Size) Overlaps(ss *Sizes) *Size {
 			return &so
 		}
 	}
+	return nil
+}
+
+func (rs *Reservations) ForPartition(partitionID string) Reservations {
+	if rs == nil {
+		return nil
+	}
+
+	var result Reservations
+	for _, r := range *rs {
+		r := r
+		if slices.Contains(r.PartitionIDs, partitionID) {
+			result = append(result, r)
+		}
+	}
+
+	return result
+}
+
+func (rs *Reservations) ForProject(projectID string) Reservations {
+	if rs == nil {
+		return nil
+	}
+
+	var result Reservations
+	for _, r := range *rs {
+		r := r
+		if r.ProjectID == projectID {
+			result = append(result, r)
+		}
+	}
+
+	return result
+}
+
+func (rs *Reservations) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
+	if rs == nil {
+		return nil
+	}
+
+	for _, r := range *rs {
+		if r.Amount <= 0 {
+			return fmt.Errorf("amount must be a positive integer")
+		}
+
+		if len(r.PartitionIDs) == 0 {
+			return fmt.Errorf("at least one partition id must be specified")
+		}
+		ids := map[string]bool{}
+		for _, partition := range r.PartitionIDs {
+			ids[partition] = true
+			if _, ok := partitions[partition]; !ok {
+				return fmt.Errorf("partition must exist before creating a size reservation")
+			}
+		}
+		if len(ids) != len(r.PartitionIDs) {
+			return fmt.Errorf("partitions must not contain duplicates")
+		}
+
+		if r.ProjectID == "" {
+			return fmt.Errorf("project id must be specified")
+		}
+		if _, ok := projects[r.ProjectID]; !ok {
+			return fmt.Errorf("project must exist before creating a size reservation")
+		}
+	}
+
 	return nil
 }
 

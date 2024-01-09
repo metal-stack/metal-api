@@ -362,6 +362,11 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, fmt.Errorf("unable to fetch provisioning event containers: %w", err)
 	}
 
+	sizes, err := r.ds.ListSizes()
+	if err != nil {
+		return nil, fmt.Errorf("unable to list sizes: %w", err)
+	}
+
 	machinesWithIssues, err := issues.Find(&issues.Config{
 		Machines:        ms,
 		EventContainers: ecs,
@@ -371,8 +376,12 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		return nil, fmt.Errorf("unable to calculate machine issues: %w", err)
 	}
 
-	partitionsByID := ps.ByID()
-	ecsByID := ecs.ByID()
+	var (
+		partitionsByID    = ps.ByID()
+		ecsByID           = ecs.ByID()
+		sizesByID         = sizes.ByID()
+		machinesByProject = ms.ByProjectID()
+	)
 
 	for _, m := range ms {
 		m := m
@@ -404,15 +413,15 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 		}
 		pcs[m.PartitionID] = pc
 
-		size := metal.UnknownSize.ID
-		if m.SizeID != "" {
-			size = m.SizeID
+		size, ok := sizesByID[m.SizeID]
+		if !ok {
+			size = *metal.UnknownSize()
 		}
 
-		cap := pc.ServerCapacities.FindBySize(size)
+		cap := pc.ServerCapacities.FindBySize(size.ID)
 		if cap == nil {
 			cap = &v1.ServerCapacity{
-				Size: size,
+				Size: size.ID,
 			}
 			pc.ServerCapacities = append(pc.ServerCapacities, cap)
 		}
@@ -442,6 +451,20 @@ func (r *partitionResource) calcPartitionCapacity(pcr *v1.PartitionCapacityReque
 	res := []v1.PartitionCapacity{}
 	for _, pc := range pcs {
 		pc := pc
+
+		for _, cap := range pc.ServerCapacities {
+			cap := cap
+
+			size := sizesByID[cap.Size]
+
+			for _, reservation := range size.Reservations.ForPartition(pc.ID) {
+				reservation := reservation
+
+				cap.Reservations += reservation.Amount
+				cap.UsedReservations += min(len(machinesByProject[reservation.ProjectID]), reservation.Amount)
+			}
+		}
+
 		res = append(res, *pc)
 	}
 

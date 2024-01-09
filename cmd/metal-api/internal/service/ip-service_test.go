@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	goipam "github.com/metal-stack/go-ipam"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -174,7 +174,7 @@ func TestAllocateIP(t *testing.T) {
 	logger := zaptest.NewLogger(t).Sugar()
 
 	psc := mdmock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
 		Project: &mdmv1.Project{
 			Meta: &mdmv1.Meta{Id: "project-1"},
 		},

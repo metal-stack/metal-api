@@ -7,12 +7,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
+	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -23,7 +28,7 @@ func TestGetSizes(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size", nil)
 	w := httptest.NewRecorder()
@@ -52,7 +57,7 @@ func TestGetSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
@@ -82,7 +87,7 @@ func TestSuggest(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("POST", "/v1/size/suggest", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -122,7 +127,7 @@ func TestGetSizeNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds)
+	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/999", nil)
 	w := httptest.NewRecorder()
@@ -144,7 +149,7 @@ func TestDeleteSize(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	sizeservice := NewSize(log, ds)
+	sizeservice := NewSize(log, ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("DELETE", "/v1/size/1", nil)
 	container = injectAdmin(log, container, req)
@@ -168,7 +173,13 @@ func TestCreateSize(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	sizeservice := NewSize(log, ds)
+	psc := &mdmv1mock.ProjectServiceClient{}
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "a"}},
+	}}, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+
+	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
 
 	createRequest := v1.SizeCreateRequest{
@@ -191,6 +202,14 @@ func TestCreateSize(t *testing.T) {
 				Type: metal.MemoryConstraint,
 				Min:  100,
 				Max:  100,
+			},
+		},
+		SizeReservations: []v1.SizeReservation{
+			{
+				Amount:       3,
+				ProjectID:    "a",
+				PartitionIDs: []string{testdata.Partition1.ID},
+				Description:  "test",
 			},
 		},
 	}
@@ -220,7 +239,13 @@ func TestUpdateSize(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
-	sizeservice := NewSize(log, ds)
+	psc := &mdmv1mock.ProjectServiceClient{}
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "p1"}},
+	}}, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+
+	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
 
 	minCores := uint64(8)
@@ -265,4 +290,47 @@ func TestUpdateSize(t *testing.T) {
 	require.Equal(t, metal.CoreConstraint, result.SizeConstraints[0].Type)
 	require.Equal(t, minCores, result.SizeConstraints[0].Min)
 	require.Equal(t, maxCores, result.SizeConstraints[0].Max)
+}
+
+func TestListSizeReservations(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	psc := &mdmv1mock.ProjectServiceClient{}
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "p1"}},
+	}}, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+
+	sizeservice := NewSize(log, ds, mdc)
+	container := restful.NewContainer().Add(sizeservice)
+
+	req := httptest.NewRequest("POST", "/v1/size/reservations", nil)
+	req.Header.Add("Content-Type", "application/json")
+	container = injectAdmin(log, container, req)
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result []*v1.SizeReservationResponse
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	require.NoError(t, err)
+
+	want := []*v1.SizeReservationResponse{
+		{
+			SizeID:             testdata.Sz1.ID,
+			PartitionID:        "1",
+			ProjectID:          "p1",
+			Reservations:       3,
+			UsedReservations:   1,
+			ProjectAllocations: 1,
+		},
+	}
+
+	if diff := cmp.Diff(result, want); diff != "" {
+		t.Errorf("diff (-want +got):\n%s", diff)
+	}
 }

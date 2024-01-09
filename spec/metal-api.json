@@ -4248,12 +4248,22 @@
           },
           "type": "array"
         },
+        "reservations": {
+          "description": "the amount of reservations for this size",
+          "format": "int32",
+          "type": "integer"
+        },
         "size": {
           "description": "the size of the server",
           "type": "string"
         },
         "total": {
           "description": "total amount of servers with this size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "usedreservations": {
+          "description": "the amount of used reservations for this size",
           "format": "int32",
           "type": "integer"
         }
@@ -4265,8 +4275,10 @@
         "free",
         "other",
         "othermachines",
+        "reservations",
         "size",
-        "total"
+        "total",
+        "usedreservations"
       ]
     },
     "v1.SizeConstraint": {
@@ -4337,9 +4349,23 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -4473,6 +4499,84 @@
         "name"
       ]
     },
+    "v1.SizeReservation": {
+      "properties": {
+        "amount": {
+          "description": "the amount of reserved machine allocations for this size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "description": {
+          "description": "a description for this reservation",
+          "type": "string"
+        },
+        "partitionids": {
+          "description": "the partitions in which this size reservation is considered, the amount is valid for every partition",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "projectid": {
+          "description": "the project for which this size reservation is considered",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "partitionids",
+        "projectid"
+      ]
+    },
+    "v1.SizeReservationResponse": {
+      "properties": {
+        "partitionid": {
+          "description": "the partition id of this size reservation",
+          "type": "string"
+        },
+        "projectallocations": {
+          "description": "the amount of allocations of this project referenced by this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "projectid": {
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "projectname": {
+          "description": "the project name of this size reservation",
+          "type": "string"
+        },
+        "reservations": {
+          "description": "the amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
+          "type": "string"
+        },
+        "tenant": {
+          "description": "the tenant of this size reservation",
+          "type": "string"
+        },
+        "usedreservations": {
+          "description": "the used amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "partitionid",
+        "projectallocations",
+        "projectid",
+        "projectname",
+        "reservations",
+        "sizeid",
+        "tenant",
+        "usedreservations"
+      ]
+    },
     "v1.SizeResponse": {
       "properties": {
         "changed": {
@@ -4503,14 +4607,29 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
         "constraints",
-        "id"
+        "id",
+        "labels"
       ]
     },
     "v1.SizeSuggestRequest": {
@@ -4542,9 +4661,23 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this network.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -8795,6 +8928,38 @@
           }
         },
         "summary": "Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/reservations": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listSizeReservations",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeReservationResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all size reservations",
         "tags": [
           "size"
         ]

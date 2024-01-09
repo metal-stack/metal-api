@@ -47,14 +47,16 @@ type PartitionCapacity struct {
 }
 
 type ServerCapacity struct {
-	Size           string   `json:"size" description:"the size of the server"`
-	Total          int      `json:"total" description:"total amount of servers with this size"`
-	Free           int      `json:"free" description:"free servers with this size"`
-	Allocated      int      `json:"allocated" description:"allocated servers with this size"`
-	Faulty         int      `json:"faulty" description:"servers with issues with this size"`
-	FaultyMachines []string `json:"faultymachines" description:"servers with issues with this size"`
-	Other          int      `json:"other" description:"servers neither free, allocated or faulty with this size"`
-	OtherMachines  []string `json:"othermachines" description:"servers neither free, allocated or faulty with this size"`
+	Size             string   `json:"size" description:"the size of the server"`
+	Total            int      `json:"total" description:"total amount of servers with this size"`
+	Free             int      `json:"free" description:"free servers with this size"`
+	Allocated        int      `json:"allocated" description:"allocated servers with this size"`
+	Reservations     int      `json:"reservations" description:"the amount of reservations for this size"`
+	UsedReservations int      `json:"usedreservations" description:"the amount of used reservations for this size"`
+	Faulty           int      `json:"faulty" description:"servers with issues with this size"`
+	FaultyMachines   []string `json:"faultymachines" description:"servers with issues with this size"`
+	Other            int      `json:"other" description:"servers neither free, allocated or faulty with this size"`
+	OtherMachines    []string `json:"othermachines" description:"servers neither free, allocated or faulty with this size"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {

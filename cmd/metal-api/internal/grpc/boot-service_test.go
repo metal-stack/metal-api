@@ -90,7 +90,7 @@ func TestBootService_Register(t *testing.T) {
 			neighbormac2:   testdata.Switch2.Nics[0].MacAddress,
 			numcores:       2,
 			memory:         100,
-			expectedSizeId: metal.UnknownSize.ID,
+			expectedSizeId: metal.UnknownSize().ID,
 		},
 	}
 
@@ -109,7 +109,7 @@ func TestBootService_Register(t *testing.T) {
 					Conflict: "replace",
 				})).Return(testdata.EmptyResult, nil)
 			}
-			mock.On(r.DB("mockdb").Table("size").Get(metal.UnknownSize.ID)).Return([]metal.Size{*metal.UnknownSize}, nil)
+			mock.On(r.DB("mockdb").Table("size").Get(metal.UnknownSize().ID)).Return([]metal.Size{*metal.UnknownSize()}, nil)
 			mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1, testdata.Switch2}, nil)
 			mock.On(r.DB("mockdb").Table("event").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.ProvisioningEventContainer{}, nil)
 			mock.On(r.DB("mockdb").Table("event").Insert(r.MockAnything(), r.InsertOpts{})).Return(testdata.EmptyResult, nil)

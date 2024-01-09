@@ -1317,7 +1317,7 @@ func findWaitingMachine(ds *datastore.RethinkStore, allocationSpec *machineAlloc
 		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
 
-	machine, err := ds.FindWaitingMachine(allocationSpec.ProjectID, partition.ID, size.ID, allocationSpec.PlacementTags)
+	machine, err := ds.FindWaitingMachine(allocationSpec.ProjectID, partition.ID, *size, allocationSpec.PlacementTags)
 	if err != nil {
 		return nil, err
 	}
@@ -2319,8 +2319,8 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore)
 
 	var s *metal.Size
 	if m.SizeID != "" {
-		if m.SizeID == metal.UnknownSize.GetID() {
-			s = metal.UnknownSize
+		if m.SizeID == metal.UnknownSize().GetID() {
+			s = metal.UnknownSize()
 		} else {
 			s, err = ds.FindSize(m.SizeID)
 			if err != nil {

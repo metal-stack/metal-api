@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -242,7 +241,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	nat := requestPayload.Nat
 
 	if projectID != "" {
-		_, err = r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+		_, err = r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: projectID})
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -445,7 +444,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		return
 	}
 
-	project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+	project, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

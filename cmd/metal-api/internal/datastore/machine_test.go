@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
 )
 
@@ -717,4 +718,152 @@ func getTestMachines(numPerRack int, rackids []string, tags []string) metal.Mach
 	}
 
 	return machines
+}
+
+func Test_checkSizeReservations(t *testing.T) {
+	var (
+		available = metal.Machines{
+			{Base: metal.Base{ID: "1"}},
+			{Base: metal.Base{ID: "2"}},
+			{Base: metal.Base{ID: "3"}},
+			{Base: metal.Base{ID: "4"}},
+			{Base: metal.Base{ID: "5"}},
+		}
+
+		partitionA = "a"
+		p0         = "0"
+		p1         = "1"
+		p2         = "2"
+
+		size = metal.Size{
+			Base: metal.Base{
+				ID: "c1-xlarge-x86",
+			},
+			Reservations: metal.Reservations{
+				{
+					Amount:       1,
+					ProjectID:    p1,
+					PartitionIDs: []string{partitionA},
+				},
+				{
+					Amount:       2,
+					ProjectID:    p2,
+					PartitionIDs: []string{partitionA},
+				},
+			},
+		}
+
+		projectMachines = map[string]metal.Machines{}
+
+		allocate = func(id, project string) {
+			available = slices.DeleteFunc(available, func(m metal.Machine) bool {
+				return m.ID == id
+			})
+			projectMachines[project] = append(projectMachines[project], metal.Machine{Base: metal.Base{ID: id}})
+		}
+	)
+
+	// 5 available, 3 reserved, project 0 can allocate
+	ok := checkSizeReservations(available, p0, partitionA, projectMachines, size)
+	require.True(t, ok)
+	allocate(available[0].ID, p0)
+
+	require.Equal(t, metal.Machines{
+		{Base: metal.Base{ID: "2"}},
+		{Base: metal.Base{ID: "3"}},
+		{Base: metal.Base{ID: "4"}},
+		{Base: metal.Base{ID: "5"}},
+	}, available)
+	require.Equal(t, map[string]metal.Machines{
+		p0: {
+			{Base: metal.Base{ID: "1"}},
+		},
+	}, projectMachines)
+
+	// 4 available, 3 reserved, project 2 can allocate
+	ok = checkSizeReservations(available, p2, partitionA, projectMachines, size)
+	require.True(t, ok)
+	allocate(available[0].ID, p2)
+
+	require.Equal(t, metal.Machines{
+		{Base: metal.Base{ID: "3"}},
+		{Base: metal.Base{ID: "4"}},
+		{Base: metal.Base{ID: "5"}},
+	}, available)
+	require.Equal(t, map[string]metal.Machines{
+		p0: {
+			{Base: metal.Base{ID: "1"}},
+		},
+		p2: {
+			{Base: metal.Base{ID: "2"}},
+		},
+	}, projectMachines)
+
+	// 3 available, 3 reserved (1 used), project 0 can allocate
+	ok = checkSizeReservations(available, p0, partitionA, projectMachines, size)
+	require.True(t, ok)
+	allocate(available[0].ID, p0)
+
+	require.Equal(t, metal.Machines{
+		{Base: metal.Base{ID: "4"}},
+		{Base: metal.Base{ID: "5"}},
+	}, available)
+	require.Equal(t, map[string]metal.Machines{
+		p0: {
+			{Base: metal.Base{ID: "1"}},
+			{Base: metal.Base{ID: "3"}},
+		},
+		p2: {
+			{Base: metal.Base{ID: "2"}},
+		},
+	}, projectMachines)
+
+	// 2 available, 3 reserved (1 used), project 0 cannot allocate anymore
+	ok = checkSizeReservations(available, p0, partitionA, projectMachines, size)
+	require.False(t, ok)
+
+	// 2 available, 3 reserved (1 used), project 2 can allocate
+	ok = checkSizeReservations(available, p2, partitionA, projectMachines, size)
+	require.True(t, ok)
+	allocate(available[0].ID, p2)
+
+	require.Equal(t, metal.Machines{
+		{Base: metal.Base{ID: "5"}},
+	}, available)
+	require.Equal(t, map[string]metal.Machines{
+		p0: {
+			{Base: metal.Base{ID: "1"}},
+			{Base: metal.Base{ID: "3"}},
+		},
+		p2: {
+			{Base: metal.Base{ID: "2"}},
+			{Base: metal.Base{ID: "4"}},
+		},
+	}, projectMachines)
+
+	// 1 available, 3 reserved (2 used), project 0 and 2 cannot allocate anymore
+	ok = checkSizeReservations(available, p0, partitionA, projectMachines, size)
+	require.False(t, ok)
+	ok = checkSizeReservations(available, p2, partitionA, projectMachines, size)
+	require.False(t, ok)
+
+	// 1 available, 3 reserved (2 used), project 1 can allocate
+	ok = checkSizeReservations(available, p1, partitionA, projectMachines, size)
+	require.True(t, ok)
+	allocate(available[0].ID, p1)
+
+	require.Equal(t, metal.Machines{}, available)
+	require.Equal(t, map[string]metal.Machines{
+		p0: {
+			{Base: metal.Base{ID: "1"}},
+			{Base: metal.Base{ID: "3"}},
+		},
+		p1: {
+			{Base: metal.Base{ID: "5"}},
+		},
+		p2: {
+			{Base: metal.Base{ID: "2"}},
+			{Base: metal.Base{ID: "4"}},
+		},
+	}, projectMachines)
 }
