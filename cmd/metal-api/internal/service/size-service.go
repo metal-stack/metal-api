@@ -64,11 +64,12 @@ func (r *sizeResource) webService() *restful.WebService {
 		Returns(http.StatusOK, "OK", []v1.SizeResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.GET("/reservations").
+	ws.Route(ws.POST("/reservations").
 		To(r.listSizeReservations).
 		Operation("listSizeReservations").
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
 		Writes([]v1.SizeReservationResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
