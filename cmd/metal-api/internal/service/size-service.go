@@ -70,6 +70,7 @@ func (r *sizeResource) webService() *restful.WebService {
 		Doc("get all size reservations").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Metadata(auditing.Exclude, true).
+		Reads(v1.EmptyBody{}).
 		Writes([]v1.SizeReservationResponse{}).
 		Returns(http.StatusOK, "OK", []v1.SizeReservationResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -454,7 +455,7 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 
 			for _, partitionID := range reservation.PartitionIDs {
 				project := pointer.SafeDeref(projectsByID[reservation.ProjectID])
-				allocations := len(machinesByProjectID[reservation.ProjectID].WithSize(size.ID))
+				allocations := len(machinesByProjectID[reservation.ProjectID].WithPartition(partitionID).WithSize(size.ID))
 
 				result = append(result, &v1.SizeReservationResponse{
 					SizeID:             size.ID,
