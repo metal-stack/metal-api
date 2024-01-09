@@ -198,7 +198,7 @@ var (
 			{
 				Amount:       3,
 				PartitionIDs: []string{Partition1.ID},
-				ProjectID:    "a",
+				ProjectID:    "p1",
 			},
 		},
 	}
