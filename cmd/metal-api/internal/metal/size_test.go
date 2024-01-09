@@ -1,10 +1,14 @@
 package metal
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/metal-stack/metal-lib/pkg/testcommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -614,6 +618,275 @@ func TestSize_Validate(t *testing.T) {
 			}
 			if err == nil && tt.wantErrMessage != nil {
 				t.Errorf("expected error not raise:%s", *tt.wantErrMessage)
+			}
+		})
+	}
+}
+
+func TestReservations_ForPartition(t *testing.T) {
+	tests := []struct {
+		name        string
+		rs          *Reservations
+		partitionID string
+		want        Reservations
+	}{
+		{
+			name:        "nil",
+			rs:          nil,
+			partitionID: "a",
+			want:        nil,
+		},
+		{
+			name: "correctly filtered",
+			rs: &Reservations{
+				{
+					PartitionIDs: []string{"a", "b"},
+				},
+				{
+					PartitionIDs: []string{"c"},
+				},
+				{
+					PartitionIDs: []string{"a"},
+				},
+			},
+			partitionID: "a",
+			want: Reservations{
+				{
+					PartitionIDs: []string{"a", "b"},
+				},
+				{
+					PartitionIDs: []string{"a"},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.ForPartition(tt.partitionID); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reservations.ForPartition() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReservations_ForProject(t *testing.T) {
+	tests := []struct {
+		name      string
+		rs        *Reservations
+		projectID string
+		want      Reservations
+	}{
+		{
+			name:      "nil",
+			rs:        nil,
+			projectID: "a",
+			want:      nil,
+		},
+		{
+			name: "correctly filtered",
+			rs: &Reservations{
+				{
+					ProjectID: "a",
+				},
+				{
+					ProjectID: "c",
+				},
+				{
+					ProjectID: "a",
+				},
+			},
+			projectID: "a",
+			want: Reservations{
+				{
+					ProjectID: "a",
+				},
+				{
+					ProjectID: "a",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.rs.ForProject(tt.projectID); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reservations.ForProject() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReservations_Validate(t *testing.T) {
+	tests := []struct {
+		name       string
+		partitions PartitionMap
+		projects   map[string]*mdmv1.Project
+		rs         *Reservations
+		wantErr    error
+	}{
+		{
+			name:       "empty reservations",
+			partitions: nil,
+			projects:   nil,
+			rs:         nil,
+			wantErr:    nil,
+		},
+		{
+			name: "invalid amount",
+			partitions: PartitionMap{
+				"a": Partition{},
+				"b": Partition{},
+				"c": Partition{},
+			},
+			projects: map[string]*mdmv1.Project{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+			rs: &Reservations{
+				{
+					Amount:       -3,
+					Description:  "test",
+					ProjectID:    "3",
+					PartitionIDs: []string{"b"},
+				},
+			},
+			wantErr: fmt.Errorf("amount must be a positive integer"),
+		},
+		{
+			name: "no partitions referenced",
+			partitions: PartitionMap{
+				"a": Partition{},
+				"b": Partition{},
+				"c": Partition{},
+			},
+			projects: map[string]*mdmv1.Project{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+			rs: &Reservations{
+				{
+					Amount:      3,
+					Description: "test",
+					ProjectID:   "3",
+				},
+			},
+			wantErr: fmt.Errorf("at least one partition id must be specified"),
+		},
+		{
+			name: "partition does not exist",
+			partitions: PartitionMap{
+				"a": Partition{},
+				"b": Partition{},
+				"c": Partition{},
+			},
+			projects: map[string]*mdmv1.Project{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+			rs: &Reservations{
+				{
+					Amount:       3,
+					Description:  "test",
+					ProjectID:    "3",
+					PartitionIDs: []string{"d"},
+				},
+			},
+			wantErr: fmt.Errorf("partition must exist before creating a size reservation"),
+		},
+		{
+			name: "partition duplicates",
+			partitions: PartitionMap{
+				"a": Partition{},
+				"b": Partition{},
+				"c": Partition{},
+			},
+			projects: map[string]*mdmv1.Project{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+			rs: &Reservations{
+				{
+					Amount:       3,
+					Description:  "test",
+					ProjectID:    "3",
+					PartitionIDs: []string{"a", "b", "c", "b"},
+				},
+			},
+			wantErr: fmt.Errorf("partitions must not contain duplicates"),
+		},
+		{
+			name: "no project referenced",
+			partitions: PartitionMap{
+				"a": Partition{},
+				"b": Partition{},
+				"c": Partition{},
+			},
+			projects: map[string]*mdmv1.Project{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+			rs: &Reservations{
+				{
+					Amount:       3,
+					Description:  "test",
+					PartitionIDs: []string{"a"},
+				},
+			},
+			wantErr: fmt.Errorf("project id must be specified"),
+		},
+		{
+			name: "project does not exist",
+			partitions: PartitionMap{
+				"a": Partition{},
+				"b": Partition{},
+				"c": Partition{},
+			},
+			projects: map[string]*mdmv1.Project{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+			rs: &Reservations{
+				{
+					Amount:       3,
+					Description:  "test",
+					ProjectID:    "4",
+					PartitionIDs: []string{"a"},
+				},
+			},
+			wantErr: fmt.Errorf("project must exist before creating a size reservation"),
+		},
+		{
+			name: "valid reservation",
+			partitions: PartitionMap{
+				"a": Partition{},
+				"b": Partition{},
+				"c": Partition{},
+			},
+			projects: map[string]*mdmv1.Project{
+				"1": {},
+				"2": {},
+				"3": {},
+			},
+			rs: &Reservations{
+				{
+					Amount:       3,
+					Description:  "test",
+					ProjectID:    "2",
+					PartitionIDs: []string{"b", "c"},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.rs.Validate(tt.partitions, tt.projects)
+			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff (-want +got):\n%s", diff)
 			}
 		})
 	}
