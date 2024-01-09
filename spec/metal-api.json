@@ -8934,7 +8934,7 @@
       }
     },
     "/v1/size/reservations": {
-      "get": {
+      "post": {
         "consumes": [
           "application/json"
         ],
