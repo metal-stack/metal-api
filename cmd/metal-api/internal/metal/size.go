@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/davecgh/go-spew/spew"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 )
 
@@ -197,8 +196,6 @@ func (rs *Reservations) Validate(partitions PartitionMap, projects map[string]*m
 	if rs == nil {
 		return nil
 	}
-
-	spew.Dump(*rs)
 
 	for _, r := range *rs {
 		if r.Amount <= 0 {
