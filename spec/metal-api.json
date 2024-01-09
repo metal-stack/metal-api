@@ -8939,6 +8939,16 @@
           "application/json"
         ],
         "operationId": "listSizeReservations",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.EmptyBody"
+            }
+          }
+        ],
         "produces": [
           "application/json"
         ],
