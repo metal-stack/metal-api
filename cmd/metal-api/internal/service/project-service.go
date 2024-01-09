@@ -112,7 +112,7 @@ func (r *projectResource) webService() *restful.WebService {
 func (r *projectResource) findProject(request *restful.Request, response *restful.Response) {
 	id := request.PathParameter("id")
 
-	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: id})
+	p, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: id})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -128,7 +128,7 @@ func (r *projectResource) findProject(request *restful.Request, response *restfu
 }
 
 func (r *projectResource) listProjects(request *restful.Request, response *restful.Response) {
-	res, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	res, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -151,7 +151,7 @@ func (r *projectResource) findProjects(request *restful.Request, response *restf
 		return
 	}
 
-	res, err := r.mdc.Project().Find(context.Background(), mapper.ToMdmV1ProjectFindRequest(&requestPayload))
+	res, err := r.mdc.Project().Find(request.Request.Context(), mapper.ToMdmV1ProjectFindRequest(&requestPayload))
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -185,7 +185,7 @@ func (r *projectResource) createProject(request *restful.Request, response *rest
 		Project: project,
 	}
 
-	p, err := r.mdc.Project().Create(context.Background(), mdmv1pcr)
+	p, err := r.mdc.Project().Create(request.Request.Context(), mdmv1pcr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -205,7 +205,7 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	pgr := &mdmv1.ProjectGetRequest{
 		Id: id,
 	}
-	p, err := r.mdc.Project().Get(context.Background(), pgr)
+	p, err := r.mdc.Project().Get(request.Request.Context(), pgr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -266,7 +266,7 @@ func (r *projectResource) deleteProject(request *restful.Request, response *rest
 	pdr := &mdmv1.ProjectDeleteRequest{
 		Id: p.Project.Meta.Id,
 	}
-	pdresponse, err := r.mdc.Project().Delete(context.Background(), pdr)
+	pdresponse, err := r.mdc.Project().Delete(request.Request.Context(), pdr)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -293,7 +293,7 @@ func (r *projectResource) updateProject(request *restful.Request, response *rest
 		return
 	}
 
-	existingProject, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.Project.Meta.Id})
+	existingProject, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.Project.Meta.Id})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

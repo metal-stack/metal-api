@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -294,7 +293,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
+	p, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

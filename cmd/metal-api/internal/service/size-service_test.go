@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +16,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -173,7 +173,7 @@ func TestCreateSize(t *testing.T) {
 	log := zaptest.NewLogger(t).Sugar()
 
 	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Find", context.Background(), &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "a"}},
 	}}, nil)
 	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
@@ -239,8 +239,8 @@ func TestUpdateSize(t *testing.T) {
 	log := zaptest.NewLogger(t).Sugar()
 
 	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Find", context.Background(), &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
-		{Meta: &mdmv1.Meta{Id: "a"}},
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "p1"}},
 	}}, nil)
 	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
 

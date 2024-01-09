@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -265,7 +264,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -372,7 +371,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -428,7 +427,7 @@ func (r *sizeResource) listSizeReservations(request *restful.Request, response *
 		return
 	}
 
-	projects, err := r.mdc.Project().Find(context.Background(), &mdmv1.ProjectFindRequest{})
+	projects, err := r.mdc.Project().Find(request.Request.Context(), &mdmv1.ProjectFindRequest{})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
