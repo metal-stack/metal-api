@@ -36,6 +36,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
 
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,12 +76,12 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
 		Meta: &mdmv1.Meta{
 			Id: "test-project-1",
 		},
 	}}, nil)
-	psc.On("Find", context.Background(), &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
 	mdc := mdm.NewMock(psc, nil)
