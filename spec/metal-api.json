@@ -4381,7 +4381,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "free labels that you associate with this network.",
+          "description": "free labels that you associate with this size.",
           "type": "object"
         },
         "name": {
@@ -4639,7 +4639,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "free labels that you associate with this network.",
+          "description": "free labels that you associate with this size.",
           "type": "object"
         },
         "name": {
@@ -4693,7 +4693,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "free labels that you associate with this network.",
+          "description": "free labels that you associate with this size.",
           "type": "object"
         },
         "name": {

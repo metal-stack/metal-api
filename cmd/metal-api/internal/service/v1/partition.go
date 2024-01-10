@@ -34,6 +34,7 @@ type PartitionResponse struct {
 	PartitionBase
 	PartitionBootConfiguration PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition"`
 	Timestamps
+	Labels map[string]string `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
 }
 
 type PartitionCapacityRequest struct {
@@ -89,6 +90,7 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			Created: p.Created,
 			Changed: p.Changed,
 		},
+		Labels: p.Labels,
 	}
 }
 

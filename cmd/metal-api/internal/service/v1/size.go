@@ -21,21 +21,21 @@ type SizeCreateRequest struct {
 	Common
 	SizeConstraints  []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
 	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
-	Labels           map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Labels           map[string]string `json:"labels" description:"free labels that you associate with this size." optional:"true"`
 }
 
 type SizeUpdateRequest struct {
 	Common
 	SizeConstraints  *[]SizeConstraint `json:"constraints" description:"a list of constraints that defines this size" optional:"true"`
 	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
-	Labels           map[string]string `json:"labels" description:"free labels that you associate with this network." optional:"true"`
+	Labels           map[string]string `json:"labels" description:"free labels that you associate with this size." optional:"true"`
 }
 
 type SizeResponse struct {
 	Common
 	SizeConstraints  []SizeConstraint  `json:"constraints" description:"a list of constraints that defines this size"`
 	SizeReservations []SizeReservation `json:"reservations,omitempty" description:"reservations for this size, which are considered during machine allocation" optional:"true"`
-	Labels           map[string]string `json:"labels" description:"free labels that you associate with this network."`
+	Labels           map[string]string `json:"labels" description:"free labels that you associate with this size."`
 	Timestamps
 }
 
