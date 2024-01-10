@@ -166,6 +166,10 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 	if requestPayload.MgmtServiceAddress != nil {
 		mgmtServiceAddress = *requestPayload.MgmtServiceAddress
 	}
+	labels := map[string]string{}
+	if requestPayload.Labels != nil {
+		labels = requestPayload.Labels
+	}
 	prefixLength := uint8(22)
 	if requestPayload.PrivateNetworkPrefixLength != nil {
 		prefixLength = uint8(*requestPayload.PrivateNetworkPrefixLength)
@@ -207,6 +211,7 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			Name:        name,
 			Description: description,
 		},
+		Labels:                     labels,
 		MgmtServiceAddress:         mgmtServiceAddress,
 		PrivateNetworkPrefixLength: prefixLength,
 		BootConfiguration: metal.BootConfiguration{
@@ -273,6 +278,9 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 	if requestPayload.MgmtServiceAddress != nil {
 		newPartition.MgmtServiceAddress = *requestPayload.MgmtServiceAddress
+	}
+	if requestPayload.Labels != nil {
+		newPartition.Labels = requestPayload.Labels
 	}
 	if requestPayload.PartitionBootConfiguration.ImageURL != nil {
 		err = checkImageURL("image", *requestPayload.PartitionBootConfiguration.ImageURL)
