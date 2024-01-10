@@ -3848,6 +3848,13 @@
     },
     "v1.PartitionBase": {
       "properties": {
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -3933,6 +3940,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -3981,6 +3995,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -4016,6 +4037,13 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
         },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
@@ -4353,7 +4381,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "free labels that you associate with this network.",
+          "description": "free labels that you associate with this size.",
           "type": "object"
         },
         "name": {
@@ -4611,7 +4639,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "free labels that you associate with this network.",
+          "description": "free labels that you associate with this size.",
           "type": "object"
         },
         "name": {
@@ -4665,7 +4693,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "free labels that you associate with this network.",
+          "description": "free labels that you associate with this size.",
           "type": "object"
         },
         "name": {
