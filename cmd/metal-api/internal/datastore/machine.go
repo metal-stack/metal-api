@@ -445,11 +445,7 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 	if err := rs.machineMutex.lock(ctx); err != nil {
 		return nil, fmt.Errorf("too many parallel machine allocations taking place, try again later")
 	}
-	defer func() {
-		if err := rs.machineMutex.unlock(); err != nil {
-			rs.log.Errorw("unable to release machine allocation mutex")
-		}
-	}()
+	defer rs.machineMutex.unlock()
 
 	var candidates metal.Machines
 	err := rs.searchEntities(&q, &candidates)

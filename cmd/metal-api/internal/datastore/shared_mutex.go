@@ -102,9 +102,11 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 	}
 }
 
-func (m *sharedMutex) unlock() error {
+func (m *sharedMutex) unlock() {
 	_, err := m.table.Get(m.key).Delete().RunWrite(m.session)
-	return err
+	if err != nil {
+		m.log.Errorw("unable to release shared mutex")
+	}
 }
 
 func (m *sharedMutex) newMutexDoc() *sharedMutexDoc {

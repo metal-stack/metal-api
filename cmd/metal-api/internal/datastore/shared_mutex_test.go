@@ -44,8 +44,7 @@ func Test_sharedMutex_acquireAfterRelease(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 
-	err = sharedDS.machineMutex.unlock()
-	require.NoError(t, err)
+	sharedDS.machineMutex.unlock()
 
 	wg.Wait()
 }
