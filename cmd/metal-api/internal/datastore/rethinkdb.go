@@ -288,6 +288,7 @@ func (rs *RethinkStore) Demote() error {
 	}
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
+	rs.machineMutex = newSharedMutex(rs.ctx, rs.log, rs.dbsession, "machine", 3*time.Second)
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil
