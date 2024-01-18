@@ -5,6 +5,7 @@ package datastore
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -12,8 +13,10 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type machineTestable struct{}
@@ -951,40 +954,56 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 }
 
 func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
-	defer func() {
-		_, err := sharedDS.machineTable().Delete().RunWrite(sharedDS.session)
-		require.NoError(t, err)
-	}()
 
 	var (
-		root = zaptest.NewLogger(t).Sugar()
-		wg   sync.WaitGroup
-		size = metal.Size{Base: metal.Base{ID: "1"}}
+		root  = zaptest.NewLogger(t).Sugar()
+		wg    sync.WaitGroup
+		size  = metal.Size{Base: metal.Base{ID: "1"}}
+		count int
 	)
 
-	err := sharedDS.createEntity(sharedDS.machineTable(), &metal.Machine{
-		Base: metal.Base{
-			ID: "1",
+	for _, initEntity := range []struct {
+		entity metal.Entity
+		table  *r.Term
+	}{
+		{
+			table: sharedDS.machineTable(),
+			entity: &metal.Machine{
+				Base: metal.Base{
+					ID: "1",
+				},
+				PartitionID: "partition",
+				SizeID:      size.ID,
+				State: metal.MachineState{
+					Value: metal.AvailableState,
+				},
+				Waiting:      true,
+				PreAllocated: false,
+			},
 		},
-		PartitionID: "partition",
-		SizeID:      size.ID,
-		State: metal.MachineState{
-			Value: metal.AvailableState,
+		{
+			table: sharedDS.eventTable(),
+			entity: &metal.ProvisioningEventContainer{
+				Base: metal.Base{
+					ID: "1",
+				},
+				Liveliness: metal.MachineLivelinessAlive,
+			},
 		},
-		Waiting:      true,
-		PreAllocated: false,
-	})
-	require.NoError(t, err)
+	} {
+		initEntity := initEntity
 
-	err = sharedDS.createEntity(sharedDS.eventTable(), &metal.ProvisioningEventContainer{
-		Base: metal.Base{
-			ID: "1",
-		},
-		Liveliness: metal.MachineLivelinessAlive,
-	})
-	require.NoError(t, err)
+		err := sharedDS.createEntity(initEntity.table, initEntity.entity)
+		require.NoError(t, err)
+
+		defer func() {
+			_, err := initEntity.table.Delete().RunWrite(sharedDS.session)
+			require.NoError(t, err)
+		}()
+	}
 
 	for i := 0; i < 100; i++ {
+		i := i
 		wg.Add(1)
 
 		log := root.With("worker", i)
@@ -1017,6 +1036,13 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 
 				newMachine := *machine
 				newMachine.PreAllocated = false
+				if newMachine.Name == "" {
+					newMachine.Name = strconv.Itoa(0)
+				}
+
+				assert.Equal(t, strconv.Itoa(count), newMachine.Name, "concurrency occurred")
+				count++
+				newMachine.Name = strconv.Itoa(count)
 
 				err = sharedDS.updateEntity(sharedDS.machineTable(), &newMachine, machine)
 				if err != nil {
@@ -1030,4 +1056,6 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 	}
 
 	wg.Wait()
+
+	assert.Equal(t, 100, count)
 }
