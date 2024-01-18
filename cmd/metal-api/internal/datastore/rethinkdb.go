@@ -38,9 +38,6 @@ var tables = []string{
 
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
-	mutexCtx    context.Context
-	mutexCancel context.CancelFunc
-
 	log *zap.SugaredLogger
 
 	session   r.QueryExecutor
@@ -57,6 +54,8 @@ type RethinkStore struct {
 	ASNPoolRangeMin uint
 	ASNPoolRangeMax uint
 
+	mutexCtx     context.Context
+	mutexCancel  context.CancelFunc
 	machineMutex *sharedMutex
 }
 
