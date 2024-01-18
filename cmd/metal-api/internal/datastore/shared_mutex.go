@@ -14,6 +14,11 @@ type sharedMutexDoc struct {
 	LockedAt time.Time `rethinkdb:"locked_at"`
 }
 
+// sharedMutex constructs a mutex using the rethinkdb to guarantee atomic operations.
+// this can be helpful because in RethinkDB there are no transactions but sometimes you want
+// to prevent concurrency issues over multiple metal-api replicas.
+// the performance of this is remarkably worse than running code without this mutex, so
+// only make use of this when it really makes sense.
 type sharedMutex struct {
 	session       r.QueryExecutor
 	table         r.Term

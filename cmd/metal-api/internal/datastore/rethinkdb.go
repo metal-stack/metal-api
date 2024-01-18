@@ -38,6 +38,7 @@ var tables = []string{
 
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
+	ctx context.Context
 	log *zap.SugaredLogger
 
 	session   r.QueryExecutor
@@ -146,8 +147,6 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	if err != nil {
 		return err
 	}
-
-	rs.machineMutex = newSharedMutex(context.Background(), rs.log, rs.dbsession, "machine", 3*time.Second)
 
 	rs.log.Info("database init complete")
 
@@ -258,7 +257,13 @@ func (rs *RethinkStore) Close() error {
 			return err
 		}
 	}
+
+	if rs.ctx != nil {
+		rs.ctx.Done()
+	}
+
 	rs.log.Info("Rethinkstore disconnected")
+
 	return nil
 }
 
@@ -268,6 +273,8 @@ func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
+	rs.ctx = context.Background()
+	rs.machineMutex = newSharedMutex(rs.ctx, rs.log, rs.dbsession, "machine", 3*time.Second)
 	return nil
 }
 
