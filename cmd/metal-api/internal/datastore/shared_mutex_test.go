@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -63,6 +64,25 @@ func Test_sharedMutex_expires(t *testing.T) {
 
 	err = sharedDS.machineMutex.lock(ctx)
 	require.NoError(t, err)
+}
+
+func Test_sharedMutex_stop(t *testing.T) {
+	defer mutexCleanup(t)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	mutex := newSharedMutex(context.Background(), zaptest.NewLogger(t).Sugar(), sharedDS.dbsession, "test", 3*time.Second)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		mutex.expireloop(ctx)
+		wg.Done()
+	}()
+
+	cancel()
+
+	wg.Wait()
 }
 
 func mutexCleanup(t *testing.T) {

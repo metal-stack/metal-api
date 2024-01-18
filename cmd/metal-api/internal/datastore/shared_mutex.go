@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -130,7 +131,12 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 		case <-ticker.C:
 			cursor, err := m.table.Get(m.key).Run(m.session)
 			if err != nil {
+				if errors.Is(err, r.ErrConnectionClosed) {
+					m.log.Errorw("connection closed unexpectedly, stop shared mutex expiration loop", "error", err)
+				}
+
 				m.log.Errorw("unable to create cursor", "error", err)
+
 				continue
 			}
 
@@ -155,6 +161,7 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 				m.log.Infow("cleaned up expired shared mutex")
 			}
 		case <-ctx.Done():
+			m.log.Infow("stopped shared mutex expiration loop")
 			return
 		}
 	}

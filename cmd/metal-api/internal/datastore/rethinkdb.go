@@ -38,7 +38,9 @@ var tables = []string{
 
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
-	ctx context.Context
+	mutexCtx    context.Context
+	mutexCancel context.CancelFunc
+
 	log *zap.SugaredLogger
 
 	session   r.QueryExecutor
@@ -258,8 +260,8 @@ func (rs *RethinkStore) Close() error {
 		}
 	}
 
-	if rs.ctx != nil {
-		rs.ctx.Done()
+	if rs.mutexCancel != nil {
+		rs.mutexCancel()
 	}
 
 	rs.log.Info("Rethinkstore disconnected")
@@ -273,8 +275,8 @@ func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
-	rs.ctx = context.Background()
-	rs.machineMutex = newSharedMutex(rs.ctx, rs.log, rs.dbsession, "machine", 3*time.Second)
+	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
+	rs.machineMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, "machine", 3*time.Second)
 	return nil
 }
 
@@ -288,7 +290,8 @@ func (rs *RethinkStore) Demote() error {
 	}
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
-	rs.machineMutex = newSharedMutex(rs.ctx, rs.log, rs.dbsession, "machine", 3*time.Second)
+	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
+	rs.machineMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, "machine", 3*time.Second)
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil
