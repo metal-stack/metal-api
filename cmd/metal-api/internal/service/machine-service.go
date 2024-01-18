@@ -1100,7 +1100,7 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 	}
 
 	projectID := allocationSpec.ProjectID
-	p, err := mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+	p, err := mdc.Project().Get(ctx, &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
 		return nil, err
 	}
