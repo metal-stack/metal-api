@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -62,6 +63,7 @@ func startRethinkInitialized() (container testcontainers.Container, ds *RethinkS
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
 	rs.ASNPoolRangeMax = 10010
+	rs.sharedMutexMaxBlockTime = 2 * time.Second
 
 	err = rs.Connect()
 	if err != nil {
