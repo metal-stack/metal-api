@@ -147,7 +147,7 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 					continue
 				}
 
-				m.log.Debugw("cleaned up expired shared mutex")
+				m.log.Infow("cleaned up expired shared mutex")
 			}
 		case <-ctx.Done():
 			return
