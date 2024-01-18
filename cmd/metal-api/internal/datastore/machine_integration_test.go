@@ -4,11 +4,16 @@
 package datastore
 
 import (
+	"context"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 type machineTestable struct{}
@@ -943,4 +948,86 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 	for i := range tests {
 		tests[i].run(t, tt)
 	}
+}
+
+func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
+	defer func() {
+		_, err := sharedDS.machineTable().Delete().RunWrite(sharedDS.session)
+		require.NoError(t, err)
+	}()
+
+	var (
+		root = zaptest.NewLogger(t).Sugar()
+		wg   sync.WaitGroup
+		size = metal.Size{Base: metal.Base{ID: "1"}}
+	)
+
+	err := sharedDS.createEntity(sharedDS.machineTable(), &metal.Machine{
+		Base: metal.Base{
+			ID: "1",
+		},
+		PartitionID: "partition",
+		SizeID:      size.ID,
+		State: metal.MachineState{
+			Value: metal.AvailableState,
+		},
+		Waiting:      true,
+		PreAllocated: false,
+	})
+	require.NoError(t, err)
+
+	err = sharedDS.createEntity(sharedDS.eventTable(), &metal.ProvisioningEventContainer{
+		Base: metal.Base{
+			ID: "1",
+		},
+		Liveliness: metal.MachineLivelinessAlive,
+	})
+	require.NoError(t, err)
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		log := root.With("worker", i)
+
+		go func() {
+			defer wg.Done()
+
+			for {
+				machine, err := sharedDS.FindWaitingMachine(context.Background(), "project", "partition", size, nil)
+				if err != nil {
+					if metal.IsConflict(err) {
+						t.Errorf("concurrent modification occurred, shared mutex is not working")
+						break
+					}
+
+					if strings.Contains(err.Error(), "no machine available") {
+						continue
+					}
+
+					if strings.Contains(err.Error(), "too many parallel") {
+						time.Sleep(10 * time.Millisecond)
+						continue
+					}
+
+					t.Errorf("unexpected error occurred: %s", err)
+					continue
+				}
+
+				log.Info("waiting machine found")
+
+				newMachine := *machine
+				newMachine.PreAllocated = false
+
+				err = sharedDS.updateEntity(sharedDS.machineTable(), &newMachine, machine)
+				if err != nil {
+					log.Errorw("unable to toggle back pre-allocation flag", "error", err)
+					t.Fail()
+				}
+
+				return
+			}
+		}()
+	}
+
+	wg.Wait()
 }

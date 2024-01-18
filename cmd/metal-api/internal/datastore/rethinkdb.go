@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -18,7 +19,19 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "switchstatus", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
+	"image",
+	"size",
+	"partition",
+	"machine",
+	"switch",
+	"switchstatus",
+	"event",
+	"network",
+	"ip",
+	"migration",
+	"filesystemlayout",
+	"sizeimageconstraint",
+	"sharedmutex",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
@@ -40,6 +53,8 @@ type RethinkStore struct {
 	VRFPoolRangeMax uint
 	ASNPoolRangeMin uint
 	ASNPoolRangeMax uint
+
+	machineMutex *sharedMutex
 }
 
 // New creates a new rethink store.
@@ -131,6 +146,8 @@ func (rs *RethinkStore) initializeTables(opts r.TableCreateOpts) error {
 	if err != nil {
 		return err
 	}
+
+	rs.machineMutex = newSharedMutex(context.Background(), rs.log, rs.dbsession, "machine", 3*time.Second)
 
 	rs.log.Info("database init complete")
 

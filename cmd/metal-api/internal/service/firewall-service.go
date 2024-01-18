@@ -217,7 +217,7 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 		return
 	}
 
-	m, err := allocateMachine(r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
+	m, err := allocateMachine(request.Request.Context(), r.logger(request), r.ds, r.ipamer, spec, r.mdc, r.actor, r.Publisher)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return

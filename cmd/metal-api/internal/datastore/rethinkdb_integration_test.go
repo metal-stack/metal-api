@@ -5,6 +5,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sort"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"testing"
 )
@@ -45,7 +47,17 @@ func startRethinkInitialized() (container testcontainers.Container, ds *RethinkS
 		panic(err)
 	}
 
-	rs := New(zap.L().Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	zcfg := zap.NewProductionConfig()
+	zcfg.EncoderConfig.TimeKey = "timestamp"
+	zcfg.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	zcfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+
+	log, err := zcfg.Build()
+	if err != nil {
+		panic(fmt.Errorf("can't initialize zap logger: %w", err))
+	}
+
+	rs := New(log.Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
