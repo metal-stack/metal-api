@@ -3,6 +3,7 @@ package datastore
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"go.uber.org/zap"
@@ -45,6 +46,8 @@ func TestNew(t *testing.T) {
 				VRFPoolRangeMax: DefaultVRFPoolRangeMax,
 				ASNPoolRangeMin: DefaultASNPoolRangeMin,
 				ASNPoolRangeMax: DefaultASNPoolRangeMax,
+
+				sharedMutexMaxBlockTime: 10 * time.Second,
 			},
 		},
 	}
