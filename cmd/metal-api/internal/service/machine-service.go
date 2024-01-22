@@ -1072,9 +1072,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 			}
 
 			rule := metal.IngressRule{
-				Protocol: protocol,
-				Ports:    ruleSpec.Ports,
-				Comment:  ruleSpec.Comment,
+				Protocol:  protocol,
+				Ports:     ruleSpec.Ports,
+				FromCIDRs: ruleSpec.FromCIDRs,
+				Comment:   ruleSpec.Comment,
 			}
 
 			if err := rule.Validate(); err != nil {
@@ -1268,20 +1269,6 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	err = makeNetworks(ds, ipamer, allocationSpec, networks, alloc)
 	if err != nil {
 		return nil, rollbackOnError(fmt.Errorf("unable to make networks:%w", err))
-	}
-
-	for _, n := range networks {
-		n := n
-
-		if n.networkType != metal.PrivatePrimaryUnshared {
-			continue
-		}
-
-		for _, rule := range allocationSpec.IngressRules {
-			rule := rule
-
-			rule.FromCIDRs = n.network.Prefixes.String()
-		}
 	}
 
 	// refetch the machine to catch possible updates after dealing with the network...
