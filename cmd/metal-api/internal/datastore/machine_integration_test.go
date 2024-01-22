@@ -92,6 +92,12 @@ func (_ *machineTestable) defaultBody(m *metal.Machine) *metal.Machine {
 		if m.Allocation.SSHPubKeys == nil {
 			m.Allocation.SSHPubKeys = []string{}
 		}
+		if m.Allocation.Egress == nil {
+			m.Allocation.Egress = []metal.EgressRule{}
+		}
+		if m.Allocation.Ingress == nil {
+			m.Allocation.Ingress = []metal.IngressRule{}
+		}
 		for i := range m.Allocation.MachineNetworks {
 			n := m.Allocation.MachineNetworks[i]
 			if n.Prefixes == nil {
