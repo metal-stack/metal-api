@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -147,6 +148,99 @@ type MachineAllocation struct {
 	MachineSetup     *MachineSetup     `rethinkdb:"setup" json:"setup"`
 	Role             Role              `rethinkdb:"role" json:"role"`
 	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
+	Egress           []EgressRule      `rethinkdb:"egress" json:"egress"`
+	Ingress          []IngressRule     `rethinkdb:"ingress" json:"ingress"`
+}
+
+type EgressRule struct {
+	Protocol  Protocol `rethinkdb:"protocol" json:"protocol"`
+	Ports     []int    `rethinkdb:"ports" json:"ports"`
+	FromCIDRs []string `rethinkdb:"from_cidrs" json:"from_cidrs"`
+	Comment   string   `rethinkdb:"comment" json:"comment"`
+}
+
+type IngressRule struct {
+	Protocol Protocol `rethinkdb:"protocol" json:"protocol"`
+	Ports    []int    `rethinkdb:"ports" json:"ports"`
+	ToCIDRs  []string `rethinkdb:"to_cidrs" json:"from_cidrs"`
+	Comment  string   `rethinkdb:"comment" json:"comment"`
+}
+
+type Protocol string
+
+const (
+	ProtocolTCP Protocol = "TCP"
+	ProtocolUDP Protocol = "UDP"
+)
+
+func ProtocolFromString(s string) (Protocol, error) {
+	switch strings.ToLower(s) {
+	case "tcp":
+		return ProtocolTCP, nil
+	case "udp":
+		return ProtocolTCP, nil
+	default:
+		return Protocol(""), fmt.Errorf("no such protocol: %s", s)
+	}
+}
+
+func (r EgressRule) Validate() error {
+	switch r.Protocol {
+	case ProtocolTCP, ProtocolUDP:
+		// ok
+	default:
+		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+	}
+
+	if err := validatePorts(r.Ports); err != nil {
+		return err
+	}
+
+	if err := validateCIDRs(r.FromCIDRs); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r IngressRule) Validate() error {
+	switch r.Protocol {
+	case ProtocolTCP, ProtocolUDP:
+		// ok
+	default:
+		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+	}
+
+	if err := validatePorts(r.Ports); err != nil {
+		return err
+	}
+
+	if err := validateCIDRs(r.ToCIDRs); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validatePorts(ports []int) error {
+	for _, port := range ports {
+		if port < 0 || port > 65535 {
+			return fmt.Errorf("port is out of range")
+		}
+	}
+
+	return nil
+}
+
+func validateCIDRs(cidrs []string) error {
+	for _, cidr := range cidrs {
+		_, _, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return fmt.Errorf("invalid cidr: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // A MachineSetup stores the data used for machine reinstallations.
