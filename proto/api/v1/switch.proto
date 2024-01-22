@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package api.v1;
+
+option go_package = "./v1";
+
+service SwitchService {
+  rpc PortUp(SwitchServicePortUpRequest) returns (SwitchServicePortUpResponse) {}
+  rpc PortDown(SwitchServicePortDownRequest) returns (SwitchServicePortDownResponse) {}
+}
+
+message SwitchServicePortUpRequest {
+  // switch_id is the identifier of the switch
+  string switch_id = 1;
+  // port_identifier is the identifier of the switch port to take up
+  string port_identifier = 2;
+}
+
+message SwitchServicePortDownRequest {
+  // switch_id is the identifier of the switch
+  string switch_id = 1;
+  // identifier is the identifier of the switch port to take down
+  string port_identifier = 2;
+}
+
+message SwitchServicePortUpResponse {}
+
+message SwitchServicePortDownResponse {}
