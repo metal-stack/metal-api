@@ -1050,10 +1050,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 			}
 
 			rule := metal.EgressRule{
-				Protocol:  protocol,
-				Ports:     ruleSpec.Ports,
-				FromCIDRs: ruleSpec.FromCIDRs,
-				Comment:   ruleSpec.Comment,
+				Protocol: protocol,
+				Ports:    ruleSpec.Ports,
+				ToCIDRs:  ruleSpec.ToCIDRs,
+				Comment:  ruleSpec.Comment,
 			}
 
 			if err := rule.Validate(); err != nil {
@@ -1280,7 +1280,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		for _, rule := range allocationSpec.IngressRules {
 			rule := rule
 
-			rule.ToCIDRs = n.network.Prefixes.String()
+			rule.FromCIDRs = n.network.Prefixes.String()
 		}
 	}
 

@@ -1139,13 +1139,6 @@
           "description": "an optional comment describing what this rule is used for",
           "type": "string"
         },
-        "from_cidrs": {
-          "description": "the cidrs affected by this rule",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
         "ports": {
           "description": "the ports affected by this rule",
           "items": {
@@ -1161,11 +1154,18 @@
             "udp"
           ],
           "type": "string"
+        },
+        "to_cidrs": {
+          "description": "the cidrs affected by this rule",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "from_cidrs",
-        "ports"
+        "ports",
+        "to_cidrs"
       ]
     },
     "v1.FirewallFindRequest": {

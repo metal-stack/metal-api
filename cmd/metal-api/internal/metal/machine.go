@@ -2,7 +2,7 @@ package metal
 
 import (
 	"fmt"
-	"net"
+	"net/netip"
 	"os"
 	"strings"
 	"time"
@@ -153,17 +153,17 @@ type MachineAllocation struct {
 }
 
 type EgressRule struct {
+	Protocol Protocol `rethinkdb:"protocol" json:"protocol"`
+	Ports    []int    `rethinkdb:"ports" json:"ports"`
+	ToCIDRs  []string `rethinkdb:"to_cidrs" json:"to_cidrs"`
+	Comment  string   `rethinkdb:"comment" json:"comment"`
+}
+
+type IngressRule struct {
 	Protocol  Protocol `rethinkdb:"protocol" json:"protocol"`
 	Ports     []int    `rethinkdb:"ports" json:"ports"`
 	FromCIDRs []string `rethinkdb:"from_cidrs" json:"from_cidrs"`
 	Comment   string   `rethinkdb:"comment" json:"comment"`
-}
-
-type IngressRule struct {
-	Protocol Protocol `rethinkdb:"protocol" json:"protocol"`
-	Ports    []int    `rethinkdb:"ports" json:"ports"`
-	ToCIDRs  []string `rethinkdb:"to_cidrs" json:"from_cidrs"`
-	Comment  string   `rethinkdb:"comment" json:"comment"`
 }
 
 type Protocol string
@@ -196,7 +196,7 @@ func (r EgressRule) Validate() error {
 		return err
 	}
 
-	if err := validateCIDRs(r.FromCIDRs); err != nil {
+	if err := validateCIDRs(r.ToCIDRs); err != nil {
 		return err
 	}
 
@@ -215,7 +215,7 @@ func (r IngressRule) Validate() error {
 		return err
 	}
 
-	if err := validateCIDRs(r.ToCIDRs); err != nil {
+	if err := validateCIDRs(r.FromCIDRs); err != nil {
 		return err
 	}
 
@@ -234,7 +234,7 @@ func validatePorts(ports []int) error {
 
 func validateCIDRs(cidrs []string) error {
 	for _, cidr := range cidrs {
-		_, _, err := net.ParseCIDR(cidr)
+		_, err := netip.ParsePrefix(cidr)
 		if err != nil {
 			return fmt.Errorf("invalid cidr: %w", err)
 		}
