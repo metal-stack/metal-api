@@ -1998,6 +1998,10 @@
     },
     "v1.MachineAllocation": {
       "properties": {
+        "allocationuuid": {
+          "description": "a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time.",
+          "type": "string"
+        },
         "boot_info": {
           "$ref": "#/definitions/v1.BootInfo",
           "description": "information required for booting the machine from HD"
@@ -2076,6 +2080,7 @@
         }
       },
       "required": [
+        "allocationuuid",
         "created",
         "creator",
         "hostname",

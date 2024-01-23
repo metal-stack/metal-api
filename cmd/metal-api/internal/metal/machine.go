@@ -147,6 +147,7 @@ type MachineAllocation struct {
 	MachineSetup     *MachineSetup     `rethinkdb:"setup" json:"setup"`
 	Role             Role              `rethinkdb:"role" json:"role"`
 	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
+	UUID             string            `rethinkdb:"uuid" json:"uuid"`
 }
 
 // A MachineSetup stores the data used for machine reinstallations.

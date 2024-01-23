@@ -42,6 +42,7 @@ type MachineAllocation struct {
 	BootInfo         *BootInfo                 `json:"boot_info" description:"information required for booting the machine from HD" optional:"true"`
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
+	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
 }
 
 type BootInfo struct {
@@ -526,6 +527,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			FilesystemLayout: NewFilesystemLayoutResponse(m.Allocation.FilesystemLayout),
 			Role:             string(m.Allocation.Role),
 			VPN:              NewMachineVPN(m.Allocation.VPN),
+			AllocationUUID:   m.Allocation.UUID,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
