@@ -9,7 +9,7 @@ import (
 
 func init() {
 	datastore.MustRegisterMigration(datastore.Migration{
-		Name:    "generate allocation uuids allocated machines",
+		Name:    "generate allocation uuids for already allocated machines",
 		Version: 5,
 		Up: func(db *r.Term, session r.QueryExecutor, rs *datastore.RethinkStore) error {
 			machines, err := rs.ListMachines()
