@@ -29,7 +29,7 @@ func init() {
 				}
 
 				newMachine := m
-				m.Allocation.UUID = uuid.New().String()
+				newMachine.Allocation.UUID = uuid.New().String()
 
 				err = rs.UpdateMachine(&m, &newMachine)
 				if err != nil {
