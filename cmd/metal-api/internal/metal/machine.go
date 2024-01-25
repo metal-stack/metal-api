@@ -179,6 +179,38 @@ func (ms Machines) ByProjectID() map[string]Machines {
 	return res
 }
 
+func (ms Machines) WithSize(id string) Machines {
+	var res Machines
+
+	for _, m := range ms {
+		m := m
+
+		if m.SizeID != id {
+			continue
+		}
+
+		res = append(res, m)
+	}
+
+	return res
+}
+
+func (ms Machines) WithPartition(id string) Machines {
+	var res Machines
+
+	for _, m := range ms {
+		m := m
+
+		if m.PartitionID != id {
+			continue
+		}
+
+		res = append(res, m)
+	}
+
+	return res
+}
+
 // MachineNetwork stores the Network details of the machine
 type MachineNetwork struct {
 	NetworkID           string   `rethinkdb:"networkid" json:"networkid"`
@@ -313,11 +345,6 @@ const (
 	MachineResurrectAfter       time.Duration     = time.Hour
 )
 
-// Is return true if given liveliness is equal to specific Liveliness
-func (l MachineLiveliness) Is(liveliness string) bool {
-	return string(l) == liveliness
-}
-
 // DiskCapacity calculates the capacity of all disks.
 func (hw *MachineHardware) DiskCapacity() uint64 {
 	var c uint64
@@ -362,6 +389,7 @@ type IPMI struct {
 	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
 	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
 	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
+	LastUpdated time.Time    `rethinkdb:"last_updated" json:"last_updated"`
 }
 
 type PowerMetric struct {

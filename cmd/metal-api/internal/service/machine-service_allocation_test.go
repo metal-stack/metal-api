@@ -21,6 +21,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/emicklei/go-restful/v3"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
@@ -159,7 +160,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	}
 	err = g.Wait()
 	require.NoError(t, err)
-	require.Equal(t, len(ips), machineCount)
+	require.Len(t, ips, machineCount)
 	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
 
 	// Free
@@ -303,7 +304,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
 	_, pg, err := test.StartPostgres()

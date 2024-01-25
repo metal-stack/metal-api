@@ -2,6 +2,7 @@ package ipam
 
 import (
 	"fmt"
+	"net/netip"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
@@ -42,13 +43,20 @@ func (i *Ipam) AllocateChildPrefix(parentPrefix metal.Prefix, childLength uint8)
 
 // ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
 func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
-	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
-
-	if ipamChildPrefix == nil {
-		return fmt.Errorf("error finding child prefix in ipam: %s", childPrefix.String())
+	_, err := netip.ParsePrefix(childPrefix.String())
+	if err != nil {
+		return fmt.Errorf("invalid child prefix: %w", err)
 	}
 
-	err := i.ip.ReleaseChildPrefix(ipamChildPrefix)
+	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
+	if ipamChildPrefix == nil {
+		// FIXME: unfortunately, go-ipam does not return a proper error here so we cannot deduce if the prefix
+		// was already deleted or not, so if the database is down or something we continue with network deletion
+		// even though there could be remainings in the go-ipam db
+		return nil
+	}
+
+	err = i.ip.ReleaseChildPrefix(ipamChildPrefix)
 	if err != nil {
 		return fmt.Errorf("error releasing child prefix in ipam: %w", err)
 	}

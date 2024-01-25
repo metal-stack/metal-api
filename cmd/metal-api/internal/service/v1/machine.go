@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 )
 
@@ -154,6 +155,7 @@ type MachineIPMI struct {
 	BMCVersion  string       `json:"bmcversion"`
 	PowerState  string       `json:"powerstate"`
 	PowerMetric *PowerMetric `json:"powermetric"`
+	LastUpdated time.Time    `json:"last_updated"`
 }
 
 type PowerMetric struct {
@@ -233,6 +235,7 @@ type MachineConsolePasswordRequest struct {
 	ID     string `json:"id" description:"id of the machine to get the consolepassword for"`
 	Reason string `json:"reason" description:"reason why the consolepassword is requested, typically a incident number with short description"`
 }
+
 type MachineConsolePasswordResponse struct {
 	Common
 	ConsolePassword string `json:"console_password" description:"the console password which was generated while provisioning"`
@@ -270,6 +273,16 @@ type MachineReinstallRequest struct {
 	ImageID string `json:"imageid" description:"the image id to be installed"`
 }
 
+type MachineIssuesRequest struct {
+	datastore.MachineSearchQuery
+
+	Only []issues.Type `json:"only" description:"a list of machine issues to include"`
+	Omit []issues.Type `json:"omit" description:"a list of machine issues to omit"`
+
+	Severity           string        `json:"severity" description:"filters issue for given severity"`
+	LastErrorThreshold time.Duration `json:"last_error_threshold" description:"defines the last error threshold"`
+}
+
 type MachineAbortReinstallRequest struct {
 	PrimaryDiskWiped bool `json:"primary_disk_wiped" description:"indicates whether the primary disk is already wiped"`
 }
@@ -278,6 +291,19 @@ type MachineVPN struct {
 	ControlPlaneAddress string `json:"address" description:"address of VPN control plane"`
 	AuthKey             string `json:"auth_key" description:"auth key used to connect to VPN"`
 	Connected           bool   `json:"connected" description:"connected to the VPN"`
+}
+
+type MachineIssueResponse struct {
+	MachineID string   `json:"machineid" description:"the machine id that has the given issues"`
+	Issues    []string `json:"issues" description:"the list of issues (only issue ids) of this machine"`
+}
+
+type MachineIssue struct {
+	ID          string `json:"id" description:"the id of the issue"`
+	Severity    string `json:"severity" description:"the severity of the issue"`
+	Description string `json:"description" description:"a description of the issue"`
+	RefURL      string `json:"ref_url" description:"an issue reference to the issue in metal-stack docs"`
+	Details     string `json:"details" description:"details of the issue"`
 }
 
 func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
@@ -360,12 +386,13 @@ func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 	}
 
 	return metal.IPMI{
-		Address:    r.Address,
-		MacAddress: r.MacAddress,
-		User:       r.User,
-		Password:   r.Password,
-		Interface:  r.Interface,
-		BMCVersion: r.BMCVersion,
+		Address:     r.Address,
+		MacAddress:  r.MacAddress,
+		User:        r.User,
+		Password:    r.Password,
+		Interface:   r.Interface,
+		BMCVersion:  r.BMCVersion,
+		LastUpdated: r.LastUpdated,
 		Fru: metal.Fru{
 			ChassisPartNumber:   chassisPartNumber,
 			ChassisPartSerial:   chassisPartSerial,
@@ -406,6 +433,7 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 			BMCVersion:  m.IPMI.BMCVersion,
 			PowerState:  m.IPMI.PowerState,
 			PowerMetric: powerMetric,
+			LastUpdated: m.IPMI.LastUpdated,
 			Fru: MachineFru{
 				ChassisPartNumber:   &m.IPMI.Fru.ChassisPartNumber,
 				ChassisPartSerial:   &m.IPMI.Fru.ChassisPartSerial,

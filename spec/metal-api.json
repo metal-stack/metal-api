@@ -407,6 +407,9 @@
         "gitsha1": {
           "type": "string"
         },
+        "min_client_version": {
+          "type": "string"
+        },
         "name": {
           "type": "string"
         },
@@ -420,6 +423,7 @@
       "required": [
         "builddate",
         "gitsha1",
+        "min_client_version",
         "name",
         "revision",
         "version"
@@ -2607,6 +2611,10 @@
         "interface": {
           "type": "string"
         },
+        "last_updated": {
+          "format": "date-time",
+          "type": "string"
+        },
         "mac": {
           "type": "string"
         },
@@ -2628,6 +2636,7 @@
         "bmcversion",
         "fru",
         "interface",
+        "last_updated",
         "mac",
         "password",
         "powermetric",
@@ -2805,6 +2814,267 @@
           "type": "object"
         }
       }
+    },
+    "v1.MachineIssue": {
+      "properties": {
+        "description": {
+          "description": "a description of the issue",
+          "type": "string"
+        },
+        "details": {
+          "description": "details of the issue",
+          "type": "string"
+        },
+        "id": {
+          "description": "the id of the issue",
+          "type": "string"
+        },
+        "ref_url": {
+          "description": "an issue reference to the issue in metal-stack docs",
+          "type": "string"
+        },
+        "severity": {
+          "description": "the severity of the issue",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "details",
+        "id",
+        "ref_url",
+        "severity"
+      ]
+    },
+    "v1.MachineIssueResponse": {
+      "properties": {
+        "issues": {
+          "description": "the list of issues (only issue ids) of this machine",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "machineid": {
+          "description": "the machine id that has the given issues",
+          "type": "string"
+        }
+      },
+      "required": [
+        "issues",
+        "machineid"
+      ]
+    },
+    "v1.MachineIssuesRequest": {
+      "properties": {
+        "allocation_hostname": {
+          "type": "string"
+        },
+        "allocation_image_id": {
+          "type": "string"
+        },
+        "allocation_name": {
+          "type": "string"
+        },
+        "allocation_project": {
+          "type": "string"
+        },
+        "allocation_role": {
+          "type": "string"
+        },
+        "allocation_succeeded": {
+          "type": "boolean"
+        },
+        "disk_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "disk_sizes": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "fru_board_mfg": {
+          "type": "string"
+        },
+        "fru_board_mfg_serial": {
+          "type": "string"
+        },
+        "fru_board_part_number": {
+          "type": "string"
+        },
+        "fru_chassis_part_number": {
+          "type": "string"
+        },
+        "fru_chassis_part_serial": {
+          "type": "string"
+        },
+        "fru_product_manufacturer": {
+          "type": "string"
+        },
+        "fru_product_part_number": {
+          "type": "string"
+        },
+        "fru_product_serial": {
+          "type": "string"
+        },
+        "hardware_cpu_cores": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "hardware_memory": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "ipmi_address": {
+          "type": "string"
+        },
+        "ipmi_interface": {
+          "type": "string"
+        },
+        "ipmi_mac_address": {
+          "type": "string"
+        },
+        "ipmi_user": {
+          "type": "string"
+        },
+        "last_error_threshold": {
+          "description": "defines the last error threshold",
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "network_asns": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "network_destination_prefixes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_ips": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_prefixes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "network_vrfs": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "nics_mac_addresses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_neighbor_mac_addresses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_neighbor_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_neighbor_vrfs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "nics_vrfs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "omit": {
+          "description": "a list of machine issues to omit",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "only": {
+          "description": "a list of machine issues to include",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "partition_id": {
+          "type": "string"
+        },
+        "rackid": {
+          "type": "string"
+        },
+        "severity": {
+          "description": "filters issue for given severity",
+          "type": "string"
+        },
+        "sizeid": {
+          "type": "string"
+        },
+        "state_value": {
+          "enum": [
+            "",
+            "LOCKED",
+            "RESERVED"
+          ],
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "last_error_threshold",
+        "omit",
+        "only",
+        "severity"
+      ]
     },
     "v1.MachineNetwork": {
       "description": "prefixes that are reachable within this network",
@@ -3650,8 +3920,27 @@
         "used_prefixes"
       ]
     },
+    "v1.Paging": {
+      "properties": {
+        "count": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "page": {
+          "format": "integer",
+          "type": "integer"
+        }
+      }
+    },
     "v1.PartitionBase": {
       "properties": {
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -3745,6 +4034,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -3801,6 +4097,13 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
+        },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
           "type": "string"
@@ -3844,6 +4147,13 @@
           "description": "the unique ID of this entity",
           "type": "string",
           "uniqueItems": true
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this partition",
+          "type": "object"
         },
         "mgmtserviceaddress": {
           "description": "the address to the management service of this partition",
@@ -4084,12 +4394,22 @@
           },
           "type": "array"
         },
+        "reservations": {
+          "description": "the amount of reservations for this size",
+          "format": "int32",
+          "type": "integer"
+        },
         "size": {
           "description": "the size of the server",
           "type": "string"
         },
         "total": {
           "description": "total amount of servers with this size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "usedreservations": {
+          "description": "the amount of used reservations for this size",
           "format": "int32",
           "type": "integer"
         }
@@ -4101,8 +4421,10 @@
         "free",
         "other",
         "othermachines",
+        "reservations",
         "size",
-        "total"
+        "total",
+        "usedreservations"
       ]
     },
     "v1.SizeConstraint": {
@@ -4173,9 +4495,23 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this size.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -4309,6 +4645,84 @@
         "name"
       ]
     },
+    "v1.SizeReservation": {
+      "properties": {
+        "amount": {
+          "description": "the amount of reserved machine allocations for this size",
+          "format": "int32",
+          "type": "integer"
+        },
+        "description": {
+          "description": "a description for this reservation",
+          "type": "string"
+        },
+        "partitionids": {
+          "description": "the partitions in which this size reservation is considered, the amount is valid for every partition",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "projectid": {
+          "description": "the project for which this size reservation is considered",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "partitionids",
+        "projectid"
+      ]
+    },
+    "v1.SizeReservationResponse": {
+      "properties": {
+        "partitionid": {
+          "description": "the partition id of this size reservation",
+          "type": "string"
+        },
+        "projectallocations": {
+          "description": "the amount of allocations of this project referenced by this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "projectid": {
+          "description": "the project id of this size reservation",
+          "type": "string"
+        },
+        "projectname": {
+          "description": "the project name of this size reservation",
+          "type": "string"
+        },
+        "reservations": {
+          "description": "the amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sizeid": {
+          "description": "the size id of this size reservation",
+          "type": "string"
+        },
+        "tenant": {
+          "description": "the tenant of this size reservation",
+          "type": "string"
+        },
+        "usedreservations": {
+          "description": "the used amount of reservations of this size reservation",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "partitionid",
+        "projectallocations",
+        "projectid",
+        "projectname",
+        "reservations",
+        "sizeid",
+        "tenant",
+        "usedreservations"
+      ]
+    },
     "v1.SizeResponse": {
       "properties": {
         "changed": {
@@ -4339,14 +4753,40 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this size.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
         "constraints",
-        "id"
+        "id",
+        "labels"
+      ]
+    },
+    "v1.SizeSuggestRequest": {
+      "properties": {
+        "machineID": {
+          "description": "machineID to retrieve size suggestion for",
+          "type": "string"
+        }
+      },
+      "required": [
+        "machineID"
       ]
     },
     "v1.SizeUpdateRequest": {
@@ -4367,9 +4807,23 @@
           "type": "string",
           "uniqueItems": true
         },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "free labels that you associate with this size.",
+          "type": "object"
+        },
         "name": {
           "description": "a readable name for this entity",
           "type": "string"
+        },
+        "reservations": {
+          "description": "reservations for this size, which are considered during machine allocation",
+          "items": {
+            "$ref": "#/definitions/v1.SizeReservation"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -4767,7 +5221,70 @@
         }
       }
     },
+    "v1.TenantCreateRequest": {
+      "properties": {
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
+    },
+    "v1.TenantFindRequest": {
+      "properties": {
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "paging": {
+          "$ref": "#/definitions/v1.Paging"
+        }
+      }
+    },
     "v1.TenantResponse": {
+      "properties": {
+        "default_quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        },
+        "description": {
+          "type": "string"
+        },
+        "iam_config": {
+          "$ref": "#/definitions/v1.IAMConfig"
+        },
+        "meta": {
+          "$ref": "#/definitions/v1.Meta"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quotas": {
+          "$ref": "#/definitions/v1.QuotaSet"
+        }
+      }
+    },
+    "v1.TenantUpdateRequest": {
       "properties": {
         "default_quotas": {
           "$ref": "#/definitions/v1.QuotaSet"
@@ -6545,6 +7062,80 @@
         ]
       }
     },
+    "/v1/machine/issues": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listIssues",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.MachineIssue"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "returns the list of issues that exist in the API",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
+    "/v1/machine/issues/evaluate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "issues",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.MachineIssuesRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.MachineIssueResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "returns machine issues",
+        "tags": [
+          "machine"
+        ]
+      }
+    },
     "/v1/machine/update-firmware/{id}": {
       "post": {
         "consumes": [
@@ -7751,37 +8342,6 @@
       }
     },
     "/v1/partition/capacity": {
-      "get": {
-        "consumes": [
-          "application/json"
-        ],
-        "deprecated": true,
-        "operationId": "partitionCapacityCompat",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "items": {
-                "$ref": "#/definitions/v1.PartitionCapacity"
-              },
-              "type": "array"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "get partition capacity",
-        "tags": [
-          "Partition"
-        ]
-      },
       "post": {
         "consumes": [
           "application/json"
@@ -8519,6 +9079,90 @@
         ]
       }
     },
+    "/v1/size/reservations": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "listSizeReservations",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.EmptyBody"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeReservationResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all size reservations",
+        "tags": [
+          "size"
+        ]
+      }
+    },
+    "/v1/size/suggest": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "suggest",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SizeSuggestRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.SizeConstraint"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "from a given machine id returns the appropriate size",
+        "tags": [
+          "size"
+        ]
+      }
+    },
     "/v1/size/{id}": {
       "delete": {
         "consumes": [
@@ -8905,9 +9549,173 @@
         "tags": [
           "tenant"
         ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "updateTenant",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.TenantUpdateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "412": {
+            "description": "OptimisticLock",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "update a tenant. optimistic lock error can occur.",
+        "tags": [
+          "tenant"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "createTenant",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.TenantCreateRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "create a tenant. if the given ID already exists a conflict is returned",
+        "tags": [
+          "tenant"
+        ]
+      }
+    },
+    "/v1/tenant/find": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "findTenants",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.TenantFindRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/v1.TenantResponse"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "get all tenants that match given properties",
+        "tags": [
+          "tenant"
+        ]
       }
     },
     "/v1/tenant/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "deleteTenant",
+        "parameters": [
+          {
+            "description": "identifier of the tenant",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.TenantResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "deletes a tenant and returns the deleted entity",
+        "tags": [
+          "tenant"
+        ]
+      },
       "get": {
         "consumes": [
           "application/json"

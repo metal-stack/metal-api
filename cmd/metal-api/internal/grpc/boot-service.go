@@ -133,7 +133,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 
 	size, _, err := b.ds.FromHardware(machineHardware)
 	if err != nil {
-		size = metal.UnknownSize
+		size = metal.UnknownSize()
 		b.log.Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
 	}
 
@@ -142,13 +142,14 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		i := req.Ipmi
 
 		ipmi = metal.IPMI{
-			Address:    i.Address,
-			MacAddress: i.Mac,
-			User:       i.User,
-			Password:   i.Password,
-			Interface:  i.Interface,
-			BMCVersion: i.BmcVersion,
-			PowerState: i.PowerState,
+			Address:     i.Address,
+			MacAddress:  i.Mac,
+			User:        i.User,
+			Password:    i.Password,
+			Interface:   i.Interface,
+			BMCVersion:  i.BmcVersion,
+			PowerState:  i.PowerState,
+			LastUpdated: time.Now(),
 		}
 		if i.Fru != nil {
 			f := i.Fru

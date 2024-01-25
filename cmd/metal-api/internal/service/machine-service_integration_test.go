@@ -93,7 +93,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert.Len(t, mrr.Hardware.Nics, 2)
 
 	err = te.machineWait("test-uuid")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// DB contains at least a machine which is allocatable
 	machine := v1.MachineAllocateRequest{
@@ -133,7 +133,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	require.Equal(t, http.StatusOK, status)
 
 	err = te.machineWait("test-uuid")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// DB contains at least a machine which is allocatable
 	machine = v1.MachineAllocateRequest{

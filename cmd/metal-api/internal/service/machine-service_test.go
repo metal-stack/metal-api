@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/emicklei/go-restful/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/crypto/ssh"
@@ -516,15 +515,15 @@ func TestParsePublicKey(t *testing.T) {
 
 	pubKey = ""
 	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
-	require.NotNil(t, err)
+	require.Error(t, err)
 
 	pubKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1"
 	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
-	require.NotNil(t, err)
+	require.Error(t, err)
 
 	pubKey = "AAAAB3NzaC1yc2EAAAADAQABAAABAQDi4+MA0u/luzH2iaKnBTHzo+BEmV1MsdWtPtAps9ccD1vF94AqKtV6mm387ZhamfWUfD1b3Q5ftk56ekwZgHbk6PIUb/W4GrBD4uslTL2lzNX9v0Njo9DfapDKv4Tth6Qz5ldUb6z7IuyDmWqn3FbIPo4LOZxJ9z/HUWyau8+JMSpwIyzp2S0Gtm/pRXhbkZlr4h9jGApDQICPFGBWFEVpyOOjrS8JnEC8YzUszvbj5W1CH6Sn/DtxW0/CTAWwcjIAYYV8GlouWjjALqmjvpxO3F5kvQ1xR8IYrD86+cSCQSP4TpehftzaQzpY98fcog2YkEra+1GCY456cVSUhe1X"
 	_, _, _, _, err = ssh.ParseAuthorizedKey([]byte(pubKey))
-	require.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func Test_validateAllocationSpec(t *testing.T) {
@@ -672,10 +671,10 @@ func Test_validateAllocationSpec(t *testing.T) {
 		tt := tests[i]
 		err := validateAllocationSpec(&tt.spec)
 		if tt.isError {
-			assert.Error(t, err, "Test: %s", tt.name)
-			assert.EqualError(t, err, tt.expected, "Test: %s", tt.name)
+			require.Error(t, err, "Test: %s", tt.name)
+			require.EqualError(t, err, tt.expected, "Test: %s", tt.name)
 		} else {
-			assert.NoError(t, err, "Test: %s", tt.name)
+			require.NoError(t, err, "Test: %s", tt.name)
 		}
 	}
 }

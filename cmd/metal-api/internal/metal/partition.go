@@ -15,6 +15,7 @@ type Partition struct {
 	PrivateNetworkPrefixLength uint8             `rethinkdb:"privatenetworkprefixlength" json:"privatenetworkprefixlength"`
 	WaitingPoolMinSize         string            `rethinkdb:"waitingpoolminsize" json:"waitingpoolminsize"`
 	WaitingPoolMaxSize         string            `rethinkdb:"waitingpoolmaxsize" json:"waitingpoolmaxsize"`
+	Labels                     map[string]string `rethinkdb:"labels" json:"labels"`
 }
 
 // BootConfiguration defines the metal-hammer initrd, kernel and commandline

@@ -1,9 +1,10 @@
 package service
 
 import (
-	"github.com/stretchr/testify/require"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestInsertRevisions(t *testing.T) {
@@ -25,10 +26,10 @@ func TestInsertRevisions(t *testing.T) {
 	}
 
 	// then
-	require.Equal(t, 1, len(revisions))
+	require.Len(t, revisions, 1)
 	boardRevisions, ok := revisions["v"]
 	require.True(t, ok)
-	require.Equal(t, 1, len(boardRevisions))
+	require.Len(t, boardRevisions, 1)
 	rr, ok := boardRevisions["b"]
 	require.True(t, ok)
 	sort.Strings(rr)
@@ -43,10 +44,10 @@ func TestInsertRevisions(t *testing.T) {
 	}
 
 	// then
-	require.Equal(t, 1, len(revisions))
+	require.Len(t, revisions, 1)
 	boardRevisions, ok = revisions["v"]
 	require.True(t, ok)
-	require.Equal(t, 1, len(boardRevisions))
+	require.Len(t, boardRevisions, 1)
 	rr, ok = boardRevisions["b"]
 	require.True(t, ok)
 	sort.Strings(rr)
@@ -58,10 +59,10 @@ func TestInsertRevisions(t *testing.T) {
 	}
 
 	// then
-	require.Equal(t, 1, len(revisions))
+	require.Len(t, revisions, 1)
 	boardRevisions, ok = revisions["v"]
 	require.True(t, ok)
-	require.Equal(t, 2, len(boardRevisions))
+	require.Len(t, boardRevisions, 2)
 	rr, ok = boardRevisions["b"]
 	require.True(t, ok)
 	sort.Strings(rr)
@@ -77,10 +78,10 @@ func TestInsertRevisions(t *testing.T) {
 	}
 
 	// then
-	require.Equal(t, 2, len(revisions))
+	require.Len(t, revisions, 2)
 	boardRevisions, ok = revisions["v"]
 	require.True(t, ok)
-	require.Equal(t, 2, len(boardRevisions))
+	require.Len(t, boardRevisions, 2)
 	rr, ok = boardRevisions["b"]
 	require.True(t, ok)
 	sort.Strings(rr)
@@ -92,7 +93,7 @@ func TestInsertRevisions(t *testing.T) {
 
 	boardRevisions, ok = revisions["x"]
 	require.True(t, ok)
-	require.Equal(t, 1, len(boardRevisions))
+	require.Len(t, boardRevisions, 1)
 	rr, ok = boardRevisions["y"]
 	require.True(t, ok)
 	sort.Strings(rr)
