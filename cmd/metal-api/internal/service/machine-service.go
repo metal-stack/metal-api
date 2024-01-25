@@ -2008,7 +2008,7 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 			continue
 		}
 
-		if provisioningEvents.Liveliness.Is(string(metal.MachineLivelinessHibernated)) {
+		if provisioningEvents.Liveliness == metal.MachineLivelinessHibernated {
 			continue
 		}
 
@@ -2238,16 +2238,16 @@ func machineHasIssues(m *v1.MachineResponse) bool {
 	if m.Partition == nil {
 		return true
 	}
-	if !metal.MachineLivelinessAlive.Is(m.Liveliness) {
+	if metal.MachineLivelinessAlive == metal.MachineLiveliness(m.Liveliness) {
 		return true
 	}
-	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventPhonedHome.Is(m.RecentProvisioningEvents.Events[0].Event) {
+	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventPhonedHome == metal.ProvisioningEventType(m.RecentProvisioningEvents.Events[0].Event) {
 		// not allocated, but phones home
 		return true
 	}
 	if m.RecentProvisioningEvents.CrashLoop || m.RecentProvisioningEvents.FailedMachineReclaim {
 		// Machines in crash loop but in "Waiting" state are considered available
-		if len(m.RecentProvisioningEvents.Events) > 0 && !metal.ProvisioningEventWaiting.Is(m.RecentProvisioningEvents.Events[0].Event) {
+		if len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventWaiting != metal.ProvisioningEventType(m.RecentProvisioningEvents.Events[0].Event) {
 			return true
 		}
 	}
