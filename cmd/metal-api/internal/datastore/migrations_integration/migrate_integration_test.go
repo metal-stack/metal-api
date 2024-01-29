@@ -39,32 +39,54 @@ func Test_Migration(t *testing.T) {
 	err = rs.Initialize()
 	require.NoError(t, err)
 
-	now := time.Now()
-	lastEventTime := now.Add(10 * time.Minute)
-	err = rs.UpsertProvisioningEventContainer(&metal.ProvisioningEventContainer{
-		Base: metal.Base{
-			ID: "1",
-		},
-		Liveliness: "",
-		Events: []metal.ProvisioningEvent{
-			{
-				Time:  now,
-				Event: metal.ProvisioningEventPXEBooting,
+	var (
+		now           = time.Now()
+		lastEventTime = now.Add(10 * time.Minute)
+		ec            = &metal.ProvisioningEventContainer{
+			Base: metal.Base{
+				ID: "1",
 			},
-			{
-				Time:  lastEventTime,
-				Event: metal.ProvisioningEventPreparing,
+			Liveliness: "",
+			Events: []metal.ProvisioningEvent{
+				{
+					Time:  now,
+					Event: metal.ProvisioningEventPXEBooting,
+				},
+				{
+					Time:  lastEventTime,
+					Event: metal.ProvisioningEventPreparing,
+				},
 			},
-		},
-		CrashLoop:            false,
-		FailedMachineReclaim: false,
-	})
+			CrashLoop:            false,
+			FailedMachineReclaim: false,
+		}
+		m = &metal.Machine{
+			Base: metal.Base{
+				ID: "1",
+			},
+		}
+	)
+
+	err = rs.UpsertProvisioningEventContainer(ec)
+	require.NoError(t, err)
+
+	err = rs.CreateMachine(m)
+	require.NoError(t, err)
+
+	updateM := *m
+	updateM.Allocation = &metal.MachineAllocation{}
+	err = rs.UpdateMachine(m, &updateM)
 	require.NoError(t, err)
 
 	err = rs.Migrate(nil, false)
 	require.NoError(t, err)
 
-	ec, err := rs.FindProvisioningEventContainer("1")
+	m, err = rs.FindMachineByID("1")
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, m.Allocation.UUID, "allocation uuid was not generated")
+
+	ec, err = rs.FindProvisioningEventContainer("1")
 	require.NoError(t, err)
 	require.NoError(t, ec.Validate())
 
