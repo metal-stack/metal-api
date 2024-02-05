@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-lib/auditing"
@@ -1230,6 +1231,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		VPN:             allocationSpec.VPN,
 		Egress:          allocationSpec.EgressRules,
 		Ingress:         allocationSpec.IngressRules,
+		UUID:            uuid.New().String(),
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
