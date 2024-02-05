@@ -43,6 +43,12 @@ type MachineAllocation struct {
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
+	FirewallRules    *FirewallRules            `json:"firewall_rules" description:"a set of firewall rules to apply"`
+}
+
+type FirewallRules struct {
+	EgressRules []*FirewallEgressRule  `json:"egress_rules"`
+	IngressRule []*FirewallIngressRule `json:"ingress_rules"`
 }
 
 type BootInfo struct {
@@ -512,6 +518,38 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			networks = append(networks, network)
 		}
 
+		var firewallRules *FirewallRules
+		if m.Allocation.Role == metal.RoleFirewall {
+			var (
+				egressRules  []*FirewallEgressRule
+				ingressRules []*FirewallIngressRule
+			)
+
+			for _, r := range m.Allocation.Egress {
+				r := r
+				egressRules = append(egressRules, &FirewallEgressRule{
+					Protocol: string(r.Protocol),
+					Ports:    r.Ports,
+					ToCIDRs:  r.ToCIDRs,
+					Comment:  r.Comment,
+				})
+			}
+			for _, r := range m.Allocation.Ingress {
+				r := r
+				egressRules = append(egressRules, &FirewallEgressRule{
+					Protocol: string(r.Protocol),
+					Ports:    r.Ports,
+					ToCIDRs:  r.FromCIDRs,
+					Comment:  r.Comment,
+				})
+			}
+
+			firewallRules = &FirewallRules{
+				EgressRules: egressRules,
+				IngressRule: ingressRules,
+			}
+		}
+
 		allocation = &MachineAllocation{
 			Creator:          m.Allocation.Creator,
 			Created:          m.Allocation.Created,
@@ -528,6 +566,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Role:             string(m.Allocation.Role),
 			VPN:              NewMachineVPN(m.Allocation.VPN),
 			AllocationUUID:   m.Allocation.UUID,
+			FirewallRules:    firewallRules,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall

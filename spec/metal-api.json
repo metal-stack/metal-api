@@ -1474,6 +1474,26 @@
         "tags"
       ]
     },
+    "v1.FirewallRules": {
+      "properties": {
+        "egress_rules": {
+          "items": {
+            "$ref": "#/definitions/v1.FirewallEgressRule"
+          },
+          "type": "array"
+        },
+        "ingress_rules": {
+          "items": {
+            "$ref": "#/definitions/v1.FirewallIngressRule"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "egress_rules",
+        "ingress_rules"
+      ]
+    },
     "v1.FirmwaresResponse": {
       "properties": {
         "revisions": {
@@ -2121,6 +2141,10 @@
           "$ref": "#/definitions/v1.FilesystemLayoutResponse",
           "description": "filesystemlayout to create on this machine"
         },
+        "firewall_rules": {
+          "$ref": "#/definitions/v1.FirewallRules",
+          "description": "a set of firewall rules to apply"
+        },
         "hostname": {
           "description": "the hostname which will be used when creating the machine",
           "type": "string"
@@ -2181,6 +2205,7 @@
         "allocationuuid",
         "created",
         "creator",
+        "firewall_rules",
         "hostname",
         "name",
         "networks",
