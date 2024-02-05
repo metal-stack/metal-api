@@ -47,8 +47,8 @@ type MachineAllocation struct {
 }
 
 type FirewallRules struct {
-	EgressRules []*FirewallEgressRule  `json:"egress_rules"`
-	IngressRule []*FirewallIngressRule `json:"ingress_rules"`
+	Egress  []*FirewallEgressRule  `json:"egress"`
+	Ingress []*FirewallIngressRule `json:"ingress"`
 }
 
 type BootInfo struct {
@@ -545,8 +545,8 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			}
 
 			firewallRules = &FirewallRules{
-				EgressRules: egressRules,
-				IngressRule: ingressRules,
+				Egress:  egressRules,
+				Ingress: ingressRules,
 			}
 		}
 

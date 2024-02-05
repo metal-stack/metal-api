@@ -1476,13 +1476,13 @@
     },
     "v1.FirewallRules": {
       "properties": {
-        "egress_rules": {
+        "egress": {
           "items": {
             "$ref": "#/definitions/v1.FirewallEgressRule"
           },
           "type": "array"
         },
-        "ingress_rules": {
+        "ingress": {
           "items": {
             "$ref": "#/definitions/v1.FirewallIngressRule"
           },
@@ -1490,8 +1490,8 @@
         }
       },
       "required": [
-        "egress_rules",
-        "ingress_rules"
+        "egress",
+        "ingress"
       ]
     },
     "v1.FirmwaresResponse": {
