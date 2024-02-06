@@ -149,8 +149,12 @@ type MachineAllocation struct {
 	Role             Role              `rethinkdb:"role" json:"role"`
 	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
 	UUID             string            `rethinkdb:"uuid" json:"uuid"`
-	Egress           []EgressRule      `rethinkdb:"egress" json:"egress"`
-	Ingress          []IngressRule     `rethinkdb:"ingress" json:"ingress"`
+	FirewallRules    *FirewallRules    `rethinkdb:"firewall_rules" json:"firewall_rules"`
+}
+
+type FirewallRules struct {
+	Egress  []EgressRule  `rethinkdb:"egress" json:"egress"`
+	Ingress []IngressRule `rethinkdb:"ingress" json:"ingress"`
 }
 
 type EgressRule struct {

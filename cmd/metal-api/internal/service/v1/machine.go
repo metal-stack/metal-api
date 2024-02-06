@@ -519,13 +519,13 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 
 		var firewallRules *FirewallRules
-		if m.Allocation.Role == metal.RoleFirewall {
+		if m.Allocation.Role == metal.RoleFirewall && m.Allocation.FirewallRules != nil {
 			var (
 				egressRules  []FirewallEgressRule
 				ingressRules []FirewallIngressRule
 			)
 
-			for _, r := range m.Allocation.Egress {
+			for _, r := range m.Allocation.FirewallRules.Egress {
 				r := r
 				egressRules = append(egressRules, FirewallEgressRule{
 					Protocol: string(r.Protocol),
@@ -534,7 +534,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 					Comment:  r.Comment,
 				})
 			}
-			for _, r := range m.Allocation.Ingress {
+			for _, r := range m.Allocation.FirewallRules.Ingress {
 				r := r
 				egressRules = append(egressRules, FirewallEgressRule{
 					Protocol: string(r.Protocol),

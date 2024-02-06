@@ -1213,6 +1213,15 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 	if err != nil {
 		return nil, err
 	}
+
+	var firewallRules *metal.FirewallRules
+	if len(allocationSpec.EgressRules) > 0 || len(allocationSpec.IngressRules) > 0 {
+		firewallRules = &metal.FirewallRules{
+			Egress:  allocationSpec.EgressRules,
+			Ingress: allocationSpec.IngressRules,
+		}
+	}
+
 	// as some fields in the allocation spec are optional, they will now be clearly defined by the machine candidate
 	allocationSpec.UUID = machineCandidate.ID
 
@@ -1229,8 +1238,7 @@ func allocateMachine(logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipam
 		MachineNetworks: []*metal.MachineNetwork{},
 		Role:            allocationSpec.Role,
 		VPN:             allocationSpec.VPN,
-		Egress:          allocationSpec.EgressRules,
-		Ingress:         allocationSpec.IngressRules,
+		FirewallRules:   firewallRules,
 		UUID:            uuid.New().String(),
 	}
 	rollbackOnError := func(err error) error {
