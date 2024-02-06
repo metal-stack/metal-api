@@ -47,8 +47,8 @@ type MachineAllocation struct {
 }
 
 type FirewallRules struct {
-	Egress  []*FirewallEgressRule  `json:"egress"`
-	Ingress []*FirewallIngressRule `json:"ingress"`
+	Egress  []FirewallEgressRule  `json:"egress,omitempty" description:"list of egress rules to be deployed during firewall allocation" optional:"true"`
+	Ingress []FirewallIngressRule `json:"ingress,omitempty" description:"list of ingress rules to be deployed during firewall allocation" optional:"true"`
 }
 
 type BootInfo struct {
@@ -521,13 +521,13 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		var firewallRules *FirewallRules
 		if m.Allocation.Role == metal.RoleFirewall {
 			var (
-				egressRules  []*FirewallEgressRule
-				ingressRules []*FirewallIngressRule
+				egressRules  []FirewallEgressRule
+				ingressRules []FirewallIngressRule
 			)
 
 			for _, r := range m.Allocation.Egress {
 				r := r
-				egressRules = append(egressRules, &FirewallEgressRule{
+				egressRules = append(egressRules, FirewallEgressRule{
 					Protocol: string(r.Protocol),
 					Ports:    r.Ports,
 					ToCIDRs:  r.ToCIDRs,
@@ -536,7 +536,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			}
 			for _, r := range m.Allocation.Ingress {
 				r := r
-				egressRules = append(egressRules, &FirewallEgressRule{
+				egressRules = append(egressRules, FirewallEgressRule{
 					Protocol: string(r.Protocol),
 					Ports:    r.Ports,
 					ToCIDRs:  r.FromCIDRs,

@@ -1039,10 +1039,10 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		role    = metal.RoleMachine
 	)
 
-	if firewallRequest != nil {
+	if firewallRequest != nil && firewallRequest.FirewallRules != nil {
 		role = metal.RoleFirewall
 
-		for _, ruleSpec := range firewallRequest.Egress {
+		for _, ruleSpec := range firewallRequest.FirewallRules.Egress {
 			ruleSpec := ruleSpec
 
 			protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
@@ -1064,7 +1064,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 			egress = append(egress, rule)
 		}
 
-		for _, ruleSpec := range firewallRequest.Ingress {
+		for _, ruleSpec := range firewallRequest.FirewallRules.Ingress {
 			ruleSpec := ruleSpec
 
 			protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)

@@ -1017,19 +1017,9 @@
     },
     "v1.FirewallAllocateRequest": {
       "properties": {
-        "egress": {
-          "description": "list of egress rules to be deployed during firewall allocation",
-          "items": {
-            "$ref": "#/definitions/v1.FirewallEgressRule"
-          },
-          "type": "array"
-        },
-        "ingress": {
-          "description": "list of ingress rules to be deployed during firewall allocation",
-          "items": {
-            "$ref": "#/definitions/v1.FirewallIngressRule"
-          },
-          "type": "array"
+        "firewall_rules": {
+          "$ref": "#/definitions/v1.FirewallRules",
+          "description": "optional egress and ingress firewall rules to deploy during firewall allocation"
         }
       }
     },
@@ -1039,16 +1029,13 @@
           "description": "a description for this entity",
           "type": "string"
         },
-        "egress": {
-          "description": "list of egress rules to be deployed during firewall allocation",
-          "items": {
-            "$ref": "#/definitions/v1.FirewallEgressRule"
-          },
-          "type": "array"
-        },
         "filesystemlayoutid": {
           "description": "the filesystemlayout id to assing to this machine",
           "type": "string"
+        },
+        "firewall_rules": {
+          "$ref": "#/definitions/v1.FirewallRules",
+          "description": "optional egress and ingress firewall rules to deploy during firewall allocation"
         },
         "hostname": {
           "description": "the hostname for the allocated machine (defaults to metal)",
@@ -1057,13 +1044,6 @@
         "imageid": {
           "description": "the image id to assign this machine to",
           "type": "string"
-        },
-        "ingress": {
-          "description": "list of ingress rules to be deployed during firewall allocation",
-          "items": {
-            "$ref": "#/definitions/v1.FirewallIngressRule"
-          },
-          "type": "array"
         },
         "ips": {
           "description": "the ips to attach to this machine additionally",
@@ -1477,22 +1457,20 @@
     "v1.FirewallRules": {
       "properties": {
         "egress": {
+          "description": "list of egress rules to be deployed during firewall allocation",
           "items": {
             "$ref": "#/definitions/v1.FirewallEgressRule"
           },
           "type": "array"
         },
         "ingress": {
+          "description": "list of ingress rules to be deployed during firewall allocation",
           "items": {
             "$ref": "#/definitions/v1.FirewallIngressRule"
           },
           "type": "array"
         }
-      },
-      "required": [
-        "egress",
-        "ingress"
-      ]
+      }
     },
     "v1.FirmwaresResponse": {
       "properties": {

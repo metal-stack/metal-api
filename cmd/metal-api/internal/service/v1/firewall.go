@@ -6,8 +6,7 @@ type FirewallCreateRequest struct {
 }
 
 type FirewallAllocateRequest struct {
-	Egress  []FirewallEgressRule  `json:"egress,omitempty" description:"list of egress rules to be deployed during firewall allocation" optional:"true"`
-	Ingress []FirewallIngressRule `json:"ingress,omitempty" description:"list of ingress rules to be deployed during firewall allocation" optional:"true"`
+	FirewallRules *FirewallRules `json:"firewall_rules" description:"optional egress and ingress firewall rules to deploy during firewall allocation" optional:"true"`
 }
 
 type FirewallEgressRule struct {
