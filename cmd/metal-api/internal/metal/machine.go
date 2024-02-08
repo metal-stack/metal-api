@@ -197,6 +197,9 @@ func (r EgressRule) Validate() error {
 		return fmt.Errorf("invalid procotol: %s", r.Protocol)
 	}
 
+	if err := validateComment(r.Comment); err != nil {
+		return err
+	}
 	if err := validatePorts(r.Ports); err != nil {
 		return err
 	}
@@ -213,7 +216,10 @@ func (r IngressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+		return fmt.Errorf("invalid protocol: %s", r.Protocol)
+	}
+	if err := validateComment(r.Comment); err != nil {
+		return err
 	}
 
 	if err := validatePorts(r.Ports); err != nil {
@@ -224,6 +230,17 @@ func (r IngressRule) Validate() error {
 		return err
 	}
 
+	return nil
+}
+
+const allowedCharacters = "abcdefghijklmnopqrstuvwxyz_- "
+
+func validateComment(comment string) error {
+	for _, c := range comment {
+		if !strings.Contains(allowedCharacters, strings.ToLower(string(c))) {
+			return fmt.Errorf("illegal character in comment found:%q", c)
+		}
+	}
 	return nil
 }
 
