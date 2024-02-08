@@ -195,3 +195,67 @@ func TestMachineNetwork_NetworkType(t *testing.T) {
 }
 
 // TODO: Write tests for machine allocation
+
+func TestEgressRule_Validate(t *testing.T) {
+	tests := []struct {
+		name     string
+		Protocol Protocol
+		Ports    []int
+		ToCIDRs  []string
+		Comment  string
+		wantErr  bool
+	}{
+		{
+			name:     "valid egress rule",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:  "allow apt update",
+		},
+		{
+			name:     "wrong protocol",
+			Protocol: Protocol("sctp"),
+			Ports:    []int{1, 2, 3},
+			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:  "allow apt update",
+			wantErr:  true,
+		},
+		{
+			name:     "wrong port",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3, -1},
+			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:  "allow apt update",
+			wantErr:  true,
+		},
+		{
+			name:     "wrong cidr",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/33"},
+			Comment:  "allow apt update",
+			wantErr:  true,
+		},
+		{
+			name:     "wrong cidr",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:  "allow apt update\n",
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := EgressRule{
+				Protocol: tt.Protocol,
+				Ports:    tt.Ports,
+				ToCIDRs:  tt.ToCIDRs,
+				Comment:  tt.Comment,
+			}
+			if err := r.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("EgressRule.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
