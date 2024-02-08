@@ -1039,51 +1039,53 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 		role    = metal.RoleMachine
 	)
 
-	if firewallRequest != nil && firewallRequest.FirewallRules != nil {
+	if firewallRequest != nil {
 		role = metal.RoleFirewall
 
-		for _, ruleSpec := range firewallRequest.FirewallRules.Egress {
-			ruleSpec := ruleSpec
+		if firewallRequest.FirewallRules != nil {
+			for _, ruleSpec := range firewallRequest.FirewallRules.Egress {
+				ruleSpec := ruleSpec
 
-			protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
-			if err != nil {
-				return nil, err
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.EgressRule{
+					Protocol: protocol,
+					Ports:    ruleSpec.Ports,
+					ToCIDRs:  ruleSpec.ToCIDRs,
+					Comment:  ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				egress = append(egress, rule)
 			}
 
-			rule := metal.EgressRule{
-				Protocol: protocol,
-				Ports:    ruleSpec.Ports,
-				ToCIDRs:  ruleSpec.ToCIDRs,
-				Comment:  ruleSpec.Comment,
+			for _, ruleSpec := range firewallRequest.FirewallRules.Ingress {
+				ruleSpec := ruleSpec
+
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.IngressRule{
+					Protocol:  protocol,
+					Ports:     ruleSpec.Ports,
+					FromCIDRs: ruleSpec.FromCIDRs,
+					Comment:   ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				ingress = append(ingress, rule)
 			}
-
-			if err := rule.Validate(); err != nil {
-				return nil, err
-			}
-
-			egress = append(egress, rule)
-		}
-
-		for _, ruleSpec := range firewallRequest.FirewallRules.Ingress {
-			ruleSpec := ruleSpec
-
-			protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
-			if err != nil {
-				return nil, err
-			}
-
-			rule := metal.IngressRule{
-				Protocol:  protocol,
-				Ports:     ruleSpec.Ports,
-				FromCIDRs: ruleSpec.FromCIDRs,
-				Comment:   ruleSpec.Comment,
-			}
-
-			if err := rule.Validate(); err != nil {
-				return nil, err
-			}
-
-			ingress = append(ingress, rule)
 		}
 	}
 
