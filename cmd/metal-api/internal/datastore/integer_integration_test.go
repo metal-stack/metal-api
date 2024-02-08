@@ -96,7 +96,9 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 		go func() {
 			defer wg.Done()
 			got, err := pool.AcquireRandomUniqueInteger()
-			require.NoError(t, err)
+			if err != nil {
+				t.Fail()
+			}
 			assert.GreaterOrEqual(t, got, uint(rs.VRFPoolRangeMin))
 			assert.LessOrEqual(t, got, uint(rs.VRFPoolRangeMax))
 			t.Logf("acquired a vrf %d at: %s", got, time.Now())
