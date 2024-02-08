@@ -327,7 +327,9 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
 		})
-		require.NoError(t, err)
+		if err != nil {
+			t.Fail()
+		}
 	}()
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
