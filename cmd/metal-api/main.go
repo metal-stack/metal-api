@@ -541,7 +541,7 @@ func initMasterData() {
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, logger.Desugar())
 		if err == nil {
 			cancel()
 			break
