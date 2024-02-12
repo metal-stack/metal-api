@@ -536,11 +536,11 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			}
 			for _, r := range m.Allocation.FirewallRules.Ingress {
 				r := r
-				egressRules = append(egressRules, FirewallEgressRule{
-					Protocol: string(r.Protocol),
-					Ports:    r.Ports,
-					ToCIDRs:  r.FromCIDRs,
-					Comment:  r.Comment,
+				ingressRules = append(ingressRules, FirewallIngressRule{
+					Protocol:  string(r.Protocol),
+					Ports:     r.Ports,
+					FromCIDRs: r.FromCIDRs,
+					Comment:   r.Comment,
 				})
 			}
 
