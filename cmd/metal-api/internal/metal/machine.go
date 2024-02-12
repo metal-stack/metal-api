@@ -183,7 +183,7 @@ func ProtocolFromString(s string) (Protocol, error) {
 	case "tcp":
 		return ProtocolTCP, nil
 	case "udp":
-		return ProtocolTCP, nil
+		return ProtocolUDP, nil
 	default:
 		return Protocol(""), fmt.Errorf("no such protocol: %s", s)
 	}
