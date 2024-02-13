@@ -623,8 +623,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -829,8 +828,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "logicalvolumes": {
           "description": "list of logicalvolumes to create",
@@ -905,8 +903,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "logicalvolumes": {
           "description": "list of logicalvolumes to create",
@@ -981,8 +978,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "logicalvolumes": {
           "description": "list of logicalvolumes to create",
@@ -1323,8 +1319,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "ledstate": {
           "$ref": "#/definitions/v1.ChassisIdentifyLEDState",
@@ -1437,7 +1432,6 @@
           "type": "array"
         },
         "type": {
-          "default": "static",
           "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
           "enum": [
             "ephemeral",
@@ -1470,7 +1464,6 @@
           "type": "array"
         },
         "type": {
-          "default": "static",
           "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
           "enum": [
             "ephemeral",
@@ -1537,8 +1530,7 @@
         },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         }
       },
       "required": [
@@ -1570,8 +1562,7 @@
         },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -1593,7 +1584,6 @@
           "type": "array"
         },
         "type": {
-          "default": "static",
           "description": "the ip type, ephemeral leads to automatic cleanup of the ip address, static will enable re-use of the ip at a later point in time",
           "enum": [
             "ephemeral",
@@ -1619,8 +1609,7 @@
         },
         "ipaddress": {
           "description": "the address (ipv4 or ipv6) of this ip",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -1651,8 +1640,7 @@
       "properties": {
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         }
       },
       "required": [
@@ -1718,8 +1706,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -1801,8 +1788,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -1849,8 +1835,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -2240,8 +2225,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -2616,8 +2600,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "ipmi": {
           "$ref": "#/definitions/v1.MachineIPMI",
@@ -3165,8 +3148,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "imageid": {
           "description": "the image id to be installed",
@@ -3218,8 +3200,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "ledstate": {
           "$ref": "#/definitions/v1.ChassisIdentifyLEDState",
@@ -3334,8 +3315,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "ssh_pub_keys": {
           "description": "the public ssh keys to access the machine with",
@@ -3495,8 +3475,7 @@
         },
         "id": {
           "description": "the unique ID of this entity, auto-generated if left empty",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -3691,8 +3670,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -3779,8 +3757,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -3898,8 +3875,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -3942,8 +3918,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -3997,8 +3972,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -4040,8 +4014,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -4379,8 +4352,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -4432,8 +4404,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -4456,8 +4427,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -4495,8 +4465,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "name": {
           "description": "a readable name for this entity",
@@ -4637,8 +4606,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -4691,8 +4659,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "labels": {
           "additionalProperties": {
@@ -4839,8 +4806,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "last_sync": {
           "$ref": "#/definitions/v1.SwitchSync",
@@ -4887,8 +4853,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "management_ip": {
           "description": "the ip address of the management interface of the switch",
@@ -4964,8 +4929,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "last_sync": {
           "$ref": "#/definitions/v1.SwitchSync",
@@ -5053,8 +5017,7 @@
         },
         "id": {
           "description": "the unique ID of this entity",
-          "type": "string",
-          "uniqueItems": true
+          "type": "string"
         },
         "management_ip": {
           "description": "the ip address of the management interface of the switch",
