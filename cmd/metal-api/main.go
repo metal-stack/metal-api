@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -541,7 +542,7 @@ func initMasterData() {
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, logger.Desugar())
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, slog.Default())
 		if err == nil {
 			cancel()
 			break
