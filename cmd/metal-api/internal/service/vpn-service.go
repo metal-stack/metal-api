@@ -59,6 +59,10 @@ func (r *vpnResource) webService() *restful.WebService {
 }
 
 func (r *vpnResource) getVPNAuthKey(request *restful.Request, response *restful.Response) {
+	if r.headscaleClient == nil {
+		r.sendError(request, response, httperrors.InternalServerError(featureDisabledErr))
+		return
+	}
 	var requestPayload v1.VPNRequest
 	if err := request.ReadEntity(&requestPayload); err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
