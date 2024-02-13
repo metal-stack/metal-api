@@ -800,6 +800,11 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 func initHeadscale() error {
 	var err error
 
+	if !viper.IsSet("headscale-addr") {
+		logger.Info("headscale disabled")
+		return nil
+	}
+
 	headscaleClient, err = headscale.NewHeadscaleClient(
 		viper.GetString("headscale-addr"),
 		viper.GetString("headscale-cp-addr"),
