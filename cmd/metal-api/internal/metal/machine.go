@@ -167,6 +167,7 @@ type EgressRule struct {
 type IngressRule struct {
 	Protocol  Protocol `rethinkdb:"protocol" json:"protocol"`
 	Ports     []int    `rethinkdb:"ports" json:"ports"`
+	ToCIDRs   []string `rethinkdb:"to_cidrs" json:"to_cidrs"`
 	FromCIDRs []string `rethinkdb:"from_cidrs" json:"from_cidrs"`
 	Comment   string   `rethinkdb:"comment" json:"comment"`
 }
@@ -225,7 +226,9 @@ func (r IngressRule) Validate() error {
 	if err := validatePorts(r.Ports); err != nil {
 		return err
 	}
-
+	if err := validateCIDRs(r.ToCIDRs); err != nil {
+		return err
+	}
 	if err := validateCIDRs(r.FromCIDRs); err != nil {
 		return err
 	}

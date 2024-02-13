@@ -539,6 +539,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 				ingressRules = append(ingressRules, FirewallIngressRule{
 					Protocol:  string(r.Protocol),
 					Ports:     r.Ports,
+					ToCIDRs:   r.ToCIDRs,
 					FromCIDRs: r.FromCIDRs,
 					Comment:   r.Comment,
 				})

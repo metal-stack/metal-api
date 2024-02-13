@@ -1076,6 +1076,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 				rule := metal.IngressRule{
 					Protocol:  protocol,
 					Ports:     ruleSpec.Ports,
+					ToCIDRs:   ruleSpec.ToCIDRs,
 					FromCIDRs: ruleSpec.FromCIDRs,
 					Comment:   ruleSpec.Comment,
 				}

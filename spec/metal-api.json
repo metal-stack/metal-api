@@ -1358,11 +1358,19 @@
             "udp"
           ],
           "type": "string"
+        },
+        "to_cidrs": {
+          "description": "the cidrs affected by this rule",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "required": [
         "from_cidrs",
-        "ports"
+        "ports",
+        "to_cidrs"
       ]
     },
     "v1.FirewallResponse": {
