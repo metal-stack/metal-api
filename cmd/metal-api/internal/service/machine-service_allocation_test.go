@@ -67,8 +67,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	// Register
 	e, _ := errgroup.WithContext(context.Background())
-	for i := 0; i < machineCount; i++ {
-		i := i
+	for i := range machineCount {
 		e.Go(func() error {
 			var ma *grpcv1.BootServiceRegisterResponse
 			mr := createMachineRegisterRequest(i)
@@ -113,7 +112,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	ips := make(map[string]string)
 
 	start := time.Now()
-	for i := 0; i < machineCount; i++ {
+	for range machineCount {
 		g.Go(func() error {
 			var ma v1.MachineResponse
 			err := retry.Do(
@@ -341,7 +340,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 }
 
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
-	for i := 0; i < machineCount; i++ {
+	for i := range machineCount {
 		id := fmt.Sprintf("WaitingMachine%d", i)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
@@ -377,7 +376,7 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 
 	sw1nics := metal.Nics{}
 	sw2nics := metal.Nics{}
-	for j := 0; j < machineCount; j++ {
+	for j := range machineCount {
 		sw1nic := metal.Nic{
 			Name:       fmt.Sprintf("swp-%d", j),
 			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j)),
