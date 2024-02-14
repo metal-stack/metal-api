@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/netip"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -232,6 +233,10 @@ func (r IngressRule) Validate() error {
 	if err := validateCIDRs(r.FromCIDRs); err != nil {
 		return err
 	}
+	// AddressFamily of toCidrs and fromCidrs must be identical
+	if err := validateCIDRs(slices.Concat(r.FromCIDRs, r.ToCIDRs)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -258,13 +263,23 @@ func validatePorts(ports []int) error {
 }
 
 func validateCIDRs(cidrs []string) error {
+	af := ""
 	for _, cidr := range cidrs {
-		_, err := netip.ParsePrefix(cidr)
+		p, err := netip.ParsePrefix(cidr)
 		if err != nil {
 			return fmt.Errorf("invalid cidr: %w", err)
 		}
+		var newaf string
+		if p.Addr().Is4() {
+			newaf = "ipv4"
+		} else {
+			newaf = "ipv6"
+		}
+		if af != "" && af != newaf {
+			return fmt.Errorf("mixed address family in one rule is not supported:%v", cidrs)
+		}
+		af = newaf
 	}
-
 	return nil
 }
 
