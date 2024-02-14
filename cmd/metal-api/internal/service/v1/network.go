@@ -35,7 +35,7 @@ type NetworkUsage struct {
 
 // NetworkCreateRequest is used to create a new Network.
 type NetworkCreateRequest struct {
-	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty" unique:"true"`
+	ID *string `json:"id" description:"the unique ID of this entity, auto-generated if left empty"`
 	Describable
 	NetworkBase
 	NetworkImmutable

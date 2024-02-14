@@ -115,6 +115,11 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 		reservations = append(reservations, reservation)
 	}
 
+	labels := map[string]string{}
+	if s.Labels != nil {
+		labels = s.Labels
+	}
+
 	return &SizeResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -131,6 +136,6 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 			Created: s.Created,
 			Changed: s.Changed,
 		},
-		Labels: s.Labels,
+		Labels: labels,
 	}
 }
