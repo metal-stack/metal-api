@@ -99,7 +99,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
 		})
-		require.NoError(t, err)
+		if err != nil {
+			t.Fail()
+		}
 	}()
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
