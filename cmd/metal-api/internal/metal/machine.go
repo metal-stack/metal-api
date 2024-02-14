@@ -240,13 +240,19 @@ func (r IngressRule) Validate() error {
 	return nil
 }
 
-const allowedCharacters = "abcdefghijklmnopqrstuvwxyz_- "
+const (
+	allowedCharacters = "abcdefghijklmnopqrstuvwxyz_- "
+	maxCommentLength  = 100
+)
 
 func validateComment(comment string) error {
 	for _, c := range comment {
 		if !strings.Contains(allowedCharacters, strings.ToLower(string(c))) {
-			return fmt.Errorf("illegal character in comment found:%q", c)
+			return fmt.Errorf("illegal character in comment found, only: %q allowed", allowedCharacters)
 		}
+	}
+	if len(comment) > maxCommentLength {
+		return fmt.Errorf("comments can not exceed %d characters", maxCommentLength)
 	}
 	return nil
 }

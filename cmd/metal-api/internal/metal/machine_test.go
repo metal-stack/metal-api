@@ -198,12 +198,13 @@ func TestMachineNetwork_NetworkType(t *testing.T) {
 
 func TestEgressRule_Validate(t *testing.T) {
 	tests := []struct {
-		name     string
-		Protocol Protocol
-		Ports    []int
-		To       []string
-		Comment  string
-		wantErr  bool
+		name       string
+		Protocol   Protocol
+		Ports      []int
+		To         []string
+		Comment    string
+		wantErr    bool
+		wantErrmsg string
 	}{
 		{
 			name:     "valid egress rule",
@@ -213,44 +214,58 @@ func TestEgressRule_Validate(t *testing.T) {
 			Comment:  "allow apt update",
 		},
 		{
-			name:     "wrong protocol",
-			Protocol: Protocol("sctp"),
-			Ports:    []int{1, 2, 3},
-			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
-			Comment:  "allow apt update",
-			wantErr:  true,
+			name:       "wrong protocol",
+			Protocol:   Protocol("sctp"),
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "invalid procotol: sctp",
 		},
 		{
-			name:     "wrong port",
-			Protocol: ProtocolTCP,
-			Ports:    []int{1, 2, 3, -1},
-			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
-			Comment:  "allow apt update",
-			wantErr:  true,
+			name:       "wrong port",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3, -1},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "port is out of range",
 		},
 		{
-			name:     "wrong cidr",
-			Protocol: ProtocolTCP,
-			Ports:    []int{1, 2, 3},
-			To:       []string{"1.2.3.0/24", "2.3.4.5/33"},
-			Comment:  "allow apt update",
-			wantErr:  true,
+			name:       "wrong cidr",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/33"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "invalid cidr: netip.ParsePrefix(\"2.3.4.5/33\"): prefix length out of range",
 		},
 		{
-			name:     "wrong comment",
-			Protocol: ProtocolTCP,
-			Ports:    []int{1, 2, 3},
-			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
-			Comment:  "allow apt update\n",
-			wantErr:  true,
+			name:       "wrong comment",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "allow apt update\n",
+			wantErr:    true,
+			wantErrmsg: "illegal character in comment found, only: \"abcdefghijklmnopqrstuvwxyz_- \" allowed",
 		},
 		{
-			name:     "mixed address family in cidrs",
-			Protocol: ProtocolTCP,
-			Ports:    []int{1, 2, 3},
-			To:       []string{"1.2.3.0/24", "2.3.4.5/32", "2001:db8::/32"},
-			Comment:  "mixed address family",
-			wantErr:  true,
+			name:       "too long comment",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:    "much too long comment aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			wantErr:    true,
+			wantErrmsg: "comments can not exceed 100 characters",
+		},
+		{
+			name:       "mixed address family in cidrs",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			To:         []string{"1.2.3.0/24", "2.3.4.5/32", "2001:db8::/32"},
+			Comment:    "mixed address family",
+			wantErr:    true,
+			wantErrmsg: "mixed address family in one rule is not supported:[1.2.3.0/24 2.3.4.5/32 2001:db8::/32]",
 		},
 	}
 	for _, tt := range tests {
@@ -264,18 +279,24 @@ func TestEgressRule_Validate(t *testing.T) {
 			if err := r.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("EgressRule.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			if err := r.Validate(); err != nil {
+				if tt.wantErrmsg != err.Error() {
+					t.Errorf("IngressRule.Validate() error = %v, wantErrmsg %v", err.Error(), tt.wantErrmsg)
+				}
+			}
 		})
 	}
 }
 func TestIngressRule_Validate(t *testing.T) {
 	tests := []struct {
-		name     string
-		Protocol Protocol
-		Ports    []int
-		To       []string
-		From     []string
-		Comment  string
-		wantErr  bool
+		name       string
+		Protocol   Protocol
+		Ports      []int
+		To         []string
+		From       []string
+		Comment    string
+		wantErr    bool
+		wantErrmsg string
 	}{
 		{
 			name:     "valid ingress rule",
@@ -293,13 +314,14 @@ func TestIngressRule_Validate(t *testing.T) {
 			Comment:  "allow apt update",
 		},
 		{
-			name:     "invalid ingress rule, mixed address families in to and from",
-			Protocol: ProtocolTCP,
-			Ports:    []int{1, 2, 3},
-			From:     []string{"1.2.3.0/24", "2.3.4.5/32"},
-			To:       []string{"100.2.3.0/24", "2001:db8::/32"},
-			Comment:  "allow apt update",
-			wantErr:  true,
+			name:       "invalid ingress rule, mixed address families in to and from",
+			Protocol:   ProtocolTCP,
+			Ports:      []int{1, 2, 3},
+			From:       []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:         []string{"100.2.3.0/24", "2001:db8::/32"},
+			Comment:    "allow apt update",
+			wantErr:    true,
+			wantErrmsg: "mixed address family in one rule is not supported:[100.2.3.0/24 2001:db8::/32]",
 		},
 	}
 	for _, tt := range tests {
@@ -313,6 +335,11 @@ func TestIngressRule_Validate(t *testing.T) {
 			}
 			if err := r.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("IngressRule.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err := r.Validate(); err != nil {
+				if tt.wantErrmsg != err.Error() {
+					t.Errorf("IngressRule.Validate() error = %v, wantErrmsg %v", err.Error(), tt.wantErrmsg)
+				}
 			}
 		})
 	}
