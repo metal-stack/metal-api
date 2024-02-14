@@ -1135,7 +1135,7 @@
           ],
           "type": "string"
         },
-        "to_cidrs": {
+        "to": {
           "description": "the cidrs affected by this rule",
           "items": {
             "type": "string"
@@ -1145,7 +1145,7 @@
       },
       "required": [
         "ports",
-        "to_cidrs"
+        "to"
       ]
     },
     "v1.FirewallFindRequest": {
@@ -1336,7 +1336,7 @@
           "description": "an optional comment describing what this rule is used for",
           "type": "string"
         },
-        "from_cidrs": {
+        "from": {
           "description": "the cidrs affected by this rule",
           "items": {
             "type": "string"
@@ -1359,7 +1359,7 @@
           ],
           "type": "string"
         },
-        "to_cidrs": {
+        "to": {
           "description": "the cidrs affected by this rule",
           "items": {
             "type": "string"
@@ -1368,9 +1368,9 @@
         }
       },
       "required": [
-        "from_cidrs",
+        "from",
         "ports",
-        "to_cidrs"
+        "to"
       ]
     },
     "v1.FirewallResponse": {

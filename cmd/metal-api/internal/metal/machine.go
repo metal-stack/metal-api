@@ -161,16 +161,16 @@ type FirewallRules struct {
 type EgressRule struct {
 	Protocol Protocol `rethinkdb:"protocol" json:"protocol"`
 	Ports    []int    `rethinkdb:"ports" json:"ports"`
-	ToCIDRs  []string `rethinkdb:"to_cidrs" json:"to_cidrs"`
+	To       []string `rethinkdb:"to" json:"to"`
 	Comment  string   `rethinkdb:"comment" json:"comment"`
 }
 
 type IngressRule struct {
-	Protocol  Protocol `rethinkdb:"protocol" json:"protocol"`
-	Ports     []int    `rethinkdb:"ports" json:"ports"`
-	ToCIDRs   []string `rethinkdb:"to_cidrs" json:"to_cidrs"`
-	FromCIDRs []string `rethinkdb:"from_cidrs" json:"from_cidrs"`
-	Comment   string   `rethinkdb:"comment" json:"comment"`
+	Protocol Protocol `rethinkdb:"protocol" json:"protocol"`
+	Ports    []int    `rethinkdb:"ports" json:"ports"`
+	To       []string `rethinkdb:"to" json:"to"`
+	From     []string `rethinkdb:"from" json:"from"`
+	Comment  string   `rethinkdb:"comment" json:"comment"`
 }
 
 type Protocol string
@@ -206,7 +206,7 @@ func (r EgressRule) Validate() error {
 		return err
 	}
 
-	if err := validateCIDRs(r.ToCIDRs); err != nil {
+	if err := validateCIDRs(r.To); err != nil {
 		return err
 	}
 
@@ -227,14 +227,13 @@ func (r IngressRule) Validate() error {
 	if err := validatePorts(r.Ports); err != nil {
 		return err
 	}
-	if err := validateCIDRs(r.ToCIDRs); err != nil {
+	if err := validateCIDRs(r.To); err != nil {
 		return err
 	}
-	if err := validateCIDRs(r.FromCIDRs); err != nil {
+	if err := validateCIDRs(r.From); err != nil {
 		return err
 	}
-	// AddressFamily of toCidrs and fromCidrs must be identical
-	if err := validateCIDRs(slices.Concat(r.FromCIDRs, r.ToCIDRs)); err != nil {
+	if err := validateCIDRs(slices.Concat(r.From, r.To)); err != nil {
 		return err
 	}
 

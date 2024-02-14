@@ -201,7 +201,7 @@ func TestEgressRule_Validate(t *testing.T) {
 		name     string
 		Protocol Protocol
 		Ports    []int
-		ToCIDRs  []string
+		To       []string
 		Comment  string
 		wantErr  bool
 	}{
@@ -209,14 +209,14 @@ func TestEgressRule_Validate(t *testing.T) {
 			name:     "valid egress rule",
 			Protocol: ProtocolTCP,
 			Ports:    []int{1, 2, 3},
-			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:  "allow apt update",
 		},
 		{
 			name:     "wrong protocol",
 			Protocol: Protocol("sctp"),
 			Ports:    []int{1, 2, 3},
-			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:  "allow apt update",
 			wantErr:  true,
 		},
@@ -224,7 +224,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			name:     "wrong port",
 			Protocol: ProtocolTCP,
 			Ports:    []int{1, 2, 3, -1},
-			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:  "allow apt update",
 			wantErr:  true,
 		},
@@ -232,7 +232,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			name:     "wrong cidr",
 			Protocol: ProtocolTCP,
 			Ports:    []int{1, 2, 3},
-			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/33"},
+			To:       []string{"1.2.3.0/24", "2.3.4.5/33"},
 			Comment:  "allow apt update",
 			wantErr:  true,
 		},
@@ -240,7 +240,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			name:     "wrong comment",
 			Protocol: ProtocolTCP,
 			Ports:    []int{1, 2, 3},
-			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:       []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:  "allow apt update\n",
 			wantErr:  true,
 		},
@@ -248,7 +248,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			name:     "mixed address family in cidrs",
 			Protocol: ProtocolTCP,
 			Ports:    []int{1, 2, 3},
-			ToCIDRs:  []string{"1.2.3.0/24", "2.3.4.5/32", "2001:db8::/32"},
+			To:       []string{"1.2.3.0/24", "2.3.4.5/32", "2001:db8::/32"},
 			Comment:  "mixed address family",
 			wantErr:  true,
 		},
@@ -258,7 +258,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			r := EgressRule{
 				Protocol: tt.Protocol,
 				Ports:    tt.Ports,
-				ToCIDRs:  tt.ToCIDRs,
+				To:       tt.To,
 				Comment:  tt.Comment,
 			}
 			if err := r.Validate(); (err != nil) != tt.wantErr {
@@ -269,47 +269,47 @@ func TestEgressRule_Validate(t *testing.T) {
 }
 func TestIngressRule_Validate(t *testing.T) {
 	tests := []struct {
-		name      string
-		Protocol  Protocol
-		Ports     []int
-		ToCIDRs   []string
-		FromCIDRs []string
-		Comment   string
-		wantErr   bool
+		name     string
+		Protocol Protocol
+		Ports    []int
+		To       []string
+		From     []string
+		Comment  string
+		wantErr  bool
 	}{
 		{
-			name:      "valid ingress rule",
-			Protocol:  ProtocolTCP,
-			Ports:     []int{1, 2, 3},
-			FromCIDRs: []string{"1.2.3.0/24", "2.3.4.5/32"},
-			Comment:   "allow apt update",
+			name:     "valid ingress rule",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			From:     []string{"1.2.3.0/24", "2.3.4.5/32"},
+			Comment:  "allow apt update",
 		},
 		{
-			name:      "valid ingress rule",
-			Protocol:  ProtocolTCP,
-			Ports:     []int{1, 2, 3},
-			FromCIDRs: []string{"1.2.3.0/24", "2.3.4.5/32"},
-			ToCIDRs:   []string{"100.2.3.0/24", "200.3.4.5/32"},
-			Comment:   "allow apt update",
+			name:     "valid ingress rule",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			From:     []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:       []string{"100.2.3.0/24", "200.3.4.5/32"},
+			Comment:  "allow apt update",
 		},
 		{
-			name:      "invalid ingress rule, mixed address families in to and from",
-			Protocol:  ProtocolTCP,
-			Ports:     []int{1, 2, 3},
-			FromCIDRs: []string{"1.2.3.0/24", "2.3.4.5/32"},
-			ToCIDRs:   []string{"100.2.3.0/24", "2001:db8::/32"},
-			Comment:   "allow apt update",
-			wantErr:   true,
+			name:     "invalid ingress rule, mixed address families in to and from",
+			Protocol: ProtocolTCP,
+			Ports:    []int{1, 2, 3},
+			From:     []string{"1.2.3.0/24", "2.3.4.5/32"},
+			To:       []string{"100.2.3.0/24", "2001:db8::/32"},
+			Comment:  "allow apt update",
+			wantErr:  true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := IngressRule{
-				Protocol:  tt.Protocol,
-				Ports:     tt.Ports,
-				ToCIDRs:   tt.ToCIDRs,
-				FromCIDRs: tt.FromCIDRs,
-				Comment:   tt.Comment,
+				Protocol: tt.Protocol,
+				Ports:    tt.Ports,
+				To:       tt.To,
+				From:     tt.From,
+				Comment:  tt.Comment,
 			}
 			if err := r.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("IngressRule.Validate() error = %v, wantErr %v", err, tt.wantErr)
