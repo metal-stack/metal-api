@@ -129,7 +129,7 @@ func (t *test) run() {
 	}
 
 	ds, mock := datastore.InitMockDB(t.T)
-	for i := 0; i < t.numberMachineInstances; i++ {
+	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
 		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{Base: metal.Base{ID: machineID}}, nil)
 		mock.On(insertMock(true, machineID)).Return(returnMock(true, machineID), nil)
@@ -214,7 +214,7 @@ func (t *test) stopMachineInstances() {
 }
 
 func (t *test) startApiInstances(ds *datastore.RethinkStore) {
-	for i := 0; i < t.numberApiInstances; i++ {
+	for i := range t.numberApiInstances {
 		ctx, cancel := context.WithCancel(context.Background())
 		allocate := make(chan string)
 
@@ -252,7 +252,7 @@ func (t *test) startMachineInstances() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	}
-	for i := 0; i < t.numberMachineInstances; i++ {
+	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
 		port := 50005 + t.randNumber(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
@@ -317,7 +317,7 @@ func (t *test) waitForAllocation(machineID string, c v1.BootServiceClient, ctx c
 
 func (t *test) allocateMachines() {
 	var alreadyAllocated []string
-	for i := 0; i < t.numberAllocations; i++ {
+	for range t.numberAllocations {
 		machineID := t.selectMachine(alreadyAllocated)
 		alreadyAllocated = append(alreadyAllocated, machineID)
 		t.mtx.Lock()

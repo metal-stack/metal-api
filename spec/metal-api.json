@@ -1011,6 +1011,14 @@
         "id"
       ]
     },
+    "v1.FirewallAllocateRequest": {
+      "properties": {
+        "firewall_rules": {
+          "$ref": "#/definitions/v1.FirewallRules",
+          "description": "optional egress and ingress firewall rules to deploy during firewall allocation"
+        }
+      }
+    },
     "v1.FirewallCreateRequest": {
       "properties": {
         "description": {
@@ -1021,9 +1029,9 @@
           "description": "the filesystemlayout id to assing to this machine",
           "type": "string"
         },
-        "ha": {
-          "description": "if set to true, this firewall is set up in a High Available manner",
-          "type": "boolean"
+        "firewall_rules": {
+          "$ref": "#/definitions/v1.FirewallRules",
+          "description": "optional egress and ingress firewall rules to deploy during firewall allocation"
         },
         "hostname": {
           "description": "the hostname for the allocated machine (defaults to metal)",
@@ -1099,6 +1107,41 @@
         "projectid",
         "sizeid",
         "ssh_pub_keys"
+      ]
+    },
+    "v1.FirewallEgressRule": {
+      "properties": {
+        "comment": {
+          "description": "an optional comment describing what this rule is used for",
+          "type": "string"
+        },
+        "ports": {
+          "description": "the ports affected by this rule",
+          "items": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "protocol": {
+          "description": "the protocol for the rule, defaults to tcp",
+          "enum": [
+            "tcp",
+            "udp"
+          ],
+          "type": "string"
+        },
+        "to": {
+          "description": "the cidrs affected by this rule",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "ports",
+        "to"
       ]
     },
     "v1.FirewallFindRequest": {
@@ -1283,6 +1326,49 @@
         }
       }
     },
+    "v1.FirewallIngressRule": {
+      "properties": {
+        "comment": {
+          "description": "an optional comment describing what this rule is used for",
+          "type": "string"
+        },
+        "from": {
+          "description": "the cidrs affected by this rule",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "ports": {
+          "description": "the ports affected by this rule",
+          "items": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "protocol": {
+          "description": "the protocol for the rule, defaults to tcp",
+          "enum": [
+            "tcp",
+            "udp"
+          ],
+          "type": "string"
+        },
+        "to": {
+          "description": "the cidrs affected by this rule",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "from",
+        "ports",
+        "to"
+      ]
+    },
     "v1.FirewallResponse": {
       "properties": {
         "allocation": {
@@ -1370,6 +1456,24 @@
         "state",
         "tags"
       ]
+    },
+    "v1.FirewallRules": {
+      "properties": {
+        "egress": {
+          "description": "list of egress rules to be deployed during firewall allocation",
+          "items": {
+            "$ref": "#/definitions/v1.FirewallEgressRule"
+          },
+          "type": "array"
+        },
+        "ingress": {
+          "description": "list of ingress rules to be deployed during firewall allocation",
+          "items": {
+            "$ref": "#/definitions/v1.FirewallIngressRule"
+          },
+          "type": "array"
+        }
+      }
     },
     "v1.FirmwaresResponse": {
       "properties": {
@@ -2008,6 +2112,10 @@
           "$ref": "#/definitions/v1.FilesystemLayoutResponse",
           "description": "filesystemlayout to create on this machine"
         },
+        "firewall_rules": {
+          "$ref": "#/definitions/v1.FirewallRules",
+          "description": "a set of firewall rules to apply"
+        },
         "hostname": {
           "description": "the hostname which will be used when creating the machine",
           "type": "string"
@@ -2068,6 +2176,7 @@
         "allocationuuid",
         "created",
         "creator",
+        "firewall_rules",
         "hostname",
         "name",
         "networks",
