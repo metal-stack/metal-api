@@ -43,7 +43,7 @@ type MachineAllocation struct {
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
-	FirewallRules    *FirewallRules            `json:"firewall_rules" description:"a set of firewall rules to apply"`
+	FirewallRules    *FirewallRules            `json:"firewall_rules,omitempty" description:"a set of firewall rules to apply" optional:"true"`
 }
 
 type FirewallRules struct {
