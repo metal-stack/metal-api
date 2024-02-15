@@ -1626,7 +1626,7 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 
 func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
+		ipAddress, ipParentCidr, err := allocateRandomIP(n.network, ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}
