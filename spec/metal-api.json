@@ -2176,7 +2176,6 @@
         "allocationuuid",
         "created",
         "creator",
-        "firewall_rules",
         "hostname",
         "name",
         "networks",
