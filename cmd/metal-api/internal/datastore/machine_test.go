@@ -696,7 +696,7 @@ func BenchmarkElectMachine(b *testing.B) {
 	}
 	for _, t := range tests {
 		b.Run(t.name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				spreadAcrossRacks(t.args.allMachines, t.args.projectMachines, t.args.tags)
 			}
 		})
@@ -707,7 +707,7 @@ func getTestMachines(numPerRack int, rackids []string, tags []string) metal.Mach
 	machines := make(metal.Machines, 0)
 
 	for _, id := range rackids {
-		for i := 0; i < numPerRack; i++ {
+		for range numPerRack {
 			m := metal.Machine{
 				RackID: id,
 				Tags:   tags,

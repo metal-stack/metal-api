@@ -43,6 +43,12 @@ type MachineAllocation struct {
 	Role             string                    `json:"role" enum:"machine|firewall" description:"the role of the machine"`
 	VPN              *MachineVPN               `json:"vpn" description:"vpn connection info for machine" optional:"true"`
 	AllocationUUID   string                    `json:"allocationuuid" description:"a unique identifier for this machine allocation, can be used to distinguish between machine allocations over time."`
+	FirewallRules    *FirewallRules            `json:"firewall_rules,omitempty" description:"a set of firewall rules to apply" optional:"true"`
+}
+
+type FirewallRules struct {
+	Egress  []FirewallEgressRule  `json:"egress,omitempty" description:"list of egress rules to be deployed during firewall allocation" optional:"true"`
+	Ingress []FirewallIngressRule `json:"ingress,omitempty" description:"list of ingress rules to be deployed during firewall allocation" optional:"true"`
 }
 
 type BootInfo struct {
@@ -512,6 +518,39 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			networks = append(networks, network)
 		}
 
+		var firewallRules *FirewallRules
+		if m.Allocation.Role == metal.RoleFirewall && m.Allocation.FirewallRules != nil {
+			var (
+				egressRules  []FirewallEgressRule
+				ingressRules []FirewallIngressRule
+			)
+
+			for _, r := range m.Allocation.FirewallRules.Egress {
+				r := r
+				egressRules = append(egressRules, FirewallEgressRule{
+					Protocol: string(r.Protocol),
+					Ports:    r.Ports,
+					To:       r.To,
+					Comment:  r.Comment,
+				})
+			}
+			for _, r := range m.Allocation.FirewallRules.Ingress {
+				r := r
+				ingressRules = append(ingressRules, FirewallIngressRule{
+					Protocol: string(r.Protocol),
+					Ports:    r.Ports,
+					To:       r.To,
+					From:     r.From,
+					Comment:  r.Comment,
+				})
+			}
+
+			firewallRules = &FirewallRules{
+				Egress:  egressRules,
+				Ingress: ingressRules,
+			}
+		}
+
 		allocation = &MachineAllocation{
 			Creator:          m.Allocation.Creator,
 			Created:          m.Allocation.Created,
@@ -528,6 +567,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Role:             string(m.Allocation.Role),
 			VPN:              NewMachineVPN(m.Allocation.VPN),
 			AllocationUUID:   m.Allocation.UUID,
+			FirewallRules:    firewallRules,
 		}
 
 		allocation.Reinstall = m.Allocation.Reinstall
