@@ -1,11 +1,10 @@
 package datastore
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"math"
-	"math/big"
+	"math/rand/v2"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"golang.org/x/exp/slices"
@@ -636,11 +635,7 @@ func randomIndex(max int) int {
 	if max <= 0 {
 		return 0
 	}
-
-	b, _ := rand.Int(rand.Reader, big.NewInt(int64(max)))
-	idx := int(b.Uint64())
-
-	return idx
+	return rand.N(max)
 }
 
 func intersect[T comparable](a, b []T) []T {
