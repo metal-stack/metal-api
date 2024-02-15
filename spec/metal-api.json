@@ -1365,8 +1365,7 @@
       },
       "required": [
         "from",
-        "ports",
-        "to"
+        "ports"
       ]
     },
     "v1.FirewallResponse": {
