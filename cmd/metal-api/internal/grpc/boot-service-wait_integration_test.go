@@ -5,11 +5,10 @@ package grpc
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
+	"math/rand/v2"
 	"strconv"
 	"sync"
 	"testing"
@@ -254,7 +253,7 @@ func (t *test) startMachineInstances() {
 	}
 	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
-		port := 50005 + t.randNumber(t.numberApiInstances)
+		port := 50005 + rand.N(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
 		require.NoError(t, err)
@@ -328,7 +327,7 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(t.randNumber(t.numberMachineInstances))
+	machineID := strconv.Itoa(rand.N(t.numberMachineInstances))
 	for _, id := range except {
 		if id == machineID {
 			return t.selectMachine(except)
@@ -341,10 +340,4 @@ func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
 		s.allocate <- machineID
 	}
-}
-
-func (t *test) randNumber(n int) int {
-	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
-	require.NoError(t, err)
-	return int(nBig.Int64())
 }
