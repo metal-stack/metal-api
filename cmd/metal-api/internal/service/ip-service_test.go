@@ -25,8 +25,11 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 
 	"github.com/google/go-cmp/cmp"
+<<<<<<< HEAD
+=======
 	goipam "github.com/metal-stack/go-ipam"
 	testifymock "github.com/stretchr/testify/mock"
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -37,7 +40,7 @@ func TestGetIPs(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	logger := zaptest.NewLogger(t).Sugar()
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(ipservice)
@@ -67,7 +70,7 @@ func TestGetIP(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	logger := zaptest.NewLogger(t).Sugar()
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
@@ -91,7 +94,7 @@ func TestGetIPNotFound(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
@@ -293,7 +296,7 @@ func TestUpdateIP(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	logger := zaptest.NewLogger(t).Sugar()
 
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"

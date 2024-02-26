@@ -26,7 +26,6 @@ import (
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 
-	goipam "github.com/metal-stack/go-ipam"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -306,13 +305,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
-	_, pg, err := test.StartPostgres()
-	require.NoError(t, err)
-	pgStorage, err := goipam.NewPostgresStorage(pg.IP, pg.Port, pg.User, pg.Password, pg.DB, goipam.SSLModeDisable)
-	require.NoError(t, err)
-
-	ipamer := goipam.NewWithStorage(pgStorage)
-
+	ipamer := ipam.InitTestIpam(t)
 	createTestdata(machineCount, rs, ipamer, t)
 
 	go func() {
@@ -332,15 +325,20 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	}()
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipamer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
 	return rs, container
 }
 
+<<<<<<< HEAD
+func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
+	for i := 0; i < machineCount; i++ {
+=======
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
 	for i := range machineCount {
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 		id := fmt.Sprintf("WaitingMachine%d", i)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
@@ -357,11 +355,14 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
 
-	super, err := ipamer.NewPrefix("10.0.0.0/20")
+	ctx := context.Background()
+
+	super := metal.Prefix{IP: "10.0.0.0", Length: "20"}
+	err = ipamer.CreatePrefix(ctx, super)
 	require.NoError(t, err)
-	private, err := ipamer.AcquireChildPrefix(super.Cidr, 22)
+	private, err := ipamer.AllocateChildPrefix(ctx, super, 22)
 	require.NoError(t, err)
-	privateNetwork, err := metal.NewPrefixFromCIDR(private.Cidr)
+	privateNetwork, err := metal.NewPrefixFromCIDR(private.String())
 	require.NoError(t, err)
 	require.NotNil(t, privateNetwork)
 

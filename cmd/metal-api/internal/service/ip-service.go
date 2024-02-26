@@ -310,6 +310,12 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	// TODO: Following operations should span a database transaction if possible
 
+<<<<<<< HEAD
+	ipAddress, ipParentCidr, err := allocateIP(request.Request.Context(), nw, specificIP, r.ipamer)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+=======
 	var (
 		ipAddress    string
 		ipParentCidr string
@@ -327,6 +333,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 			r.sendError(request, response, defaultError(err))
 			return
 		}
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 	}
 
 	r.logger(request).Debugw("allocated ip in ipam", "ip", ipAddress, "network", nw.ID)
@@ -400,10 +407,49 @@ func (r *ipResource) updateIP(request *restful.Request, response *restful.Respon
 	r.send(request, response, http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
+<<<<<<< HEAD
+func allocateIP(ctx context.Context, parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
+	var ee []error
+	var err error
+	var ipAddress string
+	var parentPrefixCidr string
+	for _, prefix := range parent.Prefixes {
+		if specificIP == "" {
+			ipAddress, err = ipamer.AllocateIP(ctx, prefix)
+		} else {
+			pfx, perr := netip.ParsePrefix(prefix.String())
+			if perr != nil {
+				return "", "", fmt.Errorf("unable to parse prefix %w", perr)
+			}
+			sip, serr := netip.ParseAddr(specificIP)
+			if serr != nil {
+				return "", "", fmt.Errorf("unable to parse specific ip %w", serr)
+			}
+			if !pfx.Contains(sip) {
+				continue
+			}
+			ipAddress, err = ipamer.AllocateSpecificIP(ctx, prefix, specificIP)
+		}
+		if err != nil {
+			ee = append(ee, err)
+			continue
+		}
+		if ipAddress != "" {
+			parentPrefixCidr = prefix.String()
+			break
+		}
+	}
+	if ipAddress == "" {
+		if len(ee) > 0 {
+			return "", "", fmt.Errorf("cannot allocate free ip in ipam: %v", ee)
+		}
+		return "", "", errors.New("cannot allocate free ip in ipam")
+=======
 func allocateSpecificIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
 	parsedIP, err := netip.ParseAddr(specificIP)
 	if err != nil {
 		return "", "", fmt.Errorf("unable to parse specific ip: %w", err)
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 	}
 
 	for _, prefix := range parent.Prefixes {

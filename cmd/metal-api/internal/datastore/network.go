@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -91,7 +90,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, prefix := range p.Prefixes {
-		ip, length := utils.SplitCIDR(prefix)
+		ip, length := metal.SplitCIDR(prefix)
 
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("prefixes").Map(func(p r.Term) r.Term {
@@ -109,7 +108,7 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, destPrefix := range p.DestinationPrefixes {
-		ip, length := utils.SplitCIDR(destPrefix)
+		ip, length := metal.SplitCIDR(destPrefix)
 
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {

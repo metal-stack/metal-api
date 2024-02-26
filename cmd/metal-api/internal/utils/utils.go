@@ -2,24 +2,10 @@ package utils
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 )
-
-func SplitCIDR(cidr string) (string, *int) {
-	parts := strings.Split(cidr, "/")
-	if len(parts) == 2 {
-		length, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return parts[0], nil
-		}
-		return parts[0], &length
-	}
-
-	return cidr, nil
-}
 
 func StrValueDefault(ptr *string, fallback string) string {
 	if ptr == nil {
