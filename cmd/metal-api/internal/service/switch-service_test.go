@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -19,6 +20,7 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
+	"github.com/metal-stack/metal-lib/httperrors"
 )
 
 func TestRegisterSwitch(t *testing.T) {
@@ -521,6 +523,9 @@ func TestMakeSwitchNics(t *testing.T) {
 						metal.Nic{
 							Name: "swp1",
 							Vrf:  "vrf1",
+							State: &metal.NicState{
+								Actual: metal.SwitchPortStatusUp,
+							},
 						},
 						metal.Nic{
 							Name: "swp2",
@@ -563,6 +568,7 @@ func TestMakeSwitchNics(t *testing.T) {
 						CIDRs: []string{"212.89.1.1/32"},
 						VNIs:  []string{},
 					},
+					Actual: v1.SwitchPortStatusUp,
 				},
 				v1.SwitchNic{
 					Name: "swp2",
@@ -571,6 +577,7 @@ func TestMakeSwitchNics(t *testing.T) {
 						CIDRs: []string{},
 						VNIs:  []string{"1", "2"},
 					},
+					Actual: v1.SwitchPortStatusUnknown,
 				},
 			},
 		},
@@ -1273,4 +1280,108 @@ func TestNotifyErrorSwitch(t *testing.T) {
 	require.Equal(t, id, result.ID)
 	require.Equal(t, d, result.LastSyncError.Duration)
 	require.Equal(t, e, *result.LastSyncError.Error)
+}
+
+func TestToggleSwitchWrongNic(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	switchservice := NewSwitch(log, ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	updateRequest := v1.SwitchPortToggleRequest{
+		NicName: "wrongname",
+		Status:  v1.SwitchPortStatusDown,
+	}
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/switch/"+testdata.Switch1.ID+"/port", body)
+	container = injectAdmin(log, container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, w.Body.String())
+	var result httperrors.HTTPErrorResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, result.Message, "the nic \"wrongname\" does not exist in this switch")
+}
+
+func TestToggleSwitchWrongState(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	switchservice := NewSwitch(log, ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	states := []v1.SwitchPortStatus{
+		v1.SwitchPortStatusUnknown,
+		v1.SwitchPortStatus("illegal"),
+	}
+
+	for _, s := range states {
+
+		updateRequest := v1.SwitchPortToggleRequest{
+			NicName: testdata.Switch1.Nics[0].Name,
+			Status:  s,
+		}
+		js, err := json.Marshal(updateRequest)
+		require.NoError(t, err)
+		body := bytes.NewBuffer(js)
+		req := httptest.NewRequest("POST", "/v1/switch/"+testdata.Switch1.ID+"/port", body)
+		container = injectAdmin(log, container, req)
+		req.Header.Add("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		container.ServeHTTP(w, req)
+
+		resp := w.Result()
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode, w.Body.String())
+		var result httperrors.HTTPErrorResponse
+		err = json.NewDecoder(resp.Body).Decode(&result)
+
+		require.NoError(t, err)
+		require.Equal(t, result.Message, fmt.Sprintf("the status %q must be concrete", s))
+	}
+}
+
+func TestToggleSwitch(t *testing.T) {
+	ds, mock := datastore.InitMockDB(t)
+	testdata.InitMockDBData(mock)
+	log := zaptest.NewLogger(t).Sugar()
+
+	switchservice := NewSwitch(log, ds)
+	container := restful.NewContainer().Add(switchservice)
+
+	updateRequest := v1.SwitchPortToggleRequest{
+		NicName: testdata.Switch1.Nics[0].Name,
+		Status:  v1.SwitchPortStatusDown,
+	}
+
+	js, err := json.Marshal(updateRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+	req := httptest.NewRequest("POST", "/v1/switch/"+testdata.Switch1.ID+"/port", body)
+	container = injectAdmin(log, container, req)
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	container.ServeHTTP(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
+	var result v1.SwitchResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	require.NoError(t, err)
+	require.Equal(t, testdata.Switch1.ID, result.ID)
+	require.Equal(t, testdata.Switch1.Name, *result.Name)
+	require.Equal(t, result.Nics[0].Actual, v1.SwitchPortStatusUnknown)
 }
