@@ -36,6 +36,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
 
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,10 +76,13 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "test-project-1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{
 		Meta: &mdmv1.Meta{
 			Id: "test-project-1",
 		},
+	}}, nil)
+	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
+		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
@@ -95,7 +99,9 @@ func createTestEnvironment(t *testing.T) testEnv {
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
 		})
-		require.NoError(t, err)
+		if err != nil {
+			t.Fail()
+		}
 	}()
 
 	hma := security.NewHMACAuth(testUserDirectory.admin.Name, []byte{1, 2, 3}, security.WithUser(testUserDirectory.admin))
@@ -104,7 +110,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	require.NoError(t, err)
 	imageService := NewImage(log, ds)
 	switchService := NewSwitch(log, ds)
-	sizeService := NewSize(log, ds)
+	sizeService := NewSize(log, ds, mdc)
 	sizeImageConstraintService := NewSizeImageConstraint(log, ds)
 	networkService := NewNetwork(log, ds, ipamer, mdc)
 	partitionService := NewPartition(log, ds, &emptyPublisher{})
@@ -337,8 +343,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 	te.sizeImageConstraintCreate(t, sic, &createdSizeImageContraint)
 	require.Equal(t, http.StatusCreated, status)
 	require.NotNil(t, createdSizeImageContraint)
-	require.Equal(t, sic.ID, "n1-medium")
-	require.Equal(t, len(sic.Images), 1)
+	require.Equal(t, "n1-medium", sic.ID)
+	require.Len(t, sic.Images, 1)
 
 	return te
 }

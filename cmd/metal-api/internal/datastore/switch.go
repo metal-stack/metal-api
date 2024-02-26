@@ -201,7 +201,7 @@ func (rs *RethinkStore) ConnectMachineWithSwitches(m *metal.Machine) error {
 func (rs *RethinkStore) GetSwitchStatus(id string) (*metal.SwitchStatus, error) {
 	var ss metal.SwitchStatus
 	err := rs.findEntityByID(rs.switchStatusTable(), &ss, id)
-	if err != nil && !metal.IsNotFound(err) {
+	if err != nil {
 		return nil, err
 	}
 	return &ss, nil

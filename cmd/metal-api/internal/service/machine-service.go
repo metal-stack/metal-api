@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/avast/retry-go/v4"
@@ -74,6 +76,9 @@ type machineAllocationSpec struct {
 	IPs                []string
 	Role               metal.Role
 	VPN                *metal.MachineVPN
+	PlacementTags      []string
+	EgressRules        []metal.EgressRule
+	IngressRules       []metal.IngressRule
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -240,6 +245,27 @@ func (r *machineResource) webService() *restful.WebService {
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Writes(v1.MachineResponse{}).
 		Returns(http.StatusOK, "OK", v1.MachineResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.GET("/issues").
+		To(viewer(r.listIssues)).
+		Operation("listIssues").
+		Doc("returns the list of issues that exist in the API").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Metadata(auditing.Exclude, true).
+		Writes([]v1.MachineIssue{}).
+		Returns(http.StatusOK, "OK", []v1.MachineIssue{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/issues/evaluate").
+		To(viewer(r.issues)).
+		Operation("issues").
+		Doc("returns machine issues").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		// is an expensive call so we audit this as well even if it does not change anything
+		Reads(v1.MachineIssuesRequest{}).
+		Writes([]v1.MachineIssueResponse{}).
+		Returns(http.StatusOK, "OK", []v1.MachineIssueResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/ipmi").
@@ -482,6 +508,127 @@ func (r *machineResource) updateMachine(request *restful.Request, response *rest
 	r.send(request, response, http.StatusOK, resp)
 }
 
+func (r *machineResource) listIssues(request *restful.Request, response *restful.Response) {
+	issues := issues.All()
+
+	var issueResponse []v1.MachineIssue
+	for _, issue := range issues {
+		issue := issue
+
+		issueResponse = append(issueResponse, v1.MachineIssue{
+			ID:          string(issue.Type),
+			Severity:    string(issue.Severity),
+			Description: issue.Description,
+			RefURL:      issue.RefURL,
+			Details:     issue.Details,
+		})
+	}
+
+	r.send(request, response, http.StatusOK, issueResponse)
+}
+
+func (r *machineResource) issues(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.MachineIssuesRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	var (
+		ms = metal.Machines{}
+
+		severity           = issues.SeverityMinor
+		only               []issues.Type
+		omit               []issues.Type
+		lastErrorThreshold = issues.DefaultLastErrorThreshold()
+	)
+
+	if requestPayload.Severity != "" {
+		severity, err = issues.SeverityFromString(requestPayload.Severity)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+	}
+
+	if len(requestPayload.Omit) > 0 {
+		for _, o := range requestPayload.Omit {
+			o := o
+
+			_, err := issues.NewIssueFromType(o)
+			if err != nil {
+				r.sendError(request, response, httperrors.BadRequest(err))
+				return
+			}
+
+			omit = append(omit, o)
+		}
+	}
+
+	if len(requestPayload.Only) > 0 {
+		for _, o := range requestPayload.Only {
+			o := o
+
+			_, err := issues.NewIssueFromType(o)
+			if err != nil {
+				r.sendError(request, response, httperrors.BadRequest(err))
+				return
+			}
+
+			only = append(only, o)
+		}
+	}
+
+	if requestPayload.LastErrorThreshold > 0 {
+		lastErrorThreshold = requestPayload.LastErrorThreshold
+	}
+
+	err = r.ds.SearchMachines(&requestPayload.MachineSearchQuery, &ms)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	ecs, err := r.ds.ListProvisioningEventContainers()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	machinesWithIssues, err := issues.Find(&issues.Config{
+		Machines:           ms,
+		EventContainers:    ecs,
+		Severity:           severity,
+		Only:               only,
+		Omit:               omit,
+		LastErrorThreshold: lastErrorThreshold,
+	})
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	var issueResponse []*v1.MachineIssueResponse
+	for _, machineWithIssues := range machinesWithIssues.ToList() {
+		machineWithIssues := machineWithIssues
+
+		entry := &v1.MachineIssueResponse{
+			MachineID: machineWithIssues.Machine.ID,
+		}
+
+		for _, issue := range machineWithIssues.Issues {
+			issue := issue
+
+			entry.Issues = append(entry.Issues, string(issue.Type))
+		}
+
+		issueResponse = append(issueResponse, entry)
+	}
+
+	r.send(request, response, http.StatusOK, issueResponse)
+}
+
 func (r *machineResource) getMachineConsolePassword(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineConsolePasswordRequest
 	err := request.ReadEntity(&requestPayload)
@@ -648,6 +795,7 @@ func (r *machineResource) findIPMIMachines(request *restful.Request, response *r
 	r.send(request, response, http.StatusOK, resp)
 }
 
+// FIXME move to grpc as well
 func (r *machineResource) ipmiReport(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.MachineIpmiReports
 	logger := r.logger(request)
@@ -705,7 +853,8 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 			},
 			PartitionID: p.ID,
 			IPMI: metal.IPMI{
-				Address: report.BMCIp + ":" + defaultIPMIPort,
+				Address:     report.BMCIp + ":" + defaultIPMIPort,
+				LastUpdated: time.Now(),
 			},
 		}
 		ledstate, err := metal.LEDStateFrom(report.IndicatorLEDState)
@@ -788,6 +937,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		} else {
 			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
+		newMachine.IPMI.LastUpdated = time.Now()
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
@@ -829,7 +979,7 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.RoleMachine, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload, nil, user)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -850,37 +1000,102 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {
+func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.MachineAllocateRequest, firewallRequest *v1.FirewallAllocateRequest, user *security.User) (*machineAllocationSpec, error) {
 	var uuid string
-	if requestPayload.UUID != nil {
-		uuid = *requestPayload.UUID
+	if machineRequest.UUID != nil {
+		uuid = *machineRequest.UUID
 	}
 	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
+	if machineRequest.Name != nil {
+		name = *machineRequest.Name
 	}
 	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
+	if machineRequest.Description != nil {
+		description = *machineRequest.Description
 	}
 	hostname := "metal"
-	if requestPayload.Hostname != nil {
-		hostname = *requestPayload.Hostname
+	if machineRequest.Hostname != nil {
+		hostname = *machineRequest.Hostname
 	}
 	var userdata string
-	if requestPayload.UserData != nil {
-		userdata = *requestPayload.UserData
+	if machineRequest.UserData != nil {
+		userdata = *machineRequest.UserData
 	}
-	if requestPayload.Networks == nil {
+	if machineRequest.Networks == nil {
 		return nil, errors.New("network ids cannot be nil")
 	}
-	if len(requestPayload.Networks) <= 0 {
+	if len(machineRequest.Networks) <= 0 {
 		return nil, errors.New("network ids cannot be empty")
 	}
 
-	image, err := ds.FindImage(requestPayload.ImageID)
+	image, err := ds.FindImage(machineRequest.ImageID)
 	if err != nil {
 		return nil, err
+	}
+
+	var (
+		egress  []metal.EgressRule
+		ingress []metal.IngressRule
+		role    = metal.RoleMachine
+	)
+
+	if firewallRequest != nil {
+		role = metal.RoleFirewall
+
+		if firewallRequest.FirewallRules != nil {
+			for _, ruleSpec := range firewallRequest.FirewallRules.Egress {
+				ruleSpec := ruleSpec
+
+				if ruleSpec.Protocol == "" {
+					ruleSpec.Protocol = string(metal.ProtocolTCP)
+				}
+
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.EgressRule{
+					Protocol: protocol,
+					Ports:    ruleSpec.Ports,
+					To:       ruleSpec.To,
+					Comment:  ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				egress = append(egress, rule)
+			}
+
+			for _, ruleSpec := range firewallRequest.FirewallRules.Ingress {
+				ruleSpec := ruleSpec
+
+				if ruleSpec.Protocol == "" {
+					ruleSpec.Protocol = string(metal.ProtocolTCP)
+				}
+
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.IngressRule{
+					Protocol: protocol,
+					Ports:    ruleSpec.Ports,
+					To:       ruleSpec.To,
+					From:     ruleSpec.From,
+					Comment:  ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				ingress = append(ingress, rule)
+			}
+		}
 	}
 
 	imageFeatureType := metal.ImageFeatureMachine
@@ -892,8 +1107,8 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		return nil, fmt.Errorf("given image is not usable for a %s, features: %s", imageFeatureType, image.ImageFeatureString())
 	}
 
-	partitionID := requestPayload.PartitionID
-	sizeID := requestPayload.SizeID
+	partitionID := machineRequest.PartitionID
+	sizeID := machineRequest.SizeID
 
 	if uuid == "" && partitionID == "" {
 		return nil, errors.New("when no machine id is given, a partition id must be specified")
@@ -925,18 +1140,21 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		Name:               name,
 		Description:        description,
 		Hostname:           hostname,
-		ProjectID:          requestPayload.ProjectID,
+		ProjectID:          machineRequest.ProjectID,
 		PartitionID:        partitionID,
 		Machine:            m,
 		Size:               size,
 		Image:              image,
-		SSHPubKeys:         requestPayload.SSHPubKeys,
+		SSHPubKeys:         machineRequest.SSHPubKeys,
 		UserData:           userdata,
-		Tags:               requestPayload.Tags,
-		Networks:           requestPayload.Networks,
-		IPs:                requestPayload.IPs,
+		Tags:               machineRequest.Tags,
+		Networks:           machineRequest.Networks,
+		IPs:                machineRequest.IPs,
 		Role:               role,
-		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
+		FilesystemLayoutID: machineRequest.FilesystemLayoutID,
+		PlacementTags:      machineRequest.PlacementTags,
+		EgressRules:        egress,
+		IngressRules:       ingress,
 	}, nil
 }
 
@@ -1006,6 +1224,15 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 	if err != nil {
 		return nil, err
 	}
+
+	var firewallRules *metal.FirewallRules
+	if len(allocationSpec.EgressRules) > 0 || len(allocationSpec.IngressRules) > 0 {
+		firewallRules = &metal.FirewallRules{
+			Egress:  allocationSpec.EgressRules,
+			Ingress: allocationSpec.IngressRules,
+		}
+	}
+
 	// as some fields in the allocation spec are optional, they will now be clearly defined by the machine candidate
 	allocationSpec.UUID = machineCandidate.ID
 
@@ -1022,6 +1249,8 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 		MachineNetworks: []*metal.MachineNetwork{},
 		Role:            allocationSpec.Role,
 		VPN:             allocationSpec.VPN,
+		FirewallRules:   firewallRules,
+		UUID:            uuid.New().String(),
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
@@ -1138,7 +1367,7 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	var machine *metal.Machine
 	if allocationSpec.Machine == nil {
 		// requesting allocation of an arbitrary ready machine in partition with given size
-		machine, err = findWaitingMachine(ds, allocationSpec.PartitionID, allocationSpec.Size.ID)
+		machine, err = findWaitingMachine(ds, allocationSpec)
 		if err != nil {
 			return nil, err
 		}
@@ -1159,16 +1388,17 @@ func findMachineCandidate(ds *datastore.RethinkStore, allocationSpec *machineAll
 	return machine, err
 }
 
-func findWaitingMachine(ds *datastore.RethinkStore, partitionID, sizeID string) (*metal.Machine, error) {
-	size, err := ds.FindSize(sizeID)
+func findWaitingMachine(ds *datastore.RethinkStore, allocationSpec *machineAllocationSpec) (*metal.Machine, error) {
+	size, err := ds.FindSize(allocationSpec.Size.ID)
 	if err != nil {
 		return nil, fmt.Errorf("size cannot be found: %w", err)
 	}
-	partition, err := ds.FindPartition(partitionID)
+	partition, err := ds.FindPartition(allocationSpec.PartitionID)
 	if err != nil {
 		return nil, fmt.Errorf("partition cannot be found: %w", err)
 	}
-	machine, err := ds.FindWaitingMachine(partition.ID, size.ID)
+
+	machine, err := ds.FindWaitingMachine(allocationSpec.ProjectID, partition.ID, *size, allocationSpec.PlacementTags)
 	if err != nil {
 		return nil, err
 	}
@@ -1396,7 +1626,11 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 
 func makeMachineNetwork(ctx context.Context, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
+<<<<<<< HEAD
 		ipAddress, ipParentCidr, err := allocateIP(ctx, n.network, "", ipamer)
+=======
+		ipAddress, ipParentCidr, err := allocateRandomIP(n.network, ipamer)
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}
@@ -1531,7 +1765,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
 	}
 
-	err = r.actor.freeMachine(r.Publisher, m, r.headscaleClient, logger)
+	err = r.actor.freeMachine(request.Request.Context(), r.Publisher, m, r.headscaleClient, logger)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -1576,7 +1810,7 @@ func (r *machineResource) deleteMachine(request *restful.Request, response *rest
 		r.sendError(request, response, defaultError(err))
 		return
 	}
-	if err == nil && !ec.Liveliness.Is(string(metal.MachineLivelinessDead)) {
+	if err == nil && ec.Liveliness != metal.MachineLivelinessDead {
 		r.sendError(request, response, defaultError(errors.New("can only delete dead machines")))
 		return
 	}
@@ -1784,7 +2018,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 	provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 	if err != nil {
 		// we have no provisioning events... we cannot tell
-		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioningEvents found for ID: %s", m.ID)
+		return metal.MachineLivelinessUnknown, fmt.Errorf("no provisioning event container found for machine: %s", m.ID)
 	}
 
 	old := *provisioningEvents
@@ -1801,6 +2035,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 		} else {
 			provisioningEvents.Liveliness = metal.MachineLivelinessAlive
 		}
+
 		err = ds.UpdateProvisioningEventContainer(&old, provisioningEvents)
 		if err != nil {
 			return provisioningEvents.Liveliness, err
@@ -1811,7 +2046,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -1843,7 +2078,7 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
 			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m, headscaleClient, logger)
+			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
@@ -1852,13 +2087,12 @@ func ResurrectMachines(ds *datastore.RethinkStore, publisher bus.Publisher, ep *
 
 		if provisioningEvents.FailedMachineReclaim {
 			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
-			err = act.freeMachine(publisher, &m, headscaleClient, logger)
+			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
 				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
 			continue
 		}
-
 	}
 
 	logger.Info("finished machine resurrection")
@@ -2083,27 +2317,6 @@ func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 	return nil
 }
 
-func machineHasIssues(m *v1.MachineResponse) bool {
-	if m.Partition == nil {
-		return true
-	}
-	if !metal.MachineLivelinessAlive.Is(m.Liveliness) {
-		return true
-	}
-	if m.Allocation == nil && len(m.RecentProvisioningEvents.Events) > 0 && metal.ProvisioningEventPhonedHome.Is(m.RecentProvisioningEvents.Events[0].Event) {
-		// not allocated, but phones home
-		return true
-	}
-	if m.RecentProvisioningEvents.CrashLoop || m.RecentProvisioningEvents.FailedMachineReclaim {
-		// Machines in crash loop but in "Waiting" state are considered available
-		if len(m.RecentProvisioningEvents.Events) > 0 && !metal.ProvisioningEventWaiting.Is(m.RecentProvisioningEvents.Events[0].Event) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func makeMachineResponse(m *metal.Machine, ds *datastore.RethinkStore) (*v1.MachineResponse, error) {
 	s, p, i, ec, err := findMachineReferencedEntities(m, ds)
 	if err != nil {
@@ -2191,8 +2404,8 @@ func findMachineReferencedEntities(m *metal.Machine, ds *datastore.RethinkStore)
 
 	var s *metal.Size
 	if m.SizeID != "" {
-		if m.SizeID == metal.UnknownSize.GetID() {
-			s = metal.UnknownSize
+		if m.SizeID == metal.UnknownSize().GetID() {
+			s = metal.UnknownSize()
 		} else {
 			s, err = ds.FindSize(m.SizeID)
 			if err != nil {

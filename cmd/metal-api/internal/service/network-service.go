@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -245,7 +244,7 @@ func (r *networkResource) createNetwork(request *restful.Request, response *rest
 	nat := requestPayload.Nat
 
 	if projectID != "" {
-		_, err = r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+		_, err = r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: projectID})
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -449,7 +448,7 @@ func (r *networkResource) allocateNetwork(request *restful.Request, response *re
 		return
 	}
 
-	project, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: projectID})
+	project, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: projectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -557,6 +556,7 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 	}
 
 	for _, prefix := range nw.Prefixes {
+<<<<<<< HEAD
 		usage, err := r.ipamer.PrefixUsage(ctx, prefix.String())
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
@@ -573,6 +573,9 @@ func (r *networkResource) freeNetwork(request *restful.Request, response *restfu
 
 	for _, prefix := range nw.Prefixes {
 		err = r.ipamer.ReleaseChildPrefix(ctx, prefix)
+=======
+		err = r.ipamer.ReleaseChildPrefix(prefix)
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 		if err != nil {
 			r.sendError(request, response, defaultError(err))
 			return
@@ -776,6 +779,7 @@ func getNetworkUsage(ctx context.Context, nw *metal.Network, ipamer ipam.IPAMer)
 	for _, prefix := range nw.Prefixes {
 		u, err := ipamer.PrefixUsage(ctx, prefix.String())
 		if err != nil {
+			// FIXME: the error should not be swallowed here as this can return wrong usage information to the clients
 			continue
 		}
 		usage.AvailableIPs = usage.AvailableIPs + u.AvailableIPs

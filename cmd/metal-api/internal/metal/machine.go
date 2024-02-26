@@ -2,7 +2,9 @@ package metal
 
 import (
 	"fmt"
+	"net/netip"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -147,6 +149,143 @@ type MachineAllocation struct {
 	MachineSetup     *MachineSetup     `rethinkdb:"setup" json:"setup"`
 	Role             Role              `rethinkdb:"role" json:"role"`
 	VPN              *MachineVPN       `rethinkdb:"vpn" json:"vpn"`
+	UUID             string            `rethinkdb:"uuid" json:"uuid"`
+	FirewallRules    *FirewallRules    `rethinkdb:"firewall_rules" json:"firewall_rules"`
+}
+
+type FirewallRules struct {
+	Egress  []EgressRule  `rethinkdb:"egress" json:"egress"`
+	Ingress []IngressRule `rethinkdb:"ingress" json:"ingress"`
+}
+
+type EgressRule struct {
+	Protocol Protocol `rethinkdb:"protocol" json:"protocol"`
+	Ports    []int    `rethinkdb:"ports" json:"ports"`
+	To       []string `rethinkdb:"to" json:"to"`
+	Comment  string   `rethinkdb:"comment" json:"comment"`
+}
+
+type IngressRule struct {
+	Protocol Protocol `rethinkdb:"protocol" json:"protocol"`
+	Ports    []int    `rethinkdb:"ports" json:"ports"`
+	To       []string `rethinkdb:"to" json:"to"`
+	From     []string `rethinkdb:"from" json:"from"`
+	Comment  string   `rethinkdb:"comment" json:"comment"`
+}
+
+type Protocol string
+
+const (
+	ProtocolTCP Protocol = "TCP"
+	ProtocolUDP Protocol = "UDP"
+)
+
+func ProtocolFromString(s string) (Protocol, error) {
+	switch strings.ToLower(s) {
+	case "tcp":
+		return ProtocolTCP, nil
+	case "udp":
+		return ProtocolUDP, nil
+	default:
+		return Protocol(""), fmt.Errorf("no such protocol: %s", s)
+	}
+}
+
+func (r EgressRule) Validate() error {
+	switch r.Protocol {
+	case ProtocolTCP, ProtocolUDP:
+		// ok
+	default:
+		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+	}
+
+	if err := validateComment(r.Comment); err != nil {
+		return err
+	}
+	if err := validatePorts(r.Ports); err != nil {
+		return err
+	}
+
+	if err := validateCIDRs(r.To); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r IngressRule) Validate() error {
+	switch r.Protocol {
+	case ProtocolTCP, ProtocolUDP:
+		// ok
+	default:
+		return fmt.Errorf("invalid protocol: %s", r.Protocol)
+	}
+	if err := validateComment(r.Comment); err != nil {
+		return err
+	}
+
+	if err := validatePorts(r.Ports); err != nil {
+		return err
+	}
+	if err := validateCIDRs(r.To); err != nil {
+		return err
+	}
+	if err := validateCIDRs(r.From); err != nil {
+		return err
+	}
+	if err := validateCIDRs(slices.Concat(r.From, r.To)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+const (
+	allowedCharacters = "abcdefghijklmnopqrstuvwxyz_- "
+	maxCommentLength  = 100
+)
+
+func validateComment(comment string) error {
+	for _, c := range comment {
+		if !strings.Contains(allowedCharacters, strings.ToLower(string(c))) {
+			return fmt.Errorf("illegal character in comment found, only: %q allowed", allowedCharacters)
+		}
+	}
+	if len(comment) > maxCommentLength {
+		return fmt.Errorf("comments can not exceed %d characters", maxCommentLength)
+	}
+	return nil
+}
+
+func validatePorts(ports []int) error {
+	for _, port := range ports {
+		if port < 0 || port > 65535 {
+			return fmt.Errorf("port is out of range")
+		}
+	}
+
+	return nil
+}
+
+func validateCIDRs(cidrs []string) error {
+	af := ""
+	for _, cidr := range cidrs {
+		p, err := netip.ParsePrefix(cidr)
+		if err != nil {
+			return fmt.Errorf("invalid cidr: %w", err)
+		}
+		var newaf string
+		if p.Addr().Is4() {
+			newaf = "ipv4"
+		} else {
+			newaf = "ipv6"
+		}
+		if af != "" && af != newaf {
+			return fmt.Errorf("mixed address family in one rule is not supported:%v", cidrs)
+		}
+		af = newaf
+	}
+	return nil
 }
 
 // A MachineSetup stores the data used for machine reinstallations.
@@ -168,6 +307,38 @@ func (ms Machines) ByProjectID() map[string]Machines {
 			res[m.Allocation.Project] = append(res[m.Allocation.Project], ms[i])
 		}
 	}
+	return res
+}
+
+func (ms Machines) WithSize(id string) Machines {
+	var res Machines
+
+	for _, m := range ms {
+		m := m
+
+		if m.SizeID != id {
+			continue
+		}
+
+		res = append(res, m)
+	}
+
+	return res
+}
+
+func (ms Machines) WithPartition(id string) Machines {
+	var res Machines
+
+	for _, m := range ms {
+		m := m
+
+		if m.PartitionID != id {
+			continue
+		}
+
+		res = append(res, m)
+	}
+
 	return res
 }
 
@@ -304,11 +475,6 @@ const (
 	MachineResurrectAfter    time.Duration     = time.Hour
 )
 
-// Is return true if given liveliness is equal to specific Liveliness
-func (l MachineLiveliness) Is(liveliness string) bool {
-	return string(l) == liveliness
-}
-
 // DiskCapacity calculates the capacity of all disks.
 func (hw *MachineHardware) DiskCapacity() uint64 {
 	var c uint64
@@ -353,6 +519,7 @@ type IPMI struct {
 	BMCVersion  string       `rethinkdb:"bmcversion" json:"bmcversion"`
 	PowerState  string       `rethinkdb:"powerstate" json:"powerstate"`
 	PowerMetric *PowerMetric `rethinkdb:"powermetric" json:"powermetric"`
+	LastUpdated time.Time    `rethinkdb:"last_updated" json:"last_updated"`
 }
 
 type PowerMetric struct {

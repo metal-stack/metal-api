@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -21,6 +20,8 @@ import (
 	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
+
+	goipam "github.com/metal-stack/go-ipam"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -90,18 +91,6 @@ func (r *ipResource) webService() *restful.WebService {
 		Writes([]v1.IPResponse{}).
 		Returns(http.StatusOK, "OK", []v1.IPResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
-	ws.Route(ws.POST("/free/{id}").
-		To(editor(r.freeIP)).
-		Operation("freeIPDeprecated").
-		Doc("frees an ip").
-		Param(ws.PathParameter("id", "identifier of the ip").DataType("string")).
-		Consumes(restful.MIME_JSON, "*/*").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(v1.IPResponse{}).
-		Returns(http.StatusOK, "OK", v1.IPResponse{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}).
-		Deprecate())
 
 	ws.Route(ws.DELETE("/free/{id}").
 		To(editor(r.freeIP)).
@@ -294,7 +283,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	p, err := r.mdc.Project().Get(context.Background(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
+	p, err := r.mdc.Project().Get(request.Request.Context(), &mdmv1.ProjectGetRequest{Id: requestPayload.ProjectID})
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
@@ -321,13 +310,33 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 
 	// TODO: Following operations should span a database transaction if possible
 
+<<<<<<< HEAD
 	ipAddress, ipParentCidr, err := allocateIP(request.Request.Context(), nw, specificIP, r.ipamer)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
 		return
+=======
+	var (
+		ipAddress    string
+		ipParentCidr string
+	)
+
+	if specificIP == "" {
+		ipAddress, ipParentCidr, err = allocateRandomIP(nw, r.ipamer)
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+	} else {
+		ipAddress, ipParentCidr, err = allocateSpecificIP(nw, specificIP, r.ipamer)
+		if err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 	}
 
-	r.logger(request).Debugw("found an ip to allocate", "ip", ipAddress, "network", nw.ID)
+	r.logger(request).Debugw("allocated ip in ipam", "ip", ipAddress, "network", nw.ID)
 
 	ipType := metal.Ephemeral
 	if requestPayload.Type == metal.Static {
@@ -398,6 +407,7 @@ func (r *ipResource) updateIP(request *restful.Request, response *restful.Respon
 	r.send(request, response, http.StatusOK, v1.NewIPResponse(&newIP))
 }
 
+<<<<<<< HEAD
 func allocateIP(ctx context.Context, parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (string, string, error) {
 	var ee []error
 	var err error
@@ -434,7 +444,50 @@ func allocateIP(ctx context.Context, parent *metal.Network, specificIP string, i
 			return "", "", fmt.Errorf("cannot allocate free ip in ipam: %v", ee)
 		}
 		return "", "", errors.New("cannot allocate free ip in ipam")
+=======
+func allocateSpecificIP(parent *metal.Network, specificIP string, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
+	parsedIP, err := netip.ParseAddr(specificIP)
+	if err != nil {
+		return "", "", fmt.Errorf("unable to parse specific ip: %w", err)
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 	}
 
-	return ipAddress, parentPrefixCidr, nil
+	for _, prefix := range parent.Prefixes {
+		pfx, err := netip.ParsePrefix(prefix.String())
+		if err != nil {
+			return "", "", fmt.Errorf("unable to parse prefix: %w", err)
+		}
+
+		if !pfx.Contains(parsedIP) {
+			continue
+		}
+
+		ipAddress, err = ipamer.AllocateSpecificIP(prefix, specificIP)
+		if err != nil && errors.Is(err, goipam.ErrAlreadyAllocated) {
+			return "", "", metal.Conflict("ip already allocated")
+		}
+		if err != nil {
+			return "", "", err
+		}
+
+		return ipAddress, prefix.String(), nil
+	}
+
+	return "", "", fmt.Errorf("specific ip not contained in any of the defined prefixes")
+}
+
+func allocateRandomIP(parent *metal.Network, ipamer ipam.IPAMer) (ipAddress, parentPrefixCidr string, err error) {
+	for _, prefix := range parent.Prefixes {
+		ipAddress, err = ipamer.AllocateIP(prefix)
+		if err != nil && errors.Is(err, goipam.ErrNoIPAvailable) {
+			continue
+		}
+		if err != nil {
+			return "", "", err
+		}
+
+		return ipAddress, prefix.String(), nil
+	}
+
+	return "", "", metal.Internal("cannot allocate free ip in ipam, no ips left")
 }

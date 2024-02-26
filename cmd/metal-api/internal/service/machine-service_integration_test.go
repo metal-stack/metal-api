@@ -92,7 +92,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	assert.Len(t, mrr.Hardware.Nics, 2)
 
 	err = te.machineWait("test-uuid")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// DB contains at least a machine which is allocatable
 	machine := v1.MachineAllocateRequest{
@@ -132,7 +132,7 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 	require.Equal(t, http.StatusOK, status)
 
 	err = te.machineWait("test-uuid")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// DB contains at least a machine which is allocatable
 	machine = v1.MachineAllocateRequest{
@@ -227,7 +227,7 @@ func BenchmarkMachineList(b *testing.B) {
 	refCount := 100
 	machineCount := 1000
 
-	for i := 0; i < refCount; i++ {
+	for i := range refCount {
 		base := metal.Base{ID: strconv.Itoa(i)}
 		img := &metal.Image{
 			Base: base,
@@ -248,7 +248,7 @@ func BenchmarkMachineList(b *testing.B) {
 		require.NoError(b, err)
 	}
 
-	for i := 0; i < machineCount; i++ {
+	for i := range machineCount {
 		base := metal.Base{ID: uuid.NewString()}
 		refID := strconv.Itoa(i % refCount)
 
@@ -276,7 +276,7 @@ func BenchmarkMachineList(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		var machines []v1.MachineResponse
 		code := webRequestGet(b, machineService, &testUserDirectory.admin, nil, "/v1/machine", &machines)
 

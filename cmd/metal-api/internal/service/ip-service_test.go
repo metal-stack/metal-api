@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -26,6 +25,11 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 
 	"github.com/google/go-cmp/cmp"
+<<<<<<< HEAD
+=======
+	goipam "github.com/metal-stack/go-ipam"
+	testifymock "github.com/stretchr/testify/mock"
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 	"github.com/stretchr/testify/require"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -144,7 +148,7 @@ func TestDeleteIP(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/v1/ip/free/"+tt.ip, nil)
+			req := httptest.NewRequest("DELETE", "/v1/ip/free/"+tt.ip, nil)
 			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -173,7 +177,7 @@ func TestAllocateIP(t *testing.T) {
 	logger := zaptest.NewLogger(t).Sugar()
 
 	psc := mdmock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
 		Project: &mdmv1.Project{
 			Meta: &mdmv1.Meta{Id: "project-1"},
 		},
@@ -243,7 +247,7 @@ func TestAllocateIP(t *testing.T) {
 			},
 			specificIP:   "11.0.0.5",
 			wantedStatus: http.StatusUnprocessableEntity,
-			wantErr:      errors.New("cannot allocate free ip in ipam"),
+			wantErr:      errors.New("specific ip not contained in any of the defined prefixes"),
 		},
 	}
 	for i := range tests {

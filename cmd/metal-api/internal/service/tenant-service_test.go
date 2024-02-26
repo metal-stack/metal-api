@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/security"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 )
@@ -66,7 +66,7 @@ func Test_tenantResource_getTenant(t *testing.T) {
 			userScenarios: []security.User{*testViewUser},
 			id:            "122",
 			tenantServiceMock: func(mock *mdmv1mock.TenantServiceClient) {
-				mock.On("Get", context.Background(), &mdmv1.TenantGetRequest{Id: "122"}).Return(&mdmv1.TenantResponse{Tenant: &mdmv1.Tenant{Name: "t122"}}, nil)
+				mock.On("Get", testifymock.Anything, &mdmv1.TenantGetRequest{Id: "122"}).Return(&mdmv1.TenantResponse{Tenant: &mdmv1.Tenant{Name: "t122"}}, nil)
 			},
 			want:       &v1.TenantResponse{Tenant: v1.Tenant{Name: "t122"}},
 			wantStatus: 200,
@@ -76,7 +76,7 @@ func Test_tenantResource_getTenant(t *testing.T) {
 			name:          "entity allowed for user with admin privileges",
 			userScenarios: []security.User{*testAdminUser},
 			tenantServiceMock: func(mock *mdmv1mock.TenantServiceClient) {
-				mock.On("Get", context.Background(), &mdmv1.TenantGetRequest{Id: "123"}).Return(&mdmv1.TenantResponse{Tenant: &mdmv1.Tenant{Name: "t123"}}, nil)
+				mock.On("Get", testifymock.Anything, &mdmv1.TenantGetRequest{Id: "123"}).Return(&mdmv1.TenantResponse{Tenant: &mdmv1.Tenant{Name: "t123"}}, nil)
 			},
 			id:         "123",
 			want:       &v1.TenantResponse{Tenant: v1.Tenant{Name: "t123"}},
@@ -128,7 +128,7 @@ func Test_tenantResource_listTenants(t *testing.T) {
 			name:          "entity allowed for user with view privileges",
 			userScenarios: []security.User{*testViewUser},
 			tenantServiceMock: func(mock *mdmv1mock.TenantServiceClient) {
-				mock.On("Find", context.Background(), &mdmv1.TenantFindRequest{}).Return(&mdmv1.TenantListResponse{Tenants: []*mdmv1.Tenant{{Name: "t121"}, {Name: "t122"}}}, nil)
+				mock.On("Find", testifymock.Anything, &mdmv1.TenantFindRequest{}).Return(&mdmv1.TenantListResponse{Tenants: []*mdmv1.Tenant{{Name: "t121"}, {Name: "t122"}}}, nil)
 			},
 			want:       []*v1.Tenant{{Name: "t121"}, {Name: "t122"}},
 			wantStatus: 200,
@@ -138,7 +138,7 @@ func Test_tenantResource_listTenants(t *testing.T) {
 			name:          "entity allowed for user with admin privileges",
 			userScenarios: []security.User{*testAdminUser},
 			tenantServiceMock: func(mock *mdmv1mock.TenantServiceClient) {
-				mock.On("Find", context.Background(), &mdmv1.TenantFindRequest{}).Return(&mdmv1.TenantListResponse{Tenants: []*mdmv1.Tenant{{Name: "t123"}}}, nil)
+				mock.On("Find", testifymock.Anything, &mdmv1.TenantFindRequest{}).Return(&mdmv1.TenantListResponse{Tenants: []*mdmv1.Tenant{{Name: "t123"}}}, nil)
 			},
 			want:       []*v1.Tenant{{Name: "t123"}},
 			wantStatus: 200,

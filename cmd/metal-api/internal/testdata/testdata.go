@@ -43,6 +43,22 @@ var (
 				},
 			},
 		},
+		Hardware: metal.MachineHardware{
+			CPUCores: 8,
+			Memory:   1 << 30,
+			Disks: []metal.BlockDevice{
+				{
+					Size: 1000,
+				},
+				{
+					Size: 1000,
+				},
+				{
+					Size: 1000,
+				},
+			},
+		},
+
 		IPMI: IPMI1,
 		Tags: []string{"1"},
 	}
@@ -176,6 +192,13 @@ var (
 				Type: metal.MemoryConstraint,
 				Min:  100,
 				Max:  100,
+			},
+		},
+		Reservations: metal.Reservations{
+			{
+				Amount:       3,
+				PartitionIDs: []string{Partition1.ID},
+				ProjectID:    "p1",
 			},
 		},
 	}
@@ -830,6 +853,11 @@ func InitMockDBData(mock *r.Mock) {
 	mock.On(r.DB("mockdb").Table("switch").Get("switch404")).Return(nil, errors.New("Test Error"))
 	mock.On(r.DB("mockdb").Table("switch").Get("switch999")).Return(nil, nil)
 	mock.On(r.DB("mockdb").Table("switchstatus").Get("switch999")).Return(nil, nil)
+	mock.On(r.DB("mockdb").Table("switchstatus").Get(Switch1.ID)).Return(metal.SwitchStatus{
+		Base: metal.Base{
+			ID: Switch1.ID,
+		},
+	}, nil)
 	mock.On(r.DB("mockdb").Table("wait").Get("3").Changes()).Return([]interface{}{
 		map[string]interface{}{"new_val": M3},
 	}, nil)

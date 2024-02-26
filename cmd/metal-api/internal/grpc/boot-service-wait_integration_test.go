@@ -5,11 +5,10 @@ package grpc
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
+	"math/rand/v2"
 	"strconv"
 	"sync"
 	"testing"
@@ -69,10 +68,10 @@ func TestWaitServer(t *testing.T) {
 	mm := [][]int{{10, 7}}
 	for _, a := range aa {
 		for _, m := range mm {
-			require.True(t, a > 0)
-			require.True(t, m[0] > 0)
-			require.True(t, m[1] > 0)
-			require.True(t, m[0] >= m[1])
+			require.Greater(t, a, 0)
+			require.Greater(t, m[0], 0)
+			require.Greater(t, m[1], 0)
+			require.GreaterOrEqual(t, m[0], m[1])
 			tt = append(tt, &test{
 				numberApiInstances:     a,
 				numberMachineInstances: m[0],
@@ -129,7 +128,7 @@ func (t *test) run() {
 	}
 
 	ds, mock := datastore.InitMockDB(t.T)
-	for i := 0; i < t.numberMachineInstances; i++ {
+	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
 		mock.On(r.DB("mockdb").Table("machine").Get(machineID)).Return(metal.Machine{Base: metal.Base{ID: machineID}}, nil)
 		mock.On(insertMock(true, machineID)).Return(returnMock(true, machineID), nil)
@@ -140,7 +139,7 @@ func (t *test) run() {
 	t.startMachineInstances()
 	t.notReadyMachines.Wait()
 
-	require.Equal(t, t.numberMachineInstances, len(wait))
+	require.Len(t, wait, t.numberMachineInstances)
 	for _, wait := range wait {
 		require.True(t, wait)
 	}
@@ -159,7 +158,7 @@ func (t *test) run() {
 		t.notReadyMachines.Wait()
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(wait))
+	require.Len(t, wait, t.numberMachineInstances)
 	for _, wait := range wait {
 		require.True(t, wait)
 	}
@@ -168,12 +167,12 @@ func (t *test) run() {
 
 	t.unallocatedMachines.Wait()
 
-	require.Equal(t, t.numberAllocations, len(t.allocations))
+	require.Len(t, t.allocations, t.numberAllocations)
 	for _, allocated := range t.allocations {
 		require.True(t, allocated)
 	}
 
-	require.Equal(t, t.numberMachineInstances, len(wait))
+	require.Len(t, wait, t.numberMachineInstances)
 	for key, wait := range wait {
 		require.Equal(t, !containsKey(t.allocations, key), wait)
 	}
@@ -214,7 +213,7 @@ func (t *test) stopMachineInstances() {
 }
 
 func (t *test) startApiInstances(ds *datastore.RethinkStore) {
-	for i := 0; i < t.numberApiInstances; i++ {
+	for i := range t.numberApiInstances {
 		ctx, cancel := context.WithCancel(context.Background())
 		allocate := make(chan string)
 
@@ -252,9 +251,9 @@ func (t *test) startMachineInstances() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	}
-	for i := 0; i < t.numberMachineInstances; i++ {
+	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
-		port := 50005 + t.randNumber(t.numberApiInstances)
+		port := 50005 + rand.N(t.numberApiInstances)
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
 		require.NoError(t, err)
@@ -317,7 +316,7 @@ func (t *test) waitForAllocation(machineID string, c v1.BootServiceClient, ctx c
 
 func (t *test) allocateMachines() {
 	var alreadyAllocated []string
-	for i := 0; i < t.numberAllocations; i++ {
+	for range t.numberAllocations {
 		machineID := t.selectMachine(alreadyAllocated)
 		alreadyAllocated = append(alreadyAllocated, machineID)
 		t.mtx.Lock()
@@ -328,7 +327,7 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(t.randNumber(t.numberMachineInstances))
+	machineID := strconv.Itoa(rand.N(t.numberMachineInstances))
 	for _, id := range except {
 		if id == machineID {
 			return t.selectMachine(except)
@@ -341,10 +340,4 @@ func (t *test) simulateNsqNotifyAllocated(machineID string) {
 	for _, s := range t.ss {
 		s.allocate <- machineID
 	}
-}
-
-func (t *test) randNumber(n int) int {
-	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
-	require.NoError(t, err)
-	return int(nBig.Int64())
 }

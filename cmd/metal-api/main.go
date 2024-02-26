@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -13,9 +14,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	compress "github.com/klauspost/connect-compress"
 
+	"github.com/Masterminds/semver/v3"
 	v1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 	"github.com/spf13/cobra"
@@ -102,7 +104,10 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
-		initHeadscale()
+		err = initHeadscale()
+		if err != nil {
+			return err
+		}
 		return run()
 	},
 }
@@ -175,7 +180,10 @@ var machineConnectedToVPN = &cobra.Command{
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		initLogging()
-		initHeadscale()
+		err := initHeadscale()
+		if err != nil {
+			return err
+		}
 		return evaluateVPNConnected()
 	},
 }
@@ -286,10 +294,13 @@ func init() {
 	rootCmd.Flags().String("auditing-api-key", "secret", "api key for the auditing service")
 	rootCmd.Flags().String("auditing-index-prefix", "auditing", "auditing index prefix")
 	rootCmd.Flags().String("auditing-index-interval", "@daily", "auditing index creation interval, can be one of @hourly|@daily|@monthly")
+	rootCmd.Flags().Int64("auditing-keep", 14, "the amount of indexes to keep until cleanup")
 
 	rootCmd.Flags().String("headscale-addr", "", "address of headscale server")
 	rootCmd.Flags().String("headscale-cp-addr", "", "address of headscale control plane")
 	rootCmd.Flags().String("headscale-api-key", "", "initial api key to connect to headscale server")
+
+	rootCmd.Flags().StringP("minimum-client-version", "", "v0.0.1", "the minimum metalctl version required to talk to this version of metal-api")
 
 	must(viper.BindPFlags(rootCmd.Flags()))
 	must(viper.BindPFlags(rootCmd.PersistentFlags()))
@@ -539,7 +550,7 @@ func initMasterData() {
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, slog.Default())
 		if err == nil {
 			cancel()
 			break
@@ -581,7 +592,8 @@ func initAuth(lg *zap.SugaredLogger) security.UserGetter {
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
-	issuerCache, err := security.NewMultiIssuerCache(lg.Named("issuer-cache"), func() ([]*security.IssuerConfig, error) {
+	// FIXME create a slog.Logger instance with the same log level as configured for zap and pass this logger instance
+	issuerCache, err := security.NewMultiIssuerCache(nil, func() ([]*security.IssuerConfig, error) {
 		logger.Infow("loading tenants for issuercache", "providerTenant", providerTenant)
 
 		// get provider tenant from masterdata
@@ -725,10 +737,16 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	if err != nil {
 		logger.Fatal(err)
 	}
+
+	minClientVersion, err := semver.NewVersion(viper.GetString("minimum-client-version"))
+	if err != nil {
+		logger.Fatalf("given minimum client version is not semver parsable: %w", err)
+	}
+
 	restful.DefaultContainer.Add(service.NewAudit(logger.Named("audit-service"), audit))
 	restful.DefaultContainer.Add(service.NewPartition(logger.Named("partition-service"), ds, nsqer))
 	restful.DefaultContainer.Add(service.NewImage(logger.Named("image-service"), ds))
-	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds))
+	restful.DefaultContainer.Add(service.NewSize(logger.Named("size-service"), ds, mdc))
 	restful.DefaultContainer.Add(service.NewSizeImageConstraint(logger.Named("size-image-constraint-service"), ds))
 	restful.DefaultContainer.Add(service.NewNetwork(logger.Named("network-service"), ds, ipamer, mdc))
 	restful.DefaultContainer.Add(ipService)
@@ -742,7 +760,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	restful.DefaultContainer.Add(service.NewSwitch(logger.Named("switch-service"), ds))
 	restful.DefaultContainer.Add(healthService)
 	restful.DefaultContainer.Add(service.NewVPN(logger.Named("vpn-service"), headscaleClient))
-	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath))
+	restful.DefaultContainer.Add(rest.NewVersion(moduleName, service.BasePath, minClientVersion.Original()))
 	restful.DefaultContainer.Filter(rest.RequestLoggerFilter(logger))
 	restful.DefaultContainer.Filter(metrics.RestfulMetrics)
 
@@ -767,8 +785,13 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	return &config
 }
 
-func initHeadscale() {
+func initHeadscale() error {
 	var err error
+
+	if !viper.IsSet("headscale-addr") {
+		logger.Info("headscale disabled")
+		return nil
+	}
 
 	headscaleClient, err = headscale.NewHeadscaleClient(
 		viper.GetString("headscale-addr"),
@@ -776,14 +799,12 @@ func initHeadscale() {
 		viper.GetString("headscale-api-key"),
 		logger.Named("headscale"),
 	)
-	if err != nil {
-		logger.Errorw("failed to init headscale client", "error", err)
-	}
-	if headscaleClient == nil {
-		return
+	if err != nil || headscaleClient == nil {
+		return fmt.Errorf("failed to init headscale client %w", err)
 	}
 
 	logger.Info("headscale initialized")
+	return nil
 }
 
 func dumpSwaggerJSON() {
@@ -830,7 +851,7 @@ func resurrectDeadMachines() error {
 		p = nsqer.Publisher
 		ep = nsqer.Endpoints
 	}
-	err = service.ResurrectMachines(ds, p, ep, ipamer, headscaleClient, logger)
+	err = service.ResurrectMachines(context.Background(), ds, p, ep, ipamer, headscaleClient, logger)
 	if err != nil {
 		return fmt.Errorf("unable to resurrect machines: %w", err)
 	}
@@ -863,7 +884,10 @@ func evaluateVPNConnected() error {
 		return err
 	}
 
-	connectedMap, err := headscaleClient.MachinesConnected()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	connectedMap, err := headscaleClient.MachinesConnected(ctx)
 	if err != nil {
 		return err
 	}
@@ -904,9 +928,10 @@ func createAuditingClient(log *zap.SugaredLogger) (auditing.Auditing, error) {
 		Component:        "metal-api",
 		URL:              viper.GetString("auditing-url"),
 		APIKey:           viper.GetString("auditing-api-key"),
-		Log:              log,
 		IndexPrefix:      viper.GetString("auditing-index-prefix"),
 		RotationInterval: auditing.Interval(viper.GetString("auditing-index-interval")),
+		Keep:             viper.GetInt64("auditing-keep"),
+		Log:              log,
 	}
 	return auditing.New(c)
 }

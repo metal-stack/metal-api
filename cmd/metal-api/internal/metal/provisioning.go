@@ -47,11 +47,6 @@ var (
 // ProvisioningEvents is just a list of ProvisioningEvents
 type ProvisioningEvents []ProvisioningEvent
 
-// Is return true if given event is equal to specific EventType
-func (p ProvisioningEventType) Is(event string) bool {
-	return string(p) == event
-}
-
 // TrimEvents trim the events to maxCount
 func (p *ProvisioningEventContainer) TrimEvents(maxCount int) {
 	if len(p.Events) > maxCount {

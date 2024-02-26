@@ -3,8 +3,9 @@ package ipam
 import (
 	"context"
 	"fmt"
+	"net/netip"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	goipam "github.com/metal-stack/go-ipam"
 	apiv1 "github.com/metal-stack/go-ipam/api/v1"
 	"github.com/metal-stack/go-ipam/api/v1/apiv1connect"
@@ -67,6 +68,7 @@ func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefi
 }
 
 // ReleaseChildPrefix release a child prefix from a parent prefix in the IPAM.
+<<<<<<< HEAD
 func (i *ipam) ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix) error {
 	ipamChildPrefix, err := i.ip.GetPrefix(ctx, connect.NewRequest(&apiv1.GetPrefixRequest{
 		Cidr: childPrefix.String(),
@@ -81,6 +83,23 @@ func (i *ipam) ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix)
 	_, err = i.ip.ReleaseChildPrefix(ctx, connect.NewRequest(&apiv1.ReleaseChildPrefixRequest{
 		Cidr: ipamChildPrefix.Msg.Prefix.Cidr,
 	}))
+=======
+func (i *Ipam) ReleaseChildPrefix(childPrefix metal.Prefix) error {
+	_, err := netip.ParsePrefix(childPrefix.String())
+	if err != nil {
+		return fmt.Errorf("invalid child prefix: %w", err)
+	}
+
+	ipamChildPrefix := i.ip.PrefixFrom(childPrefix.String())
+	if ipamChildPrefix == nil {
+		// FIXME: unfortunately, go-ipam does not return a proper error here so we cannot deduce if the prefix
+		// was already deleted or not, so if the database is down or something we continue with network deletion
+		// even though there could be remainings in the go-ipam db
+		return nil
+	}
+
+	err = i.ip.ReleaseChildPrefix(ipamChildPrefix)
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 	if err != nil {
 		return fmt.Errorf("error releasing child prefix in ipam: %w", err)
 	}

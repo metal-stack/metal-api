@@ -10,9 +10,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -244,13 +246,28 @@ func TestUpdatePartition(t *testing.T) {
 
 func TestPartitionCapacity(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
+
+	ecs := []metal.ProvisioningEventContainer{}
+	for _, m := range testdata.TestMachines {
+		m := m
+		ecs = append(ecs, metal.ProvisioningEventContainer{
+			Base: m.Base,
+		})
+	}
+	mock.On(r.DB("mockdb").Table("event")).Return(ecs, nil)
+
 	testdata.InitMockDBData(mock)
 	log := zaptest.NewLogger(t).Sugar()
 
 	service := NewPartition(log, ds, &nopTopicCreater{})
 	container := restful.NewContainer().Add(service)
 
-	req := httptest.NewRequest("GET", "/v1/partition/capacity", nil)
+	pcRequest := &v1.PartitionCapacityRequest{}
+	js, err := json.Marshal(pcRequest)
+	require.NoError(t, err)
+	body := bytes.NewBuffer(js)
+
+	req := httptest.NewRequest("POST", "/v1/partition/capacity", body)
 	req.Header.Add("Content-Type", "application/json")
 	container = injectAdmin(log, container, req)
 	w := httptest.NewRecorder()
@@ -260,14 +277,17 @@ func TestPartitionCapacity(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode, w.Body.String())
 	var result []v1.PartitionCapacity
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
+	require.Len(t, result, 1)
 	require.Equal(t, testdata.Partition1.ID, result[0].ID)
 	require.NotNil(t, result[0].ServerCapacities)
-	require.Equal(t, 1, len(result[0].ServerCapacities))
+	require.Len(t, result[0].ServerCapacities, 1)
 	c := result[0].ServerCapacities[0]
 	require.Equal(t, "1", c.Size)
 	require.Equal(t, 5, c.Total)
 	require.Equal(t, 0, c.Free)
+	require.Equal(t, 3, c.Reservations)
+	require.Equal(t, 1, c.UsedReservations)
 }

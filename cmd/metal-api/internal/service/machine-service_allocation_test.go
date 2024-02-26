@@ -21,6 +21,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/emicklei/go-restful/v3"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
@@ -65,8 +66,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 
 	// Register
 	e, _ := errgroup.WithContext(context.Background())
-	for i := 0; i < machineCount; i++ {
-		i := i
+	for i := range machineCount {
 		e.Go(func() error {
 			var ma *grpcv1.BootServiceRegisterResponse
 			mr := createMachineRegisterRequest(i)
@@ -111,7 +111,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	ips := make(map[string]string)
 
 	start := time.Now()
-	for i := 0; i < machineCount; i++ {
+	for range machineCount {
 		g.Go(func() error {
 			var ma v1.MachineResponse
 			err := retry.Do(
@@ -158,7 +158,7 @@ func TestMachineAllocationIntegration(t *testing.T) {
 	}
 	err = g.Wait()
 	require.NoError(t, err)
-	require.Equal(t, len(ips), machineCount)
+	require.Len(t, ips, machineCount)
 	t.Logf("allocated:%d machines in %s", machineCount, time.Since(start))
 
 	// Free
@@ -302,7 +302,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	require.NoError(t, err)
 
 	psc := &mdmv1mock.ProjectServiceClient{}
-	psc.On("Get", context.Background(), &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
+	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
 	mdc := mdm.NewMock(psc, nil)
 
 	ipamer := ipam.InitTestIpam(t)
@@ -319,7 +319,9 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 			ResponseInterval: 2 * time.Millisecond,
 			CheckInterval:    1 * time.Hour,
 		})
-		require.NoError(t, err)
+		if err != nil {
+			t.Fail()
+		}
 	}()
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
@@ -330,8 +332,13 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	return rs, container
 }
 
+<<<<<<< HEAD
 func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
 	for i := 0; i < machineCount; i++ {
+=======
+func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
+	for i := range machineCount {
+>>>>>>> 9858b21434fd5424b042d55fbef9087984cb1fe9
 		id := fmt.Sprintf("WaitingMachine%d", i)
 		m := &metal.Machine{
 			Base:        metal.Base{ID: id},
@@ -370,7 +377,7 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IP
 
 	sw1nics := metal.Nics{}
 	sw2nics := metal.Nics{}
-	for j := 0; j < machineCount; j++ {
+	for j := range machineCount {
 		sw1nic := metal.Nic{
 			Name:       fmt.Sprintf("swp-%d", j),
 			MacAddress: metal.MacAddress(fmt.Sprintf("%s:%d", swp1MacPrefix, j)),
