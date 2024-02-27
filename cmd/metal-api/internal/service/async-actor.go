@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
@@ -18,14 +19,14 @@ import (
 )
 
 type asyncActor struct {
-	log *zap.SugaredLogger
+	log *slog.Logger
 	ipam.IPAMer
 	*datastore.RethinkStore
 	machineNetworkReleaser bus.Func
 	ipReleaser             bus.Func
 }
 
-func newAsyncActor(l *zap.SugaredLogger, ep *bus.Endpoints, ds *datastore.RethinkStore, ip ipam.IPAMer) (*asyncActor, error) {
+func newAsyncActor(l *slog.Logger, ep *bus.Endpoints, ds *datastore.RethinkStore, ip ipam.IPAMer) (*asyncActor, error) {
 	actor := &asyncActor{
 		log:          l,
 		IPAMer:       ip,
@@ -43,7 +44,7 @@ func newAsyncActor(l *zap.SugaredLogger, ep *bus.Endpoints, ds *datastore.Rethin
 	return actor, nil
 }
 
-func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *metal.Machine, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
+func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *metal.Machine, headscaleClient *headscale.HeadscaleClient, logger *slog.Logger) error {
 	if m.State.Value == metal.LockedState {
 		return errors.New("machine is locked")
 	}
@@ -55,12 +56,12 @@ func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *meta
 		}
 	}
 
-	err := deleteVRFSwitches(a.RethinkStore, m, a.log.Desugar())
+	err := deleteVRFSwitches(a.RethinkStore, m, a.log)
 	if err != nil {
 		return err
 	}
 
-	err = publishDeleteEvent(pub, m, a.log.Desugar())
+	err = publishDeleteEvent(pub, m, a.log)
 	if err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *meta
 		// log error, but what should we do here? we already called
 		// deleteVRFSwitches and publishDeleteEvent, so should we return
 		// an error or "fall through"?
-		a.log.Errorw("cannot call async machine cleanup", "error", err)
+		a.log.Error("cannot call async machine cleanup", "error", err)
 	}
 
 	old := *m
@@ -84,7 +85,7 @@ func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *meta
 	if err != nil {
 		return err
 	}
-	a.log.Infow("freed machine", "machineID", m.ID)
+	a.log.Info("freed machine", "machineID", m.ID)
 
 	return nil
 }
@@ -175,10 +176,10 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 	// begin of this loop checks if the IP contains the machine.
 	// so we fork a new job to delete the IP. if this fails .... well then ("houston we have a problem")
 	// we do not report the error to the caller, because this whole function cannot be re-do'ed.
-	a.log.Infow("async release IP", "ip", *ip)
+	a.log.Info("async release IP", "ip", *ip)
 	if err := a.ipReleaser(*ip); err != nil {
 		// what should we do here? this error shows a problem with the nsq-bus system
-		a.log.Errorw("cannot call ip releaser", "error", err)
+		a.log.Error("cannot call ip releaser", "error", err)
 	}
 
 	return nil
@@ -189,12 +190,12 @@ func (a *asyncActor) disassociateIP(ip *metal.IP, machine *metal.Machine) error 
 // to implement more validations: when a machine is deleted the caller has to check if the IP
 // is static or not. If only an IP is freed, the caller has to check if the IP has machine scope.
 func (a *asyncActor) releaseIP(ip metal.IP) error {
-	a.log.Infow("release IP", "ip", ip)
+	a.log.Info("release IP", "ip", ip)
 
 	dbip, err := a.FindIPByID(ip.IPAddress)
 	if err != nil && !metal.IsNotFound(err) {
 		// some unknown error, we will let nsq resend the command
-		a.log.Errorw("cannot find IP", "ip", ip, "error", err)
+		a.log.Error("cannot find IP", "ip", ip, "error", err)
 		return err
 	}
 
@@ -203,14 +204,14 @@ func (a *asyncActor) releaseIP(ip metal.IP) error {
 		// moment it can happen that we already deleted and released the IP in the ipam
 		// so make sure that this IP is not already connected to a new machine
 		if len(dbip.GetMachineIds()) > 0 {
-			a.log.Infow("do not delete IP, it is connected to a machine", "ip", ip)
+			a.log.Info("do not delete IP, it is connected to a machine", "ip", ip)
 			return nil
 		}
 
 		// the ip is in our database and is not connected to a machine so cleanup
 		err = a.DeleteIP(&ip)
 		if err != nil {
-			a.log.Errorw("cannot delete IP in datastore", "ip", ip, "error", err)
+			a.log.Error("cannot delete IP in datastore", "ip", ip, "error", err)
 			return err
 		}
 	}

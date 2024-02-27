@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -12,7 +13,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -25,7 +25,7 @@ type sizeResource struct {
 }
 
 // NewSize returns a webservice for size specific endpoints.
-func NewSize(log *zap.SugaredLogger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
+func NewSize(log *slog.Logger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := sizeResource{
 		webResource: webResource{
 			log: log,

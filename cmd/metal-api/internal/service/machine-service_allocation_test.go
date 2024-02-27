@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -23,7 +24,6 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 
 	goipam "github.com/metal-stack/go-ipam"
@@ -288,7 +288,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 }
 
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	_, c, err := test.StartRethink(t)
 	require.NoError(t, err)
@@ -335,7 +335,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
-	container.Filter(rest.UserAuth(usergetter, zaptest.NewLogger(t).Sugar()))
+	container.Filter(rest.UserAuth(usergetter, slog.Default())) // FIXME
 	return rs, container
 }
 

@@ -2,13 +2,13 @@ package service
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/metal-stack/masterdata-api/api/rest/mapper"
 	v1 "github.com/metal-stack/masterdata-api/api/rest/v1"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
@@ -23,7 +23,7 @@ type tenantResource struct {
 }
 
 // NewTenant returns a webservice for tenant specific endpoints.
-func NewTenant(log *zap.SugaredLogger, mdc mdm.Client) *restful.WebService {
+func NewTenant(log *slog.Logger, mdc mdm.Client) *restful.WebService {
 	r := tenantResource{
 		webResource: webResource{
 			log: log,

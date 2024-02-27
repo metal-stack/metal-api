@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"log/slog"
 	"reflect"
 	"sync"
 	"testing"
@@ -12,7 +13,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -151,7 +151,7 @@ func TestBootService_Register(t *testing.T) {
 			}
 
 			bootService := &BootService{
-				log:              zaptest.NewLogger(t).Sugar(),
+				log:              slog.Default(),
 				ds:               ds,
 				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
 				publisher:        &emptyPublisher{},
@@ -217,7 +217,7 @@ func TestBootService_Report(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BootService{
-				log:              zaptest.NewLogger(t).Sugar(),
+				log:              slog.Default(),
 				ds:               ds,
 				ipmiSuperUser:    metal.DisabledIPMISuperUser(),
 				publisher:        &emptyPublisher{},

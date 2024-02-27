@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -12,7 +13,6 @@ import (
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -24,7 +24,7 @@ import (
 func TestRegisterSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
@@ -70,7 +70,7 @@ func TestRegisterSwitch(t *testing.T) {
 func TestRegisterExistingSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
@@ -114,7 +114,7 @@ func TestRegisterExistingSwitch(t *testing.T) {
 func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
@@ -144,7 +144,7 @@ func TestRegisterExistingSwitchErrorModifyingNics(t *testing.T) {
 func TestReplaceSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
@@ -1163,7 +1163,7 @@ func Test_updateSwitchNics(t *testing.T) {
 func TestUpdateSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
@@ -1207,7 +1207,7 @@ func TestUpdateSwitch(t *testing.T) {
 func TestNotifySwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)
@@ -1242,7 +1242,7 @@ func TestNotifySwitch(t *testing.T) {
 func TestNotifyErrorSwitch(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	switchservice := NewSwitch(log, ds)
 	container := restful.NewContainer().Add(switchservice)

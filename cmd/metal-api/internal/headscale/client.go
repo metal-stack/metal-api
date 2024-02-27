@@ -3,10 +3,9 @@ package headscale
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
-
-	"go.uber.org/zap"
 
 	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/juanfont/headscale/hscontrol"
@@ -22,10 +21,10 @@ type HeadscaleClient struct {
 	controlPlaneAddress string
 
 	conn   *grpc.ClientConn
-	logger *zap.SugaredLogger
+	logger *slog.Logger
 }
 
-func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *zap.SugaredLogger) (client *HeadscaleClient, err error) {
+func NewHeadscaleClient(addr, controlPlaneAddr, apiKey string, logger *slog.Logger) (client *HeadscaleClient, err error) {
 	if addr != "" || apiKey != "" {
 		if addr == "" {
 			return nil, fmt.Errorf("headscale address should be set with api key")

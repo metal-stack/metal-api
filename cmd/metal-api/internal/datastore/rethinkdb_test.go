@@ -1,19 +1,18 @@
 package datastore
 
 import (
+	"log/slog"
 	"reflect"
 	"testing"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 func TestNew(t *testing.T) {
-	logger := zaptest.NewLogger(t).Sugar()
+	logger := slog.Default()
 	type args struct {
-		log    *zap.SugaredLogger
+		log    *slog.Logger
 		dbhost string
 		dbname string
 		dbuser string

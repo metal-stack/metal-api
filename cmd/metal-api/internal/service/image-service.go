@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,7 +13,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/utils"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -24,7 +24,7 @@ type imageResource struct {
 }
 
 // NewImage returns a webservice for image specific endpoints.
-func NewImage(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
+func NewImage(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	ir := imageResource{
 		webResource: webResource{
 			log: log,

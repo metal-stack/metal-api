@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/metal-stack/masterdata-api/api/rest/mapper"
 	v1 "github.com/metal-stack/masterdata-api/api/rest/v1"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
-	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -26,7 +26,7 @@ type projectResource struct {
 }
 
 // NewProject returns a webservice for project specific endpoints.
-func NewProject(log *zap.SugaredLogger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
+func NewProject(log *slog.Logger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := projectResource{
 		webResource: webResource{
 			log: log,

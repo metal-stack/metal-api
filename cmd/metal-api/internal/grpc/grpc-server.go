@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"runtime/debug"
@@ -27,7 +28,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/zap"
 )
 
 const (
@@ -40,7 +40,7 @@ type ServerConfig struct {
 	Publisher                bus.Publisher
 	Consumer                 *bus.Consumer
 	Store                    *datastore.RethinkStore
-	Logger                   *zap.SugaredLogger
+	Logger                   *slog.Logger
 	GrpcPort                 int
 	TlsEnabled               bool
 	CaCertFile               string
@@ -184,7 +184,7 @@ func Run(cfg *ServerConfig) error {
 	}
 
 	go func() {
-		log.Infow("serve gRPC", "address", listener.Addr())
+		log.Info("serve gRPC", "address", listener.Addr())
 		err = server.Serve(listener)
 	}()
 

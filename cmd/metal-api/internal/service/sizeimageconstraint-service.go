@@ -3,13 +3,13 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -21,7 +21,7 @@ type sizeImageConstraintResource struct {
 }
 
 // NewSize returns a webservice for size specific endpoints.
-func NewSizeImageConstraint(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
+func NewSizeImageConstraint(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	r := sizeImageConstraintResource{
 		webResource: webResource{
 			log: log,

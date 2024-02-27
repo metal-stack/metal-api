@@ -2,13 +2,13 @@ package service
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 
 	"github.com/emicklei/go-restful/v3"
-	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -22,7 +22,7 @@ type vpnResource struct {
 
 // NewVPN returns a webservice for VPN specific endpoints.
 func NewVPN(
-	log *zap.SugaredLogger,
+	log *slog.Logger,
 	headscaleClient *headscale.HeadscaleClient,
 ) *restful.WebService {
 	r := vpnResource{

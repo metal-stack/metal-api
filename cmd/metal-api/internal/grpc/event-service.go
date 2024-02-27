@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
-	"go.uber.org/zap"
 )
 
 type EventService struct {
-	log *zap.SugaredLogger
+	log *slog.Logger
 	ds  *datastore.RethinkStore
 }
 
@@ -24,7 +24,7 @@ func NewEventService(cfg *ServerConfig) *EventService {
 	}
 }
 func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest) (*v1.EventServiceSendResponse, error) {
-	e.log.Debugw("send", "event", req)
+	e.log.Debug("send", "event", req)
 	if req == nil {
 		return nil, fmt.Errorf("no event send")
 	}

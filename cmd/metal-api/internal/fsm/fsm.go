@@ -3,12 +3,12 @@ package fsm
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/fsm/states"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap"
 )
 
 // HandleProvisioningEvent can be called to determine whether the given incoming event follows an expected lifecycle of a machine considering the event history of the given provisioning event container.
@@ -16,7 +16,7 @@ import (
 // The function returns a new provisioning event container that can then be safely persisted in the database. If an error is returned, the incoming event is not supposed to be persisted in the database.
 //
 // Among other things, this function can detect crash loops or other irregularities within a machine lifecycle and enriches the returned provisioning event container with this information.
-func HandleProvisioningEvent(log *zap.SugaredLogger, ec *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
+func HandleProvisioningEvent(log *slog.Logger, ec *metal.ProvisioningEventContainer, event *metal.ProvisioningEvent) (*metal.ProvisioningEventContainer, error) {
 	if ec == nil {
 		return nil, fmt.Errorf("provisioning event container must not be nil")
 	}
