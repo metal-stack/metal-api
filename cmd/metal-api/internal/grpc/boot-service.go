@@ -29,7 +29,7 @@ type BootService struct {
 }
 
 func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService {
-	log := cfg.Logger.Named("boot-service")
+	log := cfg.Logger.WithGroup("boot-service")
 
 	return &BootService{
 		ds:               cfg.Store,

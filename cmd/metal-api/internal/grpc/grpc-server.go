@@ -72,12 +72,12 @@ func Run(cfg *ServerConfig) error {
 		Timeout: 1 * time.Second, // Wait 1 second for the ping ack before assuming the connection is dead
 	}
 
-	log := cfg.Logger.Named("grpc")
-	grpc_zap.ReplaceGrpcLoggerV2(log.Desugar())
+	log := cfg.Logger.WithGroup("grpc")
+	grpc_zap.ReplaceGrpcLoggerV2(log.Desugar()) // FIXME
 
 	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, p any) error {
-			log.Errorf("[PANIC] %s stack:%s", p, string(debug.Stack()))
+			log.Error("[PANIC] %s stack:%s", p, string(debug.Stack()))
 			return status.Errorf(codes.Internal, "%s", p)
 		},
 	)

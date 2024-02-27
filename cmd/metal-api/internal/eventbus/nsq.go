@@ -37,18 +37,18 @@ func (n *NSQClient) WaitForPublisher() {
 	for {
 		publisher, err := n.publisherProvider(n.logger, n.config)
 		if err != nil {
-			n.logger.Sugar().Error("cannot create nsq publisher", "error", err)
+			n.logger.Error("cannot create nsq publisher", "error", err)
 			n.delay()
 			continue
 		}
-		n.logger.Sugar().Info("nsq connected", "nsqd", fmt.Sprintf("%+v", n.config))
+		n.logger.Info("nsq connected", "nsqd", fmt.Sprintf("%+v", n.config))
 		n.Publisher = publisher
 		break
 	}
 }
 
 func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
-	c, err := bus.NewConsumer(n.logger, n.config.TLS, lookupds...)
+	c, err := bus.NewConsumer(n.logger, n.config.TLS, lookupds...) // FIXME
 	if err != nil {
 		return fmt.Errorf("cannot create consumer for endpoints: %w", err)
 	}
@@ -62,7 +62,7 @@ func (n *NSQClient) CreateEndpoints(lookupds ...string) error {
 func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []metal.NSQTopic) {
 	for {
 		if err := n.createTopics(partitions, topics); err != nil {
-			n.logger.Sugar().Error("cannot create topics", "error", err)
+			n.logger.Error("cannot create topics", "error", err)
 			n.delay()
 			continue
 		}
@@ -73,10 +73,10 @@ func (n NSQClient) WaitForTopicsCreated(partitions metal.Partitions, topics []me
 // CreateTopic creates a topic with given name.
 func (n NSQClient) CreateTopic(name string) error {
 	if err := n.Publisher.CreateTopic(name); err != nil {
-		n.logger.Sugar().Error("cannot create topic", "topic", name)
+		n.logger.Error("cannot create topic", "topic", name)
 		return err
 	}
-	n.logger.Sugar().Info("topic created", "topic", name)
+	n.logger.Info("topic created", "topic", name)
 	return nil
 }
 
@@ -86,7 +86,7 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 			continue
 		}
 		if err := n.CreateTopic(topic.Name); err != nil {
-			n.logger.Sugar().Error("cannot create topic", "topic", topic.Name)
+			n.logger.Error("cannot create topic", "topic", topic.Name)
 			return err
 		}
 	}
@@ -98,7 +98,7 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 			}
 			topicFQN := topic.GetFQN(partition.GetID())
 			if err := n.CreateTopic(topicFQN); err != nil {
-				n.logger.Sugar().Error("cannot create topic", "topic", topicFQN, "partition", partition.GetID())
+				n.logger.Error("cannot create topic", "topic", topicFQN, "partition", partition.GetID())
 				return err
 			}
 		}

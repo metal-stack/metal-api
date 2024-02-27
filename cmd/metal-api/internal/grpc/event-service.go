@@ -20,7 +20,7 @@ type EventService struct {
 func NewEventService(cfg *ServerConfig) *EventService {
 	return &EventService{
 		ds:  cfg.Store,
-		log: cfg.Logger.Named("event-service"),
+		log: cfg.Logger.WithGroup("event-service"),
 	}
 }
 func (e *EventService) Send(ctx context.Context, req *v1.EventServiceSendRequest) (*v1.EventServiceSendResponse, error) {
