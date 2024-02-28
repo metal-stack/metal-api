@@ -12,7 +12,6 @@ import (
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -73,7 +72,7 @@ func Run(cfg *ServerConfig) error {
 	}
 
 	log := cfg.Logger.WithGroup("grpc")
-	grpc_zap.ReplaceGrpcLoggerV2(log.Desugar()) // FIXME
+	// grpc_zap.ReplaceGrpcLoggerV2(log.Desugar()) // FIXME
 
 	recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, p any) error {
@@ -94,8 +93,8 @@ func Run(cfg *ServerConfig) error {
 	streamInterceptors := []grpc.StreamServerInterceptor{}
 	unaryInterceptors := []grpc.UnaryServerInterceptor{}
 	if cfg.Auditing != nil {
-		streamInterceptors = append(streamInterceptors, auditing.StreamServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
-		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.Named("auditing-grpc"), shouldAudit))
+		streamInterceptors = append(streamInterceptors, auditing.StreamServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit))
+		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit))
 	}
 
 	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics)
@@ -103,14 +102,14 @@ func Run(cfg *ServerConfig) error {
 	streamInterceptors = append(streamInterceptors,
 		grpc_ctxtags.StreamServerInterceptor(),
 		grpc_prometheus.StreamServerInterceptor,
-		grpc_zap.StreamServerInterceptor(log.Desugar()),
+		// grpc_zap.StreamServerInterceptor(log),// FIXME
 		grpc_internalerror.StreamServerInterceptor(),
 		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 	)
 	unaryInterceptors = append(unaryInterceptors,
 		grpc_ctxtags.UnaryServerInterceptor(),
 		grpc_prometheus.UnaryServerInterceptor,
-		grpc_zap.UnaryServerInterceptor(log.Desugar()),
+		// grpc_zap.UnaryServerInterceptor(log.Desugar()), // FIXME
 		grpc_internalerror.UnaryServerInterceptor(),
 		grpc_recovery.UnaryServerInterceptor(recoveryOpt),
 	)

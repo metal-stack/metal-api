@@ -304,7 +304,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
-	mdc := mdm.NewMock(psc, nil)
+	mdc := mdm.NewMock(psc, nil, nil)
 
 	_, pg, err := test.StartPostgres()
 	require.NoError(t, err)

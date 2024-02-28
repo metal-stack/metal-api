@@ -1,4 +1,9 @@
 {
+  "level": "INFO",
+  "msg": "s3 server that provides firmware is disabled",
+  "time": "2024-02-28T07:19:24.082873485+01:00"
+}
+{
   "basePath": "/",
   "definitions": {
     "datastore.IPSearchQuery": {

@@ -24,8 +24,6 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"go.uber.org/zap"
-
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
@@ -1759,7 +1757,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
 	if err != nil {
-		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("unable to publish machine command", "command", string(metal.ChassisIdentifyLEDOffCmd), "machineID", m.ID, "error", err)
 	}
 
 	err = r.actor.freeMachine(request.Request.Context(), r.Publisher, m, r.headscaleClient, logger)
@@ -1916,7 +1914,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 				return
 			}
 
-			logger.Info("marked machine to get reinstalled", zap.String("machineID", m.ID))
+			logger.Info("marked machine to get reinstalled", "machineID", m.ID)
 
 			err = deleteVRFSwitches(r.ds, m, logger)
 			if err != nil {
@@ -1932,7 +1930,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 
 			err = publishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
 			if err != nil {
-				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstallCmd)), zap.String("machineID", m.ID), zap.Error(err))
+				logger.Error("unable to publish machine command", "command", string(metal.MachineReinstallCmd), "machineID", m.ID, "error", err)
 			}
 
 			r.send(request, response, http.StatusOK, resp)
@@ -1945,7 +1943,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 }
 
 func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *slog.Logger) error {
-	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
+	logger.Info("set VRF at switch", "machineID", m.ID)
 	err := retry.Do(
 		func() error {
 			_, err := ds.SetVrfAtSwitches(m, "")
@@ -1959,18 +1957,18 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *slo
 		retry.LastErrorOnly(true),
 	)
 	if err != nil {
-		logger.Error("cannot delete vrf switches", zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("cannot delete vrf switches", "machineID", m.ID, "error", err)
 		return fmt.Errorf("cannot delete vrf switches: %w", err)
 	}
 	return nil
 }
 
 func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *slog.Logger) error {
-	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
+	logger.Info("publish machine delete event", "machineID", m.ID)
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	if err != nil {
-		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("cannot publish delete event", "machineID", m.ID, "error", err)
 		return fmt.Errorf("cannot publish delete event: %w", err)
 	}
 	return nil

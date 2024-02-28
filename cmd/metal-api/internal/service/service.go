@@ -15,7 +15,6 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/security"
-	"go.uber.org/zap"
 )
 
 const (
@@ -34,8 +33,8 @@ type webResource struct {
 
 // logger returns the request logger from the request.
 func (w *webResource) logger(rq *restful.Request) *slog.Logger {
-	requestLogger := rest.GetLoggerFromContext(rq.Request, w.log) // FIXME
-	return requestLogger.WithOptions(zap.AddCallerSkip(1))
+	requestLogger := rest.GetLoggerFromContext(rq.Request, w.log)
+	return requestLogger
 }
 
 func (w *webResource) sendError(rq *restful.Request, rsp *restful.Response, httperr *httperrors.HTTPErrorResponse) {
@@ -207,7 +206,7 @@ func (e *TenantEnsurer) EnsureAllowedTenantFilter(req *restful.Request, resp *re
 	if !e.allowed(tenantID) {
 		httperror := httperrors.Forbidden(fmt.Errorf("tenant %s not allowed", tenantID))
 
-		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger).Desugar().WithOptions(zap.AddCallerSkip(1)).Sugar()
+		requestLogger := rest.GetLoggerFromContext(req.Request, e.logger) // FIXME call stack skip missing
 		requestLogger.Error("service error", "status", httperror.StatusCode, "error", httperror.Message)
 
 		send(requestLogger, resp, httperror.StatusCode, httperror.Message)

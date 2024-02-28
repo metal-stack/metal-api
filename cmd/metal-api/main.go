@@ -38,7 +38,6 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
@@ -349,7 +348,7 @@ func initLogging() {
 		)
 		err := lvlvar.UnmarshalText([]byte(viper.GetString("log-level")))
 		if err != nil {
-			panic(fmt.Errorf("can't initialize zap logger: %w", err))
+			panic(fmt.Errorf("can't initialize logger: %w", err))
 		}
 		level = lvlvar.Level()
 	}
@@ -588,13 +587,13 @@ func initAuth(lg *slog.Logger) security.UserGetter {
 
 	grpr, err := grp.NewGrpr(grp.Config{ProviderTenant: providerTenant})
 	if err != nil {
-		log.Fatal("error creating grpr: %s", err)
+		log.Fatalf("error creating grpr: %s", err)
 	}
 	plugin := sec.NewPlugin(grpr)
 
 	issuerCacheInterval, err := time.ParseDuration(viper.GetString("issuercache-interval"))
 	if err != nil {
-		log.Fatal("error parsing issuercache-interval: %s", err)
+		log.Fatalf("error parsing issuercache-interval: %s", err)
 	}
 
 	// create multi issuer cache that holds all trusted issuers from masterdata, in this case: only provider tenant
@@ -638,7 +637,7 @@ func initAuth(lg *slog.Logger) security.UserGetter {
 	}, security.IssuerReloadInterval(issuerCacheInterval))
 
 	if err != nil || issuerCache == nil {
-		log.Fatal("error creating dynamic oidc resolver: %s", err)
+		log.Fatalf("error creating dynamic oidc resolver: %s", err)
 	}
 	logger.Info("dynamic oidc resolver successfully initialized")
 
@@ -648,7 +647,7 @@ func initAuth(lg *slog.Logger) security.UserGetter {
 	if dexAddr != "" {
 		dx, err := security.NewDex(dexAddr)
 		if err != nil {
-			log.Fatal("dex not reachable: %s", err)
+			log.Fatalf("dex not reachable: %s", err)
 		}
 		if dx != nil {
 			// use custom user extractor and group processor
@@ -746,7 +745,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 
 	minClientVersion, err := semver.NewVersion(viper.GetString("minimum-client-version"))
 	if err != nil {
-		log.Fatal("given minimum client version is not semver parsable: %s", err)
+		log.Fatalf("given minimum client version is not semver parsable: %s", err)
 	}
 
 	restful.DefaultContainer.Add(service.NewAudit(logger.WithGroup("audit-service"), audit))
@@ -947,7 +946,7 @@ func run() error {
 
 	audit, err := createAuditingClient(logger)
 	if err != nil {
-		log.Fatal("cannot create auditing client:%s ", err)
+		log.Fatalf("cannot create auditing client:%s ", err)
 	}
 	initRestServices(audit, true, ipmiSuperUser)
 
@@ -974,7 +973,7 @@ func run() error {
 		response.WriteHeader(serviceErr.Code)
 		err := response.WriteAsJson(httperrors.NewHTTPError(serviceErr.Code, fmt.Errorf(serviceErr.Message)))
 		if err != nil {
-			logger.Error("Failed to send response", zap.Error(err))
+			logger.Error("Failed to send response", "error", err)
 			return
 		}
 	})
@@ -984,9 +983,9 @@ func run() error {
 		p = nsqer.Publisher
 	}
 
-	c, err := bus.NewConsumer(logger.Desugar(), publisherTLSConfig, viper.GetString("nsqlookupd-addr"))
+	c, err := bus.NewConsumer(logger, publisherTLSConfig, viper.GetString("nsqlookupd-addr"))
 	if err != nil {
-		logger.Fatalw("cannot connect to NSQ", "error", err)
+		log.Fatalf("cannot connect to NSQ: %s", err)
 	}
 
 	go func() {
@@ -1006,7 +1005,7 @@ func run() error {
 			IPMISuperUser:            ipmiSuperUser,
 		})
 		if err != nil {
-			log.Fatal("error running grpc server:%s", err)
+			log.Fatalf("error running grpc server:%s", err)
 		}
 	}()
 

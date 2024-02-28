@@ -18,7 +18,7 @@ require (
 	github.com/looplab/fsm v0.3.0
 	github.com/metal-stack/go-ipam v1.8.5
 	github.com/metal-stack/masterdata-api v0.11.1
-	github.com/metal-stack/metal-lib v0.14.4
+	github.com/metal-stack/metal-lib v0.14.5-0.20240214103407-b770f3410061
 	github.com/metal-stack/security v0.7.2
 	github.com/metal-stack/v v1.0.3
 	github.com/nsqio/go-nsq v1.1.0
@@ -28,7 +28,6 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/testcontainers/testcontainers-go v0.28.0
 	github.com/undefinedlabs/go-mpatch v1.0.7
-	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.20.0
 	golang.org/x/sync v0.6.0
 	google.golang.org/grpc v1.62.0
@@ -45,7 +44,7 @@ replace (
 )
 
 require (
-	connectrpc.com/connect v1.14.0 // indirect
+	connectrpc.com/connect v1.15.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
@@ -126,7 +125,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mdlayher/netlink v1.7.2 // indirect
 	github.com/mdlayher/socket v0.5.0 // indirect
-	github.com/meilisearch/meilisearch-go v0.26.1 // indirect
+	github.com/meilisearch/meilisearch-go v0.26.2 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect

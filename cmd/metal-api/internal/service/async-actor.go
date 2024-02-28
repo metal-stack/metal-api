@@ -8,8 +8,6 @@ import (
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 
-	"go.uber.org/zap"
-
 	ipamer "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
@@ -52,7 +50,7 @@ func (a *asyncActor) freeMachine(ctx context.Context, pub bus.Publisher, m *meta
 	if headscaleClient != nil && m.Allocation != nil {
 		// always call DeleteMachine, in case machine is not registered it will return nil
 		if err := headscaleClient.DeleteMachine(ctx, m.ID, m.Allocation.Project); err != nil {
-			logger.Error("unable to delete Node entry from headscale DB", zap.String("machineID", m.ID), zap.Error(err))
+			logger.Error("unable to delete Node entry from headscale DB", "machineID", m.ID, "error", err)
 		}
 	}
 

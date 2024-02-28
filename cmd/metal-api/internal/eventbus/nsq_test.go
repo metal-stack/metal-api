@@ -7,7 +7,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestNewNSQ(t *testing.T) {
@@ -54,7 +53,7 @@ func TestNSQ_WaitForTopicsCreated(t *testing.T) {
 		T:     t,
 		topic: topic.GetFQN(partition.GetID()),
 	}
-	nsq := NewNSQ(nil, zap.NewNop(), func(*slog.Logger, *bus.PublisherConfig) (bus.Publisher, error) {
+	nsq := NewNSQ(nil, slog.Default(), func(*slog.Logger, *bus.PublisherConfig) (bus.Publisher, error) {
 		return nil, nil
 	})
 	assert.NotNil(t, nsq)
