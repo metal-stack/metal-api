@@ -1310,7 +1310,7 @@ func TestToggleSwitchWrongNic(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	require.NoError(t, err)
-	require.Equal(t, result.Message, "the nic \"wrongname\" does not exist in this switch")
+	require.Equal(t, "the nic \"wrongname\" does not exist in this switch", result.Message)
 }
 
 func TestToggleSwitchWrongState(t *testing.T) {
@@ -1383,5 +1383,5 @@ func TestToggleSwitch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.Name, *result.Name)
-	require.Equal(t, result.Nics[0].Actual, v1.SwitchPortStatusUnknown)
+	require.Equal(t, v1.SwitchPortStatusUnknown, result.Nics[0].Actual)
 }
