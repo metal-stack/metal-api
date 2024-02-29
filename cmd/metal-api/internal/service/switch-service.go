@@ -108,6 +108,7 @@ func (r *switchResource) webService() *restful.WebService {
 	ws.Route(ws.POST("/{id}/port").
 		To(admin(r.toggleSwitchPort)).
 		Operation("toggleSwitchPort").
+		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
 		Doc("toggles the port of the switch with a nicname to the given state").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SwitchPortToggleRequest{}).
