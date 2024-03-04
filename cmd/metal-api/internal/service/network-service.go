@@ -699,6 +699,11 @@ func (r *networkResource) deleteNetwork(request *restful.Request, response *rest
 		return
 	}
 
+	if len(children) != 0 {
+		r.sendError(request, response, defaultError(errors.New("network cannot be deleted because there are children of this network")))
+		return
+	}
+
 	allIPs, err := r.ds.ListIPs()
 	if err != nil {
 		r.sendError(request, response, defaultError(err))

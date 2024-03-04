@@ -367,6 +367,18 @@ func (r *imageResource) deleteImage(request *restful.Request, response *restful.
 		return
 	}
 
+	ms, err := r.ds.ListMachines()
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	machines := r.machinesByImage(ms, img.ID)
+	if len(machines) > 0 {
+		r.sendError(request, response, httperrors.UnprocessableEntity(fmt.Errorf("image %s is in use by machines:%v", img.ID, machines)))
+		return
+	}
+
 	err = r.ds.DeleteImage(img)
 	if err != nil {
 		r.sendError(request, response, defaultError(err))
