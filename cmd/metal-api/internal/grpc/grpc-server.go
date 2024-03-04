@@ -90,11 +90,19 @@ func Run(cfg *ServerConfig) error {
 		}
 	}
 
+	auditStreamInterceptor, err := auditing.StreamServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
+	if err != nil {
+		return err
+	}
+	auditUnaryInterceptor, err := auditing.UnaryServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
+	if err != nil {
+		return err
+	}
 	streamInterceptors := []grpc.StreamServerInterceptor{}
 	unaryInterceptors := []grpc.UnaryServerInterceptor{}
 	if cfg.Auditing != nil {
-		streamInterceptors = append(streamInterceptors, auditing.StreamServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit))
-		unaryInterceptors = append(unaryInterceptors, auditing.UnaryServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit))
+		streamInterceptors = append(streamInterceptors, auditStreamInterceptor)
+		unaryInterceptors = append(unaryInterceptors, auditUnaryInterceptor)
 	}
 
 	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics)
@@ -125,7 +133,7 @@ func Run(cfg *ServerConfig) error {
 	eventService := NewEventService(cfg)
 	bootService := NewBootService(cfg, eventService)
 
-	err := bootService.initWaitEndpoint()
+	err = bootService.initWaitEndpoint()
 	if err != nil {
 		return err
 	}

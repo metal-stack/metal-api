@@ -778,7 +778,11 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	}
 
 	if audit != nil {
-		restful.DefaultContainer.Filter(auditing.HttpFilter(audit, logger.WithGroup("audit-middleware"))) // FIXME
+		httpFilter, err := auditing.HttpFilter(audit, logger.WithGroup("audit-middleware"))
+		if err != nil {
+			log.Fatalf("unable to create http filter for auditing: %s", err)
+		}
+		restful.DefaultContainer.Filter(httpFilter) // FIXME
 	}
 
 	config := restfulspec.Config{
