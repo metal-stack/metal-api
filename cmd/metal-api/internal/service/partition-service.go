@@ -205,6 +205,17 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 		commandLine = *requestPayload.PartitionBootConfiguration.CommandLine
 	}
 
+	var minSize, maxSize string
+	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
+		_, err = metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMaxSize)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+		minSize = *requestPayload.PartitionWaitingPoolMinSize
+		maxSize = *requestPayload.PartitionWaitingPoolMaxSize
+	}
+
 	p := &metal.Partition{
 		Base: metal.Base{
 			ID:          requestPayload.ID,
@@ -219,6 +230,8 @@ func (r *partitionResource) createPartition(request *restful.Request, response *
 			KernelURL:   kernelURL,
 			CommandLine: commandLine,
 		},
+		WaitingPoolMinSize: minSize,
+		WaitingPoolMaxSize: maxSize,
 	}
 
 	fqn := metal.TopicMachine.GetFQN(p.GetID())
@@ -302,6 +315,17 @@ func (r *partitionResource) updatePartition(request *restful.Request, response *
 	}
 	if requestPayload.PartitionBootConfiguration.CommandLine != nil {
 		newPartition.BootConfiguration.CommandLine = *requestPayload.PartitionBootConfiguration.CommandLine
+	}
+
+	if requestPayload.PartitionWaitingPoolMinSize != nil && requestPayload.PartitionWaitingPoolMaxSize != nil {
+		_, err := metal.NewScalerRange(*requestPayload.PartitionWaitingPoolMinSize, *requestPayload.PartitionWaitingPoolMinSize)
+		if err != nil {
+			r.sendError(request, response, httperrors.BadRequest(err))
+			return
+		}
+
+		newPartition.WaitingPoolMinSize = *requestPayload.PartitionWaitingPoolMinSize
+		newPartition.WaitingPoolMaxSize = *requestPayload.PartitionWaitingPoolMaxSize
 	}
 
 	err = r.ds.UpdatePartition(oldPartition, &newPartition)

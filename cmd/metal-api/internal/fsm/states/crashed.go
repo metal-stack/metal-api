@@ -6,6 +6,7 @@ import (
 )
 
 type CrashState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -17,7 +18,7 @@ func newCrash(c *StateConfig) *CrashState {
 	}
 }
 
-func (p *CrashState) OnTransition(e *fsm.Event) {
+func (p *CrashState) OnEnter(e *fsm.Event) {
 	p.container.CrashLoop = true
 	p.container.LastErrorEvent = p.event
 	appendEventToContainer(p.event, p.container)

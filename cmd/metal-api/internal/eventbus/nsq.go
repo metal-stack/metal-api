@@ -109,3 +109,22 @@ func (n NSQClient) createTopics(partitions metal.Partitions, topics []metal.NSQT
 func (n NSQClient) delay() {
 	time.Sleep(nsqdRetryDelay)
 }
+
+func PublishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
+	evt := metal.MachineEvent{
+		Type: metal.COMMAND,
+		Cmd: &metal.MachineExecCommand{
+			Command:         cmd,
+			TargetMachineID: m.ID,
+			IPMI:            &m.IPMI,
+		},
+	}
+
+	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -8,17 +8,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap/zaptest"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
-
 	restful "github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/httperrors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 type nopTopicCreater struct {

@@ -6,6 +6,7 @@ import (
 )
 
 type RegisteringState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -17,6 +18,6 @@ func newRegistering(c *StateConfig) *RegisteringState {
 	}
 }
 
-func (p *RegisteringState) OnTransition(e *fsm.Event) {
+func (p *RegisteringState) OnEnter(e *fsm.Event) {
 	appendEventToContainer(p.event, p.container)
 }

@@ -5,9 +5,11 @@ import (
 )
 
 type PartitionBase struct {
-	MgmtServiceAddress         *string           `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
-	PrivateNetworkPrefixLength *int              `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
-	Labels                     map[string]string `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
+	MgmtServiceAddress          *string           `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
+	PrivateNetworkPrefixLength  *int              `json:"privatenetworkprefixlength" description:"the length of private networks for the machine's child networks in this partition, default 22" optional:"true" minimum:"16" maximum:"30"`
+	PartitionWaitingPoolMinSize *string           `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition" optional:"true"`
+	PartitionWaitingPoolMaxSize *string           `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition" optional:"true"`
+	Labels                      map[string]string `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
 }
 
 type PartitionBootConfiguration struct {
@@ -24,9 +26,11 @@ type PartitionCreateRequest struct {
 
 type PartitionUpdateRequest struct {
 	Common
-	MgmtServiceAddress         *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
-	PartitionBootConfiguration *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
-	Labels                     map[string]string           `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
+	MgmtServiceAddress          *string                     `json:"mgmtserviceaddress" description:"the address to the management service of this partition" optional:"true"`
+	PartitionBootConfiguration  *PartitionBootConfiguration `json:"bootconfig" description:"the boot configuration of this partition" optional:"true"`
+	PartitionWaitingPoolMinSize *string                     `json:"waitingpoolminsize" description:"the minimum waiting pool size of this partition" optional:"true"`
+	PartitionWaitingPoolMaxSize *string                     `json:"waitingpoolmaxsize" description:"the maximum waiting pool size of this partition" optional:"true"`
+	Labels                      map[string]string           `json:"labels" description:"free labels that you associate with this partition" optional:"true"`
 }
 
 type PartitionResponse struct {
@@ -85,8 +89,10 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			},
 		},
 		PartitionBase: PartitionBase{
-			MgmtServiceAddress:         &p.MgmtServiceAddress,
-			PrivateNetworkPrefixLength: &prefixLength,
+			MgmtServiceAddress:          &p.MgmtServiceAddress,
+			PrivateNetworkPrefixLength:  &prefixLength,
+			PartitionWaitingPoolMinSize: &p.WaitingPoolMinSize,
+			PartitionWaitingPoolMaxSize: &p.WaitingPoolMaxSize,
 		},
 		PartitionBootConfiguration: PartitionBootConfiguration{
 			ImageURL:    &p.BootConfiguration.ImageURL,

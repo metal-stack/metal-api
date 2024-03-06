@@ -1,8 +1,11 @@
 package states
 
 import (
+	"fmt"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
+	"github.com/metal-stack/metal-api/cmd/metal-api/internal/scaler"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +25,8 @@ const (
 )
 
 type FSMState interface {
-	OnTransition(e *fsm.Event)
+	OnEnter(e *fsm.Event)
+	OnLeave(e *fsm.Event)
 }
 
 type stateType string
@@ -35,6 +39,20 @@ type StateConfig struct {
 	Log       *zap.SugaredLogger
 	Container *metal.ProvisioningEventContainer
 	Event     *metal.ProvisioningEvent
+	Scaler    *scaler.PoolScaler
+	Machine   *metal.Machine
+}
+
+func (c *StateConfig) Validate() error {
+	if c.Container == nil {
+		return fmt.Errorf("provisioning event container must not be nil")
+	}
+
+	if c.Event == nil {
+		return fmt.Errorf("provisioning event must not be nil")
+	}
+
+	return nil
 }
 
 func AllStates(c *StateConfig) map[string]FSMState {

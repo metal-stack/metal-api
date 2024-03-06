@@ -6,6 +6,7 @@ import (
 )
 
 type MachineReclaimState struct {
+	noopState
 	container *metal.ProvisioningEventContainer
 	event     *metal.ProvisioningEvent
 }
@@ -17,7 +18,7 @@ func newMachineReclaim(c *StateConfig) *MachineReclaimState {
 	}
 }
 
-func (p *MachineReclaimState) OnTransition(e *fsm.Event) {
+func (p *MachineReclaimState) OnEnter(e *fsm.Event) {
 	p.container.CrashLoop = false
 	appendEventToContainer(p.event, p.container)
 }
