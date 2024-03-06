@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -427,7 +428,7 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -439,6 +440,11 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 		"waiting":      true,
 		"preallocated": false,
 	})
+
+	if err := rs.machineMutex.lock(ctx); err != nil {
+		return nil, fmt.Errorf("too many parallel machine allocations taking place, try again later")
+	}
+	defer rs.machineMutex.unlock()
 
 	var candidates metal.Machines
 	err := rs.searchEntities(&q, &candidates)

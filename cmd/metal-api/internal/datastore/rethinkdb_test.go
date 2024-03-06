@@ -3,6 +3,7 @@ package datastore
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"go.uber.org/zap"
@@ -45,6 +46,8 @@ func TestNew(t *testing.T) {
 				VRFPoolRangeMax: DefaultVRFPoolRangeMax,
 				ASNPoolRangeMin: DefaultASNPoolRangeMin,
 				ASNPoolRangeMax: DefaultASNPoolRangeMax,
+
+				sharedMutexMaxBlockTime: 10 * time.Second,
 			},
 		},
 	}
@@ -105,34 +108,6 @@ func TestRethinkStore_Close(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.rs.Close(); (err != nil) != tt.wantErr {
 				t.Errorf("RethinkStore.Close() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func Test_connect(t *testing.T) {
-	type args struct {
-		hosts  []string
-		dbname string
-		user   string
-		pwd    string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *r.Term
-		wantErr bool
-	}{}
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := connect(tt.args.hosts, tt.args.dbname, tt.args.user, tt.args.pwd)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("connect() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("connect() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

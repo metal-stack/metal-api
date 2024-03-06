@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -18,7 +19,19 @@ const (
 )
 
 var tables = []string{
-	"image", "size", "partition", "machine", "switch", "switchstatus", "event", "network", "ip", "migration", "filesystemlayout", "sizeimageconstraint",
+	"image",
+	"size",
+	"partition",
+	"machine",
+	"switch",
+	"switchstatus",
+	"event",
+	"network",
+	"ip",
+	"migration",
+	"filesystemlayout",
+	"sizeimageconstraint",
+	"sharedmutex",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
 	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
@@ -36,10 +49,15 @@ type RethinkStore struct {
 	dbhost string
 
 	// TODO: should not be public
-	VRFPoolRangeMin uint
-	VRFPoolRangeMax uint
-	ASNPoolRangeMin uint
-	ASNPoolRangeMax uint
+	VRFPoolRangeMin         uint
+	VRFPoolRangeMax         uint
+	ASNPoolRangeMin         uint
+	ASNPoolRangeMax         uint
+	sharedMutexMaxBlockTime time.Duration
+
+	mutexCtx     context.Context
+	mutexCancel  context.CancelFunc
+	machineMutex *sharedMutex
 }
 
 // New creates a new rethink store.
@@ -51,10 +69,11 @@ func New(log *zap.SugaredLogger, dbhost string, dbname string, dbuser string, db
 		dbuser: dbuser,
 		dbpass: dbpass,
 
-		VRFPoolRangeMin: DefaultVRFPoolRangeMin,
-		VRFPoolRangeMax: DefaultVRFPoolRangeMax,
-		ASNPoolRangeMin: DefaultASNPoolRangeMin,
-		ASNPoolRangeMax: DefaultASNPoolRangeMax,
+		VRFPoolRangeMin:         DefaultVRFPoolRangeMin,
+		VRFPoolRangeMax:         DefaultVRFPoolRangeMax,
+		ASNPoolRangeMin:         DefaultASNPoolRangeMin,
+		ASNPoolRangeMax:         DefaultASNPoolRangeMax,
+		sharedMutexMaxBlockTime: 10 * time.Second,
 	}
 }
 
@@ -241,7 +260,13 @@ func (rs *RethinkStore) Close() error {
 			return err
 		}
 	}
+
+	if rs.mutexCancel != nil {
+		rs.mutexCancel()
+	}
+
 	rs.log.Info("Rethinkstore disconnected")
+
 	return nil
 }
 
@@ -251,6 +276,8 @@ func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
+	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
+	rs.machineMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, "machine", rs.sharedMutexMaxBlockTime)
 	return nil
 }
 
@@ -264,6 +291,8 @@ func (rs *RethinkStore) Demote() error {
 	}
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
+	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
+	rs.machineMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, "machine", rs.sharedMutexMaxBlockTime)
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil
