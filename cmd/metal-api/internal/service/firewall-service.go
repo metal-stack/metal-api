@@ -206,7 +206,7 @@ func (r *firewallResource) allocateFirewall(request *restful.Request, response *
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, metal.RoleFirewall, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload.MachineAllocateRequest, &requestPayload.FirewallAllocateRequest, user)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return

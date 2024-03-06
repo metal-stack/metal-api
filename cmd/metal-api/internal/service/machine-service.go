@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/headscale"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/issues"
 	"github.com/metal-stack/metal-lib/auditing"
@@ -76,6 +77,8 @@ type machineAllocationSpec struct {
 	Role               metal.Role
 	VPN                *metal.MachineVPN
 	PlacementTags      []string
+	EgressRules        []metal.EgressRule
+	IngressRules       []metal.IngressRule
 }
 
 // allocationNetwork is intermediate struct to create machine networks from regular networks during machine allocation
@@ -976,7 +979,7 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 		return
 	}
 
-	spec, err := createMachineAllocationSpec(r.ds, requestPayload, metal.RoleMachine, user)
+	spec, err := createMachineAllocationSpec(r.ds, requestPayload, nil, user)
 	if err != nil {
 		r.sendError(request, response, httperrors.BadRequest(err))
 		return
@@ -997,37 +1000,102 @@ func (r *machineResource) allocateMachine(request *restful.Request, response *re
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.MachineAllocateRequest, role metal.Role, user *security.User) (*machineAllocationSpec, error) {
+func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.MachineAllocateRequest, firewallRequest *v1.FirewallAllocateRequest, user *security.User) (*machineAllocationSpec, error) {
 	var uuid string
-	if requestPayload.UUID != nil {
-		uuid = *requestPayload.UUID
+	if machineRequest.UUID != nil {
+		uuid = *machineRequest.UUID
 	}
 	var name string
-	if requestPayload.Name != nil {
-		name = *requestPayload.Name
+	if machineRequest.Name != nil {
+		name = *machineRequest.Name
 	}
 	var description string
-	if requestPayload.Description != nil {
-		description = *requestPayload.Description
+	if machineRequest.Description != nil {
+		description = *machineRequest.Description
 	}
 	hostname := "metal"
-	if requestPayload.Hostname != nil {
-		hostname = *requestPayload.Hostname
+	if machineRequest.Hostname != nil {
+		hostname = *machineRequest.Hostname
 	}
 	var userdata string
-	if requestPayload.UserData != nil {
-		userdata = *requestPayload.UserData
+	if machineRequest.UserData != nil {
+		userdata = *machineRequest.UserData
 	}
-	if requestPayload.Networks == nil {
+	if machineRequest.Networks == nil {
 		return nil, errors.New("network ids cannot be nil")
 	}
-	if len(requestPayload.Networks) <= 0 {
+	if len(machineRequest.Networks) <= 0 {
 		return nil, errors.New("network ids cannot be empty")
 	}
 
-	image, err := ds.FindImage(requestPayload.ImageID)
+	image, err := ds.FindImage(machineRequest.ImageID)
 	if err != nil {
 		return nil, err
+	}
+
+	var (
+		egress  []metal.EgressRule
+		ingress []metal.IngressRule
+		role    = metal.RoleMachine
+	)
+
+	if firewallRequest != nil {
+		role = metal.RoleFirewall
+
+		if firewallRequest.FirewallRules != nil {
+			for _, ruleSpec := range firewallRequest.FirewallRules.Egress {
+				ruleSpec := ruleSpec
+
+				if ruleSpec.Protocol == "" {
+					ruleSpec.Protocol = string(metal.ProtocolTCP)
+				}
+
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.EgressRule{
+					Protocol: protocol,
+					Ports:    ruleSpec.Ports,
+					To:       ruleSpec.To,
+					Comment:  ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				egress = append(egress, rule)
+			}
+
+			for _, ruleSpec := range firewallRequest.FirewallRules.Ingress {
+				ruleSpec := ruleSpec
+
+				if ruleSpec.Protocol == "" {
+					ruleSpec.Protocol = string(metal.ProtocolTCP)
+				}
+
+				protocol, err := metal.ProtocolFromString(ruleSpec.Protocol)
+				if err != nil {
+					return nil, err
+				}
+
+				rule := metal.IngressRule{
+					Protocol: protocol,
+					Ports:    ruleSpec.Ports,
+					To:       ruleSpec.To,
+					From:     ruleSpec.From,
+					Comment:  ruleSpec.Comment,
+				}
+
+				if err := rule.Validate(); err != nil {
+					return nil, err
+				}
+
+				ingress = append(ingress, rule)
+			}
+		}
 	}
 
 	imageFeatureType := metal.ImageFeatureMachine
@@ -1039,8 +1107,8 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		return nil, fmt.Errorf("given image is not usable for a %s, features: %s", imageFeatureType, image.ImageFeatureString())
 	}
 
-	partitionID := requestPayload.PartitionID
-	sizeID := requestPayload.SizeID
+	partitionID := machineRequest.PartitionID
+	sizeID := machineRequest.SizeID
 
 	if uuid == "" && partitionID == "" {
 		return nil, errors.New("when no machine id is given, a partition id must be specified")
@@ -1072,19 +1140,21 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, requestPayload v1.M
 		Name:               name,
 		Description:        description,
 		Hostname:           hostname,
-		ProjectID:          requestPayload.ProjectID,
+		ProjectID:          machineRequest.ProjectID,
 		PartitionID:        partitionID,
 		Machine:            m,
 		Size:               size,
 		Image:              image,
-		SSHPubKeys:         requestPayload.SSHPubKeys,
+		SSHPubKeys:         machineRequest.SSHPubKeys,
 		UserData:           userdata,
-		Tags:               requestPayload.Tags,
-		Networks:           requestPayload.Networks,
-		IPs:                requestPayload.IPs,
+		Tags:               machineRequest.Tags,
+		Networks:           machineRequest.Networks,
+		IPs:                machineRequest.IPs,
 		Role:               role,
-		FilesystemLayoutID: requestPayload.FilesystemLayoutID,
-		PlacementTags:      requestPayload.PlacementTags,
+		FilesystemLayoutID: machineRequest.FilesystemLayoutID,
+		PlacementTags:      machineRequest.PlacementTags,
+		EgressRules:        egress,
+		IngressRules:       ingress,
 	}, nil
 }
 
@@ -1142,6 +1212,14 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 		return nil, err
 	}
 
+	var firewallRules *metal.FirewallRules
+	if len(allocationSpec.EgressRules) > 0 || len(allocationSpec.IngressRules) > 0 {
+		firewallRules = &metal.FirewallRules{
+			Egress:  allocationSpec.EgressRules,
+			Ingress: allocationSpec.IngressRules,
+		}
+	}
+
 	// as some fields in the allocation spec are optional, they will now be clearly defined by the machine candidate
 	allocationSpec.UUID = machineCandidate.ID
 
@@ -1158,6 +1236,8 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 		MachineNetworks: []*metal.MachineNetwork{},
 		Role:            allocationSpec.Role,
 		VPN:             allocationSpec.VPN,
+		FirewallRules:   firewallRules,
+		UUID:            uuid.New().String(),
 	}
 	rollbackOnError := func(err error) error {
 		if err != nil {
@@ -1533,7 +1613,7 @@ func gatherUnderlayNetwork(ds *datastore.RethinkStore, partition *metal.Partitio
 
 func makeMachineNetwork(ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, n *allocationNetwork) (*metal.MachineNetwork, error) {
 	if n.auto {
-		ipAddress, ipParentCidr, err := allocateIP(n.network, "", ipamer)
+		ipAddress, ipParentCidr, err := allocateRandomIP(n.network, ipamer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to allocate an ip in network: %s %w", n.network.ID, err)
 		}

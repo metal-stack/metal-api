@@ -66,7 +66,14 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 	if p == nil {
 		return nil
 	}
+
 	prefixLength := int(p.PrivateNetworkPrefixLength)
+
+	labels := map[string]string{}
+	if p.Labels != nil {
+		labels = p.Labels
+	}
+
 	return &PartitionResponse{
 		Common: Common{
 			Identifiable: Identifiable{
@@ -90,7 +97,7 @@ func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
 			Created: p.Created,
 			Changed: p.Changed,
 		},
-		Labels: p.Labels,
+		Labels: labels,
 	}
 }
 
