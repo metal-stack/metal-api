@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -40,7 +41,7 @@ func Test_sharedMutex_acquireAfterRelease(t *testing.T) {
 		defer wg.Done()
 
 		err = sharedDS.machineMutex.lock(ctx)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}()
 
 	time.Sleep(1 * time.Second)
