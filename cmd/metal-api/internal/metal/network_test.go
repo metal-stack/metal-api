@@ -10,7 +10,7 @@ func TestNics_ByIdentifier(t *testing.T) {
 	// Create Nics
 	countOfNics := 3
 	nicArray := make([]Nic, countOfNics)
-	for i := 0; i < countOfNics; i++ {
+	for i := range countOfNics {
 		nicArray[i] = Nic{
 			MacAddress: MacAddress("11:11:1" + fmt.Sprintf("%d", i)),
 			Name:       "swp" + fmt.Sprintf("%d", i),
@@ -19,7 +19,7 @@ func TestNics_ByIdentifier(t *testing.T) {
 	}
 
 	// all have all as Neighbors
-	for i := 0; i < countOfNics; i++ {
+	for i := range countOfNics {
 		nicArray[i].Neighbors = append(nicArray[0:i], nicArray[i+1:countOfNics]...)
 	}
 

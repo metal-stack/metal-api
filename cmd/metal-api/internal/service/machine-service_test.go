@@ -9,11 +9,6 @@ import (
 	"testing"
 
 	"github.com/emicklei/go-restful/v3"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
-	"golang.org/x/crypto/ssh"
-	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
-
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
@@ -22,6 +17,10 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
+	"golang.org/x/crypto/ssh"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 const (

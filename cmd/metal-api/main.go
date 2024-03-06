@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -101,7 +102,10 @@ var rootCmd = &cobra.Command{
 		initIpam()
 		initMasterData()
 		initSignalHandlers()
-		initHeadscale()
+		err = initHeadscale()
+		if err != nil {
+			return err
+		}
 		return run()
 	},
 }
@@ -174,7 +178,10 @@ var machineConnectedToVPN = &cobra.Command{
 	Version: v.V.String(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		initLogging()
-		initHeadscale()
+		err := initHeadscale()
+		if err != nil {
+			return err
+		}
 		return evaluateVPNConnected()
 	},
 }
@@ -541,7 +548,7 @@ func initMasterData() {
 	var err error
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, logger.Desugar())
+		mdc, err = mdm.NewClient(ctx, hostname, port, certpath, certkeypath, ca, hmacKey, false, slog.Default())
 		if err == nil {
 			cancel()
 			break
@@ -791,8 +798,13 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 	return &config
 }
 
-func initHeadscale() {
+func initHeadscale() error {
 	var err error
+
+	if !viper.IsSet("headscale-addr") {
+		logger.Info("headscale disabled")
+		return nil
+	}
 
 	headscaleClient, err = headscale.NewHeadscaleClient(
 		viper.GetString("headscale-addr"),
@@ -800,14 +812,12 @@ func initHeadscale() {
 		viper.GetString("headscale-api-key"),
 		logger.Named("headscale"),
 	)
-	if err != nil {
-		logger.Errorw("failed to init headscale client", "error", err)
-	}
-	if headscaleClient == nil {
-		return
+	if err != nil || headscaleClient == nil {
+		return fmt.Errorf("failed to init headscale client %w", err)
 	}
 
 	logger.Info("headscale initialized")
+	return nil
 }
 
 func dumpSwaggerJSON() {

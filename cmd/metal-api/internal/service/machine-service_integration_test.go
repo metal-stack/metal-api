@@ -228,7 +228,7 @@ func BenchmarkMachineList(b *testing.B) {
 	refCount := 100
 	machineCount := 1000
 
-	for i := 0; i < refCount; i++ {
+	for i := range refCount {
 		base := metal.Base{ID: strconv.Itoa(i)}
 		img := &metal.Image{
 			Base: base,
@@ -249,7 +249,7 @@ func BenchmarkMachineList(b *testing.B) {
 		require.NoError(b, err)
 	}
 
-	for i := 0; i < machineCount; i++ {
+	for i := range machineCount {
 		base := metal.Base{ID: uuid.NewString()}
 		refID := strconv.Itoa(i % refCount)
 
@@ -277,7 +277,7 @@ func BenchmarkMachineList(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		var machines []v1.MachineResponse
 		code := webRequestGet(b, machineService, &testUserDirectory.admin, nil, "/v1/machine", &machines)
 

@@ -145,7 +145,7 @@ func TestDeleteIP(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/v1/ip/free/"+tt.ip, nil)
+			req := httptest.NewRequest("DELETE", "/v1/ip/free/"+tt.ip, nil)
 			container = injectEditor(logger, container, req)
 			req.Header.Add("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -244,7 +244,7 @@ func TestAllocateIP(t *testing.T) {
 			},
 			specificIP:   "11.0.0.5",
 			wantedStatus: http.StatusUnprocessableEntity,
-			wantErr:      errors.New("cannot allocate free ip in ipam"),
+			wantErr:      errors.New("specific ip not contained in any of the defined prefixes"),
 		},
 	}
 	for i := range tests {
