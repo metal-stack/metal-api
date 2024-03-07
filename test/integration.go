@@ -28,7 +28,7 @@ func StartRethink(t testing.TB) (container testcontainers.Container, c *Connecti
 		log = testcontainers.TestLogger(t)
 	}
 	req := testcontainers.ContainerRequest{
-		Image:        "rethinkdb:2.4.0",
+		Image:        "rethinkdb:2.4.4-bookworm-slim",
 		ExposedPorts: []string{"8080/tcp", "28015/tcp"},
 		Env:          map[string]string{"RETHINKDB_PASSWORD": "rethink"},
 		WaitingFor: wait.ForAll(
@@ -67,7 +67,7 @@ func StartRethink(t testing.TB) (container testcontainers.Container, c *Connecti
 func StartPostgres() (container testcontainers.Container, c *ConnectionDetails, err error) {
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
-		Image:        "postgres:13-alpine",
+		Image:        "postgres:16-alpine",
 		ExposedPorts: []string{"5432/tcp"},
 		Env:          map[string]string{"POSTGRES_PASSWORD": "password"},
 		WaitingFor: wait.ForAll(
@@ -113,7 +113,7 @@ func StartMeilisearch(t testing.TB) (container testcontainers.Container, c *Conn
 
 	meiliContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "getmeili/meilisearch:v1.1.1",
+			Image:        "getmeili/meilisearch:v1.3.4",
 			ExposedPorts: []string{"7700/tcp"},
 			Env: map[string]string{
 				"MEILI_MASTER_KEY":   meilisearchMasterKey,

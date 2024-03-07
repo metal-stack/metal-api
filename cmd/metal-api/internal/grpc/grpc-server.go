@@ -110,23 +110,6 @@ func Run(cfg *ServerConfig) error {
 		return status.Errorf(codes.Internal, "%s", p)
 	}
 
-	shouldAudit := func(fullMethod string) bool {
-		switch fullMethod {
-		case "/api.v1.BootService/Register":
-			return true
-		default:
-			return false
-		}
-	}
-
-	auditStreamInterceptor, err := auditing.StreamServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
-	if err != nil {
-		return err
-	}
-	auditUnaryInterceptor, err := auditing.UnaryServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
-	if err != nil {
-		return err
-	}
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		srvMetrics.StreamServerInterceptor(grpcprom.WithExemplarFromContext(exemplarFromContext)),
 		logging.StreamServerInterceptor(interceptorLogger(log)),
@@ -139,6 +122,22 @@ func Run(cfg *ServerConfig) error {
 		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(grpcPanicRecoveryHandler)),
 	}
 	if cfg.Auditing != nil {
+		shouldAudit := func(fullMethod string) bool {
+			switch fullMethod {
+			case "/api.v1.BootService/Register":
+				return true
+			default:
+				return false
+			}
+		}
+		auditStreamInterceptor, err := auditing.StreamServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
+		if err != nil {
+			return err
+		}
+		auditUnaryInterceptor, err := auditing.UnaryServerInterceptor(cfg.Auditing, log.WithGroup("auditing-grpc"), shouldAudit)
+		if err != nil {
+			return err
+		}
 		streamInterceptors = append(streamInterceptors, auditStreamInterceptor)
 		unaryInterceptors = append(unaryInterceptors, auditUnaryInterceptor)
 	}
@@ -158,7 +157,7 @@ func Run(cfg *ServerConfig) error {
 	eventService := NewEventService(cfg)
 	bootService := NewBootService(cfg, eventService)
 
-	err = bootService.initWaitEndpoint()
+	err := bootService.initWaitEndpoint()
 	if err != nil {
 		return err
 	}

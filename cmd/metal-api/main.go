@@ -716,7 +716,7 @@ func initRestServices(audit auditing.Auditing, withauth bool, ipmiSuperUser meta
 		}
 		logger.Info("connected to s3 server that provides firmwares", "address", s3Address)
 	} else {
-		logger.Info("s3 server that provides firmware is disabled")
+		logger.Debug("s3 server that provides firmware is disabled")
 	}
 	firmwareService, err := service.NewFirmware(logger.WithGroup("firmware-service"), ds, s3Client)
 	if err != nil {
