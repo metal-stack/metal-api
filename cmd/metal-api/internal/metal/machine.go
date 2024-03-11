@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"log/slog"
 	"net/netip"
 	"os"
 	"slices"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
-	"go.uber.org/zap"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -617,14 +617,14 @@ type MachineIPMISuperUser struct {
 	password string
 }
 
-func NewIPMISuperUser(log *zap.SugaredLogger, path string) MachineIPMISuperUser {
+func NewIPMISuperUser(log *slog.Logger, path string) MachineIPMISuperUser {
 	password := ""
 
 	if raw, err := os.ReadFile(path); err == nil {
-		log.Infow("ipmi superuser password found, feature is enabled")
+		log.Info("ipmi superuser password found, feature is enabled")
 		password = strings.TrimSpace(string(raw))
 	} else {
-		log.Infow("ipmi superuser password could not be read, feature is disabled", "error", err)
+		log.Info("ipmi superuser password could not be read, feature is disabled", "error", err)
 	}
 
 	return MachineIPMISuperUser{

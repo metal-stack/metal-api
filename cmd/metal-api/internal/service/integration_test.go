@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +18,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/testcontainers/testcontainers-go"
-	"go.uber.org/zap/zaptest"
 
 	metalgrpc "github.com/metal-stack/metal-api/cmd/metal-api/internal/grpc"
 	"github.com/metal-stack/metal-api/test"
@@ -66,7 +66,8 @@ func createTestEnvironment(t *testing.T) testEnv {
 	rethinkContainer, c, err := test.StartRethink(t)
 	require.NoError(t, err)
 
-	ds := datastore.New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	log := slog.Default()
+	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000
 	ds.ASNPoolRangeMax = 1000
 
@@ -84,9 +85,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, nil)
-
-	log := zaptest.NewLogger(t).Sugar()
+	mdc := mdm.NewMock(psc, nil, nil)
 
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{

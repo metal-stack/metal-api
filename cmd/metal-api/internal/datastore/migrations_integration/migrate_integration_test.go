@@ -5,6 +5,7 @@ package migrations_integration
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -13,7 +14,6 @@ import (
 	_ "github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore/migrations"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/test"
-	"go.uber.org/zap/zaptest"
 
 	"testing"
 
@@ -28,7 +28,7 @@ func Test_Migration(t *testing.T) {
 		_ = container.Terminate(context.Background())
 	}()
 
-	rs := datastore.New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := datastore.New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000

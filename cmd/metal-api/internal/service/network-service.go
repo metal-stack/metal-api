@@ -3,9 +3,8 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
-
-	"go.uber.org/zap"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -28,7 +27,7 @@ type networkResource struct {
 }
 
 // NewNetwork returns a webservice for network specific endpoints.
-func NewNetwork(log *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
+func NewNetwork(log *slog.Logger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, mdc mdm.Client) *restful.WebService {
 	r := networkResource{
 		webResource: webResource{
 			log: log,

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"time"
@@ -17,7 +18,6 @@ import (
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"go.uber.org/zap"
 )
 
 type switchResource struct {
@@ -25,7 +25,7 @@ type switchResource struct {
 }
 
 // NewSwitch returns a webservice for switch specific endpoints.
-func NewSwitch(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
+func NewSwitch(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	r := switchResource{
 		webResource: webResource{
 			log: log,

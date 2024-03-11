@@ -3,10 +3,10 @@ package datastore
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap"
 
 	"github.com/avast/retry-go/v4"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -117,19 +117,19 @@ func (ip *IntegerPool) String() string {
 // - releasing the integer is fast
 // - you do not have gaps (because you can give the integers back to the pool)
 // - everything can be done atomically, so there are no race conditions
-func (ip *IntegerPool) initIntegerPool(log *zap.SugaredLogger) error {
+func (ip *IntegerPool) initIntegerPool(log *slog.Logger) error {
 	var info integerinfo
 	err := ip.infoTable.ReadOne(&info, ip.session)
 	if err != nil && !errors.Is(err, r.ErrEmptyResult) {
 		return err
 	}
 
-	log.Infow("pool info", "id", ip.String(), "info", info)
+	log.Info("pool info", "id", ip.String(), "info", info)
 	if info.IsInitialized {
 		return nil
 	}
 
-	log.Infow("initializing integer pool", "for", ip.String(), "RangeMin", ip.min, "RangeMax", ip.max)
+	log.Info("initializing integer pool", "for", ip.String(), "RangeMin", ip.min, "RangeMax", ip.max)
 	intRange := makeRange(ip.min, ip.max)
 	_, err = ip.poolTable.Insert(intRange).RunWrite(ip.session, r.RunOpts{ArrayLimit: ip.max})
 	if err != nil {

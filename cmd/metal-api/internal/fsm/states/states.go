@@ -1,9 +1,10 @@
 package states
 
 import (
+	"log/slog"
+
 	"github.com/looplab/fsm"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap"
 )
 
 const (
@@ -32,7 +33,7 @@ func (t stateType) String() string {
 }
 
 type StateConfig struct {
-	Log       *zap.SugaredLogger
+	Log       *slog.Logger
 	Container *metal.ProvisioningEventContainer
 	Event     *metal.ProvisioningEvent
 }

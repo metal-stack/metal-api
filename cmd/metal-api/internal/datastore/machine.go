@@ -456,7 +456,7 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 	for _, m := range candidates {
 		ec, ok := ecMap[m.ID]
 		if !ok {
-			rs.log.Errorw("cannot find machine provisioning event container", "machine", m, "error", err)
+			rs.log.Error("cannot find machine provisioning event container", "machine", m, "error", err)
 			// fall through, so the rest of the machines is getting evaluated
 			continue
 		}

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,7 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 
 	restful "github.com/emicklei/go-restful/v3"
 )
@@ -28,7 +28,7 @@ func TestGetSizes(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
+	sizeservice := NewSize(slog.Default(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size", nil)
 	w := httptest.NewRecorder()
@@ -57,7 +57,7 @@ func TestGetSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
+	sizeservice := NewSize(slog.Default(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/1", nil)
 	w := httptest.NewRecorder()
@@ -87,7 +87,7 @@ func TestSuggest(t *testing.T) {
 	require.NoError(t, err)
 	body := bytes.NewBuffer(js)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
+	sizeservice := NewSize(slog.Default(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("POST", "/v1/size/suggest", body)
 	req.Header.Add("Content-Type", "application/json")
@@ -127,7 +127,7 @@ func TestGetSizeNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	sizeservice := NewSize(zaptest.NewLogger(t).Sugar(), ds, nil)
+	sizeservice := NewSize(slog.Default(), ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
 	req := httptest.NewRequest("GET", "/v1/size/999", nil)
 	w := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestGetSizeNotFound(t *testing.T) {
 func TestDeleteSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	sizeservice := NewSize(log, ds, nil)
 	container := restful.NewContainer().Add(sizeservice)
@@ -171,13 +171,13 @@ func TestDeleteSize(t *testing.T) {
 func TestCreateSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "a"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
@@ -237,13 +237,13 @@ func TestCreateSize(t *testing.T) {
 func TestUpdateSize(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "p1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
@@ -295,13 +295,13 @@ func TestUpdateSize(t *testing.T) {
 func TestListSizeReservations(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "p1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
