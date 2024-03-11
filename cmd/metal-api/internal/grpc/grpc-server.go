@@ -76,14 +76,13 @@ func Run(cfg *ServerConfig) error {
 	}
 
 	log := cfg.Logger.WithGroup("grpc")
-	// grpc_zap.ReplaceGrpcLoggerV2(log.Desugar()) // FIXME
 
-	// recoveryOpt := grpc_recovery.WithRecoveryHandlerContext(
-	// 	func(ctx context.Context, p any) error {
-	// 		log.Error("[PANIC] %s stack:%s", p, string(debug.Stack()))
-	// 		return status.Errorf(codes.Internal, "%s", p)
-	// 	},
-	// )
+	recoveryOpt := recovery.WithRecoveryHandlerContext(
+		func(ctx context.Context, p any) error {
+			log.Error("[PANIC] %s stack:%s", p, string(debug.Stack()))
+			return status.Errorf(codes.Internal, "%s", p)
+		},
+	)
 
 	srvMetrics := grpcprom.NewServerMetrics(
 		grpcprom.WithServerHandlingTimeHistogram(
@@ -142,7 +141,7 @@ func Run(cfg *ServerConfig) error {
 		unaryInterceptors = append(unaryInterceptors, auditUnaryInterceptor)
 	}
 
-	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics)
+	unaryInterceptors = append(unaryInterceptors, metrics.GrpcMetrics, recovery.UnaryServerInterceptor(recoveryOpt))
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveEnforcementPolicy(kaep),
