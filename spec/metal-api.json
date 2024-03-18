@@ -9500,9 +9500,6 @@
               "$ref": "#/definitions/v1.SwitchResponse"
             }
           },
-          "304": {
-            "description": "Not modified"
-          },
           "409": {
             "description": "Conflict",
             "schema": {

@@ -114,7 +114,6 @@ func (r *switchResource) webService() *restful.WebService {
 		Reads(v1.SwitchPortToggleRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
-		Returns(http.StatusNotModified, "Not modified", nil).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/notify").
@@ -332,14 +331,12 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 		r.sendError(request, response, httperrors.NotFound(fmt.Errorf("the nic %q does not exist in this switch", requestPayload.NicName)))
 		return
 	}
-	if !updated {
-		r.send(request, response, http.StatusNotModified, nil)
-		return
-	}
 
-	if err := r.ds.UpdateSwitch(oldSwitch, &newSwitch); err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
+	if updated {
+		if err := r.ds.UpdateSwitch(oldSwitch, &newSwitch); err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
 	}
 
 	resp, err := makeSwitchResponse(&newSwitch, r.ds)
@@ -836,7 +833,14 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 			Identifier: n.Identifier,
 			Vrf:        n.Vrf,
 			BGPFilter:  filter,
-			Actual:     v1.SwitchPortStatus(pointer.SafeDerefOrDefault(n.State, metal.NicState{Actual: metal.SwitchPortStatusUnknown}).Actual),
+			Actual:     v1.SwitchPortStatusUnknown,
+		}
+		if n.State != nil {
+			if n.State.Desired != nil {
+				nic.Actual = v1.SwitchPortStatus(*n.State.Desired)
+			} else {
+				nic.Actual = v1.SwitchPortStatus(n.State.Actual)
+			}
 		}
 		nics = append(nics, nic)
 	}

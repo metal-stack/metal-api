@@ -1383,5 +1383,5 @@ func TestToggleSwitch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.Name, *result.Name)
-	require.Equal(t, v1.SwitchPortStatusUnknown, result.Nics[0].Actual)
+	require.Equal(t, v1.SwitchPortStatusDown, result.Nics[0].Actual)
 }
