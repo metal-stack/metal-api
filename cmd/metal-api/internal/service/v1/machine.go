@@ -82,14 +82,29 @@ type MachineNetwork struct {
 }
 
 type MachineHardwareBase struct {
-	Memory   uint64               `json:"memory" description:"the total memory of the machine"`
-	CPUCores int                  `json:"cpu_cores" description:"the number of cpu cores"`
-	Disks    []MachineBlockDevice `json:"disks" description:"the list of block devices of this machine"`
+	Memory    uint64               `json:"memory" description:"the total memory of the machine"`
+	CPUCores  int                  `json:"cpu_cores" description:"the number of cpu cores"`
+	Disks     []MachineBlockDevice `json:"disks" description:"the list of block devices of this machine"`
+	MetalCPUs []MetalCPU           `json:"cpus" description:"the cpu details"`
+	MetalGPUs []MetalGPU           `json:"gpus" description:"the gpu details"`
 }
 
 type MachineHardware struct {
 	MachineHardwareBase
 	Nics MachineNics `json:"nics" description:"the list of network interfaces of this machine"`
+}
+type MetalCPU struct {
+	Vendor  string `json:"vendor" description:"the cpu vendor"`
+	Model   string `json:"model" description:"the cpu model"`
+	Cores   uint32 `json:"cores" description:"the cpu cores"`
+	Threads uint32 `json:"threads" description:"the cpu threads"`
+}
+
+type MetalGPU struct {
+	Vendor string `json:"vendor" description:"the gpu vendor"`
+	Model  string `json:"model" description:"the gpu model"`
+	Cores  uint32 `json:"cores" description:"the gpu cores"`
+	Memory uint64 `json:"memory" description:"the gpu memory"`
 }
 
 type MachineState struct {
@@ -483,11 +498,33 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		disks = append(disks, disk)
 	}
 
+	cpus := []MetalCPU{}
+	for _, cpu := range m.Hardware.MetalCPUs {
+		cpus = append(cpus, MetalCPU{
+			Vendor:  cpu.Vendor,
+			Model:   cpu.Model,
+			Cores:   cpu.Cores,
+			Threads: cpu.Threads,
+		})
+	}
+
+	gpus := []MetalGPU{}
+	for _, gpu := range m.Hardware.MetalGPUs {
+		gpus = append(gpus, MetalGPU{
+			Vendor: gpu.Vendor,
+			Model:  gpu.Model,
+			Cores:  gpu.Cores,
+			Memory: gpu.Memory,
+		})
+	}
+
 	hardware = MachineHardware{
 		MachineHardwareBase: MachineHardwareBase{
-			Memory:   m.Hardware.Memory,
-			CPUCores: m.Hardware.CPUCores,
-			Disks:    disks,
+			Memory:    m.Hardware.Memory,
+			CPUCores:  m.Hardware.CPUCores,
+			Disks:     disks,
+			MetalCPUs: cpus,
+			MetalGPUs: gpus,
 		},
 		Nics: nics,
 	}

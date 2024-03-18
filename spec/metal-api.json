@@ -2570,10 +2570,24 @@
           "format": "int32",
           "type": "integer"
         },
+        "cpus": {
+          "description": "the cpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalCPU"
+          },
+          "type": "array"
+        },
         "disks": {
           "description": "the list of block devices of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineBlockDevice"
+          },
+          "type": "array"
+        },
+        "gpus": {
+          "description": "the gpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalGPU"
           },
           "type": "array"
         },
@@ -2592,7 +2606,9 @@
       },
       "required": [
         "cpu_cores",
+        "cpus",
         "disks",
+        "gpus",
         "memory",
         "nics"
       ]
@@ -2604,10 +2620,24 @@
           "format": "int32",
           "type": "integer"
         },
+        "cpus": {
+          "description": "the cpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalCPU"
+          },
+          "type": "array"
+        },
         "disks": {
           "description": "the list of block devices of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineBlockDevice"
+          },
+          "type": "array"
+        },
+        "gpus": {
+          "description": "the gpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalGPU"
           },
           "type": "array"
         },
@@ -2619,7 +2649,9 @@
       },
       "required": [
         "cpu_cores",
+        "cpus",
         "disks",
+        "gpus",
         "memory"
       ]
     },
@@ -3501,6 +3533,62 @@
           "type": "integer"
         }
       }
+    },
+    "v1.MetalCPU": {
+      "properties": {
+        "cores": {
+          "description": "the cpu cores",
+          "format": "integer",
+          "type": "integer"
+        },
+        "model": {
+          "description": "the cpu model",
+          "type": "string"
+        },
+        "threads": {
+          "description": "the cpu threads",
+          "format": "integer",
+          "type": "integer"
+        },
+        "vendor": {
+          "description": "the cpu vendor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cores",
+        "model",
+        "threads",
+        "vendor"
+      ]
+    },
+    "v1.MetalGPU": {
+      "properties": {
+        "cores": {
+          "description": "the gpu cores",
+          "format": "integer",
+          "type": "integer"
+        },
+        "memory": {
+          "description": "the gpu memory",
+          "format": "integer",
+          "type": "integer"
+        },
+        "model": {
+          "description": "the gpu model",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "the gpu vendor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cores",
+        "memory",
+        "model",
+        "vendor"
+      ]
     },
     "v1.NetworkAllocateRequest": {
       "properties": {

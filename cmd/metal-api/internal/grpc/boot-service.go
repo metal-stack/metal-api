@@ -124,11 +124,33 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		})
 	}
 
+	cpus := []metal.MetalCPU{}
+	for _, cpu := range req.Hardware.Cpus {
+		cpus = append(cpus, metal.MetalCPU{
+			Vendor:  cpu.Vendor,
+			Model:   cpu.Model,
+			Cores:   cpu.Cores,
+			Threads: cpu.Threads,
+		})
+	}
+
+	gpus := []metal.MetalGPU{}
+	for _, gpu := range req.Hardware.Gpus {
+		gpus = append(gpus, metal.MetalGPU{
+			Vendor: gpu.Vendor,
+			Model:  gpu.Model,
+			Cores:  gpu.Cores,
+			Memory: gpu.Memory,
+		})
+	}
+
 	machineHardware := metal.MachineHardware{
-		Memory:   req.Hardware.Memory,
-		CPUCores: int(req.Hardware.CpuCores),
-		Disks:    disks,
-		Nics:     nics,
+		Memory:    req.Hardware.Memory,
+		CPUCores:  int(req.Hardware.CpuCores),
+		Disks:     disks,
+		Nics:      nics,
+		MetalCPUs: cpus,
+		MetalGPUs: gpus,
 	}
 
 	size, _, err := b.ds.FromHardware(machineHardware)

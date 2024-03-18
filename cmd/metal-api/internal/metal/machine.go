@@ -457,10 +457,26 @@ func (n NetworkType) String() string {
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
-	Memory   uint64        `rethinkdb:"memory" json:"memory"`
-	CPUCores int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
-	Nics     Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
-	Disks    []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	Memory    uint64        `rethinkdb:"memory" json:"memory"`
+	CPUCores  int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
+	Nics      Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
+	Disks     []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	MetalCPUs []MetalCPU    `rethinkdb:"cpus" json:"cpus"`
+	MetalGPUs []MetalGPU    `rethinkdb:"gpus" json:"gpus"`
+}
+
+type MetalCPU struct {
+	Vendor  string `rethinkdb:"vendor" json:"vendor"`
+	Model   string `rethinkdb:"model" json:"model"`
+	Cores   uint32 `rethinkdb:"cores" json:"cores"`
+	Threads uint32 `rethinkdb:"threads" json:"threads"`
+}
+
+type MetalGPU struct {
+	Vendor string `rethinkdb:"vendor" json:"vendor"`
+	Model  string `rethinkdb:"model" json:"model"`
+	Cores  uint32 `rethinkdb:"cores" json:"cores"`
+	Memory uint64 `rethinkdb:"memory" json:"memory"`
 }
 
 // MachineLiveliness indicates the liveliness of a machine

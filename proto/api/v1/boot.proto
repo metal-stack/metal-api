@@ -64,6 +64,22 @@ message MachineHardware {
   uint32 cpu_cores = 2;
   repeated MachineBlockDevice disks = 3;
   repeated MachineNic nics = 4;
+  repeated MachineCPU cpus = 5;
+  repeated MachineGPU gpus = 6;
+}
+
+message MachineCPU {
+  string vendor = 1;
+  string model = 2;
+  uint32 cores = 3;
+  uint32 threads = 4;
+}
+
+message MachineGPU {
+  string vendor = 1;
+  string model = 2;
+  uint32 cores = 3;
+  uint64 memory = 4;
 }
 
 message MachineNic {
