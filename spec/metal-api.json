@@ -4487,6 +4487,7 @@
           "description": "the type of the constraint",
           "enum": [
             "cores",
+            "gpu",
             "memory",
             "storage"
           ],
