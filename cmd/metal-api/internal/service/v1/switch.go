@@ -87,7 +87,7 @@ type SwitchUpdateRequest struct {
 
 type SwitchPortToggleRequest struct {
 	NicName string           `json:"nic" description:"the nic of the switch you want to change"`
-	Status  SwitchPortStatus `json:"status" description:"sets the port status"`
+	Status  SwitchPortStatus `json:"status" description:"sets the port status" enum:"UP|DOWN"`
 }
 
 // SwitchNotifyRequest represents the notification sent from the switch
