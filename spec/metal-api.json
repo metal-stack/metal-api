@@ -4502,7 +4502,6 @@
         }
       },
       "required": [
-        "gpus",
         "max",
         "min",
         "type"
