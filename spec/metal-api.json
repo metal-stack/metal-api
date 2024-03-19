@@ -4473,6 +4473,13 @@
     "v1.SizeConstraint": {
       "description": "a machine matches to a size in order to make them easier to categorize",
       "properties": {
+        "gpus": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "the count of different gpus",
+          "type": "object"
+        },
         "max": {
           "description": "the maximum value of the constraint",
           "format": "integer",
@@ -4495,6 +4502,7 @@
         }
       },
       "required": [
+        "gpus",
         "max",
         "min",
         "type"
