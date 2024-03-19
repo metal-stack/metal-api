@@ -475,8 +475,6 @@ type MetalCPU struct {
 type MetalGPU struct {
 	Vendor string `rethinkdb:"vendor" json:"vendor"`
 	Model  string `rethinkdb:"model" json:"model"`
-	Cores  uint32 `rethinkdb:"cores" json:"cores"`
-	Memory uint64 `rethinkdb:"memory" json:"memory"`
 }
 
 // MachineLiveliness indicates the liveliness of a machine

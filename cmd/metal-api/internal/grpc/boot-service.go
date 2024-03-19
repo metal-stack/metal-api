@@ -139,8 +139,6 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		gpus = append(gpus, metal.MetalGPU{
 			Vendor: gpu.Vendor,
 			Model:  gpu.Model,
-			Cores:  gpu.Cores,
-			Memory: gpu.Memory,
 		})
 	}
 

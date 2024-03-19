@@ -78,8 +78,6 @@ message MachineCPU {
 message MachineGPU {
   string vendor = 1;
   string model = 2;
-  uint32 cores = 3;
-  uint64 memory = 4;
 }
 
 message MachineNic {

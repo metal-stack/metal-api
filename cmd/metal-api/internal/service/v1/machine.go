@@ -103,8 +103,6 @@ type MetalCPU struct {
 type MetalGPU struct {
 	Vendor string `json:"vendor" description:"the gpu vendor"`
 	Model  string `json:"model" description:"the gpu model"`
-	Cores  uint32 `json:"cores" description:"the gpu cores"`
-	Memory uint64 `json:"memory" description:"the gpu memory"`
 }
 
 type MachineState struct {
@@ -513,8 +511,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		gpus = append(gpus, MetalGPU{
 			Vendor: gpu.Vendor,
 			Model:  gpu.Model,
-			Cores:  gpu.Cores,
-			Memory: gpu.Memory,
 		})
 	}
 

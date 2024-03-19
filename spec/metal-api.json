@@ -3564,16 +3564,6 @@
     },
     "v1.MetalGPU": {
       "properties": {
-        "cores": {
-          "description": "the gpu cores",
-          "format": "integer",
-          "type": "integer"
-        },
-        "memory": {
-          "description": "the gpu memory",
-          "format": "integer",
-          "type": "integer"
-        },
         "model": {
           "description": "the gpu model",
           "type": "string"
@@ -3584,8 +3574,6 @@
         }
       },
       "required": [
-        "cores",
-        "memory",
         "model",
         "vendor"
       ]

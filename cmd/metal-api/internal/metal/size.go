@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -33,14 +34,16 @@ const (
 	CoreConstraint    ConstraintType = "cores"
 	MemoryConstraint  ConstraintType = "memory"
 	StorageConstraint ConstraintType = "storage"
+	GPUConstraint     ConstraintType = "gpu"
 )
 
 // A Constraint describes the hardware constraints for a given size. At the moment we only
 // consider the cpu cores and the memory.
 type Constraint struct {
-	Type ConstraintType `rethinkdb:"type" json:"type"`
-	Min  uint64         `rethinkdb:"min" json:"min"`
-	Max  uint64         `rethinkdb:"max" json:"max"`
+	Type ConstraintType   `rethinkdb:"type" json:"type"`
+	Min  uint64           `rethinkdb:"min" json:"min"`
+	Max  uint64           `rethinkdb:"max" json:"max"`
+	GPUs map[string]uint8 `rethinkdb:"gpus" json:"gpus"`
 }
 
 // Sizes is a list of sizes.
@@ -84,6 +87,20 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 	case StorageConstraint:
 		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
 		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity())
+	case GPUConstraint:
+		existing := make(map[string]uint8)
+		for _, gpu := range hw.MetalGPUs {
+			_, ok := existing[gpu.Model]
+			if !ok {
+				existing[gpu.Model] = 1
+			} else {
+				existing[gpu.Model]++
+			}
+		}
+		for model, count := range c.GPUs {
+			res = (existing[model] == count)
+		}
+		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%#v", existing, c.GPUs)
 	}
 	cml.Match = res
 	return cml, res
@@ -126,7 +143,7 @@ func (s *Size) overlaps(so *Size) bool {
 	}
 	for _, c := range s.Constraints {
 		for _, co := range so.Constraints {
-			if c.Type == co.Type && ((c.Min < co.Min && c.Max < co.Min) || (c.Min > co.Min && c.Min > co.Max)) {
+			if c.Type == co.Type && ((c.Min < co.Min && c.Max < co.Min) || (c.Min > co.Min && c.Min > co.Max) || !reflect.DeepEqual(c.GPUs, co.GPUs)) {
 				return false
 			}
 		}
