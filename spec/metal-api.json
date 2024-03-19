@@ -4502,8 +4502,6 @@
         }
       },
       "required": [
-        "max",
-        "min",
         "type"
       ]
     },
