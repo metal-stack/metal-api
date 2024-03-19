@@ -163,6 +163,35 @@ var (
 			},
 		},
 	}
+	mixedGPUSize = Size{
+		Base: Base{
+			Name: "mixed gpu",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  1025,
+				Max:  1077838336,
+			},
+			{
+				Type: StorageConstraint,
+				Min:  1024,
+				Max:  2048,
+			},
+			{
+				Type: GPUConstraint,
+				GPUs: map[string]uint8{
+					"A100": 2,
+					"H100": 4,
+				},
+			},
+		},
+	}
 	// Sizes
 	sz1 = Size{
 		Base: Base{
@@ -408,6 +437,56 @@ func TestSizes_FromHardware(t *testing.T) {
 				},
 			},
 			want:    &maxGPUSize,
+			wantErr: false,
+		},
+		{
+			name: "mixed gpus",
+			sz: Sizes{
+				sz1,
+				sz999,
+				tinyGPUSize,
+				miniGPUSize,
+				maxGPUSize,
+				mixedGPUSize,
+			},
+			args: args{
+				hardware: MachineHardware{
+					CPUCores: 1,
+					Memory:   1026,
+					Disks: []BlockDevice{
+						{
+							Size: 1026,
+						},
+					},
+					MetalGPUs: []MetalGPU{
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "A100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "A100",
+						},
+					},
+				},
+			},
+			want:    &mixedGPUSize,
 			wantErr: false,
 		},
 	}

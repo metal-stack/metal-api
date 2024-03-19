@@ -97,9 +97,20 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 				existing[gpu.Model]++
 			}
 		}
+
+		var totalCount uint8
+		allMatches := true
 		for model, count := range c.GPUs {
-			res = (existing[model] == count)
+			totalCount += count
+			allMatches = allMatches && (existing[model] == count)
 		}
+
+		if int(totalCount) != len(hw.MetalGPUs) {
+			allMatches = false
+		}
+
+		res = allMatches
+
 		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%#v", existing, c.GPUs)
 	}
 	cml.Match = res
