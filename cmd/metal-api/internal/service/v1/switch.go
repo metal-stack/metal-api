@@ -45,7 +45,7 @@ type SwitchNic struct {
 	Identifier string           `json:"identifier" description:"the identifier of this network interface"`
 	Vrf        string           `json:"vrf" description:"the vrf this network interface is part of" optional:"true"`
 	BGPFilter  *BGPFilter       `json:"filter" description:"configures the bgp filter applied at the switch port" optional:"true"`
-	Actual     SwitchPortStatus `json:"actual" description:"the current state of the nic"`
+	Actual     SwitchPortStatus `json:"actual" description:"the current state of the nic" enum:"UP|DOWN|UNKNOWN"`
 }
 
 type BGPFilter struct {

@@ -4864,6 +4864,11 @@
       "properties": {
         "actual": {
           "description": "the current state of the nic",
+          "enum": [
+            "DOWN",
+            "UNKNOWN",
+            "UP"
+          ],
           "type": "string"
         },
         "filter": {
