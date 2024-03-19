@@ -159,7 +159,7 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		return
 	}
 
-	var gpus map[string]uint8
+	var gpus = make(map[string]uint8)
 
 	for _, gpu := range m.Hardware.MetalGPUs {
 		_, ok := gpus[gpu.Model]
