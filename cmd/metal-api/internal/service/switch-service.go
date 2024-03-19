@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -18,7 +19,6 @@ import (
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"go.uber.org/zap"
 )
 
 type switchResource struct {
@@ -26,7 +26,7 @@ type switchResource struct {
 }
 
 // NewSwitch returns a webservice for switch specific endpoints.
-func NewSwitch(log *zap.SugaredLogger, ds *datastore.RethinkStore) *restful.WebService {
+func NewSwitch(log *slog.Logger, ds *datastore.RethinkStore) *restful.WebService {
 	r := switchResource{
 		webResource: webResource{
 			log: log,
@@ -276,7 +276,7 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		} else {
 			// this should NEVER happen; if the switch reports the state of an unknown port
 			// we log this and ignore it, but something is REALLY wrong in this case
-			r.log.Errorw("unknown switch port", "id", id, "nic", nic.Name)
+			r.log.Error("unknown switch port", "id", id, "nic", nic.Name)
 		}
 	}
 

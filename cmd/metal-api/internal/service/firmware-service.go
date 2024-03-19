@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 	s3server "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/s3client"
 
 	"github.com/metal-stack/metal-lib/httperrors"
-	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
@@ -29,7 +29,7 @@ type firmwareResource struct {
 }
 
 // NewFirmware returns a webservice for firmware specific endpoints.
-func NewFirmware(log *zap.SugaredLogger, ds *datastore.RethinkStore, s3Client *s3server.Client) (*restful.WebService, error) {
+func NewFirmware(log *slog.Logger, ds *datastore.RethinkStore, s3Client *s3server.Client) (*restful.WebService, error) {
 	r := firmwareResource{
 		webResource: webResource{
 			log: log,

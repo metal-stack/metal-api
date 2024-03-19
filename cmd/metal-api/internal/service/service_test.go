@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/metal-stack/metal-lib/httperrors"
@@ -21,22 +20,22 @@ import (
 
 var testUserDirectory = NewUserDirectory("")
 
-func injectViewer(log *zap.SugaredLogger, container *restful.Container, rq *http.Request) *restful.Container {
+func injectViewer(log *slog.Logger, container *restful.Container, rq *http.Request) *restful.Container {
 	return injectUser(log, testUserDirectory.viewer, container, rq)
 }
 
-func injectEditor(log *zap.SugaredLogger, container *restful.Container, rq *http.Request) *restful.Container {
+func injectEditor(log *slog.Logger, container *restful.Container, rq *http.Request) *restful.Container {
 	return injectUser(log, testUserDirectory.edit, container, rq)
 }
 
-func injectAdmin(log *zap.SugaredLogger, container *restful.Container, rq *http.Request) *restful.Container {
+func injectAdmin(log *slog.Logger, container *restful.Container, rq *http.Request) *restful.Container {
 	return injectUser(log, testUserDirectory.admin, container, rq)
 }
 
-func injectUser(log *zap.SugaredLogger, u security.User, container *restful.Container, rq *http.Request) *restful.Container {
+func injectUser(log *slog.Logger, u security.User, container *restful.Container, rq *http.Request) *restful.Container {
 	hma := security.NewHMACAuth(u.Name, []byte{1, 2, 3}, security.WithUser(u))
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	container.Filter(rest.UserAuth(usergetter, log))
+	container.Filter(rest.UserAuth(usergetter, log)) // FIXME
 	var body []byte
 	if rq.Body != nil {
 		data, _ := io.ReadAll(rq.Body)
@@ -49,7 +48,7 @@ func injectUser(log *zap.SugaredLogger, u security.User, container *restful.Cont
 }
 
 func TestTenantEnsurer(t *testing.T) {
-	e := NewTenantEnsurer(zaptest.NewLogger(t).Sugar(), []string{"pvdr", "Pv", "pv-DR"}, nil)
+	e := NewTenantEnsurer(slog.Default(), []string{"pvdr", "Pv", "pv-DR"}, nil)
 	require.True(t, e.allowed("pvdr"))
 	require.True(t, e.allowed("Pv"))
 	require.True(t, e.allowed("pv"))
@@ -65,7 +64,7 @@ func TestAllowedPathSuffixes(t *testing.T) {
 		_ = resp.WriteHeaderAndEntity(http.StatusOK, nil)
 	}
 
-	e := NewTenantEnsurer(zaptest.NewLogger(t).Sugar(), []string{"a", "b", "c"}, []string{"health", "liveliness"})
+	e := NewTenantEnsurer(slog.Default(), []string{"a", "b", "c"}, []string{"health", "liveliness"})
 	ws := new(restful.WebService).Path("/").Consumes(restful.MIME_JSON).Produces(restful.MIME_JSON)
 	ws.Filter(e.EnsureAllowedTenantFilter)
 	health := ws.GET("health").To(foo).Returns(http.StatusOK, "OK", nil).DefaultReturns("Error", httperrors.HTTPErrorResponse{})

@@ -5,6 +5,7 @@ package datastore
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"sort"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/testcommon"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
-	"go.uber.org/zap"
 
 	"testing"
 )
@@ -45,7 +45,7 @@ func startRethinkInitialized() (container testcontainers.Container, ds *RethinkS
 		panic(err)
 	}
 
-	rs := New(zap.L().Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000

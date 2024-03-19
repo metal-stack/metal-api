@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -19,7 +20,6 @@ import (
 	grpcv1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/metal-stack/metal-api/test"
 	"github.com/metal-stack/metal-lib/bus"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -213,7 +213,7 @@ func BenchmarkMachineList(b *testing.B) {
 	}()
 
 	now := time.Now()
-	log := zaptest.NewLogger(b).Sugar()
+	log := slog.Default()
 
 	ds := datastore.New(log, c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	ds.VRFPoolRangeMax = 1000

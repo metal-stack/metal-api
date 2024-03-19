@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"go.uber.org/zap/zaptest"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmock "github.com/metal-stack/masterdata-api/api/v1/mocks"
@@ -36,7 +36,7 @@ func TestGetIPs(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	logger := zaptest.NewLogger(t).Sugar()
+	logger := slog.Default()
 	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 
@@ -66,7 +66,7 @@ func TestGetIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	logger := zaptest.NewLogger(t).Sugar()
+	logger := slog.Default()
 	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
@@ -89,7 +89,7 @@ func TestGetIP(t *testing.T) {
 func TestGetIPNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	logger := zaptest.NewLogger(t).Sugar()
+	logger := slog.Default()
 
 	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)
@@ -115,7 +115,7 @@ func TestDeleteIP(t *testing.T) {
 	ipamer, err := testdata.InitMockIpamData(mock, true)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
-	logger := zaptest.NewLogger(t).Sugar()
+	logger := slog.Default()
 
 	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipamer, nil)
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestAllocateIP(t *testing.T) {
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
-	logger := zaptest.NewLogger(t).Sugar()
+	logger := slog.Default()
 
 	psc := mdmock.ProjectServiceClient{}
 	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "123"}).Return(&mdmv1.ProjectResponse{
@@ -182,7 +182,7 @@ func TestAllocateIP(t *testing.T) {
 	)
 	tsc := mdmock.TenantServiceClient{}
 
-	mdc := mdm.NewMock(&psc, &tsc)
+	mdc := mdm.NewMock(&psc, &tsc, nil)
 
 	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipamer, mdc)
 	require.NoError(t, err)
@@ -291,7 +291,7 @@ func TestAllocateIP(t *testing.T) {
 func TestUpdateIP(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	logger := zaptest.NewLogger(t).Sugar()
+	logger := slog.Default()
 
 	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
 	require.NoError(t, err)

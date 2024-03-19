@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/rand/v2"
 	"strconv"
 	"sync"
@@ -18,7 +19,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	v1 "github.com/metal-stack/metal-api/pkg/api/v1"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -220,7 +220,7 @@ func (t *test) startApiInstances(ds *datastore.RethinkStore) {
 		cfg := &ServerConfig{
 			Context:          ctx,
 			Store:            ds,
-			Logger:           zap.NewNop().Sugar(),
+			Logger:           slog.Default(),
 			GrpcPort:         50005 + i,
 			TlsEnabled:       false,
 			ResponseInterval: 2 * time.Millisecond,

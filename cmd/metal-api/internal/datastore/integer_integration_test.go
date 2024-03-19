@@ -5,12 +5,12 @@ package datastore
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/test"
-	"go.uber.org/zap/zaptest"
 
 	"testing"
 
@@ -25,7 +25,7 @@ func TestRethinkStore_AcquireRandomUniqueIntegerIntegration(t *testing.T) {
 		_ = container.Terminate(context.Background())
 	}()
 
-	rs := New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
@@ -50,7 +50,7 @@ func TestRethinkStore_AcquireUniqueIntegerTwiceIntegration(t *testing.T) {
 		_ = container.Terminate(context.Background())
 	}()
 
-	rs := New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
@@ -77,7 +77,7 @@ func TestRethinkStore_AcquireUniqueIntegerPoolExhaustionIntegration(t *testing.T
 		_ = container.Terminate(context.Background())
 	}()
 
-	rs := New(zaptest.NewLogger(t).Sugar(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
+	rs := New(slog.Default(), c.IP+":"+c.Port, c.DB, c.User, c.Password)
 	rs.VRFPoolRangeMin = 10000
 	rs.VRFPoolRangeMax = 10010
 	rs.ASNPoolRangeMin = 10000
