@@ -101,7 +101,7 @@ func TestSuggest(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	require.NoError(t, err)
 
-	require.Len(t, result, 3)
+	require.Len(t, result, 4)
 
 	assert.Contains(t, result, v1.SizeConstraint{
 		Type: metal.MemoryConstraint,

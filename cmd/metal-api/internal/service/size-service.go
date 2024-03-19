@@ -159,6 +159,17 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		return
 	}
 
+	var gpus map[string]uint8
+
+	for _, gpu := range m.Hardware.MetalGPUs {
+		_, ok := gpus[gpu.Model]
+		if !ok {
+			gpus[gpu.Model] = 1
+		} else {
+			gpus[gpu.Model]++
+		}
+	}
+
 	r.send(request, response, http.StatusOK, []v1.SizeConstraint{
 		{
 			Type: metal.CoreConstraint,
@@ -174,6 +185,10 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 			Type: metal.StorageConstraint,
 			Min:  m.Hardware.DiskCapacity(),
 			Max:  m.Hardware.DiskCapacity(),
+		},
+		{
+			Type: metal.GPUConstraint,
+			GPUs: gpus,
 		},
 	})
 
@@ -230,6 +245,7 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 			Type: c.Type,
 			Min:  c.Min,
 			Max:  c.Max,
+			GPUs: c.GPUs,
 		}
 		constraints = append(constraints, constraint)
 	}
@@ -343,6 +359,7 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 				Type: sizeConstraints[i].Type,
 				Min:  sizeConstraints[i].Min,
 				Max:  sizeConstraints[i].Max,
+				GPUs: sizeConstraints[i].GPUs,
 			}
 			constraints = append(constraints, constraint)
 		}
