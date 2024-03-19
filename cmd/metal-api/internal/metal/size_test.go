@@ -107,6 +107,62 @@ var (
 			},
 		},
 	}
+	miniGPUSize = Size{
+		Base: Base{
+			Name: "mini gpu",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  1025,
+				Max:  1077838336,
+			},
+			{
+				Type: StorageConstraint,
+				Min:  1024,
+				Max:  2048,
+			},
+			{
+				Type: GPUConstraint,
+				GPUs: map[string]uint8{
+					"AD102GL [RTX 6000 Ada Generation]": 2,
+				},
+			},
+		},
+	}
+	maxGPUSize = Size{
+		Base: Base{
+			Name: "max gpu",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  1025,
+				Max:  1077838336,
+			},
+			{
+				Type: StorageConstraint,
+				Min:  1024,
+				Max:  2048,
+			},
+			{
+				Type: GPUConstraint,
+				GPUs: map[string]uint8{
+					"H100": 4,
+				},
+			},
+		},
+	}
 	// Sizes
 	sz1 = Size{
 		Base: Base{
@@ -279,6 +335,79 @@ func TestSizes_FromHardware(t *testing.T) {
 				},
 			},
 			want:    &tinyGPUSize,
+			wantErr: false,
+		},
+		{
+			name: "real larger gpu data",
+			sz: Sizes{
+				sz1,
+				sz999,
+				tinyGPUSize,
+				miniGPUSize,
+			},
+			args: args{
+				hardware: MachineHardware{
+					CPUCores: 1,
+					Memory:   1026,
+					Disks: []BlockDevice{
+						{
+							Size: 1026,
+						},
+					},
+					MetalGPUs: []MetalGPU{
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "AD102GL [RTX 6000 Ada Generation]",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "AD102GL [RTX 6000 Ada Generation]",
+						},
+					},
+				},
+			},
+			want:    &miniGPUSize,
+			wantErr: false,
+		},
+		{
+			name: "real max gpu data",
+			sz: Sizes{
+				sz1,
+				sz999,
+				tinyGPUSize,
+				miniGPUSize,
+				maxGPUSize,
+			},
+			args: args{
+				hardware: MachineHardware{
+					CPUCores: 1,
+					Memory:   1026,
+					Disks: []BlockDevice{
+						{
+							Size: 1026,
+						},
+					},
+					MetalGPUs: []MetalGPU{
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+						{
+							Vendor: "NVIDIA Corporation",
+							Model:  "H100",
+						},
+					},
+				},
+			},
+			want:    &maxGPUSize,
 			wantErr: false,
 		},
 	}
