@@ -2,7 +2,7 @@ package metal
 
 import (
 	"fmt"
-	"reflect"
+	"maps"
 	"slices"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -154,7 +154,7 @@ func (s *Size) overlaps(so *Size) bool {
 	}
 	for _, c := range s.Constraints {
 		for _, co := range so.Constraints {
-			if c.Type == co.Type && ((c.Min < co.Min && c.Max < co.Min) || (c.Min > co.Min && c.Min > co.Max) || !reflect.DeepEqual(c.GPUs, co.GPUs)) {
+			if c.Type == co.Type && ((c.Min < co.Min && c.Max < co.Min) || (c.Min > co.Min && c.Min > co.Max) || !maps.Equal(c.GPUs, co.GPUs)) {
 				return false
 			}
 		}
