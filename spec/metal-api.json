@@ -1105,8 +1105,7 @@
         "imageid",
         "partitionid",
         "projectid",
-        "sizeid",
-        "ssh_pub_keys"
+        "sizeid"
       ]
     },
     "v1.FirewallEgressRule": {
@@ -2080,8 +2079,7 @@
         "imageid",
         "partitionid",
         "projectid",
-        "sizeid",
-        "ssh_pub_keys"
+        "sizeid"
       ]
     },
     "v1.MachineAllocation": {
@@ -2181,7 +2179,6 @@
         "project",
         "reinstall",
         "role",
-        "ssh_pub_keys",
         "succeeded"
       ]
     },
@@ -3153,12 +3150,9 @@
       },
       "required": [
         "asn",
-        "destinationprefixes",
-        "ips",
         "nat",
         "networkid",
         "networktype",
-        "prefixes",
         "private",
         "underlay",
         "vrf"

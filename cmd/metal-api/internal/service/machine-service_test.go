@@ -9,7 +9,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	"github.com/emicklei/go-restful/v3"
+	"github.com/go-openapi/spec"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
+	"github.com/google/go-cmp/cmp"
 	goipam "github.com/metal-stack/go-ipam"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/ipam"
@@ -17,6 +22,7 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/testdata"
 	"github.com/metal-stack/metal-lib/bus"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
@@ -1338,4 +1344,127 @@ func Test_gatherNetworksFromSpec(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewMachineResponse(t *testing.T) {
+	tests := []struct {
+		name string
+		m    *metal.Machine
+		s    *metal.Size
+		p    *metal.Partition
+		i    *metal.Image
+		ec   *metal.ProvisioningEventContainer
+		want *v1.MachineResponse
+	}{
+		{
+			name: "test firewall response",
+			m:    &testdata.FW1,
+			s:    &testdata.Sz1,
+			p:    &testdata.Partition1,
+			i:    &testdata.Img1,
+			ec:   &metal.ProvisioningEventContainer{},
+			want: &v1.MachineResponse{
+				Common: v1.Common{
+					Identifiable: v1.Identifiable{
+						ID: testdata.FW1.ID,
+					},
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer(""),
+					},
+				},
+				MachineBase: v1.MachineBase{
+					Partition: v1.NewPartitionResponse(&testdata.Partition1),
+					RackID:    "",
+					Size:      v1.NewSizeResponse(&testdata.Sz1),
+					Hardware: v1.MachineHardware{
+						MachineHardwareBase: v1.MachineHardwareBase{
+							Memory:   testdata.FW1.Hardware.Memory,
+							CPUCores: testdata.FW1.Hardware.CPUCores,
+							Disks: []v1.MachineBlockDevice{
+								{
+									Size: testdata.FW1.Hardware.Disks[0].Size,
+								},
+								{
+									Size: testdata.FW1.Hardware.Disks[1].Size,
+								},
+								{
+									Size: testdata.FW1.Hardware.Disks[2].Size,
+								},
+							},
+						},
+						Nics: v1.MachineNics{},
+					},
+					Allocation: &v1.MachineAllocation{
+						Name:    testdata.FW1.Allocation.Name,
+						Project: testdata.FW1.Allocation.Project,
+						Image:   v1.NewImageResponse(&testdata.Img1),
+						MachineNetworks: []v1.MachineNetwork{
+							{
+								IPs:         []string{},
+								NetworkType: "privateprimaryunshared",
+								Vrf:         1,
+								Private:     true,
+							},
+						},
+						Role: "firewall",
+						FirewallRules: &v1.FirewallRules{
+							Egress: []v1.FirewallEgressRule{
+								{
+									Protocol: "tcp",
+									Ports:    []int{443},
+									To:       []string{"0.0.0.0/0"},
+									Comment:  "test",
+								},
+							},
+							Ingress: nil,
+						},
+					},
+					RecentProvisioningEvents: v1.MachineRecentProvisioningEvents{
+						Events: []v1.MachineProvisioningEvent{},
+					},
+					Tags: testdata.FW1.Tags,
+				},
+				Timestamps: v1.Timestamps{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := v1.NewMachineResponse(tt.m, tt.s, tt.p, tt.i, tt.ec)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("diff (-want +got):\n%s", diff)
+			}
+
+			ws, err := NewMachine(slog.Default(), nil, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(nil), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
+			require.NoError(t, err)
+
+			validateAgainstSwaggerSpec(t, ws, "v1.MachineResponse", got)
+		})
+	}
+}
+
+func validateAgainstSwaggerSpec(t *testing.T, ws *restful.WebService, definitionKey string, obj any) {
+	container := restful.NewContainer()
+	container.Add(ws)
+
+	actual := restfulspec.BuildSwagger(restfulspec.Config{
+		WebServices: container.RegisteredWebServices(),
+	})
+
+	schemaJSON, err := json.MarshalIndent(actual, "", "  ")
+	require.NoError(t, err)
+
+	schema := new(spec.Schema)
+	err = json.Unmarshal(schemaJSON, schema)
+	require.NoError(t, err)
+
+	// you need to pass the definition of the response to the validator otherwise it will not find any problems
+	def, ok := schema.Definitions[definitionKey]
+	require.True(t, ok)
+
+	def.Definitions = schema.Definitions
+
+	err = validate.AgainstSchema(&def, obj, strfmt.Default, validate.EnableArrayMustHaveItemsCheck(true), validate.EnableObjectArrayTypeCheck(true))
+	require.NoError(t, err)
 }

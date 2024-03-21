@@ -12,7 +12,7 @@ type ImageBase struct {
 	Features       []string  `json:"features" description:"features of this image" optional:"true"`
 	ExpirationDate time.Time `json:"expirationDate" description:"expirationDate of this image" optional:"false"`
 	Classification string    `json:"classification" description:"classification of this image" optional:"true"`
-	UsedBy         []string  `json:"usedby" description:"machines where this image is in use" optional:"true"`
+	UsedBy         []string  `json:"usedby,omitempty" description:"machines where this image is in use" optional:"true"`
 }
 
 type ImageCreateRequest struct {

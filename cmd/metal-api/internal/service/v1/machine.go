@@ -36,7 +36,7 @@ type MachineAllocation struct {
 	FilesystemLayout *FilesystemLayoutResponse `json:"filesystemlayout" description:"filesystemlayout to create on this machine" optional:"true"`
 	MachineNetworks  []MachineNetwork          `json:"networks" description:"the networks of this machine"`
 	Hostname         string                    `json:"hostname" description:"the hostname which will be used when creating the machine"`
-	SSHPubKeys       []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	SSHPubKeys       []string                  `json:"ssh_pub_keys,omitempty" description:"the public ssh keys to access the machine with"`
 	UserData         string                    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
 	Succeeded        bool                      `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
@@ -64,9 +64,9 @@ type BootInfo struct {
 
 type MachineNetwork struct {
 	NetworkID           string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
-	Prefixes            []string `json:"prefixes" description:"the prefixes of this network"`
-	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
-	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	Prefixes            []string `json:"prefixes,omitempty" description:"the prefixes of this network"`
+	IPs                 []string `json:"ips,omitempty" description:"the ip addresses of the allocated machine in this vrf"`
+	DestinationPrefixes []string `json:"destinationprefixes,omitempty" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	NetworkType         string   `json:"networktype" description:"the network type, types can be looked up in the network package of metal-lib"`
 	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
@@ -112,7 +112,7 @@ type MachineBlockDevice struct {
 
 type MachineRecentProvisioningEvents struct {
 	Events               []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
-	LastEventTime        *time.Time                 `json:"last_event_time" description:"the time where the last event was received" optional:"true"`
+	LastEventTime        *time.Time                 `json:"last_event_time,omitempty" description:"the time where the last event was received" optional:"true"`
 	LastErrorEvent       *MachineProvisioningEvent  `json:"last_error_event,omitempty" description:"the last erroneous event received" optional:"true"`
 	CrashLoop            bool                       `json:"crash_loop" description:"indicates that machine is provisioning crash loop"`
 	FailedMachineReclaim bool                       `json:"failed_machine_reclaim" description:"indicates that machine reclaim has failed"`
@@ -199,7 +199,7 @@ type MachineAllocateRequest struct {
 	SizeID             string                    `json:"sizeid" description:"the size id to assign this machine to"`
 	ImageID            string                    `json:"imageid" description:"the image id to assign this machine to"`
 	FilesystemLayoutID *string                   `json:"filesystemlayoutid" description:"the filesystemlayout id to assing to this machine" optional:"true"`
-	SSHPubKeys         []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	SSHPubKeys         []string                  `json:"ssh_pub_keys,omitempty" description:"the public ssh keys to access the machine with"`
 	UserData           *string                   `json:"user_data" description:"cloud-init.io compatible userdata must be base64 encoded" optional:"true"`
 	Tags               []string                  `json:"tags" description:"tags for this machine" optional:"true"`
 	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
