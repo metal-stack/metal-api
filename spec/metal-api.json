@@ -797,10 +797,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "images"
-      ]
+      }
     },
     "v1.FilesystemLayoutCreateRequest": {
       "properties": {
@@ -1451,8 +1448,7 @@
         "id",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.FirewallRules": {
@@ -2175,7 +2171,6 @@
         "creator",
         "hostname",
         "name",
-        "networks",
         "project",
         "reinstall",
         "role",
@@ -2280,8 +2275,7 @@
         "hardware",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.MachineBlockDevice": {
@@ -2589,9 +2583,7 @@
       },
       "required": [
         "cpu_cores",
-        "disks",
-        "memory",
-        "nics"
+        "memory"
       ]
     },
     "v1.MachineHardwareBase": {
@@ -2616,7 +2608,6 @@
       },
       "required": [
         "cpu_cores",
-        "disks",
         "memory"
       ]
     },
@@ -2757,8 +2748,7 @@
         "ipmi",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.MachineIpmiReport": {
@@ -3183,8 +3173,7 @@
       "required": [
         "identifier",
         "mac",
-        "name",
-        "neighbors"
+        "name"
       ]
     },
     "v1.MachineProvisioningEvent": {
@@ -3237,8 +3226,7 @@
       },
       "required": [
         "crash_loop",
-        "failed_machine_reclaim",
-        "log"
+        "failed_machine_reclaim"
       ]
     },
     "v1.MachineReinstallRequest": {
@@ -3349,8 +3337,7 @@
         "id",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.MachineState": {
