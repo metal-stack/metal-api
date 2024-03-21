@@ -1358,7 +1358,7 @@ func TestNewMachineResponse(t *testing.T) {
 		want *v1.MachineResponse
 	}{
 		{
-			name: "validate empty values",
+			name: "test zero values",
 			m: &metal.Machine{
 				Base: metal.Base{
 					ID:          "",
@@ -1498,6 +1498,160 @@ func TestNewMachineResponse(t *testing.T) {
 			},
 		},
 		{
+			name: "test zero values, slices expanded",
+			m: &metal.Machine{
+				Base: metal.Base{
+					ID:          "",
+					Name:        "",
+					Description: "",
+					Created:     time.Time{},
+					Changed:     time.Time{},
+				},
+				Allocation: &metal.MachineAllocation{
+					Creator:     "",
+					Created:     time.Time{},
+					Name:        "",
+					Description: "",
+					Project:     "",
+					ImageID:     "",
+					FilesystemLayout: &metal.FilesystemLayout{
+						Base: metal.Base{
+							ID:          "",
+							Name:        "",
+							Description: "",
+							Created:     time.Time{},
+							Changed:     time.Time{},
+						},
+						Filesystems:    []metal.Filesystem{{}},
+						Disks:          []metal.Disk{{}},
+						Raid:           []metal.Raid{{}},
+						VolumeGroups:   []metal.VolumeGroup{{}},
+						LogicalVolumes: []metal.LogicalVolume{{}},
+						Constraints:    metal.FilesystemLayoutConstraints{},
+					},
+					MachineNetworks: []*metal.MachineNetwork{{}},
+					Hostname:        "",
+					SSHPubKeys:      []string{},
+					UserData:        "",
+					ConsolePassword: "",
+					Succeeded:       false,
+					Reinstall:       false,
+					MachineSetup: &metal.MachineSetup{
+						ImageID:      "",
+						PrimaryDisk:  "",
+						OSPartition:  "",
+						Initrd:       "",
+						Cmdline:      "",
+						Kernel:       "",
+						BootloaderID: "",
+					},
+					Role: metal.RoleFirewall,
+					VPN: &metal.MachineVPN{
+						ControlPlaneAddress: "",
+						AuthKey:             "",
+						Connected:           false,
+					},
+					UUID: "",
+					FirewallRules: &metal.FirewallRules{
+						Egress:  []metal.EgressRule{{}},
+						Ingress: []metal.IngressRule{{}},
+					},
+				},
+				PartitionID:  "",
+				SizeID:       "",
+				RackID:       "",
+				Waiting:      false,
+				PreAllocated: false,
+				Hardware: metal.MachineHardware{
+					Memory:   0,
+					CPUCores: 0,
+					Nics:     []metal.Nic{{}},
+					Disks:    []metal.BlockDevice{{}},
+				},
+				State: metal.MachineState{
+					Value:              "",
+					Description:        "",
+					Issuer:             "",
+					MetalHammerVersion: "",
+				},
+				LEDState: metal.ChassisIdentifyLEDState{
+					Value:       "",
+					Description: "",
+				},
+				Tags: []string{},
+				IPMI: metal.IPMI{
+					Address:    "",
+					MacAddress: "",
+					User:       "",
+					Password:   "",
+					Interface:  "",
+					Fru: metal.Fru{
+						ChassisPartNumber:   "",
+						ChassisPartSerial:   "",
+						BoardMfg:            "",
+						BoardMfgSerial:      "",
+						BoardPartNumber:     "",
+						ProductManufacturer: "",
+						ProductPartNumber:   "",
+						ProductSerial:       "",
+					},
+					BMCVersion: "",
+					PowerState: "",
+					PowerMetric: &metal.PowerMetric{
+						AverageConsumedWatts: 0,
+						IntervalInMin:        0,
+						MaxConsumedWatts:     0,
+						MinConsumedWatts:     0,
+					},
+					LastUpdated: time.Time{},
+				},
+				BIOS: metal.BIOS{
+					Version: "",
+					Vendor:  "",
+					Date:    "",
+				},
+			},
+			want: &v1.MachineResponse{
+				Common: v1.Common{
+					Describable: v1.Describable{
+						Name:        pointer.Pointer(""),
+						Description: pointer.Pointer(""),
+					},
+				},
+				MachineBase: v1.MachineBase{
+					Allocation: &v1.MachineAllocation{
+						FilesystemLayout: &v1.FilesystemLayoutResponse{
+							Common: v1.Common{Describable: v1.Describable{Name: pointer.Pointer(""), Description: pointer.Pointer("")}},
+							FilesystemLayoutBase: v1.FilesystemLayoutBase{
+								Filesystems:    []v1.Filesystem{{}},
+								Disks:          []v1.Disk{{}},
+								Raid:           []v1.Raid{{}},
+								VolumeGroups:   []v1.VolumeGroup{{}},
+								LogicalVolumes: []v1.LogicalVolume{{}},
+								Constraints:    v1.FilesystemLayoutConstraints{},
+							},
+						},
+						BootInfo: &v1.BootInfo{},
+						Role:     "firewall",
+						VPN:      &v1.MachineVPN{},
+						FirewallRules: &v1.FirewallRules{
+							Egress:  []v1.FirewallEgressRule{{}},
+							Ingress: []v1.FirewallIngressRule{{}},
+						},
+						MachineNetworks: []v1.MachineNetwork{{
+							NetworkType: "external",
+						}},
+					},
+					Hardware: v1.MachineHardware{
+						MachineHardwareBase: v1.MachineHardwareBase{
+							Disks: []v1.MachineBlockDevice{{}},
+						},
+						Nics: v1.MachineNics{{}},
+					},
+				},
+			},
+		},
+		{
 			name: "test firewall response",
 			m:    &testdata.FW1,
 			s:    &testdata.Sz1,
@@ -1541,7 +1695,6 @@ func TestNewMachineResponse(t *testing.T) {
 						Image:   v1.NewImageResponse(&testdata.Img1),
 						MachineNetworks: []v1.MachineNetwork{
 							{
-								IPs:         []string{},
 								NetworkType: "privateprimaryunshared",
 								Vrf:         1,
 								Private:     true,

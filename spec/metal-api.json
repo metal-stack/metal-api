@@ -1134,11 +1134,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "ports",
-        "to"
-      ]
+      }
     },
     "v1.FirewallFindRequest": {
       "properties": {
@@ -1358,11 +1354,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "from",
-        "ports"
-      ]
+      }
     },
     "v1.FirewallResponse": {
       "properties": {

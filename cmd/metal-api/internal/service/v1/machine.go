@@ -497,7 +497,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	if m.Allocation != nil {
 		var networks []MachineNetwork
 		for _, nw := range m.Allocation.MachineNetworks {
-			ips := append([]string{}, nw.IPs...)
+			ips := nw.IPs
 			nt, err := nw.NetworkType()
 			if err != nil {
 				continue
