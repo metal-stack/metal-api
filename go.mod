@@ -35,14 +35,6 @@ require (
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
 )
 
-replace (
-	// netipx and x/exp must be replaced for tailscale < 1.48
-	go4.org/netipx => go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35
-	golang.org/x/exp => golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
-	// tailscale 1.48 and headscale 0.22 are not compatible yet
-	tailscale.com => tailscale.com v1.44.0
-)
-
 require (
 	connectrpc.com/connect v1.15.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
@@ -209,4 +201,12 @@ require (
 	modernc.org/sqlite v1.20.3 // indirect
 	nhooyr.io/websocket v1.8.10 // indirect
 	tailscale.com v1.54.0 // indirect
+)
+
+replace (
+	// netipx and x/exp must be replaced for tailscale < 1.48
+	go4.org/netipx => go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35
+	golang.org/x/exp => golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	// tailscale 1.48 and headscale 0.22 are not compatible yet
+	tailscale.com => tailscale.com v1.44.0
 )
