@@ -330,7 +330,6 @@ func TestUpdateIP(t *testing.T) {
 			wantedIPBase: &v1.IPBase{
 				ProjectID: testdata.IP1.ProjectID,
 				Type:      "static",
-				Tags:      []string{},
 			},
 		},
 		{

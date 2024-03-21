@@ -14,7 +14,7 @@ type SizeReservation struct {
 	Amount       int      `json:"amount" description:"the amount of reserved machine allocations for this size"`
 	Description  string   `json:"description,omitempty" description:"a description for this reservation"`
 	ProjectID    string   `json:"projectid" description:"the project for which this size reservation is considered"`
-	PartitionIDs []string `json:"partitionids" description:"the partitions in which this size reservation is considered, the amount is valid for every partition"`
+	PartitionIDs []string `json:"partitionids,omitempty" description:"the partitions in which this size reservation is considered, the amount is valid for every partition"`
 }
 
 type SizeCreateRequest struct {

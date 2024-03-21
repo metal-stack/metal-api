@@ -537,10 +537,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "cidrs"
-      ]
+      }
     },
     "v1.BoardRevisions": {
       "properties": {
@@ -4357,10 +4354,8 @@
       "required": [
         "allocated",
         "faulty",
-        "faultymachines",
         "free",
         "other",
-        "othermachines",
         "reservations",
         "size",
         "total",
@@ -4606,7 +4601,6 @@
       },
       "required": [
         "amount",
-        "partitionids",
         "projectid"
       ]
     },

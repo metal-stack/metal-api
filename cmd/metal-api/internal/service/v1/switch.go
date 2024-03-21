@@ -34,8 +34,8 @@ type SwitchNic struct {
 }
 
 type BGPFilter struct {
-	CIDRs []string `json:"cidrs" description:"the cidr addresses that are allowed to be announced at this switch port"`
-	VNIs  []string `json:"vnis" description:"the virtual networks that are exposed at this switch port" optional:"true"`
+	CIDRs []string `json:"cidrs,omitempty" description:"the cidr addresses that are allowed to be announced at this switch port"`
+	VNIs  []string `json:"vnis,omitempty" description:"the virtual networks that are exposed at this switch port" optional:"true"`
 }
 
 func NewBGPFilter(vnis, cidrs []string) BGPFilter {

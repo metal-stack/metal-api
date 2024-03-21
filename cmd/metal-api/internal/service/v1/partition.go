@@ -57,9 +57,9 @@ type ServerCapacity struct {
 	Reservations     int      `json:"reservations" description:"the amount of reservations for this size"`
 	UsedReservations int      `json:"usedreservations" description:"the amount of used reservations for this size"`
 	Faulty           int      `json:"faulty" description:"servers with issues with this size"`
-	FaultyMachines   []string `json:"faultymachines" description:"servers with issues with this size"`
+	FaultyMachines   []string `json:"faultymachines,omitempty" description:"servers with issues with this size"`
 	Other            int      `json:"other" description:"servers neither free, allocated or faulty with this size"`
-	OtherMachines    []string `json:"othermachines" description:"servers neither free, allocated or faulty with this size"`
+	OtherMachines    []string `json:"othermachines,omitempty" description:"servers neither free, allocated or faulty with this size"`
 }
 
 func NewPartitionResponse(p *metal.Partition) *PartitionResponse {
