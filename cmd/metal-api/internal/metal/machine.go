@@ -498,9 +498,22 @@ func (hw *MachineHardware) DiskCapacity() uint64 {
 	return c
 }
 
+func (hw *MachineHardware) GPUModels() map[string]uint64 {
+	models := make(map[string]uint64)
+	for _, gpu := range hw.MetalGPUs {
+		_, ok := models[gpu.Model]
+		if !ok {
+			models[gpu.Model] = 1
+		} else {
+			models[gpu.Model]++
+		}
+	}
+	return models
+}
+
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()))
+	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s GPUs:%s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()), hw.MetalGPUs)
 }
 
 // BlockDevice information.

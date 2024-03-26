@@ -378,12 +378,19 @@
         "message": {
           "type": "string"
         },
+        "services": {
+          "additionalProperties": {
+            "$ref": "#/definitions/rest.HealthResult"
+          },
+          "type": "object"
+        },
         "status": {
           "type": "string"
         }
       },
       "required": [
         "message",
+        "services",
         "status"
       ]
     },
@@ -4473,12 +4480,9 @@
     "v1.SizeConstraint": {
       "description": "a machine matches to a size in order to make them easier to categorize",
       "properties": {
-        "gpus": {
-          "additionalProperties": {
-            "type": "integer"
-          },
-          "description": "the count of different gpus",
-          "type": "object"
+        "identifier": {
+          "description": "glob pattern which matches to the given type, for example gpu pci id",
+          "type": "string"
         },
         "max": {
           "description": "the maximum value of the constraint",

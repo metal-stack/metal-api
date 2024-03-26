@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -561,7 +562,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			for _, r := range m.Allocation.FirewallRules.Egress {
 				r := r
 				egressRules = append(egressRules, FirewallEgressRule{
-					Protocol: string(r.Protocol),
+					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,
 					To:       r.To,
 					Comment:  r.Comment,
@@ -570,7 +571,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			for _, r := range m.Allocation.FirewallRules.Ingress {
 				r := r
 				ingressRules = append(ingressRules, FirewallIngressRule{
-					Protocol: string(r.Protocol),
+					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,
 					To:       r.To,
 					From:     r.From,

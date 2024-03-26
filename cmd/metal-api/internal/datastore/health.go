@@ -12,7 +12,7 @@ func (rs *RethinkStore) ServiceName() string {
 }
 
 // Check implements the health interface and tests if the database is healthy.
-func (rs *RethinkStore) Check(ctx context.Context) (rest.HealthStatus, error) {
+func (rs *RethinkStore) Check(ctx context.Context) (rest.HealthResult, error) {
 	t := r.Branch(
 		rs.db().TableList().SetIntersection(r.Expr(tables)).Count().Eq(len(tables)),
 		r.Expr(true),
@@ -21,8 +21,12 @@ func (rs *RethinkStore) Check(ctx context.Context) (rest.HealthStatus, error) {
 
 	err := t.Exec(rs.session, r.ExecOpts{Context: ctx})
 	if err != nil {
-		return rest.HealthStatusUnhealthy, err
+		return rest.HealthResult{
+			Status: rest.HealthStatusUnhealthy,
+		}, err
 	}
 
-	return rest.HealthStatusHealthy, nil
+	return rest.HealthResult{
+		Status: rest.HealthStatusHealthy,
+	}, nil
 }

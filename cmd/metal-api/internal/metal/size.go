@@ -2,10 +2,11 @@ package metal
 
 import (
 	"fmt"
-	"maps"
+	"path/filepath"
 	"slices"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
+	"github.com/samber/lo"
 )
 
 // A Size represents a supported machine size.
@@ -40,10 +41,10 @@ const (
 // A Constraint describes the hardware constraints for a given size. At the moment we only
 // consider the cpu cores and the memory.
 type Constraint struct {
-	Type ConstraintType   `rethinkdb:"type" json:"type"`
-	Min  uint64           `rethinkdb:"min" json:"min"`
-	Max  uint64           `rethinkdb:"max" json:"max"`
-	GPUs map[string]uint8 `rethinkdb:"gpus" json:"gpus"`
+	Type       ConstraintType `rethinkdb:"type" json:"type"`
+	Min        uint64         `rethinkdb:"min" json:"min"`
+	Max        uint64         `rethinkdb:"max" json:"max"`
+	Identifier string         `rethinkdb:"identifier" json:"identifier" description:"glob of the identifier of this type"`
 }
 
 // Sizes is a list of sizes.
@@ -88,30 +89,23 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
 		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity())
 	case GPUConstraint:
-		existing := make(map[string]uint8)
-		for _, gpu := range hw.MetalGPUs {
-			_, ok := existing[gpu.Model]
-			if !ok {
-				existing[gpu.Model] = 1
-			} else {
-				existing[gpu.Model]++
+		for model, count := range hw.GPUModels() {
+			idMatches, err := filepath.Match(c.Identifier, model)
+			if err != nil {
+				cml.Log = fmt.Sprintf("cannot match gpu model:%v", err)
+				return cml, false
+			}
+			res = count >= c.Min && count <= c.Max && idMatches
+			if res {
+				break
 			}
 		}
 
-		var totalCount uint8
-		allMatches := true
-		for model, count := range c.GPUs {
-			totalCount += count
-			allMatches = allMatches && (existing[model] == count)
+		if c.Identifier == "" {
+			res = false
 		}
 
-		if int(totalCount) != len(hw.MetalGPUs) {
-			allMatches = false
-		}
-
-		res = allMatches
-
-		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%#v", existing, c.GPUs)
+		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%s count %d-%d", hw.MetalCPUs, c.Identifier, c.Min, c.Max)
 	}
 	cml.Match = res
 	return cml, res
@@ -149,25 +143,65 @@ nextsize:
 }
 
 func (s *Size) overlaps(so *Size) bool {
-	if len(so.Constraints) == 0 {
+	if len(lo.FromPtr(so).Constraints) == 0 {
 		return false
 	}
-	for _, c := range s.Constraints {
-		for _, co := range so.Constraints {
-			if c.Type == co.Type && ((c.Min < co.Min && c.Max < co.Min) || (c.Min > co.Min && c.Min > co.Max) || !maps.Equal(c.GPUs, co.GPUs)) {
-				return false
+	srcTypes := lo.GroupBy(s.Constraints, func(item Constraint) ConstraintType {
+		return item.Type
+	})
+	destTypes := lo.GroupBy(so.Constraints, func(item Constraint) ConstraintType {
+		return item.Type
+	})
+	for t, srcConstraints := range srcTypes {
+		constraints, ok := destTypes[t]
+		if !ok {
+			return false
+		}
+		for _, sc := range srcConstraints {
+			for _, c := range constraints {
+				if !c.overlaps(sc) {
+					return false
+				}
 			}
 		}
+	}
+
+	return true
+}
+
+// overlaps is proven correct, requires that constraint are validated before that max is not smaller than min
+func (c *Constraint) overlaps(other Constraint) bool {
+	if c.Type != other.Type {
+		return false
+	}
+
+	if c.Identifier != other.Identifier {
+		return false
+	}
+
+	if c.Min > other.Max {
+		return false
+	}
+
+	if c.Max < other.Min {
+		return false
 	}
 	return true
 }
 
 // Validate a size, returns error if a invalid size is passed
 func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
+	constraintTypes := map[ConstraintType]bool{}
 	for _, c := range s.Constraints {
 		if c.Max < c.Min {
 			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
 		}
+
+		_, ok := constraintTypes[c.Type]
+		if ok {
+			return fmt.Errorf("size:%q type:%q min:%d max:%d has duplicate constraint type", s.ID, c.Type, c.Min, c.Max)
+		}
+		constraintTypes[c.Type] = true
 	}
 
 	if err := s.Reservations.Validate(partitions, projects); err != nil {
@@ -179,9 +213,11 @@ func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Proj
 
 // Overlaps returns nil if Size does not overlap with any other size, otherwise returns overlapping Size
 func (s *Size) Overlaps(ss *Sizes) *Size {
-	for i := range *ss {
-		so := (*ss)[i]
-		if s.Name != so.Name && s.overlaps(&so) {
+	for _, so := range *ss {
+		if s.ID == so.ID {
+			continue
+		}
+		if s.overlaps(&so) {
 			return &so
 		}
 	}

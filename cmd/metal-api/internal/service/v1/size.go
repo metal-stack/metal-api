@@ -5,10 +5,10 @@ import (
 )
 
 type SizeConstraint struct {
-	Type metal.ConstraintType `json:"type" modelDescription:"a machine matches to a size in order to make them easier to categorize" enum:"cores|memory|storage|gpu" description:"the type of the constraint"`
-	Min  uint64               `json:"min,omitempty" description:"the minimum value of the constraint"`
-	Max  uint64               `json:"max,omitempty" description:"the maximum value of the constraint"`
-	GPUs map[string]uint8     `json:"gpus,omitempty" description:"the count of different gpus"`
+	Type       metal.ConstraintType `json:"type" modelDescription:"a machine matches to a size in order to make them easier to categorize" enum:"cores|memory|storage|gpu" description:"the type of the constraint"`
+	Min        uint64               `json:"min,omitempty" description:"the minimum value of the constraint"`
+	Max        uint64               `json:"max,omitempty" description:"the maximum value of the constraint"`
+	Identifier string               `json:"identifier,omitempty" description:"glob pattern which matches to the given type, for example gpu pci id"`
 }
 
 type SizeReservation struct {
@@ -98,10 +98,10 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 	constraints := []SizeConstraint{}
 	for _, c := range s.Constraints {
 		constraint := SizeConstraint{
-			Type: c.Type,
-			Min:  c.Min,
-			Max:  c.Max,
-			GPUs: c.GPUs,
+			Type:       c.Type,
+			Min:        c.Min,
+			Max:        c.Max,
+			Identifier: c.Identifier,
 		}
 		constraints = append(constraints, constraint)
 	}
