@@ -159,7 +159,28 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		return
 	}
 
-	r.send(request, response, http.StatusOK, []v1.SizeConstraint{
+	var (
+		gpus           = make(map[string]uint64)
+		gpuconstraints []v1.SizeConstraint
+	)
+
+	for _, gpu := range m.Hardware.MetalGPUs {
+		_, ok := gpus[gpu.Model]
+		if !ok {
+			gpus[gpu.Model] = 1
+		} else {
+			gpus[gpu.Model]++
+		}
+	}
+	for model, count := range gpus {
+		gpuconstraints = append(gpuconstraints, v1.SizeConstraint{
+			Type:       metal.GPUConstraint,
+			Min:        count,
+			Max:        count,
+			Identifier: model,
+		})
+	}
+	constraints := []v1.SizeConstraint{
 		{
 			Type: metal.CoreConstraint,
 			Min:  uint64(m.Hardware.CPUCores),
@@ -175,8 +196,13 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 			Min:  m.Hardware.DiskCapacity(),
 			Max:  m.Hardware.DiskCapacity(),
 		},
-	})
+	}
 
+	if len(gpuconstraints) > 0 {
+		constraints = append(constraints, gpuconstraints...)
+	}
+
+	r.send(request, response, http.StatusOK, constraints)
 }
 
 func (r *sizeResource) listSizes(request *restful.Request, response *restful.Response) {
@@ -227,9 +253,10 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 	var constraints []metal.Constraint
 	for _, c := range requestPayload.SizeConstraints {
 		constraint := metal.Constraint{
-			Type: c.Type,
-			Min:  c.Min,
-			Max:  c.Max,
+			Type:       c.Type,
+			Min:        c.Min,
+			Max:        c.Max,
+			Identifier: c.Identifier,
 		}
 		constraints = append(constraints, constraint)
 	}
@@ -340,9 +367,10 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 		sizeConstraints := *requestPayload.SizeConstraints
 		for i := range sizeConstraints {
 			constraint := metal.Constraint{
-				Type: sizeConstraints[i].Type,
-				Min:  sizeConstraints[i].Min,
-				Max:  sizeConstraints[i].Max,
+				Type:       sizeConstraints[i].Type,
+				Min:        sizeConstraints[i].Min,
+				Max:        sizeConstraints[i].Max,
+				Identifier: sizeConstraints[i].Identifier,
 			}
 			constraints = append(constraints, constraint)
 		}

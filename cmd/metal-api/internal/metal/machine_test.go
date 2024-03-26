@@ -220,7 +220,7 @@ func TestEgressRule_Validate(t *testing.T) {
 			To:         []string{"1.2.3.0/24", "2.3.4.5/32"},
 			Comment:    "allow apt update",
 			wantErr:    true,
-			wantErrmsg: "invalid procotol: sctp",
+			wantErrmsg: "invalid protocol: sctp",
 		},
 		{
 			name:       "wrong port",

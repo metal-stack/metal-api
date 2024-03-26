@@ -2577,10 +2577,24 @@
           "format": "int32",
           "type": "integer"
         },
+        "cpus": {
+          "description": "the cpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalCPU"
+          },
+          "type": "array"
+        },
         "disks": {
           "description": "the list of block devices of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineBlockDevice"
+          },
+          "type": "array"
+        },
+        "gpus": {
+          "description": "the gpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalGPU"
           },
           "type": "array"
         },
@@ -2599,7 +2613,9 @@
       },
       "required": [
         "cpu_cores",
+        "cpus",
         "disks",
+        "gpus",
         "memory",
         "nics"
       ]
@@ -2611,10 +2627,24 @@
           "format": "int32",
           "type": "integer"
         },
+        "cpus": {
+          "description": "the cpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalCPU"
+          },
+          "type": "array"
+        },
         "disks": {
           "description": "the list of block devices of this machine",
           "items": {
             "$ref": "#/definitions/v1.MachineBlockDevice"
+          },
+          "type": "array"
+        },
+        "gpus": {
+          "description": "the gpu details",
+          "items": {
+            "$ref": "#/definitions/v1.MetalGPU"
           },
           "type": "array"
         },
@@ -2626,7 +2656,9 @@
       },
       "required": [
         "cpu_cores",
+        "cpus",
         "disks",
+        "gpus",
         "memory"
       ]
     },
@@ -3508,6 +3540,50 @@
           "type": "integer"
         }
       }
+    },
+    "v1.MetalCPU": {
+      "properties": {
+        "cores": {
+          "description": "the cpu cores",
+          "format": "integer",
+          "type": "integer"
+        },
+        "model": {
+          "description": "the cpu model",
+          "type": "string"
+        },
+        "threads": {
+          "description": "the cpu threads",
+          "format": "integer",
+          "type": "integer"
+        },
+        "vendor": {
+          "description": "the cpu vendor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cores",
+        "model",
+        "threads",
+        "vendor"
+      ]
+    },
+    "v1.MetalGPU": {
+      "properties": {
+        "model": {
+          "description": "the gpu model",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "the gpu vendor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "vendor"
+      ]
     },
     "v1.NetworkAllocateRequest": {
       "properties": {
@@ -4404,6 +4480,10 @@
     "v1.SizeConstraint": {
       "description": "a machine matches to a size in order to make them easier to categorize",
       "properties": {
+        "identifier": {
+          "description": "glob pattern which matches to the given type, for example gpu pci id",
+          "type": "string"
+        },
         "max": {
           "description": "the maximum value of the constraint",
           "format": "integer",
@@ -4418,6 +4498,7 @@
           "description": "the type of the constraint",
           "enum": [
             "cores",
+            "gpu",
             "memory",
             "storage"
           ],
@@ -4425,8 +4506,6 @@
         }
       },
       "required": [
-        "max",
-        "min",
         "type"
       ]
     },

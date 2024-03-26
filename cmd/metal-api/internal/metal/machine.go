@@ -196,7 +196,7 @@ func (r EgressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+		return fmt.Errorf("invalid protocol: %s", r.Protocol)
 	}
 
 	if err := validateComment(r.Comment); err != nil {
@@ -457,10 +457,24 @@ func (n NetworkType) String() string {
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
-	Memory   uint64        `rethinkdb:"memory" json:"memory"`
-	CPUCores int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
-	Nics     Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
-	Disks    []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	Memory    uint64        `rethinkdb:"memory" json:"memory"`
+	CPUCores  int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
+	Nics      Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
+	Disks     []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	MetalCPUs []MetalCPU    `rethinkdb:"cpus" json:"cpus"`
+	MetalGPUs []MetalGPU    `rethinkdb:"gpus" json:"gpus"`
+}
+
+type MetalCPU struct {
+	Vendor  string `rethinkdb:"vendor" json:"vendor"`
+	Model   string `rethinkdb:"model" json:"model"`
+	Cores   uint32 `rethinkdb:"cores" json:"cores"`
+	Threads uint32 `rethinkdb:"threads" json:"threads"`
+}
+
+type MetalGPU struct {
+	Vendor string `rethinkdb:"vendor" json:"vendor"`
+	Model  string `rethinkdb:"model" json:"model"`
 }
 
 // MachineLiveliness indicates the liveliness of a machine
@@ -484,9 +498,22 @@ func (hw *MachineHardware) DiskCapacity() uint64 {
 	return c
 }
 
+func (hw *MachineHardware) GPUModels() map[string]uint64 {
+	models := make(map[string]uint64)
+	for _, gpu := range hw.MetalGPUs {
+		_, ok := models[gpu.Model]
+		if !ok {
+			models[gpu.Model] = 1
+		} else {
+			models[gpu.Model]++
+		}
+	}
+	return models
+}
+
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()))
+	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s GPUs:%s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()), hw.MetalGPUs)
 }
 
 // BlockDevice information.
