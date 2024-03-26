@@ -537,7 +537,10 @@
           },
           "type": "array"
         }
-      }
+      },
+      "required": [
+        "cidrs"
+      ]
     },
     "v1.BoardRevisions": {
       "properties": {
