@@ -4,3 +4,7 @@ run:
 linters:
   disable:
     - musttag
+  enable:
+    - testifylint
+    - unused
+fast: true

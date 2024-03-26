@@ -5,3 +5,4 @@ vendor
 generate
 coverage.out
 __debug_bin
+.mirrord
