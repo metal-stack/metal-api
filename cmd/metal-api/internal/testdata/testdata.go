@@ -26,6 +26,54 @@ import (
 // (go tool cover -html=cover.out -o cover.html) 	// Html output
 
 var (
+	// Firewalls
+	FW1 = metal.Machine{
+		Base:        metal.Base{ID: "1"},
+		PartitionID: "1",
+		SizeID:      "1",
+		Allocation: &metal.MachineAllocation{
+			Name:    "d1",
+			ImageID: "image-1",
+			Project: "p1",
+			Role:    metal.RoleFirewall,
+			MachineNetworks: []*metal.MachineNetwork{
+				{
+					Private: true,
+					Vrf:     1,
+				},
+			},
+			FirewallRules: &metal.FirewallRules{
+				Egress: []metal.EgressRule{
+					{
+						Protocol: metal.ProtocolTCP,
+						Ports:    []int{443},
+						To:       []string{"0.0.0.0/0"},
+						Comment:  "test",
+					},
+				},
+				Ingress: []metal.IngressRule{},
+			},
+		},
+		Hardware: metal.MachineHardware{
+			CPUCores: 8,
+			Memory:   1 << 30,
+			Disks: []metal.BlockDevice{
+				{
+					Size: 1000,
+				},
+				{
+					Size: 1000,
+				},
+				{
+					Size: 1000,
+				},
+			},
+		},
+
+		IPMI: IPMI1,
+		Tags: []string{"1"},
+	}
+
 	// Machines
 	M1 = metal.Machine{
 		Base:        metal.Base{ID: "1"},

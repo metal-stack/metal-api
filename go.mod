@@ -10,6 +10,8 @@ require (
 	github.com/emicklei/go-restful-openapi/v2 v2.9.1
 	github.com/emicklei/go-restful/v3 v3.12.0
 	github.com/go-openapi/spec v0.21.0
+	github.com/go-openapi/strfmt v0.23.0
+	github.com/go-openapi/validate v0.24.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.0
@@ -32,14 +34,6 @@ require (
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2
-)
-
-replace (
-	// netipx and x/exp must be replaced for tailscale < 1.48
-	go4.org/netipx => go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35
-	golang.org/x/exp => golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
-	// tailscale 1.48 and headscale 0.22 are not compatible yet
-	tailscale.com => tailscale.com v1.44.0
 )
 
 require (
@@ -77,11 +71,12 @@ require (
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
+	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
+	github.com/go-openapi/loads v0.22.0 // indirect
 	github.com/go-openapi/runtime v0.28.0 // indirect
-	github.com/go-openapi/strfmt v0.23.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gofrs/uuid/v5 v5.0.0 // indirect
@@ -207,4 +202,12 @@ require (
 	modernc.org/sqlite v1.20.3 // indirect
 	nhooyr.io/websocket v1.8.10 // indirect
 	tailscale.com v1.54.0 // indirect
+)
+
+replace (
+	// netipx and x/exp must be replaced for tailscale < 1.48
+	go4.org/netipx => go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35
+	golang.org/x/exp => golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	// tailscale 1.48 and headscale 0.22 are not compatible yet
+	tailscale.com => tailscale.com v1.44.0
 )

@@ -23,7 +23,7 @@ type MachineBase struct {
 	LEDState                 ChassisIdentifyLEDState         `json:"ledstate" rethinkdb:"ledstate" description:"the state of this chassis identify LED"`
 	Liveliness               string                          `json:"liveliness" description:"the liveliness of this machine"`
 	RecentProvisioningEvents MachineRecentProvisioningEvents `json:"events" description:"recent events of this machine during provisioning"`
-	Tags                     []string                        `json:"tags" description:"tags for this machine"`
+	Tags                     []string                        `json:"tags,omitempty" description:"tags for this machine"`
 }
 
 type MachineAllocation struct {
@@ -34,9 +34,9 @@ type MachineAllocation struct {
 	Project          string                    `json:"project" description:"the project id that this machine is assigned to" `
 	Image            *ImageResponse            `json:"image" description:"the image assigned to this machine" readOnly:"true" optional:"true"`
 	FilesystemLayout *FilesystemLayoutResponse `json:"filesystemlayout" description:"filesystemlayout to create on this machine" optional:"true"`
-	MachineNetworks  []MachineNetwork          `json:"networks" description:"the networks of this machine"`
+	MachineNetworks  []MachineNetwork          `json:"networks,omitempty" description:"the networks of this machine"`
 	Hostname         string                    `json:"hostname" description:"the hostname which will be used when creating the machine"`
-	SSHPubKeys       []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	SSHPubKeys       []string                  `json:"ssh_pub_keys,omitempty" description:"the public ssh keys to access the machine with"`
 	UserData         string                    `json:"user_data,omitempty" description:"userdata to execute post installation tasks" optional:"true"`
 	Succeeded        bool                      `json:"succeeded" description:"if the allocation of the machine was successful, this is set to true"`
 	Reinstall        bool                      `json:"reinstall" description:"indicates whether to reinstall the machine"`
@@ -64,9 +64,9 @@ type BootInfo struct {
 
 type MachineNetwork struct {
 	NetworkID           string   `json:"networkid" description:"the networkID of the allocated machine in this vrf"`
-	Prefixes            []string `json:"prefixes" description:"the prefixes of this network"`
-	IPs                 []string `json:"ips" description:"the ip addresses of the allocated machine in this vrf"`
-	DestinationPrefixes []string `json:"destinationprefixes" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
+	Prefixes            []string `json:"prefixes,omitempty" description:"the prefixes of this network"`
+	IPs                 []string `json:"ips,omitempty" description:"the ip addresses of the allocated machine in this vrf"`
+	DestinationPrefixes []string `json:"destinationprefixes,omitempty" modelDescription:"prefixes that are reachable within this network" description:"the destination prefixes of this network"`
 	NetworkType         string   `json:"networktype" description:"the network type, types can be looked up in the network package of metal-lib"`
 	Vrf                 uint     `json:"vrf" description:"the vrf of the allocated machine"`
 	// Attention, uint32 is converted to integer by swagger which is int32 which is to small to hold a asn
@@ -85,12 +85,12 @@ type MachineNetwork struct {
 type MachineHardwareBase struct {
 	Memory   uint64               `json:"memory" description:"the total memory of the machine"`
 	CPUCores int                  `json:"cpu_cores" description:"the number of cpu cores"`
-	Disks    []MachineBlockDevice `json:"disks" description:"the list of block devices of this machine"`
+	Disks    []MachineBlockDevice `json:"disks,omitempty" description:"the list of block devices of this machine"`
 }
 
 type MachineHardware struct {
 	MachineHardwareBase
-	Nics MachineNics `json:"nics" description:"the list of network interfaces of this machine"`
+	Nics MachineNics `json:"nics,omitempty" description:"the list of network interfaces of this machine"`
 }
 
 type MachineState struct {
@@ -111,8 +111,8 @@ type MachineBlockDevice struct {
 }
 
 type MachineRecentProvisioningEvents struct {
-	Events               []MachineProvisioningEvent `json:"log" description:"the log of recent machine provisioning events"`
-	LastEventTime        *time.Time                 `json:"last_event_time" description:"the time where the last event was received" optional:"true"`
+	Events               []MachineProvisioningEvent `json:"log,omitempty" description:"the log of recent machine provisioning events"`
+	LastEventTime        *time.Time                 `json:"last_event_time,omitempty" description:"the time where the last event was received" optional:"true"`
 	LastErrorEvent       *MachineProvisioningEvent  `json:"last_error_event,omitempty" description:"the last erroneous event received" optional:"true"`
 	CrashLoop            bool                       `json:"crash_loop" description:"indicates that machine is provisioning crash loop"`
 	FailedMachineReclaim bool                       `json:"failed_machine_reclaim" description:"indicates that machine reclaim has failed"`
@@ -137,7 +137,7 @@ type MachineNic struct {
 	MacAddress string      `json:"mac"  description:"the mac address of this network interface"`
 	Name       string      `json:"name"  description:"the name of this network interface"`
 	Identifier string      `json:"identifier"  description:"the unique identifier of this network interface"`
-	Neighbors  MachineNics `json:"neighbors" description:"the neighbors visible to this network interface"`
+	Neighbors  MachineNics `json:"neighbors,omitempty" description:"the neighbors visible to this network interface"`
 }
 
 type MachineBIOS struct {
@@ -199,7 +199,7 @@ type MachineAllocateRequest struct {
 	SizeID             string                    `json:"sizeid" description:"the size id to assign this machine to"`
 	ImageID            string                    `json:"imageid" description:"the image id to assign this machine to"`
 	FilesystemLayoutID *string                   `json:"filesystemlayoutid" description:"the filesystemlayout id to assing to this machine" optional:"true"`
-	SSHPubKeys         []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
+	SSHPubKeys         []string                  `json:"ssh_pub_keys,omitempty" description:"the public ssh keys to access the machine with"`
 	UserData           *string                   `json:"user_data" description:"cloud-init.io compatible userdata must be base64 encoded" optional:"true"`
 	Tags               []string                  `json:"tags" description:"tags for this machine" optional:"true"`
 	Networks           MachineAllocationNetworks `json:"networks" description:"the networks that this machine will be placed in." optional:"true"`
@@ -308,7 +308,7 @@ type MachineIssue struct {
 }
 
 func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
-	nics := metal.Nics{}
+	var nics metal.Nics
 	for i := range r.Nics {
 		var neighbors metal.Nics
 		for i2 := range r.Nics[i].Neighbors {
@@ -453,17 +453,17 @@ func NewMachineIPMIResponse(m *metal.Machine, s *metal.Size, p *metal.Partition,
 func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *metal.Image, ec *metal.ProvisioningEventContainer) *MachineResponse {
 	var hardware MachineHardware
 
-	nics := MachineNics{}
+	var nics MachineNics
 	for i := range m.Hardware.Nics {
 		n := m.Hardware.Nics[i]
-		neighs := MachineNics{}
+		var neighs MachineNics
 		for j := range n.Neighbors {
 			neigh := n.Neighbors[j]
 			neighs = append(neighs, MachineNic{
 				MacAddress: string(neigh.MacAddress),
 				Name:       neigh.Name,
 				Identifier: neigh.Identifier,
-				Neighbors:  MachineNics{},
+				Neighbors:  nil,
 			})
 		}
 		nic := MachineNic{
@@ -475,7 +475,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		nics = append(nics, nic)
 	}
 
-	disks := []MachineBlockDevice{}
+	var disks []MachineBlockDevice
 	for i := range m.Hardware.Disks {
 		disk := MachineBlockDevice{
 			Name: m.Hardware.Disks[i].Name,
@@ -497,7 +497,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	if m.Allocation != nil {
 		var networks []MachineNetwork
 		for _, nw := range m.Allocation.MachineNetworks {
-			ips := append([]string{}, nw.IPs...)
+			ips := nw.IPs
 			nt, err := nw.NetworkType()
 			if err != nil {
 				continue
@@ -552,6 +552,11 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			}
 		}
 
+		var sshPubKeys []string
+		if len(m.Allocation.SSHPubKeys) > 0 {
+			sshPubKeys = m.Allocation.SSHPubKeys
+		}
+
 		allocation = &MachineAllocation{
 			Creator:          m.Allocation.Creator,
 			Created:          m.Allocation.Created,
@@ -560,7 +565,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			Image:            NewImageResponse(i),
 			Project:          m.Allocation.Project,
 			Hostname:         m.Allocation.Hostname,
-			SSHPubKeys:       m.Allocation.SSHPubKeys,
+			SSHPubKeys:       sshPubKeys,
 			UserData:         m.Allocation.UserData,
 			MachineNetworks:  networks,
 			Succeeded:        m.Allocation.Succeeded,
@@ -585,7 +590,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		}
 	}
 
-	tags := []string{}
+	var tags []string
 	if len(m.Tags) > 0 {
 		tags = m.Tags
 	}
@@ -637,7 +642,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 }
 
 func NewMachineRecentProvisioningEvents(ec *metal.ProvisioningEventContainer) *MachineRecentProvisioningEvents {
-	es := []MachineProvisioningEvent{}
+	var es []MachineProvisioningEvent
 	if ec == nil {
 		return &MachineRecentProvisioningEvents{
 			Events:               es,

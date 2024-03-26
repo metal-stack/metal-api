@@ -804,10 +804,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "images"
-      ]
+      }
     },
     "v1.FilesystemLayoutCreateRequest": {
       "properties": {
@@ -1112,8 +1109,7 @@
         "imageid",
         "partitionid",
         "projectid",
-        "sizeid",
-        "ssh_pub_keys"
+        "sizeid"
       ]
     },
     "v1.FirewallEgressRule": {
@@ -1145,11 +1141,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "ports",
-        "to"
-      ]
+      }
     },
     "v1.FirewallFindRequest": {
       "properties": {
@@ -1369,11 +1361,7 @@
           },
           "type": "array"
         }
-      },
-      "required": [
-        "from",
-        "ports"
-      ]
+      }
     },
     "v1.FirewallResponse": {
       "properties": {
@@ -1459,8 +1447,7 @@
         "id",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.FirewallRules": {
@@ -2087,8 +2074,7 @@
         "imageid",
         "partitionid",
         "projectid",
-        "sizeid",
-        "ssh_pub_keys"
+        "sizeid"
       ]
     },
     "v1.MachineAllocation": {
@@ -2184,11 +2170,9 @@
         "creator",
         "hostname",
         "name",
-        "networks",
         "project",
         "reinstall",
         "role",
-        "ssh_pub_keys",
         "succeeded"
       ]
     },
@@ -2290,8 +2274,7 @@
         "hardware",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.MachineBlockDevice": {
@@ -2599,9 +2582,7 @@
       },
       "required": [
         "cpu_cores",
-        "disks",
-        "memory",
-        "nics"
+        "memory"
       ]
     },
     "v1.MachineHardwareBase": {
@@ -2626,7 +2607,6 @@
       },
       "required": [
         "cpu_cores",
-        "disks",
         "memory"
       ]
     },
@@ -2767,8 +2747,7 @@
         "ipmi",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.MachineIpmiReport": {
@@ -3160,12 +3139,9 @@
       },
       "required": [
         "asn",
-        "destinationprefixes",
-        "ips",
         "nat",
         "networkid",
         "networktype",
-        "prefixes",
         "private",
         "underlay",
         "vrf"
@@ -3196,8 +3172,7 @@
       "required": [
         "identifier",
         "mac",
-        "name",
-        "neighbors"
+        "name"
       ]
     },
     "v1.MachineProvisioningEvent": {
@@ -3250,8 +3225,7 @@
       },
       "required": [
         "crash_loop",
-        "failed_machine_reclaim",
-        "log"
+        "failed_machine_reclaim"
       ]
     },
     "v1.MachineReinstallRequest": {
@@ -3362,8 +3336,7 @@
         "id",
         "ledstate",
         "liveliness",
-        "state",
-        "tags"
+        "state"
       ]
     },
     "v1.MachineState": {
@@ -4391,10 +4364,8 @@
       "required": [
         "allocated",
         "faulty",
-        "faultymachines",
         "free",
         "other",
-        "othermachines",
         "reservations",
         "size",
         "total",
@@ -4640,7 +4611,6 @@
       },
       "required": [
         "amount",
-        "partitionids",
         "projectid"
       ]
     },
