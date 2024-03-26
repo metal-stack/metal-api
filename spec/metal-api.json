@@ -378,12 +378,19 @@
         "message": {
           "type": "string"
         },
+        "services": {
+          "additionalProperties": {
+            "$ref": "#/definitions/rest.HealthResult"
+          },
+          "type": "object"
+        },
         "status": {
           "type": "string"
         }
       },
       "required": [
         "message",
+        "services",
         "status"
       ]
     },
