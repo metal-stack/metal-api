@@ -229,7 +229,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "valid transition from crashing to pxe booting, maintaing crash loop",
+			name: "valid transition from crashing to pxe booting, maintaining crash loop",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{

@@ -228,7 +228,7 @@ func (rs *Reservations) Validate(partitions PartitionMap, projects map[string]*m
 }
 
 // A ConstraintMatchingLog is used do return a log message to the caller
-// beside the contraint itself.
+// beside the constraint itself.
 type ConstraintMatchingLog struct {
 	Constraint Constraint
 	Match      bool

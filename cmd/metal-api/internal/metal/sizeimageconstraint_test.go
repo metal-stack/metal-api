@@ -54,7 +54,7 @@ func TestSizeImageConstraint_matches(t *testing.T) {
 			wantErr: errors.New("given size:n1-medium-x86 with image:firewall-2.0.20201101 does violate image constraint:firewall >=2.0.20211001"),
 		},
 		{
-			name: "c1 has no restrictins",
+			name: "c1 has no restricts",
 			fields: fields{
 				Base: Base{ID: n1Medium.ID},
 				Images: map[string]string{
@@ -254,7 +254,7 @@ func TestSizeImageConstraints_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid op and not seperated by space",
+			name: "invalid op and not separated by space",
 			scs: &SizeImageConstraints{
 				{
 					Base: Base{ID: n1Medium.ID},
