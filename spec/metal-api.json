@@ -369,7 +369,6 @@
       },
       "required": [
         "message",
-        "services",
         "status"
       ]
     },
@@ -390,7 +389,6 @@
       },
       "required": [
         "message",
-        "services",
         "status"
       ]
     },
