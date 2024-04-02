@@ -4981,6 +4981,10 @@
         },
         "status": {
           "description": "sets the port status",
+          "enum": [
+            "DOWN",
+            "UP"
+          ],
           "type": "string"
         }
       },
