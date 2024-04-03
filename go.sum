@@ -587,8 +587,8 @@ github.com/metal-stack/go-ipam v1.8.5 h1:XE1XfaU6Ck1Ucc7svTO25dlT7kEcE1oxOM3lBrW
 github.com/metal-stack/go-ipam v1.8.5/go.mod h1:JgsddJabu8A7lWD+4MJKqbQhmSA/zhBbO+Bp8pLhRZM=
 github.com/metal-stack/masterdata-api v0.11.1 h1:RRlML1bUS+aoPgMwbqWQazrlMOlLy2QbUoDwoUAJ6kY=
 github.com/metal-stack/masterdata-api v0.11.1/go.mod h1:9T0UUAWU0+G2jKRFuA1mlTS2vexWiGdaBj1AJQGFQ6Q=
-github.com/metal-stack/metal-lib v0.16.1 h1:4iw2cQxS1pcQnuTVlXRvtmR0oCa6OCX6rIiZalfwSZY=
-github.com/metal-stack/metal-lib v0.16.1/go.mod h1:nyNGI4DZFOcWbSoq2Y6V3SHpFxuXBIqYBZHTb6cy//s=
+github.com/metal-stack/metal-lib v0.16.2 h1:RJls/Spai4h5xr3BEmQt9UdWNN4RB9+SOINoZcjYaA8=
+github.com/metal-stack/metal-lib v0.16.2/go.mod h1:nyNGI4DZFOcWbSoq2Y6V3SHpFxuXBIqYBZHTb6cy//s=
 github.com/metal-stack/security v0.8.0 h1:tVaSDB9m5clwYrnLyaXfPy7mQlJTnmeoHscG+RUy/xo=
 github.com/metal-stack/security v0.8.0/go.mod h1:7GAcQb+pOgflW30ohJygxpqc3i0dQ2ahGJK1CU5tqa0=
 github.com/metal-stack/v v1.0.3 h1:Sh2oBlnxrCUD+mVpzfC8HiqL045YWkxs0gpTvkjppqs=
