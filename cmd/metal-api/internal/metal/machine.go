@@ -648,10 +648,14 @@ func NewIPMISuperUser(log *slog.Logger, path string) MachineIPMISuperUser {
 	password := ""
 
 	if raw, err := os.ReadFile(path); err == nil {
-		log.Info("ipmi superuser password found, feature is enabled")
 		password = strings.TrimSpace(string(raw))
+		if password != "" {
+			log.Info("ipmi superuser password found, feature is enabled")
+		} else {
+			log.Warn("ipmi superuser password file found, but password is empty, feature is disabled")
+		}
 	} else {
-		log.Info("ipmi superuser password could not be read, feature is disabled", "error", err)
+		log.Warn("ipmi superuser password could not be read, feature is disabled", "error", err)
 	}
 
 	return MachineIPMISuperUser{
