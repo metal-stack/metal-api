@@ -526,7 +526,7 @@ func checkSizeReservations(available metal.Machines, projectid, partitionid stri
 			return true
 		}
 
-		// substract already used up reservations of the project
+		// subtract already used up reservations of the project
 		reservations = max(reservations-alreadyAllocated, 0)
 	}
 

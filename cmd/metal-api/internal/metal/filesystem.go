@@ -313,7 +313,7 @@ func (c *FilesystemLayoutConstraints) validate() error {
 var validOPS = map[string]bool{"=": true, "!=": true, ">": true, "<": true, ">=": true, "=>": true, "<=": true, "=<": true, "~": true, "~>": true, "^": true}
 
 func convertToOpAndVersion(versionconstraint string) (string, *semver.Version, error) {
-	// a version constrain op is given it must be seperated by a whitespace
+	// a version constrain op is given it must be separated by a whitespace
 	parts := strings.SplitN(versionconstraint, " ", 2)
 	// might be a single specific version, then it must parse into a semver
 	if len(parts) == 1 {

@@ -15,7 +15,7 @@ service BootService {
   rpc Register(BootServiceRegisterRequest) returns (BootServiceRegisterResponse) {}
   // Wait is a hanging call that waits until the machine gets allocated by a user
   rpc Wait(BootServiceWaitRequest) returns (stream BootServiceWaitResponse);
-  // Report tells metal-api installation was either sucessful or failed
+  // Report tells metal-api installation was either successful or failed
   rpc Report(BootServiceReportRequest) returns (BootServiceReportResponse) {}
   // If reinstall failed and tell metal-api to restore to previous state
   rpc AbortReinstall(BootServiceAbortReinstallRequest) returns (BootServiceAbortReinstallResponse) {}

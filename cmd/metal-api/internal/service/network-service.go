@@ -617,7 +617,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 			return
 		}
 
-		prefixesToBeRemoved = oldNetwork.SubstractPrefixes(newNetwork.Prefixes...)
+		prefixesToBeRemoved = oldNetwork.SubtractPrefixes(newNetwork.Prefixes...)
 
 		// now validate if there are ips which have a prefix to be removed as a parent
 		allIPs, err := r.ds.ListIPs()
@@ -632,7 +632,7 @@ func (r *networkResource) updateNetwork(request *restful.Request, response *rest
 			return
 		}
 
-		prefixesToBeAdded = newNetwork.SubstractPrefixes(oldNetwork.Prefixes...)
+		prefixesToBeAdded = newNetwork.SubtractPrefixes(oldNetwork.Prefixes...)
 	}
 
 	for _, p := range prefixesToBeRemoved {
