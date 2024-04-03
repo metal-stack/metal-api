@@ -200,7 +200,7 @@ func (r *switchResource) deleteSwitch(request *restful.Request, response *restfu
 	r.send(request, response, http.StatusOK, resp)
 }
 
-// notifySwitch is called periodically from every switch to report last duration and error if ocurred
+// notifySwitch is called periodically from every switch to report last duration and error if occurred
 func (r *switchResource) notifySwitch(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchNotifyRequest
 	err := request.ReadEntity(&requestPayload)
@@ -623,7 +623,7 @@ func updateSwitchNics(oldNics, newNics map[string]*metal.Nic, currentConnections
 }
 
 func makeSwitchResponse(s *metal.Switch, ds *datastore.RethinkStore) (*v1.SwitchResponse, error) {
-	p, ips, machines, ss, err := findSwitchReferencedEntites(s, ds)
+	p, ips, machines, ss, err := findSwitchReferencedEntities(s, ds)
 	if err != nil {
 		return nil, err
 	}
@@ -769,7 +769,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	return cons
 }
 
-func findSwitchReferencedEntites(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
+func findSwitchReferencedEntities(s *metal.Switch, ds *datastore.RethinkStore) (*metal.Partition, metal.IPsMap, metal.Machines, *metal.SwitchStatus, error) {
 	var err error
 	var p *metal.Partition
 	var m metal.Machines

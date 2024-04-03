@@ -22,7 +22,7 @@ type Partitions []Partition
 // PartitionMap is an indexed map of partitions
 type PartitionMap map[string]Partition
 
-// ByID creates an indexed map of partitions whre the id is the index.
+// ByID creates an indexed map of partitions where the id is the index.
 func (sz Partitions) ByID() PartitionMap {
 	res := make(PartitionMap)
 	for i, s := range sz {

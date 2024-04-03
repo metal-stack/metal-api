@@ -42,7 +42,7 @@ type BootServiceClient interface {
 	Register(ctx context.Context, in *BootServiceRegisterRequest, opts ...grpc.CallOption) (*BootServiceRegisterResponse, error)
 	// Wait is a hanging call that waits until the machine gets allocated by a user
 	Wait(ctx context.Context, in *BootServiceWaitRequest, opts ...grpc.CallOption) (BootService_WaitClient, error)
-	// Report tells metal-api installation was either sucessful or failed
+	// Report tells metal-api installation was either successful or failed
 	Report(ctx context.Context, in *BootServiceReportRequest, opts ...grpc.CallOption) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(ctx context.Context, in *BootServiceAbortReinstallRequest, opts ...grpc.CallOption) (*BootServiceAbortReinstallResponse, error)
@@ -156,7 +156,7 @@ type BootServiceServer interface {
 	Register(context.Context, *BootServiceRegisterRequest) (*BootServiceRegisterResponse, error)
 	// Wait is a hanging call that waits until the machine gets allocated by a user
 	Wait(*BootServiceWaitRequest, BootService_WaitServer) error
-	// Report tells metal-api installation was either sucessful or failed
+	// Report tells metal-api installation was either successful or failed
 	Report(context.Context, *BootServiceReportRequest) (*BootServiceReportResponse, error)
 	// If reinstall failed and tell metal-api to restore to previous state
 	AbortReinstall(context.Context, *BootServiceAbortReinstallRequest) (*BootServiceAbortReinstallResponse, error)

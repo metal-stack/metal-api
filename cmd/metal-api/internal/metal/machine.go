@@ -196,7 +196,7 @@ func (r EgressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+		return fmt.Errorf("invalid protocol: %s", r.Protocol)
 	}
 
 	if err := validateComment(r.Comment); err != nil {
