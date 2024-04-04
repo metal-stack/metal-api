@@ -290,6 +290,8 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	r.send(request, response, http.StatusOK, v1.NewSwitchNotifyResponse(&newSS))
 }
 
+// toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body, validates the requested status is concrete, finds the switch, updates its NIC state if needed, and returns the updated switch on success.
+// toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body to get the switch ID, NIC name and desired state. It finds the switch, updates the state of the matching NIC if needed, and returns the updated switch on success.
 func (r *switchResource) toggleSwitchPort(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchPortToggleRequest
 	err := request.ReadEntity(&requestPayload)
@@ -313,11 +315,18 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 	}
 
 	newSwitch := *oldSwitch
-	nicname := strings.ToLower(requestPayload.NicName)
 	updated := false
 	found := false
+
+	// Updates the state of a NIC on the switch if the requested state change is valid
+	//
+	// Loops through each NIC on the switch and checks if the name matches the
+	// requested NIC. If a match is found, it tries to update the NIC's state to
+	// the requested state. If the state change is valid, it sets the new state on
+	// the NIC and marks that an update was made.
 	for i, nic := range newSwitch.Nics {
-		if nic.Name == nicname {
+		// compre nic-names case-insensitive
+		if strings.EqualFold(nic.Name, requestPayload.NicName) {
 			found = true
 			newstate, changed := nic.State.WantState(desired)
 			if changed {
