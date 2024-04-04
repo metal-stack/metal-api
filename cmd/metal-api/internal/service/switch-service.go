@@ -325,7 +325,7 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 	// the requested state. If the state change is valid, it sets the new state on
 	// the NIC and marks that an update was made.
 	for i, nic := range newSwitch.Nics {
-		// compre nic-names case-insensitive
+		// compare nic-names case-insensitive
 		if strings.EqualFold(nic.Name, requestPayload.NicName) {
 			found = true
 			newstate, changed := nic.State.WantState(desired)
