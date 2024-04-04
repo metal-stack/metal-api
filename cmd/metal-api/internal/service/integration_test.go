@@ -338,10 +338,10 @@ func createTestEnvironment(t *testing.T) testEnv {
 		},
 	}
 
-	var createdSizeImageContraint v1.SizeImageConstraintResponse
-	te.sizeImageConstraintCreate(t, sic, &createdSizeImageContraint)
+	var createdSizeImageConstraint v1.SizeImageConstraintResponse
+	te.sizeImageConstraintCreate(t, sic, &createdSizeImageConstraint)
 	require.Equal(t, http.StatusCreated, status)
-	require.NotNil(t, createdSizeImageContraint)
+	require.NotNil(t, createdSizeImageConstraint)
 	require.Equal(t, "n1-medium", sic.ID)
 	require.Len(t, sic.Images, 1)
 

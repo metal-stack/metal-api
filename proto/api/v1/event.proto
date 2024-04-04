@@ -22,7 +22,7 @@ message EventServiceSendResponse {
 }
 
 message MachineProvisioningEvent {
-  // timestamp when the event occured
+  // timestamp when the event occurred
   google.protobuf.Timestamp time = 1;
   // the event type
   // must be one of metal.ProvisioningEventType, otherwise event will be skipped

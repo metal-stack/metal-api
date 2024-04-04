@@ -33,7 +33,7 @@ func (s SwitchPortStatus) IsValid() bool {
 	return s == SwitchPortStatusUp || s == SwitchPortStatusDown || s == SwitchPortStatusUnknown
 }
 
-// A MacAddress is the type for mac adresses. When using a
+// A MacAddress is the type for mac addresses. When using a
 // custom type, we cannot use strings directly.
 type MacAddress string
 
@@ -229,7 +229,7 @@ type NetworkUsage struct {
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
-// ByID creates an indexed map of partitions whre the id is the index.
+// ByID creates an indexed map of partitions where the id is the index.
 func (nws Networks) ByID() NetworkMap {
 	res := make(NetworkMap)
 	for i, nw := range nws {
@@ -264,8 +264,8 @@ func (n *MachineNetwork) ContainsIP(ip string) bool {
 	return false
 }
 
-// SubstractPrefixes returns the prefixes of the network minus the prefixes passed in the arguments
-func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
+// SubtractPrefixes returns the prefixes of the network minus the prefixes passed in the arguments
+func (n *Network) SubtractPrefixes(prefixes ...Prefix) []Prefix {
 	var result []Prefix
 	for _, p := range n.Prefixes {
 		contains := false

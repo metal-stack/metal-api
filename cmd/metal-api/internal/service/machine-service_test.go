@@ -104,7 +104,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			wantStatusCode: http.StatusOK,
 		},
 		{
-			name: "don't update machine with unkown mac",
+			name: "don't update machine with unknown mac",
 			input: v1.MachineIpmiReports{
 				PartitionID: testdata.M1.PartitionID,
 				Reports:     map[string]v1.MachineIpmiReport{"xyz": {BMCIp: "192.167.0.1"}},

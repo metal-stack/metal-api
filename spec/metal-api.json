@@ -369,7 +369,6 @@
       },
       "required": [
         "message",
-        "services",
         "status"
       ]
     },
@@ -390,7 +389,6 @@
       },
       "required": [
         "message",
-        "services",
         "status"
       ]
     },
@@ -714,7 +712,7 @@
           "type": "array"
         },
         "device": {
-          "description": "the underlaying device where this filesystem should be created",
+          "description": "the underlying device where this filesystem should be created",
           "type": "string"
         },
         "format": {
@@ -1033,7 +1031,7 @@
           "type": "string"
         },
         "filesystemlayoutid": {
-          "description": "the filesystemlayout id to assing to this machine",
+          "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
         },
         "firewall_rules": {
@@ -2012,7 +2010,7 @@
           "type": "string"
         },
         "filesystemlayoutid": {
-          "description": "the filesystemlayout id to assing to this machine",
+          "description": "the filesystemlayout id to assign to this machine",
           "type": "string"
         },
         "hostname": {
@@ -3643,7 +3641,7 @@
           "type": "integer"
         },
         "vrfshared": {
-          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)",
+          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)",
           "type": "boolean"
         }
       },
@@ -3745,7 +3743,7 @@
           "type": "integer"
         },
         "vrfshared": {
-          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)",
+          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)",
           "type": "boolean"
         }
       },
@@ -3842,7 +3840,7 @@
           "type": "integer"
         },
         "vrfshared": {
-          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partioning (default: false)",
+          "description": "if set to true, given vrf can be used by multiple networks, which is sometimes useful for network partitioning (default: false)",
           "type": "boolean"
         }
       },
@@ -4437,7 +4435,7 @@
           "description": "the size constraint to which this log relates to"
         },
         "log": {
-          "description": "a string represention of the matching condition",
+          "description": "a string representation of the matching condition",
           "type": "string"
         },
         "match": {
@@ -4498,7 +4496,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "a list of images for this contraints apply",
+          "description": "a list of images for this constraints apply",
           "type": "object"
         }
       },

@@ -130,7 +130,7 @@ type MachineProvisioningEvent struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// timestamp when the event occured
+	// timestamp when the event occurred
 	Time *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
 	// the event type
 	// must be one of metal.ProvisioningEventType, otherwise event will be skipped

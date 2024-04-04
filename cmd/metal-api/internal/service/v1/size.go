@@ -57,7 +57,7 @@ type SizeSuggestRequest struct {
 type SizeConstraintMatchingLog struct {
 	Constraint SizeConstraint `json:"constraint" description:"the size constraint to which this log relates to"`
 	Match      bool           `json:"match" description:"indicates whether the constraint matched or not"`
-	Log        string         `json:"log" description:"a string represention of the matching condition"`
+	Log        string         `json:"log" description:"a string representation of the matching condition"`
 }
 
 type SizeMatchingLog struct {
