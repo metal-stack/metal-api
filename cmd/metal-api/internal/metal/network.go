@@ -51,7 +51,7 @@ type Nic struct {
 // NicState represents the desired and actual state of a network interface
 // controller (NIC). The Desired field indicates the intended state of the
 // NIC, while Actual indicates its current operational state. The Desired
-// state will be removed when the actuale state is equal to the desired state.
+// state will be removed when the actual state is equal to the desired state.
 type NicState struct {
 	Desired *SwitchPortStatus `rethinkdb:"desired" json:"desired"`
 	Actual  SwitchPortStatus  `rethinkdb:"actual" json:"actual"`
