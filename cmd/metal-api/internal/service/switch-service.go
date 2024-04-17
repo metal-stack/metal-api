@@ -864,13 +864,28 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	cons := []v1.SwitchConnection{}
 
+	nicMap := s.Nics.ByName()
+
 	for _, metalConnections := range s.MachineConnections {
 		for _, mc := range metalConnections {
+			// The connection state is set to the state of the NIC in the database.
+			// This state is not necessarily the actual state of the port on the switch.
+			// When the port is toggled, the connection state in the DB is updated after
+			// the real switch port changed state.
+			// So if a client queries the current switch state, it will see the desired
+			// state in the global NIC state, but the actual state of the port in the
+			// connection map.
+			n := nicMap[mc.Nic.Name]
+			state := metal.SwitchPortStatusUnknown
+			if n != nil {
+				state = n.State.Actual
+			}
 			nic := v1.SwitchNic{
 				MacAddress: string(mc.Nic.MacAddress),
 				Name:       mc.Nic.Name,
 				Identifier: mc.Nic.Identifier,
 				Vrf:        mc.Nic.Vrf,
+				Actual:     v1.SwitchPortStatus(state),
 			}
 			con := v1.SwitchConnection{
 				Nic:       nic,

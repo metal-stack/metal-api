@@ -1384,4 +1384,5 @@ func TestToggleSwitch(t *testing.T) {
 	require.Equal(t, testdata.Switch1.ID, result.ID)
 	require.Equal(t, testdata.Switch1.Name, *result.Name)
 	require.Equal(t, v1.SwitchPortStatusDown, result.Nics[0].Actual)
+	require.Equal(t, v1.SwitchPortStatusUnknown, result.Connections[0].Nic.Actual)
 }
