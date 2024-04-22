@@ -336,8 +336,8 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 			if changed {
 				newSwitch.Nics[i].State = &newstate
 				updated = true
-				break
 			}
+			break
 		}
 	}
 	if !found {
