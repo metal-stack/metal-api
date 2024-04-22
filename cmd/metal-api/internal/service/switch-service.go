@@ -264,19 +264,23 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 
 	newSwitch := *oldSwitch
 	switchUpdated := false
-	for i, nic := range newSwitch.Nics {
-		state, has := requestPayload.PortStates[strings.ToLower(nic.Name)]
-		if has {
-			reported := metal.SwitchPortStatus(state)
-			newstate, changed := nic.State.SetState(reported)
-			if changed {
-				newSwitch.Nics[i].State = &newstate
-				switchUpdated = true
+
+	// old versions of metal-core do not send this field, so make sure we do not crash here
+	if requestPayload.PortStates != nil {
+		for i, nic := range newSwitch.Nics {
+			state, has := requestPayload.PortStates[strings.ToLower(nic.Name)]
+			if has {
+				reported := metal.SwitchPortStatus(state)
+				newstate, changed := nic.State.SetState(reported)
+				if changed {
+					newSwitch.Nics[i].State = &newstate
+					switchUpdated = true
+				}
+			} else {
+				// this should NEVER happen; if the switch reports the state of an unknown port
+				// we log this and ignore it, but something is REALLY wrong in this case
+				r.log.Error("unknown switch port", "id", id, "nic", nic.Name)
 			}
-		} else {
-			// this should NEVER happen; if the switch reports the state of an unknown port
-			// we log this and ignore it, but something is REALLY wrong in this case
-			r.log.Error("unknown switch port", "id", id, "nic", nic.Name)
 		}
 	}
 
