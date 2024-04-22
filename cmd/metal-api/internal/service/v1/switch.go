@@ -108,9 +108,9 @@ type SwitchNotifyResponse struct {
 type SwitchResponse struct {
 	Common
 	SwitchBase
-	Nics          SwitchNics         `json:"nics" description:"the list of network interfaces on the switch"`
+	Nics          SwitchNics         `json:"nics" description:"the list of network interfaces on the switch with the desired nic states"`
 	Partition     PartitionResponse  `json:"partition" description:"the partition in which this switch is located"`
-	Connections   []SwitchConnection `json:"connections" description:"a connection between a switch port and a machine"`
+	Connections   []SwitchConnection `json:"connections" description:"a connection between a switch port and a machine with the real nic states"`
 	LastSync      *SwitchSync        `json:"last_sync" description:"last successful synchronization to the switch" optional:"true"`
 	LastSyncError *SwitchSync        `json:"last_sync_error" description:"last synchronization to the switch that was erroneous" optional:"true"`
 	Timestamps
