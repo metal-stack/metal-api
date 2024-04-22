@@ -277,8 +277,8 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 					switchUpdated = true
 				}
 			} else {
-				// this should NEVER happen; if the switch reports the state of an unknown port
-				// we log this and ignore it, but something is REALLY wrong in this case
+				// This should NEVER happen; the switch does not know the given NIC.
+				// We log this and ignore it, but something is REALLY wrong in this case
 				r.log.Error("unknown switch port", "id", id, "nic", nic.Name)
 			}
 		}
