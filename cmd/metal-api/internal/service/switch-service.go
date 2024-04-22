@@ -877,7 +877,7 @@ func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 			// connection map.
 			n := nicMap[mc.Nic.Name]
 			state := metal.SwitchPortStatusUnknown
-			if n != nil {
+			if n != nil && n.State != nil {
 				state = n.State.Actual
 			}
 			nic := v1.SwitchNic{
