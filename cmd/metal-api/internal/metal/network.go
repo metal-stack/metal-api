@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 // SwitchPortStatus is a type alias for a string that represents the status of a switch port.
@@ -103,8 +105,8 @@ func (ns *NicState) SetState(s SwitchPortStatus) (NicState, bool) {
 				Desired: nil,
 			}, true
 		} else {
-			// we already have the reported state, but the desired one is different
-			// so nothing changed
+			// a new state was reported, but the desired one is different
+			// so we have to update the state but keep the desired state
 			return NicState{
 				Actual:  s,
 				Desired: ns.Desired,
@@ -138,10 +140,12 @@ func (ns *NicState) WantState(s SwitchPortStatus) (NicState, bool) {
 		}
 		return *ns, false
 	}
+	// return a new state with the desired state set and a bool indicating a state change
+	// only if the desired state is different from the current one
 	return NicState{
 		Actual:  ns.Actual,
 		Desired: &s,
-	}, true
+	}, lo.FromPtr(ns.Desired) != s
 }
 
 // GetIdentifier returns the identifier of a nic.
