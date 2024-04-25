@@ -5057,7 +5057,7 @@
           "type": "string"
         },
         "connections": {
-          "description": "a connection between a switch port and a machine",
+          "description": "a connection between a switch port and a machine with the real nic states",
           "items": {
             "$ref": "#/definitions/v1.SwitchConnection"
           },
@@ -5106,7 +5106,7 @@
           "type": "string"
         },
         "nics": {
-          "description": "the list of network interfaces on the switch",
+          "description": "the list of network interfaces on the switch with the desired nic states",
           "items": {
             "$ref": "#/definitions/v1.SwitchNic"
           },

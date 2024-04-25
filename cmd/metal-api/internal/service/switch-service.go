@@ -268,7 +268,7 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	// old versions of metal-core do not send this field, so make sure we do not crash here
 	if requestPayload.PortStates != nil {
 		for i, nic := range newSwitch.Nics {
-			state, has := requestPayload.PortStates[strings.ToLower(nic.Name)]
+			state, has := requestPayload.PortStates[nic.Name]
 			if has {
 				reported := metal.SwitchPortStatus(state)
 				newstate, changed := nic.State.SetState(reported)
