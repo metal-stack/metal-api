@@ -25,7 +25,6 @@ import (
 	"github.com/metal-stack/metal-lib/httperrors"
 
 	"github.com/google/go-cmp/cmp"
-	goipam "github.com/metal-stack/go-ipam"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -37,7 +36,7 @@ func TestGetIPs(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	logger := slog.Default()
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 
 	container := restful.NewContainer().Add(ipservice)
@@ -67,7 +66,7 @@ func TestGetIP(t *testing.T) {
 	testdata.InitMockDBData(mock)
 
 	logger := slog.Default()
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/1.2.3.4", nil)
@@ -91,7 +90,7 @@ func TestGetIPNotFound(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	logger := slog.Default()
 
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	req := httptest.NewRequest("GET", "/v1/ip/9.9.9.9", nil)
@@ -293,7 +292,7 @@ func TestUpdateIP(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	logger := slog.Default()
 
-	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.New(goipam.New()), nil)
+	ipservice, err := NewIP(logger, ds, bus.DirectEndpoints(), ipam.InitTestIpam(t), nil)
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ipservice)
 	machineIDTag1 := tag.MachineID + "=" + "1"

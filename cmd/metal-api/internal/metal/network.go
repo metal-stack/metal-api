@@ -3,6 +3,7 @@ package metal
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -54,6 +55,19 @@ func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
 		IP:     ip,
 		Length: length,
 	}, nil
+}
+
+func SplitCIDR(cidr string) (string, *int) {
+	parts := strings.Split(cidr, "/")
+	if len(parts) == 2 {
+		length, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return parts[0], nil
+		}
+		return parts[0], &length
+	}
+
+	return cidr, nil
 }
 
 // String implements the Stringer interface

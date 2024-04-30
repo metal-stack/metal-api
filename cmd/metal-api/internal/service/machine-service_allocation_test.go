@@ -332,7 +332,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	}()
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(ipamer), mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, slog.Default()))
@@ -357,9 +357,10 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	err := rs.CreateImage(&metal.Image{Base: metal.Base{ID: "i-1.0.0"}, OS: "i", Version: "1.0.0", Features: map[metal.ImageFeatureType]bool{metal.ImageFeatureMachine: true}})
 	require.NoError(t, err)
 
-	super, err := ipamer.NewPrefix("10.0.0.0/20")
+	ctx := context.Background()
+	super, err := ipamer.NewPrefix(ctx, "10.0.0.0/20")
 	require.NoError(t, err)
-	private, err := ipamer.AcquireChildPrefix(super.Cidr, 22)
+	private, err := ipamer.AcquireChildPrefix(ctx, super.Cidr, 22)
 	require.NoError(t, err)
 	privateNetwork, err := metal.NewPrefixFromCIDR(private.Cidr)
 	require.NoError(t, err)

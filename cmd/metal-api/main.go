@@ -38,8 +38,9 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	goipam "github.com/metal-stack/go-ipam"
+	"connectrpc.com/connect"
+	compress "github.com/klauspost/connect-compress/v2"
+	"github.com/metal-stack/go-ipam/api/v1/apiv1connect"
 	"github.com/metal-stack/masterdata-api/pkg/auth"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -71,7 +72,7 @@ var (
 	logger *slog.Logger
 
 	ds                 *datastore.RethinkStore
-	ipamer             *ipam.Ipam
+	ipamer             ipam.IPAMer
 	publisherTLSConfig *bus.TLSConfig
 	nsqer              *eventbus.NSQClient
 	mdc                mdm.Client
@@ -553,30 +554,14 @@ func initMasterData() {
 }
 
 func initIpam() {
-	dbAdapter := viper.GetString("ipam-db")
-	switch dbAdapter {
-	case "postgres":
-		pgStorage, err := goipam.NewPostgresStorage(
-			viper.GetString("ipam-db-addr"),
-			viper.GetString("ipam-db-port"),
-			viper.GetString("ipam-db-user"),
-			viper.GetString("ipam-db-password"),
-			viper.GetString("ipam-db-name"),
-			goipam.SSLModeDisable)
-		if err != nil {
-			logger.Error("cannot connect to db in root command metal-api/internal/main.initIpam()", "error", err)
-			time.Sleep(3 * time.Second)
-			initIpam()
-			return
-		}
-		ipamInstance := goipam.NewWithStorage(pgStorage)
-		ipamer = ipam.New(ipamInstance)
-	case "memory":
-		ipamInstance := goipam.New()
-		ipamer = ipam.New(ipamInstance)
-	default:
-		logger.Error("database not supported", "db", dbAdapter)
-	}
+	ipamgrpcendpoint := viper.GetString("ipam-grpc-server-endpoint")
+
+	ipamer = ipam.New(apiv1connect.NewIpamServiceClient(
+		http.DefaultClient,
+		ipamgrpcendpoint,
+		connect.WithGRPC(),
+		compress.WithAll(compress.LevelBalanced),
+	))
 	logger.Info("ipam initialized")
 }
 
