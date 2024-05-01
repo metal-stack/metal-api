@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -27,6 +28,9 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	goipam "github.com/metal-stack/go-ipam"
+	"github.com/metal-stack/go-ipam/api/v1/apiv1connect"
+	"github.com/metal-stack/go-ipam/pkg/service"
+
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	mdmv1mock "github.com/metal-stack/masterdata-api/api/v1/mocks"
 	mdm "github.com/metal-stack/masterdata-api/pkg/client"
@@ -288,7 +292,7 @@ func createMachineRegisterRequest(i int) *grpcv1.BootServiceRegisterRequest {
 }
 
 func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkStore, *restful.Container) {
-	log := slog.Default()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	_, c, err := test.StartRethink(t)
 	require.NoError(t, err)
@@ -308,12 +312,28 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 	_, pg, err := test.StartPostgres()
 	require.NoError(t, err)
+
 	pgStorage, err := goipam.NewPostgresStorage(pg.IP, pg.Port, pg.User, pg.Password, pg.DB, goipam.SSLModeDisable)
 	require.NoError(t, err)
 
 	ipamer := goipam.NewWithStorage(pgStorage)
 
-	createTestdata(machineCount, rs, ipamer, t)
+	mux := http.NewServeMux()
+	mux.Handle(apiv1connect.NewIpamServiceHandler(
+		service.New(log.WithGroup("ipamservice"), ipamer),
+	))
+	server := httptest.NewUnstartedServer(mux)
+	server.EnableHTTP2 = true
+	server.StartTLS()
+
+	ipamclient := apiv1connect.NewIpamServiceClient(
+		server.Client(),
+		server.URL,
+	)
+
+	metalIPAMer := ipam.New(ipamclient)
+
+	createTestdata(machineCount, rs, metalIPAMer, t)
 
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
@@ -332,14 +352,14 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 	}()
 
 	usergetter := security.NewCreds(security.WithHMAC(hma))
-	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), ipam.InitTestIpam(t), mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
+	ms, err := NewMachine(log, rs, &emptyPublisher{}, bus.DirectEndpoints(), metalIPAMer, mdc, nil, usergetter, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
 	container := restful.NewContainer().Add(ms)
 	container.Filter(rest.UserAuth(usergetter, slog.Default()))
 	return rs, container
 }
 
-func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.Ipamer, t *testing.T) {
+func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer ipam.IPAMer, t *testing.T) {
 	for i := range machineCount {
 		id := fmt.Sprintf("WaitingMachine%d", i)
 		m := &metal.Machine{
@@ -358,15 +378,19 @@ func createTestdata(machineCount int, rs *datastore.RethinkStore, ipamer goipam.
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	super, err := ipamer.NewPrefix(ctx, "10.0.0.0/20")
+	tenantSuper := metal.Prefix{IP: "10.0.0.0", Length: "20"}
+	err = ipamer.CreatePrefix(ctx, tenantSuper)
 	require.NoError(t, err)
-	private, err := ipamer.AcquireChildPrefix(ctx, super.Cidr, 22)
+	private, err := ipamer.AllocateChildPrefix(ctx, tenantSuper, 22)
 	require.NoError(t, err)
-	privateNetwork, err := metal.NewPrefixFromCIDR(private.Cidr)
+	require.NotNil(t, private)
+	privateNetwork, err := metal.NewPrefixFromCIDR(private.String())
 	require.NoError(t, err)
 	require.NotNil(t, privateNetwork)
 
-	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "super"}, PrivateSuper: true, PartitionID: "p1"})
+	t.Logf("tenant super network:%s and private network created:%s created", tenantSuper, *private)
+
+	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "super"}, PrivateSuper: true, PartitionID: "p1", Prefixes: metal.Prefixes{tenantSuper}})
 	require.NoError(t, err)
 	err = rs.CreateNetwork(&metal.Network{Base: metal.Base{ID: "private"}, ParentNetworkID: "super", ProjectID: "pr1", PartitionID: "p1", Prefixes: metal.Prefixes{*privateNetwork}})
 	require.NoError(t, err)
