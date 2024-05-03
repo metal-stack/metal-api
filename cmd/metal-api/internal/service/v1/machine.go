@@ -86,8 +86,8 @@ type MachineHardwareBase struct {
 	Memory    uint64               `json:"memory" description:"the total memory of the machine"`
 	CPUCores  int                  `json:"cpu_cores" description:"the number of cpu cores"`
 	Disks     []MachineBlockDevice `json:"disks" description:"the list of block devices of this machine"`
-	MetalCPUs []MetalCPU           `json:"cpus" description:"the cpu details"`
-	MetalGPUs []MetalGPU           `json:"gpus" description:"the gpu details"`
+	MetalCPUs []MetalCPU           `json:"cpus,omitempty" optional:"true" description:"the cpu details"`
+	MetalGPUs []MetalGPU           `json:"gpus,omitempty" optional:"true" description:"the gpu details"`
 }
 
 type MachineHardware struct {

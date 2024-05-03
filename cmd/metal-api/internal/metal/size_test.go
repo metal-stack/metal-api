@@ -163,40 +163,6 @@ var (
 			},
 		},
 	}
-	// mixedGPUSize = Size{
-	// 	Base: Base{
-	// 		ID: "mixed gpu",
-	// 	},
-	// 	Constraints: []Constraint{
-	// 		{
-	// 			Type: CoreConstraint,
-	// 			Min:  1,
-	// 			Max:  1,
-	// 		},
-	// 		{
-	// 			Type: MemoryConstraint,
-	// 			Min:  1025,
-	// 			Max:  1077838336,
-	// 		},
-	// 		{
-	// 			Type: StorageConstraint,
-	// 			Min:  1024,
-	// 			Max:  2048,
-	// 		},
-	// 		{
-	// 			Type:       GPUConstraint,
-	// 			Max:        2,
-	// 			Min:        2,
-	// 			Identifier: "A100*",
-	// 		},
-	// 		{
-	// 			Type:       GPUConstraint,
-	// 			Max:        4,
-	// 			Min:        4,
-	// 			Identifier: "H100*",
-	// 		},
-	// 	},
-	// }
 	// Sizes
 	sz1 = Size{
 		Base: Base{
@@ -444,56 +410,6 @@ func TestSizes_FromHardware(t *testing.T) {
 			want:    &maxGPUSize,
 			wantErr: false,
 		},
-		// {
-		// 	name: "mixed gpus",
-		// 	sz: Sizes{
-		// 		sz1,
-		// 		sz999,
-		// 		tinyGPUSize,
-		// 		miniGPUSize,
-		// 		maxGPUSize,
-		// 		mixedGPUSize,
-		// 	},
-		// 	args: args{
-		// 		hardware: MachineHardware{
-		// 			CPUCores: 1,
-		// 			Memory:   1026,
-		// 			Disks: []BlockDevice{
-		// 				{
-		// 					Size: 1026,
-		// 				},
-		// 			},
-		// 			MetalGPUs: []MetalGPU{
-		// 				{
-		// 					Vendor: "NVIDIA Corporation",
-		// 					Model:  "H100",
-		// 				},
-		// 				{
-		// 					Vendor: "NVIDIA Corporation",
-		// 					Model:  "H100",
-		// 				},
-		// 				{
-		// 					Vendor: "NVIDIA Corporation",
-		// 					Model:  "H100",
-		// 				},
-		// 				{
-		// 					Vendor: "NVIDIA Corporation",
-		// 					Model:  "A100",
-		// 				},
-		// 				{
-		// 					Vendor: "NVIDIA Corporation",
-		// 					Model:  "H100",
-		// 				},
-		// 				{
-		// 					Vendor: "NVIDIA Corporation",
-		// 					Model:  "A100",
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// 	want:    &mixedGPUSize,
-		// 	wantErr: false,
-		// },
 	}
 
 	for i := range tests {
@@ -899,6 +815,22 @@ func TestSize_Validate(t *testing.T) {
 				},
 			},
 			wantErrMessage: pointer.Pointer("size:\"gpu-size\" type:\"gpu\" min:2 max:2 has duplicate constraint type"),
+		},
+		{
+			name: "gpu size without identifier",
+			size: Size{
+				Base: Base{
+					ID: "invalid-gpu-size",
+				},
+				Constraints: []Constraint{
+					{
+						Type: GPUConstraint,
+						Min:  2,
+						Max:  8,
+					},
+				},
+			},
+			wantErrMessage: pointer.Pointer("size:\"invalid-gpu-size\" type:\"gpu\" min:2 max:8 is a gpu size but has no identifier specified"),
 		},
 	}
 	for _, tt := range tests {

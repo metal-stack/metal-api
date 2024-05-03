@@ -2611,9 +2611,7 @@
       },
       "required": [
         "cpu_cores",
-        "cpus",
         "disks",
-        "gpus",
         "memory",
         "nics"
       ]
@@ -2654,9 +2652,7 @@
       },
       "required": [
         "cpu_cores",
-        "cpus",
         "disks",
-        "gpus",
         "memory"
       ]
     },

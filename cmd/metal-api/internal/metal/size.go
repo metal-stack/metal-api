@@ -101,11 +101,7 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 			}
 		}
 
-		if c.Identifier == "" {
-			res = false
-		}
-
-		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%s count %d-%d", hw.MetalCPUs, c.Identifier, c.Min, c.Max)
+		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%s count %d-%d", hw.MetalGPUs, c.Identifier, c.Min, c.Max)
 	}
 	cml.Match = res
 	return cml, res
@@ -201,6 +197,12 @@ func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Proj
 		if ok {
 			return fmt.Errorf("size:%q type:%q min:%d max:%d has duplicate constraint type", s.ID, c.Type, c.Min, c.Max)
 		}
+
+		// Ensure GPU Constraints always have identifier specified
+		if c.Type == GPUConstraint && c.Identifier == "" {
+			return fmt.Errorf("size:%q type:%q min:%d max:%d is a gpu size but has no identifier specified", s.ID, c.Type, c.Min, c.Max)
+		}
+
 		constraintTypes[c.Type] = true
 	}
 
