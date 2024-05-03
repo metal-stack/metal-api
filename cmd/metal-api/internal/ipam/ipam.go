@@ -47,11 +47,6 @@ func (i *ipam) AllocateChildPrefix(ctx context.Context, parentPrefix metal.Prefi
 	if err != nil {
 		return nil, err
 	}
-
-	if ipamParentPrefix == nil {
-		return nil, fmt.Errorf("error finding parent prefix in ipam: %s", parentPrefix.String())
-	}
-
 	ipamPrefix, err := i.ip.AcquireChildPrefix(ctx, connect.NewRequest(&apiv1.AcquireChildPrefixRequest{
 		Cidr:   ipamParentPrefix.Msg.Prefix.Cidr,
 		Length: uint32(childLength),
@@ -75,10 +70,6 @@ func (i *ipam) ReleaseChildPrefix(ctx context.Context, childPrefix metal.Prefix)
 	}))
 	if err != nil {
 		return fmt.Errorf("invalid child prefix: %w", err)
-	}
-	if ipamChildPrefix == nil {
-		// FIXME: check for notfounderror
-		return nil
 	}
 
 	_, err = i.ip.ReleaseChildPrefix(ctx, connect.NewRequest(&apiv1.ReleaseChildPrefixRequest{
@@ -121,10 +112,6 @@ func (i *ipam) AllocateIP(ctx context.Context, prefix metal.Prefix) (string, err
 	if err != nil {
 		return "", fmt.Errorf("unable to find prefix:%q %w", prefix, err)
 	}
-	if ipamPrefix == nil {
-		// FIXME: check for notfounderror
-		return "", fmt.Errorf("error finding prefix in ipam: %s", prefix.String())
-	}
 
 	ipamIP, err := i.ip.AcquireIP(ctx, connect.NewRequest(&apiv1.AcquireIPRequest{
 		PrefixCidr: ipamPrefix.Msg.Prefix.Cidr,
@@ -148,9 +135,7 @@ func (i *ipam) AllocateSpecificIP(ctx context.Context, prefix metal.Prefix, spec
 	if err != nil {
 		return "", err
 	}
-	if ipamPrefix == nil {
-		return "", fmt.Errorf("error finding prefix in ipam: %s", prefix.String())
-	}
+
 	ipamIP, err := i.ip.AcquireIP(ctx, connect.NewRequest(&apiv1.AcquireIPRequest{
 		PrefixCidr: ipamPrefix.Msg.Prefix.Cidr,
 		Ip:         &specificIP,
@@ -172,9 +157,6 @@ func (i *ipam) ReleaseIP(ctx context.Context, ip metal.IP) error {
 	}))
 	if err != nil {
 		return err
-	}
-	if ipamPrefix == nil {
-		return fmt.Errorf("error finding parent prefix %s of ip %s in ipam", ip.ParentPrefixCidr, ip.IPAddress)
 	}
 
 	_, err = i.ip.ReleaseIP(ctx, connect.NewRequest(&apiv1.ReleaseIPRequest{
