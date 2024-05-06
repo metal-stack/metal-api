@@ -1,4 +1,0 @@
-FROM alpine:3.19
-RUN apk add ca-certificates
-COPY bin/metal-api /metal-api
-ENTRYPOINT [ "/metal-api" ]

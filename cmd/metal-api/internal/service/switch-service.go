@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -100,6 +101,17 @@ func (r *switchResource) webService() *restful.WebService {
 		Doc("updates a switch. if the switch was changed since this one was read, a conflict is returned").
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Reads(v1.SwitchUpdateRequest{}).
+		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
+		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
+
+	ws.Route(ws.POST("/{id}/port").
+		To(admin(r.toggleSwitchPort)).
+		Operation("toggleSwitchPort").
+		Param(ws.PathParameter("id", "identifier of the switch").DataType("string")).
+		Doc("toggles the port of the switch with a nicname to the given state").
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(v1.SwitchPortToggleRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
@@ -244,7 +256,109 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 		return
 	}
 
+	oldSwitch, err := r.ds.FindSwitch(id)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	newSwitch := *oldSwitch
+	switchUpdated := false
+
+	// old versions of metal-core do not send this field, so make sure we do not crash here
+	if requestPayload.PortStates != nil {
+		for i, nic := range newSwitch.Nics {
+			state, has := requestPayload.PortStates[nic.Name]
+			if has {
+				reported := metal.SwitchPortStatus(state)
+				newstate, changed := nic.State.SetState(reported)
+				if changed {
+					newSwitch.Nics[i].State = &newstate
+					switchUpdated = true
+				}
+			} else {
+				// This should NEVER happen; the switch does not know the given NIC.
+				// We log this and ignore it, but something is REALLY wrong in this case
+				r.log.Error("unknown switch port", "id", id, "nic", nic.Name)
+			}
+		}
+	}
+
+	if switchUpdated {
+		if err := r.ds.UpdateSwitch(oldSwitch, &newSwitch); err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+	}
+
 	r.send(request, response, http.StatusOK, v1.NewSwitchNotifyResponse(&newSS))
+}
+
+// toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body, validates the requested status is concrete, finds the switch, updates its NIC state if needed, and returns the updated switch on success.
+// toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body to get the switch ID, NIC name and desired state. It finds the switch, updates the state of the matching NIC if needed, and returns the updated switch on success.
+func (r *switchResource) toggleSwitchPort(request *restful.Request, response *restful.Response) {
+	var requestPayload v1.SwitchPortToggleRequest
+	err := request.ReadEntity(&requestPayload)
+	if err != nil {
+		r.sendError(request, response, httperrors.BadRequest(err))
+		return
+	}
+
+	desired := metal.SwitchPortStatus(requestPayload.Status)
+
+	if !desired.IsConcrete() {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("the status %q must be concrete", requestPayload.Status)))
+		return
+	}
+
+	id := request.PathParameter("id")
+	oldSwitch, err := r.ds.FindSwitch(id)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	newSwitch := *oldSwitch
+	updated := false
+	found := false
+
+	// Updates the state of a NIC on the switch if the requested state change is valid
+	//
+	// Loops through each NIC on the switch and checks if the name matches the
+	// requested NIC. If a match is found, it tries to update the NIC's state to
+	// the requested state. If the state change is valid, it sets the new state on
+	// the NIC and marks that an update was made.
+	for i, nic := range newSwitch.Nics {
+		// compare nic-names case-insensitive
+		if strings.EqualFold(nic.Name, requestPayload.NicName) {
+			found = true
+			newstate, changed := nic.State.WantState(desired)
+			if changed {
+				newSwitch.Nics[i].State = &newstate
+				updated = true
+			}
+			break
+		}
+	}
+	if !found {
+		r.sendError(request, response, httperrors.NotFound(fmt.Errorf("the nic %q does not exist in this switch", requestPayload.NicName)))
+		return
+	}
+
+	if updated {
+		if err := r.ds.UpdateSwitch(oldSwitch, &newSwitch); err != nil {
+			r.sendError(request, response, defaultError(err))
+			return
+		}
+	}
+
+	resp, err := makeSwitchResponse(&newSwitch, r.ds)
+	if err != nil {
+		r.sendError(request, response, defaultError(err))
+		return
+	}
+
+	r.send(request, response, http.StatusOK, resp)
 }
 
 func (r *switchResource) updateSwitch(request *restful.Request, response *restful.Response) {
@@ -732,6 +846,14 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 			Identifier: n.Identifier,
 			Vrf:        n.Vrf,
 			BGPFilter:  filter,
+			Actual:     v1.SwitchPortStatusUnknown,
+		}
+		if n.State != nil {
+			if n.State.Desired != nil {
+				nic.Actual = v1.SwitchPortStatus(*n.State.Desired)
+			} else {
+				nic.Actual = v1.SwitchPortStatus(n.State.Actual)
+			}
 		}
 		nics = append(nics, nic)
 	}
@@ -746,13 +868,28 @@ func makeSwitchNics(s *metal.Switch, ips metal.IPsMap, machines metal.Machines) 
 func makeSwitchCons(s *metal.Switch) []v1.SwitchConnection {
 	cons := []v1.SwitchConnection{}
 
+	nicMap := s.Nics.ByName()
+
 	for _, metalConnections := range s.MachineConnections {
 		for _, mc := range metalConnections {
+			// The connection state is set to the state of the NIC in the database.
+			// This state is not necessarily the actual state of the port on the switch.
+			// When the port is toggled, the connection state in the DB is updated after
+			// the real switch port changed state.
+			// So if a client queries the current switch state, it will see the desired
+			// state in the global NIC state, but the actual state of the port in the
+			// connection map.
+			n := nicMap[mc.Nic.Name]
+			state := metal.SwitchPortStatusUnknown
+			if n != nil && n.State != nil {
+				state = n.State.Actual
+			}
 			nic := v1.SwitchNic{
 				MacAddress: string(mc.Nic.MacAddress),
 				Name:       mc.Nic.Name,
 				Identifier: mc.Nic.Identifier,
 				Vrf:        mc.Nic.Vrf,
+				Actual:     v1.SwitchPortStatus(state),
 			}
 			con := v1.SwitchConnection{
 				Nic:       nic,
