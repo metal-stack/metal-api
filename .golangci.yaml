@@ -4,3 +4,11 @@ run:
 linters:
   disable:
     - musttag
+    - protogetter
+  enable:
+    - testifylint
+    - unused
+  presets:
+    - bugs
+    - unused
+fast: true

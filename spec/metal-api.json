@@ -4942,6 +4942,15 @@
     },
     "v1.SwitchNic": {
       "properties": {
+        "actual": {
+          "description": "the current state of the nic",
+          "enum": [
+            "DOWN",
+            "UNKNOWN",
+            "UP"
+          ],
+          "type": "string"
+        },
         "filter": {
           "$ref": "#/definitions/v1.BGPFilter",
           "description": "configures the bgp filter applied at the switch port"
@@ -4964,6 +4973,7 @@
         }
       },
       "required": [
+        "actual",
         "identifier",
         "mac",
         "name"
@@ -4974,6 +4984,13 @@
         "error": {
           "type": "string"
         },
+        "port_states": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "the current switch port states",
+          "type": "object"
+        },
         "sync_duration": {
           "description": "the duration of the switch synchronization",
           "format": "int64",
@@ -4982,6 +4999,7 @@
       },
       "required": [
         "error",
+        "port_states",
         "sync_duration"
       ]
     },
@@ -5027,6 +5045,26 @@
           "type": "string"
         }
       }
+    },
+    "v1.SwitchPortToggleRequest": {
+      "properties": {
+        "nic": {
+          "description": "the nic of the switch you want to change",
+          "type": "string"
+        },
+        "status": {
+          "description": "sets the port status",
+          "enum": [
+            "DOWN",
+            "UP"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "nic",
+        "status"
+      ]
     },
     "v1.SwitchRegisterRequest": {
       "properties": {
@@ -5094,7 +5132,7 @@
           "type": "string"
         },
         "connections": {
-          "description": "a connection between a switch port and a machine",
+          "description": "a connection between a switch port and a machine with the real nic states",
           "items": {
             "$ref": "#/definitions/v1.SwitchConnection"
           },
@@ -5143,7 +5181,7 @@
           "type": "string"
         },
         "nics": {
-          "description": "the list of network interfaces on the switch",
+          "description": "the list of network interfaces on the switch with the desired nic states",
           "items": {
             "$ref": "#/definitions/v1.SwitchNic"
           },
@@ -9513,6 +9551,58 @@
           }
         },
         "summary": "notify the metal-api about a configuration change of a switch",
+        "tags": [
+          "switch"
+        ]
+      }
+    },
+    "/v1/switch/{id}/port": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "toggleSwitchPort",
+        "parameters": [
+          {
+            "description": "identifier of the switch",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchPortToggleRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/v1.SwitchResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Error",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          }
+        },
+        "summary": "toggles the port of the switch with a nicname to the given state",
         "tags": [
           "switch"
         ]

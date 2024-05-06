@@ -119,3 +119,219 @@ func TestPrefix_Equals(t *testing.T) {
 		})
 	}
 }
+
+func TestNicState_WantState(t *testing.T) {
+	up := SwitchPortStatusUp
+	down := SwitchPortStatusDown
+	unknown := SwitchPortStatusUnknown
+
+	tests := []struct {
+		name    string
+		nic     *NicState
+		arg     SwitchPortStatus
+		want    NicState
+		changed bool
+	}{
+		{
+			name: "up to desired down",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			arg: up,
+			want: NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "up to up with empty desired",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			arg: up,
+			want: NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			changed: false,
+		},
+		{
+			name: "up to up with other desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			arg: up,
+			want: NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			changed: true,
+		},
+		{
+			name: "nil to up",
+			nic:  nil,
+			arg:  up,
+			want: NicState{
+				Desired: &up,
+				Actual:  unknown,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with same desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			changed: false,
+		},
+		{
+			name: "different actual with other desired",
+			nic: &NicState{
+				Desired: &up,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with empty desired",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			changed: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got, got1 := tt.nic.WantState(tt.arg)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NicState.WantState() got = %+v, want %+v", got, tt.want)
+			}
+			if got1 != tt.changed {
+				t.Errorf("NicState.WantState() got1 = %v, want %v", got1, tt.changed)
+			}
+		})
+	}
+}
+
+func TestNicState_SetState(t *testing.T) {
+	up := SwitchPortStatusUp
+	down := SwitchPortStatusDown
+	unknown := SwitchPortStatusUnknown
+
+	tests := []struct {
+		name    string
+		nic     *NicState
+		arg     SwitchPortStatus
+		want    NicState
+		changed bool
+	}{
+		{
+			name: "different actual with empty desired",
+			nic: &NicState{
+				Desired: nil,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with same state in desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "different actual with other state in desired",
+			nic: &NicState{
+				Desired: &unknown,
+				Actual:  up,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &unknown,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "nil nic",
+			nic:  nil,
+			arg:  down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "same state with same desired",
+			nic: &NicState{
+				Desired: &down,
+				Actual:  down,
+			},
+			arg: down,
+			want: NicState{
+				Desired: nil,
+				Actual:  down,
+			},
+			changed: true,
+		},
+		{
+			name: "same state with other desired",
+			nic: &NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			arg: down,
+			want: NicState{
+				Desired: &up,
+				Actual:  down,
+			},
+			changed: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := tt.nic.SetState(tt.arg)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NicState.SetState() got = %+v, want %+v", got, tt.want)
+			}
+			if got1 != tt.changed {
+				t.Errorf("NicState.SetState() got1 = %v, want %v", got1, tt.changed)
+			}
+		})
+	}
+}
