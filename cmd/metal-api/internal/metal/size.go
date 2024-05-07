@@ -74,26 +74,20 @@ func UnknownSize() *Size {
 
 // Matches returns true if the given machine hardware is inside the min/max values of the
 // constraint.
-func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
-	logentryFmt := fmt.Sprintf("%%d >= %d && %%d <= %d", c.Min, c.Max)
-	cml := ConstraintMatchingLog{Constraint: *c, Log: fmt.Sprintf("no constraint matching %q", c.Type)}
+func (c *Constraint) Matches(hw MachineHardware) bool {
 	res := false
 	switch c.Type {
 	case CoreConstraint:
 		res = uint64(hw.CPUCores) >= c.Min && uint64(hw.CPUCores) <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.CPUCores, hw.CPUCores)
 	case MemoryConstraint:
 		res = hw.Memory >= c.Min && hw.Memory <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.Memory, hw.Memory)
 	case StorageConstraint:
 		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
-		cml.Log = fmt.Sprintf(logentryFmt, hw.DiskCapacity(), hw.DiskCapacity())
 	case GPUConstraint:
 		for model, count := range hw.GPUModels() {
 			idMatches, err := filepath.Match(c.Identifier, model)
 			if err != nil {
-				cml.Log = fmt.Sprintf("cannot match gpu model:%v", err)
-				return cml, false
+				return false
 			}
 			res = count >= c.Min && count <= c.Max && idMatches
 			if res {
@@ -101,41 +95,32 @@ func (c *Constraint) Matches(hw MachineHardware) (ConstraintMatchingLog, bool) {
 			}
 		}
 
-		cml.Log = fmt.Sprintf("existing gpus:%#v required gpus:%s count %d-%d", hw.MetalGPUs, c.Identifier, c.Min, c.Max)
 	}
-	cml.Match = res
-	return cml, res
+	return res
 }
 
 // FromHardware searches a Size for given hardware specs. It will search
 // for a size where the constraints matches the given hardware.
-func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, []*SizeMatchingLog, error) {
+func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
 	var found []Size
-	matchlog := make([]*SizeMatchingLog, 0)
-	var matchedlog *SizeMatchingLog
 nextsize:
 	for _, s := range sz {
-		ml := &SizeMatchingLog{Name: s.ID, Match: false}
-		matchlog = append(matchlog, ml)
 		for _, c := range s.Constraints {
-			lg, match := c.Matches(hardware)
-			ml.Constraints = append(ml.Constraints, lg)
+			match := c.Matches(hardware)
 			if !match {
 				continue nextsize
 			}
 		}
-		ml.Match = true
-		matchedlog = ml
 		found = append(found, s)
 	}
 
 	if len(found) == 0 {
-		return nil, matchlog, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
+		return nil, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
 	}
 	if len(found) > 1 {
-		return nil, matchlog, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
+		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
 	}
-	return &found[0], []*SizeMatchingLog{matchedlog}, nil
+	return &found[0], nil
 }
 
 func (s *Size) overlaps(so *Size) bool {
@@ -292,20 +277,4 @@ func (rs *Reservations) Validate(partitions PartitionMap, projects map[string]*m
 	}
 
 	return nil
-}
-
-// A ConstraintMatchingLog is used do return a log message to the caller
-// beside the constraint itself.
-type ConstraintMatchingLog struct {
-	Constraint Constraint
-	Match      bool
-	Log        string
-}
-
-// A SizeMatchingLog returns information about a list of constraints.
-type SizeMatchingLog struct {
-	Name        string
-	Log         string
-	Match       bool
-	Constraints []ConstraintMatchingLog
 }
