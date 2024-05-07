@@ -68,28 +68,6 @@ type SizeMatchingLog struct {
 	Constraints []SizeConstraintMatchingLog `json:"constraints"`
 }
 
-func NewSizeMatchingLog(m *metal.SizeMatchingLog) *SizeMatchingLog {
-	constraints := []SizeConstraintMatchingLog{}
-	for i := range m.Constraints {
-		constraint := SizeConstraintMatchingLog{
-			Constraint: SizeConstraint{
-				Type: m.Constraints[i].Constraint.Type,
-				Min:  m.Constraints[i].Constraint.Min,
-				Max:  m.Constraints[i].Constraint.Max,
-			},
-			Match: m.Constraints[i].Match,
-			Log:   m.Constraints[i].Log,
-		}
-		constraints = append(constraints, constraint)
-	}
-	return &SizeMatchingLog{
-		Name:        m.Name,
-		Match:       m.Match,
-		Log:         m.Log,
-		Constraints: constraints,
-	}
-}
-
 func NewSizeResponse(s *metal.Size) *SizeResponse {
 	if s == nil {
 		return nil

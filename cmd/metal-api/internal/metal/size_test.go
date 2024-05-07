@@ -415,7 +415,7 @@ func TestSizes_FromHardware(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, _, err := tt.sz.FromHardware(tt.args.hardware)
+			got, err := tt.sz.FromHardware(tt.args.hardware)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Sizes.FromHardware() error = %v, wantErr %v", err, tt.wantErr)
 				return

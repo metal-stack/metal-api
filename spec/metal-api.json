@@ -4503,27 +4503,6 @@
         "type"
       ]
     },
-    "v1.SizeConstraintMatchingLog": {
-      "properties": {
-        "constraint": {
-          "$ref": "#/definitions/v1.SizeConstraint",
-          "description": "the size constraint to which this log relates to"
-        },
-        "log": {
-          "description": "a string representation of the matching condition",
-          "type": "string"
-        },
-        "match": {
-          "description": "indicates whether the constraint matched or not",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "constraint",
-        "log",
-        "match"
-      ]
-    },
     "v1.SizeCreateRequest": {
       "properties": {
         "constraints": {
@@ -4661,31 +4640,6 @@
       },
       "required": [
         "id"
-      ]
-    },
-    "v1.SizeMatchingLog": {
-      "properties": {
-        "constraints": {
-          "items": {
-            "$ref": "#/definitions/v1.SizeConstraintMatchingLog"
-          },
-          "type": "array"
-        },
-        "log": {
-          "type": "string"
-        },
-        "match": {
-          "type": "boolean"
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "constraints",
-        "log",
-        "match",
-        "name"
       ]
     },
     "v1.SizeReservation": {
@@ -9074,45 +9028,6 @@
         "summary": "get sizeimageconstraint by id",
         "tags": [
           "sizeimageconstraint"
-        ]
-      }
-    },
-    "/v1/size/from-hardware": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "operationId": "fromHardware",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1.MachineHardware"
-            }
-          }
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/v1.SizeMatchingLog"
-            }
-          },
-          "default": {
-            "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
-            }
-          }
-        },
-        "summary": "Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match",
-        "tags": [
-          "size"
         ]
       }
     },
