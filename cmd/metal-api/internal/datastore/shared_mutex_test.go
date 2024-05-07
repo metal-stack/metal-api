@@ -20,10 +20,10 @@ func Test_sharedMutex_reallyLocking(t *testing.T) {
 	defer mutexCleanup(t)
 	ctx := context.Background()
 
-	err := sharedDS.machineMutex.lock(ctx)
+	err := sharedDS.dbMutex.lock(ctx, "test")
 	require.NoError(t, err)
 
-	err = sharedDS.machineMutex.lock(ctx)
+	err = sharedDS.dbMutex.lock(ctx, "test")
 	require.Error(t, err)
 }
 
@@ -31,7 +31,7 @@ func Test_sharedMutex_acquireAfterRelease(t *testing.T) {
 	defer mutexCleanup(t)
 	ctx := context.Background()
 
-	err := sharedDS.machineMutex.lock(ctx)
+	err := sharedDS.dbMutex.lock(ctx, "test")
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -40,13 +40,13 @@ func Test_sharedMutex_acquireAfterRelease(t *testing.T) {
 	go func() {
 		defer wg.Done()
 
-		err = sharedDS.machineMutex.lock(ctx)
+		err = sharedDS.dbMutex.lock(ctx, "test")
 		assert.NoError(t, err)
 	}()
 
 	time.Sleep(1 * time.Second)
 
-	sharedDS.machineMutex.unlock()
+	sharedDS.dbMutex.unlock(ctx, "test")
 
 	wg.Wait()
 }
@@ -55,15 +55,15 @@ func Test_sharedMutex_expires(t *testing.T) {
 	defer mutexCleanup(t)
 	ctx := context.Background()
 
-	err := sharedDS.machineMutex.lock(ctx)
+	err := sharedDS.dbMutex.lock(ctx, "test")
 	require.NoError(t, err)
 
-	err = sharedDS.machineMutex.lock(ctx)
+	err = sharedDS.dbMutex.lock(ctx, "test")
 	require.Error(t, err)
 
-	time.Sleep(sharedDS.machineMutex.checkinterval + 100*time.Millisecond)
+	time.Sleep(sharedDS.dbMutex.checkinterval + 100*time.Millisecond)
 
-	err = sharedDS.machineMutex.lock(ctx)
+	err = sharedDS.dbMutex.lock(ctx, "test")
 	require.NoError(t, err)
 }
 
@@ -71,7 +71,7 @@ func Test_sharedMutex_stop(t *testing.T) {
 	defer mutexCleanup(t)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	mutex := newSharedMutex(context.Background(), slog.Default(), sharedDS.dbsession, "test", 3*time.Second)
+	mutex := newSharedMutex(context.Background(), slog.Default(), sharedDS.dbsession, 3*time.Second)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

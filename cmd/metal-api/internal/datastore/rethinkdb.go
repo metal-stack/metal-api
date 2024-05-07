@@ -55,9 +55,9 @@ type RethinkStore struct {
 	ASNPoolRangeMax         uint
 	sharedMutexMaxBlockTime time.Duration
 
-	mutexCtx     context.Context
-	mutexCancel  context.CancelFunc
-	machineMutex *sharedMutex
+	mutexCtx    context.Context
+	mutexCancel context.CancelFunc
+	dbMutex     *sharedMutex
 }
 
 // New creates a new rethink store.
@@ -277,7 +277,7 @@ func (rs *RethinkStore) Connect() error {
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
 	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
-	rs.machineMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, "machine", rs.sharedMutexMaxBlockTime)
+	rs.dbMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
 	return nil
 }
 
@@ -292,7 +292,7 @@ func (rs *RethinkStore) Demote() error {
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
 	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
-	rs.machineMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, "machine", rs.sharedMutexMaxBlockTime)
+	rs.dbMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil

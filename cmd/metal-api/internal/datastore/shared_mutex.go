@@ -23,19 +23,17 @@ type sharedMutexDoc struct {
 type sharedMutex struct {
 	session       r.QueryExecutor
 	table         r.Term
-	key           string
 	maxblock      time.Duration
 	checkinterval time.Duration
 	log           *slog.Logger
 }
 
-func newSharedMutex(ctx context.Context, log *slog.Logger, session r.QueryExecutor, key string, maxblock time.Duration) *sharedMutex {
+func newSharedMutex(ctx context.Context, log *slog.Logger, session r.QueryExecutor, maxblock time.Duration) *sharedMutex {
 	table := r.Table("sharedmutex")
 
 	m := &sharedMutex{
-		log:           log.With("key", key),
+		log:           log,
 		session:       session,
-		key:           key,
 		table:         table,
 		maxblock:      maxblock,
 		checkinterval: 10 * time.Second,
@@ -46,14 +44,14 @@ func newSharedMutex(ctx context.Context, log *slog.Logger, session r.QueryExecut
 	return m
 }
 
-func (m *sharedMutex) lock(ctx context.Context) error {
-	_, err := m.table.Insert(m.newMutexDoc(), r.InsertOpts{
+func (m *sharedMutex) lock(ctx context.Context, key string) error {
+	_, err := m.table.Insert(m.newMutexDoc(key), r.InsertOpts{
 		Conflict:      "error",
 		Durability:    "soft",
 		ReturnChanges: "always",
-	}).RunWrite(m.session)
+	}).RunWrite(m.session, r.RunOpts{Context: ctx})
 	if err == nil {
-		m.log.Debug("mutex acquired")
+		m.log.Debug("mutex acquired", "key", key)
 		return nil
 	}
 
@@ -64,7 +62,7 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, m.maxblock)
 	defer cancel()
 
-	m.log.Debug("mutex is already locked, listening for changes")
+	m.log.Debug("mutex is already locked, listening for changes", "key", key)
 
 	cursor, err := m.table.Changes(r.ChangesOpts{
 		Squash: false,
@@ -81,17 +79,17 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 	for {
 		select {
 		case change := <-changes:
-			m.log.Debug("document change received")
+			m.log.Debug("document change received", "key", key)
 
 			if change.NewValue != nil {
-				m.log.Debug("mutex was not yet released")
+				m.log.Debug("mutex was not yet released", "key", key)
 				continue
 			}
 
-			_, err = m.table.Insert(m.newMutexDoc(), r.InsertOpts{
+			_, err = m.table.Insert(m.newMutexDoc(key), r.InsertOpts{
 				Conflict:   "error",
 				Durability: "soft",
-			}).RunWrite(m.session)
+			}).RunWrite(m.session, r.RunOpts{Context: timeoutCtx})
 			if err != nil && r.IsConflictErr(err) {
 				continue
 			}
@@ -99,25 +97,25 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 				return err
 			}
 
-			m.log.Debug("mutex acquired after waiting")
+			m.log.Debug("mutex acquired after waiting", "key", key)
 
 			return nil
 		case <-timeoutCtx.Done():
-			return fmt.Errorf("unable to acquire %q mutex", m.key)
+			return fmt.Errorf("unable to acquire %q mutex", key)
 		}
 	}
 }
 
-func (m *sharedMutex) unlock() {
-	_, err := m.table.Get(m.key).Delete().RunWrite(m.session)
+func (m *sharedMutex) unlock(ctx context.Context, key string) {
+	_, err := m.table.Get(key).Delete().RunWrite(m.session, r.RunOpts{Context: ctx})
 	if err != nil {
 		m.log.Error("unable to release shared mutex", "error", err)
 	}
 }
 
-func (m *sharedMutex) newMutexDoc() *sharedMutexDoc {
+func (m *sharedMutex) newMutexDoc(key string) *sharedMutexDoc {
 	return &sharedMutexDoc{
-		ID:       m.key,
+		ID:       key,
 		LockedAt: time.Now(),
 	}
 }
@@ -129,13 +127,15 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			cursor, err := m.table.Get(m.key).Run(m.session)
+			m.log.Debug("checking for expired mutexes")
+
+			cursor, err := m.table.Run(m.session, r.RunOpts{Context: ctx})
 			if err != nil {
 				if errors.Is(err, r.ErrConnectionClosed) {
 					m.log.Error("connection closed unexpectedly, stop shared mutex expiration loop", "error", err)
+				} else {
+					m.log.Error("unable to create cursor", "error", err)
 				}
-
-				m.log.Error("unable to create cursor", "error", err)
 
 				continue
 			}
@@ -144,21 +144,26 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 				continue
 			}
 
-			doc := sharedMutexDoc{}
-			err = cursor.One(&doc)
+			docs := []sharedMutexDoc{}
+
+			err = cursor.All(&docs)
 			if err != nil {
-				m.log.Error("unable to read shared mutex", "error", err)
+				m.log.Error("unable to read shared mutexes", "error", err)
 				continue
 			}
 
-			if time.Since(doc.LockedAt) > m.maxblock {
-				_, err = m.table.Get(m.key).Delete().RunWrite(m.session)
-				if err != nil {
-					m.log.Error("unable to release expired shared mutex", "error", err)
-					continue
-				}
+			m.log.Debug("searched for expiring mutexes in database", "mutex-count", len(docs))
 
-				m.log.Info("cleaned up expired shared mutex")
+			for _, doc := range docs {
+				if time.Since(doc.LockedAt) > m.maxblock {
+					_, err = m.table.Get(doc.ID).Delete().RunWrite(m.session, r.RunOpts{Context: ctx})
+					if err != nil {
+						m.log.Error("unable to release expired shared mutex", "error", err)
+						continue
+					}
+
+					m.log.Info("cleaned up expired shared mutex", "key", doc.ID)
+				}
 			}
 		case <-ctx.Done():
 			m.log.Info("stopped shared mutex expiration loop")
