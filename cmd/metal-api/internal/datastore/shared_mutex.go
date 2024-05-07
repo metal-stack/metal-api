@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -26,10 +26,10 @@ type sharedMutex struct {
 	key           string
 	maxblock      time.Duration
 	checkinterval time.Duration
-	log           *zap.SugaredLogger
+	log           *slog.Logger
 }
 
-func newSharedMutex(ctx context.Context, log *zap.SugaredLogger, session r.QueryExecutor, key string, maxblock time.Duration) *sharedMutex {
+func newSharedMutex(ctx context.Context, log *slog.Logger, session r.QueryExecutor, key string, maxblock time.Duration) *sharedMutex {
 	table := r.Table("sharedmutex")
 
 	m := &sharedMutex{
@@ -53,7 +53,7 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 		ReturnChanges: "always",
 	}).RunWrite(m.session)
 	if err == nil {
-		m.log.Debugw("mutex acquired")
+		m.log.Debug("mutex acquired")
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, m.maxblock)
 	defer cancel()
 
-	m.log.Debugw("mutex is already locked, listening for changes")
+	m.log.Debug("mutex is already locked, listening for changes")
 
 	cursor, err := m.table.Changes(r.ChangesOpts{
 		Squash: false,
@@ -81,10 +81,10 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 	for {
 		select {
 		case change := <-changes:
-			m.log.Debugw("document change received")
+			m.log.Debug("document change received")
 
 			if change.NewValue != nil {
-				m.log.Debugw("mutex was not yet released")
+				m.log.Debug("mutex was not yet released")
 				continue
 			}
 
@@ -99,7 +99,7 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 				return err
 			}
 
-			m.log.Debugw("mutex acquired after waiting")
+			m.log.Debug("mutex acquired after waiting")
 
 			return nil
 		case <-timeoutCtx.Done():
@@ -111,7 +111,7 @@ func (m *sharedMutex) lock(ctx context.Context) error {
 func (m *sharedMutex) unlock() {
 	_, err := m.table.Get(m.key).Delete().RunWrite(m.session)
 	if err != nil {
-		m.log.Errorw("unable to release shared mutex")
+		m.log.Error("unable to release shared mutex", "error", err)
 	}
 }
 
@@ -132,10 +132,10 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 			cursor, err := m.table.Get(m.key).Run(m.session)
 			if err != nil {
 				if errors.Is(err, r.ErrConnectionClosed) {
-					m.log.Errorw("connection closed unexpectedly, stop shared mutex expiration loop", "error", err)
+					m.log.Error("connection closed unexpectedly, stop shared mutex expiration loop", "error", err)
 				}
 
-				m.log.Errorw("unable to create cursor", "error", err)
+				m.log.Error("unable to create cursor", "error", err)
 
 				continue
 			}
@@ -147,21 +147,21 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 			doc := sharedMutexDoc{}
 			err = cursor.One(&doc)
 			if err != nil {
-				m.log.Errorw("unable to read shared mutex", "error", err)
+				m.log.Error("unable to read shared mutex", "error", err)
 				continue
 			}
 
 			if time.Since(doc.LockedAt) > m.maxblock {
 				_, err = m.table.Get(m.key).Delete().RunWrite(m.session)
 				if err != nil {
-					m.log.Errorw("unable to release expired shared mutex", "error", err)
+					m.log.Error("unable to release expired shared mutex", "error", err)
 					continue
 				}
 
-				m.log.Infow("cleaned up expired shared mutex")
+				m.log.Info("cleaned up expired shared mutex")
 			}
 		case <-ctx.Done():
-			m.log.Infow("stopped shared mutex expiration loop")
+			m.log.Info("stopped shared mutex expiration loop")
 			return
 		}
 	}

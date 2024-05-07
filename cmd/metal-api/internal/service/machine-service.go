@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -22,8 +23,6 @@ import (
 	"github.com/metal-stack/security"
 
 	"golang.org/x/crypto/ssh"
-
-	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-lib/httperrors"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -109,7 +108,7 @@ type Allocator func(Allocation) error
 
 // NewMachine returns a webservice for machine specific endpoints.
 func NewMachine(
-	log *zap.SugaredLogger,
+	log *slog.Logger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ep *bus.Endpoints,
@@ -664,7 +663,7 @@ func (r *machineResource) getMachineConsolePassword(request *restful.Request, re
 		ConsolePassword: m.Allocation.ConsolePassword,
 	}
 
-	r.log.Infow("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
+	r.log.Info("consolepassword requested", "machine", m.ID, "user", user.Name, "email", user.EMail, "tenant", user.Tenant, "reason", requestPayload.Reason)
 
 	r.send(request, response, http.StatusOK, resp)
 }
@@ -863,11 +862,11 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 				Value: ledstate,
 			}
 		} else {
-			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+			logger.Error("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
 		err = r.ds.CreateMachine(m)
 		if err != nil {
-			logger.Errorw("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
+			logger.Error("could not create machine", "id", uuid, "ipmi-ip", report.BMCIp, "m", m, "err", err)
 			continue
 		}
 		resp.Created = append(resp.Created, uuid)
@@ -893,7 +892,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		} else if len(hostAndPort) < 2 {
 			newMachine.IPMI.Address = report.BMCIp + ":" + defaultIPMIPort
 		} else {
-			logger.Errorw("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
+			logger.Error("not updating ipmi, address is garbage", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "address", newMachine.IPMI.Address)
 			continue
 		}
 
@@ -903,7 +902,7 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 		}
 
 		if newMachine.PartitionID != p.ID {
-			logger.Errorw("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
+			logger.Error("could not update machine because overlapping id found", "id", uuid, "machine", newMachine, "partition", requestPayload.PartitionID)
 			continue
 		}
 
@@ -935,13 +934,13 @@ func (r *machineResource) ipmiReport(request *restful.Request, response *restful
 				Description: newMachine.LEDState.Description,
 			}
 		} else {
-			logger.Errorw("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
+			logger.Error("unable to decode ledstate", "id", uuid, "ledstate", report.IndicatorLEDState, "error", err)
 		}
 		newMachine.IPMI.LastUpdated = time.Now()
 
 		err = r.ds.UpdateMachine(&oldMachine, &newMachine)
 		if err != nil {
-			logger.Errorw("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
+			logger.Error("could not update machine", "id", uuid, "ip", report.BMCIp, "machine", newMachine, "err", err)
 			continue
 		}
 		resp.Updated = append(resp.Updated, uuid)
@@ -1158,7 +1157,7 @@ func createMachineAllocationSpec(ds *datastore.RethinkStore, machineRequest v1.M
 	}, nil
 }
 
-func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
+func allocateMachine(ctx context.Context, logger *slog.Logger, ds *datastore.RethinkStore, ipamer ipam.IPAMer, allocationSpec *machineAllocationSpec, mdc mdm.Client, actor *asyncActor, publisher bus.Publisher) (*metal.Machine, error) {
 	err := validateAllocationSpec(allocationSpec)
 	if err != nil {
 		return nil, err
@@ -1249,7 +1248,7 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 			}
 			rollbackError := actor.machineNetworkReleaser(cleanupMachine)
 			if rollbackError != nil {
-				logger.Errorw("cannot call async machine cleanup", "error", rollbackError)
+				logger.Error("cannot call async machine cleanup", "error", rollbackError)
 			}
 			old := *machineCandidate
 			machineCandidate.Allocation = nil
@@ -1258,7 +1257,7 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 
 			rollbackError = ds.UpdateMachine(&old, machineCandidate)
 			if rollbackError != nil {
-				logger.Errorw("cannot update machinecandidate to reset allocation", "error", rollbackError)
+				logger.Error("cannot update machinecandidate to reset allocation", "error", rollbackError)
 			}
 		}
 		return err
@@ -1301,9 +1300,9 @@ func allocateMachine(ctx context.Context, logger *zap.SugaredLogger, ds *datasto
 	// TODO: can be removed after metal-core refactoring
 	err = publisher.Publish(metal.TopicAllocation.Name, &metal.AllocationEvent{MachineID: machine.ID})
 	if err != nil {
-		logger.Errorw("failed to publish machine allocation event, fallback should trigger on metal-hammer", "topic", metal.TopicAllocation.Name, "machineID", machine.ID, "error", err)
+		logger.Error("failed to publish machine allocation event, fallback should trigger on metal-hammer", "topic", metal.TopicAllocation.Name, "machineID", machine.ID, "error", err)
 	} else {
-		logger.Debugw("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machine.ID)
+		logger.Debug("published machine allocation event", "topic", metal.TopicAllocation.Name, "machineID", machine.ID)
 	}
 
 	return machine, nil
@@ -1745,7 +1744,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 
 	err = publishMachineCmd(logger, m, r.Publisher, metal.ChassisIdentifyLEDOffCmd)
 	if err != nil {
-		logger.Error("unable to publish machine command", zap.String("command", string(metal.ChassisIdentifyLEDOffCmd)), zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("unable to publish machine command", "command", string(metal.ChassisIdentifyLEDOffCmd), "machineID", m.ID, "error", err)
 	}
 
 	err = r.actor.freeMachine(request.Request.Context(), r.Publisher, m, r.headscaleClient, logger)
@@ -1769,7 +1768,7 @@ func (r machineResource) freeMachine(request *restful.Request, response *restful
 	}
 	_, err = r.ds.ProvisioningEventForMachine(logger, &ev, id)
 	if err != nil {
-		r.log.Errorw("error sending provisioning event after machine free", "error", err)
+		r.log.Error("error sending provisioning event after machine free", "error", err)
 	}
 }
 
@@ -1902,15 +1901,15 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 				return
 			}
 
-			logger.Info("marked machine to get reinstalled", zap.String("machineID", m.ID))
+			logger.Info("marked machine to get reinstalled", "machineID", m.ID)
 
-			err = deleteVRFSwitches(r.ds, m, logger.Desugar())
+			err = deleteVRFSwitches(r.ds, m, logger)
 			if err != nil {
 				r.sendError(request, response, defaultError(err))
 				return
 			}
 
-			err = publishDeleteEvent(r.Publisher, m, logger.Desugar())
+			err = publishDeleteEvent(r.Publisher, m, logger)
 			if err != nil {
 				r.sendError(request, response, defaultError(err))
 				return
@@ -1918,7 +1917,7 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 
 			err = publishMachineCmd(logger, m, r.Publisher, metal.MachineReinstallCmd)
 			if err != nil {
-				logger.Error("unable to publish machine command", zap.String("command", string(metal.MachineReinstallCmd)), zap.String("machineID", m.ID), zap.Error(err))
+				logger.Error("unable to publish machine command", "command", string(metal.MachineReinstallCmd), "machineID", m.ID, "error", err)
 			}
 
 			r.send(request, response, http.StatusOK, resp)
@@ -1930,8 +1929,8 @@ func (r *machineResource) reinstallMachine(request *restful.Request, response *r
 	r.sendError(request, response, httperrors.BadRequest(errors.New("machine either locked, not allocated yet or invalid image ID specified")))
 }
 
-func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap.Logger) error {
-	logger.Info("set VRF at switch", zap.String("machineID", m.ID))
+func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *slog.Logger) error {
+	logger.Info("set VRF at switch", "machineID", m.ID)
 	err := retry.Do(
 		func() error {
 			_, err := ds.SetVrfAtSwitches(m, "")
@@ -1945,25 +1944,25 @@ func deleteVRFSwitches(ds *datastore.RethinkStore, m *metal.Machine, logger *zap
 		retry.LastErrorOnly(true),
 	)
 	if err != nil {
-		logger.Error("cannot delete vrf switches", zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("cannot delete vrf switches", "machineID", m.ID, "error", err)
 		return fmt.Errorf("cannot delete vrf switches: %w", err)
 	}
 	return nil
 }
 
-func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *zap.Logger) error {
-	logger.Info("publish machine delete event", zap.String("machineID", m.ID))
+func publishDeleteEvent(publisher bus.Publisher, m *metal.Machine, logger *slog.Logger) error {
+	logger.Info("publish machine delete event", "machineID", m.ID)
 	deleteEvent := metal.MachineEvent{Type: metal.DELETE, OldMachineID: m.ID, Cmd: &metal.MachineExecCommand{TargetMachineID: m.ID, IPMI: &m.IPMI}}
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), deleteEvent)
 	if err != nil {
-		logger.Error("cannot publish delete event", zap.String("machineID", m.ID), zap.Error(err))
+		logger.Error("cannot publish delete event", "machineID", m.ID, "error", err)
 		return fmt.Errorf("cannot publish delete event: %w", err)
 	}
 	return nil
 }
 
 // MachineLiveliness evaluates whether machines are still alive or if they have died
-func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) error {
+func MachineLiveliness(ds *datastore.RethinkStore, logger *slog.Logger) error {
 	logger.Info("machine liveliness was requested")
 
 	machines, err := ds.ListMachines()
@@ -1978,7 +1977,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 	for _, m := range machines {
 		lvlness, err := evaluateMachineLiveliness(ds, m)
 		if err != nil {
-			logger.Errorw("cannot update liveliness", "error", err, "machine", m)
+			logger.Error("cannot update liveliness", "error", err, "machine", m)
 			errs++
 			// fall through, so the rest of the machines is getting evaluated
 		}
@@ -1992,7 +1991,7 @@ func MachineLiveliness(ds *datastore.RethinkStore, logger *zap.SugaredLogger) er
 		}
 	}
 
-	logger.Infow("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
+	logger.Info("machine liveliness evaluated", "alive", alive, "dead", dead, "unknown", unknown, "errors", errs)
 
 	return nil
 }
@@ -2029,7 +2028,7 @@ func evaluateMachineLiveliness(ds *datastore.RethinkStore, m metal.Machine) (met
 }
 
 // ResurrectMachines attempts to resurrect machines that are obviously dead
-func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *zap.SugaredLogger) error {
+func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publisher bus.Publisher, ep *bus.Endpoints, ipamer ipam.IPAMer, headscaleClient *headscale.HeadscaleClient, logger *slog.Logger) error {
 	logger.Info("machine resurrection was requested")
 
 	machines, err := ds.ListMachines()
@@ -2051,7 +2050,7 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 		provisioningEvents, err := ds.FindProvisioningEventContainer(m.ID)
 		if err != nil {
 			// we have no provisioning events... we cannot tell
-			logger.Debugw("no provisioningEvents found for resurrection", "machineID", m.ID, "error", err)
+			logger.Debug("no provisioningEvents found for resurrection", "machineID", m.ID, "error", err)
 			continue
 		}
 
@@ -2060,19 +2059,19 @@ func ResurrectMachines(ctx context.Context, ds *datastore.RethinkStore, publishe
 		}
 
 		if provisioningEvents.Liveliness == metal.MachineLivelinessDead && time.Since(*provisioningEvents.LastEventTime) > metal.MachineResurrectAfter {
-			logger.Infow("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			logger.Info("resurrecting dead machine", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
 			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
-				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+				logger.Error("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
 			continue
 		}
 
 		if provisioningEvents.FailedMachineReclaim {
-			logger.Infow("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
+			logger.Info("resurrecting machine with failed reclaim", "machineID", m.ID, "liveliness", provisioningEvents.Liveliness, "since", time.Since(*provisioningEvents.LastEventTime).String())
 			err = act.freeMachine(ctx, publisher, &m, headscaleClient, logger)
 			if err != nil {
-				logger.Errorw("error during machine resurrection", "machineID", m.ID, "error", err)
+				logger.Error("error during machine resurrection", "machineID", m.ID, "error", err)
 			}
 			continue
 		}
@@ -2193,7 +2192,7 @@ func (r *machineResource) updateFirmware(request *restful.Request, response *res
 		},
 	}
 
-	r.logger(request).Infow("publish event", "event", evt, "command", *evt.Cmd)
+	r.logger(request).Info("publish event", "event", evt, "command", *evt.Cmd)
 	err = r.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
 		r.sendError(request, response, httperrors.InternalServerError(err))
@@ -2281,7 +2280,7 @@ func (r *machineResource) machineCmd(cmd metal.MachineCommand, request *restful.
 	r.send(request, response, http.StatusOK, resp)
 }
 
-func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
+func publishMachineCmd(logger *slog.Logger, m *metal.Machine, publisher bus.Publisher, cmd metal.MachineCommand) error {
 	evt := metal.MachineEvent{
 		Type: metal.COMMAND,
 		Cmd: &metal.MachineExecCommand{
@@ -2291,7 +2290,7 @@ func publishMachineCmd(logger *zap.SugaredLogger, m *metal.Machine, publisher bu
 		},
 	}
 
-	logger.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	logger.Info("publish event", "event", evt, "command", *evt.Cmd)
 	err := publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
 		return err

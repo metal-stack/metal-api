@@ -15,7 +15,7 @@ service BootService {
   rpc Register(BootServiceRegisterRequest) returns (BootServiceRegisterResponse) {}
   // Wait is a hanging call that waits until the machine gets allocated by a user
   rpc Wait(BootServiceWaitRequest) returns (stream BootServiceWaitResponse);
-  // Report tells metal-api installation was either sucessful or failed
+  // Report tells metal-api installation was either successful or failed
   rpc Report(BootServiceReportRequest) returns (BootServiceReportResponse) {}
   // If reinstall failed and tell metal-api to restore to previous state
   rpc AbortReinstall(BootServiceAbortReinstallRequest) returns (BootServiceAbortReinstallResponse) {}
@@ -64,6 +64,20 @@ message MachineHardware {
   uint32 cpu_cores = 2;
   repeated MachineBlockDevice disks = 3;
   repeated MachineNic nics = 4;
+  repeated MachineCPU cpus = 5;
+  repeated MachineGPU gpus = 6;
+}
+
+message MachineCPU {
+  string vendor = 1;
+  string model = 2;
+  uint32 cores = 3;
+  uint32 threads = 4;
+}
+
+message MachineGPU {
+  string vendor = 1;
+  string model = 2;
 }
 
 message MachineNic {

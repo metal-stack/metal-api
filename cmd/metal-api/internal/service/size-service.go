@@ -1,8 +1,8 @@
 package service
 
 import (
-	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
@@ -12,7 +12,6 @@ import (
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -25,7 +24,7 @@ type sizeResource struct {
 }
 
 // NewSize returns a webservice for size specific endpoints.
-func NewSize(log *zap.SugaredLogger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
+func NewSize(log *slog.Logger, ds *datastore.RethinkStore, mdc mdm.Client) *restful.WebService {
 	r := sizeResource{
 		webResource: webResource{
 			log: log,
@@ -115,16 +114,6 @@ func (r *sizeResource) webService() *restful.WebService {
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
-	ws.Route(ws.POST("/from-hardware").
-		To(r.fromHardware).
-		Operation("fromHardware").
-		Doc("Searches all sizes for one to match the given hardwarespecs. If nothing is found, a list of entries is returned which describe the constraint which did not match").
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Metadata(auditing.Exclude, true).
-		Reads(v1.MachineHardware{}).
-		Returns(http.StatusOK, "OK", v1.SizeMatchingLog{}).
-		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
-
 	return ws
 }
 
@@ -159,7 +148,28 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		return
 	}
 
-	r.send(request, response, http.StatusOK, []v1.SizeConstraint{
+	var (
+		gpus           = make(map[string]uint64)
+		gpuconstraints []v1.SizeConstraint
+	)
+
+	for _, gpu := range m.Hardware.MetalGPUs {
+		_, ok := gpus[gpu.Model]
+		if !ok {
+			gpus[gpu.Model] = 1
+		} else {
+			gpus[gpu.Model]++
+		}
+	}
+	for model, count := range gpus {
+		gpuconstraints = append(gpuconstraints, v1.SizeConstraint{
+			Type:       metal.GPUConstraint,
+			Min:        count,
+			Max:        count,
+			Identifier: model,
+		})
+	}
+	constraints := []v1.SizeConstraint{
 		{
 			Type: metal.CoreConstraint,
 			Min:  uint64(m.Hardware.CPUCores),
@@ -175,8 +185,13 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 			Min:  m.Hardware.DiskCapacity(),
 			Max:  m.Hardware.DiskCapacity(),
 		},
-	})
+	}
 
+	if len(gpuconstraints) > 0 {
+		constraints = append(constraints, gpuconstraints...)
+	}
+
+	r.send(request, response, http.StatusOK, constraints)
 }
 
 func (r *sizeResource) listSizes(request *restful.Request, response *restful.Response) {
@@ -227,9 +242,10 @@ func (r *sizeResource) createSize(request *restful.Request, response *restful.Re
 	var constraints []metal.Constraint
 	for _, c := range requestPayload.SizeConstraints {
 		constraint := metal.Constraint{
-			Type: c.Type,
-			Min:  c.Min,
-			Max:  c.Max,
+			Type:       c.Type,
+			Min:        c.Min,
+			Max:        c.Max,
+			Identifier: c.Identifier,
 		}
 		constraints = append(constraints, constraint)
 	}
@@ -340,9 +356,10 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 		sizeConstraints := *requestPayload.SizeConstraints
 		for i := range sizeConstraints {
 			constraint := metal.Constraint{
-				Type: sizeConstraints[i].Type,
-				Min:  sizeConstraints[i].Min,
-				Max:  sizeConstraints[i].Max,
+				Type:       sizeConstraints[i].Type,
+				Min:        sizeConstraints[i].Min,
+				Max:        sizeConstraints[i].Max,
+				Identifier: sizeConstraints[i].Identifier,
 			}
 			constraints = append(constraints, constraint)
 		}
@@ -397,29 +414,6 @@ func (r *sizeResource) updateSize(request *restful.Request, response *restful.Re
 	}
 
 	r.send(request, response, http.StatusOK, v1.NewSizeResponse(&newSize))
-}
-
-func (r *sizeResource) fromHardware(request *restful.Request, response *restful.Response) {
-	var requestPayload v1.MachineHardware
-	err := request.ReadEntity(&requestPayload)
-	if err != nil {
-		r.sendError(request, response, httperrors.BadRequest(err))
-		return
-	}
-
-	hw := v1.NewMetalMachineHardware(&requestPayload)
-	_, lg, err := r.ds.FromHardware(hw)
-	if err != nil {
-		r.sendError(request, response, defaultError(err))
-		return
-	}
-
-	if len(lg) < 1 {
-		r.sendError(request, response, httperrors.UnprocessableEntity(errors.New("size matching log is empty")))
-		return
-	}
-
-	r.send(request, response, http.StatusOK, v1.NewSizeMatchingLog(lg[0]))
 }
 
 func (r *sizeResource) listSizeReservations(request *restful.Request, response *restful.Response) {

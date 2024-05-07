@@ -4,9 +4,38 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
-// A MacAddress is the type for mac adresses. When using a
+// SwitchPortStatus is a type alias for a string that represents the status of a switch port.
+// Valid values are defined as constants in this package.
+type SwitchPortStatus string
+
+// SwitchPortStatus defines the possible statuses for a switch port.
+// UNKNOWN indicates the status is not known.
+// UP indicates the port is up and operational.
+// DOWN indicates the port is down and not operational.
+const (
+	SwitchPortStatusUnknown SwitchPortStatus = "UNKNOWN"
+	SwitchPortStatusUp      SwitchPortStatus = "UP"
+	SwitchPortStatusDown    SwitchPortStatus = "DOWN"
+)
+
+// IsConcrete returns true if the SwitchPortStatus is UP or DOWN,
+// which are concrete, known statuses. It returns false if the status
+// is UNKNOWN, which indicates the status is not known.
+func (s SwitchPortStatus) IsConcrete() bool {
+	return s == SwitchPortStatusUp || s == SwitchPortStatusDown
+}
+
+// IsValid returns true if the SwitchPortStatus is a known valid value
+// (UP, DOWN, UNKNOWN).
+func (s SwitchPortStatus) IsValid() bool {
+	return s == SwitchPortStatusUp || s == SwitchPortStatusDown || s == SwitchPortStatusUnknown
+}
+
+// A MacAddress is the type for mac addresses. When using a
 // custom type, we cannot use strings directly.
 type MacAddress string
 
@@ -18,6 +47,105 @@ type Nic struct {
 	Vrf        string     `rethinkdb:"vrf" json:"vrf"`
 	Neighbors  Nics       `rethinkdb:"neighbors" json:"neighbors"`
 	Hostname   string     `rethinkdb:"hostname" json:"hostname"`
+	State      *NicState  `rethinkdb:"state" json:"state"`
+}
+
+// NicState represents the desired and actual state of a network interface
+// controller (NIC). The Desired field indicates the intended state of the
+// NIC, while Actual indicates its current operational state. The Desired
+// state will be removed when the actual state is equal to the desired state.
+type NicState struct {
+	Desired *SwitchPortStatus `rethinkdb:"desired" json:"desired"`
+	Actual  SwitchPortStatus  `rethinkdb:"actual" json:"actual"`
+}
+
+// SetState updates the NicState with the given SwitchPortStatus. It returns
+// a new NicState and a bool indicating if the state was changed.
+//
+// If the given status matches the current Actual state, it checks if Desired
+// is set and matches too. If so, Desired is set to nil since the desired
+// state has been reached.
+//
+// If the given status differs from the current Actual state, Desired is left
+// unchanged if it differes from the new state so the desired state is still tracked.
+// The Actual state is updated to the given status.
+//
+// This allows tracking both the desired and actual states, while clearing
+// Desired once the desired state is achieved.
+func (ns *NicState) SetState(s SwitchPortStatus) (NicState, bool) {
+	if ns == nil {
+		return NicState{
+			Actual:  s,
+			Desired: nil,
+		}, true
+	}
+	if ns.Actual == s {
+		if ns.Desired != nil {
+			if *ns.Desired == s {
+				// we now have the desired state, so set the desired state to nil
+				return NicState{
+					Actual:  s,
+					Desired: nil,
+				}, true
+			} else {
+				// we already have the reported state, but the desired one is different
+				// so nothing changed
+				return *ns, false
+			}
+		}
+		// nothing changed
+		return *ns, false
+	}
+	// we got another state as we had before
+	if ns.Desired != nil {
+		if *ns.Desired == s {
+			// we now have the desired state, so set the desired state to nil
+			return NicState{
+				Actual:  s,
+				Desired: nil,
+			}, true
+		} else {
+			// a new state was reported, but the desired one is different
+			// so we have to update the state but keep the desired state
+			return NicState{
+				Actual:  s,
+				Desired: ns.Desired,
+			}, true
+		}
+	}
+	return NicState{
+		Actual:  s,
+		Desired: nil,
+	}, true
+}
+
+// WantState sets the desired state for the NIC. It returns a new NicState
+// struct with the desired state set and a bool indicating if the state changed.
+// If the current state already matches the desired state, it returns a state
+// with a cleared desired field.
+func (ns *NicState) WantState(s SwitchPortStatus) (NicState, bool) {
+	if ns == nil {
+		return NicState{
+			Actual:  SwitchPortStatusUnknown,
+			Desired: &s,
+		}, true
+	}
+	if ns.Actual == s {
+		// we want a state we already have
+		if ns.Desired != nil {
+			return NicState{
+				Actual:  s,
+				Desired: nil,
+			}, true
+		}
+		return *ns, false
+	}
+	// return a new state with the desired state set and a bool indicating a state change
+	// only if the desired state is different from the current one
+	return NicState{
+		Actual:  ns.Actual,
+		Desired: &s,
+	}, lo.FromPtr(ns.Desired) != s
 }
 
 // GetIdentifier returns the identifier of a nic.
@@ -105,7 +233,7 @@ type NetworkUsage struct {
 	UsedPrefixes      uint64 `json:"used_prefixes" description:"the total used Prefixes" readonly:"true"`
 }
 
-// ByID creates an indexed map of partitions whre the id is the index.
+// ByID creates an indexed map of partitions where the id is the index.
 func (nws Networks) ByID() NetworkMap {
 	res := make(NetworkMap)
 	for i, nw := range nws {
@@ -140,8 +268,8 @@ func (n *MachineNetwork) ContainsIP(ip string) bool {
 	return false
 }
 
-// SubstractPrefixes returns the prefixes of the network minus the prefixes passed in the arguments
-func (n *Network) SubstractPrefixes(prefixes ...Prefix) []Prefix {
+// SubtractPrefixes returns the prefixes of the network minus the prefixes passed in the arguments
+func (n *Network) SubtractPrefixes(prefixes ...Prefix) []Prefix {
 	var result []Prefix
 	for _, p := range n.Prefixes {
 		contains := false

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"testing"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -16,7 +17,6 @@ import (
 	"github.com/metal-stack/security"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -45,12 +45,12 @@ func NewMockedProjectService(t *testing.T, projectServiceMock func(mock *mdmv1mo
 	if projectServiceMock != nil {
 		projectServiceMock(psc)
 	}
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{})
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil)
 	ds, mock := datastore.InitMockDB(t)
 	if dsmock != nil {
 		dsmock(mock)
 	}
-	ws := NewProject(zaptest.NewLogger(t).Sugar(), ds, mdc)
+	ws := NewProject(slog.Default(), ds, mdc)
 	return &MockedProjectService{
 		t:  t,
 		ws: ws,

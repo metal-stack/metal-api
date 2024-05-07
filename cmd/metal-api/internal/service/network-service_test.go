@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/metal-stack/metal-lib/httperrors"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -27,7 +27,7 @@ import (
 func TestGetNetworks(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
@@ -55,7 +55,7 @@ func TestGetNetworks(t *testing.T) {
 func TestGetNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
@@ -78,7 +78,7 @@ func TestGetNetwork(t *testing.T) {
 func TestGetNetworkNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
@@ -104,7 +104,7 @@ func TestDeleteNetwork(t *testing.T) {
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
@@ -130,7 +130,7 @@ func TestDeleteNetworkIPInUse(t *testing.T) {
 	ipamer, err := testdata.InitMockIpamData(mock, true)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
@@ -155,7 +155,7 @@ func TestCreateNetwork(t *testing.T) {
 	ipamer, err := testdata.InitMockIpamData(mock, false)
 	require.NoError(t, err)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkservice := NewNetwork(log, ds, ipamer, nil)
 	container := restful.NewContainer().Add(networkservice)
@@ -193,7 +193,7 @@ func TestCreateNetwork(t *testing.T) {
 func TestUpdateNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkservice := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkservice)
@@ -229,7 +229,7 @@ func TestSearchNetwork(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("network").Filter(r.MockAnything())).Return([]interface{}{testdata.Nw1}, nil)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	networkService := NewNetwork(log, ds, ipam.New(goipam.New()), nil)
 	container := restful.NewContainer().Add(networkService)

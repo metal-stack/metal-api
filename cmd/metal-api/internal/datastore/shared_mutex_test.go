@@ -5,13 +5,13 @@ package datastore
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -71,7 +71,7 @@ func Test_sharedMutex_stop(t *testing.T) {
 	defer mutexCleanup(t)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	mutex := newSharedMutex(context.Background(), zaptest.NewLogger(t).Sugar(), sharedDS.dbsession, "test", 3*time.Second)
+	mutex := newSharedMutex(context.Background(), slog.Default(), sharedDS.dbsession, "test", 3*time.Second)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

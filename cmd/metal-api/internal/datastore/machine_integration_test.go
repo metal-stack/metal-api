@@ -90,6 +90,12 @@ func (_ *machineTestable) defaultBody(m *metal.Machine) *metal.Machine {
 	if m.Hardware.Disks == nil {
 		m.Hardware.Disks = []metal.BlockDevice{}
 	}
+	if m.Hardware.MetalCPUs == nil {
+		m.Hardware.MetalCPUs = []metal.MetalCPU{}
+	}
+	if m.Hardware.MetalGPUs == nil {
+		m.Hardware.MetalGPUs = []metal.MetalGPU{}
+	}
 	if m.Tags == nil {
 		m.Tags = []string{}
 	}
@@ -943,7 +949,7 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 			},
 			want: &metal.Machine{
 				Base:     metal.Base{ID: "1"},
-				Hardware: metal.MachineHardware{Nics: metal.Nics{}, Disks: []metal.BlockDevice{}},
+				Hardware: metal.MachineHardware{Nics: metal.Nics{}, Disks: []metal.BlockDevice{}, MetalCPUs: []metal.MetalCPU{}, MetalGPUs: []metal.MetalGPU{}},
 				Tags:     []string{"a=b"},
 			},
 		},

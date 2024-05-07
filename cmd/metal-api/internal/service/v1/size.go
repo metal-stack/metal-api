@@ -5,9 +5,10 @@ import (
 )
 
 type SizeConstraint struct {
-	Type metal.ConstraintType `json:"type" modelDescription:"a machine matches to a size in order to make them easier to categorize" enum:"cores|memory|storage" description:"the type of the constraint"`
-	Min  uint64               `json:"min" description:"the minimum value of the constraint"`
-	Max  uint64               `json:"max" description:"the maximum value of the constraint"`
+	Type       metal.ConstraintType `json:"type" modelDescription:"a machine matches to a size in order to make them easier to categorize" enum:"cores|memory|storage|gpu" description:"the type of the constraint"`
+	Min        uint64               `json:"min,omitempty" description:"the minimum value of the constraint"`
+	Max        uint64               `json:"max,omitempty" description:"the maximum value of the constraint"`
+	Identifier string               `json:"identifier,omitempty" description:"glob pattern which matches to the given type, for example gpu pci id"`
 }
 
 type SizeReservation struct {
@@ -57,7 +58,7 @@ type SizeSuggestRequest struct {
 type SizeConstraintMatchingLog struct {
 	Constraint SizeConstraint `json:"constraint" description:"the size constraint to which this log relates to"`
 	Match      bool           `json:"match" description:"indicates whether the constraint matched or not"`
-	Log        string         `json:"log" description:"a string represention of the matching condition"`
+	Log        string         `json:"log" description:"a string representation of the matching condition"`
 }
 
 type SizeMatchingLog struct {
@@ -65,28 +66,6 @@ type SizeMatchingLog struct {
 	Log         string                      `json:"log"`
 	Match       bool                        `json:"match"`
 	Constraints []SizeConstraintMatchingLog `json:"constraints"`
-}
-
-func NewSizeMatchingLog(m *metal.SizeMatchingLog) *SizeMatchingLog {
-	constraints := []SizeConstraintMatchingLog{}
-	for i := range m.Constraints {
-		constraint := SizeConstraintMatchingLog{
-			Constraint: SizeConstraint{
-				Type: m.Constraints[i].Constraint.Type,
-				Min:  m.Constraints[i].Constraint.Min,
-				Max:  m.Constraints[i].Constraint.Max,
-			},
-			Match: m.Constraints[i].Match,
-			Log:   m.Constraints[i].Log,
-		}
-		constraints = append(constraints, constraint)
-	}
-	return &SizeMatchingLog{
-		Name:        m.Name,
-		Match:       m.Match,
-		Log:         m.Log,
-		Constraints: constraints,
-	}
 }
 
 func NewSizeResponse(s *metal.Size) *SizeResponse {
@@ -97,9 +76,10 @@ func NewSizeResponse(s *metal.Size) *SizeResponse {
 	constraints := []SizeConstraint{}
 	for _, c := range s.Constraints {
 		constraint := SizeConstraint{
-			Type: c.Type,
-			Min:  c.Min,
-			Max:  c.Max,
+			Type:       c.Type,
+			Min:        c.Min,
+			Max:        c.Max,
+			Identifier: c.Identifier,
 		}
 		constraints = append(constraints, constraint)
 	}

@@ -1,12 +1,12 @@
 package fsm
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
-	"go.uber.org/zap/zaptest"
 )
 
 func TestHandleProvisioningEvent(t *testing.T) {
@@ -229,7 +229,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "valid transition from crashing to pxe booting, maintaing crash loop",
+			name: "valid transition from crashing to pxe booting, maintaining crash loop",
 			container: &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
@@ -629,7 +629,7 @@ func TestHandleProvisioningEvent(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), tt.container, tt.event)
+			got, err := HandleProvisioningEvent(slog.Default(), tt.container, tt.event)
 			if diff := cmp.Diff(tt.wantErr, err); diff != "" {
 				t.Errorf("HandleProvisioningEvent() diff = %s", diff)
 			}
@@ -649,7 +649,7 @@ func TestReactionToAllIncomingEvents(t *testing.T) {
 	// this test ensures that for every incoming event we have a proper transition
 	for e1 := range metal.AllProvisioningEventTypes {
 		for e2 := range metal.AllProvisioningEventTypes {
-			_, err := HandleProvisioningEvent(zaptest.NewLogger(t).Sugar(), &metal.ProvisioningEventContainer{
+			_, err := HandleProvisioningEvent(slog.Default(), &metal.ProvisioningEventContainer{
 				Events: metal.ProvisioningEvents{
 					{
 						Event: e2,

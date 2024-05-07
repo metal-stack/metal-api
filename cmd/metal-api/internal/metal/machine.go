@@ -2,6 +2,7 @@ package metal
 
 import (
 	"fmt"
+	"log/slog"
 	"net/netip"
 	"os"
 	"slices"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
-	"go.uber.org/zap"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -196,7 +196,7 @@ func (r EgressRule) Validate() error {
 	case ProtocolTCP, ProtocolUDP:
 		// ok
 	default:
-		return fmt.Errorf("invalid procotol: %s", r.Protocol)
+		return fmt.Errorf("invalid protocol: %s", r.Protocol)
 	}
 
 	if err := validateComment(r.Comment); err != nil {
@@ -457,10 +457,24 @@ func (n NetworkType) String() string {
 
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
-	Memory   uint64        `rethinkdb:"memory" json:"memory"`
-	CPUCores int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
-	Nics     Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
-	Disks    []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	Memory    uint64        `rethinkdb:"memory" json:"memory"`
+	CPUCores  int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
+	Nics      Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
+	Disks     []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
+	MetalCPUs []MetalCPU    `rethinkdb:"cpus" json:"cpus"`
+	MetalGPUs []MetalGPU    `rethinkdb:"gpus" json:"gpus"`
+}
+
+type MetalCPU struct {
+	Vendor  string `rethinkdb:"vendor" json:"vendor"`
+	Model   string `rethinkdb:"model" json:"model"`
+	Cores   uint32 `rethinkdb:"cores" json:"cores"`
+	Threads uint32 `rethinkdb:"threads" json:"threads"`
+}
+
+type MetalGPU struct {
+	Vendor string `rethinkdb:"vendor" json:"vendor"`
+	Model  string `rethinkdb:"model" json:"model"`
 }
 
 // MachineLiveliness indicates the liveliness of a machine
@@ -484,9 +498,22 @@ func (hw *MachineHardware) DiskCapacity() uint64 {
 	return c
 }
 
+func (hw *MachineHardware) GPUModels() map[string]uint64 {
+	models := make(map[string]uint64)
+	for _, gpu := range hw.MetalGPUs {
+		_, ok := models[gpu.Model]
+		if !ok {
+			models[gpu.Model] = 1
+		} else {
+			models[gpu.Model]++
+		}
+	}
+	return models
+}
+
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()))
+	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s GPUs:%s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()), hw.MetalGPUs)
 }
 
 // BlockDevice information.
@@ -617,14 +644,18 @@ type MachineIPMISuperUser struct {
 	password string
 }
 
-func NewIPMISuperUser(log *zap.SugaredLogger, path string) MachineIPMISuperUser {
+func NewIPMISuperUser(log *slog.Logger, path string) MachineIPMISuperUser {
 	password := ""
 
 	if raw, err := os.ReadFile(path); err == nil {
-		log.Infow("ipmi superuser password found, feature is enabled")
 		password = strings.TrimSpace(string(raw))
+		if password != "" {
+			log.Info("ipmi superuser password found, feature is enabled")
+		} else {
+			log.Warn("ipmi superuser password file found, but password is empty, feature is disabled")
+		}
 	} else {
-		log.Infow("ipmi superuser password could not be read, feature is disabled", "error", err)
+		log.Warn("ipmi superuser password could not be read, feature is disabled", "error", err)
 	}
 
 	return MachineIPMISuperUser{

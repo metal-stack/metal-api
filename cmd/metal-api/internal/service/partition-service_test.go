@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -21,19 +21,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type nopTopicCreater struct {
+type nopTopicCreator struct {
 }
 
-func (n nopTopicCreater) CreateTopic(topicFQN string) error {
+func (n nopTopicCreator) CreateTopic(topicFQN string) error {
 	return nil
 }
 
-type expectingTopicCreater struct {
+type expectingTopicCreator struct {
 	t              *testing.T
 	expectedTopics []string
 }
 
-func (n expectingTopicCreater) CreateTopic(topicFQN string) error {
+func (n expectingTopicCreator) CreateTopic(topicFQN string) error {
 	ass := assert.New(n.t)
 	ass.NotEmpty(topicFQN)
 	ass.Contains(n.expectedTopics, topicFQN, "Expectation %v contains %s failed.", n.expectedTopics, topicFQN)
@@ -44,7 +44,7 @@ func TestGetPartitions(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(zaptest.NewLogger(t).Sugar(), ds, &nopTopicCreater{})
+	service := NewPartition(slog.Default(), ds, &nopTopicCreator{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition", nil)
 	w := httptest.NewRecorder()
@@ -73,7 +73,7 @@ func TestGetPartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
 
-	service := NewPartition(zaptest.NewLogger(t).Sugar(), ds, &nopTopicCreater{})
+	service := NewPartition(slog.Default(), ds, &nopTopicCreator{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition/1", nil)
 	w := httptest.NewRecorder()
@@ -94,9 +94,9 @@ func TestGetPartition(t *testing.T) {
 func TestGetPartitionNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	service := NewPartition(log, ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreator{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("GET", "/v1/partition/999", nil)
 	w := httptest.NewRecorder()
@@ -116,9 +116,9 @@ func TestGetPartitionNotFound(t *testing.T) {
 func TestDeletePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	service := NewPartition(log, ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreator{})
 	container := restful.NewContainer().Add(service)
 	req := httptest.NewRequest("DELETE", "/v1/partition/1", nil)
 	container = injectAdmin(log, container, req)
@@ -140,13 +140,13 @@ func TestDeletePartition(t *testing.T) {
 func TestCreatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	topicCreater := expectingTopicCreater{
+	topicCreator := expectingTopicCreator{
 		t:              t,
 		expectedTopics: []string{"1-switch", "1-machine"},
 	}
-	service := NewPartition(log, ds, topicCreater)
+	service := NewPartition(log, ds, topicCreator)
 	container := restful.NewContainer().Add(service)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -195,9 +195,9 @@ func TestCreatePartition(t *testing.T) {
 func TestUpdatePartition(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	service := NewPartition(log, ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreator{})
 	container := restful.NewContainer().Add(service)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "I am a downloadable content")
@@ -257,9 +257,9 @@ func TestPartitionCapacity(t *testing.T) {
 	mock.On(r.DB("mockdb").Table("event")).Return(ecs, nil)
 
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
-	service := NewPartition(log, ds, &nopTopicCreater{})
+	service := NewPartition(log, ds, &nopTopicCreator{})
 	container := restful.NewContainer().Add(service)
 
 	pcRequest := &v1.PartitionCapacityRequest{}

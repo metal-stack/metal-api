@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/netip"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/tags"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 
@@ -36,7 +36,7 @@ type ipResource struct {
 }
 
 // NewIP returns a webservice for ip specific endpoints.
-func NewIP(log *zap.SugaredLogger, ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
+func NewIP(log *slog.Logger, ds *datastore.RethinkStore, ep *bus.Endpoints, ipamer ipam.IPAMer, mdc mdm.Client) (*restful.WebService, error) {
 	ir := ipResource{
 		webResource: webResource{
 			log: log,
@@ -329,7 +329,7 @@ func (r *ipResource) allocateIP(request *restful.Request, response *restful.Resp
 		}
 	}
 
-	r.logger(request).Debugw("allocated ip in ipam", "ip", ipAddress, "network", nw.ID)
+	r.logger(request).Debug("allocated ip in ipam", "ip", ipAddress, "network", nw.ID)
 
 	ipType := metal.Ephemeral
 	if requestPayload.Type == metal.Static {

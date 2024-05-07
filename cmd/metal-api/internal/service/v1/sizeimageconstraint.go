@@ -3,7 +3,7 @@ package v1
 import "github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
 type SizeImageConstraintBase struct {
-	Images map[string]string `json:"images" description:"a list of images for this contraints apply"`
+	Images map[string]string `json:"images" description:"a list of images for this constraints apply"`
 }
 
 type SizeImageConstraintResponse struct {

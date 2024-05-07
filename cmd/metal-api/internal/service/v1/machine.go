@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
@@ -82,14 +83,27 @@ type MachineNetwork struct {
 }
 
 type MachineHardwareBase struct {
-	Memory   uint64               `json:"memory" description:"the total memory of the machine"`
-	CPUCores int                  `json:"cpu_cores" description:"the number of cpu cores"`
-	Disks    []MachineBlockDevice `json:"disks" description:"the list of block devices of this machine"`
+	Memory    uint64               `json:"memory" description:"the total memory of the machine"`
+	CPUCores  int                  `json:"cpu_cores" description:"the number of cpu cores"`
+	Disks     []MachineBlockDevice `json:"disks" description:"the list of block devices of this machine"`
+	MetalCPUs []MetalCPU           `json:"cpus,omitempty" optional:"true" description:"the cpu details"`
+	MetalGPUs []MetalGPU           `json:"gpus,omitempty" optional:"true" description:"the gpu details"`
 }
 
 type MachineHardware struct {
 	MachineHardwareBase
 	Nics MachineNics `json:"nics" description:"the list of network interfaces of this machine"`
+}
+type MetalCPU struct {
+	Vendor  string `json:"vendor" description:"the cpu vendor"`
+	Model   string `json:"model" description:"the cpu model"`
+	Cores   uint32 `json:"cores" description:"the cpu cores"`
+	Threads uint32 `json:"threads" description:"the cpu threads"`
+}
+
+type MetalGPU struct {
+	Vendor string `json:"vendor" description:"the gpu vendor"`
+	Model  string `json:"model" description:"the gpu model"`
 }
 
 type MachineState struct {
@@ -197,7 +211,7 @@ type MachineAllocateRequest struct {
 	PartitionID        string                    `json:"partitionid" description:"the partition id to assign this machine to"`
 	SizeID             string                    `json:"sizeid" description:"the size id to assign this machine to"`
 	ImageID            string                    `json:"imageid" description:"the image id to assign this machine to"`
-	FilesystemLayoutID *string                   `json:"filesystemlayoutid" description:"the filesystemlayout id to assing to this machine" optional:"true"`
+	FilesystemLayoutID *string                   `json:"filesystemlayoutid" description:"the filesystemlayout id to assign to this machine" optional:"true"`
 	SSHPubKeys         []string                  `json:"ssh_pub_keys" description:"the public ssh keys to access the machine with"`
 	UserData           *string                   `json:"user_data" description:"cloud-init.io compatible userdata must be base64 encoded" optional:"true"`
 	Tags               []string                  `json:"tags" description:"tags for this machine" optional:"true"`
@@ -483,11 +497,31 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 		disks = append(disks, disk)
 	}
 
+	cpus := []MetalCPU{}
+	for _, cpu := range m.Hardware.MetalCPUs {
+		cpus = append(cpus, MetalCPU{
+			Vendor:  cpu.Vendor,
+			Model:   cpu.Model,
+			Cores:   cpu.Cores,
+			Threads: cpu.Threads,
+		})
+	}
+
+	gpus := []MetalGPU{}
+	for _, gpu := range m.Hardware.MetalGPUs {
+		gpus = append(gpus, MetalGPU{
+			Vendor: gpu.Vendor,
+			Model:  gpu.Model,
+		})
+	}
+
 	hardware = MachineHardware{
 		MachineHardwareBase: MachineHardwareBase{
-			Memory:   m.Hardware.Memory,
-			CPUCores: m.Hardware.CPUCores,
-			Disks:    disks,
+			Memory:    m.Hardware.Memory,
+			CPUCores:  m.Hardware.CPUCores,
+			Disks:     disks,
+			MetalCPUs: cpus,
+			MetalGPUs: gpus,
 		},
 		Nics: nics,
 	}
@@ -528,7 +562,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			for _, r := range m.Allocation.FirewallRules.Egress {
 				r := r
 				egressRules = append(egressRules, FirewallEgressRule{
-					Protocol: string(r.Protocol),
+					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,
 					To:       r.To,
 					Comment:  r.Comment,
@@ -537,7 +571,7 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 			for _, r := range m.Allocation.FirewallRules.Ingress {
 				r := r
 				ingressRules = append(ingressRules, FirewallIngressRule{
-					Protocol: string(r.Protocol),
+					Protocol: strings.ToLower(string(r.Protocol)),
 					Ports:    r.Ports,
 					To:       r.To,
 					From:     r.From,

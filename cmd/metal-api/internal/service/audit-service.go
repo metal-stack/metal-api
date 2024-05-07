@@ -1,11 +1,11 @@
 package service
 
 import (
+	"log/slog"
 	"net/http"
 
 	v1 "github.com/metal-stack/metal-api/cmd/metal-api/internal/service/v1"
 	"github.com/metal-stack/metal-lib/auditing"
-	"go.uber.org/zap"
 
 	restfulspec "github.com/emicklei/go-restful-openapi/v2"
 	restful "github.com/emicklei/go-restful/v3"
@@ -17,7 +17,7 @@ type auditResource struct {
 	a auditing.Auditing
 }
 
-func NewAudit(log *zap.SugaredLogger, a auditing.Auditing) *restful.WebService {
+func NewAudit(log *slog.Logger, a auditing.Auditing) *restful.WebService {
 	ir := auditResource{
 		webResource: webResource{
 			log: log,

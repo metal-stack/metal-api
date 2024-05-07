@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/avast/retry-go/v4"
-	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/datastore"
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -17,7 +17,7 @@ import (
 )
 
 type BootService struct {
-	log              *zap.SugaredLogger
+	log              *slog.Logger
 	ds               *datastore.RethinkStore
 	ipmiSuperUser    metal.MachineIPMISuperUser
 	publisher        bus.Publisher
@@ -29,7 +29,7 @@ type BootService struct {
 }
 
 func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService {
-	log := cfg.Logger.Named("boot-service")
+	log := cfg.Logger.WithGroup("boot-service")
 
 	return &BootService{
 		ds:               cfg.Store,
@@ -45,7 +45,7 @@ func NewBootService(cfg *ServerConfig, eventService *EventService) *BootService 
 }
 
 func (b *BootService) Dhcp(ctx context.Context, req *v1.BootServiceDhcpRequest) (*v1.BootServiceDhcpResponse, error) {
-	b.log.Infow("dhcp", "req", req)
+	b.log.Info("dhcp", "req", req)
 
 	_, err := b.eventService.Send(ctx, &v1.EventServiceSendRequest{Events: map[string]*v1.MachineProvisioningEvent{
 		req.Uuid: {
@@ -60,7 +60,7 @@ func (b *BootService) Dhcp(ctx context.Context, req *v1.BootServiceDhcpRequest) 
 }
 
 func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) (*v1.BootServiceBootResponse, error) {
-	b.log.Infow("boot", "req", req)
+	b.log.Info("boot", "req", req)
 
 	p, err := b.ds.FindPartition(req.PartitionId)
 	if err != nil || p == nil {
@@ -72,12 +72,12 @@ func (b *BootService) Boot(ctx context.Context, req *v1.BootServiceBootRequest) 
 		InitRamDisks: []string{p.BootConfiguration.ImageURL},
 		Cmdline:      &p.BootConfiguration.CommandLine,
 	}
-	b.log.Infow("boot", "resp", resp)
+	b.log.Info("boot", "resp", resp)
 	return resp, nil
 }
 
 func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterRequest) (*v1.BootServiceRegisterResponse, error) {
-	b.log.Infow("register", "req", req)
+	b.log.Info("register", "req", req)
 	if req.Uuid == "" {
 		return nil, errors.New("uuid is empty")
 	}
@@ -124,17 +124,37 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		})
 	}
 
-	machineHardware := metal.MachineHardware{
-		Memory:   req.Hardware.Memory,
-		CPUCores: int(req.Hardware.CpuCores),
-		Disks:    disks,
-		Nics:     nics,
+	cpus := []metal.MetalCPU{}
+	for _, cpu := range req.Hardware.Cpus {
+		cpus = append(cpus, metal.MetalCPU{
+			Vendor:  cpu.Vendor,
+			Model:   cpu.Model,
+			Cores:   cpu.Cores,
+			Threads: cpu.Threads,
+		})
 	}
 
-	size, _, err := b.ds.FromHardware(machineHardware)
+	gpus := []metal.MetalGPU{}
+	for _, gpu := range req.Hardware.Gpus {
+		gpus = append(gpus, metal.MetalGPU{
+			Vendor: gpu.Vendor,
+			Model:  gpu.Model,
+		})
+	}
+
+	machineHardware := metal.MachineHardware{
+		Memory:    req.Hardware.Memory,
+		CPUCores:  int(req.Hardware.CpuCores),
+		Disks:     disks,
+		Nics:      nics,
+		MetalCPUs: cpus,
+		MetalGPUs: gpus,
+	}
+
+	size, err := b.ds.FromHardware(machineHardware)
 	if err != nil {
 		size = metal.UnknownSize()
-		b.log.Errorw("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
+		b.log.Error("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
 	}
 
 	var ipmi metal.IPMI
@@ -277,7 +297,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 }
 
 func (b *BootService) SuperUserPassword(ctx context.Context, req *v1.BootServiceSuperUserPasswordRequest) (*v1.BootServiceSuperUserPasswordResponse, error) {
-	b.log.Infow("superuserpassword", "req", req)
+	b.log.Info("superuserpassword", "req", req)
 	defer ctx.Done()
 
 	resp := &v1.BootServiceSuperUserPasswordResponse{
@@ -289,7 +309,7 @@ func (b *BootService) SuperUserPassword(ctx context.Context, req *v1.BootService
 }
 
 func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportRequest) (*v1.BootServiceReportResponse, error) {
-	b.log.Infow("report", "req", req)
+	b.log.Info("report", "req", req)
 
 	// FIXME implement success handling
 
@@ -365,7 +385,7 @@ func (b *BootService) Report(ctx context.Context, req *v1.BootServiceReportReque
 }
 
 func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbortReinstallRequest) (*v1.BootServiceAbortReinstallResponse, error) {
-	b.log.Infow("abortreinstall", "req", req)
+	b.log.Info("abortreinstall", "req", req)
 	m, err := b.ds.FindMachineByID(req.Uuid)
 	if err != nil {
 		return nil, err
@@ -385,7 +405,7 @@ func (b *BootService) AbortReinstall(ctx context.Context, req *v1.BootServiceAbo
 		if err != nil {
 			return nil, err
 		}
-		b.log.Infow("removed reinstall mark", "machineID", m.ID)
+		b.log.Info("removed reinstall mark", "machineID", m.ID)
 
 		if m.Allocation.MachineSetup != nil {
 			bootInfo = &v1.BootInfo{
@@ -415,9 +435,9 @@ func (b *BootService) setBootOrderDisk(m *metal.Machine) {
 		},
 	}
 
-	b.log.Infow("publish event", "event", evt, "command", *evt.Cmd)
+	b.log.Info("publish event", "event", evt, "command", *evt.Cmd)
 	err := b.publisher.Publish(metal.TopicMachine.GetFQN(m.PartitionID), evt)
 	if err != nil {
-		b.log.Errorw("unable to send boot via hd, continue anyway", "error", err)
+		b.log.Error("unable to send boot via hd, continue anyway", "error", err)
 	}
 }

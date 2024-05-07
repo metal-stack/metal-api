@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,7 +19,6 @@ import (
 	"github.com/metal-stack/metal-lib/bus"
 	"github.com/metal-stack/security"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	"golang.org/x/crypto/ssh"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -55,7 +55,7 @@ func (m mockUserGetter) User(rq *http.Request) (*security.User, error) {
 func TestGetMachines(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
@@ -83,7 +83,7 @@ func TestGetMachines(t *testing.T) {
 func TestMachineIPMIReport(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	tests := []struct {
 		name           string
@@ -104,7 +104,7 @@ func TestMachineIPMIReport(t *testing.T) {
 			wantStatusCode: http.StatusOK,
 		},
 		{
-			name: "don't update machine with unkown mac",
+			name: "don't update machine with unknown mac",
 			input: v1.MachineIpmiReports{
 				PartitionID: testdata.M1.PartitionID,
 				Reports:     map[string]v1.MachineIpmiReport{"xyz": {BMCIp: "192.167.0.1"}},
@@ -145,7 +145,7 @@ func TestMachineIPMIReport(t *testing.T) {
 }
 
 func TestMachineFindIPMI(t *testing.T) {
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	tests := []struct {
 		name           string
@@ -220,7 +220,7 @@ func TestMachineFindIPMI(t *testing.T) {
 func TestSetMachineState(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	userGetter := mockUserGetter{&security.User{
 		EMail: "anonymous@metal-stack.io",
@@ -261,7 +261,7 @@ func TestSetMachineState(t *testing.T) {
 func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	userGetter := mockUserGetter{&security.User{
 		EMail: "anonymous@metal-stack.io",
@@ -302,7 +302,7 @@ func TestSetMachineStateIssuerResetWhenAvailable(t *testing.T) {
 func TestGetMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
@@ -330,7 +330,7 @@ func TestGetMachine(t *testing.T) {
 func TestGetMachineNotFound(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
@@ -353,7 +353,7 @@ func TestFreeMachine(t *testing.T) {
 	testdata.InitMockDBData(mock)
 	mock.On(r.DB("mockdb").Table("switch").Filter(r.MockAnything(), r.FilterOpts{})).Return([]metal.Switch{testdata.Switch1}, nil)
 
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	pub := &emptyPublisher{}
 	events := []string{"1-machine", "1-machine", "releaseMachineNetworks", "1-switch"}
@@ -393,7 +393,7 @@ func TestSearchMachine(t *testing.T) {
 	ds, mock := datastore.InitMockDB(t)
 	mock.On(r.DB("mockdb").Table("machine").Filter(r.MockAnything())).Return([]interface{}{testdata.M1}, nil)
 	testdata.InitMockDBData(mock)
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	machineservice, err := NewMachine(log, ds, &emptyPublisher{}, bus.DirectEndpoints(), ipam.New(goipam.New()), nil, nil, nil, 0, nil, metal.DisabledIPMISuperUser())
 	require.NoError(t, err)
@@ -423,7 +423,7 @@ func TestSearchMachine(t *testing.T) {
 }
 
 func TestOnMachine(t *testing.T) {
-	log := zaptest.NewLogger(t).Sugar()
+	log := slog.Default()
 
 	tests := []struct {
 		cmd      metal.MachineCommand

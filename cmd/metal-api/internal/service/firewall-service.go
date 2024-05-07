@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"net/http"
@@ -12,8 +13,6 @@ import (
 	"github.com/metal-stack/metal-lib/auditing"
 
 	"github.com/metal-stack/security"
-
-	"go.uber.org/zap"
 
 	"github.com/metal-stack/metal-lib/httperrors"
 
@@ -42,7 +41,7 @@ type firewallResource struct {
 
 // NewFirewall returns a webservice for firewall specific endpoints.
 func NewFirewall(
-	log *zap.SugaredLogger,
+	log *slog.Logger,
 	ds *datastore.RethinkStore,
 	pub bus.Publisher,
 	ipamer ipam.IPAMer,

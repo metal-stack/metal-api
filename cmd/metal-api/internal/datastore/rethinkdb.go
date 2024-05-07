@@ -3,13 +3,13 @@ package datastore
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 
-	"go.uber.org/zap"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -38,7 +38,7 @@ var tables = []string{
 
 // A RethinkStore is the database access layer for rethinkdb.
 type RethinkStore struct {
-	log *zap.SugaredLogger
+	log *slog.Logger
 
 	session   r.QueryExecutor
 	dbsession *r.Session
@@ -61,7 +61,7 @@ type RethinkStore struct {
 }
 
 // New creates a new rethink store.
-func New(log *zap.SugaredLogger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
+func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass string) *RethinkStore {
 	return &RethinkStore{
 		log:    log,
 		dbhost: dbhost,
@@ -325,11 +325,11 @@ func connect(hosts []string, dbname, user, pwd string) (*r.Session, error) {
 // retryConnect infinitely tries to establish a database connection.
 // in case a connection could not be established, the function will
 // wait for a short period of time and try again.
-func retryConnect(log *zap.SugaredLogger, hosts []string, dbname, user, pwd string) *r.Session {
+func retryConnect(log *slog.Logger, hosts []string, dbname, user, pwd string) *r.Session {
 tryAgain:
 	s, err := connect(hosts, dbname, user, pwd)
 	if err != nil {
-		log.Errorw("db connection error", "db", dbname, "hosts", hosts, "error", err)
+		log.Error("db connection error", "db", dbname, "hosts", hosts, "error", err)
 		time.Sleep(3 * time.Second)
 		goto tryAgain
 	}
