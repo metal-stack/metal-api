@@ -49,15 +49,15 @@ type RethinkStore struct {
 	dbhost string
 
 	// TODO: should not be public
-	VRFPoolRangeMin         uint
-	VRFPoolRangeMax         uint
-	ASNPoolRangeMin         uint
-	ASNPoolRangeMax         uint
-	sharedMutexMaxBlockTime time.Duration
+	VRFPoolRangeMin uint
+	VRFPoolRangeMax uint
+	ASNPoolRangeMin uint
+	ASNPoolRangeMax uint
 
-	mutexCtx    context.Context
-	mutexCancel context.CancelFunc
-	dbMutex     *sharedMutex
+	sharedMutexMaxBlockTime time.Duration
+	sharedMutexCtx          context.Context
+	sharedMutexCancel       context.CancelFunc
+	sharedMutex             *sharedMutex
 }
 
 // New creates a new rethink store.
@@ -261,8 +261,8 @@ func (rs *RethinkStore) Close() error {
 		}
 	}
 
-	if rs.mutexCancel != nil {
-		rs.mutexCancel()
+	if rs.sharedMutexCancel != nil {
+		rs.sharedMutexCancel()
 	}
 
 	rs.log.Info("Rethinkstore disconnected")
@@ -276,8 +276,8 @@ func (rs *RethinkStore) Connect() error {
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, rs.dbuser, rs.dbpass)
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
-	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
-	rs.dbMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
+	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
+	rs.sharedMutex = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
 	return nil
 }
 
@@ -291,8 +291,8 @@ func (rs *RethinkStore) Demote() error {
 	}
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
-	rs.mutexCtx, rs.mutexCancel = context.WithCancel(context.Background())
-	rs.dbMutex = newSharedMutex(rs.mutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
+	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
+	rs.sharedMutex = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil
