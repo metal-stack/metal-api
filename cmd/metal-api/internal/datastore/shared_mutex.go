@@ -10,6 +10,10 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+const (
+	DefaultSharedMutexMaxBlockTime = 10 * time.Second
+)
+
 type sharedMutexDoc struct {
 	ID       string    `rethinkdb:"id"`
 	LockedAt time.Time `rethinkdb:"locked_at"`

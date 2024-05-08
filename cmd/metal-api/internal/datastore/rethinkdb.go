@@ -69,11 +69,12 @@ func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass s
 		dbuser: dbuser,
 		dbpass: dbpass,
 
-		VRFPoolRangeMin:         DefaultVRFPoolRangeMin,
-		VRFPoolRangeMax:         DefaultVRFPoolRangeMax,
-		ASNPoolRangeMin:         DefaultASNPoolRangeMin,
-		ASNPoolRangeMax:         DefaultASNPoolRangeMax,
-		sharedMutexMaxBlockTime: 10 * time.Second,
+		VRFPoolRangeMin: DefaultVRFPoolRangeMin,
+		VRFPoolRangeMax: DefaultVRFPoolRangeMax,
+		ASNPoolRangeMin: DefaultASNPoolRangeMin,
+		ASNPoolRangeMax: DefaultASNPoolRangeMax,
+
+		sharedMutexMaxBlockTime: DefaultSharedMutexMaxBlockTime,
 	}
 }
 
