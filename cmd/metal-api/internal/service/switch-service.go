@@ -345,6 +345,22 @@ func (r *switchResource) toggleSwitchPort(request *restful.Request, response *re
 		return
 	}
 
+	// now check if there is something connected at the given nic.
+	machineConnection := false
+
+	for _, mcs := range newSwitch.MachineConnections {
+		for _, mc := range mcs {
+			if strings.EqualFold(mc.Nic.Name, requestPayload.NicName) {
+				machineConnection = true
+				break
+			}
+		}
+	}
+	if !machineConnection {
+		r.sendError(request, response, httperrors.BadRequest(fmt.Errorf("switch %q does not have a connected machine at port %q", id, requestPayload.NicName)))
+		return
+	}
+
 	if updated {
 		if err := r.ds.UpdateSwitch(oldSwitch, &newSwitch); err != nil {
 			r.sendError(request, response, defaultError(err))

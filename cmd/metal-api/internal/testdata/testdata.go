@@ -552,6 +552,7 @@ var (
 			"1": metal.Connections{
 				metal.Connection{
 					Nic: metal.Nic{
+						Name:       "swp1",
 						MacAddress: metal.MacAddress("21:11:11:11:11:11"),
 					},
 					MachineID: "1",
