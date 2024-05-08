@@ -5,6 +5,7 @@ package datastore
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -962,7 +962,7 @@ func TestRethinkStore_UpdateMachine(t *testing.T) {
 func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 
 	var (
-		root  = zaptest.NewLogger(t).Sugar()
+		root  = slog.Default()
 		wg    sync.WaitGroup
 		size  = metal.Size{Base: metal.Base{ID: "1"}}
 		count int
@@ -1052,7 +1052,7 @@ func Test_FindWaitingMachine_NoConcurrentModificationErrors(t *testing.T) {
 
 				err = sharedDS.updateEntity(sharedDS.machineTable(), &newMachine, machine)
 				if err != nil {
-					log.Errorw("unable to toggle back pre-allocation flag", "error", err)
+					log.Error("unable to toggle back pre-allocation flag", "error", err)
 					t.Fail()
 				}
 
