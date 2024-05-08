@@ -3,7 +3,6 @@ package datastore
 import (
 	"log/slog"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -47,7 +46,7 @@ func TestNew(t *testing.T) {
 				ASNPoolRangeMin: DefaultASNPoolRangeMin,
 				ASNPoolRangeMax: DefaultASNPoolRangeMax,
 
-				sharedMutexMaxBlockTime: 10 * time.Second,
+				sharedMutexMaxBlockTime: DefaultSharedMutexMaxBlockTime,
 			},
 		},
 	}
