@@ -19,21 +19,21 @@ const (
 )
 
 var tables = []string{
+	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
+	"event",
+	"filesystemlayout",
 	"image",
-	"size",
-	"partition",
+	"ip",
 	"machine",
+	"migration",
+	"network",
+	"partition",
+	"sharedmutex",
+	"size",
+	"sizeimageconstraint",
 	"switch",
 	"switchstatus",
-	"event",
-	"network",
-	"ip",
-	"migration",
-	"filesystemlayout",
-	"sizeimageconstraint",
-	"sharedmutex",
 	VRFIntegerPool.String(), VRFIntegerPool.String() + "info",
-	ASNIntegerPool.String(), ASNIntegerPool.String() + "info",
 }
 
 // A RethinkStore is the database access layer for rethinkdb.
