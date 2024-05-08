@@ -114,6 +114,7 @@ func (r *switchResource) webService() *restful.WebService {
 		Reads(v1.SwitchPortToggleRequest{}).
 		Returns(http.StatusOK, "OK", v1.SwitchResponse{}).
 		Returns(http.StatusConflict, "Conflict", httperrors.HTTPErrorResponse{}).
+		Returns(http.StatusBadRequest, "Bad input data", httperrors.HTTPErrorResponse{}).
 		DefaultReturns("Error", httperrors.HTTPErrorResponse{}))
 
 	ws.Route(ws.POST("/{id}/notify").
@@ -294,8 +295,8 @@ func (r *switchResource) notifySwitch(request *restful.Request, response *restfu
 	r.send(request, response, http.StatusOK, v1.NewSwitchNotifyResponse(&newSS))
 }
 
-// toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body, validates the requested status is concrete, finds the switch, updates its NIC state if needed, and returns the updated switch on success.
-// toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body to get the switch ID, NIC name and desired state. It finds the switch, updates the state of the matching NIC if needed, and returns the updated switch on success.
+// toggleSwitchPort handles a request to toggle the state of a port on a switch. It reads the request body, finds the switch, updates its NIC state if needed, and returns the updated switch on success.
+// If the given port is not found or the given status is not concrete, a 400 error is returned. Another requirement is that there must be a machine connected to the port.
 func (r *switchResource) toggleSwitchPort(request *restful.Request, response *restful.Response) {
 	var requestPayload v1.SwitchPortToggleRequest
 	err := request.ReadEntity(&requestPayload)
