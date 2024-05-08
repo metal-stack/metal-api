@@ -151,7 +151,7 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 		MetalGPUs: gpus,
 	}
 
-	size, _, err := b.ds.FromHardware(machineHardware)
+	size, err := b.ds.FromHardware(machineHardware)
 	if err != nil {
 		size = metal.UnknownSize()
 		b.log.Error("no size found for hardware, defaulting to unknown size", "hardware", machineHardware, "error", err)
