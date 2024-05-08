@@ -20,11 +20,28 @@ func Test_sharedMutex_reallyLocking(t *testing.T) {
 	defer mutexCleanup(t)
 	ctx := context.Background()
 
-	err := sharedDS.dbMutex.lock(ctx, "test")
+	err := sharedDS.dbMutex.lock(ctx, "test", newLockOptAcquireTimeout(10*time.Millisecond))
 	require.NoError(t, err)
 
-	err = sharedDS.dbMutex.lock(ctx, "test")
+	err = sharedDS.dbMutex.lock(ctx, "test", newLockOptAcquireTimeout(5*time.Millisecond))
 	require.Error(t, err)
+	require.ErrorContains(t, err, "unable to acquire mutex")
+
+	err = sharedDS.dbMutex.lock(ctx, "test2", newLockOptAcquireTimeout(10*time.Millisecond))
+	require.NoError(t, err)
+
+	err = sharedDS.dbMutex.lock(ctx, "test", newLockOptAcquireTimeout(10*time.Millisecond))
+	require.Error(t, err)
+	require.ErrorContains(t, err, "unable to acquire mutex")
+
+	sharedDS.dbMutex.unlock(ctx, "test")
+
+	err = sharedDS.dbMutex.lock(ctx, "test2", newLockOptAcquireTimeout(10*time.Millisecond))
+	require.Error(t, err)
+	require.ErrorContains(t, err, "unable to acquire mutex")
+
+	err = sharedDS.dbMutex.lock(ctx, "test", newLockOptAcquireTimeout(10*time.Millisecond))
+	require.NoError(t, err)
 }
 
 func Test_sharedMutex_acquireAfterRelease(t *testing.T) {

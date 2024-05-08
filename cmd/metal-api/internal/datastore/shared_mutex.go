@@ -44,7 +44,28 @@ func newSharedMutex(ctx context.Context, log *slog.Logger, session r.QueryExecut
 	return m
 }
 
-func (m *sharedMutex) lock(ctx context.Context, key string) error {
+type lockOpt interface{}
+
+type lockOptAcquireTimeout struct {
+	timeout time.Duration
+}
+
+func newLockOptAcquireTimeout(t time.Duration) *lockOptAcquireTimeout {
+	return &lockOptAcquireTimeout{timeout: t}
+}
+
+func (m *sharedMutex) lock(ctx context.Context, key string, opts ...lockOpt) error {
+	for _, opt := range opts {
+		switch o := opt.(type) {
+		case *lockOptAcquireTimeout:
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, o.timeout)
+			defer cancel()
+		default:
+			return fmt.Errorf("unknown option: %T", opt)
+		}
+	}
+
 	_, err := m.table.Insert(m.newMutexDoc(key), r.InsertOpts{
 		Conflict:      "error",
 		Durability:    "soft",
@@ -101,7 +122,7 @@ func (m *sharedMutex) lock(ctx context.Context, key string) error {
 
 			return nil
 		case <-timeoutCtx.Done():
-			return fmt.Errorf("unable to acquire %q mutex", key)
+			return fmt.Errorf("unable to acquire mutex: %s", key)
 		}
 	}
 }
@@ -109,7 +130,7 @@ func (m *sharedMutex) lock(ctx context.Context, key string) error {
 func (m *sharedMutex) unlock(ctx context.Context, key string) {
 	_, err := m.table.Get(key).Delete().RunWrite(m.session, r.RunOpts{Context: ctx})
 	if err != nil {
-		m.log.Error("unable to release shared mutex", "error", err)
+		m.log.Error("unable to release shared mutex", "key", key, "error", err)
 	}
 }
 
@@ -158,7 +179,7 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 				if time.Since(doc.LockedAt) > m.maxblock {
 					_, err = m.table.Get(doc.ID).Delete().RunWrite(m.session, r.RunOpts{Context: ctx})
 					if err != nil {
-						m.log.Error("unable to release expired shared mutex", "error", err)
+						m.log.Error("unable to release expired shared mutex", "key", doc.ID, "error", err)
 						continue
 					}
 
