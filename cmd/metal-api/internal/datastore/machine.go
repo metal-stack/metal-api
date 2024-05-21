@@ -642,7 +642,8 @@ func randomIndex(max int) int {
 	if max <= 0 {
 		return 0
 	}
-	return rand.N(max)
+	// linter complains about math/rand/v2 which has secure randomness though
+	return rand.N(max) //nolint:gosec
 }
 
 func intersect[T comparable](a, b []T) []T {

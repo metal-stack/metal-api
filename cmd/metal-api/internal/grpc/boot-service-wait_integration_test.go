@@ -253,7 +253,8 @@ func (t *test) startMachineInstances() {
 	}
 	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
-		port := 50005 + rand.N(t.numberApiInstances)
+		// linter complains about math/rand/v2 which has secure randomness though
+		port := 50005 + rand.N(t.numberApiInstances) //nolint:gosec
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
 		require.NoError(t, err)
@@ -327,7 +328,8 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(rand.N(t.numberMachineInstances))
+	// linter complains about math/rand/v2 which has secure randomness though
+	machineID := strconv.Itoa(rand.N(t.numberMachineInstances)) //nolint:gosec
 	for _, id := range except {
 		if id == machineID {
 			return t.selectMachine(except)
