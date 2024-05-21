@@ -642,7 +642,7 @@ func randomIndex(max int) int {
 	if max <= 0 {
 		return 0
 	}
-	// linter complains about math/rand/v2 which has secure randomness though
+	// golangci-lint has issues math/rand/v2, for this use-case it has sufficient randomness though because it's not used for cryptographic purposes
 	return rand.N(max) //nolint:gosec
 }
 
