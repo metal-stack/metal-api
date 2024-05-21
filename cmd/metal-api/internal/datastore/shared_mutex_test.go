@@ -80,10 +80,23 @@ func Test_sharedMutex_expires(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorContains(t, err, "unable to acquire mutex")
 
-	time.Sleep(sharedDS.sharedMutex.checkinterval + 100*time.Millisecond)
+	done := make(chan bool)
+	go func() {
+		err = sharedDS.sharedMutex.lock(ctx, "test", 2*time.Second, newLockOptAcquireTimeout(2*sharedDS.sharedMutex.checkinterval))
+		if err != nil {
+			t.Errorf("mutex was not acquired: %s", err)
+		}
+		done <- true
+	}()
 
-	err = sharedDS.sharedMutex.lock(ctx, "test", 2*time.Second, newLockOptAcquireTimeout(10*time.Millisecond))
-	require.NoError(t, err)
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 2*sharedDS.sharedMutex.checkinterval)
+	defer cancel()
+
+	select {
+	case <-done:
+	case <-timeoutCtx.Done():
+		t.Errorf("shared mutex has not expired")
+	}
 }
 
 func Test_sharedMutex_stop(t *testing.T) {
