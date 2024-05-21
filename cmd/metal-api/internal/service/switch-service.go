@@ -628,7 +628,7 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 	newNics := metal.Nics{}
 	newNicMap := newSwitch.Nics.ByName()
 	missingNics := []string{}
-	twinNicsByName := twin.Nics.ByName()
+	twinNicsByName := translateNicNames(twin, newSwitch.OS.Vendor)
 	for name := range twinNicsByName {
 		if _, ok := newNicMap[name]; !ok {
 			missingNics = append(missingNics, name)
@@ -648,6 +648,13 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 			// leave unchanged
 			newNics = append(newNics, *nic)
 		}
+
+		// newNic := *nic
+		// // check for configuration at twin
+		// if twinNic, ok := twinNicsByName[name]; ok {
+		// 	newNic.Vrf = twinNic.Vrf
+		// }
+		// newNics = append(newNics, newNic)
 	}
 
 	sort.SliceStable(newNics, func(i, j int) bool {
@@ -980,4 +987,16 @@ func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionM
 	}
 
 	return p.ByID(), ips.ByProjectID(), nil
+}
+
+func translateNicNames(sw *metal.Switch, targetOS metal.SwitchOSVendor) metal.NicMap {
+	nicMap := make(metal.NicMap)
+
+	if sw.OS.Vendor == targetOS {
+		return sw.Nics.ByName()
+	}
+
+	// TODO: call MapPortNames to translate SONiC naming convention to Cumulus or the other way round.
+
+	return nicMap
 }

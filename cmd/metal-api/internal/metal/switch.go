@@ -2,6 +2,8 @@ package metal
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -24,10 +26,19 @@ type Switch struct {
 type Switches []Switch
 
 type SwitchOS struct {
-	Vendor           string `rethinkdb:"vendor" json:"vendor"`
-	Version          string `rethinkdb:"version" json:"version"`
-	MetalCoreVersion string `rethinkdb:"metal_core_version" json:"metal_core_version"`
+	Vendor           SwitchOSVendor `rethinkdb:"vendor" json:"vendor"`
+	Version          string         `rethinkdb:"version" json:"version"`
+	MetalCoreVersion string         `rethinkdb:"metal_core_version" json:"metal_core_version"`
 }
+
+// SwitchOSVendor is an enum denoting the name of a switch OS
+type SwitchOSVendor string
+
+// The enums for switch OS vendors
+const (
+	SwitchOSVendorSonic   SwitchOSVendor = "SONiC"
+	SwitchOSVendorCumulus SwitchOSVendor = "Cumulus"
+)
 
 // Connection between switch port and machine.
 type Connection struct {
@@ -144,3 +155,109 @@ func (s *Switch) SetVrfOfMachine(m *Machine, vrf string) {
 	}
 	s.Nics = nics
 }
+
+func MapPortNames(ports []string, sourceOS, targetOS SwitchOSVendor) (switchPortMapping, error) {
+	portMapping := make(switchPortMapping, len(ports))
+	sourcePortNames, err := mapPortNamesToLines(ports, sourceOS)
+	if err != nil {
+		return nil, err
+	}
+	targetPortNames, err := mapPortNamesToLines(ports, targetOS)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range ports {
+		line := sourcePortNames[p]
+		port, err := getPortFromLine(line, targetPortNames)
+		if err != nil {
+			return nil, err
+		}
+		portMapping[p] = port
+	}
+
+	return portMapping, nil
+}
+
+func mapPortNamesToLines(ports []string, os SwitchOSVendor) (switchPortToLine, error) {
+	mappingFunction, ok := portMappingFunctions[os]
+	if !ok {
+		return nil, fmt.Errorf("unknown switch os %s", os)
+	}
+	return mappingFunction(ports)
+}
+
+func mapCumulusPortNamesToLines(ports []string) (switchPortToLine, error) {
+	mappedPorts := make(switchPortToLine, len(ports))
+
+	for _, p := range ports {
+		_, suffix, found := strings.Cut(p, "swp")
+		if !found {
+			return nil, fmt.Errorf("invalid port name %s, expected to find prefix 'swp'", p)
+		}
+
+		lineString, indexString, found := strings.Cut(suffix, "s")
+		if !found {
+			line, err := strconv.Atoi(suffix)
+			if err != nil {
+				return nil, fmt.Errorf("unable to convert port name to line number: %w", err)
+			}
+			mappedPorts[p] = line * 4
+		} else {
+			line, err := strconv.Atoi(lineString)
+			if err != nil {
+				return nil, fmt.Errorf("unable to convert port name to line number: %w", err)
+			}
+
+			index, err := strconv.Atoi(indexString)
+			if err != nil {
+				return nil, fmt.Errorf("unable to convert port name to line number: %w", err)
+			}
+
+			mappedPorts[p] = line*4 + index
+		}
+	}
+
+	return mappedPorts, nil
+}
+
+func mapSonicPortNamesToLines(ports []string) (switchPortToLine, error) {
+	mappedPorts := make(switchPortToLine, len(ports))
+
+	for _, p := range ports {
+		_, lineString, found := strings.Cut(p, "Ethernet")
+		if !found {
+			return nil, fmt.Errorf("invalid port name %s, expected to find prefix 'Ethernet'", p)
+		}
+
+		line, err := strconv.Atoi(lineString)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert port name to line number: %w", err)
+		}
+
+		mappedPorts[p] = line
+	}
+	return mappedPorts, nil
+}
+
+func getPortFromLine(line int, switchPorts switchPortToLine) (string, error) {
+	for port, l := range switchPorts {
+		if l == line {
+			return port, nil
+		}
+	}
+
+	return "", fmt.Errorf("no port found for line %d", line)
+}
+
+type (
+	switchPortMapping map[string]string
+	switchPortToLine  map[string]int
+)
+
+var (
+	portMappingFunctions = map[SwitchOSVendor]func(ports []string) (switchPortToLine, error){
+		SwitchOSVendorSonic:   mapSonicPortNamesToLines,
+		SwitchOSVendorCumulus: mapCumulusPortNamesToLines,
+	}
+)

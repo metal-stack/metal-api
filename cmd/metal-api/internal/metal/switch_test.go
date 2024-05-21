@@ -3,6 +3,8 @@ package metal
 import (
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 var (
@@ -267,6 +269,104 @@ func TestSwitch_ConnectMachine2(t *testing.T) {
 			s.ConnectMachine(tt.machine)
 			if !reflect.DeepEqual(s.MachineConnections, tt.fields.MachineConnections) {
 				t.Errorf("expected:%v, got:%v", s.MachineConnections, tt.fields.MachineConnections)
+			}
+		})
+	}
+}
+
+func TestMapPortNames(t *testing.T) {
+	tests := []struct {
+		name     string
+		ports    []string
+		sourceOS SwitchOSVendor
+		targetOS SwitchOSVendor
+		want     switchPortMapping
+		wantErr  error
+	}{
+		{
+			name: "self migration",
+			ports: []string{
+				"swp0",
+				"swp1s2",
+			},
+			sourceOS: SwitchOSVendorCumulus,
+			targetOS: SwitchOSVendorCumulus,
+			want: switchPortMapping{
+				"swp0":   "swp0",
+				"swp1s2": "swp1s2",
+			},
+			wantErr: nil,
+		},
+		// TODO: add more test cases
+	}
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			converted, err := MapPortNames(tt.ports, tt.sourceOS, tt.targetOS)
+			if err == nil && tt.wantErr != nil || err != nil && tt.wantErr == nil || cmp.Diff(err, tt.wantErr) != "" {
+				t.Errorf("expected error: %v, got error: %v", tt.wantErr, err)
+			}
+
+			if diff := cmp.Diff(converted, tt.want); diff != "" {
+				t.Errorf("diff: %v", diff)
+			}
+		})
+	}
+}
+
+func Test_mapSonicPortNamesToLines(t *testing.T) {
+	tests := []struct {
+		name    string
+		ports   []string
+		want    switchPortToLine
+		wantErr error
+	}{
+		{
+			name:    "no ports",
+			ports:   []string{},
+			want:    map[string]int{},
+			wantErr: nil,
+		},
+		// TODO: add more test cases
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := mapSonicPortNamesToLines(tt.ports)
+			if err != nil && tt.wantErr == nil || err == nil && tt.wantErr != nil || cmp.Diff(err, tt.wantErr) != "" {
+				t.Errorf("mapSonicPortNamesToLines() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("mapSonicPortNamesToLines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_mapCumulusPortNamesToLines(t *testing.T) {
+	tests := []struct {
+		name    string
+		ports   []string
+		want    switchPortToLine
+		wantErr error
+	}{
+		{
+			name:    "no ports",
+			ports:   []string{},
+			want:    map[string]int{},
+			wantErr: nil,
+		},
+		// TODO: add more test cases
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := mapCumulusPortNamesToLines(tt.ports)
+			if err != nil && tt.wantErr == nil || err == nil && tt.wantErr != nil || cmp.Diff(err, tt.wantErr) != "" {
+				t.Errorf("mapSonicPortNamesToLines() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("mapSonicPortNamesToLines() = %v, want %v", got, tt.want)
 			}
 		})
 	}
