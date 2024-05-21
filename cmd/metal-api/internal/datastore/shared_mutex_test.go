@@ -93,17 +93,23 @@ func Test_sharedMutex_stop(t *testing.T) {
 	mutex, err := newSharedMutex(context.Background(), slog.Default(), sharedDS.dbsession)
 	require.NoError(t, err)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	done := make(chan bool)
 
 	go func() {
 		mutex.expireloop(ctx)
-		wg.Done()
+		done <- true
 	}()
 
 	cancel()
 
-	wg.Wait()
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	select {
+	case <-done:
+	case <-timeoutCtx.Done():
+		t.Errorf("shared mutex expiration did not stop")
+	}
 }
 
 func mutexCleanup(t *testing.T) {
