@@ -46,7 +46,7 @@ func TestNew(t *testing.T) {
 				ASNPoolRangeMin: DefaultASNPoolRangeMin,
 				ASNPoolRangeMax: DefaultASNPoolRangeMax,
 
-				sharedMutexMaxBlockTime: DefaultSharedMutexMaxBlockTime,
+				sharedMutexCheckInterval: defaultSharedMutexCheckInterval,
 			},
 		},
 	}

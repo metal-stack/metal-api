@@ -54,10 +54,10 @@ type RethinkStore struct {
 	ASNPoolRangeMin uint
 	ASNPoolRangeMax uint
 
-	sharedMutexMaxBlockTime time.Duration
-	sharedMutexCtx          context.Context
-	sharedMutexCancel       context.CancelFunc
-	sharedMutex             *sharedMutex
+	sharedMutexCtx           context.Context
+	sharedMutexCancel        context.CancelFunc
+	sharedMutex              *sharedMutex
+	sharedMutexCheckInterval time.Duration
 }
 
 // New creates a new rethink store.
@@ -74,7 +74,7 @@ func New(log *slog.Logger, dbhost string, dbname string, dbuser string, dbpass s
 		ASNPoolRangeMin: DefaultASNPoolRangeMin,
 		ASNPoolRangeMax: DefaultASNPoolRangeMax,
 
-		sharedMutexMaxBlockTime: DefaultSharedMutexMaxBlockTime,
+		sharedMutexCheckInterval: defaultSharedMutexCheckInterval,
 	}
 }
 
@@ -278,7 +278,12 @@ func (rs *RethinkStore) Connect() error {
 	rs.log.Info("Rethinkstore connected")
 	rs.session = rs.dbsession
 	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
-	rs.sharedMutex = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
+	var err error
+	rs.sharedMutex, err = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, newMutexOptCheckInterval(rs.sharedMutexCheckInterval))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -290,10 +295,14 @@ func (rs *RethinkStore) Demote() error {
 	if err != nil {
 		return err
 	}
+
 	rs.dbsession = retryConnect(rs.log, []string{rs.dbhost}, rs.dbname, DemotedUser, rs.dbpass)
 	rs.session = rs.dbsession
 	rs.sharedMutexCtx, rs.sharedMutexCancel = context.WithCancel(context.Background())
-	rs.sharedMutex = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, rs.sharedMutexMaxBlockTime)
+	rs.sharedMutex, err = newSharedMutex(rs.sharedMutexCtx, rs.log, rs.dbsession, newMutexOptCheckInterval(rs.sharedMutexCheckInterval))
+	if err != nil {
+		return err
+	}
 
 	rs.log.Info("rethinkstore connected with demoted user")
 	return nil

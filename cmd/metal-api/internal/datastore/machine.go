@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"golang.org/x/exp/slices"
@@ -441,7 +442,7 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 		"preallocated": false,
 	})
 
-	if err := rs.sharedMutex.lock(ctx, partitionid); err != nil {
+	if err := rs.sharedMutex.lock(ctx, partitionid, 10*time.Second); err != nil {
 		return nil, fmt.Errorf("too many parallel machine allocations taking place, try again later")
 	}
 	defer rs.sharedMutex.unlock(ctx, partitionid)

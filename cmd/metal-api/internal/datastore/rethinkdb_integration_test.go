@@ -53,7 +53,7 @@ func startRethinkInitialized() (container testcontainers.Container, ds *RethinkS
 	rs.ASNPoolRangeMin = 10000
 	rs.ASNPoolRangeMax = 10010
 
-	rs.sharedMutexMaxBlockTime = 2 * time.Second
+	rs.sharedMutexCheckInterval = 3 * time.Second
 
 	err = rs.Connect()
 	if err != nil {
