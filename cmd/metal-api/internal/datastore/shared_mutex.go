@@ -110,7 +110,7 @@ func (m *sharedMutex) lock(ctx context.Context, key string, expiration time.Dura
 
 	m.log.Debug("mutex is already locked, listening for changes", "key", key)
 
-	cursor, err := m.table.Changes(r.ChangesOpts{
+	cursor, err := m.table.Get(key).Changes(r.ChangesOpts{
 		Squash: false,
 	}).Run(m.session, r.RunOpts{
 		Context: timeoutCtx,
