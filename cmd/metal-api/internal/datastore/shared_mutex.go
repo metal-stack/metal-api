@@ -99,7 +99,7 @@ func (m *sharedMutex) lock(ctx context.Context, key string, opts ...lockOpt) err
 	}
 
 	changes := make(chan r.ChangeResponse)
-	go cursor.Listen(changes)
+	cursor.Listen(changes)
 
 	for {
 		select {
@@ -166,6 +166,10 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 			}
 
 			if cursor.IsNil() {
+				if err := cursor.Close(); err != nil {
+					m.log.Error("unable to close cursor", "error", err)
+				}
+
 				continue
 			}
 
@@ -174,7 +178,14 @@ func (m *sharedMutex) expireloop(ctx context.Context) {
 			err = cursor.All(&docs)
 			if err != nil {
 				m.log.Error("unable to read shared mutexes", "error", err)
+				if err := cursor.Close(); err != nil {
+					m.log.Error("unable to close cursor", "error", err)
+				}
 				continue
+			}
+
+			if err := cursor.Close(); err != nil {
+				m.log.Error("unable to close cursor", "error", err)
 			}
 
 			m.log.Debug("searched for expiring mutexes in database", "mutex-count", len(docs))
