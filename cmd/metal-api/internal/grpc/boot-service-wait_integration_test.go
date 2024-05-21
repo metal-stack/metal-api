@@ -253,7 +253,8 @@ func (t *test) startMachineInstances() {
 	}
 	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
-		// golangci-lint has issues math/rand/v2, for this use-case it has sufficient randomness though because it's not used for cryptographic purposes
+		// golangci-lint has an issue with math/rand/v2
+		// here it provides sufficient randomness though because it's not used for cryptographic purposes
 		port := 50005 + rand.N(t.numberApiInstances) //nolint:gosec
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
@@ -328,7 +329,8 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	// golangci-lint has issues math/rand/v2, for this use-case it has sufficient randomness though because it's not used for cryptographic purposes
+	// golangci-lint has an issue with math/rand/v2
+	// here it provides sufficient randomness though because it's not used for cryptographic purposes
 	machineID := strconv.Itoa(rand.N(t.numberMachineInstances)) //nolint:gosec
 	for _, id := range except {
 		if id == machineID {
