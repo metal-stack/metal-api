@@ -497,12 +497,7 @@ func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, parti
 		return nil, errors.New("no machine available")
 	}
 
-	randomIndex, err := randomIndex(len(spreadCandidates))
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve suitable machine among candidates, %w", err)
-	}
-
-	oldMachine := spreadCandidates[randomIndex]
+	oldMachine := spreadCandidates[randomIndex(len(spreadCandidates))]
 	newMachine := oldMachine
 	newMachine.PreAllocated = true
 
@@ -643,9 +638,9 @@ func groupByTags(machines metal.Machines) groupedMachines {
 	return groups
 }
 
-func randomIndex(max int) (int, error) {
+func randomIndex(max int) int {
 	if max <= 0 {
-		return 0, nil
+		return 0
 	}
 	// golangci-lint has an issue with math/rand/v2
 	// here it provides sufficient randomness though because it's not used for cryptographic purposes
