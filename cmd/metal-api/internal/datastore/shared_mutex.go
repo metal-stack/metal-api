@@ -35,7 +35,7 @@ const (
 	defaultSharedMutexAcquireTimeout = 10 * time.Second
 )
 
-type mutexOpt interface{}
+type mutexOpt any
 
 type mutexOptCheckInterval struct {
 	timeout time.Duration
@@ -70,7 +70,7 @@ func newSharedMutex(ctx context.Context, log *slog.Logger, session r.QueryExecut
 	return m, nil
 }
 
-type lockOpt interface{}
+type lockOpt any
 
 type lockOptAcquireTimeout struct {
 	timeout time.Duration
