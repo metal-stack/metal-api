@@ -68,9 +68,9 @@ func TestWaitServer(t *testing.T) {
 	mm := [][]int{{10, 7}}
 	for _, a := range aa {
 		for _, m := range mm {
-			require.Greater(t, a, 0)
-			require.Greater(t, m[0], 0)
-			require.Greater(t, m[1], 0)
+			require.Positive(t, a)
+			require.Positive(t, m[0])
+			require.Positive(t, m[1])
 			require.GreaterOrEqual(t, m[0], m[1])
 			tt = append(tt, &test{
 				numberApiInstances:     a,
