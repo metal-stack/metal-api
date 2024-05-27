@@ -5,11 +5,12 @@ package grpc
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"math/rand/v2"
+	"math/big"
 	"strconv"
 	"sync"
 	"testing"
@@ -253,7 +254,11 @@ func (t *test) startMachineInstances() {
 	}
 	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
-		port := 50005 + rand.N(t.numberApiInstances)
+		r, err := rand.Int(rand.Reader, big.NewInt(int64(t.numberApiInstances)))
+		if err != nil {
+			return
+		}
+		port := 50005 + r.Int64()
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
 		require.NoError(t, err)
@@ -327,7 +332,12 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(rand.N(t.numberMachineInstances))
+	r, err := rand.Int(rand.Reader, big.NewInt(int64(t.numberMachineInstances)))
+	if err != nil {
+		return ""
+	}
+
+	machineID := strconv.Itoa(int(r.Int64()))
 	for _, id := range except {
 		if id == machineID {
 			return t.selectMachine(except)

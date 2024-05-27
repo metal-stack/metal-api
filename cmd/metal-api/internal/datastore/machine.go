@@ -1,10 +1,11 @@
 package datastore
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"math"
-	"math/rand/v2"
+	"math/big"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"golang.org/x/exp/slices"
@@ -490,7 +491,12 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 		return nil, errors.New("no machine available")
 	}
 
-	oldMachine := spreadCandidates[randomIndex(len(spreadCandidates))]
+	randomIndex, err := randomIndex(len(spreadCandidates))
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve suitable machine among candidates, %w", err)
+	}
+
+	oldMachine := spreadCandidates[randomIndex]
 	newMachine := oldMachine
 	newMachine.PreAllocated = true
 
@@ -631,11 +637,17 @@ func groupByTags(machines metal.Machines) groupedMachines {
 	return groups
 }
 
-func randomIndex(max int) int {
+func randomIndex(max int) (int, error) {
 	if max <= 0 {
-		return 0
+		return 0, nil
 	}
-	return rand.N(max)
+
+	r, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		return 0, fmt.Errorf("unable to generate random index, %w", err)
+	}
+
+	return int(r.Int64()), nil
 }
 
 func intersect[T comparable](a, b []T) []T {
