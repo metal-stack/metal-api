@@ -68,9 +68,9 @@ func TestWaitServer(t *testing.T) {
 	mm := [][]int{{10, 7}}
 	for _, a := range aa {
 		for _, m := range mm {
-			require.Greater(t, a, 0)
-			require.Greater(t, m[0], 0)
-			require.Greater(t, m[1], 0)
+			require.Positive(t, a)
+			require.Positive(t, m[0])
+			require.Positive(t, m[1])
 			require.GreaterOrEqual(t, m[0], m[1])
 			tt = append(tt, &test{
 				numberApiInstances:     a,
@@ -253,7 +253,9 @@ func (t *test) startMachineInstances() {
 	}
 	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
-		port := 50005 + rand.N(t.numberApiInstances)
+		// golangci-lint has an issue with math/rand/v2
+		// here it provides sufficient randomness though because it's not used for cryptographic purposes
+		port := 50005 + rand.N(t.numberApiInstances) //nolint:gosec
 		ctx, cancel := context.WithCancel(context.Background())
 		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
 		require.NoError(t, err)
@@ -327,7 +329,9 @@ func (t *test) allocateMachines() {
 }
 
 func (t *test) selectMachine(except []string) string {
-	machineID := strconv.Itoa(rand.N(t.numberMachineInstances))
+	// golangci-lint has an issue with math/rand/v2
+	// here it provides sufficient randomness though because it's not used for cryptographic purposes
+	machineID := strconv.Itoa(rand.N(t.numberMachineInstances)) //nolint:gosec
 	for _, id := range except {
 		if id == machineID {
 			return t.selectMachine(except)

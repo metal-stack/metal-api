@@ -1,10 +1,12 @@
 package datastore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"time"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
 	"golang.org/x/exp/slices"
@@ -427,7 +429,7 @@ func (rs *RethinkStore) UpdateMachine(oldMachine *metal.Machine, newMachine *met
 // FindWaitingMachine returns an available, not allocated, waiting and alive machine of given size within the given partition.
 // TODO: the algorithm can be optimized / shortened by using a rethinkdb join command and then using .Sample(1)
 // but current implementation should have a slightly better readability.
-func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
+func (rs *RethinkStore) FindWaitingMachine(ctx context.Context, projectid, partitionid string, size metal.Size, placementTags []string) (*metal.Machine, error) {
 	q := *rs.machineTable()
 	q = q.Filter(map[string]interface{}{
 		"allocation":  nil,
@@ -439,6 +441,11 @@ func (rs *RethinkStore) FindWaitingMachine(projectid, partitionid string, size m
 		"waiting":      true,
 		"preallocated": false,
 	})
+
+	if err := rs.sharedMutex.lock(ctx, partitionid, 10*time.Second); err != nil {
+		return nil, fmt.Errorf("too many parallel machine allocations taking place, try again later")
+	}
+	defer rs.sharedMutex.unlock(ctx, partitionid)
 
 	var candidates metal.Machines
 	err := rs.searchEntities(&q, &candidates)
@@ -635,7 +642,9 @@ func randomIndex(max int) int {
 	if max <= 0 {
 		return 0
 	}
-	return rand.N(max)
+	// golangci-lint has an issue with math/rand/v2
+	// here it provides sufficient randomness though because it's not used for cryptographic purposes
+	return rand.N(max) //nolint:gosec
 }
 
 func intersect[T comparable](a, b []T) []T {
