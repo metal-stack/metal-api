@@ -249,7 +249,6 @@ func (t *test) startMachineInstances() {
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	}
 	for i := range t.numberMachineInstances {
 		machineID := strconv.Itoa(i)
