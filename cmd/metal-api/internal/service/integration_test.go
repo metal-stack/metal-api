@@ -397,11 +397,10 @@ func (te *testEnv) machineWait(uuid string) error {
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	}
 
 	port := 50005
-	conn, err := grpc.DialContext(context.Background(), fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
 	if err != nil {
 		return err
 	}
