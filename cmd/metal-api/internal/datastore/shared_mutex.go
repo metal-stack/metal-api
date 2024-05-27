@@ -76,7 +76,7 @@ type lockOptAcquireTimeout struct {
 	timeout time.Duration
 }
 
-func newLockOptAcquireTimeout(t time.Duration) *lockOptAcquireTimeout { // nolint:unused
+func newLockOptAcquireTimeout(t time.Duration) *lockOptAcquireTimeout {
 	return &lockOptAcquireTimeout{timeout: t}
 }
 
