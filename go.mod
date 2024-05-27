@@ -7,7 +7,7 @@ require (
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/aws/aws-sdk-go v1.53.10
 	github.com/dustin/go-humanize v1.0.1
-	github.com/emicklei/go-restful-openapi/v2 v2.9.1
+	github.com/emicklei/go-restful-openapi/v2 v2.10.2
 	github.com/emicklei/go-restful/v3 v3.12.0
 	github.com/go-openapi/spec v0.21.0
 	github.com/google/go-cmp v0.6.0
