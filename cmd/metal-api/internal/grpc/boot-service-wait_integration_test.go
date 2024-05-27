@@ -257,7 +257,7 @@ func (t *test) startMachineInstances() {
 		// here it provides sufficient randomness though because it's not used for cryptographic purposes
 		port := 50005 + rand.N(t.numberApiInstances) //nolint:gosec
 		ctx, cancel := context.WithCancel(context.Background())
-		conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+		conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
 		require.NoError(t, err)
 		t.cc = append(t.cc, &client{
 			ClientConn: conn,

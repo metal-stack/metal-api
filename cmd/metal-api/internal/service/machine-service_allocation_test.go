@@ -56,11 +56,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
 	port := 50006
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
 	require.NoError(t, err)
 
 	c := grpcv1.NewBootServiceClient(conn)
