@@ -628,7 +628,11 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 	newNics := metal.Nics{}
 	newNicMap := newSwitch.Nics.ByName()
 	missingNics := []string{}
-	twinNicsByName := translateNicNames(twin, newSwitch.OS.Vendor)
+	twinNicsByName, err := translateNicNames(twin, newSwitch.OS.Vendor)
+	if err != nil {
+		return nil, err
+	}
+
 	for name := range twinNicsByName {
 		if _, ok := newNicMap[name]; !ok {
 			missingNics = append(missingNics, name)
@@ -639,22 +643,12 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 	}
 
 	for name, nic := range newNicMap {
+		newNic := *nic
 		// check for configuration at twin
 		if twinNic, ok := twinNicsByName[name]; ok {
-			newNic := *nic
 			newNic.Vrf = twinNic.Vrf
-			newNics = append(newNics, newNic)
-		} else {
-			// leave unchanged
-			newNics = append(newNics, *nic)
 		}
-
-		// newNic := *nic
-		// // check for configuration at twin
-		// if twinNic, ok := twinNicsByName[name]; ok {
-		// 	newNic.Vrf = twinNic.Vrf
-		// }
-		// newNics = append(newNics, newNic)
+		newNics = append(newNics, newNic)
 	}
 
 	sort.SliceStable(newNics, func(i, j int) bool {
@@ -989,14 +983,31 @@ func getSwitchReferencedEntityMaps(ds *datastore.RethinkStore) (metal.PartitionM
 	return p.ByID(), ips.ByProjectID(), nil
 }
 
-func translateNicNames(sw *metal.Switch, targetOS metal.SwitchOSVendor) metal.NicMap {
-	nicMap := make(metal.NicMap)
+func translateNicNames(sw *metal.Switch, targetOS metal.SwitchOSVendor) (metal.NicMap, error) {
+	oldNicMap := sw.Nics.ByName()
+	newNicMap := make(metal.NicMap)
 
 	if sw.OS.Vendor == targetOS {
-		return sw.Nics.ByName()
+		return oldNicMap, nil
 	}
 
-	// TODO: call MapPortNames to translate SONiC naming convention to Cumulus or the other way round.
+	ports := make([]string, 0)
+	for name := range oldNicMap {
+		ports = append(ports, name)
+	}
 
-	return nicMap
+	mappedPortNames, err := metal.MapPortNames(ports, sw.OS.Vendor, targetOS)
+	if err != nil {
+		return nil, err
+	}
+
+	for sourceName, targetName := range mappedPortNames {
+		nic, ok := oldNicMap[sourceName]
+		if !ok {
+			return nil, fmt.Errorf("an unknown error occured during port name translation")
+		}
+		newNicMap[targetName] = nic
+	}
+
+	return newNicMap, nil
 }

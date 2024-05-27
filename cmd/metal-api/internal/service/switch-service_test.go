@@ -612,6 +612,9 @@ func Test_adoptFromTwin(t *testing.T) {
 					Mode: metal.SwitchReplace,
 				},
 				twin: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s0",
@@ -647,6 +650,9 @@ func Test_adoptFromTwin(t *testing.T) {
 					},
 				},
 				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s0",
@@ -669,6 +675,9 @@ func Test_adoptFromTwin(t *testing.T) {
 			},
 			want: &metal.Switch{
 				Mode: metal.SwitchOperational,
+				OS: &metal.SwitchOS{
+					Vendor: metal.SwitchOSVendorCumulus,
+				},
 				Nics: metal.Nics{
 					metal.Nic{
 						Name:       "swp1s0",
@@ -766,15 +775,24 @@ func Test_adoptFromTwin(t *testing.T) {
 					RackID:      "1",
 				},
 				twin: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					PartitionID: "1",
 					RackID:      "1",
 				},
 				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					PartitionID: "1",
 					RackID:      "1",
 				},
 			},
 			want: &metal.Switch{
+				OS: &metal.SwitchOS{
+					Vendor: metal.SwitchOSVendorCumulus,
+				},
 				PartitionID: "1",
 				RackID:      "1",
 				Mode:        metal.SwitchOperational,
@@ -813,6 +831,9 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 			name: "adopt vrf configuration, leaf underlay ports untouched, newSwitch might have additional ports",
 			args: args{
 				twin: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s0",
@@ -827,6 +848,9 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 					},
 				},
 				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s0",
@@ -865,6 +889,9 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 			name: "new switch misses nic",
 			args: args{
 				twin: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s0",
@@ -874,6 +901,9 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 					},
 				},
 				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s1",
