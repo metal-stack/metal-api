@@ -85,7 +85,7 @@ func createTestEnvironment(t *testing.T) testEnv {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "test-project-1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, nil, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil)
 
 	go func() {
 		err := metalgrpc.Run(&metalgrpc.ServerConfig{
