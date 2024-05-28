@@ -914,6 +914,68 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "switch os from cumulus to sonic",
+			args: args{
+				twin: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "aa:aa:aa:aa:aa:a1",
+							Vrf:        "vrf1",
+						},
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "aa:aa:aa:aa:aa:a2",
+							Vrf:        "",
+						},
+						metal.Nic{
+							Name:       "swp99",
+							MacAddress: "aa:aa:aa:aa:aa:a3",
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorSonic,
+					},
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "Ethernet4",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+						metal.Nic{
+							Name:       "Ethernet5",
+							MacAddress: "bb:bb:bb:bb:bb:b3",
+						},
+						metal.Nic{
+							Name:       "Ethernet396",
+							MacAddress: "bb:bb:bb:bb:bb:b4",
+						},
+					},
+				},
+			},
+			want: metal.Nics{
+				metal.Nic{
+					Name:       "Ethernet396",
+					MacAddress: "bb:bb:bb:bb:bb:b4",
+				},
+				metal.Nic{
+					Name:       "Ethernet4",
+					MacAddress: "bb:bb:bb:bb:bb:b2",
+					Vrf:        "vrf1",
+				},
+				metal.Nic{
+					Name:       "Ethernet5",
+					MacAddress: "bb:bb:bb:bb:bb:b3",
+					Vrf:        "",
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for i := range tests {
@@ -924,8 +986,8 @@ func Test_adoptNicsFromTwin(t *testing.T) {
 				t.Errorf("adoptNics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got.ByIdentifier(), tt.want.ByIdentifier()) {
-				t.Errorf("adoptNics() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("diff %v", diff)
 			}
 		})
 	}
