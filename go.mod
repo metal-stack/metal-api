@@ -37,6 +37,9 @@ require (
 )
 
 replace (
+	// Newer versions do not export base entities which are used to composite other entities.
+	// This breaks metalctl and friends
+	github.com/emicklei/go-restful-openapi/v2 => github.com/emicklei/go-restful-openapi/v2 v2.9.1
 	// netipx and x/exp must be replaced for tailscale < 1.48
 	go4.org/netipx => go4.org/netipx v0.0.0-20230303233057-f1b76eb4bb35
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
