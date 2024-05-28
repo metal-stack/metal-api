@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/google/go-cmp/cmp"
 	mdmv1 "github.com/metal-stack/masterdata-api/api/v1"
 	"github.com/samber/lo"
 )
@@ -98,10 +99,63 @@ func (c *Constraint) Matches(hw MachineHardware) bool {
 	return res
 }
 
+func (hw *MachineHardware) Matches(constraints []Constraint, constraintType ConstraintType) bool {
+	remainingDisks := hw.Disks
+
+	for _, constraint := range constraints {
+
+		if constraint.Type != constraintType {
+			continue
+		}
+
+		switch constraint.Type {
+		case StorageConstraint:
+			var (
+				capacity    uint64
+				listOfDisks []BlockDevice
+			)
+			for _, disk := range hw.Disks {
+				pathGlob := constraint.Identifier
+				if constraint.Identifier == "" {
+					pathGlob = "*"
+				}
+				matches, err := filepath.Match(pathGlob, disk.Name)
+				if err != nil {
+					continue
+				}
+				if !matches {
+					continue
+				}
+
+				capacity += disk.Size
+				listOfDisks = append(listOfDisks, disk)
+			}
+
+			disksMatched := capacity >= constraint.Min && capacity <= constraint.Max
+			if disksMatched {
+				for _, disk := range listOfDisks {
+					remainingDisks = slices.DeleteFunc(remainingDisks, func(blockDev BlockDevice) bool {
+						return cmp.Diff(disk, blockDev) == ""
+					})
+				}
+			}
+
+		case GPUConstraint, CoreConstraint, MemoryConstraint:
+			// Noop
+		}
+
+	}
+
+	return len(remainingDisks) == 0
+}
+
 // FromHardware searches a Size for given hardware specs. It will search
 // for a size where the constraints matches the given hardware.
 func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
-	var found []Size
+	var (
+		foundByConstraint []Size
+		foundByHardware   []Size
+	)
 nextsize:
 	for _, s := range sz {
 		for _, c := range s.Constraints {
@@ -110,16 +164,23 @@ nextsize:
 				continue nextsize
 			}
 		}
-		found = append(found, s)
+		foundByConstraint = append(foundByConstraint, s)
 	}
 
-	if len(found) == 0 {
+	for _, sz := range foundByConstraint {
+		match := hardware.Matches(sz.Constraints, StorageConstraint)
+		if match {
+			foundByHardware = append(foundByHardware, sz)
+		}
+	}
+
+	if len(foundByHardware) == 0 {
 		return nil, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
 	}
-	if len(found) > 1 {
-		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(found), hardware.ReadableSpec())
+	if len(foundByHardware) > 1 {
+		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(foundByHardware), hardware.ReadableSpec())
 	}
-	return &found[0], nil
+	return &foundByHardware[0], nil
 }
 
 func (s *Size) overlaps(so *Size) bool {
