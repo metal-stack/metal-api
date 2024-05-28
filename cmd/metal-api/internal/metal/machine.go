@@ -490,13 +490,16 @@ const (
 	MachineResurrectAfter    time.Duration     = time.Hour
 )
 
-// DiskCapacityOf calculates the capacity of all disks by same path glob.
-func (hw *MachineHardware) DiskCapacityOf(pathGlob string) uint64 {
+// diskCapacityOf calculates the capacity of all disks by same path glob.
+func diskCapacityOf(pathGlob string, disks []BlockDevice) (uint64, []BlockDevice) {
 	if pathGlob == "" {
-		return hw.DiskCapacity()
+		return DiskCapacity(disks), disks
 	}
-	var c uint64
-	for _, d := range hw.Disks {
+	var (
+		c                   uint64
+		matchedBlockdevices []BlockDevice
+	)
+	for _, d := range disks {
 		matches, err := filepath.Match(pathGlob, d.Name)
 		if err != nil {
 			continue
@@ -505,14 +508,15 @@ func (hw *MachineHardware) DiskCapacityOf(pathGlob string) uint64 {
 			continue
 		}
 		c += d.Size
+		matchedBlockdevices = append(matchedBlockdevices, d)
 	}
-	return c
+	return c, matchedBlockdevices
 }
 
 // DiskCapacity calculates the capacity of all disks.
-func (hw *MachineHardware) DiskCapacity() uint64 {
+func DiskCapacity(disks []BlockDevice) uint64 {
 	var c uint64
-	for _, d := range hw.Disks {
+	for _, d := range disks {
 		c += d.Size
 	}
 	return c
@@ -533,7 +537,7 @@ func (hw *MachineHardware) GPUModels() map[string]uint64 {
 
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s GPUs:%s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()), hw.MetalGPUs)
+	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s GPUs:%s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(DiskCapacity(hw.Disks)), hw.MetalGPUs)
 }
 
 // BlockDevice information.

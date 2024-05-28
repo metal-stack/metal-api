@@ -182,8 +182,8 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		},
 		{
 			Type: metal.StorageConstraint,
-			Min:  m.Hardware.DiskCapacity(),
-			Max:  m.Hardware.DiskCapacity(),
+			Min:  metal.DiskCapacity(m.Hardware.Disks),
+			Max:  metal.DiskCapacity(m.Hardware.Disks),
 		},
 	}
 

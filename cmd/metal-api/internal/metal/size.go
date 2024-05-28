@@ -72,9 +72,9 @@ func UnknownSize() *Size {
 	}
 }
 
-// Matches returns true if the given machine hardware is inside the min/max values of the
+// matches returns true if the given machine hardware is inside the min/max values of the
 // constraint.
-func (c *Constraint) Matches(hw MachineHardware) bool {
+func (c *Constraint) matches(hw MachineHardware) bool {
 	res := false
 	switch c.Type {
 	case CoreConstraint:
@@ -82,7 +82,8 @@ func (c *Constraint) Matches(hw MachineHardware) bool {
 	case MemoryConstraint:
 		res = hw.Memory >= c.Min && hw.Memory <= c.Max
 	case StorageConstraint:
-		res = hw.DiskCapacityOf(c.Identifier) >= c.Min && hw.DiskCapacityOf(c.Identifier) <= c.Max
+		capacity, _ := diskCapacityOf(c.Identifier, hw.Disks)
+		res = capacity >= c.Min && capacity <= c.Max
 	case GPUConstraint:
 		for model, count := range hw.GPUModels() {
 			idMatches, err := filepath.Match(c.Identifier, model)
@@ -99,8 +100,11 @@ func (c *Constraint) Matches(hw MachineHardware) bool {
 	return res
 }
 
-func (hw *MachineHardware) Matches(constraints []Constraint, constraintType ConstraintType) bool {
-	remainingDisks := hw.Disks
+// matches returns true if all provided disks and later GPUs are covered with at least one constraint.
+// With this we ensure that hardware matches exhaustive against the constraints.
+func (hw *MachineHardware) matches(constraints []Constraint, constraintType ConstraintType) bool {
+	remainingDisks := slices.Clone(hw.Disks)
+	hasDiskConstraints := false
 
 	for _, constraint := range constraints {
 
@@ -108,45 +112,36 @@ func (hw *MachineHardware) Matches(constraints []Constraint, constraintType Cons
 			continue
 		}
 
+		hasDiskConstraints = true
+
 		switch constraint.Type {
 		case StorageConstraint:
-			var (
-				capacity    uint64
-				listOfDisks []BlockDevice
-			)
-			for _, disk := range hw.Disks {
-				pathGlob := constraint.Identifier
-				if constraint.Identifier == "" {
-					pathGlob = "*"
-				}
-				matches, err := filepath.Match(pathGlob, disk.Name)
-				if err != nil {
-					continue
-				}
-				if !matches {
-					continue
-				}
-
-				capacity += disk.Size
-				listOfDisks = append(listOfDisks, disk)
-			}
+			capacity, listOfDisks := diskCapacityOf(constraint.Identifier, hw.Disks)
 
 			disksMatched := capacity >= constraint.Min && capacity <= constraint.Max
-			if disksMatched {
-				for _, disk := range listOfDisks {
-					remainingDisks = slices.DeleteFunc(remainingDisks, func(blockDev BlockDevice) bool {
-						return cmp.Diff(disk, blockDev) == ""
-					})
-				}
+			if !disksMatched {
+				continue
 			}
 
-		case GPUConstraint, CoreConstraint, MemoryConstraint:
-			// Noop
+			for _, disk := range listOfDisks {
+				remainingDisks = slices.DeleteFunc(remainingDisks, func(blockDev BlockDevice) bool {
+					return cmp.Diff(disk, blockDev) == ""
+				})
+			}
+
+		case GPUConstraint:
+			// FIXME implement
+		case CoreConstraint, MemoryConstraint:
+			// Noop because we do not have different CPU types or Memory types
 		}
 
 	}
 
-	return len(remainingDisks) == 0
+	if hasDiskConstraints {
+		return len(remainingDisks) == 0
+	}
+
+	return true
 }
 
 // FromHardware searches a Size for given hardware specs. It will search
@@ -159,7 +154,7 @@ func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
 nextsize:
 	for _, s := range sz {
 		for _, c := range s.Constraints {
-			match := c.Matches(hardware)
+			match := c.matches(hardware)
 			if !match {
 				continue nextsize
 			}
@@ -168,7 +163,7 @@ nextsize:
 	}
 
 	for _, sz := range foundByConstraint {
-		match := hardware.Matches(sz.Constraints, StorageConstraint)
+		match := hardware.matches(sz.Constraints, StorageConstraint)
 		if match {
 			foundByHardware = append(foundByHardware, sz)
 		}
