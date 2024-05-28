@@ -996,17 +996,22 @@ func translateNicNames(sw *metal.Switch, targetOS metal.SwitchOSVendor) (metal.N
 		ports = append(ports, name)
 	}
 
-	mappedPortNames, err := metal.MapPortNames(ports, sw.OS.Vendor, targetOS)
+	lines, err := metal.GetLinesFromPortNames(ports, sw.OS.Vendor)
 	if err != nil {
 		return nil, err
 	}
 
-	for sourceName, targetName := range mappedPortNames {
-		nic, ok := oldNicMap[sourceName]
+	for _, p := range ports {
+		targetPort, err := metal.MapPortName(p, sw.OS.Vendor, targetOS, lines)
+		if err != nil {
+			return nil, err
+		}
+
+		nic, ok := oldNicMap[p]
 		if !ok {
 			return nil, fmt.Errorf("an unknown error occured during port name translation")
 		}
-		newNicMap[targetName] = nic
+		newNicMap[targetPort] = nic
 	}
 
 	return newNicMap, nil

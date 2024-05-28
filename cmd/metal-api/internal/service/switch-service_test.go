@@ -1416,3 +1416,66 @@ func TestToggleSwitch(t *testing.T) {
 	require.Equal(t, v1.SwitchPortStatusDown, result.Nics[0].Actual)
 	require.Equal(t, v1.SwitchPortStatusUnknown, result.Connections[0].Nic.Actual)
 }
+
+func Test_translateNicNames(t *testing.T) {
+	tests := []struct {
+		name     string
+		sw       *metal.Switch
+		targetOS metal.SwitchOSVendor
+		want     metal.NicMap
+		wantErr  bool
+	}{
+		{
+			name: "both twins have the same os",
+			sw: &metal.Switch{
+				Nics: []metal.Nic{
+					{Name: "swp0s0"},
+					{Name: "swp0s1"},
+					{Name: "swp0s2"},
+					{Name: "swp0s3"},
+				},
+				OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+			},
+			targetOS: metal.SwitchOSVendorCumulus,
+			want: map[string]*metal.Nic{
+				"swp0s0": {Name: "swp0s0"},
+				"swp0s1": {Name: "swp0s1"},
+				"swp0s2": {Name: "swp0s2"},
+				"swp0s3": {Name: "swp0s3"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "cumulus to sonic",
+			sw: &metal.Switch{
+				Nics: []metal.Nic{
+					{Name: "Ethernet1"},
+					{Name: "Ethernet2"},
+					{Name: "Ethernet3"},
+					{Name: "Ethernet4"},
+				},
+				OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+			},
+			targetOS: metal.SwitchOSVendorCumulus,
+			want: map[string]*metal.Nic{
+				"swp0s1": {Name: "Ethernet1"},
+				"swp0s2": {Name: "Ethernet2"},
+				"swp0s3": {Name: "Ethernet3"},
+				"swp1":   {Name: "Ethernet4"},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := translateNicNames(tt.sw, tt.targetOS)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("translateNicNames() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if cmp.Diff(got, tt.want) != "" {
+				t.Errorf("translateNicNames() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
