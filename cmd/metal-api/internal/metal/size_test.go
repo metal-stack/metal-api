@@ -42,6 +42,29 @@ var (
 			},
 		},
 	}
+	sdaDiskSize = Size{
+		Base: Base{
+			ID: "mixedDisk",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  1024,
+				Max:  1024,
+			},
+			{
+				Type:       StorageConstraint,
+				Min:        0,
+				Max:        1024,
+				Identifier: "/dev/sd*",
+			},
+		},
+	}
 	microSize = Size{
 		Base: Base{
 			ID: "micro",
@@ -448,6 +471,7 @@ func TestSizes_FromHardware(t *testing.T) {
 				miniGPUSize,
 				maxGPUSize,
 				mixedDiskSize,
+				sdaDiskSize,
 			},
 			args: args{
 				hardware: MachineHardware{
