@@ -626,12 +626,12 @@ func adoptFromTwin(old, twin, new *metal.Switch) (*metal.Switch, error) {
 // copies vrf configuration and returns the new nics for the replacement switch
 func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 	newNics := metal.Nics{}
-	newNicMap := newSwitch.Nics.ByName()
-	missingNics := []string{}
-	twinNicsByName, err := translateNicNames(twin, newSwitch.OS.Vendor)
+	newNicMap, err := translateNicNames(newSwitch, twin.OS.Vendor)
 	if err != nil {
 		return nil, err
 	}
+	missingNics := []string{}
+	twinNicsByName := twin.Nics.ByName()
 
 	for name := range twinNicsByName {
 		if _, ok := newNicMap[name]; !ok {
@@ -659,7 +659,10 @@ func adoptNics(twin, newSwitch *metal.Switch) (metal.Nics, error) {
 
 // adoptMachineConnections copies machine connections from twin and maps mac addresses based on the nic name
 func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap, error) {
-	newNicMap := newSwitch.Nics.ByName()
+	newNicMap, err := translateNicNames(newSwitch, twin.OS.Vendor)
+	if err != nil {
+		return nil, err
+	}
 	newConnectionMap := metal.ConnectionMap{}
 	missingNics := []string{}
 
@@ -668,6 +671,7 @@ func adoptMachineConnections(twin, newSwitch *metal.Switch) (metal.ConnectionMap
 		for _, con := range cons {
 			if n, ok := newNicMap[con.Nic.Name]; ok {
 				newCon := con
+				newCon.Nic.Name = n.Name
 				newCon.Nic.Identifier = n.Identifier
 				newCon.Nic.MacAddress = n.MacAddress
 				newConnections = append(newConnections, newCon)

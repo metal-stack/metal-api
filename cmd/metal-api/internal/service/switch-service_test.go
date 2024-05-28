@@ -799,6 +799,119 @@ func Test_adoptFromTwin(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "adopt machine connections and nic configuration from twin with different switch os",
+			args: args{
+				old: &metal.Switch{
+					Mode: metal.SwitchReplace,
+				},
+				twin: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorCumulus,
+					},
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "swp1s0",
+							MacAddress: "aa:aa:aa:aa:aa:a1",
+							Vrf:        "1",
+						},
+						metal.Nic{
+							Name:       "swp1s1",
+							MacAddress: "aa:aa:aa:aa:aa:a2",
+						},
+						metal.Nic{
+							Name:       "swp1s2",
+							MacAddress: "aa:aa:aa:aa:aa:a3",
+						},
+					},
+					MachineConnections: metal.ConnectionMap{
+						"m1": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s0",
+									MacAddress: "aa:aa:aa:aa:aa:a1",
+								},
+							},
+						},
+						"fw1": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s1",
+									MacAddress: "aa:aa:aa:aa:aa:a2",
+								},
+							},
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{
+						Vendor: metal.SwitchOSVendorSonic,
+					},
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "Ethernet4",
+							MacAddress: "bb:bb:bb:bb:bb:b1",
+						},
+						metal.Nic{
+							Name:       "Ethernet5",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+						metal.Nic{
+							Name:       "Ethernet6",
+							MacAddress: "bb:bb:bb:bb:bb:b3",
+						},
+						metal.Nic{
+							Name:       "Ethernet7",
+							MacAddress: "bb:bb:bb:bb:bb:b4",
+						},
+					},
+				},
+			},
+			want: &metal.Switch{
+				Mode: metal.SwitchOperational,
+				OS: &metal.SwitchOS{
+					Vendor: metal.SwitchOSVendorSonic,
+				},
+				Nics: metal.Nics{
+					metal.Nic{
+						Name:       "Ethernet4",
+						MacAddress: "bb:bb:bb:bb:bb:b1",
+						Vrf:        "1",
+					},
+					metal.Nic{
+						Name:       "Ethernet5",
+						MacAddress: "bb:bb:bb:bb:bb:b2",
+					},
+					metal.Nic{
+						Name:       "Ethernet6",
+						MacAddress: "bb:bb:bb:bb:bb:b3",
+					},
+					metal.Nic{
+						Name:       "Ethernet7",
+						MacAddress: "bb:bb:bb:bb:bb:b4",
+					},
+				},
+				MachineConnections: metal.ConnectionMap{
+					"m1": metal.Connections{
+						metal.Connection{
+							Nic: metal.Nic{
+								Name:       "Ethernet4",
+								MacAddress: "bb:bb:bb:bb:bb:b1",
+							},
+						},
+					},
+					"fw1": metal.Connections{
+						metal.Connection{
+							Nic: metal.Nic{
+								Name:       "Ethernet5",
+								MacAddress: "bb:bb:bb:bb:bb:b2",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for i := range tests {
@@ -1008,6 +1121,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 			name: "adopt machine connections from twin",
 			args: args{
 				twin: &metal.Switch{
+					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 					MachineConnections: metal.ConnectionMap{
 						"m1": metal.Connections{
 							metal.Connection{
@@ -1028,6 +1142,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 					},
 				},
 				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s0",
@@ -1064,6 +1179,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 			name: "new switch misses nic for existing machine connection at twin",
 			args: args{
 				twin: &metal.Switch{
+					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 					MachineConnections: metal.ConnectionMap{
 						"m1": metal.Connections{
 							metal.Connection{
@@ -1076,6 +1192,7 @@ func Test_adoptMachineConnections(t *testing.T) {
 					},
 				},
 				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
 					Nics: metal.Nics{
 						metal.Nic{
 							Name:       "swp1s1",
@@ -1085,6 +1202,64 @@ func Test_adoptMachineConnections(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "adopt from twin with different switch os",
+			args: args{
+				twin: &metal.Switch{
+					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorCumulus},
+					MachineConnections: metal.ConnectionMap{
+						"m1": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s0",
+									MacAddress: "aa:aa:aa:aa:aa:a1",
+								},
+							},
+						},
+						"m2": metal.Connections{
+							metal.Connection{
+								Nic: metal.Nic{
+									Name:       "swp1s1",
+									MacAddress: "aa:aa:aa:aa:aa:a2",
+								},
+							},
+						},
+					},
+				},
+				newSwitch: &metal.Switch{
+					OS: &metal.SwitchOS{Vendor: metal.SwitchOSVendorSonic},
+					Nics: metal.Nics{
+						metal.Nic{
+							Name:       "Ethernet4",
+							MacAddress: "bb:bb:bb:bb:bb:b1",
+						},
+						metal.Nic{
+							Name:       "Ethernet5",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+					},
+				},
+			},
+			want: metal.ConnectionMap{
+				"m1": metal.Connections{
+					metal.Connection{
+						Nic: metal.Nic{
+							Name:       "Ethernet4",
+							MacAddress: "bb:bb:bb:bb:bb:b1",
+						},
+					},
+				},
+				"m2": metal.Connections{
+					metal.Connection{
+						Nic: metal.Nic{
+							Name:       "Ethernet5",
+							MacAddress: "bb:bb:bb:bb:bb:b2",
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 
