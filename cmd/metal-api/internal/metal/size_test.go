@@ -13,6 +13,35 @@ import (
 )
 
 var (
+	mixedDiskSize = Size{
+		Base: Base{
+			ID: "mixedDisk",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  1024,
+				Max:  1024,
+			},
+			{
+				Type:       StorageConstraint,
+				Min:        2048,
+				Max:        4096,
+				Identifier: "/dev/nvme*",
+			},
+			{
+				Type:       StorageConstraint,
+				Min:        0,
+				Max:        1024,
+				Identifier: "/dev/sd*",
+			},
+		},
+	}
 	microSize = Size{
 		Base: Base{
 			ID: "micro",
@@ -408,6 +437,39 @@ func TestSizes_FromHardware(t *testing.T) {
 				},
 			},
 			want:    &maxGPUSize,
+			wantErr: false,
+		},
+		{
+			name: "mixed storage",
+			sz: Sizes{
+				sz1,
+				sz999,
+				tinyGPUSize,
+				miniGPUSize,
+				maxGPUSize,
+				mixedDiskSize,
+			},
+			args: args{
+				hardware: MachineHardware{
+					CPUCores: 1,
+					Memory:   1024,
+					Disks: []BlockDevice{
+						{
+							Size: 1024,
+							Name: "/dev/nvme0n1",
+						},
+						{
+							Size: 2048,
+							Name: "/dev/nvme1n1",
+						},
+						{
+							Size: 512,
+							Name: "/dev/sda",
+						},
+					},
+				},
+			},
+			want:    &mixedDiskSize,
 			wantErr: false,
 		},
 	}

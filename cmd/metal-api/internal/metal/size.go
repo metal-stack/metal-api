@@ -38,8 +38,7 @@ const (
 	GPUConstraint     ConstraintType = "gpu"
 )
 
-// A Constraint describes the hardware constraints for a given size. At the moment we only
-// consider the cpu cores and the memory.
+// A Constraint describes the hardware constraints for a given size.
 type Constraint struct {
 	Type       ConstraintType `rethinkdb:"type" json:"type"`
 	Min        uint64         `rethinkdb:"min" json:"min"`
@@ -82,7 +81,7 @@ func (c *Constraint) Matches(hw MachineHardware) bool {
 	case MemoryConstraint:
 		res = hw.Memory >= c.Min && hw.Memory <= c.Max
 	case StorageConstraint:
-		res = hw.DiskCapacity() >= c.Min && hw.DiskCapacity() <= c.Max
+		res = hw.DiskCapacityOf(c.Identifier) >= c.Min && hw.DiskCapacityOf(c.Identifier) <= c.Max
 	case GPUConstraint:
 		for model, count := range hw.GPUModels() {
 			idMatches, err := filepath.Match(c.Identifier, model)

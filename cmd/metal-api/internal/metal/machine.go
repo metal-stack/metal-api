@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -488,6 +489,25 @@ const (
 	MachineDeadAfter         time.Duration     = 5 * time.Minute
 	MachineResurrectAfter    time.Duration     = time.Hour
 )
+
+// DiskCapacityOf calculates the capacity of all disks by same path glob.
+func (hw *MachineHardware) DiskCapacityOf(pathGlob string) uint64 {
+	if pathGlob == "" {
+		return hw.DiskCapacity()
+	}
+	var c uint64
+	for _, d := range hw.Disks {
+		matches, err := filepath.Match(pathGlob, d.Name)
+		if err != nil {
+			continue
+		}
+		if !matches {
+			continue
+		}
+		c += d.Size
+	}
+	return c
+}
 
 // DiskCapacity calculates the capacity of all disks.
 func (hw *MachineHardware) DiskCapacity() uint64 {
