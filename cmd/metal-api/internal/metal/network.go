@@ -67,7 +67,7 @@ type NicState struct {
 // state has been reached.
 //
 // If the given status differs from the current Actual state, Desired is left
-// unchanged if it differes from the new state so the desired state is still tracked.
+// unchanged if it differs from the new state so the desired state is still tracked.
 // The Actual state is updated to the given status.
 //
 // This allows tracking both the desired and actual states, while clearing

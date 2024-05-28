@@ -177,7 +177,7 @@ func TestCreateSize(t *testing.T) {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "a"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
@@ -243,7 +243,7 @@ func TestUpdateSize(t *testing.T) {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "p1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
@@ -301,7 +301,7 @@ func TestListSizeReservations(t *testing.T) {
 	psc.On("Find", testifymock.Anything, &mdmv1.ProjectFindRequest{}).Return(&mdmv1.ProjectListResponse{Projects: []*mdmv1.Project{
 		{Meta: &mdmv1.Meta{Id: "p1"}},
 	}}, nil)
-	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil)
+	mdc := mdm.NewMock(psc, &mdmv1mock.TenantServiceClient{}, nil, nil)
 
 	sizeservice := NewSize(log, ds, mdc)
 	container := restful.NewContainer().Add(sizeservice)
