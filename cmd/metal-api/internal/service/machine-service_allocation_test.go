@@ -56,11 +56,8 @@ func TestMachineAllocationIntegration(t *testing.T) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
 	port := 50006
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
+	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
 	require.NoError(t, err)
 
 	c := grpcv1.NewBootServiceClient(conn)
@@ -304,7 +301,7 @@ func setupTestEnvironment(machineCount int, t *testing.T) (*datastore.RethinkSto
 
 	psc := &mdmv1mock.ProjectServiceClient{}
 	psc.On("Get", testifymock.Anything, &mdmv1.ProjectGetRequest{Id: "pr1"}).Return(&mdmv1.ProjectResponse{Project: &mdmv1.Project{}}, nil)
-	mdc := mdm.NewMock(psc, nil, nil)
+	mdc := mdm.NewMock(psc, nil, nil, nil)
 
 	_, pg, err := test.StartPostgres()
 	require.NoError(t, err)
