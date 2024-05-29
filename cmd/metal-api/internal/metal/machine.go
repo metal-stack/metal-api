@@ -502,6 +502,7 @@ func diskCapacityOf(pathGlob string, disks []BlockDevice) (uint64, []BlockDevice
 	for _, d := range disks {
 		matches, err := filepath.Match(pathGlob, d.Name)
 		if err != nil {
+			// illegal pathGlobs are already prevented by size validation
 			continue
 		}
 		if !matches {
@@ -520,6 +521,28 @@ func DiskCapacity(disks []BlockDevice) uint64 {
 		c += d.Size
 	}
 	return c
+}
+
+// gpuCapacityOf calculates the capacity of all gpus for the given identifier glob pattern
+func gpuCapacityOf(identifier string, gpus []MetalGPU) (uint64, []MetalGPU) {
+	var (
+		c           uint64
+		matchedGPUs []MetalGPU
+	)
+
+	for _, gpu := range gpus {
+		matches, err := filepath.Match(identifier, gpu.Model)
+		if err != nil {
+			// illegal identifiers are already prevented by size validation
+			continue
+		}
+		if !matches {
+			continue
+		}
+		c++
+		matchedGPUs = append(matchedGPUs, gpu)
+	}
+	return c, matchedGPUs
 }
 
 func (hw *MachineHardware) GPUModels() map[string]uint64 {

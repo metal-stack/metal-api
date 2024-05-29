@@ -903,7 +903,7 @@ func TestSize_Validate(t *testing.T) {
 			wantErrMessage: nil,
 		},
 		{
-			name: "two constraints with same type",
+			name: "two gpu constraints are allowed",
 			size: Size{
 				Base: Base{
 					ID: "gpu-size",
@@ -923,7 +923,30 @@ func TestSize_Validate(t *testing.T) {
 					},
 				},
 			},
-			wantErrMessage: pointer.Pointer("size:\"gpu-size\" type:\"gpu\" min:2 max:2 has duplicate constraint type"),
+			wantErrMessage: nil,
+		},
+		{
+			name: "two cpu constraints are not allowed",
+			size: Size{
+				Base: Base{
+					ID: "cpu-size",
+				},
+				Constraints: []Constraint{
+					{
+						Type:       CoreConstraint,
+						Min:        1,
+						Max:        1,
+						Identifier: "Intel Xeon Silver",
+					},
+					{
+						Type:       CoreConstraint,
+						Min:        2,
+						Max:        2,
+						Identifier: "Intel Xeon Gold",
+					},
+				},
+			},
+			wantErrMessage: pointer.Pointer("size:\"cpu-size\" type:\"cores\" min:2 max:2 has duplicate constraint type"),
 		},
 		{
 			name: "gpu size without identifier",

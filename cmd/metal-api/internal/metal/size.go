@@ -38,6 +38,8 @@ const (
 	GPUConstraint     ConstraintType = "gpu"
 )
 
+var allConstraintTypes = []ConstraintType{CoreConstraint, MemoryConstraint, StorageConstraint, GPUConstraint}
+
 // A Constraint describes the hardware constraints for a given size.
 type Constraint struct {
 	Type       ConstraintType `rethinkdb:"type" json:"type"`
@@ -88,17 +90,8 @@ func (c *Constraint) matches(hw MachineHardware) bool {
 		capacity, _ := diskCapacityOf(c.Identifier, hw.Disks)
 		res = c.inRange(capacity)
 	case GPUConstraint:
-		for model, count := range hw.GPUModels() {
-			idMatches, err := filepath.Match(c.Identifier, model)
-			if err != nil {
-				return false
-			}
-			res = c.inRange(count) && idMatches
-			if res {
-				break
-			}
-		}
-
+		count, _ := gpuCapacityOf(c.Identifier, hw.MetalGPUs)
+		res = c.inRange(count)
 	}
 	return res
 }
@@ -126,9 +119,22 @@ func (hw *MachineHardware) matches(constraints []Constraint, constraintType Cons
 		}
 		return len(unmatchedDisks) == 0
 	case GPUConstraint:
+		unmatchedGPUs := slices.Clone(hw.MetalGPUs)
+		for _, c := range filtered {
+			capacity, listOfGPUs := gpuCapacityOf(c.Identifier, hw.MetalGPUs)
+
+			match := c.inRange(capacity)
+			if !match {
+				continue
+			}
+
+			unmatchedGPUs, _ = lo.Difference(unmatchedGPUs, listOfGPUs)
+		}
+		return len(unmatchedGPUs) == 0
+	case CoreConstraint:
 		// FIXME implement
 		return true
-	case CoreConstraint, MemoryConstraint:
+	case MemoryConstraint:
 		// Noop because we do not have different CPU types or Memory types
 		return true
 	default:
@@ -140,9 +146,9 @@ func (hw *MachineHardware) matches(constraints []Constraint, constraintType Cons
 // for a size where the constraints matches the given hardware.
 func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
 	var (
-		foundByConstraint []Size
-		foundByHardware   []Size
+		matchedSizes []Size
 	)
+
 nextsize:
 	for _, s := range sz {
 		for _, c := range s.Constraints {
@@ -151,23 +157,23 @@ nextsize:
 				continue nextsize
 			}
 		}
-		foundByConstraint = append(foundByConstraint, s)
-	}
 
-	for _, sz := range foundByConstraint {
-		match := hardware.matches(sz.Constraints, StorageConstraint)
-		if match {
-			foundByHardware = append(foundByHardware, sz)
+		for _, ct := range allConstraintTypes {
+			match := hardware.matches(s.Constraints, ct)
+			if !match {
+				continue nextsize
+			}
 		}
+		matchedSizes = append(matchedSizes, s)
 	}
 
-	if len(foundByHardware) == 0 {
+	if len(matchedSizes) == 0 {
 		return nil, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
 	}
-	if len(foundByHardware) > 1 {
-		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(foundByHardware), hardware.ReadableSpec())
+	if len(matchedSizes) > 1 {
+		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(matchedSizes), hardware.ReadableSpec())
 	}
-	return &foundByHardware[0], nil
+	return &matchedSizes[0], nil
 }
 
 func (s *Size) overlaps(so *Size) bool {
@@ -219,15 +225,19 @@ func (c *Constraint) overlaps(other Constraint) bool {
 
 // Validate a size, returns error if a invalid size is passed
 func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
-	constraintTypes := map[ConstraintType]bool{}
+	constraintTypes := map[ConstraintType]uint{}
 	for _, c := range s.Constraints {
 		if c.Max < c.Min {
 			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
 		}
 
-		_, ok := constraintTypes[c.Type]
-		if ok {
-			return fmt.Errorf("size:%q type:%q min:%d max:%d has duplicate constraint type", s.ID, c.Type, c.Min, c.Max)
+		// CPU and Memory Constraints are not allowed more than once
+		constraintTypes[c.Type]++
+		count := constraintTypes[c.Type]
+		if c.Type == CoreConstraint || c.Type == MemoryConstraint {
+			if count > 1 {
+				return fmt.Errorf("size:%q type:%q min:%d max:%d has duplicate constraint type", s.ID, c.Type, c.Min, c.Max)
+			}
 		}
 
 		// Ensure GPU Constraints always have identifier specified
@@ -239,7 +249,6 @@ func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Proj
 			return fmt.Errorf("size:%q type:%q min:%d max:%d identifier:%q identifier is malformed:%w", s.ID, c.Type, c.Min, c.Max, c.Identifier, err)
 		}
 
-		constraintTypes[c.Type] = true
 	}
 
 	if err := s.Reservations.Validate(partitions, projects); err != nil {
