@@ -1101,6 +1101,23 @@ func TestSize_Validate(t *testing.T) {
 			},
 			wantErrMessage: pointer.Pointer("size:\"invalid-storage-size\" type:\"storage\" min:2 max:8 identifier:\"][\" identifier is malformed:syntax error in pattern"),
 		},
+		{
+			name: "memory with identifier",
+			size: Size{
+				Base: Base{
+					ID: "invalid-memory-size",
+				},
+				Constraints: []Constraint{
+					{
+						Type:       MemoryConstraint,
+						Identifier: "Kingston",
+						Min:        2,
+						Max:        8,
+					},
+				},
+			},
+			wantErrMessage: pointer.Pointer("size:\"invalid-memory-size\" type:\"memory\" min:2 max:8 is a memory size but has a identifier specified"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

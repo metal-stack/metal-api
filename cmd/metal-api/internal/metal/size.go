@@ -256,6 +256,11 @@ func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Proj
 			return fmt.Errorf("size:%q type:%q min:%d max:%d is a gpu size but has no identifier specified", s.ID, c.Type, c.Min, c.Max)
 		}
 
+		// Ensure Memory Constraints do not have a identifier specified
+		if c.Type == MemoryConstraint && c.Identifier != "" {
+			return fmt.Errorf("size:%q type:%q min:%d max:%d is a memory size but has a identifier specified", s.ID, c.Type, c.Min, c.Max)
+		}
+
 		if _, err := filepath.Match(c.Identifier, ""); err != nil {
 			return fmt.Errorf("size:%q type:%q min:%d max:%d identifier:%q identifier is malformed:%w", s.ID, c.Type, c.Min, c.Max, c.Identifier, err)
 		}
