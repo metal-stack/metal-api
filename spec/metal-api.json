@@ -9504,6 +9504,12 @@
               "$ref": "#/definitions/v1.SwitchResponse"
             }
           },
+          "400": {
+            "description": "Bad input data",
+            "schema": {
+              "$ref": "#/definitions/httperrors.HTTPErrorResponse"
+            }
+          },
           "409": {
             "description": "Conflict",
             "schema": {
