@@ -13,6 +13,28 @@ import (
 )
 
 var (
+	miniLabSize = Size{
+		Base: Base{
+			ID: "v1-small-x86",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  4,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  500000000,
+				Max:  4000000000,
+			},
+			{
+				Type: StorageConstraint,
+				Min:  1000000000,
+				Max:  10000000000,
+			},
+		},
+	}
 	mixedDiskSize = Size{
 		Base: Base{
 			ID: "mixedDisk",
@@ -639,11 +661,44 @@ func TestSizes_FromHardware(t *testing.T) {
 			want:    &amdCPUSize,
 			wantErr: false,
 		},
+		{
+			name: "mini lab",
+			sz: Sizes{
+				miniLabSize,
+			},
+			args: args{
+				hardware: MachineHardware{
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+							Cores:   1,
+							Threads: 1,
+							Vendor:  "GenuineIntel",
+						},
+					},
+					Memory: 2147483648,
+					Disks: []BlockDevice{
+						{
+							Name: "/dev/vda",
+							Size: 5368709120,
+						},
+					},
+				},
+			},
+			want:    &miniLabSize,
+			wantErr: false,
+		},
 	}
 
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
+			for _, s := range tt.sz {
+				if err := s.Validate(nil, nil); err != nil {
+					t.Errorf("size validation failed: %f", err)
+				}
+			}
+
 			got, err := tt.sz.FromHardware(tt.args.hardware)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Sizes.FromHardware() error = %v, wantErr %v", err, tt.wantErr)

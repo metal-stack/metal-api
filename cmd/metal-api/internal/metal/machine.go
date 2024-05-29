@@ -496,12 +496,12 @@ func capacityOf[V any](identifier string, vs []V, countFn func(v V) (model strin
 		matched []V
 	)
 
-	if identifier == "" {
-		identifier = "*"
-	}
-
 	for _, v := range vs {
 		model, count := countFn(v)
+
+		if identifier == "" {
+			model = ""
+		}
 
 		matches, err := filepath.Match(identifier, model)
 		if err != nil {
