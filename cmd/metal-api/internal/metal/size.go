@@ -142,28 +142,28 @@ func (sz Sizes) FromHardware(hardware MachineHardware) (*Size, error) {
 nextsize:
 	for _, s := range sz {
 		for _, c := range s.Constraints {
-			match := c.matches(hardware)
-			if !match {
+			if !c.matches(hardware) {
 				continue nextsize
 			}
 		}
 
 		for _, ct := range allConstraintTypes {
-			match := hardware.matches(s.Constraints, ct)
-			if !match {
+			if !hardware.matches(s.Constraints, ct) {
 				continue nextsize
 			}
 		}
+
 		matchedSizes = append(matchedSizes, s)
 	}
 
-	if len(matchedSizes) == 0 {
+	switch len(matchedSizes) {
+	case 0:
 		return nil, NotFound("no size found for hardware (%s)", hardware.ReadableSpec())
-	}
-	if len(matchedSizes) > 1 {
+	case 1:
+		return &matchedSizes[0], nil
+	default:
 		return nil, fmt.Errorf("%d sizes found for hardware (%s)", len(matchedSizes), hardware.ReadableSpec())
 	}
-	return &matchedSizes[0], nil
 }
 
 func (s *Size) overlaps(so *Size) bool {
