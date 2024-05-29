@@ -499,18 +499,16 @@ func capacityOf[V any](identifier string, vs []V, countFn func(v V) (model strin
 	for _, v := range vs {
 		model, count := countFn(v)
 
-		if identifier == "" {
-			model = ""
-		}
+		if identifier != "" {
+			matches, err := filepath.Match(identifier, model)
+			if err != nil {
+				// illegal identifiers are already prevented by size validation
+				continue
+			}
 
-		matches, err := filepath.Match(identifier, model)
-		if err != nil {
-			// illegal identifiers are already prevented by size validation
-			continue
-		}
-
-		if !matches {
-			continue
+			if !matches {
+				continue
+			}
 		}
 
 		sum += count
