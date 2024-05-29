@@ -12,6 +12,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
+	"github.com/samber/lo"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -489,30 +490,6 @@ const (
 	MachineResurrectAfter    time.Duration     = time.Hour
 )
 
-// diskCapacityOf calculates the capacity of all disks by same path glob.
-func diskCapacityOf(pathGlob string, disks []BlockDevice) (uint64, []BlockDevice) {
-	if pathGlob == "" {
-		return DiskCapacity(disks), disks
-	}
-	var (
-		c                   uint64
-		matchedBlockdevices []BlockDevice
-	)
-	for _, d := range disks {
-		matches, err := filepath.Match(pathGlob, d.Name)
-		if err != nil {
-			// illegal pathGlobs are already prevented by size validation
-			continue
-		}
-		if !matches {
-			continue
-		}
-		c += d.Size
-		matchedBlockdevices = append(matchedBlockdevices, d)
-	}
-	return c, matchedBlockdevices
-}
-
 // DiskCapacity calculates the capacity of all disks.
 func DiskCapacity(disks []BlockDevice) uint64 {
 	var c uint64
@@ -522,52 +499,53 @@ func DiskCapacity(disks []BlockDevice) uint64 {
 	return c
 }
 
-// gpuCapacityOf calculates the capacity of all gpus for the given identifier glob pattern
-func gpuCapacityOf(identifier string, gpus []MetalGPU) (uint64, []MetalGPU) {
+func capacityOf[V any](identifier string, vs []V, countFn func(v V) (model string, count uint64)) (uint64, []V) {
 	var (
-		c           uint64
-		matchedGPUs []MetalGPU
+		sum     uint64
+		matched []V
 	)
 
-	for _, gpu := range gpus {
-		matches, err := filepath.Match(identifier, gpu.Model)
-		if err != nil {
-			// illegal identifiers are already prevented by size validation
-			continue
-		}
-		if !matches {
-			continue
-		}
-		c++
-		matchedGPUs = append(matchedGPUs, gpu)
-	}
-	return c, matchedGPUs
-}
-
-// cpuCapacityOf calculates the capacity of all cpus for the given identifier glob pattern
-func cpuCapacityOf(identifier string, cpus []MetalCPU) (uint64, []MetalCPU) {
 	if identifier == "" {
 		identifier = "*"
 	}
-	var (
-		c           uint64
-		matchedCPUs []MetalCPU
-	)
 
-	for _, cpu := range cpus {
-		matches, err := filepath.Match(identifier, cpu.Model)
+	for _, v := range vs {
+		model, count := countFn(v)
+
+		matches, err := filepath.Match(identifier, model)
 		if err != nil {
 			// illegal identifiers are already prevented by size validation
 			continue
 		}
+
 		if !matches {
 			continue
 		}
-		c += uint64(cpu.Cores)
-		matchedCPUs = append(matchedCPUs, cpu)
+
+		sum += count
+		matched = append(matched, v)
 	}
-	return c, matchedCPUs
+
+	return sum, matched
 }
+
+func exhaustiveMatch[V comparable](cs []Constraint, vs []V, countFn func(v V) (model string, count uint64)) bool {
+	unmatched := slices.Clone(vs)
+
+	for _, c := range cs {
+		capacity, matched := capacityOf(c.Identifier, vs, countFn)
+
+		match := c.inRange(capacity)
+		if !match {
+			continue
+		}
+
+		unmatched, _ = lo.Difference(unmatched, matched)
+	}
+
+	return len(unmatched) == 0
+}
+
 func (hw *MachineHardware) GPUModels() map[string]uint64 {
 	models := make(map[string]uint64)
 	for _, gpu := range hw.MetalGPUs {

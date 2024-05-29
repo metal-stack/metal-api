@@ -48,6 +48,18 @@ type Constraint struct {
 	Identifier string         `rethinkdb:"identifier" json:"identifier" description:"glob of the identifier of this type"`
 }
 
+func countCPU(cpu MetalCPU) (model string, count uint64) {
+	return cpu.Model, uint64(cpu.Cores)
+}
+
+func countGPU(gpu MetalGPU) (model string, count uint64) {
+	return gpu.Model, 1
+}
+
+func countDisk(disk BlockDevice) (model string, count uint64) {
+	return disk.Name, disk.Size
+}
+
 // Sizes is a list of sizes.
 type Sizes []Size
 
@@ -83,15 +95,15 @@ func (c *Constraint) matches(hw MachineHardware) bool {
 	res := false
 	switch c.Type {
 	case CoreConstraint:
-		cores, _ := cpuCapacityOf(c.Identifier, hw.MetalCPUs)
+		cores, _ := capacityOf(c.Identifier, hw.MetalCPUs, countCPU)
 		res = c.inRange(cores)
 	case MemoryConstraint:
 		res = c.inRange(hw.Memory)
 	case StorageConstraint:
-		capacity, _ := diskCapacityOf(c.Identifier, hw.Disks)
+		capacity, _ := capacityOf(c.Identifier, hw.Disks, countDisk)
 		res = c.inRange(capacity)
 	case GPUConstraint:
-		count, _ := gpuCapacityOf(c.Identifier, hw.MetalGPUs)
+		count, _ := capacityOf(c.Identifier, hw.MetalGPUs, countGPU)
 		res = c.inRange(count)
 	}
 	return res
@@ -107,46 +119,13 @@ func (hw *MachineHardware) matches(constraints []Constraint, constraintType Cons
 
 	switch constraintType {
 	case StorageConstraint:
-		unmatchedDisks := slices.Clone(hw.Disks)
-		for _, c := range filtered {
-			capacity, listOfDisks := diskCapacityOf(c.Identifier, hw.Disks)
-
-			match := c.inRange(capacity)
-			if !match {
-				continue
-			}
-
-			unmatchedDisks, _ = lo.Difference(unmatchedDisks, listOfDisks)
-		}
-		return len(unmatchedDisks) == 0
+		return exhaustiveMatch(filtered, hw.Disks, countDisk)
 	case GPUConstraint:
-		unmatchedGPUs := slices.Clone(hw.MetalGPUs)
-		for _, c := range filtered {
-			capacity, listOfGPUs := gpuCapacityOf(c.Identifier, hw.MetalGPUs)
-
-			match := c.inRange(capacity)
-			if !match {
-				continue
-			}
-
-			unmatchedGPUs, _ = lo.Difference(unmatchedGPUs, listOfGPUs)
-		}
-		return len(unmatchedGPUs) == 0
+		return exhaustiveMatch(filtered, hw.MetalGPUs, countGPU)
 	case CoreConstraint:
-		unmatchedCPUs := slices.Clone(hw.MetalCPUs)
-		for _, c := range filtered {
-			cores, listOfCPUs := cpuCapacityOf(c.Identifier, hw.MetalCPUs)
-
-			match := c.inRange(cores)
-			if !match {
-				continue
-			}
-
-			unmatchedCPUs, _ = lo.Difference(unmatchedCPUs, listOfCPUs)
-		}
-		return len(unmatchedCPUs) == 0
+		return exhaustiveMatch(filtered, hw.MetalCPUs, countCPU)
 	case MemoryConstraint:
-		// Noop because we do not have different CPU types or Memory types
+		// Noop because we do not have different Memory types
 		return true
 	default:
 		return true
