@@ -1298,6 +1298,22 @@ func TestConstraint_overlaps(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "different disk types",
+			this: Constraint{
+				Type:       StorageConstraint,
+				Identifier: "/dev/sd*",
+				Min:        1,
+				Max:        5,
+			},
+			other: Constraint{
+				Type:       StorageConstraint,
+				Identifier: "/dev/nvme*",
+				Min:        1,
+				Max:        5,
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1419,7 +1435,50 @@ func TestSize_overlaps(t *testing.T) {
 			},
 			want: true,
 		},
-
+		{
+			name: "non overlapping size",
+			this: &Size{
+				Constraints: []Constraint{
+					{
+						Type: CoreConstraint,
+						Min:  1,
+						Max:  1,
+					},
+					{
+						Type: MemoryConstraint,
+						Min:  1024,
+						Max:  1024,
+					},
+					{
+						Type:       StorageConstraint,
+						Identifier: "/dev/sd*",
+						Min:        0,
+						Max:        2048,
+					},
+				},
+			},
+			other: &Size{
+				Constraints: []Constraint{
+					{
+						Type: CoreConstraint,
+						Min:  1,
+						Max:  1,
+					},
+					{
+						Type: MemoryConstraint,
+						Min:  1024,
+						Max:  1024,
+					},
+					{
+						Type:       StorageConstraint,
+						Identifier: "/dev/nvme*",
+						Min:        0,
+						Max:        2024,
+					},
+				},
+			},
+			want: false,
+		},
 		{
 			name: "overlap, all the same",
 			this: &Size{
