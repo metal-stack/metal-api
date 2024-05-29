@@ -490,15 +490,6 @@ const (
 	MachineResurrectAfter    time.Duration     = time.Hour
 )
 
-// DiskCapacity calculates the capacity of all disks.
-func DiskCapacity(disks []BlockDevice) uint64 {
-	var c uint64
-	for _, d := range disks {
-		c += d.Size
-	}
-	return c
-}
-
 func capacityOf[V any](identifier string, vs []V, countFn func(v V) (model string, count uint64)) (uint64, []V) {
 	var (
 		sum     uint64
@@ -561,7 +552,10 @@ func (hw *MachineHardware) GPUModels() map[string]uint64 {
 
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("CPUs: %d, Memory: %s, Storage: %s GPUs:%s", len(hw.MetalCPUs), humanize.Bytes(hw.Memory), humanize.Bytes(DiskCapacity(hw.Disks)), hw.MetalGPUs)
+	diskCapacity, _ := capacityOf("*", hw.Disks, countDisk)
+	cpus, _ := capacityOf("*", hw.MetalCPUs, countCPU)
+	gpus, _ := capacityOf("*", hw.MetalGPUs, countGPU)
+	return fmt.Sprintf("CPUs: %d, Memory: %s, Storage: %s, GPUs: %d", cpus, humanize.Bytes(hw.Memory), humanize.Bytes(diskCapacity), gpus)
 }
 
 // BlockDevice information.

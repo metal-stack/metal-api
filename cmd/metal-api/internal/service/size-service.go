@@ -175,6 +175,11 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		cores += uint64(cpu.Cores)
 	}
 
+	var diskCapacity uint64
+	for _, d := range m.Hardware.Disks {
+		diskCapacity += d.Size
+	}
+
 	constraints := []v1.SizeConstraint{
 		{
 			Type: metal.CoreConstraint,
@@ -188,8 +193,8 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 		},
 		{
 			Type: metal.StorageConstraint,
-			Min:  metal.DiskCapacity(m.Hardware.Disks),
-			Max:  metal.DiskCapacity(m.Hardware.Disks),
+			Min:  diskCapacity,
+			Max:  diskCapacity,
 		},
 	}
 
