@@ -169,11 +169,17 @@ func (r *sizeResource) suggestSize(request *restful.Request, response *restful.R
 			Identifier: model,
 		})
 	}
+
+	var cores uint64
+	for _, cpu := range m.Hardware.MetalCPUs {
+		cores += uint64(cpu.Cores)
+	}
+
 	constraints := []v1.SizeConstraint{
 		{
 			Type: metal.CoreConstraint,
-			Min:  uint64(m.Hardware.CPUCores),
-			Max:  uint64(m.Hardware.CPUCores),
+			Min:  cores,
+			Max:  cores,
 		},
 		{
 			Type: metal.MemoryConstraint,

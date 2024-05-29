@@ -237,6 +237,32 @@ var (
 			},
 		},
 	}
+	intelCPUSize = Size{
+		Base: Base{
+			ID: "intel cpu",
+		},
+		Constraints: []Constraint{
+			{
+				Type:       CoreConstraint,
+				Identifier: "Intel Xeon Silver*",
+				Min:        1,
+				Max:        1,
+			},
+		},
+	}
+	amdCPUSize = Size{
+		Base: Base{
+			ID: "amd cpu",
+		},
+		Constraints: []Constraint{
+			{
+				Type:       CoreConstraint,
+				Identifier: "AMD Ryzen*",
+				Min:        1,
+				Max:        1,
+			},
+		},
+	}
 	// Sizes
 	sz1 = Size{
 		Base: Base{
@@ -316,8 +342,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   1069838336,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 1069838336,
 					Disks: []BlockDevice{
 						{
 							Size: 1025,
@@ -333,8 +365,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			sz:   Sizes{tinySize},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   2048,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 2048,
 					Disks: []BlockDevice{
 						{
 							Size: 1025,
@@ -350,8 +388,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			sz:   Sizes{microSize, microOverlappingSize},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   1024,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 1024,
 				},
 			},
 			want:    nil,
@@ -362,8 +406,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			sz:   Sizes{microSize},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   2500,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 2500,
 				},
 			},
 			want:    nil,
@@ -377,8 +427,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 999,
-					Memory:   100,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   999,
+							Threads: 1,
+						},
+					},
+					Memory: 100,
 				},
 			},
 			want:    &sz999,
@@ -393,8 +449,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   1026,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 1026,
 					Disks: []BlockDevice{
 						{
 							Size: 1026,
@@ -421,8 +483,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   1026,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 1026,
 					Disks: []BlockDevice{
 						{
 							Size: 1026,
@@ -454,8 +522,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   1026,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 1026,
 					Disks: []BlockDevice{
 						{
 							Size: 1026,
@@ -498,8 +572,14 @@ func TestSizes_FromHardware(t *testing.T) {
 			},
 			args: args{
 				hardware: MachineHardware{
-					CPUCores: 1,
-					Memory:   1024,
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+					Memory: 1024,
 					Disks: []BlockDevice{
 						{
 							Size: 1024,
@@ -517,6 +597,46 @@ func TestSizes_FromHardware(t *testing.T) {
 				},
 			},
 			want:    &mixedDiskSize,
+			wantErr: false,
+		},
+		{
+			name: "intel cpu",
+			sz: Sizes{
+				intelCPUSize,
+				amdCPUSize,
+			},
+			args: args{
+				hardware: MachineHardware{
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "Intel Xeon Silver 4114",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+				},
+			},
+			want:    &intelCPUSize,
+			wantErr: false,
+		},
+		{
+			name: "amd cpu",
+			sz: Sizes{
+				intelCPUSize,
+				amdCPUSize,
+			},
+			args: args{
+				hardware: MachineHardware{
+					MetalCPUs: []MetalCPU{
+						{
+							Model:   "AMD Ryzen 5 8700",
+							Cores:   1,
+							Threads: 1,
+						},
+					},
+				},
+			},
+			want:    &amdCPUSize,
 			wantErr: false,
 		},
 	}

@@ -480,21 +480,6 @@ func TestRethinkStore_SearchMachines(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "search by hardware cpus",
-			q: &MachineSearchQuery{
-				HardwareCPUCores: pointer.Pointer(int64(8)),
-			},
-			mock: []*metal.Machine{
-				{Base: metal.Base{ID: "1"}, Hardware: metal.MachineHardware{CPUCores: 1}},
-				{Base: metal.Base{ID: "2"}, Hardware: metal.MachineHardware{CPUCores: 2}},
-				{Base: metal.Base{ID: "3"}, Hardware: metal.MachineHardware{CPUCores: 8}},
-			},
-			want: []*metal.Machine{
-				tt.defaultBody(&metal.Machine{Base: metal.Base{ID: "3"}, Hardware: metal.MachineHardware{CPUCores: 8}}),
-			},
-			wantErr: nil,
-		},
-		{
 			name: "search by nic mac address",
 			q: &MachineSearchQuery{
 				NicsMacAddresses: []string{"mac-c"},

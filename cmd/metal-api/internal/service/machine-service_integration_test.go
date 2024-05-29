@@ -40,8 +40,13 @@ func TestMachineAllocationIntegrationFullCycle(t *testing.T) {
 			Date:    "1970",
 		},
 		Hardware: &grpcv1.MachineHardware{
-			CpuCores: 8,
-			Memory:   1500,
+			Cpus: []*grpcv1.MachineCPU{
+				{
+					Model:   "Intel Xeon Silver",
+					Cores:   8,
+					Threads: 8,
+				},
+			}, Memory: 1500,
 			Disks: []*grpcv1.MachineBlockDevice{
 				{
 					Name: "sda",

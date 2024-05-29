@@ -144,7 +144,6 @@ func (b *BootService) Register(ctx context.Context, req *v1.BootServiceRegisterR
 
 	machineHardware := metal.MachineHardware{
 		Memory:    req.Hardware.Memory,
-		CPUCores:  int(req.Hardware.CpuCores),
 		Disks:     disks,
 		Nics:      nics,
 		MetalCPUs: cpus,

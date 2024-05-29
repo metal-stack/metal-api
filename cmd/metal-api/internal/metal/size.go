@@ -83,7 +83,8 @@ func (c *Constraint) matches(hw MachineHardware) bool {
 	res := false
 	switch c.Type {
 	case CoreConstraint:
-		res = c.inRange(uint64(hw.CPUCores))
+		cores, _ := cpuCapacityOf(c.Identifier, hw.MetalCPUs)
+		res = c.inRange(cores)
 	case MemoryConstraint:
 		res = c.inRange(hw.Memory)
 	case StorageConstraint:
@@ -132,8 +133,18 @@ func (hw *MachineHardware) matches(constraints []Constraint, constraintType Cons
 		}
 		return len(unmatchedGPUs) == 0
 	case CoreConstraint:
-		// FIXME implement
-		return true
+		unmatchedCPUs := slices.Clone(hw.MetalCPUs)
+		for _, c := range filtered {
+			cores, listOfCPUs := cpuCapacityOf(c.Identifier, hw.MetalCPUs)
+
+			match := c.inRange(cores)
+			if !match {
+				continue
+			}
+
+			unmatchedCPUs, _ = lo.Difference(unmatchedCPUs, listOfCPUs)
+		}
+		return len(unmatchedCPUs) == 0
 	case MemoryConstraint:
 		// Noop because we do not have different CPU types or Memory types
 		return true

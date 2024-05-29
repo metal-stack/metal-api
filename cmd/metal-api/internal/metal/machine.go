@@ -459,7 +459,6 @@ func (n NetworkType) String() string {
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
 	Memory    uint64        `rethinkdb:"memory" json:"memory"`
-	CPUCores  int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
 	Nics      Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
 	Disks     []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
 	MetalCPUs []MetalCPU    `rethinkdb:"cpus" json:"cpus"`
@@ -545,6 +544,30 @@ func gpuCapacityOf(identifier string, gpus []MetalGPU) (uint64, []MetalGPU) {
 	return c, matchedGPUs
 }
 
+// cpuCapacityOf calculates the capacity of all cpus for the given identifier glob pattern
+func cpuCapacityOf(identifier string, cpus []MetalCPU) (uint64, []MetalCPU) {
+	if identifier == "" {
+		identifier = "*"
+	}
+	var (
+		c           uint64
+		matchedCPUs []MetalCPU
+	)
+
+	for _, cpu := range cpus {
+		matches, err := filepath.Match(identifier, cpu.Model)
+		if err != nil {
+			// illegal identifiers are already prevented by size validation
+			continue
+		}
+		if !matches {
+			continue
+		}
+		c += uint64(cpu.Cores)
+		matchedCPUs = append(matchedCPUs, cpu)
+	}
+	return c, matchedCPUs
+}
 func (hw *MachineHardware) GPUModels() map[string]uint64 {
 	models := make(map[string]uint64)
 	for _, gpu := range hw.MetalGPUs {
@@ -560,7 +583,7 @@ func (hw *MachineHardware) GPUModels() map[string]uint64 {
 
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s GPUs:%s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(DiskCapacity(hw.Disks)), hw.MetalGPUs)
+	return fmt.Sprintf("CPUs: %d, Memory: %s, Storage: %s GPUs:%s", len(hw.MetalCPUs), humanize.Bytes(hw.Memory), humanize.Bytes(DiskCapacity(hw.Disks)), hw.MetalGPUs)
 }
 
 // BlockDevice information.
