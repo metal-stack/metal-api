@@ -39,8 +39,7 @@ type MachineSearchQuery struct {
 	NetworkASNs                []int64  `json:"network_asns" optional:"true"`
 
 	// hardware
-	HardwareMemory   *int64 `json:"hardware_memory" optional:"true"`
-	HardwareCPUCores *int64 `json:"hardware_cpu_cores" optional:"true"`
+	HardwareMemory *int64 `json:"hardware_memory" optional:"true"`
 
 	// nics
 	NicsMacAddresses         []string `json:"nics_mac_addresses" optional:"true"`
@@ -208,12 +207,6 @@ func (p *MachineSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	if p.HardwareMemory != nil {
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("hardware").Field("memory").Eq(*p.HardwareMemory)
-		})
-	}
-
-	if p.HardwareCPUCores != nil {
-		q = q.Filter(func(row r.Term) r.Term {
-			return row.Field("hardware").Field("cpu_cores").Eq(*p.HardwareCPUCores)
 		})
 	}
 

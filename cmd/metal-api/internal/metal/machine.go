@@ -5,12 +5,14 @@ import (
 	"log/slog"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
+	"github.com/samber/lo"
 )
 
 // A MState is an enum which indicates the state of a machine
@@ -458,7 +460,6 @@ func (n NetworkType) String() string {
 // MachineHardware stores the data which is collected by our system on the hardware when it registers itself.
 type MachineHardware struct {
 	Memory    uint64        `rethinkdb:"memory" json:"memory"`
-	CPUCores  int           `rethinkdb:"cpu_cores" json:"cpu_cores"`
 	Nics      Nics          `rethinkdb:"network_interfaces" json:"network_interfaces"`
 	Disks     []BlockDevice `rethinkdb:"block_devices" json:"block_devices"`
 	MetalCPUs []MetalCPU    `rethinkdb:"cpus" json:"cpus"`
@@ -489,13 +490,51 @@ const (
 	MachineResurrectAfter    time.Duration     = time.Hour
 )
 
-// DiskCapacity calculates the capacity of all disks.
-func (hw *MachineHardware) DiskCapacity() uint64 {
-	var c uint64
-	for _, d := range hw.Disks {
-		c += d.Size
+func capacityOf[V any](identifier string, vs []V, countFn func(v V) (model string, count uint64)) (uint64, []V) {
+	var (
+		sum     uint64
+		matched []V
+	)
+
+	if identifier == "" {
+		identifier = "*"
 	}
-	return c
+
+	for _, v := range vs {
+		model, count := countFn(v)
+
+		matches, err := filepath.Match(identifier, model)
+		if err != nil {
+			// illegal identifiers are already prevented by size validation
+			continue
+		}
+
+		if !matches {
+			continue
+		}
+
+		sum += count
+		matched = append(matched, v)
+	}
+
+	return sum, matched
+}
+
+func exhaustiveMatch[V comparable](cs []Constraint, vs []V, countFn func(v V) (model string, count uint64)) bool {
+	unmatched := slices.Clone(vs)
+
+	for _, c := range cs {
+		capacity, matched := capacityOf(c.Identifier, vs, countFn)
+
+		match := c.inRange(capacity)
+		if !match {
+			continue
+		}
+
+		unmatched, _ = lo.Difference(unmatched, matched)
+	}
+
+	return len(unmatched) == 0
 }
 
 func (hw *MachineHardware) GPUModels() map[string]uint64 {
@@ -513,7 +552,10 @@ func (hw *MachineHardware) GPUModels() map[string]uint64 {
 
 // ReadableSpec returns a human readable string for the hardware.
 func (hw *MachineHardware) ReadableSpec() string {
-	return fmt.Sprintf("Cores: %d, Memory: %s, Storage: %s GPUs:%s", hw.CPUCores, humanize.Bytes(hw.Memory), humanize.Bytes(hw.DiskCapacity()), hw.MetalGPUs)
+	diskCapacity, _ := capacityOf("*", hw.Disks, countDisk)
+	cpus, _ := capacityOf("*", hw.MetalCPUs, countCPU)
+	gpus, _ := capacityOf("*", hw.MetalGPUs, countGPU)
+	return fmt.Sprintf("CPUs: %d, Memory: %s, Storage: %s, GPUs: %d", cpus, humanize.Bytes(hw.Memory), humanize.Bytes(diskCapacity), gpus)
 }
 
 // BlockDevice information.

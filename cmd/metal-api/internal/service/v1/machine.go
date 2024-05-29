@@ -320,42 +320,6 @@ type MachineIssue struct {
 	Details     string `json:"details" description:"details of the issue"`
 }
 
-func NewMetalMachineHardware(r *MachineHardware) metal.MachineHardware {
-	nics := metal.Nics{}
-	for i := range r.Nics {
-		var neighbors metal.Nics
-		for i2 := range r.Nics[i].Neighbors {
-			neighbor := metal.Nic{
-				MacAddress: metal.MacAddress(r.Nics[i].Neighbors[i2].MacAddress),
-				Name:       r.Nics[i].Neighbors[i2].Name,
-				Identifier: r.Nics[i].Neighbors[i2].Identifier,
-			}
-			neighbors = append(neighbors, neighbor)
-		}
-		nic := metal.Nic{
-			MacAddress: metal.MacAddress(r.Nics[i].MacAddress),
-			Name:       r.Nics[i].Name,
-			Identifier: r.Nics[i].Identifier,
-			Neighbors:  neighbors,
-		}
-		nics = append(nics, nic)
-	}
-	var disks []metal.BlockDevice
-	for _, d := range r.Disks {
-		disk := metal.BlockDevice{
-			Name: d.Name,
-			Size: d.Size,
-		}
-		disks = append(disks, disk)
-	}
-	return metal.MachineHardware{
-		Memory:   r.Memory,
-		CPUCores: r.CPUCores,
-		Nics:     nics,
-		Disks:    disks,
-	}
-}
-
 func NewMetalIPMI(r *MachineIPMI) metal.IPMI {
 	var chassisPartNumber string
 	if r.Fru.ChassisPartNumber != nil {
@@ -518,7 +482,6 @@ func NewMachineResponse(m *metal.Machine, s *metal.Size, p *metal.Partition, i *
 	hardware = MachineHardware{
 		MachineHardwareBase: MachineHardwareBase{
 			Memory:    m.Hardware.Memory,
-			CPUCores:  m.Hardware.CPUCores,
 			Disks:     disks,
 			MetalCPUs: cpus,
 			MetalGPUs: gpus,
