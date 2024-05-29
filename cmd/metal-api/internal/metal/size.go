@@ -1,6 +1,7 @@
 package metal
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -210,44 +211,64 @@ func (c *Constraint) overlaps(other Constraint) bool {
 	if c.Max < other.Min {
 		return false
 	}
+
 	return true
+}
+
+func (c *Constraint) validate() error {
+	if c.Max < c.Min {
+		return fmt.Errorf("max is smaller than min")
+	}
+
+	if _, err := filepath.Match(c.Identifier, ""); err != nil {
+		return fmt.Errorf("identifier is malformed: %w", err)
+	}
+
+	switch t := c.Type; t {
+	case GPUConstraint:
+		if c.Identifier == "" {
+			return fmt.Errorf("for gpu constraints an identifier is required")
+		}
+	case MemoryConstraint:
+		if c.Identifier != "" {
+			return fmt.Errorf("for memory constraints an identifier is not allowed")
+		}
+	case CoreConstraint, StorageConstraint:
+	}
+
+	return nil
 }
 
 // Validate a size, returns error if a invalid size is passed
 func (s *Size) Validate(partitions PartitionMap, projects map[string]*mdmv1.Project) error {
-	constraintTypes := map[ConstraintType]uint{}
-	for _, c := range s.Constraints {
-		if c.Max < c.Min {
-			return fmt.Errorf("size:%q type:%q max:%d is smaller than min:%d", s.ID, c.Type, c.Max, c.Min)
+	var (
+		errs       []error
+		typeCounts = map[ConstraintType]uint{}
+	)
+
+	for i, c := range s.Constraints {
+		typeCounts[c.Type]++
+
+		err := c.validate()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("constraint at index %d is invalid: %w", i, err))
 		}
 
-		// CPU and Memory Constraints are not allowed more than once
-		constraintTypes[c.Type]++
-		count := constraintTypes[c.Type]
-		if c.Type == CoreConstraint || c.Type == MemoryConstraint {
-			if count > 1 {
-				return fmt.Errorf("size:%q type:%q min:%d max:%d has duplicate constraint type", s.ID, c.Type, c.Min, c.Max)
+		switch t := c.Type; t {
+		case GPUConstraint, StorageConstraint:
+		case MemoryConstraint, CoreConstraint:
+			if typeCounts[t] > 1 {
+				errs = append(errs, fmt.Errorf("constraint at index %d is invalid: type duplicates are not allowed for type %q", i, t))
 			}
 		}
-
-		// Ensure GPU Constraints always have identifier specified
-		if c.Type == GPUConstraint && c.Identifier == "" {
-			return fmt.Errorf("size:%q type:%q min:%d max:%d is a gpu size but has no identifier specified", s.ID, c.Type, c.Min, c.Max)
-		}
-
-		// Ensure Memory Constraints do not have a identifier specified
-		if c.Type == MemoryConstraint && c.Identifier != "" {
-			return fmt.Errorf("size:%q type:%q min:%d max:%d is a memory size but has a identifier specified", s.ID, c.Type, c.Min, c.Max)
-		}
-
-		if _, err := filepath.Match(c.Identifier, ""); err != nil {
-			return fmt.Errorf("size:%q type:%q min:%d max:%d identifier:%q identifier is malformed:%w", s.ID, c.Type, c.Min, c.Max, c.Identifier, err)
-		}
-
 	}
 
 	if err := s.Reservations.Validate(partitions, projects); err != nil {
-		return fmt.Errorf("invalid size reservation: %w", err)
+		errs = append(errs, fmt.Errorf("size reservations are invalid: %w", err))
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("size %q is invalid: %w", s.ID, errors.Join(errs...))
 	}
 
 	return nil
