@@ -44,7 +44,7 @@ var (
 	}
 	sdaDiskSize = Size{
 		Base: Base{
-			ID: "mixedDisk",
+			ID: "sdaDisk",
 		},
 		Constraints: []Constraint{
 			{
@@ -62,6 +62,28 @@ var (
 				Min:        0,
 				Max:        1024,
 				Identifier: "/dev/sd*",
+			},
+		},
+	}
+	noIdentifierDiskSize = Size{
+		Base: Base{
+			ID: "mixedDisk",
+		},
+		Constraints: []Constraint{
+			{
+				Type: CoreConstraint,
+				Min:  1,
+				Max:  1,
+			},
+			{
+				Type: MemoryConstraint,
+				Min:  1024,
+				Max:  1024,
+			},
+			{
+				Type: StorageConstraint,
+				Min:  0,
+				Max:  1024,
 			},
 		},
 	}
@@ -472,6 +494,7 @@ func TestSizes_FromHardware(t *testing.T) {
 				maxGPUSize,
 				mixedDiskSize,
 				sdaDiskSize,
+				noIdentifierDiskSize,
 			},
 			args: args{
 				hardware: MachineHardware{
@@ -917,6 +940,23 @@ func TestSize_Validate(t *testing.T) {
 				},
 			},
 			wantErrMessage: pointer.Pointer("size:\"invalid-gpu-size\" type:\"gpu\" min:2 max:8 is a gpu size but has no identifier specified"),
+		},
+		{
+			name: "storage with invalid identifier",
+			size: Size{
+				Base: Base{
+					ID: "invalid-storage-size",
+				},
+				Constraints: []Constraint{
+					{
+						Type:       StorageConstraint,
+						Identifier: "][",
+						Min:        2,
+						Max:        8,
+					},
+				},
+			},
+			wantErrMessage: pointer.Pointer("size:\"invalid-storage-size\" type:\"storage\" min:2 max:8 identifier:\"][\" identifier is malformed:syntax error in pattern"),
 		},
 	}
 	for _, tt := range tests {
