@@ -3,7 +3,6 @@ package metal
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -163,6 +162,7 @@ func (n *Nic) GetIdentifier() string {
 type Nics []Nic
 
 // Prefix is a ip with mask, either ipv4/ipv6
+// FIXME this should be converted to simply a string
 type Prefix struct {
 	IP     string `rethinkdb:"ip" json:"ip"`
 	Length string `rethinkdb:"length" json:"length"`
@@ -183,19 +183,6 @@ func NewPrefixFromCIDR(cidr string) (*Prefix, error) {
 		IP:     ip,
 		Length: length,
 	}, nil
-}
-
-func SplitCIDR(cidr string) (string, *int) {
-	parts := strings.Split(cidr, "/")
-	if len(parts) == 2 {
-		length, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return parts[0], nil
-		}
-		return parts[0], &length
-	}
-
-	return cidr, nil
 }
 
 // String implements the Stringer interface

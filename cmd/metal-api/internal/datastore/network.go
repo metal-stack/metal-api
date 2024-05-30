@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"net/netip"
 	"strconv"
 
 	"github.com/metal-stack/metal-api/cmd/metal-api/internal/metal"
@@ -90,7 +91,12 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 	}
 
 	for _, prefix := range p.Prefixes {
-		ip, length := metal.SplitCIDR(prefix)
+		pfx, err := netip.ParsePrefix(prefix)
+		if err != nil {
+			continue
+		}
+		ip := pfx.Addr()
+		length := pfx.Bits()
 
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("prefixes").Map(func(p r.Term) r.Term {
@@ -98,17 +104,20 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 			}).Contains(r.Expr(ip))
 		})
 
-		if length != nil {
-			q = q.Filter(func(row r.Term) r.Term {
-				return row.Field("prefixes").Map(func(p r.Term) r.Term {
-					return p.Field("length")
-				}).Contains(r.Expr(strconv.Itoa(*length)))
-			})
-		}
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("prefixes").Map(func(p r.Term) r.Term {
+				return p.Field("length")
+			}).Contains(r.Expr(strconv.Itoa(length)))
+		})
 	}
 
 	for _, destPrefix := range p.DestinationPrefixes {
-		ip, length := metal.SplitCIDR(destPrefix)
+		pfx, err := netip.ParsePrefix(destPrefix)
+		if err != nil {
+			continue
+		}
+		ip := pfx.Addr()
+		length := pfx.Bits()
 
 		q = q.Filter(func(row r.Term) r.Term {
 			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
@@ -116,13 +125,11 @@ func (p *NetworkSearchQuery) generateTerm(rs *RethinkStore) *r.Term {
 			}).Contains(r.Expr(ip))
 		})
 
-		if length != nil {
-			q = q.Filter(func(row r.Term) r.Term {
-				return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
-					return dp.Field("length")
-				}).Contains(r.Expr(strconv.Itoa(*length)))
-			})
-		}
+		q = q.Filter(func(row r.Term) r.Term {
+			return row.Field("destinationprefixes").Map(func(dp r.Term) r.Term {
+				return dp.Field("length")
+			}).Contains(r.Expr(strconv.Itoa(length)))
+		})
 	}
 
 	return &q
